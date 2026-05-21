@@ -415,6 +415,22 @@ interface CharacterSetting { id: string; name: string; seed: string; entries: Se
 
 const mkId = () => Math.random().toString(36).slice(2, 8);
 
+const CHAR_COLORS: Record<string, string> = {
+  sua: C.primary, min: '#E25C5C', lena: '#4BB8D9', hayun: C.success, choi: '#D4A04A',
+};
+
+function mkE(label: string, content: string, isSpoiler = false): SettingEntry {
+  return { id: mkId(), label, content, placeholder: '', isSpoiler };
+}
+
+const INIT_CHARS: CharacterSetting[] = [
+  { id: 'sua',  name: '수아',    seed: '', entries: [mkE('역할','주인공'), mkE('나이','23세'), mkE('눈','갈색'), mkE('직업','검사 지망생'), mkE('첫등장','1화')] },
+  { id: 'min',  name: '강민준',  seed: '', entries: [mkE('역할','남자주인공'), mkE('나이','32세'), mkE('눈','짙은갈색'), mkE('직업','수석검사'), mkE('첫등장','3화')] },
+  { id: 'lena', name: '이레나',  seed: '', entries: [mkE('역할','라이벌/화해'), mkE('나이','28세'), mkE('눈','흑색'), mkE('직업','변호사'), mkE('첫등장','12화')] },
+  { id: 'hayun',name: '하윤',    seed: '', entries: [mkE('역할','절친'), mkE('나이','23세'), mkE('눈','밝은갈색'), mkE('직업','대학원생'), mkE('첫등장','2화')] },
+  { id: 'choi', name: '최 검사', seed: '', entries: [mkE('역할','상사'), mkE('나이','45세'), mkE('눈','—'), mkE('직업','검사장'), mkE('첫등장','5화')] },
+];
+
 function generateMockEntries(_seed: string): SettingEntry[] {
   return [
     { id: mkId(), label: '역할', content: '', placeholder: '예: 주인공 / 라이벌 / 조력자', isSpoiler: false },
@@ -516,14 +532,15 @@ function SavedSettingCard({ setting }: { setting: CharacterSetting }) {
 }
 
 // ── SettingsBuilderModal ──────────────────────────
-function SettingsBuilderModal({ onClose, onSave }: {
+function SettingsBuilderModal({ onClose, onSave, initial }: {
   onClose: () => void;
   onSave: (s: CharacterSetting) => void;
+  initial?: CharacterSetting;
 }) {
-  const [name, setName] = useState('');
-  const [seed, setSeed] = useState('');
-  const [entries, setEntries] = useState<SettingEntry[]>([]);
-  const [generated, setGenerated] = useState(false);
+  const [name, setName] = useState(initial?.name ?? '');
+  const [seed, setSeed] = useState(initial?.seed ?? '');
+  const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? []);
+  const [generated, setGenerated] = useState(!!initial);
 
   const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
   const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
@@ -536,7 +553,7 @@ function SettingsBuilderModal({ onClose, onSave }: {
   };
 
   const handleSave = () => {
-    onSave({ id: mkId(), name: name.trim(), seed, entries });
+    onSave({ id: initial?.id ?? mkId(), name: name.trim(), seed, entries });
     onClose();
   };
 
@@ -561,7 +578,7 @@ function SettingsBuilderModal({ onClose, onSave }: {
         <div style={{ padding: '24px 28px 20px', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Sparkles size={16} color={C.primary} /> 캐릭터 설정 만들기
+              <Sparkles size={16} color={C.primary} /> {initial ? '캐릭터 설정 수정' : '캐릭터 설정 만들기'}
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4 }}>
               <X size={18} />
@@ -636,6 +653,61 @@ function SettingsBuilderModal({ onClose, onSave }: {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ── CharCardDynamic (CharacterSetting 기반, 클릭 수정 가능) ──
+function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdit: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const color = CHAR_COLORS[setting.id] || C.primary;
+  const get = (label: string) =>
+    setting.entries.find(e => e.label.includes(label))?.content || '—';
+
+  const rows = ['나이', '눈', '직업', '첫등장'].map(k => ({ k, v: get(k) })).filter(r => r.v !== '—');
+  const role = get('역할');
+
+  return (
+    <div
+      onClick={onEdit}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: C.bg, borderRadius: 8,
+        border: `1px solid ${hovered ? color + '88' : C.border}`,
+        padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
+        cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative',
+      }}
+    >
+      {hovered && (
+        <div style={{
+          position: 'absolute', top: 10, right: 10, background: C.surface,
+          border: `1px solid ${C.border}`, borderRadius: 4,
+          padding: '2px 8px', fontSize: 11, color: C.t3,
+        }}>수정</div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+          background: color + '22', border: `1.5px solid ${color}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color, fontSize: 16, fontWeight: 700,
+        }}>{setting.name[0]}</div>
+        <div>
+          <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{setting.name}</div>
+          <div style={{ color, fontSize: 11, fontWeight: 500 }}>{role}</div>
+        </div>
+      </div>
+      {rows.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {rows.map(item => (
+            <div key={item.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: C.t3, fontSize: 12 }}>{item.k}</span>
+              <span style={{ color: C.t2, fontSize: 12 }}>{item.v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -905,7 +977,15 @@ export default function S1Dashboard({ navigate }: Props) {
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode'>(false);
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
   const [showBuilder, setShowBuilder] = useState(false);
-  const [savedChars, setSavedChars] = useState<CharacterSetting[]>([]);
+  const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
+  const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
+
+  const handleCharSave = (s: CharacterSetting) => {
+    setChars(prev => {
+      const idx = prev.findIndex(c => c.id === s.id);
+      return idx >= 0 ? prev.map(c => c.id === s.id ? s : c) : [...prev, s];
+    });
+  };
 
   const goToSettingDB = () => {
     setSelectedWork('detective');
@@ -1094,11 +1174,9 @@ export default function S1Dashboard({ navigate }: Props) {
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
-                          <CharCard name="수아" role="주인공" age={23} eyes="갈색 ⚠" job="검사 지망생" chapter={1} eyeConflict colorKey="sua" />
-                          <CharCard name="강민준" role="남자주인공" age={32} eyes="짙은갈색" job="수석검사" chapter={3} colorKey="min" />
-                          <CharCard name="이레나" role="라이벌/화해" age={28} eyes="흑색" job="변호사" chapter={12} colorKey="lena" />
-                          <CharCard name="하윤" role="절친" age={23} eyes="밝은갈색" job="대학원생" chapter={2} colorKey="hayun" />
-                          <CharCard name="최 검사" role="상사" age={45} eyes="―" job="검사장" chapter={5} colorKey="choi" />
+                          {chars.map(s => (
+                            <CharCardDynamic key={s.id} setting={s} onEdit={() => setEditTarget(s)} />
+                          ))}
                           <div onClick={() => setShowBuilder(true)} style={{
                             background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -1109,7 +1187,6 @@ export default function S1Dashboard({ navigate }: Props) {
                             <Sparkles size={20} color={C.primary} />
                             <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 설정 만들기</span>
                           </div>
-                          {savedChars.map(s => <SavedSettingCard key={s.id} setting={s} />)}
                         </div>
                         <div style={{ marginTop: 24, maxWidth: 860 }}>
                           <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>변경 이력</div>
@@ -1240,8 +1317,18 @@ export default function S1Dashboard({ navigate }: Props) {
       </div>
 
       <AnimatePresence>
-        {showBuilder && (
-        <SettingsBuilderModal onClose={() => setShowBuilder(false)} onSave={s => setSavedChars(p => [...p, s])} />
+        {editTarget && (
+        <SettingsBuilderModal
+          initial={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={s => { handleCharSave(s); setEditTarget(null); }}
+        />
+      )}
+      {showBuilder && (
+        <SettingsBuilderModal
+          onClose={() => setShowBuilder(false)}
+          onSave={s => { handleCharSave(s); setShowBuilder(false); }}
+        />
       )}
       {showUpload !== false && (
           <UploadModal
