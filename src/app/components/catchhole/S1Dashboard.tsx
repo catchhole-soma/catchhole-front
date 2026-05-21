@@ -6,7 +6,7 @@ import {
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
-  Eye, EyeOff, Trash2, X, Sparkles,
+  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 
@@ -146,7 +146,7 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>작품 제목</div>
               <input
                 value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder="예: 빛나는 검사 로맨스"
+                placeholder="빛나는 검사 로맨스"
                 style={{
                   width: '100%', height: 40, borderRadius: 6,
                   background: C.bg, border: `1px solid ${C.border}`,
@@ -237,7 +237,7 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>회차 번호</div>
               <input
                 value={episodeNum} onChange={(e) => setEpisodeNum(e.target.value)}
-                placeholder="예: 160" type="number" min="1"
+                placeholder="160" type="number" min="1"
                 style={{
                   width: '100%', height: 40, borderRadius: 6,
                   background: C.bg, border: `1px solid ${C.border}`,
@@ -432,19 +432,48 @@ const INIT_CHARS: CharacterSetting[] = [
 ];
 
 function generateMockEntries(_seed: string): SettingEntry[] {
+  const e = (label: string, placeholder: string, isSpoiler = false): SettingEntry =>
+    ({ id: mkId(), label, content: '', placeholder, isSpoiler });
   return [
-    { id: mkId(), label: '역할', content: '', placeholder: '예: 주인공 / 라이벌 / 조력자', isSpoiler: false },
-    { id: mkId(), label: '성별', content: '', placeholder: '예: 여성', isSpoiler: false },
-    { id: mkId(), label: '나이', content: '', placeholder: '예: 23세', isSpoiler: false },
-    { id: mkId(), label: '호칭 / 별명', content: '', placeholder: '예: "검사님" — 직위에서 비롯된 호칭', isSpoiler: false },
-    { id: mkId(), label: '성격', content: '', placeholder: '예: 원칙주의적이지만 감정에 약함', isSpoiler: false },
-    { id: mkId(), label: '성격이 그렇게 된 이유', content: '', placeholder: '예: 어린 시절 부당한 일을 겪고 정의감이 형성됨', isSpoiler: true },
-    { id: mkId(), label: '매력', content: '', placeholder: '예: 강직함 속에 숨은 따뜻함', isSpoiler: false },
-    { id: mkId(), label: '현재 처지', content: '', placeholder: '예: 시험 준비 중인 검사 지망생', isSpoiler: false },
-    { id: mkId(), label: '강점', content: '', placeholder: '예: 뛰어난 기억력과 논리적 사고', isSpoiler: false },
-    { id: mkId(), label: '약점', content: '', placeholder: '예: 특정 인물에 대한 집착으로 판단력 흐려짐', isSpoiler: true },
-    { id: mkId(), label: '콤플렉스', content: '', placeholder: '예: 가족의 비밀로 인한 죄책감', isSpoiler: true },
-    { id: mkId(), label: '자신만의 가치관', content: '', placeholder: '예: 진실은 반드시 밝혀져야 한다', isSpoiler: false },
+    // 기본
+    e('역할',              '주인공 / 라이벌 / 조력자'),
+    e('성별',              '여성'),
+    e('나이',              '23세'),
+    e('호칭 / 별명',       '"검사님" — 직위에서 비롯된 호칭'),
+    // 외모
+    e('눈 색깔',           '짙은 갈색'),
+    e('머리 색 / 스타일',  '흑발, 단발'),
+    e('키 / 체형',         '170cm, 보통 체형'),
+    e('특이한 신체 특징',  '왼쪽 손목 흉터'),
+    e('목소리 특징',       '낮고 차분한 편'),
+    // 배경
+    e('출신지 / 성장 배경','서울 출신, 평범한 중산층 가정'),
+    e('학력 / 경력',       '서울대 법학전문대학원 수석 졸업'),
+    e('가족 관계',         '부모 사망, 현재 혼자 생활'),
+    e('현재 소속 / 직위',  '서울 중앙지검 검사 지망생'),
+    e('재산 / 경제 상황',  '학자금 대출 상환 중, 오피스텔 월세'),
+    // 성격
+    e('성격',              '원칙주의적이지만 감정에 약함'),
+    e('성격이 그렇게 된 이유', '어린 시절 부당한 일을 겪고 정의감 형성', true),
+    e('말버릇 / 입버릇',   '긴장하면 "그렇죠?"를 반복'),
+    e('습관',              '생각할 때 볼펜을 돌림'),
+    e('스트레스 받을 때 행동', '말없이 사라져서 혼자 해결하려 함'),
+    // 내면
+    e('매력',              '강직함 속에 숨은 따뜻함'),
+    e('강점',              '뛰어난 기억력과 논리적 사고'),
+    e('약점',              '특정 인물에 대한 집착으로 판단력 흐려짐', true),
+    e('콤플렉스',          '가족의 비밀로 인한 죄책감', true),
+    e('자신만의 가치관',   '진실은 반드시 밝혀져야 한다'),
+    e('가장 두려워하는 것','자신이 아버지와 같은 사람이 될까 봐', true),
+    e('표면적 욕구',       '검사가 되어 사회 정의를 실현'),
+    e('내면적 욕구',       '아버지에게서 도망치지 않는 자신이 되고 싶음', true),
+    e('자기기만',          '"나는 감정에 흔들리지 않는다"고 믿음', true),
+    e('타인이 모르는 비밀','핵심 증거를 은폐한 적이 있음', true),
+    // 서사
+    e('현재 처지',         '시험 준비 중인 검사 지망생'),
+    e('주인공과의 관계',   '처음엔 적대, 이후 협력 관계로 발전'),
+    e('주인공을 어떻게 변화시키는가', '주인공이 감정을 직면하도록 강제함'),
+    e('결말에서의 운명',   '모든 진실을 밝히고 떠남', true),
   ];
 }
 
@@ -455,45 +484,105 @@ function EntryRow({ entry, onChange, onRemove }: {
   onRemove: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const [focused, setFocused] = useState(false);
   const showContent = !entry.isSpoiler || revealed;
-  const baseInp: React.CSSProperties = {
-    height: 34, borderRadius: 5, background: C.bg, border: `1px solid ${C.border}`,
-    color: C.t1, fontSize: 12, padding: '0 10px', fontFamily: 'inherit', outline: 'none',
+  const showHint = focused && entry.content === '' && !!entry.placeholder && showContent;
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowRight' && entry.content === '' && entry.placeholder) {
+      e.preventDefault();
+      onChange({ content: entry.placeholder });
+    }
   };
+
+  const baseInp: React.CSSProperties = {
+    height: 34, borderRadius: 5, background: C.bg,
+    border: `1px solid ${focused ? C.primary : C.border}`,
+    color: C.t1, fontSize: 12, padding: '0 10px',
+    fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, alignItems: 'center' }}>
-      <input value={entry.label} onChange={e => onChange({ label: e.target.value })} placeholder="항목명"
-        style={{ ...baseInp, color: C.t2, fontWeight: 500 }}
-        onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
-      {showContent ? (
-        <input value={entry.content} onChange={e => onChange({ content: e.target.value })} placeholder={entry.placeholder}
-          style={baseInp}
-          onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
-      ) : (
-        <div style={{ height: 34, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10 }}>
-          <span style={{ color: C.danger, letterSpacing: 4, fontSize: 12 }}>●●●●●</span>
-          <button onClick={() => setRevealed(true)} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', fontSize: 11, padding: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Eye size={11} /> 잠깐 보기
+    <div style={{
+      display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, alignItems: 'center',
+      paddingLeft: 6,
+      borderLeft: entry.isSpoiler ? `2px solid ${C.danger}66` : '2px solid transparent',
+      transition: 'border-color 0.15s',
+    }}>
+      {/* 항목명 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input value={entry.label} onChange={e => onChange({ label: e.target.value })} placeholder="항목명"
+          style={{ ...baseInp, color: C.t2, fontWeight: 500, border: `1px solid ${C.border}` }} />
+      </div>
+
+      {/* 내용 입력 or 마스킹 */}
+      <div style={{ position: 'relative' }}>
+        {showContent ? (
+          <input
+            value={entry.content}
+            onChange={e => onChange({ content: e.target.value })}
+            placeholder={entry.placeholder}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={{
+              ...baseInp,
+              paddingRight: (entry.isSpoiler && revealed) ? 72 : (showHint ? 52 : 10),
+            }}
+          />
+        ) : (
+          <div style={{
+            height: 34, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10,
+            borderRadius: 5, border: `1px solid ${C.danger}44`, background: C.danger + '08',
+          }}>
+            <span style={{ color: C.danger + 'BB', letterSpacing: 3, fontSize: 11 }}>●●●●●</span>
+            {/* 👁 임시 열람 — isSpoiler 변경 없이 내용만 확인 */}
+            <button onClick={() => setRevealed(true)}
+              style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', fontSize: 11, padding: 2, display: 'flex', alignItems: 'center', gap: 3, marginLeft: 'auto', marginRight: 4 }}>
+              <Eye size={11} /> 잠깐 보기
+            </button>
+          </div>
+        )}
+        {/* → 수용 힌트 */}
+        {showHint && (
+          <span style={{
+            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 10, color: C.t3, pointerEvents: 'none', userSelect: 'none',
+            background: C.bg, padding: '0 3px',
+          }}>→ 수용</span>
+        )}
+        {/* 열람 중 다시 숨기기 */}
+        {entry.isSpoiler && revealed && (
+          <button onClick={() => setRevealed(false)}
+            style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              background: C.bg, border: 'none', color: C.t3, cursor: 'pointer',
+              padding: '2px 6px', borderRadius: 4,
+              display: 'flex', alignItems: 'center', gap: 3, fontSize: 11,
+            }}>
+            <EyeOff size={11} /> 숨기기
           </button>
-        </div>
-      )}
-      {/* 스포일러 토글 — 아이콘만, 역할: 스포일러 여부 설정/해제 */}
-      <button onClick={() => { onChange({ isSpoiler: !entry.isSpoiler }); setRevealed(false); }}
-        title={entry.isSpoiler ? '스포일러 해제' : '스포일러로 설정'}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: entry.isSpoiler ? C.danger : C.t3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {entry.isSpoiler ? <EyeOff size={13} /> : <Eye size={13} />}
+        )}
+      </div>
+
+      {/* 🔒 스포일러 설정/해제 — 잠금 아이콘으로 역할 명시 */}
+      <button
+        onClick={() => { onChange({ isSpoiler: !entry.isSpoiler }); setRevealed(false); }}
+        title={entry.isSpoiler ? '스포일러 해제 (공유 시 공개됨)' : '스포일러 설정 (공유 시 가려짐)'}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+          color: entry.isSpoiler ? C.danger : C.t3,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'color 0.13s',
+        }}>
+        {entry.isSpoiler ? <Lock size={13} /> : <LockOpen size={13} />}
       </button>
-      {/* 열람 중일 때 다시 숨기기 */}
-      {entry.isSpoiler && revealed ? (
-        <button onClick={() => setRevealed(false)} title="다시 숨기기"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.t3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <EyeOff size={13} />
-        </button>
-      ) : (
-        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Trash2 size={13} />
-        </button>
-      )}
+
+      {/* 삭제 */}
+      <button onClick={onRemove}
+        style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Trash2 size={13} />
+      </button>
     </div>
   );
 }
@@ -618,8 +707,8 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
           {/* 생성된 항목 목록 */}
           {generated && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px' }}>
-                {['항목', '내용 (회색 = 예시)', '', ''].map((h, i) => (
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px', paddingLeft: 8 }}>
+                {['항목', '내용  (→ 키로 예시 수용)', '🔒', ''].map((h, i) => (
                   <span key={i} style={{ color: C.t3, fontSize: 11 }}>{h}</span>
                 ))}
               </div>
@@ -643,7 +732,14 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
         <div style={{ padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: C.t3, fontSize: 12 }}>
             {generated
-              ? `${entries.length}개 항목 · 스포일러 ${entries.filter(e => e.isSpoiler).length}개`
+              ? <>
+                  {entries.length}개 항목 ·{' '}
+                  <span style={{ color: C.danger + 'AA' }}>
+                    <Lock size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
+                    {entries.filter(e => e.isSpoiler).length}개
+                  </span>
+                  {' '}는 챗봇·공유 시 가려짐
+                </>
               : 'AI 항목 생성 후 내용을 채워주세요'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
