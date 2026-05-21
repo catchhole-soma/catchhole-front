@@ -6,6 +6,7 @@ import {
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
+  Eye, EyeOff, Trash2, X, Sparkles,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 
@@ -402,6 +403,242 @@ function WorkCard({ title, genre, chapters, conflicts, hasConflict, lastUpdated,
   );
 }
 
+// ── 설정집 빌더 타입 ─────────────────────────────
+interface SettingEntry {
+  id: string;
+  label: string;       // AI가 생성한 항목명 (편집 가능)
+  content: string;     // 사용자가 채우는 값
+  placeholder: string; // AI 예시 답변
+  isSpoiler: boolean;
+}
+interface CharacterSetting { id: string; name: string; seed: string; entries: SettingEntry[]; }
+
+const mkId = () => Math.random().toString(36).slice(2, 8);
+
+function generateMockEntries(_seed: string): SettingEntry[] {
+  return [
+    { id: mkId(), label: '역할', content: '', placeholder: '예: 주인공 / 라이벌 / 조력자', isSpoiler: false },
+    { id: mkId(), label: '성별', content: '', placeholder: '예: 여성', isSpoiler: false },
+    { id: mkId(), label: '나이', content: '', placeholder: '예: 23세', isSpoiler: false },
+    { id: mkId(), label: '호칭 / 별명', content: '', placeholder: '예: "검사님" — 직위에서 비롯된 호칭', isSpoiler: false },
+    { id: mkId(), label: '성격', content: '', placeholder: '예: 원칙주의적이지만 감정에 약함', isSpoiler: false },
+    { id: mkId(), label: '성격이 그렇게 된 이유', content: '', placeholder: '예: 어린 시절 부당한 일을 겪고 정의감이 형성됨', isSpoiler: true },
+    { id: mkId(), label: '매력', content: '', placeholder: '예: 강직함 속에 숨은 따뜻함', isSpoiler: false },
+    { id: mkId(), label: '현재 처지', content: '', placeholder: '예: 시험 준비 중인 검사 지망생', isSpoiler: false },
+    { id: mkId(), label: '강점', content: '', placeholder: '예: 뛰어난 기억력과 논리적 사고', isSpoiler: false },
+    { id: mkId(), label: '약점', content: '', placeholder: '예: 특정 인물에 대한 집착으로 판단력 흐려짐', isSpoiler: true },
+    { id: mkId(), label: '콤플렉스', content: '', placeholder: '예: 가족의 비밀로 인한 죄책감', isSpoiler: true },
+    { id: mkId(), label: '자신만의 가치관', content: '', placeholder: '예: 진실은 반드시 밝혀져야 한다', isSpoiler: false },
+  ];
+}
+
+// ── EntryRow ─────────────────────────────────────
+function EntryRow({ entry, onChange, onRemove }: {
+  entry: SettingEntry;
+  onChange: (p: Partial<SettingEntry>) => void;
+  onRemove: () => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const showContent = !entry.isSpoiler || revealed;
+  const baseInp: React.CSSProperties = {
+    height: 34, borderRadius: 5, background: C.bg, border: `1px solid ${C.border}`,
+    color: C.t1, fontSize: 12, padding: '0 10px', fontFamily: 'inherit', outline: 'none',
+  };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, alignItems: 'center' }}>
+      <input value={entry.label} onChange={e => onChange({ label: e.target.value })} placeholder="항목명"
+        style={{ ...baseInp, color: C.t2, fontWeight: 500 }}
+        onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+      {showContent ? (
+        <input value={entry.content} onChange={e => onChange({ content: e.target.value })} placeholder={entry.placeholder}
+          style={baseInp}
+          onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+      ) : (
+        <div style={{ height: 34, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10 }}>
+          <span style={{ color: C.danger, letterSpacing: 4, fontSize: 12 }}>●●●●●</span>
+          <button onClick={() => setRevealed(true)} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', fontSize: 11, padding: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Eye size={11} /> 잠깐 보기
+          </button>
+        </div>
+      )}
+      {/* 스포일러 토글 — 아이콘만, 역할: 스포일러 여부 설정/해제 */}
+      <button onClick={() => { onChange({ isSpoiler: !entry.isSpoiler }); setRevealed(false); }}
+        title={entry.isSpoiler ? '스포일러 해제' : '스포일러로 설정'}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: entry.isSpoiler ? C.danger : C.t3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {entry.isSpoiler ? <EyeOff size={13} /> : <Eye size={13} />}
+      </button>
+      {/* 열람 중일 때 다시 숨기기 */}
+      {entry.isSpoiler && revealed ? (
+        <button onClick={() => setRevealed(false)} title="다시 숨기기"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.t3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <EyeOff size={13} />
+        </button>
+      ) : (
+        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Trash2 size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── SavedSettingCard ──────────────────────────────
+function SavedSettingCard({ setting }: { setting: CharacterSetting }) {
+  const spoilerCount = setting.entries.filter(e => e.isSpoiler).length;
+  const filledCount = setting.entries.filter(e => e.content.trim()).length;
+  return (
+    <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: C.primary + '22', border: `1.5px solid ${C.primary}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontSize: 16, fontWeight: 700 }}>
+          {setting.name[0] || '?'}
+        </div>
+        <div>
+          <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{setting.name}</div>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={10} /> 설정집
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {[
+          { k: '설정 항목', v: `${setting.entries.length}개` },
+          { k: '작성 완료', v: `${filledCount}개` },
+          { k: '스포일러', v: spoilerCount > 0 ? `${spoilerCount}개 숨김` : '없음' },
+        ].map(item => (
+          <div key={item.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: C.t3, fontSize: 12 }}>{item.k}</span>
+            <span style={{ color: C.t2, fontSize: 12 }}>{item.v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SettingsBuilderModal ──────────────────────────
+function SettingsBuilderModal({ onClose, onSave }: {
+  onClose: () => void;
+  onSave: (s: CharacterSetting) => void;
+}) {
+  const [name, setName] = useState('');
+  const [seed, setSeed] = useState('');
+  const [entries, setEntries] = useState<SettingEntry[]>([]);
+  const [generated, setGenerated] = useState(false);
+
+  const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
+  const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
+  const upEntry = (id: string, patch: Partial<SettingEntry>) =>
+    setEntries(p => p.map(e => e.id === id ? { ...e, ...patch } : e));
+
+  const generate = () => {
+    setEntries(generateMockEntries(seed));
+    setGenerated(true);
+  };
+
+  const handleSave = () => {
+    onSave({ id: mkId(), name: name.trim(), seed, entries });
+    onClose();
+  };
+
+  const baseStyle: React.CSSProperties = {
+    borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`,
+    color: C.t1, fontFamily: 'inherit', outline: 'none',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '40px 20px' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 16, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: 660, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 24px 64px rgba(0,0,0,0.6)', marginBottom: 40 }}
+      >
+        {/* 헤더 */}
+        <div style={{ padding: '24px 28px 20px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={16} color={C.primary} /> 캐릭터 설정 만들기
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4 }}>
+              <X size={18} />
+            </button>
+          </div>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="캐릭터 이름"
+            style={{ ...baseStyle, width: '100%', height: 40, fontSize: 15, fontWeight: 600, padding: '0 12px', boxSizing: 'border-box' }}
+            onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+        </div>
+
+        {/* 바디 */}
+        <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* 힌트 입력 + AI 생성 */}
+          {!generated && (
+            <>
+              <div>
+                <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>
+                  떠오르는 설정을 간단히 적으면 AI가 항목을 맞춤 생성합니다 (선택)
+                </div>
+                <textarea value={seed} onChange={e => setSeed(e.target.value)}
+                  placeholder={'예) 수아는 검사 지망생인데 아버지가 범인임. 이걸 숨기고 있고 강민준은 눈치채는 것 같음...'}
+                  style={{ ...baseStyle, width: '100%', height: 100, fontSize: 13, lineHeight: 1.7, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <button onClick={generate} style={{
+                height: 42, borderRadius: 7, border: 'none', background: C.primary, color: '#fff',
+                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
+                <Sparkles size={15} /> AI 항목 생성
+              </button>
+            </>
+          )}
+
+          {/* 생성된 항목 목록 */}
+          {generated && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px' }}>
+                {['항목', '내용 (회색 = 예시)', '', ''].map((h, i) => (
+                  <span key={i} style={{ color: C.t3, fontSize: 11 }}>{h}</span>
+                ))}
+              </div>
+              {entries.map(e => (
+                <EntryRow key={e.id} entry={e} onChange={p => upEntry(e.id, p)} onRemove={() => rmEntry(e.id)} />
+              ))}
+              <button onClick={addEntry} style={{
+                height: 32, borderRadius: 5, border: `1px dashed ${C.border}`, background: 'transparent',
+                color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 0.13s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t3; }}>
+                <Plus size={13} /> 항목 추가
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 푸터 */}
+        <div style={{ padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: C.t3, fontSize: 12 }}>
+            {generated
+              ? `${entries.length}개 항목 · 스포일러 ${entries.filter(e => e.isSpoiler).length}개`
+              : 'AI 항목 생성 후 내용을 채워주세요'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <BtnG label="취소" onClick={onClose} />
+            <BtnP label="저장" onClick={name.trim() && generated ? handleSave : undefined} icon={<Check size={14} />} />
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CharCard({ name, role, age, eyes, job, chapter, eyeConflict, colorKey }: {
   name: string; role: string; age: number; eyes: string; job: string;
   chapter: number; eyeConflict?: boolean; colorKey: string;
@@ -667,6 +904,8 @@ export default function S1Dashboard({ navigate }: Props) {
   const [selectedWork, setSelectedWork] = useState<'detective' | 'murim'>('detective');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode'>(false);
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
+  const [showBuilder, setShowBuilder] = useState(false);
+  const [savedChars, setSavedChars] = useState<CharacterSetting[]>([]);
 
   const goToSettingDB = () => {
     setSelectedWork('detective');
@@ -860,14 +1099,17 @@ export default function S1Dashboard({ navigate }: Props) {
                           <CharCard name="이레나" role="라이벌/화해" age={28} eyes="흑색" job="변호사" chapter={12} colorKey="lena" />
                           <CharCard name="하윤" role="절친" age={23} eyes="밝은갈색" job="대학원생" chapter={2} colorKey="hayun" />
                           <CharCard name="최 검사" role="상사" age={45} eyes="―" job="검사장" chapter={5} colorKey="choi" />
-                          <div style={{
+                          <div onClick={() => setShowBuilder(true)} style={{
                             background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            gap: 8, cursor: 'pointer', minHeight: 160,
-                          }}>
-                            <Plus size={20} color={C.t3} />
-                            <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 추가</span>
+                            gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
+                          }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.primary; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
+                            <Sparkles size={20} color={C.primary} />
+                            <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 설정 만들기</span>
                           </div>
+                          {savedChars.map(s => <SavedSettingCard key={s.id} setting={s} />)}
                         </div>
                         <div style={{ marginTop: 24, maxWidth: 860 }}>
                           <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>변경 이력</div>
@@ -998,7 +1240,10 @@ export default function S1Dashboard({ navigate }: Props) {
       </div>
 
       <AnimatePresence>
-        {showUpload !== false && (
+        {showBuilder && (
+        <SettingsBuilderModal onClose={() => setShowBuilder(false)} onSave={s => setSavedChars(p => [...p, s])} />
+      )}
+      {showUpload !== false && (
           <UploadModal
             onClose={() => setShowUpload(false)}
             mode={showUpload}
