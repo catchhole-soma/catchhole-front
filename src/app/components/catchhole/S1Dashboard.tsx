@@ -6,11 +6,11 @@ import {
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
-  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen,
+  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 
-interface Props { navigate: NavigateFn; }
+interface Props { navigate: NavigateFn; onPrePublish?: () => void; }
 
 const charColors: Record<string, string> = {
   sua: C.primary,
@@ -326,23 +326,49 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
 
         {isSettings && step === 3 && (
           <>
-            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>설정 DB 미리보기</div>
-            <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>AI가 추출한 설정을 확인하고 필요시 수정하세요</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>추출 결과 확인 · 수정</div>
+            <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>AI가 설정집에서 추출한 항목을 확인하고 필요시 수정하세요</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
               {[
-                { type: '캐릭터', count: '5명', icon: <Users size={13} /> },
-                { type: '설정 항목', count: '23개', icon: <BookOpen size={13} /> },
-                { type: '관계 엣지', count: '8개', icon: <GitBranch size={13} /> },
-                { type: '타임라인 이벤트', count: '14개', icon: <Clock size={13} /> },
-              ].map((item) => (
-                <div key={item.type} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px', background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`,
+                {
+                  type: '캐릭터', count: 5, color: C.primary, icon: <Users size={12} />,
+                  items: ['수아 (주인공)', '강민준 (남자주인공)', '이레나 (라이벌)'],
+                },
+                {
+                  type: '아이템', count: 3, color: C.warning, icon: <BookOpen size={12} />,
+                  items: ['증거 봉투', '법원 영장', '검사 배지'],
+                },
+                {
+                  type: '스킬', count: 4, color: C.success, icon: <Sparkles size={12} />,
+                  items: ['반대심문', '증거 제출', '공판 개시'],
+                },
+                {
+                  type: '타임라인', count: 8, color: '#4BB8D9', icon: <Clock size={12} />,
+                  items: ['1화: 수아 등장', '3화: 강민준 등장', '23화: 갈색 눈 설정'],
+                },
+              ].map((cat) => (
+                <div key={cat.type} style={{
+                  background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`,
+                  overflow: 'hidden',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.t2, fontSize: 13 }}>
-                    <span style={{ color: C.t3 }}>{item.icon}</span>{item.type}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '9px 14px', borderBottom: `1px solid ${C.border}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: cat.color }}>{cat.icon}</span>
+                      <span style={{ color: cat.color, fontSize: 13, fontWeight: 600 }}>{cat.type}</span>
+                    </div>
+                    <span style={{ color: C.t3, fontSize: 12 }}>{cat.count}개 추출됨</span>
                   </div>
-                  <span style={{ color: C.primary, fontSize: 13, fontWeight: 600 }}>{item.count}</span>
+                  <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {cat.items.map(item => (
+                      <span key={item} style={{ color: C.t2, fontSize: 12 }}>· {item}</span>
+                    ))}
+                    {cat.count > 3 && (
+                      <span style={{ color: C.t3, fontSize: 11 }}>+ {cat.count - 3}개 더...</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -992,6 +1018,113 @@ function TimelineView() {
   );
 }
 
+const SEARCH_DATA = [
+  { cat: '캐릭터', title: '수아', sub: '눈 색깔 · 갈색', src: '1화', catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '강민준', sub: '직업 · 수석검사', src: '3화', catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '이레나', sub: '역할 · 라이벌/화해', src: '12화', catColor: '#7C5CFC' },
+  { cat: '아이템', title: '증거 봉투', sub: '소유 · 강민준', src: '47화', catColor: '#F4A261' },
+  { cat: '아이템', title: '법원 영장', sub: '종류 · 서류', src: '89화', catColor: '#F4A261' },
+  { cat: '스킬', title: '반대심문', sub: '사용 · 수아, 강민준', src: '89화', catColor: '#00C896' },
+  { cat: '스킬', title: '증거 제출', sub: '사용 조건 · 공판 개시 후', src: '47화', catColor: '#00C896' },
+  { cat: '세계관', title: '검사 사적 접촉 금지', sub: '규칙 위반 시 충돌 감지', src: '3화', catColor: '#4BB8D9' },
+  { cat: '타임라인', title: '이레나 갈등 심화', sub: '89화 대립 극한', src: '89화', catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '이레나 화해', sub: '142화 화해 완료', src: '142화', catColor: '#FF4D4D' },
+];
+
+const SEARCH_CATS = ['전체', '캐릭터', '아이템', '스킬', '세계관', '타임라인'] as const;
+
+function SearchView() {
+  const [query, setQuery] = useState('');
+  const [cat, setCat] = useState<string>('전체');
+  const [focused, setFocused] = useState(false);
+
+  const results = SEARCH_DATA.filter(d => {
+    const matchCat = cat === '전체' || d.cat === cat;
+    const matchQ = !query.trim() || d.title.includes(query) || d.sub.includes(query);
+    return matchCat && matchQ;
+  });
+
+  return (
+    <div>
+      {/* 검색창 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: C.bg, border: `1px solid ${focused ? C.primary : C.border}`,
+        borderRadius: 8, padding: '0 14px', height: 44, marginBottom: 12,
+        transition: 'border-color 0.15s',
+      }}>
+        <Search size={15} color={C.t3} style={{ flexShrink: 0 }} />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="캐릭터, 아이템, 스킬, 설정 항목 검색..."
+          style={{
+            flex: 1, background: 'none', border: 'none', outline: 'none',
+            color: C.t1, fontSize: 14, fontFamily: 'inherit',
+          }}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 2 }}>
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* 카테고리 필터 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+        {SEARCH_CATS.map(c => (
+          <button key={c} onClick={() => setCat(c)} style={{
+            height: 28, padding: '0 12px', borderRadius: 14, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 12, transition: 'all 0.13s',
+            background: cat === c ? C.primary + '22' : 'transparent',
+            border: `1px solid ${cat === c ? C.primary : C.border}`,
+            color: cat === c ? C.primary : C.t2,
+            fontWeight: cat === c ? 600 : 400,
+          }}>{c}</button>
+        ))}
+      </div>
+
+      {/* 결과 수 */}
+      <div style={{ color: C.t3, fontSize: 12, marginBottom: 10 }}>
+        검색 결과 {results.length}개
+      </div>
+
+      {/* 결과 카드 그리드 */}
+      {results.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {results.map((r, i) => (
+            <div key={i} style={{
+              background: C.surface, borderRadius: 6, border: `1px solid ${C.border}`,
+              padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
+              cursor: 'pointer', transition: 'border-color 0.13s',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = '#3A3A4A')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+            >
+              {/* 카테고리 뱃지 */}
+              <span style={{
+                flexShrink: 0, padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 600,
+                background: r.catColor + '22', border: `1px solid ${r.catColor}55`, color: r.catColor,
+              }}>{r.cat}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: C.t1, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{r.title}</div>
+                <div style={{ color: C.t3, fontSize: 11 }}>{r.sub}</div>
+              </div>
+              <span style={{ color: C.t3, fontSize: 11, flexShrink: 0 }}>{r.src}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '48px 0', color: C.t3, fontSize: 14 }}>
+          검색 결과가 없습니다
+        </div>
+      )}
+    </div>
+  );
+}
+
 type WorldRuleItem = { text: string; src: string; conflict?: boolean };
 const WORLD_RULES: { category: string; icon: React.ReactNode; color: string; items: WorldRuleItem[] }[] = [
   {
@@ -1064,9 +1197,9 @@ function WorldRulesView() {
 }
 
 type NavId = 'works' | 'settingDB' | 'reports' | 'graph';
-type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules';
+type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
-export default function S1Dashboard({ navigate }: Props) {
+export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [activeNav, setActiveNav] = useState<NavId>('works');
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [selectedWork, setSelectedWork] = useState<'detective' | 'murim'>('detective');
@@ -1251,6 +1384,7 @@ export default function S1Dashboard({ navigate }: Props) {
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} /> },
                     { id: 'timeline', label: '타임라인', icon: <Clock size={13} /> },
                     { id: 'worldrules', label: '세계관 규칙', icon: <Globe size={13} /> },
+                    { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                   ] as { id: SettingTabId; label: string; icon: React.ReactNode }[]).map((tab) => (
                     <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
                       height: 44, padding: '0 16px', background: 'none', border: 'none',
@@ -1355,6 +1489,12 @@ export default function S1Dashboard({ navigate }: Props) {
                         <WorldRulesView />
                       </motion.div>
                     )}
+
+                    {settingTab === 'search' && (
+                      <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
+                        <SearchView />
+                      </motion.div>
+                    )}
                   </AnimatePresence>
                 </div>
               </motion.div>
@@ -1365,7 +1505,10 @@ export default function S1Dashboard({ navigate }: Props) {
                 style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>분석 리포트</span>
-                  <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <BtnG label="발행 전 검수" onClick={onPrePublish} icon={<Shield size={12} />} />
+                    <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 760 }}>
                   {[

@@ -9,6 +9,8 @@ import {
 
 interface Props {
   navigate: NavigateFn;
+  mode?: 'single' | 'prePublish';
+  onModeReset?: () => void;
 }
 
 function BtnG({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
@@ -507,9 +509,10 @@ const ERROR_DATA: ErrorCardData[] = [
   },
 ];
 
-export default function S5Report({ navigate }: Props) {
+export default function S5Report({ navigate, mode = 'single', onModeReset }: Props) {
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
+  const isPrePublish = mode === 'prePublish';
 
   const toggleIgnore = (id: number) =>
     setIgnoredIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -533,7 +536,7 @@ export default function S5Report({ navigate }: Props) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 20px', flexShrink: 0, zIndex: 10, position: 'relative',
       }}>
-        <button onClick={() => navigate('S1', 'pop')} style={{
+        <button onClick={() => { onModeReset?.(); navigate('S1', 'pop'); }} style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'none', border: 'none', color: C.t2, cursor: 'pointer',
           fontSize: 13, padding: '4px 8px', borderRadius: 4,
@@ -549,13 +552,44 @@ export default function S5Report({ navigate }: Props) {
           color: C.t1, fontSize: 16, fontWeight: 700, letterSpacing: '-0.3px',
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
         }}>
-          159화 분석 결과
+          {isPrePublish ? '발행 전 전체 검수' : '159화 분석 결과'}
         </span>
 
-        <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+        {isPrePublish
+          ? <BtnG label="리포트로 돌아가기" onClick={() => { onModeReset?.(); }} />
+          : <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+        }
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 48px 48px' }}>
+        {isPrePublish && (
+          <div style={{
+            background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: '14px 20px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>검수 범위</div>
+              <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>빛나는 검사 로맨스 · 전체 158화</div>
+            </div>
+            <BtnP label="범위 변경" />
+          </div>
+        )}
+
+        {isPrePublish && (
+          <div style={{
+            background: C.primary + '12', border: `1px solid ${C.primary}44`,
+            borderRadius: 8, padding: '12px 16px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <OctagonAlert size={14} color={C.primary} style={{ flexShrink: 0 }} />
+            <span style={{ color: C.t2, fontSize: 13 }}>
+              <strong style={{ color: C.primary }}>발행 전 체크리스트</strong>
+              {'  ·  '}캐릭터 설정 일치 · 타임라인 연속성 · 관계 상태 · 세계관 규칙 준수
+            </span>
+          </div>
+        )}
+
         <div style={{
           background: C.surface, borderRadius: 8,
           border: `1px solid ${C.border}`, padding: '18px 28px',

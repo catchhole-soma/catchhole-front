@@ -52,10 +52,17 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>('S1');
   const [transitionType, setTransitionType] = useState<TransitionType>('push-right');
+  const [reportMode, setReportMode] = useState<'single' | 'prePublish'>('single');
 
   const navigate: NavigateFn = useCallback((to: ScreenId, transition: TransitionType) => {
     setTransitionType(transition);
     setScreen(to);
+  }, []);
+
+  const navigateToPrePublish = useCallback(() => {
+    setReportMode('prePublish');
+    setTransitionType('push-right');
+    setScreen('S5');
   }, []);
 
   const config = TRANSITIONS[transitionType];
@@ -87,10 +94,10 @@ export default function App() {
             height: '100%',
           }}
         >
-          {screen === 'S1' && <S1Dashboard navigate={navigate} />}
+          {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} />}
           {screen === 'S2' && <S2Editor navigate={navigate} />}
           {screen === 'S4' && <S4Loading navigate={navigate} />}
-          {screen === 'S5' && <S5Report navigate={navigate} />}
+          {screen === 'S5' && <S5Report navigate={navigate} mode={reportMode} onModeReset={() => setReportMode('single')} />}
         </motion.div>
       </AnimatePresence>
     </div>
