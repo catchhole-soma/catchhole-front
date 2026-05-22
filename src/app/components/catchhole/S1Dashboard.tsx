@@ -6,7 +6,7 @@ import {
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
-  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare,
+  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 
@@ -439,6 +439,9 @@ interface SettingEntry {
 }
 interface CharacterSetting { id: string; name: string; seed: string; entries: SettingEntry[]; }
 
+type WorldCategory = 'geography' | 'society' | 'magic_tech' | 'history' | 'rules' | 'place';
+interface WorldSetting { id: string; category: WorldCategory; title: string; entries: SettingEntry[]; }
+
 const mkId = () => Math.random().toString(36).slice(2, 8);
 
 const CHAR_COLORS: Record<string, string> = {
@@ -455,6 +458,94 @@ const INIT_CHARS: CharacterSetting[] = [
   { id: 'lena', name: '이레나',  seed: '', entries: [mkE('역할','라이벌/화해'), mkE('나이','28세'), mkE('눈','흑색'), mkE('직업','변호사'), mkE('첫등장','12화')] },
   { id: 'hayun',name: '하윤',    seed: '', entries: [mkE('역할','절친'), mkE('나이','23세'), mkE('눈','밝은갈색'), mkE('직업','대학원생'), mkE('첫등장','2화')] },
   { id: 'choi', name: '최 검사', seed: '', entries: [mkE('역할','상사'), mkE('나이','45세'), mkE('눈','—'), mkE('직업','검사장'), mkE('첫등장','5화')] },
+];
+
+const WORLD_CATEGORY_META: Record<WorldCategory, { label: string; color: string; icon: React.ReactNode }> = {
+  geography:  { label: '지리/환경', color: C.success,  icon: <Globe size={12} /> },
+  society:    { label: '사회/문화', color: C.primary,  icon: <Users size={12} /> },
+  magic_tech: { label: '마법/기술', color: '#B48BFF',  icon: <Sparkles size={12} /> },
+  history:    { label: '역사',      color: C.warning,  icon: <BookOpen size={12} /> },
+  rules:      { label: '세계 규칙', color: C.danger,   icon: <Scale size={12} /> },
+  place:      { label: '장소',      color: '#4BB8D9',  icon: <MapPin size={12} /> },
+};
+
+const INIT_WORLD_SETTINGS: WorldSetting[] = [
+  {
+    id: 'wr-rules', category: 'rules', title: '법정·수사 규칙',
+    entries: [
+      mkE('검사와 피의자', '사적으로 접촉 불가'),
+      mkE('증거 제출 기한', '공판 3일 전'),
+      mkE('임용 전 검사',   '독립 수사 권한 없음'),
+    ],
+  },
+  {
+    id: 'wr-chars', category: 'society', title: '캐릭터 공통 설정',
+    entries: [
+      mkE('수아',   '법학전문대학원 수석 졸업'),
+      mkE('이레나', '수아와 같은 법무법인 출신'),
+      mkE('강민준', '10년 경력의 냉혹한 검사'),
+    ],
+  },
+  {
+    id: 'wr-place', category: 'place', title: '장소 설정',
+    entries: [
+      mkE('주 무대',          '서울 중앙지방검찰청'),
+      mkE('주요 법정',        '3호 법정 (분위기 서늘, 조명 냉백색)'),
+      mkE('수아 거주지',      '을지로 14층 오피스텔 (혼자 거주)'),
+      mkE('강민준 사무실',    '검찰청 12층, 1인실, 창문에서 한강 조망'),
+      mkE('단골 카페',        '검찰청 인근 을지로 스페셜티 카페'),
+      mkE('수사팀 회의실',    '지하 2층, 보안구역, 출입카드 필요'),
+      mkE('범인 거주지',      '—'),
+      mkE('병원',             '서울대병원 응급실 — 주요 목격자 이송'),
+      mkE('수아 모교',        '서울대 법학전문대학원 (회상 장면)'),
+      mkE('구치소',           '서울 구치소 — 피의자 면담 장소'),
+    ],
+  },
+  {
+    id: 'wt-forensic', category: 'magic_tech', title: '디지털 포렌식',
+    entries: [
+      mkE('기술/능력 이름', '디지털 포렌식'),
+      mkE('설명/개요',      '전자 증거 분석 및 삭제 데이터 복구'),
+      mkE('사용 조건',      '법원 영장 + 수사팀 IT 전담 요원 참여'),
+      mkE('제약사항',       '최소 48시간 소요, 결과 법원 허가 후 제출'),
+      mkE('활용 사례',      '스마트폰·PC 삭제 파일·통화 기록 복구'),
+      mkE('담당 인물/기관', '수사팀 IT 포렌식 전담 요원'),
+      mkE('법적 약점',      '압수수색 절차 위반 시 위법 수집 증거로 전면 배제 가능',    true),
+      mkE('기술적 약점',    '기기 완전 초기화 + 덮어쓰기(7회↑) 시 복구 불가',          true),
+      mkE('무력화 방법',    '변호인이 해시값 무결성 오류 입증 시 증거 능력 소멸',        true),
+      mkE('충돌 위험',      '159화 — 수아 측 압수 절차 하자로 핵심 증거 위기',          true),
+    ],
+  },
+  {
+    id: 'wt-dna', category: 'magic_tech', title: 'DNA 감식',
+    entries: [
+      mkE('기술/능력 이름', 'DNA 감식'),
+      mkE('설명/개요',      '생체 샘플 분석으로 피의자·피해자 특정'),
+      mkE('사용 조건',      '현장 검체 확보, 국과수 의뢰'),
+      mkE('제약사항',       '결과 통보 7~14일 소요'),
+      mkE('활용 사례',      '현장 혈흔·모발에서 피의자 동일인 확인'),
+      mkE('담당 인물/기관', '국립과학수사연구원'),
+      mkE('과학적 약점',    '루미놀은 혈액 외 염소계 세제·식물에도 반응 → 오탐 가능',  true),
+      mkE('오염 위험',      '검체 보관·이송 중 오염 시 결과 무효, 재채취 불가',         true),
+      mkE('법적 허점',      '검체 채취 동의 없거나 영장 미비 시 증거 능력 소멸',        true),
+      mkE('무력화 방법',    '변호인이 국과수 분석 과정 오염·오류 입증 시 전면 무효',     true),
+    ],
+  },
+  {
+    id: 'wt-cctv', category: 'magic_tech', title: 'CCTV 추적 시스템',
+    entries: [
+      mkE('기술/능력 이름', 'CCTV 추적 시스템'),
+      mkE('설명/개요',      '도심 카메라망 연계 피의자 동선 추적'),
+      mkE('사용 조건',      '경찰 협력 + 수사 영장'),
+      mkE('제약사항',       '저장 기간 30일, 검찰청 지하 2층 사각지대'),
+      mkE('활용 사례',      '피의자 알리바이 파훼, 도주 경로 재구성'),
+      mkE('담당 인물/기관', '수사팀 + 경찰 사이버수사대'),
+      mkE('법적 약점',      '영장 없이 취득한 영상은 위법 수집 증거로 법정 배제 가능',  true),
+      mkE('기술적 약점',    '저장 기간(30일) 초과 시 완전 삭제, 복구 불가',            true),
+      mkE('사각지대',       '검찰청 지하 2층 특정 복도·계단 미설치 구간 — 핵심 장면 위치', true),
+      mkE('무력화 방법',    '변호인이 영상 연속성 단절(편집 의혹) 제기 시 증거력 약화',  true),
+    ],
+  },
 ];
 
 function generateMockEntries(_seed: string): SettingEntry[] {
@@ -501,6 +592,55 @@ function generateMockEntries(_seed: string): SettingEntry[] {
     e('주인공을 어떻게 변화시키는가', '주인공이 감정을 직면하도록 강제함'),
     e('결말에서의 운명',   '모든 진실을 밝히고 떠남', true),
   ];
+}
+
+function generateWorldEntries(category: WorldCategory, sourceText: string): SettingEntry[] {
+  const filled = sourceText.trim().length > 0;
+  const e = (label: string, placeholder: string, content = ''): SettingEntry =>
+    ({ id: mkId(), label, content, placeholder, isSpoiler: false });
+  const templates: Record<WorldCategory, Array<[string, string, string]>> = {
+    geography: [
+      ['주요 대륙/지역', '서울특별시 및 수도권',             filled ? '서울 및 수도권' : ''],
+      ['기후 특성',      '한국의 사계절, 겨울이 긴 편',      filled ? '현대 한국 기후' : ''],
+      ['지형 특징',      '한강이 가로지르는 도심',           filled ? '—' : ''],
+      ['주요 지명',      '서초구 법원 삼거리, 을지로 일대',  filled ? '서울 중앙지검, 을지로' : ''],
+    ],
+    society: [
+      ['지배 체제',  '민주공화제 / 3권 분립',            filled ? '민주주의 국가' : ''],
+      ['사회 계층',  '법조계 엘리트, 일반 시민',         filled ? '법조계 위계 구조' : ''],
+      ['주요 세력',  '검찰, 변호사 단체, 재벌 그룹',     filled ? '검찰청, 변호사 단체' : ''],
+      ['경제 체제',  '자본주의 시장경제',                filled ? '현대 자본주의' : ''],
+    ],
+    magic_tech: [
+      ['기술/능력 이름',    '디지털 포렌식',                     filled ? '디지털 포렌식' : ''],
+      ['설명/개요',         '전자 증거 분석 및 데이터 복구',     filled ? '전자 증거 분석 기법' : ''],
+      ['사용 조건',         '법원 영장, 전문 인력 필요',         filled ? '법원 영장 필요' : ''],
+      ['제약사항',          '분석 시간 최소 48시간',             filled ? '—' : ''],
+      ['활용 사례',         '스마트폰 삭제 데이터 복구',         filled ? '—' : ''],
+      ['담당 인물/기관',    '수사팀 IT 포렌식 전담 요원',        filled ? '—' : ''],
+    ],
+    history: [
+      ['시대 배경',     '2020년대 현대 한국',                    filled ? '현대 한국, 21세기' : ''],
+      ['주요 사건',     '검찰 개혁 법안 통과, 수사권 조정',      filled ? '검찰 개혁 이슈' : ''],
+      ['현재 상황 원인','검찰·경찰 갈등이 조직 내 분열 초래',    filled ? '수아 아버지 사건의 여파' : ''],
+    ],
+    rules: [
+      ['핵심 규칙',         '검사는 피의자와 사적 접촉 불가',         filled ? '검사는 피의자와 사적 접촉 불가' : ''],
+      ['금기·위반 시 결과', '직권 남용 시 파면 및 형사처벌',          filled ? '직권 남용으로 파면' : ''],
+      ['예외 규정',         '긴급 수사 명령 시 일부 제한 완화 가능',  filled ? '긴급 수사 명령 시 예외 가능' : ''],
+    ],
+    place: [
+      ['장소 이름',            '서울 중앙지방검찰청',                  filled ? '서울 중앙지방검찰청' : ''],
+      ['분위기·특징',          '엄숙하고 위압적, 냉형광등 조명',      filled ? '엄숙하고 위압감 있는 청사' : ''],
+      ['위치/접근',            '서초구, 지하철 서초역 도보 5분',       filled ? '—' : ''],
+      ['주요 인물 연관',       '수아가 매일 출근하는 공간',            filled ? '수아의 주 활동 무대' : ''],
+      ['자주 등장하는 시간대', '출퇴근 시간 및 심야 수사',             filled ? '—' : ''],
+      ['장소의 비밀/특이사항', '지하 1층 기록보관소, 감시 사각지대',  filled ? '—' : ''],
+      ['주변 랜드마크',        '서초구청, 법원 삼거리, 양재천',        filled ? '—' : ''],
+      ['충돌 위험 요소',       '—',                                    filled ? '—' : ''],
+    ],
+  };
+  return templates[category].map(([label, placeholder, content]) => e(label, placeholder, content));
 }
 
 // ── EntryRow ─────────────────────────────────────
@@ -559,10 +699,10 @@ function EntryRow({ entry, onChange, onRemove }: {
         ) : (
           <div style={{
             height: 34, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10,
-            borderRadius: 5, border: `1px solid ${C.danger}44`, background: C.danger + '08',
+            borderRadius: 5, background: C.danger + '08',
           }}>
             <span style={{ color: C.danger + 'BB', letterSpacing: 3, fontSize: 11 }}>●●●●●</span>
-            {/* 👁 임시 열람 — isSpoiler 변경 없이 내용만 확인 */}
+            <span style={{ color: C.danger, fontSize: 10, fontWeight: 600, flexShrink: 0 }}>스포일러</span>
             <button onClick={() => setRevealed(true)}
               style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', fontSize: 11, padding: 2, display: 'flex', alignItems: 'center', gap: 3, marginLeft: 'auto', marginRight: 4 }}>
               <Eye size={11} /> 잠깐 보기
@@ -778,6 +918,225 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
   );
 }
 
+// ── WorldBuilderModal ──────────────────────────────
+function WorldBuilderModal({ onClose, onSave, initial }: {
+  onClose: () => void;
+  onSave: (ws: WorldSetting) => void;
+  initial?: WorldSetting;
+}) {
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [category, setCategory] = useState<WorldCategory>(initial?.category ?? 'geography');
+  const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? []);
+  const [generated, setGenerated] = useState(!!initial);
+  const [mode, setMode] = useState<'manual' | 'extract'>('manual');
+  const [uploadType, setUploadType] = useState<'settings' | 'new_ep' | 'bulk_ep'>('settings');
+  const [uploadedFile, setUploadedFile] = useState('');
+  const [dragging, setDragging] = useState(false);
+
+  const prevCategoryRef = React.useRef(category);
+  React.useEffect(() => {
+    if (prevCategoryRef.current === category) return;
+    prevCategoryRef.current = category;
+    if (generated) setEntries(generateWorldEntries(category, ''));
+  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
+  const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
+  const upEntry = (id: string, patch: Partial<SettingEntry>) =>
+    setEntries(p => p.map(e => e.id === id ? { ...e, ...patch } : e));
+
+  const generate = () => {
+    const hasSrc = mode === 'extract' && uploadedFile;
+    setEntries(generateWorldEntries(category, hasSrc ? uploadedFile : ''));
+    setGenerated(true);
+  };
+
+  const handleSave = () => {
+    onSave({ id: initial?.id ?? mkId(), category, title: title.trim(), entries });
+    onClose();
+  };
+
+  const meta = WORLD_CATEGORY_META[category];
+  const canGenerate = mode === 'manual' || !!uploadedFile;
+
+  const baseStyle: React.CSSProperties = {
+    borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`,
+    color: C.t1, fontFamily: 'inherit', outline: 'none',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '40px 20px' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 16, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: 660, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 24px 64px rgba(0,0,0,0.6)', marginBottom: 40 }}
+      >
+        {/* 헤더 */}
+        <div style={{ padding: '24px 28px 20px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Globe size={16} color={C.success} /> {initial ? '세계관 설정 수정' : '세계관 설정 만들기'}
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4 }}>
+              <X size={18} />
+            </button>
+          </div>
+          <input
+            value={title} onChange={e => setTitle(e.target.value)}
+            placeholder="설정 카드 제목 (예: 대륙 지형, 마법 체계, 사회 계층)"
+            style={{ ...baseStyle, width: '100%', height: 40, fontSize: 15, fontWeight: 600, padding: '0 12px', boxSizing: 'border-box', marginBottom: 12 }}
+            onFocus={e => (e.target.style.borderColor = C.success)} onBlur={e => (e.target.style.borderColor = C.border)}
+          />
+          {/* 카테고리 선택 */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(Object.keys(WORLD_CATEGORY_META) as WorldCategory[]).map(cat => {
+              const m = WORLD_CATEGORY_META[cat];
+              const active = category === cat;
+              return (
+                <button key={cat} onClick={() => setCategory(cat)} style={{
+                  padding: '4px 10px', borderRadius: 5, border: `1px solid ${active ? m.color : C.border}`,
+                  background: active ? m.color + '1A' : 'transparent',
+                  color: active ? m.color : C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.13s',
+                }}>
+                  {m.icon}{m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 바디 */}
+        <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {!generated && (
+            <>
+              {/* 모드 탭 */}
+              <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.border}` }}>
+                {([['manual', '직접 입력'], ['extract', '텍스트로 추출']] as const).map(([m, label]) => (
+                  <button key={m} onClick={() => setMode(m)} style={{
+                    height: 36, padding: '0 14px', background: 'none', border: 'none',
+                    borderBottom: `2px solid ${mode === m ? meta.color : 'transparent'}`,
+                    color: mode === m ? meta.color : C.t2,
+                    fontSize: 13, fontWeight: mode === m ? 600 : 400,
+                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', marginBottom: -1,
+                  }}>{label}</button>
+                ))}
+              </div>
+
+              {mode === 'manual' && (
+                <div style={{ color: C.t3, fontSize: 13 }}>
+                  선택한 카테고리에 맞는 항목 템플릿을 생성합니다. 생성 후 내용을 직접 입력하세요.
+                </div>
+              )}
+
+              {mode === 'extract' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* 업로드 종류 선택 */}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {([
+                      ['settings', '설정집'],
+                      ['new_ep',   '신규 회차'],
+                      ['bulk_ep',  '기존 회차 대용량'],
+                    ] as const).map(([val, label]) => (
+                      <button key={val} onClick={() => setUploadType(val)} style={{
+                        padding: '4px 12px', borderRadius: 5,
+                        border: `1px solid ${uploadType === val ? meta.color : C.border}`,
+                        background: uploadType === val ? meta.color + '1A' : 'transparent',
+                        color: uploadType === val ? meta.color : C.t3,
+                        fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.13s',
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                  {/* 파일 드롭존 */}
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={e => { e.preventDefault(); setDragging(false); setUploadedFile('업로드파일.txt'); }}
+                    onClick={() => setUploadedFile('업로드파일.txt')}
+                    style={{
+                      border: `2px dashed ${dragging ? meta.color : uploadedFile ? C.success : C.border}`,
+                      borderRadius: 8, padding: '28px', textAlign: 'center',
+                      background: dragging ? meta.color + '08' : uploadedFile ? C.success + '08' : 'transparent',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {uploadedFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <CircleCheckBig size={18} color={C.success} />
+                        <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>{uploadedFile} — 업로드 준비 완료</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload size={22} color={C.t3} style={{ margin: '0 auto 8px' }} />
+                        <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
+                        <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={canGenerate ? generate : undefined} style={{
+                height: 42, borderRadius: 7, border: 'none', background: meta.color, color: '#fff',
+                fontSize: 14, fontWeight: 600, cursor: canGenerate ? 'pointer' : 'default',
+                fontFamily: 'inherit', opacity: canGenerate ? 1 : 0.45,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
+              }}
+                onMouseEnter={e => { if (canGenerate) e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = canGenerate ? '1' : '0.45'; }}>
+                {mode === 'extract'
+                  ? <><Sparkles size={15} /> AI 항목 추출</>
+                  : <><Plus size={15} /> 항목 템플릿 생성</>}
+              </button>
+            </>
+          )}
+
+          {generated && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px', paddingLeft: 8 }}>
+                <span style={{ color: C.t3, fontSize: 11 }}>항목</span>
+                <span style={{ color: C.t3, fontSize: 11 }}>내용  (→ 키로 예시 수용)</span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={10} color={C.t3} />
+                </span>
+                <span />
+              </div>
+              {entries.map(e => (
+                <EntryRow key={e.id} entry={e} onChange={p => upEntry(e.id, p)} onRemove={() => rmEntry(e.id)} />
+              ))}
+              <button onClick={addEntry} style={{
+                height: 32, borderRadius: 5, border: `1px dashed ${C.border}`, background: 'transparent',
+                color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 0.13s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = meta.color; e.currentTarget.style.color = meta.color; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t3; }}>
+                <Plus size={13} /> 항목 추가
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 푸터 */}
+        <div style={{ padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: C.t3, fontSize: 12 }}>
+            {generated ? `${entries.length}개 항목` : '항목 생성 후 내용을 채워주세요'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <BtnG label="취소" onClick={onClose} />
+            <BtnP label="저장" onClick={title.trim() && generated ? handleSave : undefined} icon={<Check size={14} />} />
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── CharCardDynamic (CharacterSetting 기반, 클릭 수정 가능) ──
 function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdit: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -825,6 +1184,60 @@ function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdi
             <div key={item.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: C.t3, fontSize: 12 }}>{item.k}</span>
               <span style={{ color: C.t2, fontSize: 12 }}>{item.v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── WorldCardDynamic ───────────────────────────────
+function WorldCardDynamic({ ws, onEdit }: { ws: WorldSetting; onEdit: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const meta = WORLD_CATEGORY_META[ws.category];
+  const preview = ws.entries.slice(0, 3);
+
+  return (
+    <div
+      onClick={onEdit}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: C.bg, borderRadius: 8,
+        border: `1px solid ${hovered ? meta.color + '88' : C.border}`,
+        padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
+        cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative',
+      }}
+    >
+      {hovered && (
+        <div style={{
+          position: 'absolute', top: 10, right: 10, background: C.surface,
+          border: `1px solid ${C.border}`, borderRadius: 4,
+          padding: '2px 8px', fontSize: 11, color: C.t3,
+        }}>수정</div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+          background: meta.color + '1A', color: meta.color, border: `1px solid ${meta.color}33`,
+          display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          {meta.icon}{meta.label}
+        </div>
+      </div>
+      <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{ws.title}</div>
+      {preview.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {preview.map(entry => (
+            <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: C.t3, fontSize: 12 }}>{entry.label}</span>
+              <span style={{
+                color: entry.content ? C.t2 : C.t3 + '66', fontSize: 12,
+                maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {entry.content || '미입력'}
+              </span>
             </div>
           ))}
         </div>
@@ -1019,19 +1432,118 @@ function TimelineView() {
 }
 
 const SEARCH_DATA = [
-  { cat: '캐릭터', title: '수아', sub: '눈 색깔 · 갈색', src: '1화', catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '강민준', sub: '직업 · 수석검사', src: '3화', catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '이레나', sub: '역할 · 라이벌/화해', src: '12화', catColor: '#7C5CFC' },
-  { cat: '아이템', title: '증거 봉투', sub: '소유 · 강민준', src: '47화', catColor: '#F4A261' },
-  { cat: '아이템', title: '법원 영장', sub: '종류 · 서류', src: '89화', catColor: '#F4A261' },
-  { cat: '스킬', title: '반대심문', sub: '사용 · 수아, 강민준', src: '89화', catColor: '#00C896' },
-  { cat: '스킬', title: '증거 제출', sub: '사용 조건 · 공판 개시 후', src: '47화', catColor: '#00C896' },
-  { cat: '세계관', title: '검사 사적 접촉 금지', sub: '규칙 위반 시 충돌 감지', src: '3화', catColor: '#4BB8D9' },
-  { cat: '타임라인', title: '이레나 갈등 심화', sub: '89화 대립 극한', src: '89화', catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '이레나 화해', sub: '142화 화해 완료', src: '142화', catColor: '#FF4D4D' },
+  // 캐릭터
+  { cat: '캐릭터', title: '수아',        sub: '눈 색깔 · 갈색',                          src: '1화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '강민준',      sub: '직업 · 수석검사',                         src: '3화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '이레나',      sub: '역할 · 라이벌/화해',                      src: '12화',  catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '하윤',        sub: '역할 · 절친',                             src: '2화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '최 검사',     sub: '직위 · 검사장',                           src: '5화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '수아 아버지', sub: '역할 · 핵심 범인 [스포일러]',             src: '—',     catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '이진혁 변호사', sub: '역할 · 이레나 측 변호인',               src: '67화',  catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '박 수사관',   sub: '역할 · 수사팀 베테랑 형사',               src: '20화',  catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '강민준',      sub: '약점 · 10년 전 사건 트라우마 [스포일러]', src: '—',     catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '수아',        sub: '자기기만 · "나는 감정에 흔들리지 않는다"',src: '—',     catColor: '#7C5CFC' },
+  // 아이템
+  { cat: '아이템', title: '증거 봉투',         sub: '소유 · 강민준',                       src: '47화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '법원 영장',          sub: '종류 · 서류',                         src: '89화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '검사 배지',          sub: '소유 · 수아',                         src: '1화',   catColor: '#F4A261' },
+  { cat: '아이템', title: '수사 노트',          sub: '소유 · 강민준',                       src: '15화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '핵심 USB',           sub: '등장 · 159화 충돌 감지',              src: '159화', catColor: '#F4A261' },
+  { cat: '아이템', title: '결정적 문자',        sub: '종류 · 디지털 메시지, 핵심 증거',     src: '159화', catColor: '#F4A261' },
+  { cat: '아이템', title: '빨간 볼펜',          sub: '소유 · 수아, 긴장 시 돌리는 습관',   src: '1화',   catColor: '#F4A261' },
+  { cat: '아이템', title: '공판 기록 파일',     sub: '내용 · 47화 증거 목록 전체',          src: '47화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '수아 아버지 유품',   sub: '의미 · 결말 복선 [스포일러]',         src: '—',     catColor: '#F4A261' },
+  { cat: '아이템', title: '포렌식 분석 보고서', sub: '내용 · 디지털 포렌식 결과물',         src: '55화',  catColor: '#F4A261' },
+  // 세계 규칙 — 수사 기법
+  { cat: '세계 규칙', title: '반대심문',      sub: '수사 기법 · 피의자 논리 파훼, 공판 핵심',  src: '89화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '증거 제출',     sub: '수사 기법 · 공판 개시 후 가능, 기한 엄수', src: '47화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '증인 심문',     sub: '수사 기법 · 수아 특기, 목격자 확보',       src: '47화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '현장 감식',     sub: '수사 기법 · 수사팀 현장 출동 필수',        src: '31화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '심리 압박 심문',sub: '수사 기법 · 강민준 전용, 위험 충돌',       src: '89화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '공판 개시',     sub: '수사 기법 · 검사 특권, 강민준',            src: '3화',   catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '알리바이 검증', sub: '수사 기법 · CCTV·포렌식 연계 파훼',        src: '89화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '탐문 수사',     sub: '수사 기법 · 현장 출동, 관계자 진술 확보',  src: '31화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '기각 신청',     sub: '수사 기법 · 이레나 변호사 특기, 절차 공략',src: '67화',  catColor: '#FF4D4D' },
+  // 세계 규칙 — 법규
+  { cat: '세계 규칙', title: '검사 사적 접촉 금지',  sub: '법규 · 위반 시 충돌 감지',               src: '3화',   catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '증거 제출 기한',        sub: '법규 · 공판 3일 전',                     src: '15화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '임용 전 검사 제한',     sub: '법규 · 독립 수사 권한 없음',             src: '123화', catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '수사 기밀 유지',        sub: '법규 · 위반 시 직무유기 해당',           src: '15화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '피의자 심문 녹취',      sub: '법규 · 전 과정 필수 녹음',               src: '31화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '공판 기일 변경 불가',   sub: '법규 · 천재지변 외 변경 불허',           src: '47화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '검사 겸직 금지',        sub: '법규 · 공직 외 영리활동 불가',           src: '—',     catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '검사장 특별 명령권',    sub: '법규 · 최 검사 권한, 예외 수사 승인',    src: '20화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '위법 수집 증거 배제',   sub: '법규 · 영장 없는 증거 전면 무효',        src: '123화', catColor: '#FF4D4D' },
+  // 마법/기술
+  { cat: '마법/기술', title: '디지털 포렌식',         sub: '기술 · 영장 필요, 48시간 소요',          src: '47화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: 'DNA 감식',              sub: '기술 · 국과수 의뢰, 14일 소요',          src: '55화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: 'CCTV 추적',             sub: '기술 · 30일 보존, 사각지대',             src: '31화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '해시값 무결성',         sub: '기술 · 포렌식 증거 위·변조 방지',        src: '55화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '포렌식 법적 약점',      sub: '기술 · 절차 위반 시 증거 전면 배제',     src: '159화', catColor: '#B48BFF' },
+  { cat: '마법/기술', title: 'DNA 루미놀 오탐',       sub: '기술 · 염소계 세제에도 반응, 오탐 주의', src: '55화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: 'CCTV 사각지대',         sub: '기술 · 지하 2층 복도 미설치 구간',       src: '—',     catColor: '#B48BFF' },
+  { cat: '마법/기술', title: 'DNA 오염 위험',         sub: '기술 · 이송 중 오염 시 결과 무효',       src: '55화',  catColor: '#B48BFF' },
+  // 장소
+  { cat: '장소', title: '3호 법정',              sub: '냉백색 조명, 서늘한 분위기',     src: '3화',   catColor: '#4BB8D9' },
+  { cat: '장소', title: '수사팀 회의실',         sub: '지하 2층, 출입카드 보안구역',    src: '20화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '을지로 오피스텔',       sub: '수아 거주지, 14층',              src: '7화',   catColor: '#4BB8D9' },
+  { cat: '장소', title: '검찰청 12층',           sub: '강민준 사무실, 한강 조망',       src: '12화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '을지로 카페',           sub: '수아·강민준 단골 스페셜티',      src: '22화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '서울 구치소',           sub: '피의자 면담 장소',               src: '89화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '서울대병원 응급실',     sub: '주요 목격자 이송',               src: '55화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '서울대 법전원',         sub: '수아 모교, 회상 장면',           src: '—',     catColor: '#4BB8D9' },
+  // 판타지 — 캐릭터
+  { cat: '캐릭터', title: '아르켄',    sub: '역할 · 주인공, 실낙원 출신 마법사',              src: '1화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '세리아',    sub: '역할 · 조력자, 치유 성녀',                       src: '3화',   catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '카드론',    sub: '역할 · 라이벌, 흑마법 계승자',                   src: '12화',  catColor: '#7C5CFC' },
+  { cat: '캐릭터', title: '나이아',    sub: '역할 · 흑막, 고대 마신 빙의 [스포일러]',         src: '—',     catColor: '#7C5CFC' },
+  // 판타지 — 아이템
+  { cat: '아이템', title: '혼돈의 서',    sub: '소유 · 아르켄, 금지 마법 전부 기록',          src: '1화',   catColor: '#F4A261' },
+  { cat: '아이템', title: '마나 결정체',  sub: '효과 · 마나 200 즉시 회복, 1회용',            src: '15화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '봉인 반지',    sub: '효과 · 대상 마법력 90% 봉쇄',                 src: '47화',  catColor: '#F4A261' },
+  { cat: '아이템', title: '공허의 파편',  sub: '등장 · 마신 강화 핵심 아이템 [스포일러]',     src: '—',     catColor: '#F4A261' },
+  // 판타지 — 마법/기술 (스킬)
+  { cat: '마법/기술', title: '섬광연환',  sub: '광역 광속 타격 · 마나 120 · 암속성 면역 유닛 무효',     src: '5화',   catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '흑염폭',    sub: '단일 폭발 · 마나 85 · 화염+암흑 복합 속성',            src: '15화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '빙결진',    sub: '광역 이동 불가 5초 · 마나 150 · 불 속성에 해제',        src: '22화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '공간 균열', sub: '차원 슬래시 · 마나 200 · 결계 내 사용 불가',            src: '31화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '정령 소환', sub: '계약 정령 최대 3체 · 마나 175 · 계약자 사망 시 해제',   src: '35화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '신성 방패', sub: '피해 흡수 500 · 마나 100/초 유지 · 암속성 2배 흡수',    src: '42화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '암흑 침식', sub: '마력 지속 감소 · 마나 60 · 신성계 유닛 면역',           src: '55화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '마력 압축', sub: '다음 마법 위력 3배 · 마나 50 · 연속 사용 불가',         src: '67화',  catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '시간 역류', sub: '10초 전 상태 복구 · 마나 500 · [스포일러]',             src: '—',     catColor: '#B48BFF' },
+  { cat: '마법/기술', title: '혼돈 해방', sub: '봉인 마법 전체 해제 · 마나 전량 소모 · [스포일러]',     src: '—',     catColor: '#B48BFF' },
+  // 판타지 — 세계 규칙 (마법 법칙)
+  { cat: '세계 규칙', title: '마나 고갈 시 행동 불가', sub: '법규 · 회복 전 마법 사용 불가, 10분 휴식 필요',     src: '3화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '속성 상쇄 원칙',         sub: '법규 · 반대 속성 마법 충돌 시 상쇄',               src: '5화',  catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '계약 마법 해제 조건',    sub: '법규 · 계약자 사망 시 정령·소환수 자동 해제',      src: '22화', catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '금지 마법 목록',         sub: '법규 · 시간·차원·부활 계열 사용 시 처형',          src: '31화', catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '마법 등록제',            sub: '법규 · S등급 이상 마법 국가 신고 필수',            src: '—',    catColor: '#FF4D4D' },
+  { cat: '세계 규칙', title: '봉인된 마신의 저주',     sub: '법규 · 마신 마법 사용 시 부작용 [스포일러]',        src: '—',    catColor: '#FF4D4D' },
+  // 판타지 — 장소
+  { cat: '장소', title: '마법사 탑',    sub: '7층 구조, 아르켄 소속 마법사 길드',             src: '1화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '금단의 숲',    sub: '고레벨 마수 서식, 출입 금지 구역',              src: '22화', catColor: '#4BB8D9' },
+  { cat: '장소', title: '왕도 카엘론',  sub: '대륙 중심 도시, 마법 의회 소재지',              src: '5화',  catColor: '#4BB8D9' },
+  { cat: '장소', title: '공허의 균열',  sub: '마신 봉인 장소, 진입 시 즉사 위험 [스포일러]',  src: '—',    catColor: '#4BB8D9' },
+  // 타임라인
+  { cat: '타임라인', title: '수아 법전원 시절',    sub: '과거 — 강민준과 첫 인지 (회상)',     src: '—',     catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '강민준 첫 등장',      sub: '3화 냉혹한 수석검사 도입',           src: '3화',   catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '수아 첫 법정 출석',   sub: '3화 검사 자격 정지 위기',            src: '3화',   catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '이레나 첫 등장',      sub: '12화 라이벌 등장, 긴장 고조',        src: '12화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '첫 법정 대결',        sub: '15화 수아 vs 강민준 격돌',           src: '15화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '핵심 증거 발견',      sub: '47화 USB 단서 최초 등장',            src: '47화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '강민준 과거 폭로',    sub: '89화 10년 전 사건 드러남',           src: '89화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '이레나 갈등 심화',    sub: '89화 대립 극한',                     src: '89화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '이레나 화해',         sub: '142화 화해 완료',                    src: '142화', catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '159화 클라이맥스',    sub: '증거 충돌 최고조, 오류 5건 동시 감지', src: '159화', catColor: '#FF4D4D' },
+  // 판타지 — 타임라인
+  { cat: '타임라인', title: '마신 봉인 해제 사건', sub: '1화 세계관 위기 발단',                    src: '1화',   catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '아르켄 정체 폭로',    sub: '47화 실낙원 출신 밝혀짐',                 src: '47화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '세리아 각성',          sub: '89화 신성력 최대 개방, 마나 한계 돌파',   src: '89화',  catColor: '#FF4D4D' },
+  { cat: '타임라인', title: '나이아 흑막 드러남',   sub: '142화 마신 빙의 사실 폭로 [스포일러]',    src: '142화', catColor: '#FF4D4D' },
 ];
 
-const SEARCH_CATS = ['전체', '캐릭터', '아이템', '스킬', '세계관', '타임라인'] as const;
+const SEARCH_CATS = ['전체', '캐릭터', '아이템', '마법/기술', '장소', '세계 규칙', '사회/문화', '역사', '타임라인'] as const;
 
 function SearchView() {
   const [query, setQuery] = useState('');
@@ -1125,73 +1637,26 @@ function SearchView() {
   );
 }
 
-type WorldRuleItem = { text: string; src: string; conflict?: boolean };
-const WORLD_RULES: { category: string; icon: React.ReactNode; color: string; items: WorldRuleItem[] }[] = [
-  {
-    category: '법정·수사 규칙',
-    icon: <Scale size={13} />,
-    color: C.warning,
-    items: [
-      { text: '검사는 피의자와 사적으로 접촉 불가', src: '3화' },
-      { text: '증거 제출 기한은 공판 3일 전', src: '15화' },
-      { text: '임용 전 검사는 독립 수사 권한 없음', src: '123화', conflict: true },
-    ],
-  },
-  {
-    category: '캐릭터 공통 설정',
-    icon: <Users size={13} />,
-    color: C.primary,
-    items: [
-      { text: '수아: 법학전문대학원 수석 졸업', src: '1화' },
-      { text: '이레나: 수아와 같은 법무법인 출신', src: '8화' },
-      { text: '강민준: 10년 경력의 냉혹한 검사', src: '5화' },
-    ],
-  },
-  {
-    category: '장소 설정',
-    icon: <Globe size={13} />,
-    color: C.success,
-    items: [
-      { text: '배경: 서울 중앙지방검찰청', src: '1화' },
-      { text: '수아의 거주지: 을지로 14층 오피스텔', src: '7화' },
-      { text: '주요 법정: 3호 법정 (분위기 서늘)', src: '3화' },
-    ],
-  },
-];
-
-function WorldRulesView() {
+function WorldRulesView({ worldSettings, onAdd, onEdit }: {
+  worldSettings: WorldSetting[];
+  onAdd: () => void;
+  onEdit: (ws: WorldSetting) => void;
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {WORLD_RULES.map((cat) => (
-        <div key={cat.category} style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-            <span style={{ color: cat.color }}>{cat.icon}</span>
-            <span style={{ color: cat.color, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cat.category}</span>
-            <span style={{ color: C.t3, fontSize: 11 }}>({cat.items.length}개)</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {cat.items.map((item, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '7px 10px', borderRadius: 5,
-                background: item.conflict ? C.danger + '0D' : C.surface,
-                border: `1px solid ${item.conflict ? C.danger + '33' : C.border}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  {item.conflict ? <AlertTriangle size={12} color={C.warning} /> : <div style={{ width: 5, height: 5, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />}
-                  <span style={{ color: item.conflict ? C.warning : C.t1, fontSize: 13 }}>{item.text}</span>
-                </div>
-                <span style={{
-                  padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 500, flexShrink: 0,
-                  background: item.conflict ? C.warning + '22' : C.border,
-                  color: item.conflict ? C.warning : C.t3,
-                  border: `1px solid ${item.conflict ? C.warning + '44' : 'transparent'}`,
-                }}>{item.src}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
+      {worldSettings.map(ws => (
+        <WorldCardDynamic key={ws.id} ws={ws} onEdit={() => onEdit(ws)} />
       ))}
+      <div onClick={onAdd} style={{
+        background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
+      }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.success; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
+        <Globe size={20} color={C.success} />
+        <span style={{ color: C.t3, fontSize: 13 }}>세계관 설정 만들기</span>
+      </div>
     </div>
   );
 }
@@ -1208,11 +1673,21 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [showBuilder, setShowBuilder] = useState(false);
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
+  const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
+  const [showWorldBuilder, setShowWorldBuilder] = useState(false);
+  const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
     setChars(prev => {
       const idx = prev.findIndex(c => c.id === s.id);
       return idx >= 0 ? prev.map(c => c.id === s.id ? s : c) : [...prev, s];
+    });
+  };
+
+  const handleWorldSave = (ws: WorldSetting) => {
+    setWorldSettings(prev => {
+      const idx = prev.findIndex(w => w.id === ws.id);
+      return idx >= 0 ? prev.map(w => w.id === ws.id ? ws : w) : [...prev, ws];
     });
   };
 
@@ -1485,9 +1960,13 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                     )}
 
                     {settingTab === 'worldrules' && (
-                      <motion.div key="wr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 860 }}>
-                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>작품 고유의 세계관 규칙입니다. 노란 항목은 현재 원고에서 위반이 감지된 규칙입니다.</div>
-                        <WorldRulesView />
+                      <motion.div key="wr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
+                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>작품 고유의 세계관·환경 설정입니다. 설정집이나 회차에서 AI가 자동 추출하거나 직접 입력할 수 있습니다.</div>
+                        <WorldRulesView
+                          worldSettings={worldSettings}
+                          onAdd={() => setShowWorldBuilder(true)}
+                          onEdit={ws => setEditWorldTarget(ws)}
+                        />
                       </motion.div>
                     )}
 
@@ -1568,6 +2047,19 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
         <SettingsBuilderModal
           onClose={() => setShowBuilder(false)}
           onSave={s => { handleCharSave(s); setShowBuilder(false); }}
+        />
+      )}
+      {editWorldTarget && (
+        <WorldBuilderModal
+          initial={editWorldTarget}
+          onClose={() => setEditWorldTarget(null)}
+          onSave={ws => { handleWorldSave(ws); setEditWorldTarget(null); }}
+        />
+      )}
+      {showWorldBuilder && (
+        <WorldBuilderModal
+          onClose={() => setShowWorldBuilder(false)}
+          onSave={ws => { handleWorldSave(ws); setShowWorldBuilder(false); }}
         />
       )}
       {showUpload !== false && (
