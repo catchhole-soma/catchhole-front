@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
+import S3Chat from './components/catchhole/S3Chat';
 import S4Loading from './components/catchhole/S4Loading';
 import S5Report from './components/catchhole/S5Report';
 import { ScreenId, TransitionType, NavigateFn } from './components/catchhole/constants';
@@ -96,6 +97,7 @@ export default function App() {
         >
           {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} />}
           {screen === 'S2' && <S2Editor navigate={navigate} />}
+          {screen === 'S3' && <S3Chat navigate={navigate} />}
           {screen === 'S4' && <S4Loading navigate={navigate} />}
           {screen === 'S5' && <S5Report navigate={navigate} mode={reportMode} onModeReset={() => setReportMode('single')} />}
         </motion.div>

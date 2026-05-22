@@ -6,7 +6,7 @@ import {
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
-  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search,
+  Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 
@@ -1267,6 +1267,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
           <NavItem icon={<BookOpen size={14} />} label="설정 DB" active={activeNav === 'settingDB'} onClick={() => setActiveNav('settingDB')} />
           <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" active={activeNav === 'reports'} badge="3" onClick={() => setActiveNav('reports')} />
           <NavItem icon={<Network size={14} />} label="그래프 뷰" active={activeNav === 'graph'} onClick={() => setActiveNav('graph')} />
+          <NavItem icon={<MessageSquare size={14} />} label="챗봇" onClick={() => navigate('S3', 'push-right')} />
           <div style={{ margin: '12px 16px', borderTop: `1px solid ${C.border}` }} />
           <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>계정</div>
           <NavItem icon={<Settings size={14} />} label="설정" />
