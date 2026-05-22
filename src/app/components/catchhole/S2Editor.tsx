@@ -3,8 +3,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import { C, NavigateFn } from './constants';
 import {
   ChevronLeft, CircleCheckBig, AlertTriangle, BookOpen,
-  Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap,
+  Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap, Share2,
 } from 'lucide-react';
+import { ShareModal } from './ShareModal';
 
 interface Props {
   navigate: NavigateFn;
@@ -448,6 +449,7 @@ function EditorText({ text, detectionPhase, showCursor }: {
 
 export default function S2Editor({ navigate }: Props) {
   const [showModal, setShowModal] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [intentional, setIntentional] = useState(false);
   const [activePill, setActivePill] = useState('수아');
 
@@ -563,6 +565,19 @@ export default function S2Editor({ navigate }: Props) {
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* 공유 버튼 (상시 노출) */}
+          <button onClick={() => setShowShare(true)} style={{
+            height: 36, padding: '0 12px', borderRadius: 6,
+            background: 'transparent', border: `1px solid ${C.border}`,
+            color: C.t2, fontSize: 13, cursor: 'pointer',
+            fontFamily: 'inherit', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
+          >
+            <Share2 size={13} />공유
+          </button>
           <AnimatePresence mode="wait">
             {demoPhase === 'idle' && (
               <motion.button key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -818,6 +833,7 @@ export default function S2Editor({ navigate }: Props) {
 
       <AnimatePresence>
         {showModal && <S3Modal onStart={handleAnalysisStart} onCancel={() => setShowModal(false)} />}
+        {showShare && <ShareModal workTitle="빛나는 검사 로맨스" onClose={() => setShowShare(false)} defaultTab="link" />}
       </AnimatePresence>
     </div>
   );

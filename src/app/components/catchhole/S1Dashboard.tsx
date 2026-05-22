@@ -7,8 +7,10 @@ import {
   Upload, ChevronRight, Activity, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
+  Share2, Copy, Mail, UserPlus, ExternalLink, CheckCheck, ChevronDown,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
+import { ShareModal } from './ShareModal';
 
 interface Props { navigate: NavigateFn; onPrePublish?: () => void; }
 
@@ -1661,6 +1663,7 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
   );
 }
 
+
 type NavId = 'works' | 'settingDB' | 'reports' | 'graph';
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
@@ -1676,6 +1679,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   const handleCharSave = (s: CharacterSetting) => {
     setChars(prev => {
@@ -1763,7 +1767,10 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                 style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>내 작품</span>
-                  <BtnP label="새 작품 등록" onClick={() => setShowUpload('settings')} icon={<Plus size={14} />} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <BtnG label="공유 및 협업" onClick={() => setShowShare(true)} icon={<Share2 size={13} />} />
+                    <BtnP label="새 작품 등록" onClick={() => setShowUpload('settings')} icon={<Plus size={14} />} />
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 860, marginBottom: 28 }}>
@@ -2061,6 +2068,9 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
           onClose={() => setShowWorldBuilder(false)}
           onSave={ws => { handleWorldSave(ws); setShowWorldBuilder(false); }}
         />
+      )}
+      {showShare && (
+        <ShareModal workTitle="빛나는 검사 로맨스" onClose={() => setShowShare(false)} />
       )}
       {showUpload !== false && (
           <UploadModal

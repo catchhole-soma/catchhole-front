@@ -4,8 +4,9 @@ import { C, NavigateFn } from './constants';
 import {
   ChevronLeft, OctagonAlert, AlertTriangle, Sparkles,
   ChevronDown, ChevronUp, EyeOff, BookOpen, Clock, Users, Check,
-  Activity, Scale,
+  Activity, Scale, Share2,
 } from 'lucide-react';
+import { ShareModal } from './ShareModal';
 
 interface Props {
   navigate: NavigateFn;
@@ -512,6 +513,7 @@ const ERROR_DATA: ErrorCardData[] = [
 export default function S5Report({ navigate, mode = 'single', onModeReset }: Props) {
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
+  const [showShare, setShowShare] = useState(false);
   const isPrePublish = mode === 'prePublish';
 
   const toggleIgnore = (id: number) =>
@@ -556,8 +558,30 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
         </span>
 
         {isPrePublish
-          ? <BtnG label="리포트로 돌아가기" onClick={() => { onModeReset?.(); }} />
-          : <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+          ? <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowShare(true)} style={{
+                height: 36, padding: '0 12px', borderRadius: 6,
+                background: 'transparent', border: `1px solid ${C.border}`,
+                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+              ><Share2 size={13} />공유</button>
+              <BtnG label="리포트로 돌아가기" onClick={() => { onModeReset?.(); }} />
+            </div>
+          : <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowShare(true)} style={{
+                height: 36, padding: '0 12px', borderRadius: 6,
+                background: 'transparent', border: `1px solid ${C.border}`,
+                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+              ><Share2 size={13} />공유</button>
+              <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+            </div>
         }
       </div>
 
@@ -667,6 +691,9 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
           </span>
         </div>
       </div>
+      {showShare && (
+        <ShareModal workTitle="빛나는 검사 로맨스" onClose={() => setShowShare(false)} defaultTab="export" />
+      )}
     </div>
   );
 }
