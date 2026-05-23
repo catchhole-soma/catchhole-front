@@ -1431,10 +1431,21 @@ function RelationGraph({ graph }: { graph: RelGraph }) {
   );
 }
 
+interface TLError {
+  type: 'time' | 'inventory' | 'calculation';
+  desc: string;
+}
 interface TLEvent {
   ch: string; title: string; desc: string; type: string;
   characters: string[]; eventTags: string[]; items: string[];
+  errors?: TLError[];
 }
+
+const TL_ERROR_CFG = {
+  time:        { label: '시간 흐름', color: '#E25C5C', icon: '⏳' },
+  inventory:   { label: '소지품',   color: '#F4A261', icon: '🎒' },
+  calculation: { label: '수치 계산', color: '#A78BFA', icon: '🔢' },
+} as const;
 const TL_EVENTS: TLEvent[] = [
   { ch: '1화',   title: '수아 등장',       desc: '검사 지망생 수아 첫 서술',             type: 'normal',   characters: ['수아'],                      eventTags: ['등장'],          items: ['검사 배지'] },
   { ch: '2화',   title: '하윤 등장',       desc: '수아의 절친 하윤 첫 등장',             type: 'normal',   characters: ['하윤', '수아'],               eventTags: ['등장', '만남'],   items: [] },
@@ -1445,16 +1456,24 @@ const TL_EVENTS: TLEvent[] = [
   { ch: '47화',  title: '법정 첫 만남',   desc: '수아·강민준 공식 대면, 증거 제출',     type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['재판', '만남'],  items: ['증거 봉투', '검사 배지'] },
   { ch: '55화',  title: '내부고발 정황',   desc: '최검사, 증거 조작 단서 포착',          type: 'conflict', characters: ['최검사', '강민준'],           eventTags: ['갈등', '수사'],  items: ['증거 USB'] },
   { ch: '67화',  title: '공판 개시',       desc: '오변호사 기각 신청, 강민준 기소 강행', type: 'conflict', characters: ['강민준', '오변호사'],          eventTags: ['재판'],          items: ['법정 판결문'] },
-  { ch: '89화',  title: '이레나 갈등 심화', desc: '수아·이레나 대립 극한에 달함',        type: 'conflict', characters: ['수아', '이레나'],             eventTags: ['갈등'],          items: ['법원 영장'] },
-  { ch: '107화', title: '증거 조작 발각',  desc: '핵심 USB 증거 조작 정황 확인',        type: 'conflict', characters: ['신비서', '강민준'],           eventTags: ['수사', '충돌'],  items: ['증거 USB', '수사 수첩'] },
+  { ch: '89화',  title: '이레나 갈등 심화', desc: '수아·이레나 대립 극한에 달함',        type: 'conflict', characters: ['수아', '이레나'],             eventTags: ['갈등'],          items: ['법원 영장'],
+    errors: [{ type: 'time', desc: '법정 입문 1년 후로 서술됐으나 1화 대비 실제 9개월 경과' }] },
+  { ch: '107화', title: '증거 조작 발각',  desc: '핵심 USB 증거 조작 정황 확인',        type: 'conflict', characters: ['신비서', '강민준'],           eventTags: ['수사', '충돌'],  items: ['증거 USB', '수사 수첩'],
+    errors: [{ type: 'inventory', desc: '증거 USB를 최검사에게 제출한 것으로 기록됨 (이후 충돌 기준점)' }] },
   { ch: '118화', title: '2차 공판',        desc: '이레나 항소, 오변호사 반격 시작',      type: 'normal',   characters: ['이레나', '오변호사', '김판사'], eventTags: ['재판'],        items: ['법정 판결문'] },
   { ch: '123화', title: '핵심 설정 확정',  desc: '수아 임용 전 권한 제한 규칙 명시',    type: 'setting',  characters: ['수아'],                       eventTags: ['설정 등록'],     items: [] },
   { ch: '142화', title: '이레나 화해',     desc: '수아–이레나 화해 완료, 관계 해소',    type: 'resolved', characters: ['수아', '이레나'],             eventTags: ['화해'],          items: [] },
   { ch: '145화', title: '반전 복선',       desc: '강민준 과거 트라우마 암시',             type: 'normal',   characters: ['강민준', '최검사'],           eventTags: ['반전'],          items: ['수사 수첩'] },
-  { ch: '150화', title: '수아 체포 위기',  desc: '수아, 증거 조작 혐의로 구금 위기',    type: 'conflict', characters: ['수아', '박형사'],             eventTags: ['체포', '갈등'],  items: ['법원 영장', '증거 USB'] },
-  { ch: '155화', title: '로맨스 전환점',   desc: '수아·강민준 감정선 결정적 분기',       type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['만남'],          items: ['빨간 볼펜'] },
+  { ch: '150화', title: '수아 체포 위기',  desc: '수아, 증거 조작 혐의로 구금 위기',    type: 'conflict', characters: ['수아', '박형사'],             eventTags: ['체포', '갈등'],  items: ['법원 영장', '증거 USB'],
+    errors: [{ type: 'inventory', desc: '107화에서 제출된 USB를 수아가 다시 소지한 것으로 서술 ⚠' }] },
+  { ch: '155화', title: '로맨스 전환점',   desc: '수아·강민준 감정선 결정적 분기',       type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['만남'],          items: ['빨간 볼펜'],
+    errors: [{ type: 'calculation', desc: '23화(23세) 기준 \'3년 후\' → 26세여야 하나 25세로 서술' }] },
   { ch: '158화', title: 'DB 최신화',       desc: '분석 완료, 설정 최신 반영 상태',       type: 'current',  characters: [],                             eventTags: [],                items: [] },
-  { ch: '159화', title: '설정 충돌 감지',  desc: '강민준 눈 색 충돌 ⚠, USB 재등장',    type: 'writing',  characters: ['수아', '강민준', '이레나'],   eventTags: ['충돌'],          items: ['증거 USB', '검사 배지'] },
+  { ch: '159화', title: '설정 충돌 감지',  desc: '강민준 눈 색 충돌 ⚠, USB 재등장',    type: 'writing',  characters: ['수아', '강민준', '이레나'],   eventTags: ['충돌'],          items: ['증거 USB', '검사 배지'],
+    errors: [
+      { type: 'time', desc: '\"그로부터 2년이 흘렀다\" 서술이 실제 흐름과 1년 차이' },
+      { type: 'inventory', desc: '107화에서 이미 제출된 USB가 이 화에서 재등장 ⚠' },
+    ] },
   { ch: '160화', title: '재판 결말부',     desc: '김판사 판결, 사건 결정적 분기점',      type: 'conflict', characters: ['강민준', '수아', '김판사'],   eventTags: ['재판', '반전'],  items: ['법정 판결문'] },
 ];
 const TL_COLORS: Record<string, string> = {
@@ -1465,28 +1484,34 @@ const TL_FILTER_OPTIONS = {
   character: ['수아', '강민준', '이레나', '하윤', '최검사', '박형사', '오변호사', '김판사', '신비서'],
   event:     ['등장', '갈등', '수사', '재판', '화해', '충돌', '체포', '반전', '만남', '설정 등록'],
   item:      ['검사 배지', '수사 수첩', '증거 USB', '법정 판결문', '증거 봉투', '법원 영장', '빨간 볼펜'],
+  error:     ['시간 흐름', '소지품', '수치 계산'],
 };
 
 function TimelineView() {
-  const [tlFilter, setTlFilter] = useState<'all' | 'character' | 'event' | 'item'>('all');
+  const [tlFilter, setTlFilter] = useState<'all' | 'character' | 'event' | 'item' | 'error'>('all');
   const [tlSelected, setTlSelected] = useState<string | null>(null);
 
   const filteredEvents = TL_EVENTS.filter(e => {
-    if (tlFilter === 'all' || !tlSelected) return true;
+    if (tlFilter === 'all') return true;
+    if (!tlSelected) {
+      if (tlFilter === 'error') return (e.errors?.length ?? 0) > 0;
+      return true;
+    }
     if (tlFilter === 'character') return e.characters.includes(tlSelected);
     if (tlFilter === 'event')     return e.eventTags.includes(tlSelected);
     if (tlFilter === 'item')      return e.items.includes(tlSelected);
+    if (tlFilter === 'error')     return e.errors?.some(err => TL_ERROR_CFG[err.type].label === tlSelected) ?? false;
     return true;
   });
 
-  const filterLabels: Record<string, string> = { all: '전체', character: '인물별', event: '사건별', item: '아이템별' };
-  const filterColors: Record<string, string> = { character: '#7C5CFC', event: '#E25C5C', item: '#F4A261' };
+  const filterLabels: Record<string, string> = { all: '전체', character: '인물별', event: '사건별', item: '아이템별', error: '오류별' };
+  const filterColors: Record<string, string> = { character: '#7C5CFC', event: '#E25C5C', item: '#F4A261', error: '#E25C5C' };
 
   return (
     <div>
       {/* 1차 필터 */}
       <div style={{ display: 'flex', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
-        {(['all', 'character', 'event', 'item'] as const).map(f => {
+        {(['all', 'character', 'event', 'item', 'error'] as const).map(f => {
           const active = tlFilter === f;
           const fc = filterColors[f] || C.primary;
           return (
@@ -1495,9 +1520,10 @@ function TimelineView() {
               background: active ? (f === 'all' ? C.primary : fc) + '1A' : 'transparent',
               border: `1px solid ${active ? (f === 'all' ? C.primary : fc) : C.border}`,
               color: active ? (f === 'all' ? C.primary : fc) : C.t3,
+              fontWeight: f === 'error' ? 600 : 400,
               transition: 'all 0.13s',
             }}>
-              {filterLabels[f]}
+              {f === 'error' ? '⚠ 오류별' : filterLabels[f]}
             </button>
           );
         })}
@@ -1506,21 +1532,68 @@ function TimelineView() {
       {/* 2차 선택 chip */}
       {tlFilter !== 'all' && (
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
-          {TL_FILTER_OPTIONS[tlFilter as 'character' | 'event' | 'item'].map(opt => {
-            const sel = tlSelected === opt;
-            const fc = filterColors[tlFilter] || C.primary;
-            return (
-              <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
-                padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
-                background: sel ? fc + '20' : 'transparent',
-                border: `1px solid ${sel ? fc : C.border}`,
-                color: sel ? fc : C.t3,
-                transition: 'all 0.12s',
-              }}>
-                {opt}
-              </button>
-            );
-          })}
+          {(tlFilter === 'error'
+            ? TL_FILTER_OPTIONS.error.map(opt => {
+                const errType = (Object.keys(TL_ERROR_CFG) as Array<keyof typeof TL_ERROR_CFG>).find(k => TL_ERROR_CFG[k].label === opt);
+                const errColor = errType ? TL_ERROR_CFG[errType].color : '#E25C5C';
+                const errIcon  = errType ? TL_ERROR_CFG[errType].icon  : '';
+                const sel = tlSelected === opt;
+                return (
+                  <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
+                    padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+                    background: sel ? errColor + '20' : 'transparent',
+                    border: `1px solid ${sel ? errColor : C.border}`,
+                    color: sel ? errColor : C.t3,
+                    transition: 'all 0.12s',
+                  }}>
+                    {errIcon} {opt}
+                  </button>
+                );
+              })
+            : TL_FILTER_OPTIONS[tlFilter as 'character' | 'event' | 'item'].map(opt => {
+                const sel = tlSelected === opt;
+                const fc = filterColors[tlFilter] || C.primary;
+                return (
+                  <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
+                    padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+                    background: sel ? fc + '20' : 'transparent',
+                    border: `1px solid ${sel ? fc : C.border}`,
+                    color: sel ? fc : C.t3,
+                    transition: 'all 0.12s',
+                  }}>
+                    {opt}
+                  </button>
+                );
+              })
+          )}
+        </div>
+      )}
+
+      {/* 오류 상세 패널 */}
+      {tlFilter === 'error' && filteredEvents.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {filteredEvents.flatMap(ev =>
+            (ev.errors ?? [])
+              .filter(err => !tlSelected || TL_ERROR_CFG[err.type].label === tlSelected)
+              .map((err, i) => (
+                <div key={`${ev.ch}-${i}`} style={{
+                  background: TL_ERROR_CFG[err.type].color + '0A',
+                  border: `1px solid ${TL_ERROR_CFG[err.type].color}33`,
+                  borderLeft: `3px solid ${TL_ERROR_CFG[err.type].color}`,
+                  borderRadius: 6, padding: '10px 14px',
+                  display: 'flex', flexDirection: 'column', gap: 4,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12 }}>{TL_ERROR_CFG[err.type].icon}</span>
+                    <span style={{ color: TL_ERROR_CFG[err.type].color, fontSize: 11, fontWeight: 700 }}>
+                      {TL_ERROR_CFG[err.type].label}
+                    </span>
+                    <span style={{ color: C.t2, fontSize: 12, fontWeight: 600 }}>{ev.ch} · {ev.title}</span>
+                  </div>
+                  <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.5 }}>{err.desc}</div>
+                </div>
+              ))
+          )}
         </div>
       )}
 
@@ -1533,16 +1606,20 @@ function TimelineView() {
         ) : (
           <div style={{ minWidth: Math.max(520, filteredEvents.length * 90) }}>
             <div style={{ position: 'relative', height: 2, background: C.border, margin: '30px 24px 0', borderRadius: 1 }}>
-              {filteredEvents.map((ev, i) => (
-                <div key={i} style={{
-                  position: 'absolute',
-                  left: filteredEvents.length === 1 ? '50%' : `${i / (filteredEvents.length - 1) * 100}%`,
-                  transform: 'translateX(-50%) translateY(-50%)',
-                  width: 12, height: 12, borderRadius: '50%',
-                  background: TL_COLORS[ev.type], border: `2px solid ${C.bg}`,
-                  boxShadow: `0 0 0 1.5px ${TL_COLORS[ev.type]}`,
-                }} />
-              ))}
+              {filteredEvents.map((ev, i) => {
+                const hasErr = (ev.errors?.length ?? 0) > 0;
+                return (
+                  <div key={i} style={{
+                    position: 'absolute',
+                    left: filteredEvents.length === 1 ? '50%' : `${i / (filteredEvents.length - 1) * 100}%`,
+                    transform: 'translateX(-50%) translateY(-50%)',
+                    width: 12, height: 12, borderRadius: '50%',
+                    background: hasErr ? '#E25C5C' : TL_COLORS[ev.type],
+                    border: `2px solid ${C.bg}`,
+                    boxShadow: `0 0 0 1.5px ${hasErr ? '#E25C5C' : TL_COLORS[ev.type]}`,
+                  }} />
+                );
+              })}
             </div>
             <div style={{ display: 'flex', marginTop: 16 }}>
               {filteredEvents.map((ev, i) => {
@@ -1555,7 +1632,7 @@ function TimelineView() {
                     <div style={{ padding: '2px 6px', borderRadius: 3, background: color + '18', border: `1px solid ${color}33`, color, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>{ev.ch}</div>
                     <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3 }}>{ev.title}</div>
                     <div style={{ color: C.t3, fontSize: 10, lineHeight: 1.4 }}>{ev.desc}</div>
-                    {/* 태그 */}
+                    {/* 인물·아이템 태그 */}
                     {(ev.characters.length > 0 || ev.items.length > 0) && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, justifyContent: 'center' }}>
                         {ev.characters.slice(0, 2).map(c => (
@@ -1563,6 +1640,21 @@ function TimelineView() {
                         ))}
                         {ev.items.slice(0, 1).map(it => (
                           <span key={it} style={{ fontSize: 9, color: '#F4A261', background: '#F4A26114', border: '1px solid #F4A26133', borderRadius: 3, padding: '1px 4px' }}>{it}</span>
+                        ))}
+                      </div>
+                    )}
+                    {/* 오류 배지 (항상 표시) */}
+                    {ev.errors && ev.errors.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, justifyContent: 'center' }}>
+                        {ev.errors.map((err, ei) => (
+                          <span key={ei} style={{
+                            fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                            color: TL_ERROR_CFG[err.type].color,
+                            background: TL_ERROR_CFG[err.type].color + '18',
+                            border: `1px solid ${TL_ERROR_CFG[err.type].color}44`,
+                          }}>
+                            {TL_ERROR_CFG[err.type].icon} {TL_ERROR_CFG[err.type].label}
+                          </span>
                         ))}
                       </div>
                     )}
