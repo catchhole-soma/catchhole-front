@@ -20,6 +20,11 @@ const charColors: Record<string, string> = {
   lena: '#4BB8D9',
   hayun: C.success,
   choi: '#D4A04A',
+  pak: '#F4A261',
+  oh: '#00C896',
+  kim: '#B48BFF',
+  jung: '#A78BFA',
+  shin: '#64748B',
 };
 
 function NavItem({
@@ -1289,26 +1294,68 @@ function CharCard({ name, role, age, eyes, job, chapter, eyeConflict, colorKey }
   );
 }
 
-const GRAPH_NODES = [
-  { id: 'sua',   label: '수아',   role: '주인공',     x: 250, y: 128 },
-  { id: 'min',   label: '강민준', role: '남자주인공',  x: 418, y: 62  },
-  { id: 'lena',  label: '이레나', role: '라이벌',     x: 418, y: 194 },
-  { id: 'hayun', label: '하윤',   role: '절친',       x: 82,  y: 62  },
-  { id: 'choi',  label: '최검사', role: '상사',       x: 82,  y: 194 },
+type RelGraphId = 'triangle' | 'prosecution' | 'court';
+interface RelGraphNode { id: string; label: string; role: string; x: number; y: number; }
+interface RelGraphEdge { from: string; to: string; label: string; color: string; t: number; ox: number; oy: number; dashed?: boolean; }
+interface RelGraph { id: RelGraphId; label: string; subtitle: string; nodes: RelGraphNode[]; edges: RelGraphEdge[]; }
+
+const RELATION_GRAPHS: RelGraph[] = [
+  {
+    id: 'triangle', label: '주인공 삼각관계', subtitle: '핵심 3인 감정선 + 주변 인물',
+    nodes: [
+      { id: 'sua',   label: '수아',   role: '주인공',    x: 250, y: 128 },
+      { id: 'min',   label: '강민준', role: '남자주인공', x: 418, y: 62  },
+      { id: 'lena',  label: '이레나', role: '라이벌',    x: 418, y: 194 },
+      { id: 'hayun', label: '하윤',   role: '절친',      x: 82,  y: 62  },
+      { id: 'choi',  label: '최검사', role: '상사',      x: 82,  y: 194 },
+    ],
+    edges: [
+      { from: 'hayun', to: 'sua',  label: '절친',     color: C.success,  t: 0.44, ox:  0,  oy: -13 },
+      { from: 'sua',   to: 'min',  label: '갈등/끌림', color: '#E25C5C', t: 0.50, ox:  6,  oy: -13, dashed: true },
+      { from: 'sua',   to: 'lena', label: '화해',     color: C.success,  t: 0.50, ox: 12,  oy:  12 },
+      { from: 'min',   to: 'lena', label: '법적 대립', color: C.warning,  t: 0.50, ox: -48, oy:   0 },
+      { from: 'choi',  to: 'min',  label: '상사-부하', color: C.t3,       t: 0.22, ox:  0,  oy:  13 },
+    ],
+  },
+  {
+    id: 'prosecution', label: '검찰 조직도', subtitle: '수사팀 계층 구조 및 지휘 체계',
+    nodes: [
+      { id: 'choi', label: '최검사', role: '검사장',    x: 250, y: 38  },
+      { id: 'min',  label: '강민준', role: '수석검사',  x: 140, y: 128 },
+      { id: 'pak',  label: '박형사', role: '형사',      x: 360, y: 128 },
+      { id: 'jung', label: '정형사', role: '수사관',    x: 70,  y: 215 },
+      { id: 'shin', label: '신비서', role: '비서',      x: 230, y: 215 },
+    ],
+    edges: [
+      { from: 'choi', to: 'min',  label: '상사-부하', color: C.t3,       t: 0.50, ox:  0, oy: -13 },
+      { from: 'choi', to: 'pak',  label: '직속관리',  color: '#F4A261',  t: 0.50, ox:  0, oy: -13 },
+      { from: 'min',  to: 'jung', label: '수사지시',  color: C.t3,       t: 0.50, ox:  0, oy: -13 },
+      { from: 'min',  to: 'shin', label: '연락',      color: '#64748B',  t: 0.50, ox:  0, oy: -13 },
+    ],
+  },
+  {
+    id: 'court', label: '법정 대립구도', subtitle: '기소측 vs 변호측, 판사 중재',
+    nodes: [
+      { id: 'sua',  label: '수아',    role: '수습검사',  x: 72,  y: 88  },
+      { id: 'min',  label: '강민준',  role: '수석검사',  x: 72,  y: 178 },
+      { id: 'kim',  label: '김판사',  role: '재판장',    x: 250, y: 128 },
+      { id: 'lena', label: '이레나',  role: '변호사',    x: 428, y: 88  },
+      { id: 'oh',   label: '오변호사', role: '변호인',   x: 428, y: 178 },
+    ],
+    edges: [
+      { from: 'min',  to: 'kim',  label: '기소',  color: '#E25C5C', t: 0.50, ox:  0, oy: -13 },
+      { from: 'sua',  to: 'kim',  label: '보조',  color: C.primary, t: 0.50, ox:  0, oy: -13 },
+      { from: 'lena', to: 'kim',  label: '변호',  color: C.success, t: 0.50, ox:  0, oy: -13, dashed: true },
+      { from: 'oh',   to: 'kim',  label: '진행',  color: '#00C896', t: 0.50, ox:  0, oy: -13 },
+      { from: 'min',  to: 'oh',   label: '대립',  color: C.warning, t: 0.50, ox:  0, oy:  13, dashed: true },
+    ],
+  },
 ];
 
-const GRAPH_EDGES = [
-  { from: 'hayun', to: 'sua',  label: '절친',    color: C.success,  t: 0.44, ox:  0,   oy: -13, dashed: false },
-  { from: 'sua',   to: 'min',  label: '갈등/끌림', color: '#E25C5C', t: 0.50, ox:  6,   oy: -13, dashed: true  },
-  { from: 'sua',   to: 'lena', label: '화해',    color: C.success,  t: 0.50, ox: 12,   oy:  12, dashed: false },
-  { from: 'min',   to: 'lena', label: '법적 대립', color: C.warning,  t: 0.50, ox: -48,  oy:  0,  dashed: false },
-  { from: 'choi',  to: 'min',  label: '상사-부하', color: C.t3,       t: 0.22, ox:  0,   oy:  13, dashed: false },
-];
-
-function RelationGraph() {
-  const nodeMap = Object.fromEntries(GRAPH_NODES.map((n) => [n.id, n]));
+function RelationGraph({ graph }: { graph: RelGraph }) {
+  const nodeMap = Object.fromEntries(graph.nodes.map((n) => [n.id, n]));
   const R = 26;
-  const LW = 70;
+  const LW = 68;
 
   return (
     <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '14px 16px 12px' }}>
@@ -1319,9 +1366,10 @@ function RelationGraph() {
           ))
         )}
 
-        {GRAPH_EDGES.map((edge) => {
+        {graph.edges.map((edge, ei) => {
           const f = nodeMap[edge.from];
           const to = nodeMap[edge.to];
+          if (!f || !to) return null;
           const dx = to.x - f.x;
           const dy = to.y - f.y;
           const len = Math.sqrt(dx * dx + dy * dy);
@@ -1332,7 +1380,7 @@ function RelationGraph() {
           const lx = f.x + dx * edge.t + edge.ox;
           const ly = f.y + dy * edge.t + edge.oy;
           return (
-            <g key={`${edge.from}-${edge.to}`}>
+            <g key={ei}>
               <line x1={x1} y1={y1} x2={x2} y2={y2}
                 stroke={edge.color} strokeWidth={1.5} strokeOpacity={0.48}
                 strokeDasharray={edge.dashed ? '6 3' : undefined} />
@@ -1346,7 +1394,7 @@ function RelationGraph() {
           );
         })}
 
-        {GRAPH_NODES.map((node) => {
+        {graph.nodes.map((node) => {
           const color = charColors[node.id] || C.primary;
           return (
             <g key={node.id}>
@@ -1366,7 +1414,7 @@ function RelationGraph() {
         marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`,
         justifyContent: 'center',
       }}>
-        {GRAPH_NODES.map((node) => {
+        {graph.nodes.map((node) => {
           const color = charColors[node.id] || C.primary;
           return (
             <div key={node.id} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1383,51 +1431,147 @@ function RelationGraph() {
   );
 }
 
-const TL_EVENTS = [
-  { ch: '1화', title: '수아 등장', desc: '주인공 세계 입문', type: 'normal' },
-  { ch: '3화', title: '강민준 등장', desc: '수석검사 첫 서술', type: 'normal' },
-  { ch: '23화', title: '갈색 눈 설정', desc: '핵심 외모 설정 확정', type: 'setting' },
-  { ch: '47화', title: '법정 첫 만남', desc: '두 주인공 대면', type: 'normal' },
-  { ch: '89화', title: '이레나 갈등 심화', desc: '대립 극한에 달함', type: 'conflict' },
-  { ch: '142화', title: '이레나 화해', desc: '수아–이레나 화해 완료', type: 'resolved' },
-  { ch: '158화', title: 'DB 최신화', desc: '분석 완료 상태', type: 'current' },
-  { ch: '159화', title: '집필 중', desc: '충돌 감지 ⚠', type: 'writing' },
+interface TLEvent {
+  ch: string; title: string; desc: string; type: string;
+  characters: string[]; eventTags: string[]; items: string[];
+}
+const TL_EVENTS: TLEvent[] = [
+  { ch: '1화',   title: '수아 등장',       desc: '검사 지망생 수아 첫 서술',             type: 'normal',   characters: ['수아'],                      eventTags: ['등장'],          items: ['검사 배지'] },
+  { ch: '2화',   title: '하윤 등장',       desc: '수아의 절친 하윤 첫 등장',             type: 'normal',   characters: ['하윤', '수아'],               eventTags: ['등장', '만남'],   items: [] },
+  { ch: '3화',   title: '강민준 등장',     desc: '수석검사 강민준 첫 서술',              type: 'normal',   characters: ['강민준'],                     eventTags: ['등장'],          items: [] },
+  { ch: '12화',  title: '수사 시작',       desc: '강민준 수사팀 출동, 박형사 합류',      type: 'normal',   characters: ['강민준', '박형사'],            eventTags: ['수사'],          items: ['수사 수첩'] },
+  { ch: '23화',  title: '갈색 눈 설정',   desc: '수아 핵심 외모 설정 확정',             type: 'setting',  characters: ['수아'],                       eventTags: ['설정 등록'],     items: [] },
+  { ch: '35화',  title: '이레나 등장',     desc: '라이벌 이레나 첫 법정 출현',           type: 'normal',   characters: ['이레나'],                     eventTags: ['등장'],          items: [] },
+  { ch: '47화',  title: '법정 첫 만남',   desc: '수아·강민준 공식 대면, 증거 제출',     type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['재판', '만남'],  items: ['증거 봉투', '검사 배지'] },
+  { ch: '55화',  title: '내부고발 정황',   desc: '최검사, 증거 조작 단서 포착',          type: 'conflict', characters: ['최검사', '강민준'],           eventTags: ['갈등', '수사'],  items: ['증거 USB'] },
+  { ch: '67화',  title: '공판 개시',       desc: '오변호사 기각 신청, 강민준 기소 강행', type: 'conflict', characters: ['강민준', '오변호사'],          eventTags: ['재판'],          items: ['법정 판결문'] },
+  { ch: '89화',  title: '이레나 갈등 심화', desc: '수아·이레나 대립 극한에 달함',        type: 'conflict', characters: ['수아', '이레나'],             eventTags: ['갈등'],          items: ['법원 영장'] },
+  { ch: '107화', title: '증거 조작 발각',  desc: '핵심 USB 증거 조작 정황 확인',        type: 'conflict', characters: ['신비서', '강민준'],           eventTags: ['수사', '충돌'],  items: ['증거 USB', '수사 수첩'] },
+  { ch: '118화', title: '2차 공판',        desc: '이레나 항소, 오변호사 반격 시작',      type: 'normal',   characters: ['이레나', '오변호사', '김판사'], eventTags: ['재판'],        items: ['법정 판결문'] },
+  { ch: '123화', title: '핵심 설정 확정',  desc: '수아 임용 전 권한 제한 규칙 명시',    type: 'setting',  characters: ['수아'],                       eventTags: ['설정 등록'],     items: [] },
+  { ch: '142화', title: '이레나 화해',     desc: '수아–이레나 화해 완료, 관계 해소',    type: 'resolved', characters: ['수아', '이레나'],             eventTags: ['화해'],          items: [] },
+  { ch: '145화', title: '반전 복선',       desc: '강민준 과거 트라우마 암시',             type: 'normal',   characters: ['강민준', '최검사'],           eventTags: ['반전'],          items: ['수사 수첩'] },
+  { ch: '150화', title: '수아 체포 위기',  desc: '수아, 증거 조작 혐의로 구금 위기',    type: 'conflict', characters: ['수아', '박형사'],             eventTags: ['체포', '갈등'],  items: ['법원 영장', '증거 USB'] },
+  { ch: '155화', title: '로맨스 전환점',   desc: '수아·강민준 감정선 결정적 분기',       type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['만남'],          items: ['빨간 볼펜'] },
+  { ch: '158화', title: 'DB 최신화',       desc: '분석 완료, 설정 최신 반영 상태',       type: 'current',  characters: [],                             eventTags: [],                items: [] },
+  { ch: '159화', title: '설정 충돌 감지',  desc: '강민준 눈 색 충돌 ⚠, USB 재등장',    type: 'writing',  characters: ['수아', '강민준', '이레나'],   eventTags: ['충돌'],          items: ['증거 USB', '검사 배지'] },
+  { ch: '160화', title: '재판 결말부',     desc: '김판사 판결, 사건 결정적 분기점',      type: 'conflict', characters: ['강민준', '수아', '김판사'],   eventTags: ['재판', '반전'],  items: ['법정 판결문'] },
 ];
 const TL_COLORS: Record<string, string> = {
   normal: C.t3, setting: C.primary, conflict: C.danger, resolved: C.success,
   current: C.primary, writing: C.warning,
 };
+const TL_FILTER_OPTIONS = {
+  character: ['수아', '강민준', '이레나', '하윤', '최검사', '박형사', '오변호사', '김판사', '신비서'],
+  event:     ['등장', '갈등', '수사', '재판', '화해', '충돌', '체포', '반전', '만남', '설정 등록'],
+  item:      ['검사 배지', '수사 수첩', '증거 USB', '법정 판결문', '증거 봉투', '법원 영장', '빨간 볼펜'],
+};
 
 function TimelineView() {
+  const [tlFilter, setTlFilter] = useState<'all' | 'character' | 'event' | 'item'>('all');
+  const [tlSelected, setTlSelected] = useState<string | null>(null);
+
+  const filteredEvents = TL_EVENTS.filter(e => {
+    if (tlFilter === 'all' || !tlSelected) return true;
+    if (tlFilter === 'character') return e.characters.includes(tlSelected);
+    if (tlFilter === 'event')     return e.eventTags.includes(tlSelected);
+    if (tlFilter === 'item')      return e.items.includes(tlSelected);
+    return true;
+  });
+
+  const filterLabels: Record<string, string> = { all: '전체', character: '인물별', event: '사건별', item: '아이템별' };
+  const filterColors: Record<string, string> = { character: '#7C5CFC', event: '#E25C5C', item: '#F4A261' };
+
   return (
-    <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '24px 20px', overflowX: 'auto' }}>
-      <div style={{ minWidth: 680 }}>
-        <div style={{ position: 'relative', height: 2, background: C.border, margin: '30px 24px 0', borderRadius: 1 }}>
-          {TL_EVENTS.map((ev, i) => (
-            <div key={i} style={{
-              position: 'absolute', left: `${i / (TL_EVENTS.length - 1) * 100}%`,
-              transform: 'translateX(-50%) translateY(-50%)',
-              width: 12, height: 12, borderRadius: '50%',
-              background: TL_COLORS[ev.type], border: `2px solid ${C.bg}`,
-              boxShadow: `0 0 0 1.5px ${TL_COLORS[ev.type]}`,
-            }} />
-          ))}
-        </div>
-        <div style={{ display: 'flex', marginTop: 16 }}>
-          {TL_EVENTS.map((ev, i) => {
-            const color = TL_COLORS[ev.type];
+    <div>
+      {/* 1차 필터 */}
+      <div style={{ display: 'flex', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
+        {(['all', 'character', 'event', 'item'] as const).map(f => {
+          const active = tlFilter === f;
+          const fc = filterColors[f] || C.primary;
+          return (
+            <button key={f} onClick={() => { setTlFilter(f); setTlSelected(null); }} style={{
+              padding: '5px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
+              background: active ? (f === 'all' ? C.primary : fc) + '1A' : 'transparent',
+              border: `1px solid ${active ? (f === 'all' ? C.primary : fc) : C.border}`,
+              color: active ? (f === 'all' ? C.primary : fc) : C.t3,
+              transition: 'all 0.13s',
+            }}>
+              {filterLabels[f]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 2차 선택 chip */}
+      {tlFilter !== 'all' && (
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
+          {TL_FILTER_OPTIONS[tlFilter as 'character' | 'event' | 'item'].map(opt => {
+            const sel = tlSelected === opt;
+            const fc = filterColors[tlFilter] || C.primary;
             return (
-              <div key={i} style={{
-                flex: 1, padding: '0 4px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+              <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
+                padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+                background: sel ? fc + '20' : 'transparent',
+                border: `1px solid ${sel ? fc : C.border}`,
+                color: sel ? fc : C.t3,
+                transition: 'all 0.12s',
               }}>
-                <div style={{ padding: '2px 6px', borderRadius: 3, background: color + '18', border: `1px solid ${color}33`, color, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>{ev.ch}</div>
-                <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3 }}>{ev.title}</div>
-                <div style={{ color: C.t3, fontSize: 10, lineHeight: 1.4 }}>{ev.desc}</div>
-              </div>
+                {opt}
+              </button>
             );
           })}
         </div>
+      )}
+
+      {/* 타임라인 본체 */}
+      <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '24px 20px', overflowX: 'auto' }}>
+        {filteredEvents.length === 0 ? (
+          <div style={{ color: C.t3, textAlign: 'center', padding: '28px 0', fontSize: 13 }}>
+            해당 조건의 이벤트가 없습니다
+          </div>
+        ) : (
+          <div style={{ minWidth: Math.max(520, filteredEvents.length * 90) }}>
+            <div style={{ position: 'relative', height: 2, background: C.border, margin: '30px 24px 0', borderRadius: 1 }}>
+              {filteredEvents.map((ev, i) => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  left: filteredEvents.length === 1 ? '50%' : `${i / (filteredEvents.length - 1) * 100}%`,
+                  transform: 'translateX(-50%) translateY(-50%)',
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: TL_COLORS[ev.type], border: `2px solid ${C.bg}`,
+                  boxShadow: `0 0 0 1.5px ${TL_COLORS[ev.type]}`,
+                }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', marginTop: 16 }}>
+              {filteredEvents.map((ev, i) => {
+                const color = TL_COLORS[ev.type];
+                return (
+                  <div key={i} style={{
+                    flex: 1, padding: '0 4px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                  }}>
+                    <div style={{ padding: '2px 6px', borderRadius: 3, background: color + '18', border: `1px solid ${color}33`, color, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>{ev.ch}</div>
+                    <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3 }}>{ev.title}</div>
+                    <div style={{ color: C.t3, fontSize: 10, lineHeight: 1.4 }}>{ev.desc}</div>
+                    {/* 태그 */}
+                    {(ev.characters.length > 0 || ev.items.length > 0) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, justifyContent: 'center' }}>
+                        {ev.characters.slice(0, 2).map(c => (
+                          <span key={c} style={{ fontSize: 9, color: '#7C5CFC', background: '#7C5CFC14', border: '1px solid #7C5CFC33', borderRadius: 3, padding: '1px 4px' }}>{c}</span>
+                        ))}
+                        {ev.items.slice(0, 1).map(it => (
+                          <span key={it} style={{ fontSize: 9, color: '#F4A261', background: '#F4A26114', border: '1px solid #F4A26133', borderRadius: 3, padding: '1px 4px' }}>{it}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1690,6 +1834,7 @@ type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'se
 export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [activeNav, setActiveNav] = useState<NavId>('works');
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
+  const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
   const [selectedWork, setSelectedWork] = useState<'detective' | 'murim'>('detective');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode'>(false);
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
@@ -1948,8 +2093,31 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
 
                     {settingTab === 'relations' && (
                       <motion.div key="rel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 860 }}>
-                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>캐릭터 간 관계를 그래프로 시각화합니다. 회차에 따른 관계 변화를 추적합니다.</div>
-                        <RelationGraph />
+                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 14 }}>캐릭터 간 관계를 그래프로 시각화합니다. 관점별로 전환하며 확인하세요.</div>
+
+                        {/* 그래프 선택 chip */}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                          {RELATION_GRAPHS.map(g => {
+                            const active = relGraphId === g.id;
+                            return (
+                              <button key={g.id} onClick={() => setRelGraphId(g.id)} style={{
+                                padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                                background: active ? C.primary + '1A' : 'transparent',
+                                border: `1px solid ${active ? C.primary : C.border}`,
+                                color: active ? C.primary : C.t2,
+                                transition: 'all 0.13s',
+                              }}>
+                                {g.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>
+                          {RELATION_GRAPHS.find(g => g.id === relGraphId)?.subtitle}
+                        </div>
+
+                        <RelationGraph graph={RELATION_GRAPHS.find(g => g.id === relGraphId)!} />
+
                         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
                           <div style={{ flex: 1, background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: 14 }}>
                             <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 8 }}>최근 관계 변화</div>
