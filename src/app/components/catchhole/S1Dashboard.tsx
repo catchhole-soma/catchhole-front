@@ -87,10 +87,88 @@ function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; i
 }
 
 const GENRES = ['로맨스', '판타지', '무협', '현대', '미스터리', '기타'];
-function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
+
+function TypeCard({ icon, label, desc, color, onSelect }: {
+  icon: React.ReactNode; label: string; desc: string; color: string; onSelect: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '14px 16px', borderRadius: 8, cursor: 'pointer',
+        border: `1px solid ${hovered ? color : C.border}`,
+        background: hovered ? color + '0A' : C.bg,
+        marginBottom: 8, transition: 'all 0.15s',
+      }}
+    >
+      <div style={{
+        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+        background: color + '18',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: color,
+      }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ color: C.t1, fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+        <div style={{ color: C.t2, fontSize: 12 }}>{desc}</div>
+      </div>
+      <ChevronRight size={16} color={C.t3} />
+    </div>
+  );
+}
+
+function DragDropArea({ dragging, fileSelected, setDragging, setFileSelected, fileLabel }: {
+  dragging: boolean; fileSelected: boolean;
+  setDragging: (v: boolean) => void; setFileSelected: (v: boolean) => void;
+  fileLabel: string;
+}) {
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={() => { setDragging(false); setFileSelected(true); }}
+      onClick={() => setFileSelected(true)}
+      style={{
+        border: `2px dashed ${dragging ? C.primary : fileSelected ? C.success : C.border}`,
+        borderRadius: 8, padding: '24px', textAlign: 'center',
+        background: dragging ? C.primary + '08' : fileSelected ? C.success + '08' : 'transparent',
+        cursor: 'pointer', transition: 'all 0.15s', marginBottom: 12,
+      }}
+    >
+      {fileSelected ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <CircleCheckBig size={18} color={C.success} />
+          <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>{fileLabel} — 업로드 준비 완료</span>
+        </div>
+      ) : (
+        <>
+          <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
+          <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
+          <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 · {fileLabel}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+type UploadSubType = 'fresh' | 'ep-only';
+
+const MOCK_WORKS = [
+  { title: '빛나는 검사 로맨스', chapters: 158 },
+  { title: '무협지존', chapters: 42 },
+];
+
+function UploadModal({ onClose, mode, initialWork, initialChapters, works, navigate: nav }: {
   onClose: () => void;
-  mode: 'settings' | 'episode';
+  mode: 'settings' | 'episode' | 'new-work';
   initialWork?: string;
+  initialChapters?: number;
+  works?: { title: string; chapters: number }[];
   navigate?: NavigateFn;
 }) {
   const [title, setTitle] = useState('');
@@ -98,13 +176,28 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
   const [dragging, setDragging] = useState(false);
   const [fileSelected, setFileSelected] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [episodeWork] = useState(initialWork || '');
-  const [episodeNum, setEpisodeNum] = useState('');
+  const [episodeWork, setEpisodeWork] = useState(initialWork || '');
+  const [episodeNum, setEpisodeNum] = useState(initialChapters ? String(initialChapters + 1) : '');
+  const [uploadType, setUploadType] = useState<UploadSubType | null>(
+    mode === 'episode' ? 'ep-only' : null
+  );
+  const [settingsDragging, setSettingsDragging] = useState(false);
+  const [settingsFileSelected, setSettingsFileSelected] = useState(false);
+  const [includeSettings, setIncludeSettings] = useState(false);
 
   const isSettings = mode === 'settings';
-  const canProceed = isSettings
-    ? (title.trim() && genre && fileSelected)
-    : (episodeWork && episodeNum.trim() && fileSelected);
+
+  const canProceed = (() => {
+    if (!uploadType) return false;
+    if (uploadType === 'fresh') return !!(title.trim() && genre && fileSelected && (!includeSettings || settingsFileSelected));
+    return !!(episodeWork && episodeNum.trim() && fileSelected);
+  })();
+
+  const stepLabels =
+    uploadType === 'fresh' ? ['회차 등록', 'AI 분석', '확인·수정']
+    : uploadType === 'ep-only' ? ['회차 등록', 'AI 대조 분석']
+    : isSettings ? ['설정집 등록', 'AI 분석', '확인·수정']
+    : ['회차 선택', 'AI 대조'];
 
   return (
     <motion.div
@@ -123,31 +216,66 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
           width: 500, background: C.surface, borderRadius: 12,
           border: `1px solid ${C.border}`, padding: 32,
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          maxHeight: '90vh', overflowY: 'auto',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 28 }}>
-          {(isSettings ? ['설정집 등록', 'AI 분석', '확인·수정'] : ['회차 선택', 'AI 대조']).map((s, i, arr) => (
-            <React.Fragment key={s}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                  background: i + 1 <= step ? C.primary : C.border,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, color: i + 1 <= step ? '#fff' : C.t3,
-                }}>
-                  {i + 1 < step ? <Check size={12} /> : i + 1}
+        {uploadType !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 28 }}>
+            {stepLabels.map((s, i, arr) => (
+              <React.Fragment key={s}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                    background: i + 1 <= step ? C.primary : C.border,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, color: i + 1 <= step ? '#fff' : C.t3,
+                  }}>
+                    {i + 1 < step ? <Check size={12} /> : i + 1}
+                  </div>
+                  <span style={{ fontSize: 12, color: i + 1 === step ? C.t1 : C.t3, fontWeight: i + 1 === step ? 600 : 400 }}>{s}</span>
                 </div>
-                <span style={{ fontSize: 12, color: i + 1 === step ? C.t1 : C.t3, fontWeight: i + 1 === step ? 600 : 400 }}>{s}</span>
-              </div>
-              {i < arr.length - 1 && <div style={{ flex: 1, height: 1, background: i + 1 < step ? C.primary : C.border, margin: '0 8px' }} />}
-            </React.Fragment>
-          ))}
-        </div>
+                {i < arr.length - 1 && <div style={{ flex: 1, height: 1, background: i + 1 < step ? C.primary : C.border, margin: '0 8px' }} />}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
-        {isSettings && step === 1 && (
+        {mode === 'new-work' && !uploadType && (
           <>
-            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>설정집 올리기</div>
-            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>설정집을 업로드하면 AI가 캐릭터·세계관·타임라인을 자동 추출합니다</div>
+            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>새 작품 등록</div>
+            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식을 선택하세요</div>
+            <TypeCard
+              icon={<BookOpen size={20} />}
+              label="1화부터 새로 업로드"
+              desc="처음 작품을 등록하거나 전체 회차를 재업로드할 때"
+              color={C.primary}
+              onSelect={() => setUploadType('fresh')}
+            />
+            <TypeCard
+              icon={<FileText size={20} />}
+              label="신규 회차 업로드"
+              desc="기존 작품에 새 회차를 올릴 때 (설정집 선택 추가 가능)"
+              color={C.success}
+              onSelect={() => setUploadType('ep-only')}
+            />
+            <button onClick={onClose} style={{
+              width: '100%', height: 40, borderRadius: 6, background: 'transparent',
+              border: `1px solid ${C.border}`, color: C.t2, fontSize: 13,
+              cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
+            }}>취소</button>
+          </>
+        )}
+
+        {(isSettings || uploadType === 'fresh') && step === 1 && (
+          <>
+            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>
+              {uploadType === 'fresh' ? '1화부터 새로 업로드' : '설정집 올리기'}
+            </div>
+            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>
+              {uploadType === 'fresh'
+                ? '작품 정보와 회차 파일을 입력하세요. 설정집은 선택사항입니다.'
+                : '설정집을 업로드하면 AI가 캐릭터·세계관·타임라인을 자동 추출합니다'}
+            </div>
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>작품 제목</div>
@@ -177,38 +305,50 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
               </div>
             </div>
 
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={() => { setDragging(false); setFileSelected(true); }}
-              onClick={() => setFileSelected(true)}
-              style={{
-                border: `2px dashed ${dragging ? C.primary : fileSelected ? C.success : C.border}`,
-                borderRadius: 8, padding: '24px', textAlign: 'center',
-                background: dragging ? C.primary + '08' : fileSelected ? C.success + '08' : 'transparent',
-                cursor: 'pointer', transition: 'all 0.15s', marginBottom: 20,
-              }}
-            >
-              {fileSelected ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <CircleCheckBig size={18} color={C.success} />
-                  <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>설정집.txt — 업로드 준비 완료</span>
-                </div>
-              ) : (
-                <>
-                  <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
-                  <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-                  <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 · 설정집 파일</div>
-                </>
-              )}
+            <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {uploadType === 'fresh' ? '회차 파일' : '설정집 파일'}
             </div>
+            <DragDropArea
+              dragging={dragging} fileSelected={fileSelected}
+              setDragging={setDragging} setFileSelected={setFileSelected}
+              fileLabel={uploadType === 'fresh' ? '회차 파일' : '설정집.txt'}
+            />
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={{
-                flex: 1, height: 40, borderRadius: 6, background: 'transparent',
-                border: `1px solid ${C.border}`, color: C.t2, fontSize: 13,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>취소</button>
+            {uploadType === 'fresh' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 8px' }}>
+                  <input
+                    type="checkbox" id="includeSettings" checked={includeSettings}
+                    onChange={(e) => setIncludeSettings(e.target.checked)}
+                    style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer' }}
+                  />
+                  <label htmlFor="includeSettings" style={{ color: C.t2, fontSize: 13, cursor: 'pointer' }}>
+                    설정집도 함께 업로드 <span style={{ color: C.t3 }}>(선택사항)</span>
+                  </label>
+                </div>
+                {includeSettings && (
+                  <>
+                    <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>설정집 파일</div>
+                    <DragDropArea
+                      dragging={settingsDragging} fileSelected={settingsFileSelected}
+                      setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                      fileLabel="설정집.txt"
+                    />
+                  </>
+                )}
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                onClick={() => uploadType === 'fresh' ? setUploadType(null) : onClose()}
+                style={{
+                  flex: 1, height: 40, borderRadius: 6, background: 'transparent',
+                  border: `1px solid ${C.border}`, color: C.t2, fontSize: 13,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                {uploadType === 'fresh' ? '← 뒤로' : '취소'}
+              </button>
               <button
                 onClick={() => canProceed && setStep(2)}
                 style={{
@@ -217,75 +357,115 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
                   color: canProceed ? '#fff' : C.t3, fontSize: 13, fontWeight: 600,
                   cursor: canProceed ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.15s',
                 }}>
-                다음 — AI 설정 추출
+                다음 — AI 분석
               </button>
             </div>
           </>
         )}
 
-        {!isSettings && step === 1 && (
+        {uploadType === 'ep-only' && step === 1 && (
           <>
             <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 올리기</div>
             <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>회차 파일을 업로드하면 AI가 설정 DB와 대조해 충돌을 탐지합니다</div>
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>작품 선택</div>
-              <div style={{
-                width: '100%', height: 40, borderRadius: 6,
-                background: C.bg, border: `1px solid ${C.border}`,
-                color: C.t1, fontSize: 14, padding: '0 12px',
-                display: 'flex', alignItems: 'center', boxSizing: 'border-box',
-              }}>
-                {episodeWork}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>회차 번호</div>
-              <input
-                value={episodeNum} onChange={(e) => setEpisodeNum(e.target.value)}
-                placeholder="160" type="number" min="1"
-                style={{
+              {works ? (
+                <select
+                  value={episodeWork}
+                  onChange={(e) => {
+                    const selected = works.find(w => w.title === e.target.value);
+                    setEpisodeWork(e.target.value);
+                    setEpisodeNum(selected ? String(selected.chapters + 1) : '');
+                  }}
+                  style={{
+                    width: '100%', height: 40, borderRadius: 6,
+                    background: C.bg, border: `1px solid ${C.border}`,
+                    color: episodeWork ? C.t1 : C.t3, fontSize: 14, padding: '0 12px',
+                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
+                  }}
+                >
+                  <option value="">작품을 선택하세요</option>
+                  {works.map(w => (
+                    <option key={w.title} value={w.title}>{w.title}</option>
+                  ))}
+                </select>
+              ) : (
+                <div style={{
                   width: '100%', height: 40, borderRadius: 6,
                   background: C.bg, border: `1px solid ${C.border}`,
                   color: C.t1, fontSize: 14, padding: '0 12px',
-                  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={() => { setDragging(false); setFileSelected(true); }}
-              onClick={() => setFileSelected(true)}
-              style={{
-                border: `2px dashed ${dragging ? C.primary : fileSelected ? C.success : C.border}`,
-                borderRadius: 8, padding: '24px', textAlign: 'center',
-                background: dragging ? C.primary + '08' : fileSelected ? C.success + '08' : 'transparent',
-                cursor: 'pointer', transition: 'all 0.15s', marginBottom: 20,
-              }}
-            >
-              {fileSelected ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <CircleCheckBig size={18} color={C.success} />
-                  <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>회차파일.txt — 업로드 준비 완료</span>
+                  display: 'flex', alignItems: 'center', boxSizing: 'border-box',
+                }}>
+                  {episodeWork}
                 </div>
-              ) : (
-                <>
-                  <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
-                  <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-                  <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 · 회차 파일</div>
-                </>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={{
-                flex: 1, height: 40, borderRadius: 6, background: 'transparent',
-                border: `1px solid ${C.border}`, color: C.t2, fontSize: 13,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>취소</button>
+            {(() => {
+              const selectedChapters = works?.find(w => w.title === episodeWork)?.chapters;
+              const hintChapters = selectedChapters ?? (initialChapters || null);
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>회차 번호</div>
+                    {hintChapters != null && (
+                      <div style={{ color: C.t3, fontSize: 11 }}>마지막 업로드: {hintChapters}화</div>
+                    )}
+                  </div>
+                  <input
+                    value={episodeNum} onChange={(e) => setEpisodeNum(e.target.value)}
+                    placeholder={hintChapters != null ? String(hintChapters + 1) : '회차 번호 입력'}
+                    type="number" min="1"
+                    style={{
+                      width: '100%', height: 40, borderRadius: 6,
+                      background: C.bg, border: `1px solid ${C.border}`,
+                      color: C.t1, fontSize: 14, padding: '0 12px',
+                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              );
+            })()}
+
+            <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>회차 파일</div>
+            <DragDropArea
+              dragging={dragging} fileSelected={fileSelected}
+              setDragging={setDragging} setFileSelected={setFileSelected}
+              fileLabel="회차파일.txt"
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 8px' }}>
+              <input
+                type="checkbox" id="includeSettingsEp" checked={includeSettings}
+                onChange={(e) => setIncludeSettings(e.target.checked)}
+                style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer' }}
+              />
+              <label htmlFor="includeSettingsEp" style={{ color: C.t2, fontSize: 13, cursor: 'pointer' }}>
+                설정집도 함께 업로드 <span style={{ color: C.t3 }}>(선택사항)</span>
+              </label>
+            </div>
+            {includeSettings && (
+              <>
+                <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>설정집 파일</div>
+                <DragDropArea
+                  dragging={settingsDragging} fileSelected={settingsFileSelected}
+                  setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                  fileLabel="설정집.txt"
+                />
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                onClick={() => mode === 'new-work' ? setUploadType(null) : onClose()}
+                style={{
+                  flex: 1, height: 40, borderRadius: 6, background: 'transparent',
+                  border: `1px solid ${C.border}`, color: C.t2, fontSize: 13,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                {mode === 'new-work' ? '← 뒤로' : '취소'}
+              </button>
               <button
                 onClick={() => canProceed && setStep(2)}
                 style={{
@@ -300,38 +480,46 @@ function UploadModal({ onClose, mode, initialWork, navigate: nav }: {
           </>
         )}
 
-        {step === 2 && (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <motion.div
-              animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              style={{ width: 48, height: 48, margin: '0 auto 20px', borderRadius: '50%', border: `3px solid ${C.primary}33`, borderTop: `3px solid ${C.primary}` }}
-            />
-            <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-              {isSettings ? 'AI 설정 DB 구축 중...' : 'AI 설정 대조 중...'}
+        {step === 2 && (() => {
+          const cfg = uploadType === 'fresh' || isSettings ? {
+            title: uploadType === 'fresh' ? 'AI 분석 중...' : 'AI 설정 DB 구축 중...',
+            desc: uploadType === 'fresh' ? '회차 기반 설정 DB를 구축합니다' : '캐릭터·관계·타임라인을 자동 추출합니다',
+            items: ['캐릭터 목록 추출 완료', '외모·성격 설정 파싱 중', '관계도 구축 중', '타임라인 분석 대기'],
+            onNext: () => setStep(3),
+            btnLabel: '계속',
+          } : {
+            title: 'AI 설정 대조 중...',
+            desc: '설정 DB와 대조하여 충돌을 탐지합니다',
+            items: ['캐릭터 설정 로드 완료', '회차 텍스트 파싱 중', '충돌 패턴 대조 중', '타임라인 검증 대기'],
+            onNext: () => { nav?.('S4', 'dissolve'); onClose(); },
+            btnLabel: '결과 보기',
+          };
+          return (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <motion.div
+                animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                style={{ width: 48, height: 48, margin: '0 auto 20px', borderRadius: '50%', border: `3px solid ${C.primary}33`, borderTop: `3px solid ${C.primary}` }}
+              />
+              <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{cfg.title}</div>
+              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>{cfg.desc}</div>
+              {cfg.items.map((item, i) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', textAlign: 'left', justifyContent: 'center' }}>
+                  {i < 2 ? <CircleCheckBig size={14} color={C.success} /> : <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }} style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${C.t3}` }} />}
+                  <span style={{ color: i < 2 ? C.t1 : C.t3, fontSize: 13 }}>{item}</span>
+                </div>
+              ))}
+              <button
+                onClick={cfg.onNext}
+                style={{
+                  marginTop: 24, height: 38, padding: '0 24px', borderRadius: 6,
+                  background: C.primary, border: 'none', color: '#fff', fontSize: 13,
+                  fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}>{cfg.btnLabel}</button>
             </div>
-            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>
-              {isSettings ? '캐릭터·관계·타임라인을 자동 추출합니다' : '설정 DB와 대조하여 충돌을 탐지합니다'}
-            </div>
-            {(isSettings
-              ? ['캐릭터 목록 추출 완료', '외모·성격 설정 파싱 중', '관계도 구축 중', '타임라인 분석 대기']
-              : ['캐릭터 설정 로드 완료', '회차 텍스트 파싱 중', '충돌 패턴 대조 중', '타임라인 검증 대기']
-            ).map((item, i) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', textAlign: 'left', justifyContent: 'center' }}>
-                {i < 2 ? <CircleCheckBig size={14} color={C.success} /> : <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }} style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${C.t3}` }} />}
-                <span style={{ color: i < 2 ? C.t1 : C.t3, fontSize: 13 }}>{item}</span>
-              </div>
-            ))}
-            <button
-              onClick={() => isSettings ? setStep(3) : (nav?.('S4', 'dissolve'), onClose())}
-              style={{
-                marginTop: 24, height: 38, padding: '0 24px', borderRadius: 6,
-                background: C.primary, border: 'none', color: '#fff', fontSize: 13,
-                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              }}>계속</button>
-          </div>
-        )}
+          );
+        })()}
 
-        {isSettings && step === 3 && (
+        {(isSettings || uploadType === 'fresh') && step === 3 && (
           <>
             <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>추출 결과 확인 · 수정</div>
             <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>AI가 설정집에서 추출한 항목을 확인하고 필요시 수정하세요</div>
@@ -2162,8 +2350,9 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
   const [selectedWork, setSelectedWork] = useState<'detective' | 'murim'>('detective');
-  const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode'>(false);
+  const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
+  const [episodeTargetChapters, setEpisodeTargetChapters] = useState(0);
   const [showBuilder, setShowBuilder] = useState(false);
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
@@ -2261,7 +2450,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>내 작품</span>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BtnG label="공유 및 협업" onClick={() => setShowShare(true)} icon={<Share2 size={13} />} />
-                    <BtnP label="새 작품 등록" onClick={() => setShowUpload('settings')} icon={<Plus size={14} />} />
+                    <BtnP label="새 작품 등록" onClick={() => { setEpisodeTargetWork(''); setEpisodeTargetChapters(0); setShowUpload('new-work'); }} icon={<Plus size={14} />} />
                   </div>
                 </div>
 
@@ -2271,13 +2460,13 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                     onClick={() => setSelectedWork('detective')}
                     onReport={() => navigate('S5', 'push-right')}
                     onEditor={() => navigate('S2', 'push-right')}
-                    onEpisode={() => { setEpisodeTargetWork('빛나는 검사 로맨스'); setShowUpload('episode'); }}
+                    onEpisode={() => { setEpisodeTargetWork('빛나는 검사 로맨스'); setEpisodeTargetChapters(158); setShowUpload('episode'); }}
                   />
                   <WorkCard title="무협지존" genre="무협" chapters={42} conflicts={0} hasConflict={false}
                     selected={selectedWork === 'murim'}
                     onClick={() => setSelectedWork('murim')}
                     onEditor={() => navigate('S2', 'push-right')}
-                    onEpisode={() => { setEpisodeTargetWork('무협지존'); setShowUpload('episode'); }}
+                    onEpisode={() => { setEpisodeTargetWork('무협지존'); setEpisodeTargetChapters(42); setShowUpload('episode'); }}
                   />
                 </div>
 
@@ -2639,6 +2828,8 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
             onClose={() => setShowUpload(false)}
             mode={showUpload}
             initialWork={episodeTargetWork}
+            initialChapters={episodeTargetChapters}
+            works={MOCK_WORKS}
             navigate={navigate}
           />
         )}
