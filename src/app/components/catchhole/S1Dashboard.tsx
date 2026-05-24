@@ -1481,142 +1481,270 @@ function CharCardDynamic({ setting, onEdit, onView }: { setting: CharacterSettin
   );
 }
 
-// ── CharDetailPanel ──
-function CharDetailPanel({ charId, chars, onClose, onEdit }: {
+// ── CharDetailModal ──────────────────────────────────
+function CharDetailModal({ charId, chars, onClose, onEdit }: {
   charId: string; chars: CharacterSetting[]; onClose: () => void; onEdit: () => void;
 }) {
   const setting = chars.find(c => c.id === charId);
   if (!setting) return null;
   const color = CHAR_COLORS[charId] || C.primary;
   const detail = CHAR_DETAIL[charId] || { appearances: [], conflicts: [], relations: [] };
-  const get = (label: string) => setting.entries.find(e => e.label.includes(label))?.content || '—';
+
+  // 타임라인: 공백 제거 후 이름 대조
+  const normalName = setting.name.replace(/\s/g, '');
+  const charEvents = TL_EVENTS.filter(e =>
+    e.characters.some(c => c.replace(/\s/g, '') === normalName)
+  );
+
+  // 미니 관계도 SVG 좌표 계산
+  const GW = 400, GH = 208;
+  const cx = GW / 2, cy = GH / 2;
+  const R = 80;
+  const nodeR = 20;
+  const relNodes = detail.relations.map((rel, i) => {
+    const angle = (i / Math.max(detail.relations.length, 1)) * Math.PI * 2 - Math.PI / 2;
+    return { ...rel, x: cx + Math.cos(angle) * R, y: cy + Math.sin(angle) * R };
+  });
 
   return (
     <motion.div
-      initial={{ x: 60, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 60, opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{
-        position: 'absolute', right: 0, top: 0, bottom: 0, width: 320,
-        background: C.bg, borderLeft: `1px solid ${C.border}`,
-        zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 200,
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        overflowY: 'auto', padding: '40px 20px',
       }}
+      onClick={onClose}
     >
-      {/* 헤더 */}
-      <div style={{
-        padding: '20px 20px 16px', borderBottom: `1px solid ${C.border}`,
-        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
-      }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-          background: color + '22', border: `2px solid ${color}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color, fontSize: 18, fontWeight: 700,
-        }}>{setting.name[0]}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: C.t1, fontSize: 16, fontWeight: 700 }}>{setting.name}</div>
-          <div style={{ color, fontSize: 12, fontWeight: 500 }}>{get('역할')}</div>
+      <motion.div
+        initial={{ y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 16, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 900, background: C.surface, borderRadius: 12,
+          border: `1px solid ${C.border}`, boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          marginBottom: 40,
+        }}
+      >
+        {/* 헤더 */}
+        <div style={{ padding: '22px 28px 18px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+              background: color + '22', border: `2px solid ${color}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color, fontSize: 20, fontWeight: 700,
+            }}>{setting.name[0]}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px' }}>{setting.name}</div>
+              <div style={{ color, fontSize: 12, fontWeight: 500, marginTop: 1 }}>
+                {setting.entries.find(e => e.label.includes('역할'))?.content || ''}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onEdit} style={{
+                padding: '6px 14px', borderRadius: 5, border: `1px solid ${C.border}`,
+                background: 'transparent', color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              }}>수정</button>
+              <button onClick={onClose} style={{
+                background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4,
+              }}><X size={18} /></button>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onEdit} style={{
-            padding: '4px 10px', borderRadius: 4, border: `1px solid ${C.border}`,
-            background: 'transparent', color: C.t2, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-          }}>수정</button>
-          <button onClick={onClose} style={{
-            padding: '4px 10px', borderRadius: 4, border: `1px solid ${C.border}`,
-            background: 'transparent', color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-          }}>✕</button>
-        </div>
-      </div>
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
-        {/* 기본 설정 */}
-        <div>
-          <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>기본 설정</div>
-          <div style={{ background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-            {['나이', '눈', '직업', '첫등장'].map((k, i, arr) => {
-              const v = get(k);
-              const isConflict = k === '눈' && detail.conflicts.some(c => c.title.includes('눈'));
+        {/* 바디 */}
+        <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* 상단 2단: 기본 설정 + 관계도 */}
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            {/* 좌: 기본 설정 + 충돌 + 등장 이력 */}
+            <div style={{ flex: '0 0 200px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>기본 설정</div>
+                <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+                  {setting.entries.map((entry, i) => {
+                    const isConflict = entry.label.includes('눈') && detail.conflicts.some(c => c.title.includes('눈'));
+                    return (
+                      <div key={entry.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '9px 14px',
+                        borderBottom: i < setting.entries.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}>
+                        <span style={{ color: C.t3, fontSize: 12, flexShrink: 0 }}>{entry.label}</span>
+                        {entry.isSpoiler ? (
+                          <span style={{ color: C.t3, fontSize: 11, fontStyle: 'italic' }}>스포일러</span>
+                        ) : (
+                          <span style={{
+                            color: isConflict ? C.warning : C.t2, fontSize: 12,
+                            fontWeight: isConflict ? 600 : 400,
+                            maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {entry.content || '—'}{isConflict ? ' ⚠' : ''}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* 중: 관계도 */}
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>관계도</div>
+              <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '12px 16px' }}>
+                {detail.relations.length === 0 ? (
+                  <div style={{ color: C.t3, fontSize: 12, padding: '30px 0', textAlign: 'center' }}>등록된 관계 없음</div>
+                ) : (
+                  <svg viewBox={`0 0 ${GW} ${GH}`} width="100%" style={{ display: 'block' }}>
+                    {/* 점 격자 배경 */}
+                    {Array.from({ length: 6 }, (_, r) =>
+                      Array.from({ length: 12 }, (_, c) => (
+                        <circle key={`${r}-${c}`} cx={18 + c * 35} cy={18 + r * 38} r={1.1} fill={C.border} opacity={0.4} />
+                      ))
+                    )}
+                    {/* 엣지 */}
+                    {relNodes.map((node, i) => {
+                      const dx = node.x - cx, dy = node.y - cy;
+                      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                      const x1 = cx + (dx / len) * (nodeR + 1);
+                      const y1 = cy + (dy / len) * (nodeR + 1);
+                      const x2 = node.x - (dx / len) * (nodeR + 1);
+                      const y2 = node.y - (dy / len) * (nodeR + 1);
+                      const lx = (cx + node.x) / 2;
+                      const ly = (cy + node.y) / 2;
+                      return (
+                        <g key={`e-${i}`}>
+                          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={node.color} strokeWidth={1.5} strokeOpacity={0.5} />
+                          <rect x={lx - 18} y={ly - 6} width={36} height={12} rx={2}
+                            fill={C.surface} stroke={node.color} strokeWidth={0.6} strokeOpacity={0.65} />
+                          <text x={lx} y={ly + 3.5} fill={node.color} fontSize={9.5} textAnchor="middle"
+                            style={{ fontFamily: 'inherit', fontWeight: '600' }}>{node.type}</text>
+                        </g>
+                      );
+                    })}
+                    {/* 링 노드 */}
+                    {relNodes.map((node, i) => (
+                      <g key={`n-${i}`}>
+                        <circle cx={node.x} cy={node.y} r={nodeR + 5} fill={node.color + '08'} />
+                        <circle cx={node.x} cy={node.y} r={nodeR} fill={node.color + '1C'} stroke={node.color} strokeWidth={1.5} />
+                        <text x={node.x} y={node.y + 4} fill={node.color} fontSize={11} fontWeight="700"
+                          textAnchor="middle" style={{ fontFamily: 'inherit' }}>{node.name}</text>
+                      </g>
+                    ))}
+                    {/* 중심 노드 */}
+                    <circle cx={cx} cy={cy} r={nodeR + 7} fill={color + '0C'} />
+                    <circle cx={cx} cy={cy} r={nodeR} fill={color + '28'} stroke={color} strokeWidth={2} />
+                    <text x={cx} y={cy + 4} fill={color} fontSize={12} fontWeight="700"
+                      textAnchor="middle" style={{ fontFamily: 'inherit' }}>{setting.name}</text>
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            {/* 우: 등장이력 */}
+            {(() => {
+              const apps = detail.appearances.filter(a => a.desc !== '설정 충돌 감지');
               return (
-                <div key={k} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '9px 14px', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
-                }}>
-                  <span style={{ color: C.t3, fontSize: 12 }}>{k}</span>
-                  <span style={{ color: isConflict ? C.warning : C.t2, fontSize: 12, fontWeight: isConflict ? 600 : 400 }}>
-                    {v}{isConflict ? ' ⚠' : ''}
-                  </span>
+                <div style={{ flex: '0 0 200px' }}>
+                  <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                    등장 이력 ({apps.length}회)
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+                    {apps.map((a, i) => (
+                      <div key={a.ep} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 10px',
+                        borderBottom: i < apps.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}>
+                        <span style={{
+                          padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, flexShrink: 0, marginTop: 1,
+                          background: a.conflict ? C.warning + '1A' : C.surface,
+                          border: `1px solid ${a.conflict ? C.warning + '55' : C.border}`,
+                          color: a.conflict ? C.warning : C.t3,
+                        }}>{a.ep}화</span>
+                        <span style={{ color: a.conflict ? C.warning : C.t2, fontSize: 11, lineHeight: 1.4 }}>{a.desc}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
-            })}
+            })()}
           </div>
-        </div>
 
-        {/* 등장 이력 */}
-        <div>
-          <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-            등장 이력 ({detail.appearances.length}회)
-          </div>
-          <div style={{ background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-            {detail.appearances.map((a, i) => (
-              <div key={a.ep} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 14px', borderBottom: i < detail.appearances.length - 1 ? `1px solid ${C.border}` : 'none',
-              }}>
-                <span style={{
-                  padding: '1px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, flexShrink: 0,
-                  background: a.conflict ? C.warning + '1A' : C.surface,
-                  border: `1px solid ${a.conflict ? C.warning + '55' : C.border}`,
-                  color: a.conflict ? C.warning : C.t3,
-                }}>{a.ep}화</span>
-                <span style={{ color: a.conflict ? C.warning : C.t2, fontSize: 12 }}>{a.desc}</span>
+          {/* 하단: 타임라인 */}
+          <div>
+            <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+              타임라인 ({charEvents.length}건)
+            </div>
+            {charEvents.length === 0 ? (
+              <div style={{ color: C.t3, fontSize: 12, padding: '12px 0' }}>이 캐릭터 관련 이벤트 없음</div>
+            ) : (
+              <div style={{ position: 'relative', paddingLeft: 18 }}>
+                <div style={{ position: 'absolute', left: 5, top: 8, bottom: 8, width: 1.5, background: C.border }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {charEvents.map((ev, i) => {
+                    const hasError = (ev.errors?.length ?? 0) > 0;
+                    return (
+                      <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                        <div style={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: TL_COLORS[ev.type] ?? C.t3,
+                          flexShrink: 0, marginTop: 5, position: 'relative', zIndex: 1,
+                        }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <button style={{
+                              padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
+                              background: C.surface, border: `1px solid ${C.border}`, color: C.t2,
+                              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                              display: 'inline-flex', alignItems: 'center', gap: 3,
+                            }}>
+                              {ev.ch} <ExternalLink size={8} />
+                            </button>
+                            <span style={{
+                              color: C.t1,
+                              fontSize: 13, fontWeight: 600,
+                            }}>{ev.title}</span>
+                          </div>
+                          <div style={{ color: C.t3, fontSize: 12 }}>{ev.desc}</div>
+                          {ev.errors && ev.errors.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, marginTop: 4 }}>
+                              {ev.errors.map((err, ei) => (
+                                <div key={ei} style={{
+                                  fontSize: 11, color: C.warning,
+                                  background: C.warning + '12',
+                                  borderRadius: 4, padding: '3px 8px',
+                                }}>
+                                  {err.desc}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
+            )}
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+              {([
+                { color: C.primary,  label: '설정 등록' },
+                { color: C.success,  label: '관계 해소' },
+                { color: C.danger,   label: '갈등 발생' },
+                { color: C.warning,  label: '충돌 감지' },
+                { color: C.t3,       label: '일반 이벤트' },
+              ] as { color: string; label: string }[]).map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, color: C.t3 }}>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* 설정 충돌 */}
-        {detail.conflicts.length > 0 && (
-          <div>
-            <div style={{ color: C.warning, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-              설정 충돌 ({detail.conflicts.length}건)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {detail.conflicts.map((c, i) => (
-                <div key={i} style={{
-                  background: C.warning + '0D', border: `1px solid ${C.warning}33`,
-                  borderRadius: 8, padding: '10px 14px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <span style={{ color: C.warning, fontSize: 12 }}>{c.title}</span>
-                  <span style={{ color: C.t3, fontSize: 11, flexShrink: 0, marginLeft: 8 }}>{c.ep}화</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 관계 */}
-        {detail.relations.length > 0 && (
-          <div>
-            <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>관계</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {detail.relations.map((r, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 12px', borderRadius: 20,
-                  background: r.color + '1A', border: `1px solid ${r.color}44`,
-                }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
-                  <span style={{ color: r.color, fontSize: 12, fontWeight: 600 }}>{r.name}</span>
-                  <span style={{ color: C.t3, fontSize: 11 }}>· {r.type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -2573,7 +2701,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                               key={s.id}
                               setting={s}
                               onEdit={() => setEditTarget(s)}
-                              onView={() => setSelectedCharDetail(prev => prev === s.id ? null : s.id)}
+                              onView={() => setSelectedCharDetail(s.id)}
                             />
                           ))}
                           <div onClick={() => setShowBuilder(true)} style={{
@@ -2695,8 +2823,8 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                   </AnimatePresence>
                 </div>
                 <AnimatePresence>
-                  {selectedCharDetail && settingTab === 'characters' && (
-                    <CharDetailPanel
+                  {selectedCharDetail && (
+                    <CharDetailModal
                       charId={selectedCharDetail}
                       chars={chars}
                       onClose={() => setSelectedCharDetail(null)}
