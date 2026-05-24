@@ -362,6 +362,35 @@ function ErrorCard({ data, ignored, onIgnore, onFix }: {
 
 const ERROR_DATA: ErrorCardData[] = [
   {
+    id: 8,
+    severity: 'warning',
+    tag: '소지품 모순',
+    badge: '중간',
+    icon: <OctagonAlert size={11} />,
+    title: '핵심 아이템 소지 상태 불일치',
+    changeArrow: { from: '45화에서 양도함 (인벤토리 없음)', to: '주머니에서 꺼냄' },
+    sourceQuote: {
+      label: '기존 설정',
+      chapter: '45화 중반부',
+      text: '수아는 주저 없이 증거가 담긴 붉은색 USB를 이레나의 손에 쥐여주었다. "이걸 부탁해. 난 이제 관여할 수 없으니까." USB는 그렇게 그녀의 손을 떠났다.',
+      highlight: '이레나의 손에 쥐여주었다',
+      highlightColor: C.success,
+    },
+    currentQuote: {
+      label: '현재 원고',
+      chapter: '159화 후반부',
+      text: '강민준이 증거를 요구하자, 수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어 책상 위에 던졌다.',
+      highlight: '붉은색 USB를 꺼내어',
+      highlightColor: C.warning,
+    },
+    occurrences: [
+      { chapter: '45화', snippet: '"붉은색 USB를 이레나의 손에 쥐여주었다."', status: 'match' },
+      { chapter: '92화', snippet: '"USB는 안전하게 이레나의 금고에 보관되어 있었다."', status: 'match' },
+      { chapter: '159화', snippet: '"수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어"', status: 'conflict' },
+    ],
+    aiSuggestion: '이 USB는 45화에서 이레나에게 양도되었으며, 수아의 소지품(인벤토리)에 없습니다. 수아가 USB의 복사본을 만들어두었다는 서술을 추가하거나, 이레나가 USB를 제시하는 흐름으로 변경하세요.',
+  },
+  {
     id: 1,
     severity: 'danger',
     tag: '사실 기반 오류',
@@ -565,35 +594,6 @@ const ERROR_DATA: ErrorCardData[] = [
       { chapter: '159화', snippet: '레벨업 달성 묘사 누락', status: 'conflict' },
     ],
     aiSuggestion: '수치 설정상 200마리를 잡았으므로 경험치 100%를 충족했습니다. 레벨업 묘사를 추가하거나, 중간에 "피로도 페널티로 경험치 획득량 감소" 등의 설정을 명시해야 독자들의 수치 오류 지적을 방지할 수 있습니다.',
-  },
-  {
-    id: 8,
-    severity: 'warning',
-    tag: '소지품 모순',
-    badge: '중간',
-    icon: <OctagonAlert size={11} />,
-    title: '핵심 아이템 소지 상태 불일치',
-    changeArrow: { from: '45화에서 양도함 (인벤토리 없음)', to: '주머니에서 꺼냄' },
-    sourceQuote: {
-      label: '기존 설정',
-      chapter: '45화 중반부',
-      text: '수아는 주저 없이 증거가 담긴 붉은색 USB를 이레나의 손에 쥐여주었다. "이걸 부탁해. 난 이제 관여할 수 없으니까." USB는 그렇게 그녀의 손을 떠났다.',
-      highlight: '이레나의 손에 쥐여주었다',
-      highlightColor: C.success,
-    },
-    currentQuote: {
-      label: '현재 원고',
-      chapter: '159화 후반부',
-      text: '강민준이 증거를 요구하자, 수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어 책상 위에 던졌다.',
-      highlight: '붉은색 USB를 꺼내어',
-      highlightColor: C.warning,
-    },
-    occurrences: [
-      { chapter: '45화', snippet: '"붉은색 USB를 이레나의 손에 쥐여주었다."', status: 'match' },
-      { chapter: '92화', snippet: '"USB는 안전하게 이레나의 금고에 보관되어 있었다."', status: 'match' },
-      { chapter: '159화', snippet: '"수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어"', status: 'conflict' },
-    ],
-    aiSuggestion: '이 USB는 45화에서 이레나에게 양도되었으며, 수아의 소지품(인벤토리)에 없습니다. 수아가 USB의 복사본을 만들어두었다는 서술을 추가하거나, 이레나가 USB를 제시하는 흐름으로 변경하세요.',
   }
 ];
 
