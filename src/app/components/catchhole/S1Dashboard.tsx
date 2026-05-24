@@ -1672,7 +1672,7 @@ function CharDetailModal({ charId, chars, onClose, onEdit }: {
             })()}
           </div>
 
-          {/* 하단: 타임라인 */}
+          {/* 하단: 타임라인 (가로) */}
           <div>
             <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
               타임라인 ({charEvents.length}건)
@@ -1680,51 +1680,62 @@ function CharDetailModal({ charId, chars, onClose, onEdit }: {
             {charEvents.length === 0 ? (
               <div style={{ color: C.t3, fontSize: 12, padding: '12px 0' }}>이 캐릭터 관련 이벤트 없음</div>
             ) : (
-              <div style={{ position: 'relative', paddingLeft: 18 }}>
-                <div style={{ position: 'absolute', left: 5, top: 8, bottom: 8, width: 1.5, background: C.border }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {charEvents.map((ev, i) => {
-                    const hasError = (ev.errors?.length ?? 0) > 0;
-                    return (
-                      <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                        <div style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          background: TL_COLORS[ev.type] ?? C.t3,
-                          flexShrink: 0, marginTop: 5, position: 'relative', zIndex: 1,
-                        }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                            <button style={{
-                              padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                              background: C.surface, border: `1px solid ${C.border}`, color: C.t2,
-                              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                              display: 'inline-flex', alignItems: 'center', gap: 3,
-                            }}>
-                              {ev.ch} <ExternalLink size={8} />
-                            </button>
-                            <span style={{
-                              color: C.t1,
-                              fontSize: 13, fontWeight: 600,
-                            }}>{ev.title}</span>
+              <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '16px', overflowX: 'auto' }}>
+                <div style={{ position: 'relative', minWidth: Math.max(480, charEvents.length * 100) }}>
+                  {/* 가로선: 첫 dot 중심 ~ 마지막 dot 중심 */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 5,
+                    left: `${50 / charEvents.length}%`,
+                    right: `${50 / charEvents.length}%`,
+                    height: 2,
+                    background: C.border,
+                    borderRadius: 1,
+                  }} />
+                  {/* dot + 카드 */}
+                  <div style={{ display: 'flex' }}>
+                    {charEvents.map((ev, i) => {
+                      const color = TL_COLORS[ev.type] ?? C.t3;
+                      return (
+                        <div key={i} style={{
+                          flex: 1, padding: '0 4px',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                        }}>
+                          <div style={{
+                            width: 10, height: 10, borderRadius: '50%',
+                            background: color,
+                            border: `2px solid ${C.bg}`,
+                            boxShadow: `0 0 0 1.5px ${color}`,
+                            flexShrink: 0,
+                            position: 'relative', zIndex: 1,
+                            marginBottom: 8,
+                          }} />
+                          <div style={{ padding: '2px 6px', borderRadius: 3, background: color + '18', border: `1px solid ${color}33`, color, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
+                            {ev.ch}
                           </div>
-                          <div style={{ color: C.t3, fontSize: 12 }}>{ev.desc}</div>
+                          <div style={{ color: C.t1, fontSize: 11, fontWeight: 600, lineHeight: 1.3, marginBottom: 2 }}>
+                            {ev.title}
+                          </div>
+                          <div style={{ color: C.t3, fontSize: 10, lineHeight: 1.4 }}>
+                            {ev.desc}
+                          </div>
                           {ev.errors && ev.errors.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, marginTop: 4 }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, justifyContent: 'center' }}>
                               {ev.errors.map((err, ei) => (
-                                <div key={ei} style={{
-                                  fontSize: 11, color: C.warning,
-                                  background: C.warning + '12',
-                                  borderRadius: 4, padding: '3px 8px',
+                                <span key={ei} style={{
+                                  fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                                  color: TL_ERROR_CFG[err.type].color,
+                                  background: TL_ERROR_CFG[err.type].color + '18',
                                 }}>
-                                  {err.desc}
-                                </div>
+                                  {TL_ERROR_CFG[err.type].label}
+                                </span>
                               ))}
                             </div>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
