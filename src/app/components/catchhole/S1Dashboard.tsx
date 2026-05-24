@@ -467,6 +467,89 @@ const INIT_CHARS: CharacterSetting[] = [
   { id: 'choi', name: '최 검사', seed: '', entries: [mkE('역할','상사'), mkE('나이','45세'), mkE('눈','—'), mkE('직업','검사장'), mkE('첫등장','5화')] },
 ];
 
+interface CharAppearance { ep: number; desc: string; conflict?: boolean }
+interface CharDetailData {
+  appearances: CharAppearance[];
+  conflicts: { title: string; ep: number }[];
+  relations: { name: string; type: string; color: string }[];
+}
+const CHAR_DETAIL: Record<string, CharDetailData> = {
+  sua: {
+    appearances: [
+      { ep: 1,   desc: '첫 등장 · 법학전문대학원 수석 졸업' },
+      { ep: 23,  desc: '눈 색 확정 묘사 — 갈색 눈동자' },
+      { ep: 82,  desc: '3년 경과 서술 (나이 오류 위험)' },
+      { ep: 89,  desc: '임용 대기 중 서술' },
+      { ep: 159, desc: '설정 충돌 감지', conflict: true },
+    ],
+    conflicts: [
+      { title: '눈 색 불일치 (갈색 → 파란 눈)', ep: 159 },
+      { title: '나이 계산 오류 (26세여야 함 → 25세 서술)', ep: 159 },
+      { title: '임용 전 단독 수사 서술 (규칙 위반)', ep: 123 },
+    ],
+    relations: [
+      { name: '강민준', type: '로맨스', color: '#E25C5C' },
+      { name: '이레나',  type: '화해',   color: '#4BB8D9' },
+      { name: '하윤',   type: '절친',   color: C.success },
+    ],
+  },
+  min: {
+    appearances: [
+      { ep: 3,   desc: '첫 등장 · 수석검사로 법정 입장' },
+      { ep: 5,   desc: '성격 확정 묘사 — 냉담·절제' },
+      { ep: 23,  desc: '수아와 첫 단독 대면' },
+      { ep: 159, desc: '즉각적 감정 노출 서술', conflict: true },
+    ],
+    conflicts: [
+      { title: '감정 흐름 불일치 (냉담 → 즉각 노출)', ep: 159 },
+    ],
+    relations: [
+      { name: '수아',   type: '로맨스', color: C.primary },
+      { name: '최검사', type: '상사',   color: '#D4A04A' },
+      { name: '이레나', type: '적대',   color: '#4BB8D9' },
+    ],
+  },
+  lena: {
+    appearances: [
+      { ep: 12,  desc: '첫 등장 · 변호사로 법정 출석' },
+      { ep: 55,  desc: '수아와 첫 충돌' },
+      { ep: 142, desc: '수아와 화해 완료' },
+      { ep: 159, desc: '적대 관계로 재묘사', conflict: true },
+    ],
+    conflicts: [
+      { title: '관계 상태 불일치 (화해 완료 → 적대 묘사)', ep: 159 },
+    ],
+    relations: [
+      { name: '수아',    type: '화해',  color: C.primary },
+      { name: '강민준',  type: '적대',  color: '#E25C5C' },
+      { name: '오변호사', type: '동료', color: '#00C896' },
+    ],
+  },
+  hayun: {
+    appearances: [
+      { ep: 2,  desc: '첫 등장 · 수아의 절친' },
+      { ep: 18, desc: '수사 조력 장면' },
+      { ep: 89, desc: '대학원 진학 서술' },
+    ],
+    conflicts: [],
+    relations: [
+      { name: '수아', type: '절친', color: C.primary },
+    ],
+  },
+  choi: {
+    appearances: [
+      { ep: 5,   desc: '첫 등장 · 수사팀 회의 주재' },
+      { ep: 23,  desc: '강민준과 단독 면담' },
+      { ep: 101, desc: '최종 보스 복선 시작' },
+    ],
+    conflicts: [],
+    relations: [
+      { name: '강민준', type: '부하',  color: '#E25C5C' },
+      { name: '이레나', type: '적대',  color: '#4BB8D9' },
+    ],
+  },
+};
+
 const WORLD_CATEGORY_META: Record<WorldCategory, { label: string; color: string; icon: React.ReactNode }> = {
   geography:  { label: '지리/환경', color: C.success,  icon: <Globe size={12} /> },
   society:    { label: '사회/문화', color: C.primary,  icon: <Users size={12} /> },
@@ -1144,8 +1227,8 @@ function WorldBuilderModal({ onClose, onSave, initial }: {
   );
 }
 
-// ── CharCardDynamic (CharacterSetting 기반, 클릭 수정 가능) ──
-function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdit: () => void }) {
+// ── CharCardDynamic (CharacterSetting 기반, 클릭 → 상세 / 수정 버튼 → 편집) ──
+function CharCardDynamic({ setting, onEdit, onView }: { setting: CharacterSetting; onEdit: () => void; onView: () => void }) {
   const [hovered, setHovered] = useState(false);
   const color = CHAR_COLORS[setting.id] || C.primary;
   const get = (label: string) =>
@@ -1153,25 +1236,36 @@ function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdi
 
   const rows = ['나이', '눈', '직업', '첫등장'].map(k => ({ k, v: get(k) })).filter(r => r.v !== '—');
   const role = get('역할');
+  const detail = CHAR_DETAIL[setting.id];
+  const hasConflict = detail && detail.conflicts.length > 0;
 
   return (
     <div
-      onClick={onEdit}
+      onClick={onView}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         background: C.bg, borderRadius: 8,
-        border: `1px solid ${hovered ? color + '88' : C.border}`,
+        border: `1px solid ${hovered ? color + '88' : hasConflict ? C.warning + '55' : C.border}`,
         padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
         cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative',
       }}
     >
-      {hovered && (
+      {hasConflict && (
         <div style={{
-          position: 'absolute', top: 10, right: 10, background: C.surface,
-          border: `1px solid ${C.border}`, borderRadius: 4,
-          padding: '2px 8px', fontSize: 11, color: C.t3,
-        }}>수정</div>
+          position: 'absolute', top: 10, left: 10,
+          width: 6, height: 6, borderRadius: '50%', background: C.warning,
+        }} />
+      )}
+      {hovered && (
+        <div
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          style={{
+            position: 'absolute', top: 10, right: 10, background: C.surface,
+            border: `1px solid ${C.border}`, borderRadius: 4,
+            padding: '2px 8px', fontSize: 11, color: C.t3, cursor: 'pointer',
+          }}
+        >수정</div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
@@ -1190,12 +1284,152 @@ function CharCardDynamic({ setting, onEdit }: { setting: CharacterSetting; onEdi
           {rows.map(item => (
             <div key={item.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: C.t3, fontSize: 12 }}>{item.k}</span>
-              <span style={{ color: C.t2, fontSize: 12 }}>{item.v}</span>
+              <span style={{ color: item.k === '눈' && hasConflict ? C.warning : C.t2, fontSize: 12 }}>{item.v}</span>
             </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+// ── CharDetailPanel ──
+function CharDetailPanel({ charId, chars, onClose, onEdit }: {
+  charId: string; chars: CharacterSetting[]; onClose: () => void; onEdit: () => void;
+}) {
+  const setting = chars.find(c => c.id === charId);
+  if (!setting) return null;
+  const color = CHAR_COLORS[charId] || C.primary;
+  const detail = CHAR_DETAIL[charId] || { appearances: [], conflicts: [], relations: [] };
+  const get = (label: string) => setting.entries.find(e => e.label.includes(label))?.content || '—';
+
+  return (
+    <motion.div
+      initial={{ x: 60, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 60, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: 320,
+        background: C.bg, borderLeft: `1px solid ${C.border}`,
+        zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+      }}
+    >
+      {/* 헤더 */}
+      <div style={{
+        padding: '20px 20px 16px', borderBottom: `1px solid ${C.border}`,
+        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          background: color + '22', border: `2px solid ${color}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color, fontSize: 18, fontWeight: 700,
+        }}>{setting.name[0]}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.t1, fontSize: 16, fontWeight: 700 }}>{setting.name}</div>
+          <div style={{ color, fontSize: 12, fontWeight: 500 }}>{get('역할')}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={onEdit} style={{
+            padding: '4px 10px', borderRadius: 4, border: `1px solid ${C.border}`,
+            background: 'transparent', color: C.t2, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+          }}>수정</button>
+          <button onClick={onClose} style={{
+            padding: '4px 10px', borderRadius: 4, border: `1px solid ${C.border}`,
+            background: 'transparent', color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+          }}>✕</button>
+        </div>
+      </div>
+
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
+        {/* 기본 설정 */}
+        <div>
+          <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>기본 설정</div>
+          <div style={{ background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+            {['나이', '눈', '직업', '첫등장'].map((k, i, arr) => {
+              const v = get(k);
+              const isConflict = k === '눈' && detail.conflicts.some(c => c.title.includes('눈'));
+              return (
+                <div key={k} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '9px 14px', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                }}>
+                  <span style={{ color: C.t3, fontSize: 12 }}>{k}</span>
+                  <span style={{ color: isConflict ? C.warning : C.t2, fontSize: 12, fontWeight: isConflict ? 600 : 400 }}>
+                    {v}{isConflict ? ' ⚠' : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 등장 이력 */}
+        <div>
+          <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            등장 이력 ({detail.appearances.length}회)
+          </div>
+          <div style={{ background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+            {detail.appearances.map((a, i) => (
+              <div key={a.ep} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 14px', borderBottom: i < detail.appearances.length - 1 ? `1px solid ${C.border}` : 'none',
+              }}>
+                <span style={{
+                  padding: '1px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, flexShrink: 0,
+                  background: a.conflict ? C.warning + '1A' : C.surface,
+                  border: `1px solid ${a.conflict ? C.warning + '55' : C.border}`,
+                  color: a.conflict ? C.warning : C.t3,
+                }}>{a.ep}화</span>
+                <span style={{ color: a.conflict ? C.warning : C.t2, fontSize: 12 }}>{a.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 설정 충돌 */}
+        {detail.conflicts.length > 0 && (
+          <div>
+            <div style={{ color: C.warning, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              설정 충돌 ({detail.conflicts.length}건)
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {detail.conflicts.map((c, i) => (
+                <div key={i} style={{
+                  background: C.warning + '0D', border: `1px solid ${C.warning}33`,
+                  borderRadius: 8, padding: '10px 14px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span style={{ color: C.warning, fontSize: 12 }}>{c.title}</span>
+                  <span style={{ color: C.t3, fontSize: 11, flexShrink: 0, marginLeft: 8 }}>{c.ep}화</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 관계 */}
+        {detail.relations.length > 0 && (
+          <div>
+            <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>관계</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {detail.relations.map((r, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 20,
+                  background: r.color + '1A', border: `1px solid ${r.color}44`,
+                }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
+                  <span style={{ color: r.color, fontSize: 12, fontWeight: 600 }}>{r.name}</span>
+                  <span style={{ color: C.t3, fontSize: 11 }}>· {r.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
@@ -1937,6 +2171,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [selectedCharDetail, setSelectedCharDetail] = useState<string | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
     setChars(prev => {
@@ -2100,7 +2335,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
 
             {activeNav === 'settingDB' && (
               <motion.div key="settingDB" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
                 <div style={{
                   padding: '20px 40px', borderBottom: `1px solid ${C.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
@@ -2142,10 +2377,15 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                 <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
                   <AnimatePresence mode="wait">
                     {settingTab === 'characters' && (
-                      <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
                           {chars.map(s => (
-                            <CharCardDynamic key={s.id} setting={s} onEdit={() => setEditTarget(s)} />
+                            <CharCardDynamic
+                              key={s.id}
+                              setting={s}
+                              onEdit={() => setEditTarget(s)}
+                              onView={() => setSelectedCharDetail(prev => prev === s.id ? null : s.id)}
+                            />
                           ))}
                           <div onClick={() => setShowBuilder(true)} style={{
                             background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
@@ -2265,6 +2505,19 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                     )}
                   </AnimatePresence>
                 </div>
+                <AnimatePresence>
+                  {selectedCharDetail && settingTab === 'characters' && (
+                    <CharDetailPanel
+                      charId={selectedCharDetail}
+                      chars={chars}
+                      onClose={() => setSelectedCharDetail(null)}
+                      onEdit={() => {
+                        const s = chars.find(c => c.id === selectedCharDetail);
+                        if (s) { setEditTarget(s); setSelectedCharDetail(null); }
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
@@ -2278,35 +2531,63 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                     <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
                   </div>
                 </div>
+
+                {/* 통계 요약 */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 24, maxWidth: 760 }}>
+                  {[
+                    { label: '분석 회차', value: '158화', sub: '총 누적' },
+                    { label: '누적 오류', value: '23건', sub: '전체 감지', color: C.danger },
+                    { label: '심각', value: '4건', sub: '즉시 수정 권장', color: C.danger },
+                    { label: '오류 없음', value: '144화', sub: '정상 통과', color: C.success },
+                  ].map(s => (
+                    <div key={s.label} style={{
+                      flex: 1, background: C.surface, border: `1px solid ${C.border}`,
+                      borderRadius: 8, padding: '12px 16px',
+                    }}>
+                      <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ color: (s as { color?: string }).color || C.t1, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{s.value}</div>
+                      <div style={{ color: C.t3, fontSize: 11 }}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 760 }}>
                   {[
-                    { work: '빛나는 검사 로맨스', chapter: '159화', count: 5, severity: '심각 1건', date: '오늘', onClick: () => navigate('S5', 'push-right') },
-                    { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', onClick: undefined },
-                    { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', onClick: undefined },
-                    { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', onClick: undefined },
+                    { work: '빛나는 검사 로맨스', chapter: '159화', count: 5, severity: '심각 1건', date: '오늘', bars: [C.danger, C.warning, C.warning, C.warning, C.warning] },
+                    { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', bars: [C.warning, C.warning] },
+                    { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
+                    { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
                   ].map((item, i) => (
-                    <div key={i} onClick={item.onClick} style={{
+                    <div key={i} onClick={() => navigate('S5', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
-                      padding: '14px 18px', display: 'flex', alignItems: 'center',
-                      justifyContent: 'space-between', cursor: item.onClick ? 'pointer' : 'default',
-                      transition: 'border-color 0.15s',
+                      padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
                     }}
-                      onMouseEnter={(e) => item.onClick && (e.currentTarget.style.borderColor = '#3A3A4A')}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3A3A4A')}
                       onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}
                     >
-                      <div>
-                        <div style={{ color: C.t1, fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{item.work} · {item.chapter}</div>
-                        <div style={{ color: C.t3, fontSize: 12 }}>{item.date} 분석</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: item.bars.length > 0 ? 10 : 0 }}>
+                        <div>
+                          <div style={{ color: C.t1, fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{item.work} · {item.chapter}</div>
+                          <div style={{ color: C.t3, fontSize: 12 }}>{item.date} 분석</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span style={{
+                            padding: '3px 9px', borderRadius: 4, fontSize: 12, fontWeight: 600,
+                            background: item.count > 0 ? (item.count >= 3 ? C.danger + '1A' : C.warning + '1A') : C.success + '1A',
+                            color: item.count > 0 ? (item.count >= 3 ? C.danger : C.warning) : C.success,
+                            border: `1px solid ${item.count > 0 ? (item.count >= 3 ? C.danger + '44' : C.warning + '44') : C.success + '44'}`,
+                          }}>{item.severity}</span>
+                          <ChevronRight size={14} color={C.t3} />
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{
-                          padding: '3px 9px', borderRadius: 4, fontSize: 12, fontWeight: 600,
-                          background: item.count > 0 ? (item.count >= 3 ? C.danger + '1A' : C.warning + '1A') : C.success + '1A',
-                          color: item.count > 0 ? (item.count >= 3 ? C.danger : C.warning) : C.success,
-                          border: `1px solid ${item.count > 0 ? (item.count >= 3 ? C.danger + '44' : C.warning + '44') : C.success + '44'}`,
-                        }}>{item.severity}</span>
-                        {item.onClick && <ChevronRight size={14} color={C.t3} />}
-                      </div>
+                      {item.bars.length > 0 && (
+                        <div style={{ display: 'flex', gap: 3 }}>
+                          {item.bars.map((color, j) => (
+                            <div key={j} style={{ flex: 1, height: 3, borderRadius: 2, background: color + 'AA' }} />
+                          ))}
+                          <div style={{ flex: Math.max(0, 8 - item.bars.length), height: 3, borderRadius: 2, background: C.border }} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
