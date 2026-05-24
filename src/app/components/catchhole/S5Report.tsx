@@ -4,11 +4,14 @@ import { C, NavigateFn } from './constants';
 import {
   ChevronLeft, OctagonAlert, AlertTriangle, Sparkles,
   ChevronDown, ChevronUp, EyeOff, BookOpen, Clock, Users, Check,
-  Activity, Scale,
+  Activity, Scale, Share2,
 } from 'lucide-react';
+import { ShareModal } from './ShareModal';
 
 interface Props {
   navigate: NavigateFn;
+  mode?: 'single' | 'prePublish';
+  onModeReset?: () => void;
 }
 
 function BtnG({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
@@ -505,11 +508,100 @@ const ERROR_DATA: ErrorCardData[] = [
     ],
     aiSuggestion: '123화 이후 정식 임용 발령 시점이 서술되지 않았습니다. 임용 확정 장면을 중간에 삽입하거나, 현재 서술을 상사 검사의 지시 하에 진행하는 것으로 수정하세요.',
   },
+  {
+    id: 6,
+    severity: 'danger',
+    tag: '시간 흐름 모순',
+    badge: '높음',
+    icon: <Clock size={11} />,
+    title: '캐릭터 연령 및 시간 경과 오류',
+    changeArrow: { from: '24세 (3년 경과 전)', to: '현재 25세로 서술 (27세여야 함)' },
+    sourceQuote: {
+      label: '기존 설정',
+      chapter: '82화 마지막 문단',
+      text: '수아는 스물네 살의 봄, 마지막으로 그 거리를 걸었다. 그리고 거짓말처럼 그로부터 3년이라는 기나긴 시간이 흘렀다.',
+      highlight: '3년이라는 기나긴 시간이 흘렀다',
+      highlightColor: C.success,
+    },
+    currentQuote: {
+      label: '현재 원고',
+      chapter: '159화 초반부',
+      text: '법정 문을 열고 들어서는 수아의 뒷모습은 당당했다. 스물다섯, 아직 어린 나이였지만 그녀의 어깨는 무거웠다.',
+      highlight: '스물다섯, 아직 어린 나이',
+      highlightColor: C.danger,
+    },
+    occurrences: [
+      { chapter: '1화', snippet: '"그녀는 갓 23세가 되었다."', status: 'match' },
+      { chapter: '82화', snippet: '"스물네 살의 봄... 그로부터 3년이 흘렀다."', status: 'match' },
+      { chapter: '159화', snippet: '"스물다섯, 아직 어린 나이였지만"', status: 'conflict' },
+    ],
+    aiSuggestion: '82화에서 3년이 타임스킵되었으므로, 현재 수아의 나이는 27세여야 합니다. "스물다섯"을 "스물일곱"으로 수정하세요.',
+  },
+  {
+    id: 7,
+    severity: 'danger',
+    tag: '수치 연산 오류',
+    badge: '높음',
+    icon: <Activity size={11} />,
+    title: '경험치·수치 누적 결과 불일치',
+    changeArrow: { from: '고블린 200마리 처치 (마리당 0.5%)', to: '1레벨업(100%) 미발생' },
+    sourceQuote: {
+      label: '시스템 설정',
+      chapter: '세계관 설정DB - 레벨링',
+      text: '고블린 처치 시 획득 경험치: 0.5%. 누적 경험치 100% 달성 시 즉시 레벨업 및 스탯 상승 이펙트 발생.',
+      highlight: '누적 경험치 100% 달성 시 즉시 레벨업',
+      highlightColor: C.success,
+    },
+    currentQuote: {
+      label: '현재 원고',
+      chapter: '159화 전투 씬',
+      text: '수아는 가쁜 숨을 몰아쉬며 200번째 고블린의 목을 쳤다. 주변이 고요해졌다. 그녀는 피 묻은 칼을 닦으며 조용히 다음 층으로 향했다.',
+      highlight: '200번째 고블린의 목을 쳤다',
+      highlightColor: C.danger,
+    },
+    occurrences: [
+      { chapter: '157화', snippet: '"고블린 사냥 시작. 현재 경험치 0%."', status: 'match' },
+      { chapter: '159화', snippet: '"200번째 고블린의 목을 쳤다." (0.5% * 200 = 100%)', status: 'match' },
+      { chapter: '159화', snippet: '레벨업 달성 묘사 누락', status: 'conflict' },
+    ],
+    aiSuggestion: '수치 설정상 200마리를 잡았으므로 경험치 100%를 충족했습니다. 레벨업 묘사를 추가하거나, 중간에 "피로도 페널티로 경험치 획득량 감소" 등의 설정을 명시해야 독자들의 수치 오류 지적을 방지할 수 있습니다.',
+  },
+  {
+    id: 8,
+    severity: 'warning',
+    tag: '소지품 모순',
+    badge: '중간',
+    icon: <OctagonAlert size={11} />,
+    title: '핵심 아이템 소지 상태 불일치',
+    changeArrow: { from: '45화에서 양도함 (인벤토리 없음)', to: '주머니에서 꺼냄' },
+    sourceQuote: {
+      label: '기존 설정',
+      chapter: '45화 중반부',
+      text: '수아는 주저 없이 증거가 담긴 붉은색 USB를 이레나의 손에 쥐여주었다. "이걸 부탁해. 난 이제 관여할 수 없으니까." USB는 그렇게 그녀의 손을 떠났다.',
+      highlight: '이레나의 손에 쥐여주었다',
+      highlightColor: C.success,
+    },
+    currentQuote: {
+      label: '현재 원고',
+      chapter: '159화 후반부',
+      text: '강민준이 증거를 요구하자, 수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어 책상 위에 던졌다.',
+      highlight: '붉은색 USB를 꺼내어',
+      highlightColor: C.warning,
+    },
+    occurrences: [
+      { chapter: '45화', snippet: '"붉은색 USB를 이레나의 손에 쥐여주었다."', status: 'match' },
+      { chapter: '92화', snippet: '"USB는 안전하게 이레나의 금고에 보관되어 있었다."', status: 'match' },
+      { chapter: '159화', snippet: '"수아는 코트 안주머니를 뒤져 붉은색 USB를 꺼내어"', status: 'conflict' },
+    ],
+    aiSuggestion: '이 USB는 45화에서 이레나에게 양도되었으며, 수아의 소지품(인벤토리)에 없습니다. 수아가 USB의 복사본을 만들어두었다는 서술을 추가하거나, 이레나가 USB를 제시하는 흐름으로 변경하세요.',
+  }
 ];
 
-export default function S5Report({ navigate }: Props) {
+export default function S5Report({ navigate, mode = 'single', onModeReset }: Props) {
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
+  const [showShare, setShowShare] = useState(false);
+  const isPrePublish = mode === 'prePublish';
 
   const toggleIgnore = (id: number) =>
     setIgnoredIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -533,7 +625,7 @@ export default function S5Report({ navigate }: Props) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 20px', flexShrink: 0, zIndex: 10, position: 'relative',
       }}>
-        <button onClick={() => navigate('S1', 'pop')} style={{
+        <button onClick={() => { onModeReset?.(); navigate('S1', 'pop'); }} style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'none', border: 'none', color: C.t2, cursor: 'pointer',
           fontSize: 13, padding: '4px 8px', borderRadius: 4,
@@ -549,13 +641,66 @@ export default function S5Report({ navigate }: Props) {
           color: C.t1, fontSize: 16, fontWeight: 700, letterSpacing: '-0.3px',
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
         }}>
-          159화 분석 결과
+          {isPrePublish ? '발행 전 전체 검수' : '159화 분석 결과'}
         </span>
 
-        <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+        {isPrePublish
+          ? <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowShare(true)} style={{
+                height: 36, padding: '0 12px', borderRadius: 6,
+                background: 'transparent', border: `1px solid ${C.border}`,
+                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+              ><Share2 size={13} />공유</button>
+              <BtnG label="리포트로 돌아가기" onClick={() => { onModeReset?.(); }} />
+            </div>
+          : <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowShare(true)} style={{
+                height: 36, padding: '0 12px', borderRadius: 6,
+                background: 'transparent', border: `1px solid ${C.border}`,
+                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+              ><Share2 size={13} />공유</button>
+              <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+            </div>
+        }
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 48px 48px' }}>
+        {isPrePublish && (
+          <div style={{
+            background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: '14px 20px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>검수 범위</div>
+              <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>빛나는 검사 로맨스 · 전체 158화</div>
+            </div>
+            <BtnP label="범위 변경" />
+          </div>
+        )}
+
+        {isPrePublish && (
+          <div style={{
+            background: C.primary + '12', border: `1px solid ${C.primary}44`,
+            borderRadius: 8, padding: '12px 16px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <OctagonAlert size={14} color={C.primary} style={{ flexShrink: 0 }} />
+            <span style={{ color: C.t2, fontSize: 13 }}>
+              <strong style={{ color: C.primary }}>발행 전 체크리스트</strong>
+              {'  ·  '}캐릭터 설정 일치 · 타임라인 연속성 · 관계 상태 · 세계관 규칙 준수
+            </span>
+          </div>
+        )}
+
         <div style={{
           background: C.surface, borderRadius: 8,
           border: `1px solid ${C.border}`, padding: '18px 28px',
@@ -633,6 +778,9 @@ export default function S5Report({ navigate }: Props) {
           </span>
         </div>
       </div>
+      {showShare && (
+        <ShareModal workTitle="빛나는 검사 로맨스" onClose={() => setShowShare(false)} defaultTab="export" />
+      )}
     </div>
   );
 }
