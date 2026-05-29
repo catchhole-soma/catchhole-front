@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import SLogin from './components/catchhole/SLogin';
+import SSignup from './components/catchhole/SSignup';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
@@ -52,7 +54,7 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState<ScreenId>('S0');
+  const [screen, setScreen] = useState<ScreenId>('Slogin');
   const [transitionType, setTransitionType] = useState<TransitionType>('push-right');
   const [reportMode, setReportMode] = useState<'single' | 'prePublish'>('single');
   const [selectedWork, setSelectedWork] = useState<WorkId>('detective');
@@ -97,6 +99,8 @@ export default function App() {
             height: '100%',
           }}
         >
+          {screen === 'Slogin' && <SLogin navigate={navigate} />}
+          {screen === 'Ssignup' && <SSignup navigate={navigate} />}
           {screen === 'S0' && <S0WorkPicker onSelect={(workId) => { setSelectedWork(workId); navigate('S1', 'push-right'); }} onNewWork={() => navigate('S1', 'push-right')} />}
           {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} selectedWork={selectedWork} onChangeWork={() => navigate('S0', 'push-left')} />}
           {screen === 'S2' && <S2Editor navigate={navigate} />}
