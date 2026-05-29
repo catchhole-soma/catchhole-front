@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { C, NavigateFn } from './constants';
+import { C, NavigateFn, EditorMode, NavId } from './constants';
+import { AppSidebar } from './AppSidebar';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
@@ -13,7 +14,7 @@ import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 
 import { WorkId } from './constants';
-interface Props { navigate: NavigateFn; onPrePublish?: () => void; selectedWork: WorkId; onChangeWork: () => void; }
+interface Props { navigate: NavigateFn; onPrePublish?: () => void; selectedWork: WorkId; onChangeWork: () => void; onOpenManuscript: (mode: EditorMode) => void; }
 
 const charColors: Record<string, string> = {
   sua: C.primary,
@@ -2482,7 +2483,6 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
 }
 
 
-type NavId = 'settingDB' | 'reports' | 'graph';
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
@@ -2490,7 +2490,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   murim: { title: '무협지존', genre: '무협' },
 };
 
-export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onChangeWork }: Props) {
+export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onChangeWork, onOpenManuscript }: Props) {
   const [activeNav, setActiveNav] = useState<NavId>('settingDB');
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
@@ -2561,52 +2561,14 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
       </div>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div style={{
-          width: 220, background: C.bg, borderRight: `1px solid ${C.border}`,
-          padding: '16px 0', display: 'flex', flexDirection: 'column', flexShrink: 0,
-        }}>
-          {/* 현재 작품 표시 */}
-          <div style={{ padding: '0 16px 12px' }}>
-            <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>현재 작품</div>
-            <div style={{
-              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
-              padding: '8px 12px', marginBottom: 6,
-            }}>
-              <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, marginBottom: 2, letterSpacing: '-0.2px' }}>
-                {WORK_INFO[selectedWork].title}
-              </div>
-              <div style={{ color: C.t3, fontSize: 11 }}>{WORK_INFO[selectedWork].genre}</div>
-            </div>
-            <button onClick={onChangeWork} style={{
-              width: '100%', padding: '5px 0', borderRadius: 5,
-              border: `1px solid ${C.border}`, background: 'transparent',
-              color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'all 0.15s', letterSpacing: '-0.1px',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary + '66'; e.currentTarget.style.color = C.primary; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
-            >
-              작품 변경
-            </button>
-          </div>
-          <div style={{ margin: '0 16px 10px', borderTop: `1px solid ${C.border}` }} />
-          <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>워크스페이스</div>
-          <NavItem icon={<BookOpen size={14} />} label="설정 DB" active={activeNav === 'settingDB'} onClick={() => setActiveNav('settingDB')} />
-          <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" active={activeNav === 'reports'} badge="3" onClick={() => setActiveNav('reports')} />
-          <NavItem icon={<Network size={14} />} label="그래프 뷰" active={activeNav === 'graph'} onClick={() => setActiveNav('graph')} />
-          <NavItem icon={<MessageSquare size={14} />} label="챗봇" onClick={() => navigate('S3', 'push-right')} />
-          <div style={{ margin: '12px 16px', borderTop: `1px solid ${C.border}` }} />
-          <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>계정</div>
-          <NavItem icon={<Settings size={14} />} label="설정" />
-
-          <div style={{ marginTop: 'auto', padding: '16px 20px', borderTop: `1px solid ${C.border}` }}>
-            <div style={{ color: C.t3, fontSize: 11, marginBottom: 6 }}>이번 달 분석</div>
-            <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
-              <div style={{ width: '70%', height: '100%', background: C.primary, borderRadius: 2 }} />
-            </div>
-            <div style={{ color: C.t3, fontSize: 11 }}>14 / 20회</div>
-          </div>
-        </div>
+        <AppSidebar
+          navigate={navigate}
+          selectedWork={selectedWork}
+          onChangeWork={onChangeWork}
+          activeNav={activeNav}
+          onNavChange={setActiveNav}
+          activePage="dashboard"
+        />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
@@ -2875,6 +2837,77 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
               <motion.div key="graph" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, overflow: 'hidden' }}>
                 <GraphView />
+              </motion.div>
+            )}
+
+            {activeNav === 'manuscripts' && (
+              <motion.div key="manuscripts" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                  <div>
+                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
+                    <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                      {WORK_INFO[selectedWork].title}
+                    </span>
+                  </div>
+                  <BtnP label="회차 올리기" icon={<Upload size={13} />}
+                    onClick={() => { setEpisodeTargetWork(WORK_INFO[selectedWork].title); setShowUpload('episode'); }} />
+                </div>
+
+                {selectedWork === 'murim' ? (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    height: 280, color: C.t3, gap: 12,
+                  }}>
+                    <FileText size={40} strokeWidth={1.2} />
+                    <div style={{ fontSize: 14 }}>아직 업로드된 원고가 없습니다.</div>
+                    <div style={{ fontSize: 12 }}>회차 올리기로 첫 원고를 추가하세요.</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 800 }}>
+                    {/* 헤더 행 */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px 80px 160px',
+                      padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600,
+                      letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>
+                      <span>회차</span><span>제목</span><span>업로드</span>
+                      <span>글자수</span><span>오류</span><span></span>
+                    </div>
+                    {[
+                      { chapter: 159, title: '운명의 실타래', date: '오늘', words: '4,200자', errors: 5 },
+                      { chapter: 158, title: '진실의 무게', date: '3일 전', words: '3,800자', errors: 2 },
+                      { chapter: 157, title: '균열', date: '1주 전', words: '4,100자', errors: 0 },
+                      { chapter: 156, title: '빗속의 대화', date: '2주 전', words: '3,600자', errors: 0 },
+                      { chapter: 155, title: '서류 뭉치', date: '2주 전', words: '4,400자', errors: 1 },
+                    ].map((row) => (
+                      <div key={row.chapter} style={{
+                        display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px 80px 160px',
+                        alignItems: 'center', padding: '12px 16px',
+                        background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
+                        transition: 'border-color 0.15s',
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#3A3A4A'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+                      >
+                        <span style={{ color: C.t2, fontSize: 13, fontWeight: 600 }}>{row.chapter}화</span>
+                        <span style={{ color: C.t1, fontSize: 13 }}>{row.title}</span>
+                        <span style={{ color: C.t3, fontSize: 12 }}>{row.date}</span>
+                        <span style={{ color: C.t3, fontSize: 12 }}>{row.words}</span>
+                        <span style={{
+                          fontSize: 12, fontWeight: 600,
+                          color: row.errors > 0 ? (row.errors >= 3 ? C.danger : C.warning) : C.success,
+                        }}>
+                          {row.errors > 0 ? `${row.errors}건` : '없음'}
+                        </span>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <BtnG small label="보기" onClick={() => onOpenManuscript('view')} />
+                          <BtnG small label="편집" onClick={() => onOpenManuscript('edit')} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

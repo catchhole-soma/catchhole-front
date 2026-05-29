@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Shield, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { C, NavigateFn } from './constants';
+import { TermsModal } from './TermsModal';
 
 interface Props { navigate: NavigateFn; }
 
@@ -40,6 +41,7 @@ export default function SSignup({ navigate }: Props) {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
+  const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
 
   return (
     <div style={{
@@ -47,6 +49,9 @@ export default function SSignup({ navigate }: Props) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
+      <AnimatePresence>
+        {termsTab && <TermsModal onClose={() => setTermsTab(null)} initialTab={termsTab} />}
+      </AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
         style={{
@@ -121,6 +126,20 @@ export default function SSignup({ navigate }: Props) {
                 </button>
               }
             />
+          </div>
+
+          <div style={{ color: C.t3, fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
+            가입하면{' '}
+            <button onClick={() => setTermsTab('terms')} style={{
+              background: 'none', border: 'none', color: C.t2, fontSize: 12,
+              cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline',
+            }}>이용약관</button>
+            {' '}및{' '}
+            <button onClick={() => setTermsTab('privacy')} style={{
+              background: 'none', border: 'none', color: C.t2, fontSize: 12,
+              cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline',
+            }}>개인정보 처리방침</button>
+            에 동의합니다.
           </div>
 
           <button onClick={() => navigate('S0', 'push-right')} style={{

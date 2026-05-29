@@ -13,5 +13,7 @@ export const C = {
 
 export type ScreenId = 'Slogin' | 'Ssignup' | 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5';
 export type WorkId = 'detective' | 'murim';
+export type EditorMode = 'edit' | 'view';
+export type NavId = 'settingDB' | 'reports' | 'graph' | 'manuscripts';
 export type TransitionType = 'push-right' | 'push-left' | 'cover-up' | 'pop' | 'dissolve';
 export type NavigateFn = (to: ScreenId, transition: TransitionType) => void;

@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { C, NavigateFn } from './constants';
+import { C, NavigateFn, EditorMode } from './constants';
 import {
   ChevronLeft, CircleCheckBig, AlertTriangle, BookOpen,
-  Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap, Share2,
+  Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap, Share2, Eye,
 } from 'lucide-react';
 import { ShareModal } from './ShareModal';
 
 interface Props {
   navigate: NavigateFn;
+  mode?: EditorMode;
+  onSwitchToEdit?: () => void;
+  onSwitchToView?: () => void;
 }
 
 const DEMO_SCRIPT =
@@ -447,7 +450,8 @@ function EditorText({ text, detectionPhase, showCursor }: {
   );
 }
 
-export default function S2Editor({ navigate }: Props) {
+export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSwitchToView }: Props) {
+  const isViewMode = mode === 'view';
   const [showModal, setShowModal] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [intentional, setIntentional] = useState(false);
@@ -565,6 +569,33 @@ export default function S2Editor({ navigate }: Props) {
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isViewMode ? (
+            <button onClick={onSwitchToEdit} style={{
+              height: 36, padding: '0 12px', borderRadius: 6,
+              background: 'transparent', border: `1px solid ${C.border}`,
+              color: C.t2, fontSize: 13, cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
+            >
+              <Eye size={13} />편집 모드
+            </button>
+          ) : (
+            <button onClick={onSwitchToView} style={{
+              height: 36, padding: '0 12px', borderRadius: 6,
+              background: 'transparent', border: `1px solid ${C.border}`,
+              color: C.t2, fontSize: 13, cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
+            >
+              <Eye size={13} />보기 모드
+            </button>
+          )}
           {/* 공유 버튼 (상시 노출) */}
           <button onClick={() => setShowShare(true)} style={{
             height: 36, padding: '0 12px', borderRadius: 6,
@@ -632,16 +663,36 @@ export default function S2Editor({ navigate }: Props) {
             )}
           </AnimatePresence>
 
-          <button onClick={() => setShowModal(true)} style={{
-            height: 40, padding: '0 18px', borderRadius: 6, background: C.primary,
-            border: 'none', color: C.t1, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s',
-          }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-          >분석 요청</button>
+          {!isViewMode && (
+            <button onClick={() => setShowModal(true)} style={{
+              height: 40, padding: '0 18px', borderRadius: 6, background: C.primary,
+              border: 'none', color: C.t1, fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s',
+            }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+            >분석 요청</button>
+          )}
         </div>
       </div>
+
+      {isViewMode && (
+        <div style={{
+          height: 36, background: C.warning + '18', borderBottom: `1px solid ${C.warning}44`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexShrink: 0,
+        }}>
+          <Eye size={13} color={C.warning} />
+          <span style={{ color: C.warning, fontSize: 12, fontWeight: 600 }}>읽기 전용</span>
+          <button onClick={onSwitchToEdit} style={{
+            height: 24, padding: '0 10px', borderRadius: 4,
+            border: `1px solid ${C.warning}66`, background: C.warning + '18',
+            color: C.warning, fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            편집으로 전환
+          </button>
+        </div>
+      )}
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <div style={{
