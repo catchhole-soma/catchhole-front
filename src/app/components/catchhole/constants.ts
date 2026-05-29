@@ -11,6 +11,7 @@ export const C = {
   t3: '#55556A',
 } as const;
 
-export type ScreenId = 'S1' | 'S2' | 'S3' | 'S4' | 'S5';
+export type ScreenId = 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5';
+export type WorkId = 'detective' | 'murim';
 export type TransitionType = 'push-right' | 'push-left' | 'cover-up' | 'pop' | 'dissolve';
 export type NavigateFn = (to: ScreenId, transition: TransitionType) => void;

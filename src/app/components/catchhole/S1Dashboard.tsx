@@ -12,7 +12,8 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 
-interface Props { navigate: NavigateFn; onPrePublish?: () => void; }
+import { WorkId } from './constants';
+interface Props { navigate: NavigateFn; onPrePublish?: () => void; selectedWork: WorkId; onChangeWork: () => void; }
 
 const charColors: Record<string, string> = {
   sua: C.primary,
@@ -2481,14 +2482,18 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
 }
 
 
-type NavId = 'works' | 'settingDB' | 'reports' | 'graph';
+type NavId = 'settingDB' | 'reports' | 'graph';
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
-export default function S1Dashboard({ navigate, onPrePublish }: Props) {
-  const [activeNav, setActiveNav] = useState<NavId>('works');
+const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
+  detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
+  murim: { title: '무협지존', genre: '무협' },
+};
+
+export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onChangeWork }: Props) {
+  const [activeNav, setActiveNav] = useState<NavId>('settingDB');
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
-  const [selectedWork, setSelectedWork] = useState<'detective' | 'murim'>('detective');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
   const [episodeTargetChapters, setEpisodeTargetChapters] = useState(0);
@@ -2516,7 +2521,6 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
   };
 
   const goToSettingDB = () => {
-    setSelectedWork('detective');
     setActiveNav('settingDB');
   };
 
@@ -2561,8 +2565,32 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
           width: 220, background: C.bg, borderRight: `1px solid ${C.border}`,
           padding: '16px 0', display: 'flex', flexDirection: 'column', flexShrink: 0,
         }}>
+          {/* 현재 작품 표시 */}
+          <div style={{ padding: '0 16px 12px' }}>
+            <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>현재 작품</div>
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
+              padding: '8px 12px', marginBottom: 6,
+            }}>
+              <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, marginBottom: 2, letterSpacing: '-0.2px' }}>
+                {WORK_INFO[selectedWork].title}
+              </div>
+              <div style={{ color: C.t3, fontSize: 11 }}>{WORK_INFO[selectedWork].genre}</div>
+            </div>
+            <button onClick={onChangeWork} style={{
+              width: '100%', padding: '5px 0', borderRadius: 5,
+              border: `1px solid ${C.border}`, background: 'transparent',
+              color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 0.15s', letterSpacing: '-0.1px',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary + '66'; e.currentTarget.style.color = C.primary; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
+            >
+              작품 변경
+            </button>
+          </div>
+          <div style={{ margin: '0 16px 10px', borderTop: `1px solid ${C.border}` }} />
           <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>워크스페이스</div>
-          <NavItem icon={<BookMarked size={14} />} label="내 작품" active={activeNav === 'works'} badge="2" onClick={() => setActiveNav('works')} />
           <NavItem icon={<BookOpen size={14} />} label="설정 DB" active={activeNav === 'settingDB'} onClick={() => setActiveNav('settingDB')} />
           <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" active={activeNav === 'reports'} badge="3" onClick={() => setActiveNav('reports')} />
           <NavItem icon={<Network size={14} />} label="그래프 뷰" active={activeNav === 'graph'} onClick={() => setActiveNav('graph')} />
@@ -2582,85 +2610,6 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
-            {activeNav === 'works' && (
-              <motion.div key="works" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-                  <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>내 작품</span>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label="공유 및 협업" onClick={() => setShowShare(true)} icon={<Share2 size={13} />} />
-                    <BtnP label="새 작품 등록" onClick={() => { setEpisodeTargetWork(''); setEpisodeTargetChapters(0); setShowUpload('new-work'); }} icon={<Plus size={14} />} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 860, marginBottom: 28 }}>
-                  <WorkCard title="빛나는 검사 로맨스" genre="로맨스" chapters={158} conflicts={5} hasConflict lastUpdated="2시간 전"
-                    selected={selectedWork === 'detective'}
-                    onClick={() => setSelectedWork('detective')}
-                    onReport={() => navigate('S5', 'push-right')}
-                    onEditor={() => navigate('S2', 'push-right')}
-                    onEpisode={() => { setEpisodeTargetWork('빛나는 검사 로맨스'); setEpisodeTargetChapters(158); setShowUpload('episode'); }}
-                  />
-                  <WorkCard title="무협지존" genre="무협" chapters={42} conflicts={0} hasConflict={false}
-                    selected={selectedWork === 'murim'}
-                    onClick={() => setSelectedWork('murim')}
-                    onEditor={() => navigate('S2', 'push-right')}
-                    onEpisode={() => { setEpisodeTargetWork('무협지존'); setEpisodeTargetChapters(42); setShowUpload('episode'); }}
-                  />
-                </div>
-
-                {selectedWork === 'detective' && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ maxWidth: 860 }}>
-                    <div style={{
-                      background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
-                      padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    }}>
-                      <div style={{ display: 'flex', gap: 28 }}>
-                        {[
-                          { icon: <Users size={13} />, label: '캐릭터', value: '5명' },
-                          { icon: <BookOpen size={13} />, label: '설정 항목', value: '23개' },
-                          { icon: <GitBranch size={13} />, label: '관계 엣지', value: '8개' },
-                          { icon: <Clock size={13} />, label: '타임라인', value: '14개' },
-                          { icon: <OctagonAlert size={13} />, label: '탐지 오류', value: '5건', color: C.danger },
-                        ].map((item) => (
-                          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ color: C.t3 }}>{item.icon}</span>
-                            <span style={{ color: C.t3, fontSize: 12 }}>{item.label}</span>
-                            <span style={{ color: (item as { color?: string }).color || C.t1, fontSize: 13, fontWeight: 600 }}>{item.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={goToSettingDB} style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        background: 'none', border: 'none', color: C.primary, fontSize: 13,
-                        cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
-                      }}>
-                        설정 DB 보기 <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                <div style={{ display: 'flex', gap: 14, marginTop: 24, maxWidth: 860 }}>
-                  {[
-                    { label: '전체 작품', value: '2', sub: '등록됨' },
-                    { label: '이번 주 오류', value: '5', sub: '탐지됨', color: C.danger },
-                    { label: '이달 분석', value: '14', sub: '회 실행' },
-                    { label: '설정 항목', value: '47', sub: '총 등록' },
-                  ].map((s) => (
-                    <div key={s.label} style={{
-                      flex: 1, background: C.surface, border: `1px solid ${C.border}`,
-                      borderRadius: 8, padding: '14px 18px',
-                    }}>
-                      <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{s.label}</div>
-                      <div style={{ color: (s as { color?: string }).color || C.t1, fontSize: 22, fontWeight: 700, marginBottom: 2 }}>{s.value}</div>
-                      <div style={{ color: C.t3, fontSize: 12 }}>{s.sub}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
             {activeNav === 'settingDB' && (
               <motion.div key="settingDB" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
@@ -2671,8 +2620,8 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
                     <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
-                      빛나는 검사 로맨스
-                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>로맨스</span>
+                      {WORK_INFO[selectedWork].title}
+                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{WORK_INFO[selectedWork].genre}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -2885,7 +2834,7 @@ export default function S1Dashboard({ navigate, onPrePublish }: Props) {
                     { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', bars: [C.warning, C.warning] },
                     { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
                     { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
-                  ].map((item, i) => (
+                  ].filter(item => item.work === WORK_INFO[selectedWork].title).map((item, i) => (
                     <div key={i} onClick={() => navigate('S5', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
                       padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',

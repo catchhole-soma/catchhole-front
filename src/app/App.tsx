@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
 import S3Chat from './components/catchhole/S3Chat';
 import S4Loading from './components/catchhole/S4Loading';
 import S5Report from './components/catchhole/S5Report';
-import { ScreenId, TransitionType, NavigateFn } from './components/catchhole/constants';
+import { ScreenId, WorkId, TransitionType, NavigateFn } from './components/catchhole/constants';
 
 type TransitionConfig = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,9 +52,10 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState<ScreenId>('S1');
+  const [screen, setScreen] = useState<ScreenId>('S0');
   const [transitionType, setTransitionType] = useState<TransitionType>('push-right');
   const [reportMode, setReportMode] = useState<'single' | 'prePublish'>('single');
+  const [selectedWork, setSelectedWork] = useState<WorkId>('detective');
 
   const navigate: NavigateFn = useCallback((to: ScreenId, transition: TransitionType) => {
     setTransitionType(transition);
@@ -95,9 +97,10 @@ export default function App() {
             height: '100%',
           }}
         >
-          {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} />}
+          {screen === 'S0' && <S0WorkPicker onSelect={(workId) => { setSelectedWork(workId); navigate('S1', 'push-right'); }} onNewWork={() => navigate('S1', 'push-right')} />}
+          {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} selectedWork={selectedWork} onChangeWork={() => navigate('S0', 'push-left')} />}
           {screen === 'S2' && <S2Editor navigate={navigate} />}
-          {screen === 'S3' && <S3Chat navigate={navigate} />}
+          {screen === 'S3' && <S3Chat navigate={navigate} selectedWork={selectedWork} onChangeWork={() => navigate('S0', 'push-left')} />}
           {screen === 'S4' && <S4Loading navigate={navigate} />}
           {screen === 'S5' && <S5Report navigate={navigate} mode={reportMode} onModeReset={() => setReportMode('single')} />}
         </motion.div>
