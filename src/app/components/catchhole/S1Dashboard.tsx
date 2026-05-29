@@ -160,6 +160,133 @@ function DragDropArea({ dragging, fileSelected, setDragging, setFileSelected, fi
 
 type UploadSubType = 'fresh' | 'ep-only';
 
+type MsStatus = 'analyzed' | 'unanalyzed' | 'analyzing' | 'missing';
+interface ManuscriptRow { chapter: string; title: string; date: string; words: string; errors: number; status: MsStatus; }
+interface SettingsDoc { name: string; date: string; }
+
+const INIT_SETTINGS_DOCS: SettingsDoc[] = [
+  { name: '원작 설정집.docx', date: '2주 전' },
+  { name: '캐릭터 시트.xlsx', date: '1달 전' },
+];
+
+const mkMs = (chapter: string, title: string, date: string, words: string, errors: number, status: MsStatus = 'analyzed'): ManuscriptRow =>
+  ({ chapter, title, date, words, errors, status });
+
+const INIT_MANUSCRIPTS: ManuscriptRow[] = [
+  mkMs('159',     '운명의 실타래',    '오늘',    '4,200자', 5,  'analyzing'),
+  mkMs('158',     '진실의 무게',      '3일 전',  '3,800자', 2),
+  mkMs('157',     '균열',             '1주 전',  '4,100자', 0),
+  mkMs('156',     '빗속의 대화',      '2주 전',  '3,600자', 0),
+  mkMs('155',     '서류 뭉치',        '2주 전',  '4,400자', 1),
+  mkMs('154',     '마지막 증인',      '3주 전',  '3,900자', 3),
+  mkMs('153',     '어둠 속의 목소리', '3주 전',  '4,050자', 0,  'unanalyzed'),
+  mkMs('152',     '붉은 실',          '1달 전',  '3,750자', 7),
+  mkMs('151-2',   '교차점 (하)',      '1달 전',  '2,100자', 0),
+  mkMs('151-1',   '교차점 (상)',      '1달 전',  '2,050자', 1),
+  mkMs('150',     '폭풍 전야',        '1달 전',  '4,300자', 0),
+  mkMs('149',     '숨겨진 파일',      '1달 전',  '3,650자', 4),
+  mkMs('148',     '오래된 사진',      '5주 전',  '3,200자', 0,  'unanalyzed'),
+  mkMs('147',     '두 얼굴',          '5주 전',  '4,150자', 2),
+  mkMs('146',     '빈 의자',          '6주 전',  '3,500자', 0),
+  mkMs('145',     '첫 번째 균열',     '6주 전',  '4,600자', 1),
+  mkMs('144',     '복도의 끝',        '6주 전',  '3,800자', 0),
+  mkMs('143',     '낯선 이름',        '7주 전',  '4,000자', 6),
+  mkMs('142',     '선택의 기로',      '7주 전',  '3,900자', 0),
+  mkMs('141',     '밤의 기억',        '7주 전',  '4,200자', 3),
+  mkMs('140',     '흔적',             '2달 전',  '3,700자', 0),
+  mkMs('139',     '두 번째 기회',     '2달 전',  '4,100자', 1),
+  mkMs('138',     '침묵의 무게',      '2달 전',  '3,550자', 0),
+  mkMs('137',     '거짓말',           '2달 전',  '4,300자', 2),
+  mkMs('136',     '반전',             '2달 전',  '3,800자', 0),
+  mkMs('135',     '비밀',             '2달 전',  '4,050자', 8),
+  mkMs('134',     '약속',             '3달 전',  '3,650자', 0),
+  mkMs('133',     '벽',               '3달 전',  '4,400자', 1),
+  mkMs('132',     '모래시계',         '3달 전',  '3,900자', 0),
+  mkMs('131',     '그림자',           '3달 전',  '4,200자', 3),
+  mkMs('130',     '귀환',             '3달 전',  '3,750자', 0),
+  mkMs('129',     '마지막 편지',      '4달 전',  '4,600자', 2),
+  mkMs('128',     '잃어버린 시간',    '4달 전',  '3,800자', 0),
+  mkMs('127',     '불꽃',             '4달 전',  '4,100자', 1),
+  mkMs('126',     '어긋난 퍼즐',      '4달 전',  '3,950자', 4),
+  mkMs('125',     '동행',             '4달 전',  '4,050자', 0),
+  mkMs('124',     '뿌리',             '5달 전',  '3,700자', 0),
+  mkMs('123',     '진심',             '5달 전',  '4,200자', 2),
+  mkMs('122',     '단서',             '5달 전',  '3,600자', 0),
+  mkMs('121',     '함정',             '5달 전',  '4,350자', 5),
+  mkMs('120',     '마주침',           '5달 전',  '3,900자', 1),
+  mkMs('119',     '각자의 길',        '6달 전',  '4,000자', 0),
+  mkMs('118',     '나침반',           '6달 전',  '3,750자', 3),
+  mkMs('117',     '탈출',             '6달 전',  '4,100자', 0),
+  mkMs('116',     '내부고발',         '6달 전',  '3,850자', 2),
+  mkMs('115',     '배신',             '6달 전',  '4,500자', 0),
+  mkMs('114',     '숨바꼭질',         '7달 전',  '3,650자', 1),
+  mkMs('113',     '흑막',             '7달 전',  '4,200자', 6),
+  mkMs('112',     '증거',             '7달 전',  '3,800자', 0),
+  mkMs('111',     '의심',             '7달 전',  '4,050자', 0),
+  mkMs('110',     '공범',             '7달 전',  '3,900자', 4),
+  mkMs('109',     '반격',             '8달 전',  '4,300자', 1),
+  mkMs('108',     '미로',             '8달 전',  '3,700자', 0),
+  mkMs('107',     '각성',             '8달 전',  '4,150자', 2),
+  mkMs('106',     '위기',             '8달 전',  '3,600자', 0),
+  mkMs('105',     '돌파구',           '8달 전',  '4,400자', 3),
+  mkMs('104',     '퍼즐',             '9달 전',  '3,800자', 0),
+  mkMs('103',     '협박',             '9달 전',  '4,050자', 1),
+  mkMs('102',     '균형',             '9달 전',  '3,750자', 0),
+  mkMs('101',     '첫 만남',          '9달 전',  '4,200자', 0),
+  mkMs('100',     '기념일',           '9달 전',  '4,800자', 7),
+  mkMs('99',      '고백',             '10달 전', '4,100자', 0),
+  mkMs('98',      '오해',             '10달 전', '3,900자', 2),
+  mkMs('97',      '—',                '—',       '—',       0,  'missing'),
+  mkMs('96',      '마지막 카드',      '10달 전', '4,000자', 1),
+  mkMs('95',      '뒤집힌 패',        '10달 전', '3,750자', 0),
+  mkMs('94',      '추격',             '11달 전', '4,350자', 3),
+  mkMs('93',      '탈출구',           '11달 전', '3,850자', 0),
+  mkMs('92',      '진실 혹은 거짓',   '11달 전', '4,100자', 2),
+  mkMs('91',      '분기점',           '11달 전', '3,700자', 0),
+  mkMs('90',      '귀환',             '11달 전', '4,600자', 4),
+  mkMs('89',      '숨겨진 얼굴',      '1년 전',  '3,950자', 0),
+  mkMs('88',      '거울',             '1년 전',  '4,200자', 1),
+  mkMs('87',      '대결',             '1년 전',  '3,800자', 0),
+  mkMs('86',      '전환',             '1년 전',  '4,050자', 5),
+  mkMs('85',      '마지막 기회',      '1년 전',  '3,700자', 0),
+  mkMs('84',      '희생',             '1년 전',  '4,300자', 2),
+  mkMs('83',      '폭로',             '1년 전',  '3,900자', 0),
+  mkMs('82',      '위장',             '1년 전',  '4,150자', 3),
+  mkMs('81',      '추적',             '1년 전',  '3,650자', 1),
+  mkMs('80',      '심문',             '1년 전',  '4,400자', 0),
+  mkMs('79',      '연기',             '1년 전',  '3,800자', 6),
+  mkMs('78',      '역할극',           '1년 전',  '4,100자', 0),
+  mkMs('77',      '가면',             '1년 전',  '3,750자', 2),
+  mkMs('76',      '진실 게임',        '1년 전',  '4,050자', 0),
+  mkMs('75',      '거짓의 거짓',      '1년 전',  '4,200자', 4),
+  mkMs('74',      '새벽',             '1년 전',  '3,900자', 0),
+  mkMs('73',      '밀실',             '1년 전',  '4,350자', 1),
+  mkMs('72',      '함정 수사',        '1년 전',  '3,700자', 0),
+  mkMs('71',      '뒤통수',           '1년 전',  '4,500자', 3),
+  mkMs('70',      '잠복',             '1년 전',  '3,800자', 0),
+  mkMs('69',      '내부자',           '1년 전',  '4,150자', 2),
+  mkMs('68',      '고독',             '1년 전',  '3,650자', 0),
+  mkMs('67',      '독자 행동',        '1년 전',  '4,000자', 1),
+  mkMs('66',      '위험한 거래',      '1년 전',  '3,900자', 8),
+  mkMs('65',      '미행',             '1년 전',  '4,300자', 0),
+  mkMs('64',      '사라진 증거',      '1년 전',  '3,750자', 2),
+  mkMs('63',      '조작',             '1년 전',  '4,100자', 0),
+  mkMs('62',      '편지',             '1년 전',  '3,800자', 1),
+  mkMs('61',      '경고',             '1년 전',  '4,200자', 0),
+  mkMs('60',      '위협',             '1년 전',  '3,950자', 5),
+  mkMs('59',      '도주',             '1년 전',  '4,050자', 0),
+  mkMs('58',      '체포',             '1년 전',  '3,700자', 3),
+  mkMs('57',      '자백',             '1년 전',  '4,400자', 0),
+  mkMs('56',      '뒤집기',           '1년 전',  '3,850자', 2),
+  mkMs('55',      '반전의 반전',      '1년 전',  '4,150자', 0),
+  mkMs('54',      '최후의 수',        '1년 전',  '3,700자', 4),
+  mkMs('53',      '체스판',           '1년 전',  '4,000자', 1),
+  mkMs('52',      '마지막 패',        '1년 전',  '3,900자', 0),
+  mkMs('51',      '시작과 끝',        '1년 전',  '4,300자', 2),
+  mkMs('외전 1',  '그날의 기억',      '1년 전',  '5,100자', 1),
+  mkMs('프롤로그','시작 전에',        '1년 전',  '1,800자', 0),
+];
+
 const MOCK_WORKS = [
   { title: '빛나는 검사 로맨스', chapters: 158 },
   { title: '무협지존', chapters: 42 },
@@ -2495,6 +2622,8 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
+  const [msPage, setMsPage] = useState(0);
+  const MS_PAGE_SIZE = 20;
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
   const [episodeTargetChapters, setEpisodeTargetChapters] = useState(0);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -2863,51 +2992,68 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
                     <div style={{ fontSize: 14 }}>아직 업로드된 원고가 없습니다.</div>
                     <div style={{ fontSize: 12 }}>회차 올리기로 첫 원고를 추가하세요.</div>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 800 }}>
-                    {/* 헤더 행 */}
-                    <div style={{
-                      display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px 80px 160px',
-                      padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600,
-                      letterSpacing: '0.05em', textTransform: 'uppercase',
-                    }}>
-                      <span>회차</span><span>제목</span><span>업로드</span>
-                      <span>글자수</span><span>오류</span><span></span>
-                    </div>
-                    {[
-                      { chapter: 159, title: '운명의 실타래', date: '오늘', words: '4,200자', errors: 5 },
-                      { chapter: 158, title: '진실의 무게', date: '3일 전', words: '3,800자', errors: 2 },
-                      { chapter: 157, title: '균열', date: '1주 전', words: '4,100자', errors: 0 },
-                      { chapter: 156, title: '빗속의 대화', date: '2주 전', words: '3,600자', errors: 0 },
-                      { chapter: 155, title: '서류 뭉치', date: '2주 전', words: '4,400자', errors: 1 },
-                    ].map((row) => (
-                      <div key={row.chapter} style={{
-                        display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px 80px 160px',
-                        alignItems: 'center', padding: '12px 16px',
-                        background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
-                        transition: 'border-color 0.15s',
-                      }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#3A3A4A'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
-                      >
-                        <span style={{ color: C.t2, fontSize: 13, fontWeight: 600 }}>{row.chapter}화</span>
-                        <span style={{ color: C.t1, fontSize: 13 }}>{row.title}</span>
-                        <span style={{ color: C.t3, fontSize: 12 }}>{row.date}</span>
-                        <span style={{ color: C.t3, fontSize: 12 }}>{row.words}</span>
-                        <span style={{
-                          fontSize: 12, fontWeight: 600,
-                          color: row.errors > 0 ? (row.errors >= 3 ? C.danger : C.warning) : C.success,
-                        }}>
-                          {row.errors > 0 ? `${row.errors}건` : '없음'}
-                        </span>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <BtnG small label="보기" onClick={() => onOpenManuscript('view')} />
-                          <BtnG small label="편집" onClick={() => onOpenManuscript('edit')} />
+                ) : (() => {
+                    const pagedRows = INIT_MANUSCRIPTS.slice(msPage * MS_PAGE_SIZE, (msPage + 1) * MS_PAGE_SIZE);
+                    const totalPages = Math.ceil(INIT_MANUSCRIPTS.length / MS_PAGE_SIZE);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 800 }}>
+                        {/* 설정집 섹션 */}
+                        <div>
+                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 설정집</div>
+                          {INIT_SETTINGS_DOCS.map(doc => (
+                            <div key={doc.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <FileText size={14} color={C.primary} />
+                                <span style={{ color: C.t1, fontSize: 13 }}>{doc.name}</span>
+                                <span style={{ color: C.t3, fontSize: 12 }}>{doc.date}</span>
+                              </div>
+                              <BtnG small label="삭제" />
+                            </div>
+                          ))}
+                        </div>
+                        {/* 원고 목록 섹션 */}
+                        <div>
+                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 원고 ({INIT_MANUSCRIPTS.length}화)</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                            <span>회차</span><span>제목</span><span>업로드</span><span>글자수</span><span>오류</span><span></span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {pagedRows.map((row) => {
+                              const isMissing = row.status === 'missing';
+                              const isAnalyzing = row.status === 'analyzing';
+                              const isUnanalyzed = row.status === 'unanalyzed';
+                              return (
+                                <div key={row.chapter} style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', alignItems: 'center', padding: '12px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, opacity: isMissing ? 0.4 : 1, transition: 'border-color 0.15s' }}
+                                  onMouseEnter={e => { if (!isMissing) e.currentTarget.style.borderColor = '#3A3A4A'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+                                >
+                                  <span style={{ color: C.t2, fontSize: 13, fontWeight: 600 }}>{isNaN(Number(row.chapter)) ? row.chapter : `${row.chapter}화`}</span>
+                                  <span style={{ color: isMissing ? C.t3 : C.t1, fontSize: 13 }}>{row.title}</span>
+                                  <span style={{ color: C.t3, fontSize: 12 }}>{row.date}</span>
+                                  <span style={{ color: C.t3, fontSize: 12 }}>{row.words}</span>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: isAnalyzing ? C.primary : (isMissing || isUnanalyzed) ? C.t3 : row.errors >= 3 ? C.danger : row.errors > 0 ? C.warning : C.success }}>
+                                    {isAnalyzing ? '분석 중...' : (isMissing || isUnanalyzed) ? '—' : row.errors > 0 ? `${row.errors}건` : '없음'}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                    {!isMissing && <>
+                                      <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => navigate('S4', 'dissolve')} />
+                                      <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => onOpenManuscript('view')} />
+                                      <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => onOpenManuscript('edit')} />
+                                    </>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+                            <button onClick={() => setMsPage(p => Math.max(0, p - 1))} disabled={msPage === 0} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: msPage === 0 ? C.t3 : C.t2, fontSize: 13, cursor: msPage === 0 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: msPage === 0 ? 0.4 : 1 }}>← 이전</button>
+                            <span style={{ color: C.t2, fontSize: 13 }}>{msPage + 1} / {totalPages}</span>
+                            <button onClick={() => setMsPage(p => Math.min(totalPages - 1, p + 1))} disabled={msPage === totalPages - 1} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: msPage === totalPages - 1 ? C.t3 : C.t2, fontSize: 13, cursor: msPage === totalPages - 1 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: msPage === totalPages - 1 ? 0.4 : 1 }}>다음 →</button>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })()}
               </motion.div>
             )}
           </AnimatePresence>
