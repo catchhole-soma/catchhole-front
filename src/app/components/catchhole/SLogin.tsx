@@ -130,7 +130,7 @@ export default function SLogin() {
             />
           </div>
 
-          <button onClick={() => navigate('/', 'push-right')} style={{
+          <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',
@@ -148,7 +148,7 @@ export default function SLogin() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            <button onClick={() => navigate('/', 'push-right')} style={{
+            <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
               background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -159,7 +159,7 @@ export default function SLogin() {
               카카오로 계속하기
             </button>
 
-            <button onClick={() => navigate('/', 'push-right')} style={{
+            <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
               width: '100%', height: 44, borderRadius: 8,
               border: `1px solid ${C.border}`, background: 'transparent',
               color: C.t1, fontSize: 14, fontWeight: 500,
