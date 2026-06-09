@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
+import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
+import { AppContextProvider } from './context/AppContext';
 import SLogin from './components/catchhole/SLogin';
 import SSignup from './components/catchhole/SSignup';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
@@ -8,15 +10,12 @@ import S2Editor from './components/catchhole/S2Editor';
 import S3Chat from './components/catchhole/S3Chat';
 import S4Loading from './components/catchhole/S4Loading';
 import S5Report from './components/catchhole/S5Report';
-import { ScreenId, WorkId, EditorMode, TransitionType, NavigateFn } from './components/catchhole/constants';
+import { TransitionType } from './components/catchhole/constants';
 
 type TransitionConfig = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initial: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  animate: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exit: any;
+  initial: object;
+  animate: object;
+  exit: object;
   duration: number;
 };
 
@@ -53,26 +52,45 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
   },
 };
 
+function PrivateRoute() {
+  const token = localStorage.getItem('token');
+  return token ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  const transition = ((location.state as Record<string, unknown>)?.transition as TransitionType) ?? 'dissolve';
+  const config = TRANSITIONS[transition] ?? TRANSITIONS.dissolve;
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={config.initial}
+        animate={config.animate}
+        exit={config.exit}
+        transition={{ duration: config.duration, ease: [0.25, 0.46, 0.45, 0.94] }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        <Routes location={location}>
+          <Route path="/login" element={<SLogin />} />
+          <Route path="/signup" element={<SSignup />} />
+          <Route element={<PrivateRoute />}>
+            <Route path="/" element={<S0WorkPicker />} />
+            <Route path="/dashboard" element={<S1Dashboard />} />
+            <Route path="/editor" element={<S2Editor />} />
+            <Route path="/chat" element={<S3Chat />} />
+            <Route path="/loading" element={<S4Loading />} />
+            <Route path="/report" element={<S5Report />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<ScreenId>('Slogin');
-  const [transitionType, setTransitionType] = useState<TransitionType>('push-right');
-  const [reportMode, setReportMode] = useState<'single' | 'prePublish'>('single');
-  const [selectedWork, setSelectedWork] = useState<WorkId>('detective');
-  const [editorMode, setEditorMode] = useState<EditorMode>('edit');
-
-  const navigate: NavigateFn = useCallback((to: ScreenId, transition: TransitionType) => {
-    setTransitionType(transition);
-    setScreen(to);
-  }, []);
-
-  const navigateToPrePublish = useCallback(() => {
-    setReportMode('prePublish');
-    setTransitionType('push-right');
-    setScreen('S5');
-  }, []);
-
-  const config = TRANSITIONS[transitionType];
-
   return (
     <div
       style={{
@@ -86,30 +104,9 @@ export default function App() {
         MozOsxFontSmoothing: 'grayscale',
       } as React.CSSProperties}
     >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={screen}
-          initial={config.initial}
-          animate={config.animate}
-          exit={config.exit}
-          transition={{ duration: config.duration, ease: [0.25, 0.46, 0.45, 0.94] }}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          {screen === 'Slogin' && <SLogin navigate={navigate} />}
-          {screen === 'Ssignup' && <SSignup navigate={navigate} />}
-          {screen === 'S0' && <S0WorkPicker onSelect={(workId) => { setSelectedWork(workId); navigate('S1', 'push-right'); }} onNewWork={() => navigate('S1', 'push-right')} />}
-          {screen === 'S1' && <S1Dashboard navigate={navigate} onPrePublish={navigateToPrePublish} selectedWork={selectedWork} onChangeWork={() => navigate('S0', 'push-left')} onOpenManuscript={(mode) => { setEditorMode(mode); navigate('S2', 'push-right'); }} />}
-          {screen === 'S2' && <S2Editor navigate={navigate} mode={editorMode} onSwitchToEdit={() => setEditorMode('edit')} onSwitchToView={() => setEditorMode('view')} />}
-          {screen === 'S3' && <S3Chat navigate={navigate} selectedWork={selectedWork} onChangeWork={() => navigate('S0', 'push-left')} />}
-          {screen === 'S4' && <S4Loading navigate={navigate} />}
-          {screen === 'S5' && <S5Report navigate={navigate} mode={reportMode} onModeReset={() => setReportMode('single')} />}
-        </motion.div>
-      </AnimatePresence>
+      <AppContextProvider>
+        <AnimatedRoutes />
+      </AppContextProvider>
     </div>
   );
 }

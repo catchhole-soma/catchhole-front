@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { C, NavigateFn } from './constants';
+import { C } from './constants';
 import { TermsModal } from './TermsModal';
-
-interface Props { navigate: NavigateFn; }
+import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 function Input({
   type, placeholder, value, onChange, icon, right,
@@ -34,7 +33,8 @@ function Input({
   );
 }
 
-export default function SLogin({ navigate }: Props) {
+export default function SLogin() {
+  const navigate = useAppNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -130,7 +130,7 @@ export default function SLogin({ navigate }: Props) {
             />
           </div>
 
-          <button onClick={() => navigate('S0', 'push-right')} style={{
+          <button onClick={() => navigate('/', 'push-right')} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',
@@ -148,8 +148,7 @@ export default function SLogin({ navigate }: Props) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            {/* 카카오 */}
-            <button onClick={() => navigate('S0', 'push-right')} style={{
+            <button onClick={() => navigate('/', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
               background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -160,8 +159,7 @@ export default function SLogin({ navigate }: Props) {
               카카오로 계속하기
             </button>
 
-            {/* 구글 */}
-            <button onClick={() => navigate('S0', 'push-right')} style={{
+            <button onClick={() => navigate('/', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8,
               border: `1px solid ${C.border}`, background: 'transparent',
               color: C.t1, fontSize: 14, fontWeight: 500,
@@ -183,7 +181,7 @@ export default function SLogin({ navigate }: Props) {
 
           <div style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
             계정이 없으신가요?{' '}
-            <button onClick={() => navigate('Ssignup', 'push-right')} style={{
+            <button onClick={() => navigate('/signup', 'push-right')} style={{
               background: 'none', border: 'none', color: C.primary, cursor: 'pointer',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit', padding: 0,
             }}>

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Shield, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { C, NavigateFn } from './constants';
+import { C } from './constants';
 import { TermsModal } from './TermsModal';
-
-interface Props { navigate: NavigateFn; }
+import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 function Input({
   type, placeholder, value, onChange, icon, right,
@@ -34,7 +33,8 @@ function Input({
   );
 }
 
-export default function SSignup({ navigate }: Props) {
+export default function SSignup() {
+  const navigate = useAppNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,7 +142,7 @@ export default function SSignup({ navigate }: Props) {
             에 동의합니다.
           </div>
 
-          <button onClick={() => navigate('S0', 'push-right')} style={{
+          <button onClick={() => navigate('/', 'push-right')} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',
@@ -160,7 +160,7 @@ export default function SSignup({ navigate }: Props) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            <button onClick={() => navigate('S0', 'push-right')} style={{
+            <button onClick={() => navigate('/', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
               background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -170,7 +170,7 @@ export default function SSignup({ navigate }: Props) {
               </svg>
               카카오로 계속하기
             </button>
-            <button onClick={() => navigate('S0', 'push-right')} style={{
+            <button onClick={() => navigate('/', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8,
               border: `1px solid ${C.border}`, background: 'transparent',
               color: C.t1, fontSize: 14, fontWeight: 500,
@@ -192,7 +192,7 @@ export default function SSignup({ navigate }: Props) {
 
           <div style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
             이미 계정이 있으신가요?{' '}
-            <button onClick={() => navigate('Slogin', 'push-left')} style={{
+            <button onClick={() => navigate('/login', 'push-left')} style={{
               background: 'none', border: 'none', color: C.primary, cursor: 'pointer',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit', padding: 0,
             }}>

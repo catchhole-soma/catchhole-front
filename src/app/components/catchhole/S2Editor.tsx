@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { C, NavigateFn, EditorMode } from './constants';
+import { C, EditorMode } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 import {
   ChevronLeft, CircleCheckBig, AlertTriangle, BookOpen,
   Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap, Share2, Eye,
@@ -8,10 +10,7 @@ import {
 import { ShareModal } from './ShareModal';
 
 interface Props {
-  navigate: NavigateFn;
   mode?: EditorMode;
-  onSwitchToEdit?: () => void;
-  onSwitchToView?: () => void;
 }
 
 const DEMO_SCRIPT =
@@ -450,7 +449,10 @@ function EditorText({ text, detectionPhase, showCursor }: {
   );
 }
 
-export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSwitchToView }: Props) {
+export default function S2Editor() {
+  const navigate = useAppNavigate();
+  const { editorMode, setEditorMode } = useAppContext();
+  const mode = editorMode;
   const isViewMode = mode === 'view';
   const [showModal, setShowModal] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -535,7 +537,7 @@ export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSw
 
   const handleAnalysisStart = () => {
     setShowModal(false);
-    navigate('S4', 'dissolve');
+    navigate('/loading', 'dissolve');
   };
 
   const isPlaying = demoPhase === 'playing';
@@ -553,7 +555,7 @@ export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSw
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 20px', flexShrink: 0, zIndex: 10,
       }}>
-        <button onClick={() => navigate('S1', 'pop')} style={{
+        <button onClick={() => navigate('/dashboard', 'pop')} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'none',
           border: 'none', color: C.t2, cursor: 'pointer', fontSize: 13,
           padding: '4px 8px', borderRadius: 4, fontFamily: 'inherit', transition: 'color 0.15s',
@@ -570,7 +572,7 @@ export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSw
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {isViewMode ? (
-            <button onClick={onSwitchToEdit} style={{
+            <button onClick={() => setEditorMode('edit')} style={{
               height: 36, padding: '0 12px', borderRadius: 6,
               background: 'transparent', border: `1px solid ${C.border}`,
               color: C.t2, fontSize: 13, cursor: 'pointer',
@@ -583,7 +585,7 @@ export default function S2Editor({ navigate, mode = 'edit', onSwitchToEdit, onSw
               <Eye size={13} />편집 모드
             </button>
           ) : (
-            <button onClick={onSwitchToView} style={{
+            <button onClick={() => setEditorMode('view')} style={{
               height: 36, padding: '0 12px', borderRadius: 6,
               background: 'transparent', border: `1px solid ${C.border}`,
               color: C.t2, fontSize: 13, cursor: 'pointer',

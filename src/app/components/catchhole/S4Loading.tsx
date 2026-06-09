@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CircleCheckBig } from 'lucide-react';
-import { C, NavigateFn } from './constants';
-
-interface Props {
-  navigate: NavigateFn;
-}
+import { C } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 function SpinningRing() {
   const size = 72;
@@ -64,7 +61,8 @@ const steps = [
   { label: '관계·능력 오류 탐지 중', delay: 2.2, inProgress: true },
 ];
 
-export default function S4Loading({ navigate }: Props) {
+export default function S4Loading() {
+  const navigate = useAppNavigate();
   const [visibleSteps, setVisibleSteps] = useState(0);
 
   useEffect(() => {
@@ -78,12 +76,12 @@ export default function S4Loading({ navigate }: Props) {
 
     timers.push(
       setTimeout(() => {
-        navigate('S5', 'dissolve');
+        navigate('/report', 'dissolve');
       }, 3200)
     );
 
     return () => timers.forEach(clearTimeout);
-  }, [navigate]);
+  }, []);
 
   return (
     <div

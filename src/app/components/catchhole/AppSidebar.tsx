@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   BookOpen, BarChart3, Network, FileText, MessageSquare, Settings,
 } from 'lucide-react';
-import { C, NavigateFn, WorkId, NavId } from './constants';
+import { C, WorkId, NavId } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
@@ -40,18 +42,18 @@ function NavItem({
 }
 
 interface Props {
-  navigate: NavigateFn;
-  selectedWork: WorkId;
-  onChangeWork: () => void;
   activeNav?: NavId;
   onNavChange?: (nav: NavId) => void;
   activePage: 'dashboard' | 'chat';
 }
 
-export function AppSidebar({ navigate, selectedWork, onChangeWork, activeNav, onNavChange, activePage }: Props) {
+export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
+  const navigate = useAppNavigate();
+  const { selectedWork } = useAppContext();
+
   const nav = (id: NavId) => {
     if (activePage !== 'dashboard') {
-      navigate('S1', 'pop');
+      navigate('/dashboard', 'pop');
     }
     onNavChange?.(id);
   };
@@ -73,7 +75,7 @@ export function AppSidebar({ navigate, selectedWork, onChangeWork, activeNav, on
           </div>
           <div style={{ color: C.t3, fontSize: 11 }}>{WORK_INFO[selectedWork].genre}</div>
         </div>
-        <button onClick={onChangeWork} style={{
+        <button onClick={() => navigate('/', 'push-left')} style={{
           width: '100%', padding: '5px 0', borderRadius: 5,
           border: `1px solid ${C.border}`, background: 'transparent',
           color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
@@ -103,7 +105,7 @@ export function AppSidebar({ navigate, selectedWork, onChangeWork, activeNav, on
         onClick={() => nav('manuscripts')} />
       <NavItem icon={<MessageSquare size={14} />} label="챗봇"
         active={activePage === 'chat'}
-        onClick={() => activePage !== 'chat' && navigate('S3', 'push-right')} />
+        onClick={() => activePage !== 'chat' && navigate('/chat', 'push-right')} />
 
       <div style={{ margin: '12px 16px', borderTop: `1px solid ${C.border}` }} />
       <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>계정</div>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { C, NavigateFn, EditorMode, NavId } from './constants';
+import { C, EditorMode, NavId } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 import { AppSidebar } from './AppSidebar';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
@@ -14,7 +16,7 @@ import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 
 import { WorkId } from './constants';
-interface Props { navigate: NavigateFn; onPrePublish?: () => void; selectedWork: WorkId; onChangeWork: () => void; onOpenManuscript: (mode: EditorMode) => void; }
+interface Props { onPrePublish?: () => void; }
 
 const charColors: Record<string, string> = {
   sua: C.primary,
@@ -292,14 +294,14 @@ const MOCK_WORKS = [
   { title: '무협지존', chapters: 42 },
 ];
 
-function UploadModal({ onClose, mode, initialWork, initialChapters, works, navigate: nav }: {
+function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
   onClose: () => void;
   mode: 'settings' | 'episode' | 'new-work';
   initialWork?: string;
   initialChapters?: number;
   works?: { title: string; chapters: number }[];
-  navigate?: NavigateFn;
 }) {
+  const nav = useAppNavigate();
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -620,7 +622,7 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works, navig
             title: 'AI 설정 대조 중...',
             desc: '설정 DB와 대조하여 충돌을 탐지합니다',
             items: ['캐릭터 설정 로드 완료', '회차 텍스트 파싱 중', '충돌 패턴 대조 중', '타임라인 검증 대기'],
-            onNext: () => { nav?.('S4', 'dissolve'); onClose(); },
+            onNext: () => { nav('/loading', 'dissolve'); onClose(); },
             btnLabel: '결과 보기',
           };
           return (
@@ -2617,7 +2619,9 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   murim: { title: '무협지존', genre: '무협' },
 };
 
-export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onChangeWork, onOpenManuscript }: Props) {
+export default function S1Dashboard() {
+  const navigate = useAppNavigate();
+  const { selectedWork, setEditorMode, setReportMode } = useAppContext();
   const [activeNav, setActiveNav] = useState<NavId>('settingDB');
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
@@ -2691,9 +2695,6 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AppSidebar
-          navigate={navigate}
-          selectedWork={selectedWork}
-          onChangeWork={onChangeWork}
           activeNav={activeNav}
           onNavChange={setActiveNav}
           activePage="dashboard"
@@ -2717,7 +2718,7 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BtnG label="설정 수정" icon={<Settings size={12} />} />
-                    <BtnP label="신규 회차 분석" onClick={() => navigate('S2', 'push-right')} icon={<Activity size={12} />} />
+                    <BtnP label="신규 회차 분석" onClick={() => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} icon={<Activity size={12} />} />
                   </div>
                 </div>
 
@@ -2895,7 +2896,7 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>분석 리포트</span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label="발행 전 검수" onClick={onPrePublish} icon={<Shield size={12} />} />
+                    <BtnG label="발행 전 검수" onClick={() => { setReportMode('prePublish'); navigate('/report', 'push-right'); }} icon={<Shield size={12} />} />
                     <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
                   </div>
                 </div>
@@ -2926,7 +2927,7 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
                     { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
                     { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
                   ].filter(item => item.work === WORK_INFO[selectedWork].title).map((item, i) => (
-                    <div key={i} onClick={() => navigate('S5', 'push-right')} style={{
+                    <div key={i} onClick={() => navigate('/report', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
                       padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
                     }}
@@ -3036,9 +3037,9 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
                                   </span>
                                   <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                                     {!isMissing && <>
-                                      <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => navigate('S4', 'dissolve')} />
-                                      <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => onOpenManuscript('view')} />
-                                      <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => onOpenManuscript('edit')} />
+                                      <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => navigate('/loading', 'dissolve')} />
+                                      <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => { setEditorMode('view'); navigate('/editor', 'push-right'); }} />
+                                      <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} />
                                     </>}
                                   </div>
                                 </div>
@@ -3097,7 +3098,6 @@ export default function S1Dashboard({ navigate, onPrePublish, selectedWork, onCh
             initialWork={episodeTargetWork}
             initialChapters={episodeTargetChapters}
             works={MOCK_WORKS}
-            navigate={navigate}
           />
         )}
       </AnimatePresence>

@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Tag, Hash } from 'lucide-react';
 import { C, WorkId } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 
-interface Props {
-  onSelect: (workId: WorkId) => void;
-  onNewWork: () => void;
-}
+interface Props { workId?: WorkId; }
 
 const WORKS: { id: WorkId; title: string; genre: string; chapters: number; conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' }[] = [
   { id: 'detective', title: '빛나는 검사 로맨스', genre: '로맨스', chapters: 158, conflicts: 5, status: 'danger' },
@@ -132,7 +131,15 @@ function NewWorkCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function S0WorkPicker({ onSelect, onNewWork }: Props) {
+export default function S0WorkPicker() {
+  const navigate = useAppNavigate();
+  const { setSelectedWork } = useAppContext();
+
+  const handleSelect = (workId: WorkId) => {
+    setSelectedWork(workId);
+    navigate('/dashboard', 'push-right');
+  };
+
   return (
     <div style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
@@ -182,9 +189,9 @@ export default function S0WorkPicker({ onSelect, onNewWork }: Props) {
             gap: 16, maxWidth: 960,
           }}>
             {WORKS.map(work => (
-              <WorkCard key={work.id} work={work} onClick={() => onSelect(work.id)} />
+              <WorkCard key={work.id} work={work} onClick={() => handleSelect(work.id)} />
             ))}
-            <NewWorkCard onClick={onNewWork} />
+            <NewWorkCard onClick={() => navigate('/dashboard', 'push-right')} />
           </div>
         </motion.div>
       </div>

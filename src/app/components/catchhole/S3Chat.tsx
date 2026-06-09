@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { C, NavigateFn, WorkId } from './constants';
+import { C, WorkId } from './constants';
+import { useAppContext } from '../../context/AppContext';
 import { Shield, Send, ArrowRight } from 'lucide-react';
 import { AppSidebar } from './AppSidebar';
 
@@ -9,7 +10,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   murim: { title: '무협지존', genre: '무협' },
 };
 
-interface Props { navigate: NavigateFn; selectedWork: WorkId; onChangeWork: () => void; }
+interface Props { selectedWork?: WorkId; }
 
 interface Message {
   id: number;
@@ -205,7 +206,8 @@ function NavItem({ icon, label, active, badge, onClick }: {
   );
 }
 
-export default function S3Chat({ navigate, selectedWork, onChangeWork }: Props) {
+export default function S3Chat() {
+  const { selectedWork } = useAppContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -270,9 +272,6 @@ export default function S3Chat({ navigate, selectedWork, onChangeWork }: Props) 
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AppSidebar
-          navigate={navigate}
-          selectedWork={selectedWork}
-          onChangeWork={onChangeWork}
           activePage="chat"
         />
 

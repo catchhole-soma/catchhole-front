@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { C, NavigateFn } from './constants';
+import { C } from './constants';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 import {
   ChevronLeft, OctagonAlert, AlertTriangle, Sparkles,
   ChevronDown, ChevronUp, EyeOff, BookOpen, Clock, Users, Check,
@@ -9,9 +11,7 @@ import {
 import { ShareModal } from './ShareModal';
 
 interface Props {
-  navigate: NavigateFn;
   mode?: 'single' | 'prePublish';
-  onModeReset?: () => void;
 }
 
 function BtnG({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
@@ -597,7 +597,10 @@ const ERROR_DATA: ErrorCardData[] = [
   }
 ];
 
-export default function S5Report({ navigate, mode = 'single', onModeReset }: Props) {
+export default function S5Report() {
+  const navigate = useAppNavigate();
+  const { reportMode, setReportMode } = useAppContext();
+  const mode = reportMode;
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
   const [showShare, setShowShare] = useState(false);
@@ -625,7 +628,7 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 20px', flexShrink: 0, zIndex: 10, position: 'relative',
       }}>
-        <button onClick={() => { onModeReset?.(); navigate('S1', 'pop'); }} style={{
+        <button onClick={() => { setReportMode('single'); navigate('/dashboard', 'pop'); }} style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'none', border: 'none', color: C.t2, cursor: 'pointer',
           fontSize: 13, padding: '4px 8px', borderRadius: 4,
@@ -655,7 +658,7 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
               ><Share2 size={13} />공유</button>
-              <BtnG label="리포트로 돌아가기" onClick={() => { onModeReset?.(); }} />
+              <BtnG label="리포트로 돌아가기" onClick={() => { setReportMode('single'); }} />
             </div>
           : <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowShare(true)} style={{
@@ -667,7 +670,7 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
               ><Share2 size={13} />공유</button>
-              <BtnG label="원고로 돌아가기" onClick={() => navigate('S2', 'push-left')} />
+              <BtnG label="원고로 돌아가기" onClick={() => navigate('/editor', 'push-left')} />
             </div>
         }
       </div>
@@ -760,7 +763,7 @@ export default function S5Report({ navigate, mode = 'single', onModeReset }: Pro
               data={data}
               ignored={ignoredIds.includes(data.id)}
               onIgnore={() => toggleIgnore(data.id)}
-              onFix={() => navigate('S2', 'push-left')}
+              onFix={() => navigate('/editor', 'push-left')}
             />
           ))}
         </div>
