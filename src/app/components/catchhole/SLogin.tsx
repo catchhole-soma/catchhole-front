@@ -1,34 +1,39 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { C } from './constants';
+import { C, isValidEmail } from './constants';
 import { TermsModal } from './TermsModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 function Input({
-  type, placeholder, value, onChange, icon, right,
+  type, placeholder, value, onChange, icon, right, error,
 }: {
   type: string; placeholder: string; value: string;
-  onChange: (v: string) => void; icon: React.ReactNode; right?: React.ReactNode;
+  onChange: (v: string) => void; icon: React.ReactNode; right?: React.ReactNode; error?: string;
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      background: C.bg, border: `1px solid ${focused ? C.primary + '88' : C.border}`,
-      borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
-    }}>
-      <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
-      <input
-        type={type} placeholder={placeholder} value={value}
-        onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        style={{
-          flex: 1, background: 'none', border: 'none', outline: 'none',
-          color: C.t1, fontSize: 14, fontFamily: 'inherit',
-        }}
-      />
-      {right}
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: C.bg, border: `1px solid ${error ? C.danger + '88' : focused ? C.primary + '88' : C.border}`,
+        borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
+      }}>
+        <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
+        <input
+          type={type} placeholder={placeholder} value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{
+            flex: 1, background: 'none', border: 'none', outline: 'none',
+            color: C.t1, fontSize: 14, fontFamily: 'inherit',
+          }}
+        />
+        {right}
+      </div>
+      {error && (
+        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
+      )}
     </div>
   );
 }
@@ -39,6 +44,20 @@ export default function SLogin() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const handleLogin = () => {
+    const nextErrors: { email?: string; password?: string } = {};
+    if (!email.trim()) nextErrors.email = '이메일을 입력해주세요.';
+    else if (!isValidEmail(email)) nextErrors.email = '이메일 형식이 올바르지 않습니다.';
+    if (!password) nextErrors.password = '비밀번호를 입력해주세요.';
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    localStorage.setItem('token', 'mock');
+    navigate('/', 'push-right');
+  };
 
   return (
     <div style={{
@@ -116,10 +135,10 @@ export default function SLogin() {
           <div style={{ color: C.t3, fontSize: 13, marginBottom: 32 }}>계정에 로그인하여 작품 분석을 시작하세요.</div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-            <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} />
+            <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} error={errors.email} />
             <Input
               type={showPw ? 'text' : 'password'} placeholder="비밀번호"
-              value={password} onChange={setPassword} icon={<Lock size={15} />}
+              value={password} onChange={setPassword} icon={<Lock size={15} />} error={errors.password}
               right={
                 <button onClick={() => setShowPw(p => !p)} style={{
                   background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex',
@@ -130,7 +149,7 @@ export default function SLogin() {
             />
           </div>
 
-          <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
+          <button onClick={handleLogin} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',

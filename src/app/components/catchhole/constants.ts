@@ -11,6 +11,8 @@ export const C = {
   t3: '#55556A',
 } as const;
 
+export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 export type WorkId = 'detective' | 'murim';
 export type EditorMode = 'edit' | 'view';
 export type NavId = 'settingDB' | 'reports' | 'graph' | 'manuscripts';

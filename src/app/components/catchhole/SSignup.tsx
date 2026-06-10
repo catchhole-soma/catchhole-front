@@ -1,34 +1,39 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Shield, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { C } from './constants';
+import { Shield, Mail, Lock, Eye, EyeOff, User, Check } from 'lucide-react';
+import { C, isValidEmail } from './constants';
 import { TermsModal } from './TermsModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 function Input({
-  type, placeholder, value, onChange, icon, right,
+  type, placeholder, value, onChange, icon, right, error,
 }: {
   type: string; placeholder: string; value: string;
-  onChange: (v: string) => void; icon: React.ReactNode; right?: React.ReactNode;
+  onChange: (v: string) => void; icon: React.ReactNode; right?: React.ReactNode; error?: string;
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      background: C.bg, border: `1px solid ${focused ? C.primary + '88' : C.border}`,
-      borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
-    }}>
-      <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
-      <input
-        type={type} placeholder={placeholder} value={value}
-        onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        style={{
-          flex: 1, background: 'none', border: 'none', outline: 'none',
-          color: C.t1, fontSize: 14, fontFamily: 'inherit',
-        }}
-      />
-      {right}
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: C.bg, border: `1px solid ${error ? C.danger + '88' : focused ? C.primary + '88' : C.border}`,
+        borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
+      }}>
+        <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
+        <input
+          type={type} placeholder={placeholder} value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{
+            flex: 1, background: 'none', border: 'none', outline: 'none',
+            color: C.t1, fontSize: 14, fontFamily: 'inherit',
+          }}
+        />
+        {right}
+      </div>
+      {error && (
+        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
+      )}
     </div>
   );
 }
@@ -42,6 +47,25 @@ export default function SSignup() {
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
+  const [agreed, setAgreed] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; passwordConfirm?: string }>({});
+
+  const handleSignup = () => {
+    const nextErrors: typeof errors = {};
+    if (!name.trim()) nextErrors.name = '이름(필명)을 입력해주세요.';
+    if (!email.trim()) nextErrors.email = '이메일을 입력해주세요.';
+    else if (!isValidEmail(email)) nextErrors.email = '이메일 형식이 올바르지 않습니다.';
+    if (!password) nextErrors.password = '비밀번호를 입력해주세요.';
+    else if (password.length < 8) nextErrors.password = '비밀번호는 8자 이상이어야 합니다.';
+    if (!passwordConfirm) nextErrors.passwordConfirm = '비밀번호 확인을 입력해주세요.';
+    else if (password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0 || !agreed) return;
+
+    localStorage.setItem('token', 'mock');
+    navigate('/', 'push-right');
+  };
 
   return (
     <div style={{
@@ -102,11 +126,11 @@ export default function SSignup() {
           <div style={{ color: C.t3, fontSize: 13, marginBottom: 28 }}>계정을 만들어 작품 분석을 시작하세요.</div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-            <Input type="text" placeholder="이름 (필명)" value={name} onChange={setName} icon={<User size={15} />} />
-            <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} />
+            <Input type="text" placeholder="이름 (필명)" value={name} onChange={setName} icon={<User size={15} />} error={errors.name} />
+            <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} error={errors.email} />
             <Input
               type={showPw ? 'text' : 'password'} placeholder="비밀번호"
-              value={password} onChange={setPassword} icon={<Lock size={15} />}
+              value={password} onChange={setPassword} icon={<Lock size={15} />} error={errors.password}
               right={
                 <button onClick={() => setShowPw(p => !p)} style={{
                   background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex',
@@ -117,7 +141,7 @@ export default function SSignup() {
             />
             <Input
               type={showPwConfirm ? 'text' : 'password'} placeholder="비밀번호 확인"
-              value={passwordConfirm} onChange={setPasswordConfirm} icon={<Lock size={15} />}
+              value={passwordConfirm} onChange={setPasswordConfirm} icon={<Lock size={15} />} error={errors.passwordConfirm}
               right={
                 <button onClick={() => setShowPwConfirm(p => !p)} style={{
                   background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex',
@@ -128,26 +152,47 @@ export default function SSignup() {
             />
           </div>
 
-          <div style={{ color: C.t3, fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
-            가입하면{' '}
-            <button onClick={() => setTermsTab('terms')} style={{
-              background: 'none', border: 'none', color: C.t2, fontSize: 12,
-              cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline',
-            }}>이용약관</button>
-            {' '}및{' '}
-            <button onClick={() => setTermsTab('privacy')} style={{
-              background: 'none', border: 'none', color: C.t2, fontSize: 12,
-              cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline',
-            }}>개인정보 처리방침</button>
-            에 동의합니다.
-          </div>
+          <button
+            onClick={() => setAgreed(a => !a)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', padding: 0, marginBottom: 20,
+            }}
+          >
+            <span style={{
+              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+              border: `1px solid ${agreed ? C.primary : C.border}`,
+              background: agreed ? C.primary : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s, border-color 0.15s',
+            }}>
+              {agreed && <Check size={13} color="#fff" />}
+            </span>
+            <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>
+              가입하면{' '}
+              <span
+                role="button"
+                onClick={e => { e.stopPropagation(); setTermsTab('terms'); }}
+                style={{ color: C.t2, textDecoration: 'underline', cursor: 'pointer' }}
+              >이용약관</span>
+              {' '}및{' '}
+              <span
+                role="button"
+                onClick={e => { e.stopPropagation(); setTermsTab('privacy'); }}
+                style={{ color: C.t2, textDecoration: 'underline', cursor: 'pointer' }}
+              >개인정보 처리방침</span>
+              에 동의합니다.
+            </span>
+          </button>
 
-          <button onClick={() => navigate('/', 'push-right')} style={{
+          <button onClick={handleSignup} disabled={!agreed} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',
+            cursor: agreed ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 20,
+            opacity: agreed ? 1 : 0.5, transition: 'background 0.15s, opacity 0.15s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#6B4EE8'; }}
+            onMouseEnter={e => { if (agreed) e.currentTarget.style.background = '#6B4EE8'; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.primary; }}
           >
             회원가입
