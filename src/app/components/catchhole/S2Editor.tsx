@@ -685,7 +685,7 @@ export default function S2Editor() {
         }}>
           <Eye size={13} color={C.warning} />
           <span style={{ color: C.warning, fontSize: 12, fontWeight: 600 }}>읽기 전용</span>
-          <button onClick={onSwitchToEdit} style={{
+          <button onClick={() => setEditorMode('edit')} style={{
             height: 24, padding: '0 10px', borderRadius: 4,
             border: `1px solid ${C.warning}66`, background: C.warning + '18',
             color: C.warning, fontSize: 11, fontWeight: 600,

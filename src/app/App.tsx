@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
 import { AppContextProvider } from './context/AppContext';
 import SLogin from './components/catchhole/SLogin';
 import SSignup from './components/catchhole/SSignup';
@@ -13,9 +13,9 @@ import S5Report from './components/catchhole/S5Report';
 import { TransitionType } from './components/catchhole/constants';
 
 type TransitionConfig = {
-  initial: object;
-  animate: object;
-  exit: object;
+  initial: HTMLMotionProps<'div'>['initial'];
+  animate: HTMLMotionProps<'div'>['animate'];
+  exit: HTMLMotionProps<'div'>['exit'];
   duration: number;
 };
 
