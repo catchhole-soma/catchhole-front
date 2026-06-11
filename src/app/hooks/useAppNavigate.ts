@@ -3,7 +3,7 @@ import { TransitionType } from '../components/catchhole/constants';
 
 export function useAppNavigate() {
   const nav = useNavigate();
-  return (to: string, transition: TransitionType) => {
-    nav(to, { state: { transition } });
+  return (to: string, transition: TransitionType, extraState?: Record<string, unknown>) => {
+    nav(to, { state: { transition, ...extraState } });
   };
 }

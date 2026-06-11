@@ -10,6 +10,9 @@ import S2Editor from './components/catchhole/S2Editor';
 import S3Chat from './components/catchhole/S3Chat';
 import S4Loading from './components/catchhole/S4Loading';
 import S5Report from './components/catchhole/S5Report';
+import SEpisodeUpload from './components/catchhole/SEpisodeUpload';
+import SSettingReview from './components/catchhole/SSettingReview';
+import SEpisodeValidationReport from './components/catchhole/SEpisodeValidationReport';
 import { TransitionType } from './components/catchhole/constants';
 
 type TransitionConfig = {
@@ -82,6 +85,9 @@ function AnimatedRoutes() {
             <Route path="/chat" element={<S3Chat />} />
             <Route path="/loading" element={<S4Loading />} />
             <Route path="/report" element={<S5Report />} />
+            <Route path="/episode-upload" element={<SEpisodeUpload />} />
+            <Route path="/setting-review" element={<SSettingReview />} />
+            <Route path="/episode-validation-report" element={<SEpisodeValidationReport />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

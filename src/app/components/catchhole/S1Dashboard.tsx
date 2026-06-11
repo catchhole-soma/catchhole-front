@@ -61,7 +61,7 @@ function NavItem({
   );
 }
 
-function BtnG({ label, onClick, icon, small }: { label: string; onClick?: () => void; icon?: React.ReactNode; small?: boolean }) {
+export function BtnG({ label, onClick, icon, small }: { label: string; onClick?: () => void; icon?: React.ReactNode; small?: boolean }) {
   const [h, setH] = useState(false);
   return (
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
@@ -75,7 +75,7 @@ function BtnG({ label, onClick, icon, small }: { label: string; onClick?: () => 
     </button>
   );
 }
-function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
+export function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
   const [h, setH] = useState(false);
   return (
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
@@ -90,9 +90,9 @@ function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; i
   );
 }
 
-const GENRES = ['로맨스', '판타지', '무협', '현대', '미스터리', '기타'];
+export const GENRES = ['로맨스', '판타지', '무협', '현대', '미스터리', '기타'];
 
-function TypeCard({ icon, label, desc, color, onSelect }: {
+export function TypeCard({ icon, label, desc, color, onSelect }: {
   icon: React.ReactNode; label: string; desc: string; color: string; onSelect: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -126,7 +126,7 @@ function TypeCard({ icon, label, desc, color, onSelect }: {
   );
 }
 
-function DragDropArea({ dragging, fileSelected, setDragging, setFileSelected, fileLabel }: {
+export function DragDropArea({ dragging, fileSelected, setDragging, setFileSelected, fileLabel }: {
   dragging: boolean; fileSelected: boolean;
   setDragging: (v: boolean) => void; setFileSelected: (v: boolean) => void;
   fileLabel: string;
@@ -2981,7 +2981,7 @@ export default function S1Dashboard() {
                     </span>
                   </div>
                   <BtnP label="회차 올리기" icon={<Upload size={13} />}
-                    onClick={() => { setEpisodeTargetWork(WORK_INFO[selectedWork].title); setShowUpload('episode'); }} />
+                    onClick={() => navigate('/episode-upload', 'push-right')} />
                 </div>
 
                 {selectedWork === 'murim' ? (

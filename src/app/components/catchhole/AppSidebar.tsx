@@ -6,7 +6,7 @@ import { C, WorkId, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 
-const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
+export const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
   murim: { title: '무협지존', genre: '무협' },
 };

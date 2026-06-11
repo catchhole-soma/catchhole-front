@@ -47,7 +47,7 @@ function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; i
   );
 }
 
-interface QuoteBlockProps {
+export interface QuoteBlockProps {
   label: string;
   chapter: string;
   text: string;
@@ -102,7 +102,7 @@ function QuoteBlock({ label, chapter, text, highlight, highlightColor }: QuoteBl
   );
 }
 
-interface OccurrenceItem { chapter: string; snippet: string; status: 'match' | 'conflict' }
+export interface OccurrenceItem { chapter: string; snippet: string; status: 'match' | 'conflict' }
 
 function OccurrenceHistory({ items }: { items: OccurrenceItem[] }) {
   return (
@@ -172,8 +172,9 @@ function AiSuggestion({ suggestion, applied, onApply }: {
   );
 }
 
-interface ErrorCardData {
+export interface ErrorCardData {
   id: number;
+  episodeId?: string;
   severity: 'danger' | 'warning';
   tag: string;
   badge: string;
@@ -187,7 +188,7 @@ interface ErrorCardData {
   onFix?: () => void;
 }
 
-function ErrorCard({ data, ignored, onIgnore, onFix }: {
+export function ErrorCard({ data, ignored, onIgnore, onFix }: {
   data: ErrorCardData; ignored: boolean; onIgnore: () => void; onFix: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
