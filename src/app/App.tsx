@@ -56,7 +56,7 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
 };
 
 function PrivateRoute() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 }
 

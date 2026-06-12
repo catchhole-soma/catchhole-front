@@ -4,6 +4,8 @@ import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { C, isValidEmail } from './constants';
 import { TermsModal } from './TermsModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { login } from '../../lib/auth';
+import { ApiError } from '../../lib/api';
 
 function Input({
   type, placeholder, value, onChange, icon, right, error,
@@ -45,8 +47,9 @@ export default function SLogin() {
   const [showPw, setShowPw] = useState(false);
   const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const nextErrors: { email?: string; password?: string } = {};
     if (!email.trim()) nextErrors.email = '이메일을 입력해주세요.';
     else if (!isValidEmail(email)) nextErrors.email = '이메일 형식이 올바르지 않습니다.';
@@ -55,8 +58,18 @@ export default function SLogin() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    localStorage.setItem('token', 'mock');
-    navigate('/', 'push-right');
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      navigate('/', 'push-right');
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+        : '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      setErrors({ password: message });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -149,15 +162,16 @@ export default function SLogin() {
             />
           </div>
 
-          <button onClick={handleLogin} style={{
+          <button onClick={handleLogin} disabled={submitting} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, transition: 'background 0.15s',
+            cursor: submitting ? 'default' : 'pointer', fontFamily: 'inherit', marginBottom: 20,
+            transition: 'background 0.15s', opacity: submitting ? 0.7 : 1,
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#6B4EE8'; }}
+            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#6B4EE8'; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.primary; }}
           >
-            로그인
+            {submitting ? '로그인 중...' : '로그인'}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -167,7 +181,7 @@ export default function SLogin() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
+            <button onClick={() => { localStorage.setItem('accessToken', 'mock'); navigate('/', 'push-right'); }} style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
               background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -178,7 +192,7 @@ export default function SLogin() {
               카카오로 계속하기
             </button>
 
-            <button onClick={() => { localStorage.setItem('token', 'mock'); navigate('/', 'push-right'); }} style={{
+            <button onClick={() => { localStorage.setItem('accessToken', 'mock'); navigate('/', 'push-right'); }} style={{
               width: '100%', height: 44, borderRadius: 8,
               border: `1px solid ${C.border}`, background: 'transparent',
               color: C.t1, fontSize: 14, fontWeight: 500,

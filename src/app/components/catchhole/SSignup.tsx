@@ -63,7 +63,7 @@ export default function SSignup() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !agreed) return;
 
-    localStorage.setItem('token', 'mock');
+    localStorage.setItem('accessToken', 'mock');
     navigate('/', 'push-right');
   };
 
