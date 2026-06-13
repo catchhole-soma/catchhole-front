@@ -132,40 +132,6 @@ export function TypeCard({ icon, label, desc, color, onSelect }: {
   );
 }
 
-export function DragDropArea({ dragging, fileSelected, setDragging, setFileSelected, fileLabel }: {
-  dragging: boolean; fileSelected: boolean;
-  setDragging: (v: boolean) => void; setFileSelected: (v: boolean) => void;
-  fileLabel: string;
-}) {
-  return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={() => { setDragging(false); setFileSelected(true); }}
-      onClick={() => setFileSelected(true)}
-      style={{
-        border: `2px dashed ${dragging ? C.primary : fileSelected ? C.success : C.border}`,
-        borderRadius: 8, padding: '24px', textAlign: 'center',
-        background: dragging ? C.primary + '08' : fileSelected ? C.success + '08' : 'transparent',
-        cursor: 'pointer', transition: 'all 0.15s', marginBottom: 12,
-      }}
-    >
-      {fileSelected ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <CircleCheckBig size={18} color={C.success} />
-          <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>{fileLabel} — 업로드 준비 완료</span>
-        </div>
-      ) : (
-        <>
-          <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
-          <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-          <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 · {fileLabel}</div>
-        </>
-      )}
-    </div>
-  );
-}
-
 export function FileDropArea({ file, onFileChange, error, fileLabel }: {
   file: File | null;
   onFileChange: (file: File | null, error: string | null) => void;

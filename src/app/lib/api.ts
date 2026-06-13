@@ -31,6 +31,29 @@ export class ApiError extends Error {
   }
 }
 
+/** fetch 자체가 실패한 경우(서버 다운, CORS, 네트워크 오류 등 응답을 받지 못한 경우) */
+export class NetworkError extends Error {
+  constructor(message = '백엔드 서버에 연결할 수 없습니다.') {
+    super(message);
+  }
+}
+
+let networkErrorListener: (() => void) | null = null;
+
+/** 전역에서 NetworkError 발생을 감지하기 위한 리스너 등록 (BackendStatusProvider에서 사용) */
+export function setNetworkErrorListener(fn: (() => void) | null): void {
+  networkErrorListener = fn;
+}
+
+async function fetchOrThrowNetworkError(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    networkErrorListener?.();
+    throw new NetworkError();
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const body: CommonResponse<T> = await res.json();
 
@@ -47,7 +70,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetchOrThrowNetworkError(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
@@ -64,7 +87,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
  * 브라우저가 boundary를 포함한 헤더를 자동으로 설정하도록 한다.
  */
 export async function apiFetchForm<T>(path: string, formData: FormData, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetchOrThrowNetworkError(`${API_BASE_URL}${path}`, {
     ...init,
     method: init?.method ?? 'POST',
     credentials: 'include',

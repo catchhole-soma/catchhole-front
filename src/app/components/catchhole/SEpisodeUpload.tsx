@@ -2,14 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   ChevronLeft, FileText, BookMarked, Files, Check, CircleCheckBig, Trash2,
-  Users, BookOpen, Sparkles, Clock, GitMerge, Scissors,
+  Users, BookOpen, Sparkles, Clock, GitMerge, Scissors, Upload, AlertCircle,
 } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
+import { useBackendStatus } from '../../context/BackendStatusContext';
 import { WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
-import { BtnP, BtnG, DragDropArea } from './S1Dashboard';
+import { BtnP, BtnG, FileDropArea } from './S1Dashboard';
+import { validateManuscriptFile } from '../../lib/fileValidation';
 import { ModeCard, InfoBar, SplitPane, ListItemCard } from './ReviewLayout';
 import {
   AnalysisJobType, DetectedEpisodeBoundary, Episode, EpisodeProcessingStatus,
@@ -262,11 +264,11 @@ function ManuscriptPreview({ paragraphs, boundaries, selectedBoundaryId, splitAt
 }
 
 function SettingsDocToggle({
-  includeSettings, setIncludeSettings, dragging, fileSelected, setDragging, setFileSelected,
+  includeSettings, setIncludeSettings, settingsFile, settingsFileError, onSettingsFileChange,
 }: {
   includeSettings: boolean; setIncludeSettings: (v: boolean) => void;
-  dragging: boolean; fileSelected: boolean;
-  setDragging: (v: boolean) => void; setFileSelected: (v: boolean) => void;
+  settingsFile: File | null; settingsFileError: string | null;
+  onSettingsFileChange: (file: File | null, error: string | null) => void;
 }) {
   return (
     <>
@@ -283,9 +285,9 @@ function SettingsDocToggle({
       {includeSettings && (
         <>
           <FieldLabel>설정집 파일</FieldLabel>
-          <DragDropArea
-            dragging={dragging} fileSelected={fileSelected}
-            setDragging={setDragging} setFileSelected={setFileSelected}
+          <FileDropArea
+            file={settingsFile} error={settingsFileError}
+            onFileChange={onSettingsFileChange}
             fileLabel="설정집.txt"
           />
         </>
@@ -294,9 +296,69 @@ function SettingsDocToggle({
   );
 }
 
+function MultiFileDropArea({ files, onFilesChange, error, fileLabel }: {
+  files: File[];
+  onFilesChange: (files: File[], error: string | null) => void;
+  error?: string | null;
+  fileLabel: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFiles = (fileList: FileList | null | undefined) => {
+    if (!fileList || fileList.length === 0) { onFilesChange([], null); return; }
+    const list = Array.from(fileList);
+    for (const f of list) {
+      const validationError = validateManuscriptFile(f);
+      if (validationError) { onFilesChange([], validationError); return; }
+    }
+    onFilesChange(list, null);
+  };
+
+  return (
+    <div style={{ marginBottom: error ? 4 : 12 }}>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
+        onClick={() => inputRef.current?.click()}
+        style={{
+          border: `2px dashed ${error ? C.danger : dragging ? C.primary : files.length > 0 ? C.success : C.border}`,
+          borderRadius: 8, padding: '24px', textAlign: 'center',
+          background: error ? C.danger + '08' : dragging ? C.primary + '08' : files.length > 0 ? C.success + '08' : 'transparent',
+          cursor: 'pointer', transition: 'all 0.15s',
+        }}
+      >
+        <input
+          ref={inputRef} type="file" accept=".txt,.docx" multiple style={{ display: 'none' }}
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        {files.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <CircleCheckBig size={18} color={C.success} />
+            <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>{files.length}개 파일 선택됨</span>
+          </div>
+        ) : (
+          <>
+            <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
+            <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
+            <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 (최대 10MB) · {fileLabel}</div>
+          </>
+        )}
+      </div>
+      {error && (
+        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <AlertCircle size={12} /> {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
   const { selectedWork } = useAppContext();
+  const { suggestDemoMode } = useBackendStatus();
   const work = WORK_INFO[selectedWork];
 
   const [step, setStep] = useState<EpisodeUploadStep>('select-mode');
@@ -305,15 +367,15 @@ export default function SEpisodeUpload() {
   // single
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [episodeTitle, setEpisodeTitle] = useState('');
-  const [singleDragging, setSingleDragging] = useState(false);
-  const [singleFileSelected, setSingleFileSelected] = useState(false);
+  const [singleFile, setSingleFile] = useState<File | null>(null);
+  const [singleFileError, setSingleFileError] = useState<string | null>(null);
   const [uploadPurpose, setUploadPurpose] = useState<UploadPurpose>(
     selectedWork === 'murim' ? 'SETTING_EXTRACTION' : 'EPISODE_VALIDATION'
   );
 
   // bulk-single-file (회차 경계 감지)
-  const [bulkDragging, setBulkDragging] = useState(false);
-  const [bulkFileSelected, setBulkFileSelected] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkFileError, setBulkFileError] = useState<string | null>(null);
   const [boundaries, setBoundaries] = useState<DetectedEpisodeBoundary[]>([]);
   const [separationCriteria, setSeparationCriteria] = useState<'AUTO' | 'TITLE_NUMBER'>('AUTO');
   const [selectedBoundaryId, setSelectedBoundaryId] = useState<string | null>(null);
@@ -322,11 +384,13 @@ export default function SEpisodeUpload() {
   // bulk-multi-file (파일별 1회차)
   const [multiStartEpisodeNumber, setMultiStartEpisodeNumber] = useState('');
   const [multiFileCount, setMultiFileCount] = useState('2');
+  const [multiFiles, setMultiFiles] = useState<File[]>([]);
+  const [multiFilesError, setMultiFilesError] = useState<string | null>(null);
 
   // 설정집 함께 업로드
   const [includeSettings, setIncludeSettings] = useState(false);
-  const [settingsDragging, setSettingsDragging] = useState(false);
-  const [settingsFileSelected, setSettingsFileSelected] = useState(false);
+  const [settingsFile, setSettingsFile] = useState<File | null>(null);
+  const [settingsFileError, setSettingsFileError] = useState<string | null>(null);
   const [pendingEpisodes, setPendingEpisodes] = useState<Episode[]>([]);
 
   // processing
@@ -363,11 +427,11 @@ export default function SEpisodeUpload() {
 
   // 다회차(단일 파일) 모드에서 파일을 선택하면 같은 화면에서 AI 분리 미리보기를 보여준다
   useEffect(() => {
-    if (uploadMode === 'bulk-single-file' && bulkFileSelected && boundaries.length === 0) {
+    if (uploadMode === 'bulk-single-file' && bulkFile && boundaries.length === 0) {
       const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
       setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
     }
-  }, [uploadMode, bulkFileSelected, boundaries.length, work.title]);
+  }, [uploadMode, bulkFile, boundaries.length, work.title]);
 
   const mergeWithPrevious = (tempId: string) => {
     setBoundaries((prev) => {
@@ -525,19 +589,19 @@ export default function SEpisodeUpload() {
               {uploadMode === 'bulk-single-file' && (
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
                   <FieldLabel>원고 파일</FieldLabel>
-                  <DragDropArea
-                    dragging={bulkDragging} fileSelected={bulkFileSelected}
-                    setDragging={setBulkDragging} setFileSelected={setBulkFileSelected}
+                  <FileDropArea
+                    file={bulkFile} error={bulkFileError}
+                    onFileChange={(f, err) => { setBulkFile(f); setBulkFileError(err); if (!f) setBoundaries([]); }}
                     fileLabel="대량 원고 파일"
                   />
                   <div style={{ color: C.t3, fontSize: 11, margin: '6px 0 20px' }}>
-                    지원 형식: .txt, .docx, .hwp (최대 50MB)
+                    지원 형식: .txt, .docx (최대 10MB)
                   </div>
 
                   <SettingsDocToggle
                     includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                    dragging={settingsDragging} fileSelected={settingsFileSelected}
-                    setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                    settingsFile={settingsFile} settingsFileError={settingsFileError}
+                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
                   />
 
                   <FieldLabel>회차 구분 기준</FieldLabel>
@@ -558,7 +622,7 @@ export default function SEpisodeUpload() {
                     ))}
                   </div>
 
-                  {bulkFileSelected && boundaries.length > 0 && (
+                  {bulkFile && boundaries.length > 0 && (
                     <>
                       <FieldLabel>AI 분리 미리보기</FieldLabel>
                       <InfoBar
@@ -593,7 +657,13 @@ export default function SEpisodeUpload() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                     <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
                     <div style={{ flex: 1 }}>
-                      <BtnP label="다음 — 회차 분리 확인" onClick={() => setStep('boundary-preview')} />
+                      <BtnP
+                        label="다음 — 회차 분리 확인"
+                        onClick={() => {
+                          if (!bulkFile) { suggestDemoMode(); return; }
+                          setStep('boundary-preview');
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -618,9 +688,9 @@ export default function SEpisodeUpload() {
               </div>
 
               <FieldLabel>회차 파일</FieldLabel>
-              <DragDropArea
-                dragging={singleDragging} fileSelected={singleFileSelected}
-                setDragging={setSingleDragging} setFileSelected={setSingleFileSelected}
+              <FileDropArea
+                file={singleFile} error={singleFileError}
+                onFileChange={(f, err) => { setSingleFile(f); setSingleFileError(err); }}
                 fileLabel="회차파일.txt"
               />
 
@@ -648,8 +718,8 @@ export default function SEpisodeUpload() {
 
               <SettingsDocToggle
                 includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                dragging={settingsDragging} fileSelected={settingsFileSelected}
-                setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                settingsFile={settingsFile} settingsFileError={settingsFileError}
+                onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
               />
 
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -658,6 +728,7 @@ export default function SEpisodeUpload() {
                   <BtnP
                     label="다음 — 분석 시작"
                     onClick={() => {
+                      if (!singleFile) { suggestDemoMode(); return; }
                       const num = parseInt(episodeNumber, 10) || 0;
                       const ep = mockCreateEpisode(selectedWork, num, episodeTitle, uploadPurpose);
                       proceedFromInput([ep]);
@@ -685,16 +756,16 @@ export default function SEpisodeUpload() {
               </div>
 
               <FieldLabel>회차 파일 (여러 개 선택)</FieldLabel>
-              <DragDropArea
-                dragging={bulkDragging} fileSelected={bulkFileSelected}
-                setDragging={setBulkDragging} setFileSelected={setBulkFileSelected}
+              <MultiFileDropArea
+                files={multiFiles} error={multiFilesError}
+                onFilesChange={(files, err) => { setMultiFiles(files); setMultiFilesError(err); }}
                 fileLabel={`${multiFileCount || 0}개 파일`}
               />
 
               <SettingsDocToggle
                 includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                dragging={settingsDragging} fileSelected={settingsFileSelected}
-                setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                settingsFile={settingsFile} settingsFileError={settingsFileError}
+                onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
               />
 
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -703,6 +774,7 @@ export default function SEpisodeUpload() {
                   <BtnP
                     label="다음 — 분석 시작"
                     onClick={() => {
+                      if (multiFiles.length === 0) { suggestDemoMode(); return; }
                       const startNum = parseInt(multiStartEpisodeNumber, 10) || 0;
                       const count = Math.max(1, parseInt(multiFileCount, 10) || 1);
                       const episodes = mockCreateMultiFileEpisodes(selectedWork, startNum, count, uploadPurpose);
@@ -726,7 +798,7 @@ export default function SEpisodeUpload() {
 
                 <InfoBar
                   items={[
-                    { label: '파일 이름', value: '대량 원고 파일.txt' },
+                    { label: '파일 이름', value: bulkFile?.name ?? '-' },
                     { label: '총 글자 수', value: `${totalChars.toLocaleString()}자` },
                     { label: '감지된 회차', value: `${boundaries.length}개` },
                     { label: '분리 방식', value: separationCriteria === 'AUTO' ? '자동 감지' : '제목·회차 번호 기준' },

@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router';
 import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
 import { AppContextProvider } from './context/AppContext';
+import { BackendStatusProvider } from './context/BackendStatusContext';
 import SLogin from './components/catchhole/SLogin';
 import SSignup from './components/catchhole/SSignup';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
@@ -111,7 +112,9 @@ export default function App() {
       } as React.CSSProperties}
     >
       <AppContextProvider>
-        <AnimatedRoutes />
+        <BackendStatusProvider>
+          <AnimatedRoutes />
+        </BackendStatusProvider>
       </AppContextProvider>
     </div>
   );
