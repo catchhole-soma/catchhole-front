@@ -74,7 +74,7 @@ export function BackendStatusProvider({ children }: { children: React.ReactNode 
   const switchToDemo = () => {
     setSwitching(true);
     setDemoMode(true);
-    window.location.reload();
+    window.location.href = '/dashboard';
   };
 
   const content = promptKind ? PROMPT_CONTENT[promptKind] : null;
