@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -12,9 +12,14 @@ import {
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
   Share2, Copy, Mail, UserPlus, ExternalLink, CheckCheck, ChevronDown,
+  Loader2, AlertCircle,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
+import { useWorks } from '../../hooks/useWorks';
+import { createWork, uploadEpisode, Work } from '../../lib/worksApi';
+import { ApiError } from '../../lib/api';
+import { validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
 
 import { WorkId } from './constants';
 interface Props { onPrePublish?: () => void; }
@@ -161,6 +166,64 @@ export function DragDropArea({ dragging, fileSelected, setDragging, setFileSelec
   );
 }
 
+export function FileDropArea({ file, onFileChange, error, fileLabel }: {
+  file: File | null;
+  onFileChange: (file: File | null, error: string | null) => void;
+  error?: string | null;
+  fileLabel: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = (f: File | null | undefined) => {
+    if (!f) { onFileChange(null, null); return; }
+    const validationError = validateManuscriptFile(f);
+    if (validationError) { onFileChange(null, validationError); return; }
+    onFileChange(f, null);
+  };
+
+  return (
+    <div style={{ marginBottom: error ? 4 : 12 }}>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
+        onClick={() => inputRef.current?.click()}
+        style={{
+          border: `2px dashed ${error ? C.danger : dragging ? C.primary : file ? C.success : C.border}`,
+          borderRadius: 8, padding: '24px', textAlign: 'center',
+          background: error ? C.danger + '08' : dragging ? C.primary + '08' : file ? C.success + '08' : 'transparent',
+          cursor: 'pointer', transition: 'all 0.15s',
+        }}
+      >
+        <input
+          ref={inputRef} type="file" accept=".txt,.docx" style={{ display: 'none' }}
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+        {file ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <CircleCheckBig size={18} color={C.success} />
+            <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>
+              {file.name} · {formatFileSize(file.size)}
+            </span>
+          </div>
+        ) : (
+          <>
+            <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
+            <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
+            <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 (최대 10MB) · {fileLabel}</div>
+          </>
+        )}
+      </div>
+      {error && (
+        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <AlertCircle size={12} /> {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type UploadSubType = 'fresh' | 'ep-only';
 
 type MsStatus = 'analyzed' | 'unanalyzed' | 'analyzing' | 'missing';
@@ -290,40 +353,67 @@ const INIT_MANUSCRIPTS: ManuscriptRow[] = [
   mkMs('프롤로그','시작 전에',        '1년 전',  '1,800자', 0),
 ];
 
-const MOCK_WORKS = [
-  { title: '빛나는 검사 로맨스', chapters: 158 },
-  { title: '무협지존', chapters: 42 },
-];
-
-function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
+export function UploadModal({ onClose, mode, initialWorkId, initialChapters, works, onUploaded }: {
   onClose: () => void;
   mode: 'settings' | 'episode' | 'new-work';
-  initialWork?: string;
+  initialWorkId?: string;
   initialChapters?: number;
-  works?: { title: string; chapters: number }[];
+  works?: Work[];
+  onUploaded?: () => void;
 }) {
   const nav = useAppNavigate();
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
-  const [dragging, setDragging] = useState(false);
-  const [fileSelected, setFileSelected] = useState(false);
+  const [episodeFile, setEpisodeFile] = useState<File | null>(null);
+  const [episodeFileError, setEpisodeFileError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [episodeWork, setEpisodeWork] = useState(initialWork || '');
+  const [episodeWorkId, setEpisodeWorkId] = useState(initialWorkId || '');
   const [episodeNum, setEpisodeNum] = useState(initialChapters ? String(initialChapters + 1) : '');
   const [uploadType, setUploadType] = useState<UploadSubType | null>(
     mode === 'episode' ? 'ep-only' : null
   );
-  const [settingsDragging, setSettingsDragging] = useState(false);
-  const [settingsFileSelected, setSettingsFileSelected] = useState(false);
+  const [settingsFile, setSettingsFile] = useState<File | null>(null);
+  const [settingsFileError, setSettingsFileError] = useState<string | null>(null);
   const [includeSettings, setIncludeSettings] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isSettings = mode === 'settings';
 
   const canProceed = (() => {
     if (!uploadType) return false;
-    if (uploadType === 'fresh') return !!(title.trim() && genre && fileSelected && (!includeSettings || settingsFileSelected));
-    return !!(episodeWork && episodeNum.trim() && fileSelected);
+    if (uploadType === 'fresh') return !!(title.trim() && genre && episodeFile && !episodeFileError && (!includeSettings || (settingsFile && !settingsFileError)));
+    return !!(episodeWorkId && episodeNum.trim() && episodeFile && !episodeFileError);
   })();
+
+  const handleProceed = async () => {
+    if (!canProceed || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      if (uploadType === 'fresh') {
+        await createWork({
+          title: title.trim(),
+          genre,
+          episodeFile: episodeFile as File,
+          settingsFile: includeSettings ? settingsFile : null,
+        });
+      } else {
+        await uploadEpisode({
+          workId: episodeWorkId,
+          episodeNumber: parseInt(episodeNum, 10) || 0,
+          file: episodeFile as File,
+          settingsFile: includeSettings ? settingsFile : null,
+        });
+      }
+      onUploaded?.();
+      setStep(2);
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : '업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const stepLabels =
     uploadType === 'fresh' ? ['회차 등록', 'AI 분석', '확인·수정']
@@ -440,9 +530,9 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
             <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {uploadType === 'fresh' ? '회차 파일' : '설정집 파일'}
             </div>
-            <DragDropArea
-              dragging={dragging} fileSelected={fileSelected}
-              setDragging={setDragging} setFileSelected={setFileSelected}
+            <FileDropArea
+              file={episodeFile} error={episodeFileError}
+              onFileChange={(f, err) => { setEpisodeFile(f); setEpisodeFileError(err); }}
               fileLabel={uploadType === 'fresh' ? '회차 파일' : '설정집.txt'}
             />
 
@@ -461,14 +551,25 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
                 {includeSettings && (
                   <>
                     <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>설정집 파일</div>
-                    <DragDropArea
-                      dragging={settingsDragging} fileSelected={settingsFileSelected}
-                      setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                    <FileDropArea
+                      file={settingsFile} error={settingsFileError}
+                      onFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
                       fileLabel="설정집.txt"
                     />
                   </>
                 )}
               </>
+            )}
+
+            {submitError && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px',
+                borderRadius: 6, background: C.danger + '14', border: `1px solid ${C.danger}44`,
+                color: C.danger, fontSize: 12, marginBottom: 12,
+              }}>
+                <AlertCircle size={14} />
+                {submitError}
+              </div>
             )}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -482,14 +583,21 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
                 {uploadType === 'fresh' ? '← 뒤로' : '취소'}
               </button>
               <button
-                onClick={() => canProceed && setStep(2)}
+                onClick={handleProceed}
+                disabled={!canProceed || submitting}
                 style={{
                   flex: 2, height: 40, borderRadius: 6, border: 'none',
-                  background: canProceed ? C.primary : C.border,
-                  color: canProceed ? '#fff' : C.t3, fontSize: 13, fontWeight: 600,
-                  cursor: canProceed ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.15s',
+                  background: canProceed && !submitting ? C.primary : C.border,
+                  color: canProceed && !submitting ? '#fff' : C.t3, fontSize: 13, fontWeight: 600,
+                  cursor: canProceed && !submitting ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
-                다음 — AI 분석
+                {submitting && (
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} style={{ display: 'flex' }}>
+                    <Loader2 size={14} />
+                  </motion.div>
+                )}
+                {submitting ? '업로드 중...' : '다음 — AI 분석'}
               </button>
             </div>
           </>
@@ -504,22 +612,22 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>작품 선택</div>
               {works ? (
                 <select
-                  value={episodeWork}
+                  value={episodeWorkId}
                   onChange={(e) => {
-                    const selected = works.find(w => w.title === e.target.value);
-                    setEpisodeWork(e.target.value);
-                    setEpisodeNum(selected ? String(selected.chapters + 1) : '');
+                    const selected = works.find(w => w.id === e.target.value);
+                    setEpisodeWorkId(e.target.value);
+                    setEpisodeNum(selected ? String(selected.episodeCount + 1) : '');
                   }}
                   style={{
                     width: '100%', height: 40, borderRadius: 6,
                     background: C.bg, border: `1px solid ${C.border}`,
-                    color: episodeWork ? C.t1 : C.t3, fontSize: 14, padding: '0 12px',
+                    color: episodeWorkId ? C.t1 : C.t3, fontSize: 14, padding: '0 12px',
                     fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
                   }}
                 >
                   <option value="">작품을 선택하세요</option>
                   {works.map(w => (
-                    <option key={w.title} value={w.title}>{w.title}</option>
+                    <option key={w.id} value={w.id}>{w.title}</option>
                   ))}
                 </select>
               ) : (
@@ -529,13 +637,13 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
                   color: C.t1, fontSize: 14, padding: '0 12px',
                   display: 'flex', alignItems: 'center', boxSizing: 'border-box',
                 }}>
-                  {episodeWork}
+                  {episodeWorkId}
                 </div>
               )}
             </div>
 
             {(() => {
-              const selectedChapters = works?.find(w => w.title === episodeWork)?.chapters;
+              const selectedChapters = works?.find(w => w.id === episodeWorkId)?.episodeCount;
               const hintChapters = selectedChapters ?? (initialChapters || null);
               return (
                 <div style={{ marginBottom: 16 }}>
@@ -561,9 +669,9 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
             })()}
 
             <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>회차 파일</div>
-            <DragDropArea
-              dragging={dragging} fileSelected={fileSelected}
-              setDragging={setDragging} setFileSelected={setFileSelected}
+            <FileDropArea
+              file={episodeFile} error={episodeFileError}
+              onFileChange={(f, err) => { setEpisodeFile(f); setEpisodeFileError(err); }}
               fileLabel="회차파일.txt"
             />
 
@@ -580,12 +688,23 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
             {includeSettings && (
               <>
                 <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>설정집 파일</div>
-                <DragDropArea
-                  dragging={settingsDragging} fileSelected={settingsFileSelected}
-                  setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                <FileDropArea
+                  file={settingsFile} error={settingsFileError}
+                  onFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
                   fileLabel="설정집.txt"
                 />
               </>
+            )}
+
+            {submitError && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px',
+                borderRadius: 6, background: C.danger + '14', border: `1px solid ${C.danger}44`,
+                color: C.danger, fontSize: 12, marginBottom: 12,
+              }}>
+                <AlertCircle size={14} />
+                {submitError}
+              </div>
             )}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -599,14 +718,21 @@ function UploadModal({ onClose, mode, initialWork, initialChapters, works }: {
                 {mode === 'new-work' ? '← 뒤로' : '취소'}
               </button>
               <button
-                onClick={() => canProceed && setStep(2)}
+                onClick={handleProceed}
+                disabled={!canProceed || submitting}
                 style={{
                   flex: 2, height: 40, borderRadius: 6, border: 'none',
-                  background: canProceed ? C.primary : C.border,
-                  color: canProceed ? '#fff' : C.t3, fontSize: 13, fontWeight: 600,
-                  cursor: canProceed ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.15s',
+                  background: canProceed && !submitting ? C.primary : C.border,
+                  color: canProceed && !submitting ? '#fff' : C.t3, fontSize: 13, fontWeight: 600,
+                  cursor: canProceed && !submitting ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
-                다음 — AI 대조 분석
+                {submitting && (
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} style={{ display: 'flex' }}>
+                    <Loader2 size={14} />
+                  </motion.div>
+                )}
+                {submitting ? '업로드 중...' : '다음 — AI 대조 분석'}
               </button>
             </div>
           </>
@@ -2627,6 +2753,7 @@ export default function S1Dashboard() {
   const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
+  const { works, refetch: refetchWorks } = useWorks();
   const [msPage, setMsPage] = useState(0);
   const MS_PAGE_SIZE = 20;
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
@@ -3091,9 +3218,10 @@ export default function S1Dashboard() {
           <UploadModal
             onClose={() => setShowUpload(false)}
             mode={showUpload}
-            initialWork={episodeTargetWork}
+            initialWorkId={episodeTargetWork}
             initialChapters={episodeTargetChapters}
-            works={MOCK_WORKS}
+            works={works}
+            onUploaded={refetchWorks}
           />
         )}
       </AnimatePresence>

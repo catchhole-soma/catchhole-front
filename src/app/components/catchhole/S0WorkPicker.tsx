@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Tag, Hash } from 'lucide-react';
+import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Tag, Hash, RefreshCw, AlertCircle } from 'lucide-react';
 import { C, WorkId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
+import { useWorks } from '../../hooks/useWorks';
+import { UploadModal } from './S1Dashboard';
 import { UserMenu } from './UserMenu';
 
 interface Props { workId?: WorkId; }
 
-const WORKS: { id: WorkId; title: string; genre: string; chapters: number; conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' }[] = [
-  { id: 'detective', title: '빛나는 검사 로맨스', genre: '로맨스', chapters: 158, conflicts: 5, status: 'danger' },
-  { id: 'murim', title: '무협지존', genre: '무협', chapters: 42, conflicts: 0, status: 'ok' },
-];
+type CardWork = { id: string; title: string; genre: string; chapters: number; conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' };
 
-const COVER_GRADIENTS: Record<WorkId, string> = {
+const KNOWN_WORK_META: Record<string, { conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' }> = {
+  detective: { conflicts: 5, status: 'danger' },
+  murim: { conflicts: 0, status: 'ok' },
+};
+
+const COVER_GRADIENTS: Record<string, string> = {
   detective: `linear-gradient(135deg, #1a1030 0%, #2d1b4e 50%, #1a0820 100%)`,
   murim: `linear-gradient(135deg, #0d1a2e 0%, #1a3040 50%, #0d2010 100%)`,
 };
+
+const DEFAULT_COVER_GRADIENT = `linear-gradient(135deg, #1a1a2e 0%, #25253d 50%, #16161f 100%)`;
 
 function ConflictBadge({ status, count }: { status: 'danger' | 'warning' | 'ok' | 'pending'; count: number }) {
   if (status === 'pending') return (
@@ -52,7 +58,7 @@ function ConflictBadge({ status, count }: { status: 'danger' | 'warning' | 'ok' 
   );
 }
 
-function WorkCard({ work, onClick }: { work: typeof WORKS[0]; onClick: () => void }) {
+function WorkCard({ work, onClick }: { work: CardWork; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -71,7 +77,7 @@ function WorkCard({ work, onClick }: { work: typeof WORKS[0]; onClick: () => voi
     >
       {/* 커버 이미지 영역 */}
       <div style={{
-        height: 200, background: COVER_GRADIENTS[work.id],
+        height: 200, background: COVER_GRADIENTS[work.id] ?? DEFAULT_COVER_GRADIENT,
         position: 'relative', display: 'flex', alignItems: 'flex-start',
         justifyContent: 'flex-end', padding: 12,
       }}>
@@ -132,14 +138,38 @@ function NewWorkCard({ onClick }: { onClick: () => void }) {
   );
 }
 
+function isKnownWorkId(id: string): id is WorkId {
+  return id === 'detective' || id === 'murim';
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+      <div style={{ height: 200, background: C.surface }} />
+      <div style={{ background: C.surface, padding: '14px 16px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ height: 16, width: '60%', borderRadius: 4, background: C.border, marginBottom: 10 }} />
+        <div style={{ height: 12, width: '40%', borderRadius: 4, background: C.border }} />
+      </div>
+    </div>
+  );
+}
+
 export default function S0WorkPicker() {
   const navigate = useAppNavigate();
   const { setSelectedWork } = useAppContext();
+  const { works, loading, error, refetch } = useWorks();
+  const [showNewWork, setShowNewWork] = useState(false);
 
-  const handleSelect = (workId: WorkId) => {
+  const handleSelect = (workId: string) => {
+    if (!isKnownWorkId(workId)) return;
     setSelectedWork(workId);
     navigate('/dashboard', 'push-right');
   };
+
+  const cardWorks: CardWork[] = works.map(w => {
+    const meta = KNOWN_WORK_META[w.id] ?? { conflicts: 0, status: 'pending' as const };
+    return { id: w.id, title: w.title, genre: w.genre, chapters: w.episodeCount, ...meta };
+  });
 
   return (
     <div style={{
@@ -179,18 +209,73 @@ export default function S0WorkPicker() {
             분석할 작품을 선택하거나 새 작품을 등록하세요.
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 16, maxWidth: 960,
-          }}>
-            {WORKS.map(work => (
-              <WorkCard key={work.id} work={work} onClick={() => handleSelect(work.id)} />
-            ))}
-            <NewWorkCard onClick={() => navigate('/dashboard', 'push-right')} />
-          </div>
+          {error && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
+              borderRadius: 8, background: C.danger + '14', border: `1px solid ${C.danger}44`,
+              color: C.danger, fontSize: 13, marginBottom: 20, maxWidth: 960,
+            }}>
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{error}</span>
+              <button onClick={refetch} style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 6,
+                background: 'transparent', border: `1px solid ${C.danger}66`, color: C.danger,
+                fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+              }}>
+                <RefreshCw size={12} /> 다시 시도
+              </button>
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: 16, maxWidth: 960,
+            }}>
+              {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
+            </div>
+          ) : !error && cardWorks.length === 0 ? (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              maxWidth: 480, margin: '40px auto', textAlign: 'center', gap: 16,
+            }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 14, background: C.primary + '14',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <BookOpen size={26} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 작품이 없습니다</div>
+                <div style={{ color: C.t3, fontSize: 13 }}>첫 작품을 등록하고 AI 설정 분석을 시작해보세요.</div>
+              </div>
+              <div style={{ width: '100%', maxWidth: 280 }}>
+                <NewWorkCard onClick={() => setShowNewWork(true)} />
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: 16, maxWidth: 960,
+            }}>
+              {cardWorks.map(work => (
+                <WorkCard key={work.id} work={work} onClick={() => handleSelect(work.id)} />
+              ))}
+              <NewWorkCard onClick={() => setShowNewWork(true)} />
+            </div>
+          )}
         </motion.div>
       </div>
+
+      {showNewWork && (
+        <UploadModal
+          mode="new-work"
+          onClose={() => setShowNewWork(false)}
+          works={works}
+          onUploaded={refetch}
+        />
+      )}
     </div>
   );
 }
