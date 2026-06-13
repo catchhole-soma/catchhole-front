@@ -8,6 +8,7 @@ import {
   Clock, Sparkles, Play, Pause, RotateCcw, Scan, Zap, Share2, Eye,
 } from 'lucide-react';
 import { ShareModal } from './ShareModal';
+import { UserMenu } from './UserMenu';
 
 interface Props {
   mode?: EditorMode;
@@ -675,6 +676,7 @@ export default function S2Editor() {
               onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             >분석 요청</button>
           )}
+          <UserMenu />
         </div>
       </div>
 

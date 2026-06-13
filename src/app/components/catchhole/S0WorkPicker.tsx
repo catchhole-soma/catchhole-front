@@ -4,6 +4,7 @@ import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Ta
 import { C, WorkId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
+import { UserMenu } from './UserMenu';
 
 interface Props { workId?: WorkId; }
 
@@ -165,12 +166,7 @@ export default function S0WorkPicker() {
             color: C.primary, fontSize: 10, fontWeight: 600, border: `1px solid ${C.primary}33`, marginLeft: 2,
           }}>BETA</span>
         </div>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${C.primary}, #9B7BFD)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        }}>K</div>
+        <UserMenu />
       </div>
 
       {/* 콘텐츠 */}

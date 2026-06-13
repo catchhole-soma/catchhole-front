@@ -4,6 +4,7 @@ import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { AppSidebar } from './AppSidebar';
+import { UserMenu } from './UserMenu';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
@@ -2684,12 +2685,7 @@ export default function S1Dashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: C.t3, fontSize: 12 }}>구독제 · 이번 달 14/20회 사용</span>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${C.primary}, #9B7BFD)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          }}>K</div>
+          <UserMenu />
         </div>
       </div>
 

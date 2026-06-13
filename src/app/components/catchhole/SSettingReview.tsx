@@ -9,6 +9,7 @@ import {
   SETTING_TYPE_LABELS, REVIEW_STATUS_LABELS,
 } from './types';
 import { MOCK_SETTING_CANDIDATES } from './mockEpisodeData';
+import { UserMenu } from './UserMenu';
 
 const CHARACTER_COLORS: Record<string, string> = {
   '수아': C.primary,
@@ -48,6 +49,7 @@ function Header({ onBack, total, reviewed }: { onBack: () => void; total: number
           <div style={{ width: `${pct}%`, height: '100%', background: C.primary, borderRadius: 3, transition: 'width 0.2s' }} />
         </div>
       </div>
+      <UserMenu />
     </div>
   );
 }

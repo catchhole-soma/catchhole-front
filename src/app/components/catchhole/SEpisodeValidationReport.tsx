@@ -5,6 +5,7 @@ import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { BtnP, BtnG } from './S1Dashboard';
 import { ErrorCard, ErrorCardData } from './S5Report';
+import { UserMenu } from './UserMenu';
 
 const MOCK_VALIDATION_ISSUES: ErrorCardData[] = [
   {
@@ -96,6 +97,7 @@ function Header({ onBack, dangerCount, warningCount }: { onBack: () => void; dan
           border: `1px solid ${C.warning}33`, fontWeight: 700,
         }}>모순 {warningCount}건</span>
       </div>
+      <UserMenu />
     </div>
   );
 }

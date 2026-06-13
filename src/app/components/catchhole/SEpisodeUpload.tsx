@@ -8,6 +8,7 @@ import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { WORK_INFO } from './AppSidebar';
+import { UserMenu } from './UserMenu';
 import { BtnP, BtnG, TypeCard, DragDropArea } from './S1Dashboard';
 import {
   AnalysisJobType, DetectedEpisodeBoundary, Episode, EpisodeProcessingStatus,
@@ -92,6 +93,8 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
         <ChevronLeft size={16} />
       </button>
       <div style={{ color: C.t1, fontSize: 15, fontWeight: 700, letterSpacing: '-0.2px' }}>{title}</div>
+      <div style={{ flex: 1 }} />
+      <UserMenu />
     </div>
   );
 }

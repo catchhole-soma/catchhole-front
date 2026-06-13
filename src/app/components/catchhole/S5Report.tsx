@@ -9,6 +9,7 @@ import {
   Activity, Scale, Share2,
 } from 'lucide-react';
 import { ShareModal } from './ShareModal';
+import { UserMenu } from './UserMenu';
 
 interface Props {
   mode?: 'single' | 'prePublish';
@@ -648,32 +649,35 @@ export default function S5Report() {
           {isPrePublish ? '발행 전 전체 검수' : '159화 분석 결과'}
         </span>
 
-        {isPrePublish
-          ? <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowShare(true)} style={{
-                height: 36, padding: '0 12px', borderRadius: 6,
-                background: 'transparent', border: `1px solid ${C.border}`,
-                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
-              ><Share2 size={13} />공유</button>
-              <BtnG label="리포트로 돌아가기" onClick={() => { setReportMode('single'); }} />
-            </div>
-          : <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowShare(true)} style={{
-                height: 36, padding: '0 12px', borderRadius: 6,
-                background: 'transparent', border: `1px solid ${C.border}`,
-                color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
-              ><Share2 size={13} />공유</button>
-              <BtnG label="원고로 돌아가기" onClick={() => navigate('/editor', 'push-left')} />
-            </div>
-        }
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isPrePublish
+            ? <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowShare(true)} style={{
+                  height: 36, padding: '0 12px', borderRadius: 6,
+                  background: 'transparent', border: `1px solid ${C.border}`,
+                  color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+                ><Share2 size={13} />공유</button>
+                <BtnG label="리포트로 돌아가기" onClick={() => { setReportMode('single'); }} />
+              </div>
+            : <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowShare(true)} style={{
+                  height: 36, padding: '0 12px', borderRadius: 6,
+                  background: 'transparent', border: `1px solid ${C.border}`,
+                  color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; (e.currentTarget as HTMLButtonElement).style.color = C.primary; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.t2; }}
+                ><Share2 size={13} />공유</button>
+                <BtnG label="원고로 돌아가기" onClick={() => navigate('/editor', 'push-left')} />
+              </div>
+          }
+          <UserMenu />
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 48px 48px' }}>

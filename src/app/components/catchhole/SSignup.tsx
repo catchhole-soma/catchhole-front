@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Shield, Mail, Lock, Eye, EyeOff, User, Check } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, User, Phone, Check } from 'lucide-react';
 import { C, isValidEmail } from './constants';
 import { TermsModal } from './TermsModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { signup } from '../../lib/auth';
+import { ApiError } from '../../lib/api';
 
 function Input({
   type, placeholder, value, onChange, icon, right, error,
@@ -42,19 +44,23 @@ export default function SSignup() {
   const navigate = useAppNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
   const [agreed, setAgreed] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; passwordConfirm?: string }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; phoneNumber?: string; password?: string; passwordConfirm?: string }>({});
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const nextErrors: typeof errors = {};
     if (!name.trim()) nextErrors.name = '이름(필명)을 입력해주세요.';
     if (!email.trim()) nextErrors.email = '이메일을 입력해주세요.';
     else if (!isValidEmail(email)) nextErrors.email = '이메일 형식이 올바르지 않습니다.';
+    if (!phoneNumber.trim()) nextErrors.phoneNumber = '휴대폰 번호를 입력해주세요.';
+    else if (!/^010\d{8}$/.test(phoneNumber)) nextErrors.phoneNumber = '휴대폰 번호는 하이픈 없이 010으로 시작하는 11자리 숫자여야 합니다.';
     if (!password) nextErrors.password = '비밀번호를 입력해주세요.';
     else if (password.length < 8) nextErrors.password = '비밀번호는 8자 이상이어야 합니다.';
     if (!passwordConfirm) nextErrors.passwordConfirm = '비밀번호 확인을 입력해주세요.';
@@ -63,8 +69,35 @@ export default function SSignup() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !agreed) return;
 
-    localStorage.setItem('accessToken', 'mock');
-    navigate('/', 'push-right');
+    setSubmitting(true);
+    try {
+      await signup({ email, password, phoneNumber, displayName: name });
+      navigate('/', 'push-right');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code === 'AUTH_EMAIL_DUPLICATED') {
+          setErrors({ email: '이미 가입된 이메일입니다.' });
+        } else if (err.code === 'AUTH_PHONE_NUMBER_DUPLICATED') {
+          setErrors({ phoneNumber: '이미 가입된 휴대폰 번호입니다.' });
+        } else if (err.code === 'REQUEST_VALIDATION_FAILED' && err.details.length > 0) {
+          const fieldMap: Record<string, keyof typeof errors> = {
+            displayName: 'name', email: 'email', phoneNumber: 'phoneNumber', password: 'password',
+          };
+          const fieldErrors: typeof errors = {};
+          err.details.forEach(detail => {
+            const key = fieldMap[detail.field];
+            if (key) fieldErrors[key] = detail.message;
+          });
+          setErrors(fieldErrors);
+        } else {
+          setErrors({ password: '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+        }
+      } else {
+        setErrors({ password: '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -128,6 +161,7 @@ export default function SSignup() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
             <Input type="text" placeholder="이름 (필명)" value={name} onChange={setName} icon={<User size={15} />} error={errors.name} />
             <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} error={errors.email} />
+            <Input type="text" placeholder="휴대폰 번호 (예: 01012345678)" value={phoneNumber} onChange={setPhoneNumber} icon={<Phone size={15} />} error={errors.phoneNumber} />
             <Input
               type={showPw ? 'text' : 'password'} placeholder="비밀번호"
               value={password} onChange={setPassword} icon={<Lock size={15} />} error={errors.password}
@@ -186,16 +220,16 @@ export default function SSignup() {
             </span>
           </button>
 
-          <button onClick={handleSignup} disabled={!agreed} style={{
+          <button onClick={handleSignup} disabled={!agreed || submitting} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
-            cursor: agreed ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 20,
-            opacity: agreed ? 1 : 0.5, transition: 'background 0.15s, opacity 0.15s',
+            cursor: agreed && !submitting ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 20,
+            opacity: agreed && !submitting ? 1 : 0.5, transition: 'background 0.15s, opacity 0.15s',
           }}
-            onMouseEnter={e => { if (agreed) e.currentTarget.style.background = '#6B4EE8'; }}
+            onMouseEnter={e => { if (agreed && !submitting) e.currentTarget.style.background = '#6B4EE8'; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.primary; }}
           >
-            회원가입
+            {submitting ? '가입 중...' : '회원가입'}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
