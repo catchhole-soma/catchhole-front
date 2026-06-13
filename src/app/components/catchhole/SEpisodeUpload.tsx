@@ -660,7 +660,14 @@ export default function SEpisodeUpload() {
                       <BtnP
                         label="다음 — 회차 분리 확인"
                         onClick={() => {
-                          if (!bulkFile) { suggestDemoMode(); return; }
+                          if (!bulkFile) {
+                            suggestDemoMode(() => {
+                              const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+                              setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
+                              setStep('boundary-preview');
+                            });
+                            return;
+                          }
                           setStep('boundary-preview');
                         }}
                       />
@@ -728,9 +735,12 @@ export default function SEpisodeUpload() {
                   <BtnP
                     label="다음 — 분석 시작"
                     onClick={() => {
-                      if (!singleFile) { suggestDemoMode(); return; }
                       const num = parseInt(episodeNumber, 10) || 0;
                       const ep = mockCreateEpisode(selectedWork, num, episodeTitle, uploadPurpose);
+                      if (!singleFile) {
+                        suggestDemoMode(() => proceedFromInput([ep]));
+                        return;
+                      }
                       proceedFromInput([ep]);
                     }}
                   />
@@ -774,10 +784,13 @@ export default function SEpisodeUpload() {
                   <BtnP
                     label="다음 — 분석 시작"
                     onClick={() => {
-                      if (multiFiles.length === 0) { suggestDemoMode(); return; }
                       const startNum = parseInt(multiStartEpisodeNumber, 10) || 0;
                       const count = Math.max(1, parseInt(multiFileCount, 10) || 1);
                       const episodes = mockCreateMultiFileEpisodes(selectedWork, startNum, count, uploadPurpose);
+                      if (multiFiles.length === 0) {
+                        suggestDemoMode(() => proceedFromInput(episodes));
+                        return;
+                      }
                       proceedFromInput(episodes);
                     }}
                   />

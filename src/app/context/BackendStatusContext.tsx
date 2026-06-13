@@ -9,7 +9,7 @@ type PromptKind = 'network' | 'no-file';
 
 interface BackendStatusState {
   dismissPrompt: () => void;
-  suggestDemoMode: () => void;
+  suggestDemoMode: (onConfirm?: () => void) => void;
 }
 
 const PROMPT_CONTENT: Record<PromptKind, { icon: React.ReactNode; iconColor: string; title: string; description: string }> = {
@@ -52,28 +52,39 @@ function ButtonSpinner() {
 
 export function BackendStatusProvider({ children }: { children: React.ReactNode }) {
   const [promptKind, setPromptKind] = useState<PromptKind | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [networkDismissed, setNetworkDismissed] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [demoConfirmCallback, setDemoConfirmCallback] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     setNetworkErrorListener(() => {
-      if (!dismissed) setPromptKind('network');
+      if (!networkDismissed) setPromptKind('network');
     });
     return () => setNetworkErrorListener(null);
-  }, [dismissed]);
+  }, [networkDismissed]);
 
   const dismissPrompt = () => {
+    if (promptKind === 'network') setNetworkDismissed(true);
     setPromptKind(null);
-    setDismissed(true);
+    setDemoConfirmCallback(null);
   };
 
-  const suggestDemoMode = () => {
-    if (!dismissed) setPromptKind('no-file');
+  const suggestDemoMode = (onConfirm?: () => void) => {
+    setPromptKind('no-file');
+    setDemoConfirmCallback(() => onConfirm ?? null);
   };
 
   const switchToDemo = () => {
-    setSwitching(true);
     setDemoMode(true);
+
+    if (promptKind === 'no-file') {
+      setPromptKind(null);
+      demoConfirmCallback?.();
+      setDemoConfirmCallback(null);
+      return;
+    }
+
+    setSwitching(true);
     window.location.href = '/dashboard';
   };
 
