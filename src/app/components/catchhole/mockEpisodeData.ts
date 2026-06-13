@@ -35,6 +35,26 @@ export function mockDetectBoundaries(fileCount: number, startEpisodeNumber: numb
   });
 }
 
+const MANUSCRIPT_FILLER_LINES = [
+  '창밖으로 빗줄기가 가늘게 흩날리고 있었다.',
+  '복도는 형광등 불빛 아래 길게 늘어져 있었다.',
+  '그녀는 손끝으로 책상 위 서류를 천천히 정리했다.',
+  '멀리서 사이렌 소리가 희미하게 들려왔다.',
+  '아무도 입을 열지 않은 채 시간이 흘렀다.',
+  '그는 창밖을 바라보며 깊은 생각에 잠겼다.',
+  '낡은 시계가 정각을 알리며 종을 울렸다.',
+  '복잡한 생각들이 머릿속을 스쳐 지나갔다.',
+];
+
+export function mockManuscriptParagraphs(boundaries: DetectedEpisodeBoundary[]): { number: number; text: string }[] {
+  const total = boundaries.length > 0 ? boundaries[boundaries.length - 1].endParagraph : 0;
+  const startMap = new Map(boundaries.map((b) => [b.startParagraph, b.preview]));
+  return Array.from({ length: total }, (_, i) => {
+    const number = i + 1;
+    return { number, text: startMap.get(number) ?? MANUSCRIPT_FILLER_LINES[number % MANUSCRIPT_FILLER_LINES.length] };
+  });
+}
+
 export function mockCreateEpisode(
   workId: string,
   episodeNumber: number,

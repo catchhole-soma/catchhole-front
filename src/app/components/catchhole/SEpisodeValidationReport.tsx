@@ -5,6 +5,7 @@ import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { BtnP, BtnG } from './S1Dashboard';
 import { ErrorCard, ErrorCardData } from './S5Report';
+import { InfoBar, SplitPane, SearchInput, CategoryTabs, ListItemCard } from './ReviewLayout';
 import { UserMenu } from './UserMenu';
 
 const MOCK_VALIDATION_ISSUES: ErrorCardData[] = [
@@ -70,6 +71,8 @@ const MOCK_VALIDATION_ISSUES: ErrorCardData[] = [
   },
 ];
 
+type IssueFilter = 'ALL' | 'danger' | 'warning' | 'ignored';
+
 function Header({ onBack, dangerCount, warningCount }: { onBack: () => void; dangerCount: number; warningCount: number }) {
   return (
     <div style={{
@@ -115,6 +118,9 @@ export default function SEpisodeValidationReport() {
   );
 
   const [ignoredIds, setIgnoredIds] = useState<Set<number>>(new Set());
+  const [filter, setFilter] = useState<IssueFilter>('ALL');
+  const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const toggleIgnore = (id: number) => {
     setIgnoredIds((prev) => {
@@ -129,6 +135,27 @@ export default function SEpisodeValidationReport() {
   const warningCount = activeIssues.filter((i) => i.severity === 'warning').length;
   const goToDashboard = () => navigate('/dashboard', 'pop');
 
+  const categoryTabs = [
+    { id: 'ALL', label: '전체', count: issues.length },
+    { id: 'danger', label: '설정 충돌', count: issues.filter((i) => i.severity === 'danger' && !ignoredIds.has(i.id)).length },
+    { id: 'warning', label: '모순', count: issues.filter((i) => i.severity === 'warning' && !ignoredIds.has(i.id)).length },
+    { id: 'ignored', label: '승인됨', count: ignoredIds.size },
+  ];
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return issues.filter((issue) => {
+      const ignored = ignoredIds.has(issue.id);
+      if (filter === 'danger' && (issue.severity !== 'danger' || ignored)) return false;
+      if (filter === 'warning' && (issue.severity !== 'warning' || ignored)) return false;
+      if (filter === 'ignored' && !ignored) return false;
+      if (q && !`${issue.title} ${issue.tag}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [issues, filter, ignoredIds, search]);
+
+  const selected = filtered.find((i) => i.id === selectedId) ?? filtered[0];
+
   return (
     <div style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
@@ -137,8 +164,26 @@ export default function SEpisodeValidationReport() {
       <Header onBack={goToDashboard} dangerCount={dangerCount} warningCount={warningCount} />
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 20px 60px' }}>
-          {issues.length === 0 || activeIssues.length === 0 ? (
+        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '20px 20px 60px' }}>
+          <InfoBar
+            items={[
+              { label: '분석 상태', value: '분석 완료' },
+              { label: '검사 회차', value: episodeIds && episodeIds.length > 0 ? `${episodeIds.length}회차` : '전체' },
+              { label: '오류 후보', value: `${issues.length}건` },
+              { label: '확인 필요', value: `${activeIssues.length}건` },
+              { label: '설정집 기준', value: '적용됨' },
+            ]}
+            badge={(
+              <span style={{
+                padding: '2px 8px', borderRadius: 10, color: C.success, background: C.success + '1A',
+                border: `1px solid ${C.success}33`, fontSize: 11, fontWeight: 700,
+              }}>
+                {activeIssues.length === 0 ? '충돌/모순 없음' : `검토 필요 ${activeIssues.length}건`}
+              </span>
+            )}
+          />
+
+          {issues.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: '60px 0', color: C.success,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
@@ -148,22 +193,47 @@ export default function SEpisodeValidationReport() {
               <div style={{ color: C.t3, fontSize: 12 }}>설정 DB와 비교한 결과 새 회차에 문제가 없습니다.</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              {issues.map((issue) => (
+            <SplitPane
+              left={[
+                <SearchInput key="search" value={search} onChange={setSearch} placeholder="이슈 제목 또는 태그 검색" />,
+                <CategoryTabs key="category" tabs={categoryTabs} active={filter} onChange={(id) => setFilter(id as IssueFilter)} />,
+                ...(filtered.length === 0
+                  ? [<div key="empty" style={{ textAlign: 'center', padding: '40px 0', color: C.t3, fontSize: 13 }}>해당하는 이슈가 없습니다.</div>]
+                  : filtered.map((issue) => {
+                    const ignored = ignoredIds.has(issue.id);
+                    const color = ignored ? C.t3 : issue.severity === 'danger' ? C.danger : C.warning;
+                    return (
+                      <ListItemCard
+                        key={issue.id}
+                        selected={issue.id === selected?.id}
+                        onClick={() => setSelectedId(issue.id)}
+                        title={issue.title}
+                        subtitle={issue.tag}
+                        badge={ignored ? '승인됨' : issue.badge}
+                        badgeColor={color}
+                      />
+                    );
+                  })),
+              ]}
+              right={selected ? (
                 <ErrorCard
-                  key={issue.id}
-                  data={issue}
-                  ignored={ignoredIds.has(issue.id)}
-                  onIgnore={() => toggleIgnore(issue.id)}
+                  key={selected.id}
+                  data={selected}
+                  ignored={ignoredIds.has(selected.id)}
+                  onIgnore={() => toggleIgnore(selected.id)}
                   onFix={goToDashboard}
                 />
-              ))}
-            </div>
+              ) : (
+                <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '40px 0' }}>이슈를 선택하세요</div>
+              )}
+            />
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <BtnG label="대시보드로" onClick={goToDashboard} />
-            <BtnP label="검토 완료" onClick={goToDashboard} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <BtnG label="← 이전" onClick={goToDashboard} />
+            <BtnG label="검사 다시 실행" onClick={() => setIgnoredIds(new Set())} />
+            <div style={{ flex: 1 }} />
+            <BtnP label="다음 — AI 분석 리포트 보기 →" onClick={goToDashboard} />
           </div>
         </div>
       </div>

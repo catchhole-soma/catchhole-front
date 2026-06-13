@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   ChevronLeft, FileText, BookMarked, Files, Check, CircleCheckBig, Trash2,
-  Users, BookOpen, Sparkles, Clock,
+  Users, BookOpen, Sparkles, Clock, GitMerge, Scissors,
 } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
-import { BtnP, BtnG, TypeCard, DragDropArea } from './S1Dashboard';
+import { BtnP, BtnG, DragDropArea } from './S1Dashboard';
+import { ModeCard, InfoBar, SplitPane, ListItemCard } from './ReviewLayout';
 import {
   AnalysisJobType, DetectedEpisodeBoundary, Episode, EpisodeProcessingStatus,
   EpisodeUploadMode, EpisodeUploadStep, JobProgressItem, UploadPurpose,
@@ -17,7 +18,7 @@ import {
 } from './types';
 import {
   mockCreateAnalysisJob, mockCreateEpisode, mockCreateMultiFileEpisodes, mockDetectBoundaries,
-  MOCK_SETTINGS_EXTRACTION,
+  mockManuscriptParagraphs, MOCK_SETTINGS_EXTRACTION,
 } from './mockEpisodeData';
 
 const SETTINGS_CATEGORY_STYLE: Record<string, { color: string; icon: React.ReactNode }> = {
@@ -99,9 +100,9 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   );
 }
 
-function Stepper({ labels, current }: { labels: string[]; current: number }) {
+function Stepper({ labels, current, maxWidth = 720 }: { labels: string[]; current: number; maxWidth?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', maxWidth: 720, margin: '0 auto', padding: '24px 20px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', maxWidth, margin: '0 auto', padding: '24px 20px 0' }}>
       {labels.map((label, i, arr) => (
         <React.Fragment key={label}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -145,6 +146,118 @@ function TextInput({ value, onChange, placeholder, type = 'text' }: {
         fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
       }}
     />
+  );
+}
+
+function SplitGap({ active, onClick }: { active: boolean; onClick: () => void }) {
+  const [hover, setHover] = useState(false);
+  const show = active || hover;
+  const color = active ? C.warning : C.primary;
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onClick}
+      style={{
+        cursor: 'pointer', padding: '3px 12px', minHeight: 6,
+        display: 'flex', alignItems: 'center', gap: 8, color, fontSize: 10.5,
+      }}
+    >
+      <div style={{ flex: 1, borderTop: `1px dashed ${show ? color : 'transparent'}` }} />
+      {show && <span style={{ whiteSpace: 'nowrap' }}>{active ? '✂ 여기서 회차 분리' : '✂ 여기서 분리'}</span>}
+      <div style={{ flex: 1, borderTop: `1px dashed ${show ? color : 'transparent'}` }} />
+    </div>
+  );
+}
+
+function BoundaryDivider({ label, onMerge }: { label: string; onMerge: () => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', color: C.t3, fontSize: 10.5 }}
+    >
+      <div style={{ flex: 1, height: 1, background: C.border }} />
+      <span style={{ whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>{label}</span>
+      {hover && (
+        <button
+          onClick={onMerge}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 10,
+            background: C.primary + '1A', border: `1px solid ${C.primary}55`, color: C.primary,
+            fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <GitMerge size={10} /> 합치기
+        </button>
+      )}
+      <div style={{ flex: 1, height: 1, background: C.border }} />
+    </div>
+  );
+}
+
+function ManuscriptPreview({ paragraphs, boundaries, selectedBoundaryId, splitAtParagraph, onSelectSplitParagraph, onMergeWithPrevious }: {
+  paragraphs: { number: number; text: string }[];
+  boundaries: DetectedEpisodeBoundary[];
+  selectedBoundaryId: string | null;
+  splitAtParagraph: number | null;
+  onSelectSplitParagraph: (n: number | null) => void;
+  onMergeWithPrevious: (tempId: string) => void;
+}) {
+  const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const selected = boundaries.find((b) => b.tempId === selectedBoundaryId);
+
+  useEffect(() => {
+    if (!selected) return;
+    rowRefs.current.get(selected.startParagraph)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selected]);
+
+  return (
+    <div style={{
+      border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg,
+      maxHeight: 360, overflowY: 'auto', fontFamily: "'JetBrains Mono', 'Menlo', monospace", fontSize: 12,
+    }}>
+      {paragraphs.map(({ number, text }) => {
+        const boundaryIdx = boundaries.findIndex((b) => b.startParagraph === number);
+        const boundary = boundaryIdx >= 0 ? boundaries[boundaryIdx] : null;
+        const prevBoundary = boundaryIdx > 0 ? boundaries[boundaryIdx - 1] : null;
+        const inSelectedRange = !!selected && number >= selected.startParagraph && number <= selected.endParagraph;
+        const isSplitCandidate = !!selected && number > selected.startParagraph && number <= selected.endParagraph;
+        const isSplitPoint = number === splitAtParagraph;
+        return (
+          <React.Fragment key={number}>
+            {boundary && prevBoundary && (
+              <BoundaryDivider
+                label={`EP ${prevBoundary.episodeNumber} END`}
+                onMerge={() => onMergeWithPrevious(boundary.tempId)}
+              />
+            )}
+            {boundary && (
+              <div style={{
+                padding: '8px 12px', margin: '2px 0', background: C.primary + '1A',
+                borderLeft: `3px solid ${C.primary}`, color: C.primary, fontWeight: 700, fontSize: 13,
+              }}>
+                EP{boundary.episodeNumber}. {boundary.title}
+              </div>
+            )}
+            {isSplitCandidate && (
+              <SplitGap active={isSplitPoint} onClick={() => onSelectSplitParagraph(isSplitPoint ? null : number)} />
+            )}
+            <div
+              ref={(el) => { if (el) rowRefs.current.set(number, el); else rowRefs.current.delete(number); }}
+              style={{
+                display: 'flex', gap: 12, padding: '3px 12px',
+                background: isSplitPoint ? C.warning + '14' : inSelectedRange ? C.primary + '0A' : 'transparent',
+              }}
+            >
+              <span style={{ width: 28, flexShrink: 0, textAlign: 'right', color: isSplitPoint ? C.warning : C.t3 }}>{number}</span>
+              <span style={{ color: C.t2, lineHeight: 1.7 }}>{text}</span>
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
   );
 }
 
@@ -202,6 +315,9 @@ export default function SEpisodeUpload() {
   const [bulkDragging, setBulkDragging] = useState(false);
   const [bulkFileSelected, setBulkFileSelected] = useState(false);
   const [boundaries, setBoundaries] = useState<DetectedEpisodeBoundary[]>([]);
+  const [separationCriteria, setSeparationCriteria] = useState<'AUTO' | 'TITLE_NUMBER'>('AUTO');
+  const [selectedBoundaryId, setSelectedBoundaryId] = useState<string | null>(null);
+  const [splitAtParagraph, setSplitAtParagraph] = useState<number | null>(null);
 
   // bulk-multi-file (파일별 1회차)
   const [multiStartEpisodeNumber, setMultiStartEpisodeNumber] = useState('');
@@ -218,11 +334,17 @@ export default function SEpisodeUpload() {
   const [jobProgress, setJobProgress] = useState<JobProgressItem[]>([]);
   const [allDone, setAllDone] = useState(false);
 
+  const manuscriptParagraphs = useMemo(() => mockManuscriptParagraphs(boundaries), [boundaries]);
+
+  useEffect(() => {
+    setSplitAtParagraph(null);
+  }, [selectedBoundaryId]);
+
   const hasBoundaryStep = uploadMode === 'bulk-single-file';
+  const wideLayout = step === 'select-mode' || step === 'boundary-preview';
 
   const stepLabels = (() => {
-    const labels = ['업로드 방식', uploadMode === 'bulk-single-file' ? '파일 업로드' : '회차 정보 입력'];
-    if (hasBoundaryStep) labels.push('회차 경계 확인');
+    const labels = ['업로드 방식', hasBoundaryStep ? '회차 분리 확인' : '회차 정보 입력'];
     if (includeSettings) labels.push('설정집 분석 결과');
     labels.push('분석 진행');
     return labels;
@@ -232,12 +354,61 @@ export default function SEpisodeUpload() {
     switch (step) {
       case 'select-mode': return 1;
       case 'input': return 2;
-      case 'boundary-preview': return 3;
-      case 'settings-review': return hasBoundaryStep ? 4 : 3;
-      case 'processing': return 3 + (hasBoundaryStep ? 1 : 0) + (includeSettings ? 1 : 0);
+      case 'boundary-preview': return 2;
+      case 'settings-review': return 3;
+      case 'processing': return 2 + (includeSettings ? 1 : 0);
       default: return 1;
     }
   })();
+
+  // 다회차(단일 파일) 모드에서 파일을 선택하면 같은 화면에서 AI 분리 미리보기를 보여준다
+  useEffect(() => {
+    if (uploadMode === 'bulk-single-file' && bulkFileSelected && boundaries.length === 0) {
+      const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+      setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
+    }
+  }, [uploadMode, bulkFileSelected, boundaries.length, work.title]);
+
+  const mergeWithPrevious = (tempId: string) => {
+    setBoundaries((prev) => {
+      const idx = prev.findIndex((b) => b.tempId === tempId);
+      if (idx <= 0) return prev;
+      const current = prev[idx];
+      const previous = prev[idx - 1];
+      const merged: DetectedEpisodeBoundary = {
+        ...previous,
+        endParagraph: current.endParagraph,
+        charCount: previous.charCount + current.charCount,
+      };
+      const next = [...prev];
+      next.splice(idx - 1, 2, merged);
+      setSelectedBoundaryId(merged.tempId);
+      return next;
+    });
+  };
+
+  const splitBoundary = (tempId: string) => {
+    setBoundaries((prev) => {
+      const idx = prev.findIndex((b) => b.tempId === tempId);
+      if (idx === -1) return prev;
+      const b = prev[idx];
+      const midParagraph = splitAtParagraph !== null && splitAtParagraph > b.startParagraph && splitAtParagraph <= b.endParagraph
+        ? splitAtParagraph - 1
+        : Math.floor((b.startParagraph + b.endParagraph) / 2);
+      const ratio = (midParagraph - b.startParagraph + 1) / (b.endParagraph - b.startParagraph + 1);
+      const firstChars = Math.round(b.charCount * ratio);
+      const first: DetectedEpisodeBoundary = { ...b, endParagraph: midParagraph, charCount: firstChars };
+      const second: DetectedEpisodeBoundary = {
+        ...b, tempId: `${b.tempId}-split`, episodeNumber: b.episodeNumber + 1,
+        title: `${b.title} (계속)`, startParagraph: midParagraph + 1, charCount: b.charCount - firstChars,
+      };
+      const next = [...prev];
+      next.splice(idx, 1, first, second);
+      setSelectedBoundaryId(first.tempId);
+      return next;
+    });
+    setSplitAtParagraph(null);
+  };
 
   // 입력 단계 완료 후: 설정집 포함 시 분석 결과 확인 단계로, 아니면 바로 분석 시작
   const proceedFromInput = (episodes: Episode[]) => {
@@ -312,10 +483,10 @@ export default function SEpisodeUpload() {
       background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <Header title="회차 업로드" onBack={() => navigate('/dashboard', 'pop')} />
-      <Stepper labels={stepLabels} current={stepIndex} />
+      <Stepper labels={stepLabels} current={stepIndex} maxWidth={wideLayout ? 1040 : 720} />
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <div style={{ maxWidth: wideLayout ? 1040 : 720, margin: '0 auto', padding: '24px 20px 60px' }}>
 
           {step === 'select-mode' && (
             <>
@@ -323,27 +494,110 @@ export default function SEpisodeUpload() {
                 {work.title} · 회차 업로드
               </div>
               <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식을 선택하세요</div>
-              <TypeCard
-                icon={<FileText size={20} />}
-                label="단일 회차 업로드"
-                desc="새 회차 1개를 업로드합니다"
-                color={C.primary}
-                onSelect={() => { setUploadMode('single'); setStep('input'); }}
-              />
-              <TypeCard
-                icon={<BookMarked size={20} />}
-                label="다회차 - 단일 파일 업로드"
-                desc="여러 회차가 담긴 파일 1개를 업로드하고 회차 경계를 확인합니다"
-                color={C.success}
-                onSelect={() => { setUploadMode('bulk-single-file'); setStep('input'); }}
-              />
-              <TypeCard
-                icon={<Files size={20} />}
-                label="다회차 - 여러 파일 업로드"
-                desc="회차별로 파일이 분리되어 있을 때, 파일마다 1개의 회차로 생성합니다"
-                color={C.warning}
-                onSelect={() => { setUploadMode('bulk-multi-file'); setStep('input'); }}
-              />
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: uploadMode === 'bulk-single-file' ? 28 : 0 }}>
+                <ModeCard
+                  icon={<FileText size={22} />}
+                  title="단일 회차 업로드"
+                  desc="새 회차 1개를 업로드합니다"
+                  color={C.primary}
+                  selected={uploadMode === 'single'}
+                  onSelect={() => { setUploadMode('single'); setStep('input'); }}
+                />
+                <ModeCard
+                  icon={<BookMarked size={22} />}
+                  title="다회차 - 단일 파일 업로드"
+                  desc="여러 회차가 담긴 파일 1개를 업로드하고 회차 경계를 확인합니다"
+                  color={C.success}
+                  selected={uploadMode === 'bulk-single-file'}
+                  onSelect={() => setUploadMode('bulk-single-file')}
+                />
+                <ModeCard
+                  icon={<Files size={22} />}
+                  title="다회차 - 여러 파일 업로드"
+                  desc="회차별로 파일이 분리되어 있을 때, 파일마다 1개의 회차로 생성합니다"
+                  color={C.warning}
+                  selected={uploadMode === 'bulk-multi-file'}
+                  onSelect={() => { setUploadMode('bulk-multi-file'); setStep('input'); }}
+                />
+              </div>
+
+              {uploadMode === 'bulk-single-file' && (
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                  <FieldLabel>원고 파일</FieldLabel>
+                  <DragDropArea
+                    dragging={bulkDragging} fileSelected={bulkFileSelected}
+                    setDragging={setBulkDragging} setFileSelected={setBulkFileSelected}
+                    fileLabel="대량 원고 파일"
+                  />
+                  <div style={{ color: C.t3, fontSize: 11, margin: '6px 0 20px' }}>
+                    지원 형식: .txt, .docx, .hwp (최대 50MB)
+                  </div>
+
+                  <SettingsDocToggle
+                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
+                    dragging={settingsDragging} fileSelected={settingsFileSelected}
+                    setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
+                  />
+
+                  <FieldLabel>회차 구분 기준</FieldLabel>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                    {([
+                      { id: 'AUTO', label: '자동 감지', desc: 'AI가 문맥 흐름으로 회차 경계를 감지합니다' },
+                      { id: 'TITLE_NUMBER', label: '제목·회차 번호 기준', desc: '"제 N화", "Chapter N" 등의 표기를 기준으로 분리합니다' },
+                    ] as { id: 'AUTO' | 'TITLE_NUMBER'; label: string; desc: string }[]).map((opt) => (
+                      <button key={opt.id} onClick={() => setSeparationCriteria(opt.id)} style={{
+                        flex: 1, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                        background: separationCriteria === opt.id ? C.primary + '14' : C.surface,
+                        border: `1px solid ${separationCriteria === opt.id ? C.primary : C.border}`,
+                        color: separationCriteria === opt.id ? C.t1 : C.t2,
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: C.t3 }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {bulkFileSelected && boundaries.length > 0 && (
+                    <>
+                      <FieldLabel>AI 분리 미리보기</FieldLabel>
+                      <InfoBar
+                        items={[
+                          { label: '감지된 회차', value: `${boundaries.length}개` },
+                          { label: '총 글자 수', value: `${boundaries.reduce((s, b) => s + b.charCount, 0).toLocaleString()}자` },
+                          { label: '분리 방식', value: separationCriteria === 'AUTO' ? '자동 감지' : '제목·회차 번호 기준' },
+                        ]}
+                        badge={(
+                          <span style={{
+                            padding: '2px 8px', borderRadius: 10, color: C.success, background: C.success + '1A',
+                            border: `1px solid ${C.success}33`, fontSize: 11, fontWeight: 700,
+                          }}>
+                            총 {boundaries.length}회차 감지됨
+                          </span>
+                        )}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                        {boundaries.map((b) => (
+                          <div key={b.tempId} style={{
+                            display: 'flex', justifyContent: 'space-between', padding: '8px 12px',
+                            borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 12,
+                          }}>
+                            <span style={{ color: C.t1, fontWeight: 600 }}>EP{b.episodeNumber}. {b.title}</span>
+                            <span style={{ color: C.t3 }}>{b.charCount.toLocaleString()}자</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
+                    <div style={{ flex: 1 }}>
+                      <BtnP label="다음 — 회차 분리 확인" onClick={() => setStep('boundary-preview')} />
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -414,40 +668,6 @@ export default function SEpisodeUpload() {
             </>
           )}
 
-          {step === 'input' && uploadMode === 'bulk-single-file' && (
-            <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>다회차 - 단일 파일 업로드</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>여러 회차가 포함된 원고 파일을 업로드하면 AI가 회차 경계를 감지합니다</div>
-
-              <FieldLabel>원고 파일</FieldLabel>
-              <DragDropArea
-                dragging={bulkDragging} fileSelected={bulkFileSelected}
-                setDragging={setBulkDragging} setFileSelected={setBulkFileSelected}
-                fileLabel="대량 원고 파일"
-              />
-
-              <SettingsDocToggle
-                includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                dragging={settingsDragging} fileSelected={settingsFileSelected}
-                setDragging={setSettingsDragging} setFileSelected={setSettingsFileSelected}
-              />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <BtnG label="← 뒤로" onClick={() => setStep('select-mode')} />
-                <div style={{ flex: 1 }}>
-                  <BtnP
-                    label="다음 — 회차 경계 감지"
-                    onClick={() => {
-                      const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
-                      setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
-                      setStep('boundary-preview');
-                    }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
           {step === 'input' && uploadMode === 'bulk-multi-file' && (
             <>
               <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>다회차 - 여러 파일 업로드</div>
@@ -494,89 +714,131 @@ export default function SEpisodeUpload() {
             </>
           )}
 
-          {step === 'boundary-preview' && (
-            <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 경계 확인</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 16 }}>
-                AI가 감지한 회차 경계를 확인하고 필요하면 회차 번호·제목을 수정하거나 항목을 제외하세요
-              </div>
+          {step === 'boundary-preview' && (() => {
+            const selected = boundaries.find((b) => b.tempId === selectedBoundaryId) ?? boundaries[0];
+            const totalChars = boundaries.reduce((s, b) => s + b.charCount, 0);
+            return (
+              <>
+                <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 분리 확인</div>
+                <div style={{ color: C.t2, fontSize: 13, marginBottom: 16 }}>
+                  AI가 감지한 회차 경계를 확인하고 필요하면 회차 번호·제목을 수정하거나 합치기/나누기로 조정하세요
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <BtnG
-                  small
-                  label={boundaries.every((b) => b.confirmed) ? '전체 해제' : '전체 선택'}
-                  onClick={() => {
-                    const allSelected = boundaries.every((b) => b.confirmed);
-                    setBoundaries((prev) => prev.map((b) => ({ ...b, confirmed: !allSelected })));
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-                {boundaries.map((b) => (
-                  <div key={b.tempId} style={{
-                    border: `1px solid ${b.confirmed ? C.border : C.border}`,
-                    borderRadius: 8, padding: 14, background: C.surface,
-                    opacity: b.confirmed ? 1 : 0.45, transition: 'opacity 0.15s',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                      <input
-                        type="checkbox" checked={b.confirmed}
-                        onChange={(e) => setBoundaries((prev) => prev.map((x) => x.tempId === b.tempId ? { ...x, confirmed: e.target.checked } : x))}
-                        style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
-                      />
-                      <input
-                        value={String(b.episodeNumber)}
-                        onChange={(e) => setBoundaries((prev) => prev.map((x) => x.tempId === b.tempId ? { ...x, episodeNumber: parseInt(e.target.value, 10) || 0 } : x))}
-                        type="number"
-                        style={{
-                          width: 64, height: 32, borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`,
-                          color: C.t1, fontSize: 13, padding: '0 8px', fontFamily: 'inherit', outline: 'none',
-                        }}
-                      />
-                      <input
-                        value={b.title}
-                        onChange={(e) => setBoundaries((prev) => prev.map((x) => x.tempId === b.tempId ? { ...x, title: e.target.value } : x))}
-                        style={{
-                          flex: 1, height: 32, borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`,
-                          color: C.t1, fontSize: 13, padding: '0 10px', fontFamily: 'inherit', outline: 'none',
-                        }}
-                      />
-                      <div style={{ color: C.t3, fontSize: 11, whiteSpace: 'nowrap' }}>
-                        {b.startParagraph}~{b.endParagraph}문단 · {b.charCount.toLocaleString()}자
-                      </div>
-                      <button
-                        onClick={() => setBoundaries((prev) => prev.filter((x) => x.tempId !== b.tempId))}
-                        style={{ background: 'transparent', border: 'none', color: C.t3, cursor: 'pointer', display: 'flex', flexShrink: 0 }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    <div style={{
-                      borderLeft: `2px solid ${C.border}`, paddingLeft: 10,
-                      color: C.t2, fontSize: 12, fontStyle: 'italic', lineHeight: 1.6,
+                <InfoBar
+                  items={[
+                    { label: '파일 이름', value: '대량 원고 파일.txt' },
+                    { label: '총 글자 수', value: `${totalChars.toLocaleString()}자` },
+                    { label: '감지된 회차', value: `${boundaries.length}개` },
+                    { label: '분리 방식', value: separationCriteria === 'AUTO' ? '자동 감지' : '제목·회차 번호 기준' },
+                    { label: '설정집', value: includeSettings ? '함께 업로드' : '미사용' },
+                  ]}
+                  badge={(
+                    <span style={{
+                      padding: '2px 8px', borderRadius: 10, color: C.success, background: C.success + '1A',
+                      border: `1px solid ${C.success}33`, fontSize: 11, fontWeight: 700,
                     }}>
-                      "{b.preview}"
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      총 {boundaries.length}회차 감지됨
+                    </span>
+                  )}
+                />
 
-              <div style={{ display: 'flex', gap: 8 }}>
-                <BtnG label="← 뒤로" onClick={() => setStep('input')} />
-                <div style={{ flex: 1 }}>
-                  <BtnP
-                    label={`선택한 ${boundaries.filter((b) => b.confirmed).length}개 회차 생성하기`}
+                <SplitPane
+                  left={boundaries.map((b) => (
+                    <ListItemCard
+                      key={b.tempId}
+                      selected={b.tempId === selected?.tempId}
+                      onClick={() => setSelectedBoundaryId(b.tempId)}
+                      title={`EP${b.episodeNumber}. ${b.title}`}
+                      subtitle={`${b.startParagraph}~${b.endParagraph}문단 · ${b.charCount.toLocaleString()}자`}
+                      badge={b.confirmed ? '정상' : '확인 필요'}
+                      badgeColor={b.confirmed ? C.success : C.warning}
+                    />
+                  ))}
+                  right={selected ? (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, background: C.surface }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <input
+                          type="checkbox" checked={selected.confirmed}
+                          onChange={(e) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, confirmed: e.target.checked } : x))}
+                          style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer' }}
+                        />
+                        <label style={{ color: C.t2, fontSize: 12 }}>이 회차 포함</label>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                        <div style={{ width: 100 }}>
+                          <FieldLabel>회차 번호</FieldLabel>
+                          <TextInput
+                            value={String(selected.episodeNumber)}
+                            onChange={(v) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, episodeNumber: parseInt(v, 10) || 0 } : x))}
+                            type="number"
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <FieldLabel>회차 제목</FieldLabel>
+                          <TextInput
+                            value={selected.title}
+                            onChange={(v) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, title: v } : x))}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+                        <BtnG small icon={<GitMerge size={13} />} label="이전 회차와 합치기" onClick={() => mergeWithPrevious(selected.tempId)} />
+                        <BtnG small icon={<Scissors size={13} />} label="여기서 회차 나누기" onClick={() => splitBoundary(selected.tempId)} />
+                        <div style={{ flex: 1 }} />
+                        <button
+                          onClick={() => setBoundaries((prev) => prev.filter((x) => x.tempId !== selected.tempId))}
+                          style={{ background: 'transparent', border: 'none', color: C.t3, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      <FieldLabel>원문 미리보기</FieldLabel>
+                      <div style={{ color: C.t3, fontSize: 11, marginBottom: 6 }}>
+                        {splitAtParagraph !== null
+                          ? `${splitAtParagraph}문단부터 새 회차로 분리됩니다`
+                          : '분리할 줄을 클릭하면 그 줄부터 새 회차로 나눌 수 있어요'}
+                      </div>
+                      <ManuscriptPreview
+                        paragraphs={manuscriptParagraphs}
+                        boundaries={boundaries}
+                        selectedBoundaryId={selected.tempId}
+                        splitAtParagraph={splitAtParagraph}
+                        onSelectSplitParagraph={setSplitAtParagraph}
+                        onMergeWithPrevious={mergeWithPrevious}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '40px 0' }}>회차를 선택하세요</div>
+                  )}
+                />
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <BtnG label="← 이전" onClick={() => { setUploadMode(null); setStep('select-mode'); }} />
+                  <BtnG
+                    label="다시 분리"
                     onClick={() => {
-                      const selected = boundaries.filter((b) => b.confirmed);
-                      const episodes = selected.map((b) => mockCreateEpisode(selectedWork, b.episodeNumber, b.title, uploadPurpose));
-                      proceedFromInput(episodes);
+                      const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+                      setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
+                      setSelectedBoundaryId(null);
                     }}
                   />
+                  <div style={{ flex: 1 }}>
+                    <BtnP
+                      label={`회차 분리 확정 (${boundaries.filter((b) => b.confirmed).length}개) →`}
+                      onClick={() => {
+                        const selectedBoundaries = boundaries.filter((b) => b.confirmed);
+                        const episodes = selectedBoundaries.map((b) => mockCreateEpisode(selectedWork, b.episodeNumber, b.title, uploadPurpose));
+                        proceedFromInput(episodes);
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {step === 'settings-review' && (
             <>
