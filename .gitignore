@@ -26,6 +26,9 @@
 *.pem
 /TODO.md
 
+# stitch design-sync scratch files (not part of the app)
+/.stitch
+
 # debug
 npm-debug.log*
 yarn-debug.log*
