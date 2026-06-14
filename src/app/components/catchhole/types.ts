@@ -76,7 +76,7 @@ export interface DetectedEpisodeBoundary {
   confirmed: boolean;
 }
 
-export type EpisodeUploadStep = 'select-mode' | 'input' | 'boundary-preview' | 'settings-review' | 'processing';
+export type EpisodeUploadStep = 'select-mode' | 'boundary-preview' | 'settings-review' | 'processing';
 
 export interface SettingsExtractionCategory {
   type: string;

@@ -296,6 +296,36 @@ function SettingsDocToggle({
   );
 }
 
+function UploadPurposeSelector({ uploadPurpose, setUploadPurpose }: {
+  uploadPurpose: UploadPurpose; setUploadPurpose: (p: UploadPurpose) => void;
+}) {
+  return (
+    <>
+      <FieldLabel>업로드 목적</FieldLabel>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {(['EPISODE_VALIDATION', 'SETTING_EXTRACTION'] as UploadPurpose[]).map((p) => (
+          <button key={p} onClick={() => setUploadPurpose(p)} style={{
+            flex: 1, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
+            textAlign: 'left',
+            background: uploadPurpose === p ? C.primary + '14' : C.surface,
+            border: `1px solid ${uploadPurpose === p ? C.primary : C.border}`,
+            color: uploadPurpose === p ? C.t1 : C.t2,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+              {p === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+            </div>
+            <div style={{ fontSize: 11, color: C.t3 }}>
+              {p === 'EPISODE_VALIDATION'
+                ? '확정된 설정과 충돌하는지 검수합니다'
+                : '원고에서 설정 후보를 추출합니다'}
+            </div>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function MultiFileDropArea({ files, onFilesChange, error, fileLabel }: {
   files: File[];
   onFilesChange: (files: File[], error: string | null) => void;
@@ -416,8 +446,7 @@ export default function SEpisodeUpload() {
 
   const stepIndex = (() => {
     switch (step) {
-      case 'select-mode': return 1;
-      case 'input': return 2;
+      case 'select-mode': return uploadMode ? 2 : 1;
       case 'boundary-preview': return 2;
       case 'settings-review': return 3;
       case 'processing': return 2 + (includeSettings ? 1 : 0);
@@ -559,14 +588,14 @@ export default function SEpisodeUpload() {
               </div>
               <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식을 선택하세요</div>
 
-              <div style={{ display: 'flex', gap: 12, marginBottom: uploadMode === 'bulk-single-file' ? 28 : 0 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: uploadMode ? 28 : 0 }}>
                 <ModeCard
                   icon={<FileText size={22} />}
                   title="단일 회차 업로드"
                   desc="새 회차 1개를 업로드합니다"
                   color={C.primary}
                   selected={uploadMode === 'single'}
-                  onSelect={() => { setUploadMode('single'); setStep('input'); }}
+                  onSelect={() => setUploadMode('single')}
                 />
                 <ModeCard
                   icon={<BookMarked size={22} />}
@@ -582,9 +611,57 @@ export default function SEpisodeUpload() {
                   desc="회차별로 파일이 분리되어 있을 때, 파일마다 1개의 회차로 생성합니다"
                   color={C.warning}
                   selected={uploadMode === 'bulk-multi-file'}
-                  onSelect={() => { setUploadMode('bulk-multi-file'); setStep('input'); }}
+                  onSelect={() => setUploadMode('bulk-multi-file')}
                 />
               </div>
+
+              {uploadMode === 'single' && (
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <FieldLabel>회차 번호</FieldLabel>
+                      <TextInput value={episodeNumber} onChange={setEpisodeNumber} placeholder="예: 159" type="number" />
+                    </div>
+                    <div style={{ flex: 2 }}>
+                      <FieldLabel>회차 제목</FieldLabel>
+                      <TextInput value={episodeTitle} onChange={setEpisodeTitle} placeholder="예: 운명의 실타래" />
+                    </div>
+                  </div>
+
+                  <FieldLabel>회차 파일</FieldLabel>
+                  <FileDropArea
+                    file={singleFile} error={singleFileError}
+                    onFileChange={(f, err) => { setSingleFile(f); setSingleFileError(err); }}
+                    fileLabel="회차파일.txt"
+                  />
+
+                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
+
+                  <SettingsDocToggle
+                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
+                    settingsFile={settingsFile} settingsFileError={settingsFileError}
+                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
+                  />
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
+                    <div style={{ flex: 1 }}>
+                      <BtnP
+                        label="다음 — 분석 시작"
+                        onClick={() => {
+                          const num = parseInt(episodeNumber, 10) || 0;
+                          const ep = mockCreateEpisode(selectedWork, num, episodeTitle, uploadPurpose);
+                          if (!singleFile) {
+                            suggestDemoMode(() => proceedFromInput([ep]));
+                            return;
+                          }
+                          proceedFromInput([ep]);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {uploadMode === 'bulk-single-file' && (
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
@@ -597,6 +674,8 @@ export default function SEpisodeUpload() {
                   <div style={{ color: C.t3, fontSize: 11, margin: '6px 0 20px' }}>
                     지원 형식: .txt, .docx (최대 10MB)
                   </div>
+
+                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
 
                   <SettingsDocToggle
                     includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
@@ -675,127 +754,55 @@ export default function SEpisodeUpload() {
                   </div>
                 </div>
               )}
-            </>
-          )}
 
-          {step === 'input' && uploadMode === 'single' && (
-            <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 정보 입력</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>회차 번호, 제목과 원고 파일을 입력하세요</div>
-
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <FieldLabel>회차 번호</FieldLabel>
-                  <TextInput value={episodeNumber} onChange={setEpisodeNumber} placeholder="예: 159" type="number" />
-                </div>
-                <div style={{ flex: 2 }}>
-                  <FieldLabel>회차 제목</FieldLabel>
-                  <TextInput value={episodeTitle} onChange={setEpisodeTitle} placeholder="예: 운명의 실타래" />
-                </div>
-              </div>
-
-              <FieldLabel>회차 파일</FieldLabel>
-              <FileDropArea
-                file={singleFile} error={singleFileError}
-                onFileChange={(f, err) => { setSingleFile(f); setSingleFileError(err); }}
-                fileLabel="회차파일.txt"
-              />
-
-              <FieldLabel>업로드 목적</FieldLabel>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {(['EPISODE_VALIDATION', 'SETTING_EXTRACTION'] as UploadPurpose[]).map((p) => (
-                  <button key={p} onClick={() => setUploadPurpose(p)} style={{
-                    flex: 1, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
-                    textAlign: 'left',
-                    background: uploadPurpose === p ? C.primary + '14' : C.surface,
-                    border: `1px solid ${uploadPurpose === p ? C.primary : C.border}`,
-                    color: uploadPurpose === p ? C.t1 : C.t2,
-                  }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-                      {p === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+              {uploadMode === 'bulk-multi-file' && (
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <FieldLabel>시작 회차 번호</FieldLabel>
+                      <TextInput value={multiStartEpisodeNumber} onChange={setMultiStartEpisodeNumber} placeholder="예: 161" type="number" />
                     </div>
-                    <div style={{ fontSize: 11, color: C.t3 }}>
-                      {p === 'EPISODE_VALIDATION'
-                        ? '확정된 설정과 충돌하는지 검수합니다'
-                        : '원고에서 설정 후보를 추출합니다'}
+                    <div style={{ flex: 1 }}>
+                      <FieldLabel>파일 개수</FieldLabel>
+                      <TextInput value={multiFileCount} onChange={setMultiFileCount} placeholder="예: 3" type="number" />
                     </div>
-                  </button>
-                ))}
-              </div>
+                  </div>
 
-              <SettingsDocToggle
-                includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                settingsFile={settingsFile} settingsFileError={settingsFileError}
-                onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
-              />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <BtnG label="← 뒤로" onClick={() => setStep('select-mode')} />
-                <div style={{ flex: 1 }}>
-                  <BtnP
-                    label="다음 — 분석 시작"
-                    onClick={() => {
-                      const num = parseInt(episodeNumber, 10) || 0;
-                      const ep = mockCreateEpisode(selectedWork, num, episodeTitle, uploadPurpose);
-                      if (!singleFile) {
-                        suggestDemoMode(() => proceedFromInput([ep]));
-                        return;
-                      }
-                      proceedFromInput([ep]);
-                    }}
+                  <FieldLabel>회차 파일 (여러 개 선택)</FieldLabel>
+                  <MultiFileDropArea
+                    files={multiFiles} error={multiFilesError}
+                    onFilesChange={(files, err) => { setMultiFiles(files); setMultiFilesError(err); }}
+                    fileLabel={`${multiFileCount || 0}개 파일`}
                   />
-                </div>
-              </div>
-            </>
-          )}
 
-          {step === 'input' && uploadMode === 'bulk-multi-file' && (
-            <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>다회차 - 여러 파일 업로드</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>파일마다 1개의 회차로 생성됩니다. 시작 회차 번호와 파일 개수를 입력하세요</div>
+                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
 
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <FieldLabel>시작 회차 번호</FieldLabel>
-                  <TextInput value={multiStartEpisodeNumber} onChange={setMultiStartEpisodeNumber} placeholder="예: 161" type="number" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <FieldLabel>파일 개수</FieldLabel>
-                  <TextInput value={multiFileCount} onChange={setMultiFileCount} placeholder="예: 3" type="number" />
-                </div>
-              </div>
-
-              <FieldLabel>회차 파일 (여러 개 선택)</FieldLabel>
-              <MultiFileDropArea
-                files={multiFiles} error={multiFilesError}
-                onFilesChange={(files, err) => { setMultiFiles(files); setMultiFilesError(err); }}
-                fileLabel={`${multiFileCount || 0}개 파일`}
-              />
-
-              <SettingsDocToggle
-                includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                settingsFile={settingsFile} settingsFileError={settingsFileError}
-                onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
-              />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <BtnG label="← 뒤로" onClick={() => setStep('select-mode')} />
-                <div style={{ flex: 1 }}>
-                  <BtnP
-                    label="다음 — 분석 시작"
-                    onClick={() => {
-                      const startNum = parseInt(multiStartEpisodeNumber, 10) || 0;
-                      const count = Math.max(1, parseInt(multiFileCount, 10) || 1);
-                      const episodes = mockCreateMultiFileEpisodes(selectedWork, startNum, count, uploadPurpose);
-                      if (multiFiles.length === 0) {
-                        suggestDemoMode(() => proceedFromInput(episodes));
-                        return;
-                      }
-                      proceedFromInput(episodes);
-                    }}
+                  <SettingsDocToggle
+                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
+                    settingsFile={settingsFile} settingsFileError={settingsFileError}
+                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
                   />
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
+                    <div style={{ flex: 1 }}>
+                      <BtnP
+                        label="다음 — 분석 시작"
+                        onClick={() => {
+                          const startNum = parseInt(multiStartEpisodeNumber, 10) || 0;
+                          const count = Math.max(1, parseInt(multiFileCount, 10) || 1);
+                          const episodes = mockCreateMultiFileEpisodes(selectedWork, startNum, count, uploadPurpose);
+                          if (multiFiles.length === 0) {
+                            suggestDemoMode(() => proceedFromInput(episodes));
+                            return;
+                          }
+                          proceedFromInput(episodes);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
