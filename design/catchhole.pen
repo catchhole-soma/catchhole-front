@@ -366,7 +366,7 @@
       "id": "fREKM",
       "x": 1004,
       "y": 322,
-      "name": "Screen 1 - Select Mode",
+      "name": "SEpisodeUpload / 01 업로드 방식 선택",
       "width": 1280,
       "height": 620,
       "fill": "$bg",
@@ -867,7 +867,7 @@
       "id": "Yr63L",
       "x": 1004,
       "y": 1022,
-      "name": "Screen 2 - Mode A Input",
+      "name": "SEpisodeUpload / 02A Mode A 입력",
       "width": 1280,
       "height": 1600,
       "fill": "$bg",
@@ -1856,7 +1856,7 @@
       "id": "lTe6i",
       "x": 1004,
       "y": 2702,
-      "name": "Screen 3 - Boundary Preview",
+      "name": "SEpisodeUpload / 03 회차 분리 확인",
       "width": 1280,
       "height": 1000,
       "fill": "$bg",
@@ -3425,7 +3425,7 @@
       "id": "kvwV0",
       "x": 1004,
       "y": 3782,
-      "name": "Screen 4 - Settings Review",
+      "name": "SEpisodeUpload / 04 설정 확인",
       "width": 1280,
       "height": 820,
       "fill": "$bg",
@@ -4341,7 +4341,7 @@
       "id": "geQNP",
       "x": 1004,
       "y": 4682,
-      "name": "Screen 2B - Mode B Input",
+      "name": "SEpisodeUpload / 02B Mode B 입력",
       "width": 1280,
       "fill": "$bg",
       "layout": "vertical",
@@ -5686,7 +5686,7 @@
       "id": "uBFUN",
       "x": 1004,
       "y": 6173,
-      "name": "Screen 2C - Mode C Input",
+      "name": "SEpisodeUpload / 02C Mode C 입력",
       "width": 1280,
       "height": 1600,
       "fill": "$bg",
@@ -6702,6 +6702,1123 @@
       "fontFamily": "Inter",
       "fontSize": 11,
       "fontWeight": "normal"
+    },
+    {
+      "type": "frame",
+      "id": "G7NaEQ",
+      "x": 3322,
+      "y": 101,
+      "name": "Input/Auth Field",
+      "reusable": true,
+      "width": 320,
+      "height": 44,
+      "fill": "$bg",
+      "cornerRadius": "$radius-md",
+      "stroke": "$border",
+      "gap": 10,
+      "padding": [
+        12,
+        14
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "UxNih",
+          "name": "Icon",
+          "width": 15,
+          "height": 15,
+          "icon": "mail",
+          "library": "lucide",
+          "fill": "$text-3"
+        },
+        {
+          "type": "text",
+          "id": "SRRd4",
+          "name": "Placeholder",
+          "fill": "$text-2",
+          "content": "이메일",
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "tNdOk",
+      "x": 1004,
+      "y": 7853,
+      "name": "SLogin / 로그인",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "$bg",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "pmPeA",
+          "name": "Card",
+          "clip": true,
+          "width": 840,
+          "height": 540,
+          "cornerRadius": 16,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "children": [
+            {
+              "type": "frame",
+              "id": "M9OTgv",
+              "name": "Branding Panel",
+              "width": 340,
+              "height": "fill_container",
+              "fill": "#1A1030",
+              "layout": "vertical",
+              "padding": [
+                48,
+                40
+              ],
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "aiVAk",
+                  "name": "Top Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SpfEq",
+                      "name": "Logo Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "DmnOL",
+                          "name": "Logo Badge",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$primary",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "v6Nh7",
+                              "name": "Shield Icon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "shield",
+                              "library": "lucide",
+                              "fill": "$white"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "PhDhK",
+                          "name": "Logo Text",
+                          "fill": "$text-1",
+                          "content": "CatchHole",
+                          "fontFamily": "$font",
+                          "fontSize": 20,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "i1IxRj",
+                      "name": "Headline",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "원고 속 설정 충돌,\n지금 바로 잡아내세요.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "g5WEm",
+                      "name": "Description",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "AI가 수백 화 분량의 원고를 분석해\n캐릭터·설정·타임라인 모순을 자동으로 감지합니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DBrM6",
+                  "name": "Footer Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "y5JWp",
+                      "name": "Copyright",
+                      "fill": "$text-3",
+                      "content": "© 2026 CatchHole",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rkw95",
+                      "name": "Links Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bYmrL",
+                          "name": "Terms Link",
+                          "fill": "$text-3",
+                          "content": "이용약관",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "NsXTb",
+                          "name": "Dot",
+                          "fill": "$text-3",
+                          "content": "·",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zyFhS",
+                          "name": "Privacy Link",
+                          "fill": "$text-3",
+                          "content": "개인정보 처리방침",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uT7DI",
+              "name": "Form Panel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$surface",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                48,
+                44
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YTYe3",
+                  "name": "Header Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OpSoj",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "로그인",
+                      "fontFamily": "$font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kbrfF",
+                      "name": "Subtitle",
+                      "fill": "$text-3",
+                      "content": "계정에 로그인하여 작품 분석을 시작하세요.",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "scBHF",
+                  "name": "Inputs Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "id": "V772C3",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Email Field",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "za8O7",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Password Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "lock"
+                        },
+                        "SRRd4": {
+                          "content": "비밀번호"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "Vjo0M",
+                  "type": "ref",
+                  "ref": "m035Yk",
+                  "name": "Login Button",
+                  "width": "fill_container",
+                  "height": 44,
+                  "descendants": {
+                    "a5O4dJ": {
+                      "content": "로그인"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "h3hB6",
+                  "name": "Divider Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "omSkY",
+                      "name": "Line Left",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EMCVm",
+                      "name": "Or",
+                      "fill": "$text-3",
+                      "content": "또는",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YQUfa",
+                      "name": "Line Right",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hwYfN",
+                  "name": "Social Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "sbXQp",
+                      "name": "Kakao Button",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#FEE500",
+                      "cornerRadius": "$radius-sm",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Qc8FL",
+                          "name": "Kakao Label",
+                          "fill": "#191919",
+                          "content": "카카오로 계속하기",
+                          "fontFamily": "$font",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Yt6bk",
+                      "name": "Google Button",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$surface",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SYXuU",
+                          "name": "Google Label",
+                          "fill": "$text-1",
+                          "content": "Google로 계속하기",
+                          "fontFamily": "$font",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I5QOJ",
+                  "name": "Signup Link Row",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EK69Z",
+                      "name": "Signup Prefix",
+                      "fill": "$text-3",
+                      "content": "계정이 없으신가요?",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EP9VG",
+                      "name": "Signup Link",
+                      "fill": "$primary",
+                      "content": "회원가입",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "VI8zP",
+      "x": 2364,
+      "y": 7853,
+      "name": "SSignup / 회원가입",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Zz72j",
+          "name": "Card",
+          "clip": true,
+          "width": 840,
+          "height": 760,
+          "cornerRadius": 16,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "children": [
+            {
+              "type": "frame",
+              "id": "r4OnM8",
+              "name": "Branding Panel",
+              "width": 340,
+              "height": "fill_container",
+              "fill": "#1A1030",
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ySNQF",
+                  "name": "Top Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "CXC7p",
+                      "name": "Logo Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NSaI1",
+                          "name": "Logo Badge",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$primary",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "VOrww",
+                              "name": "Shield Icon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "shield",
+                              "library": "lucide",
+                              "fill": "$white"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "i2OIG",
+                          "name": "Logo Text",
+                          "fill": "$text-1",
+                          "content": "CatchHole",
+                          "fontFamily": "$font",
+                          "fontSize": 20,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "N2c4of",
+                      "name": "Headline",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "지금 시작하면\n첫 분석이 무료입니다.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bGhz2",
+                      "name": "Description",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "AI가 수백 화 분량의 원고를 분석해\n캐릭터·설정·타임라인 모순을 자동으로 감지합니다.\n무료 체험으로 첫 회차를 바로 검사해보세요.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "H0UdVT",
+                  "name": "Copyright",
+                  "fill": "$text-3",
+                  "content": "© 2026 CatchHole",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "arrY7",
+              "name": "Form Panel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$surface",
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                40,
+                44
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QOVld",
+                  "name": "Header Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "L8xbjV",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "회원가입",
+                      "fontFamily": "$font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "iW4mG",
+                      "name": "Subtitle",
+                      "fill": "$text-3",
+                      "content": "몇 가지 정보만 입력하면 바로 시작할 수 있어요.",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "at57n",
+                  "name": "Inputs Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "id": "FisbC",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Name Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "user"
+                        },
+                        "SRRd4": {
+                          "content": "이름"
+                        }
+                      }
+                    },
+                    {
+                      "id": "t16Eyz",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Email Field",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "AayL8",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Phone Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "phone"
+                        },
+                        "SRRd4": {
+                          "content": "휴대폰 번호"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Esy7h",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Password Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "lock"
+                        },
+                        "SRRd4": {
+                          "content": "비밀번호"
+                        }
+                      }
+                    },
+                    {
+                      "id": "UOBZl",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Password Confirm Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "lock"
+                        },
+                        "SRRd4": {
+                          "content": "비밀번호 확인"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "nUsmJ",
+                  "type": "ref",
+                  "ref": "bG3yD",
+                  "name": "Terms Agreement Row",
+                  "descendants": {
+                    "wuvMb": {
+                      "content": "이용약관 및 개인정보 처리방침에 동의합니다."
+                    }
+                  }
+                },
+                {
+                  "id": "rsLfI",
+                  "type": "ref",
+                  "ref": "m035Yk",
+                  "name": "Signup Button",
+                  "width": "fill_container",
+                  "height": 44,
+                  "descendants": {
+                    "a5O4dJ": {
+                      "content": "회원가입"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "CfZyx",
+                  "name": "Divider Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gqsXo",
+                      "name": "Line Left",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    },
+                    {
+                      "type": "text",
+                      "id": "GozuR",
+                      "name": "Or",
+                      "fill": "$text-3",
+                      "content": "또는",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bU1DB",
+                      "name": "Line Right",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "R5Lwsf",
+                  "name": "Social Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Z1Frux",
+                      "name": "Kakao Button",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#FEE500",
+                      "cornerRadius": "$radius-sm",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xYEFn",
+                          "name": "Kakao Label",
+                          "fill": "#191919",
+                          "content": "카카오로 계속하기",
+                          "fontFamily": "$font",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b0MaS",
+                      "name": "Google Button",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$surface",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "da8e4",
+                          "name": "Google Label",
+                          "fill": "$text-1",
+                          "content": "Google로 계속하기",
+                          "fontFamily": "$font",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wSIuv",
+                  "name": "Login Link Row",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "S8UAX",
+                      "name": "Login Prefix",
+                      "fill": "$text-3",
+                      "content": "이미 계정이 있으신가요?",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bfyOQ",
+                      "name": "Login Link",
+                      "fill": "$primary",
+                      "content": "로그인",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "BQqMv",
+      "x": 3724,
+      "y": 7853,
+      "name": "Modal / TermsModal",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000B8",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sgCbL",
+          "name": "Modal",
+          "clip": true,
+          "width": 600,
+          "height": 560,
+          "fill": "$surface",
+          "cornerRadius": 14,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "I6a4i",
+              "name": "Header",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                20,
+                24,
+                0,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SpY3a",
+                  "name": "Title Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Oc90n",
+                      "name": "Modal Title",
+                      "fill": "$text-1",
+                      "content": "법적 고지",
+                      "fontFamily": "$font",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "vxSKv",
+                      "name": "Close Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sncOf",
+                  "name": "Tabs Row",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "d5UWud",
+                      "name": "Tab - Terms",
+                      "stroke": "$primary",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "layout": "vertical",
+                      "padding": [
+                        8,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UfX8x",
+                          "name": "Tab Label",
+                          "fill": "$primary",
+                          "content": "이용약관",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wBVln",
+                      "name": "Tab - Privacy",
+                      "layout": "vertical",
+                      "padding": [
+                        8,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Aen86",
+                          "name": "Tab Label",
+                          "fill": "$text-3",
+                          "content": "개인정보 처리방침",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PCDxY",
+              "name": "Body",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qQwlR",
+                  "name": "Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dZt5O",
+                      "name": "Section Title",
+                      "fill": "$text-1",
+                      "content": "제1조 (목적)",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "b97T5k",
+                      "name": "Section Body",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "이 약관은 CatchHole(이하 \"서비스\")이 제공하는 웹소설 설정 충돌 분석 서비스의 이용 조건 및 절차, 이용자와 서비스 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MwRck",
+                  "name": "Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xVfxg",
+                      "name": "Section Title",
+                      "fill": "$text-1",
+                      "content": "제2조 (용어의 정의)",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "pHpVm",
+                      "name": "Section Body",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "\"이용자\"란 이 약관에 따라 서비스를 이용하는 회원을 말합니다. \"콘텐츠\"란 이용자가 서비스에 업로드한 원고, 설정 데이터 등 일체의 정보를 말합니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "J1dgYo",
+                  "name": "Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Y8FqQ",
+                      "name": "Section Title",
+                      "fill": "$text-1",
+                      "content": "제3조 (약관의 효력 및 변경)",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qvT5s",
+                      "name": "Section Body",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "서비스는 이 약관의 내용을 이용자가 쉽게 알 수 있도록 서비스 초기화면에 게시합니다. 변경 시 7일 전 공지합니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LDNnG",
+              "name": "Footer",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                16,
+                24
+              ],
+              "justifyContent": "end",
+              "children": [
+                {
+                  "id": "rgSqF",
+                  "type": "ref",
+                  "ref": "m035Yk",
+                  "name": "Confirm Button",
+                  "height": 36,
+                  "descendants": {
+                    "a5O4dJ": {
+                      "content": "확인"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {
