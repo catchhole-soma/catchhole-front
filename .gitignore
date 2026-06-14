@@ -25,6 +25,7 @@
 .DS_Store
 *.pem
 /TODO.md
+/CLAUDE.local.md
 
 # stitch design-sync scratch files (not part of the app)
 /.stitch
