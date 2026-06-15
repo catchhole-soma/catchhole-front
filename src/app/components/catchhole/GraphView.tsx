@@ -483,7 +483,7 @@ export function GraphView({ onBack: _onBack }: Props) {
             const hidden = hiddenTypes.has(type);
             return (
               <button key={type} onClick={() => setHiddenTypes(prev => {
-                const s = new Set(prev); hidden ? s.delete(type) : s.add(type); return s;
+                const s = new Set(prev); if (hidden) { s.delete(type); } else { s.add(type); } return s;
               })} style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '5px 0', background: 'none', border: 'none',
@@ -511,7 +511,7 @@ export function GraphView({ onBack: _onBack }: Props) {
               const hidden = hiddenRelTypes.has(rt);
               return (
                 <button key={rt} onClick={() => setHiddenRelTypes(prev => {
-                  const s = new Set(prev); hidden ? s.delete(rt) : s.add(rt); return s;
+                  const s = new Set(prev); if (hidden) { s.delete(rt); } else { s.add(rt); } return s;
                 })} style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: '4px 0', background: 'none', border: 'none',
