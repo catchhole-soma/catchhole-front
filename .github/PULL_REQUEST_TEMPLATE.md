@@ -10,4 +10,4 @@
 ## Test plan
 - [ ] npm run lint
 - [ ] npm run build
-- [ ] 
+- [ ] 추가적인 테스트 항목 (필요 시 작성)
