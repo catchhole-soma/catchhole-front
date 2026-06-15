@@ -29140,6 +29140,2210 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "MCfXX",
+      "x": 7524,
+      "y": 10453,
+      "name": "Modal / SettingsBuilderModal (캐릭터 설정)",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000A6",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "fWaIE",
+          "name": "Modal Card",
+          "width": 660,
+          "fill": "$surface",
+          "cornerRadius": 12,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "vcnMK",
+              "name": "Header",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28,
+                18,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "p3pOWV",
+                  "name": "Title Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "N1DjRK",
+                      "name": "Title Left",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MdHRb",
+                          "name": "Sparkles Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "sparkles",
+                          "library": "lucide",
+                          "fill": "$primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "a5ZzHv",
+                          "name": "Title",
+                          "fill": "$text-1",
+                          "content": "캐릭터 설정 만들기",
+                          "fontFamily": "$font",
+                          "fontSize": 16,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Zx1s1",
+                      "name": "Close Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "F4BlYC",
+                  "name": "Name Input",
+                  "width": "fill_container",
+                  "height": 40,
+                  "fill": "$bg",
+                  "cornerRadius": 6,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b1Ell",
+                      "name": "Name Value",
+                      "fill": "$text-1",
+                      "content": "수아",
+                      "fontFamily": "$font",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GcoJs",
+              "name": "Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Chsuq",
+                  "name": "Table Header",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    2,
+                    0,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vpQRr",
+                      "name": "Col Item",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "항목",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HNmV8",
+                      "name": "Col Content",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "내용  (→ 키로 예시 수용)",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Wnzid",
+                      "name": "Col Lock",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Z0U36X",
+                          "name": "Lock Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QBj72",
+                      "name": "Col Spacer",
+                      "width": 28,
+                      "height": 12
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dNjTG",
+                  "name": "EntryRow - 이름",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sEqkj",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "이름",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "j2zBS",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "수아",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dPj93",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Tpkqg",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fShLK",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RYAR7",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "evy7l",
+                  "name": "EntryRow - 직업",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "kbt9Z",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "직업",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bij4p",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "검사 지망생",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "R36wCY",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "q3R3bY",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$danger"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bIMuU",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "cmYQr",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mW0oz",
+                  "name": "EntryRow - 첫 등장",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ej7tX",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "첫 등장",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mw2CU",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "1화",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "is8wd",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "H5Hei",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zn8co",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "FC1Iu",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ixZzr",
+                  "name": "Add Entry Button",
+                  "width": "fill_container",
+                  "height": 32,
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bu2ZD",
+                      "name": "Label",
+                      "fill": "$text-3",
+                      "content": "+ 항목 추가",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GLfGJ",
+              "name": "Footer",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                16,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "eBiJE",
+                  "name": "Summary",
+                  "fill": "$text-3",
+                  "content": "3개 항목 · 🔒1개는 챗봇·공유 시 가려짐",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "z540yo",
+                  "name": "Button Row",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "GVE5R",
+                      "type": "ref",
+                      "ref": "OUit2",
+                      "name": "취소 Button",
+                      "descendants": {
+                        "N7PKG": {
+                          "content": "취소"
+                        }
+                      }
+                    },
+                    {
+                      "id": "qyT0a",
+                      "type": "ref",
+                      "ref": "m035Yk",
+                      "name": "저장 Button",
+                      "descendants": {
+                        "a5O4dJ": {
+                          "content": "저장"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zMCfY",
+      "x": 8884,
+      "y": 10453,
+      "name": "Modal / WorldBuilderModal (세계관 설정)",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000A6",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "TQJc1",
+          "name": "Modal Card",
+          "width": 660,
+          "fill": "$surface",
+          "cornerRadius": 12,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "GK8nW",
+              "name": "Header",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28,
+                18,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lSJ4c",
+                  "name": "Title Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iOAaP",
+                      "name": "Title Left",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "fn2Yw",
+                          "name": "Globe Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "globe",
+                          "library": "lucide",
+                          "fill": "$success"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z8Mvu4",
+                          "name": "Title",
+                          "fill": "$text-1",
+                          "content": "세계관 설정 만들기",
+                          "fontFamily": "$font",
+                          "fontSize": 16,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "B1bA6k",
+                      "name": "Close Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "a1qxUu",
+                  "name": "Title Input",
+                  "width": "fill_container",
+                  "height": 40,
+                  "fill": "$bg",
+                  "cornerRadius": 6,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "N8MzoD",
+                      "name": "Placeholder Value",
+                      "fill": "$text-1",
+                      "content": "대륙 지형",
+                      "fontFamily": "$font",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wVhUL",
+                  "name": "Category Tabs",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "oaWrB",
+                      "name": "Tab - 지리",
+                      "fill": "#00C8961A",
+                      "cornerRadius": 5,
+                      "stroke": "$success",
+                      "strokeWidth": 1,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zlvnd",
+                          "name": "Label",
+                          "fill": "$success",
+                          "content": "지리",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xx2U3",
+                      "name": "Tab - 역사",
+                      "fill": "#00000000",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "c7ajZQ",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "역사",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n1kNXo",
+                      "name": "Tab - 마법 체계",
+                      "fill": "#00000000",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ljhKS",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "마법 체계",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BMQox",
+                      "name": "Tab - 조직",
+                      "fill": "#00000000",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vzanz",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "조직",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "r67BhA",
+                      "name": "Tab - 문화",
+                      "fill": "#00000000",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "woQvv",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "문화",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "MS3zO",
+              "name": "Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QogHX",
+                  "name": "Table Header",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    2,
+                    0,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Llp8C",
+                      "name": "Col Item",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "항목",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "r16pg",
+                      "name": "Col Content",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "내용  (→ 키로 예시 수용)",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yNzON",
+                      "name": "Col Lock",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "qGvzI",
+                          "name": "Lock Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rNFYD",
+                      "name": "Col Spacer",
+                      "width": 28,
+                      "height": 12
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "A0rKt",
+                  "name": "EntryRow - 지형",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XUnEy",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "지형",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "j4OF8p",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "대륙 동부의 산악 지대",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JYRkD",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "z8Pckp",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ow1f7",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "M5qQVS",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "nTnWB",
+                  "name": "EntryRow - 기후",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EcGxj",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "기후",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "B8vM1D",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "온대, 사계절이 뚜렷함",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tiwnU",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "odrcL",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zFjnv",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "HisJW",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "G3x8Lb",
+                  "name": "EntryRow - 주요 도시",
+                  "width": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rVAH9",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": 130,
+                      "content": "주요 도시",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xLhec",
+                      "name": "Content",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "왕도 카르엔",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "waO9U",
+                      "name": "Lock Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "er9nT",
+                          "name": "Lock",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uBYIJ",
+                      "name": "Delete Box",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QKcpA",
+                          "name": "X",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UCw9T",
+                  "name": "Add Entry Button",
+                  "width": "fill_container",
+                  "height": 32,
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "VDloN",
+                      "name": "Label",
+                      "fill": "$text-3",
+                      "content": "+ 항목 추가",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "N45gE",
+              "name": "Footer",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                16,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u3Ntv",
+                  "name": "Summary",
+                  "fill": "$text-3",
+                  "content": "3개 항목",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "p0y4u",
+                  "name": "Button Row",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "mw45q",
+                      "type": "ref",
+                      "ref": "OUit2",
+                      "name": "취소 Button",
+                      "descendants": {
+                        "N7PKG": {
+                          "content": "취소"
+                        }
+                      }
+                    },
+                    {
+                      "id": "RekJh",
+                      "type": "ref",
+                      "ref": "m035Yk",
+                      "name": "저장 Button",
+                      "descendants": {
+                        "a5O4dJ": {
+                          "content": "저장"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "M31J8c",
+      "x": 1004,
+      "y": 15250,
+      "name": "S2Editor / 동적 상태 참고 (데모재생·충돌검사·툴팁)",
+      "clip": true,
+      "width": 1280,
+      "fill": "$bg",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "j3tDU",
+          "name": "Section 1 Title",
+          "fill": "$text-1",
+          "content": "데모 재생 상태 — idle / playing / paused / done",
+          "fontFamily": "$font",
+          "fontSize": 14,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "uLqf6",
+          "name": "데모 재생 상태 Row",
+          "width": "fill_container",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "y3pLuj",
+              "name": "idle Card",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "V1Ukzp",
+                  "name": "Label",
+                  "fill": "$text-3",
+                  "content": "idle",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "AHELV",
+                  "name": "Button",
+                  "height": 36,
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    14
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "R7XB4",
+                      "name": "Icon",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "zap",
+                      "library": "lucide",
+                      "fill": "$text-2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "K2JHK",
+                      "name": "Text",
+                      "fill": "$text-2",
+                      "content": "데모 재생",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O3cSm",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 32,
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NzyBs",
+                      "name": "Status Text",
+                      "fill": "$text-3",
+                      "content": "—",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pOnpK",
+              "name": "playing Card",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mCzZr",
+                  "name": "Label",
+                  "fill": "$text-3",
+                  "content": "playing",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "sFOlY",
+                  "name": "Button",
+                  "height": 36,
+                  "fill": "$primary-soft",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$primary",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    14
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "mTS7G",
+                      "name": "Icon",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "pause",
+                      "library": "lucide",
+                      "fill": "$primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ob59X",
+                      "name": "Text",
+                      "fill": "$primary",
+                      "content": "일시정지",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Zyucm",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 32,
+                  "fill": "$primary-soft",
+                  "cornerRadius": "$radius-sm",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qYSek",
+                      "name": "Status Text",
+                      "fill": "$primary",
+                      "content": "● 재연 재생 중 — 실시간 설정 감지",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ad0mu",
+              "name": "paused Card",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "VEan4",
+                  "name": "Label",
+                  "fill": "$text-3",
+                  "content": "paused",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "EdWke",
+                  "name": "Button",
+                  "height": 36,
+                  "fill": "$primary-soft",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$primary",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    14
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "MsGDI",
+                      "name": "Icon",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "play",
+                      "library": "lucide",
+                      "fill": "$primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "z6SgK",
+                      "name": "Text",
+                      "fill": "$primary",
+                      "content": "재생",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BXFz6",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 32,
+                  "fill": "$primary-soft",
+                  "cornerRadius": "$radius-sm",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UOWa2",
+                      "name": "Status Text",
+                      "fill": "$text-2",
+                      "content": "⏸ 재연 일시정지됨",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "a0GEs",
+              "name": "done Card",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mpuV7",
+                  "name": "Label",
+                  "fill": "$text-3",
+                  "content": "done",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "iTJgZ",
+                  "name": "Button",
+                  "height": 36,
+                  "fill": "$bg",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    14
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "mB2ll",
+                      "name": "Icon",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "rotate-ccw",
+                      "library": "lucide",
+                      "fill": "$text-2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "QXD85",
+                      "name": "Text",
+                      "fill": "$text-2",
+                      "content": "처음부터",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mBctw",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 32,
+                  "fill": "$danger-soft",
+                  "cornerRadius": "$radius-sm",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Z2dEZ",
+                      "name": "Status Text",
+                      "fill": "$danger",
+                      "content": "⚠ 설정 충돌 감지됨",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "N9srLP",
+          "name": "Section 2 Title",
+          "fill": "$text-1",
+          "content": "충돌검사 우측 패널 상태 — none / scanning (detected는 본 화면 우측 패널 참고)",
+          "fontFamily": "$font",
+          "fontSize": 14,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "iTjZw",
+          "name": "충돌검사 상태 Row",
+          "width": "fill_container",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "OYYTD",
+              "name": "충돌검사 - 이상없음 (none)",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "DoiyE",
+                  "name": "Header Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ul8aS",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "실시간 설정 감지",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oOLaJ",
+                      "name": "Status Badge",
+                      "fill": "$success-soft",
+                      "cornerRadius": "$radius-pill",
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "En4AH",
+                          "name": "Label",
+                          "fill": "$success",
+                          "content": "이상 없음",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WgIWS",
+                  "name": "Empty State",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": [
+                    28,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "lQUY0",
+                      "name": "Scan Icon",
+                      "width": 32,
+                      "height": 32,
+                      "icon": "scan",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    },
+                    {
+                      "type": "text",
+                      "id": "f39vs",
+                      "name": "Label",
+                      "fill": "$text-2",
+                      "content": "실시간 감지 대기 중",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Pm6Y7",
+                  "name": "Monitoring List",
+                  "width": "fill_container",
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "d9aGmV",
+                      "name": "Monitor Row - 캐릭터 설정 대조 중...",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ntXhV",
+                          "name": "Dot",
+                          "width": 8,
+                          "height": 8,
+                          "icon": "circle",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        },
+                        {
+                          "type": "text",
+                          "id": "wqRUP",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "캐릭터 설정 대조 중...",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ik3YB",
+                      "name": "Monitor Row - 타임라인 검증 중...",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "N6fQ7",
+                          "name": "Dot",
+                          "width": 8,
+                          "height": 8,
+                          "icon": "circle",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        },
+                        {
+                          "type": "text",
+                          "id": "wOekQ",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "타임라인 검증 중...",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ybI2u",
+                      "name": "Monitor Row - 관계도 확인 중...",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "kxNR1",
+                          "name": "Dot",
+                          "width": 8,
+                          "height": 8,
+                          "icon": "circle",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        },
+                        {
+                          "type": "text",
+                          "id": "dIPYV",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "관계도 확인 중...",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "T9dQyn",
+              "name": "충돌검사 - 스캔 중 (scanning)",
+              "width": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": "$radius-md",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "anKvY",
+                  "name": "Header Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UDSXS",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "실시간 설정 감지",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VshFn",
+                      "name": "Status Badge",
+                      "fill": "$warning-soft",
+                      "cornerRadius": "$radius-pill",
+                      "gap": 4,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "TvrQ5",
+                          "name": "Spinner",
+                          "width": 11,
+                          "height": 11,
+                          "icon": "loader-circle",
+                          "library": "lucide",
+                          "fill": "$warning"
+                        },
+                        {
+                          "type": "text",
+                          "id": "isUJe",
+                          "name": "Label",
+                          "fill": "$warning",
+                          "content": "스캔 중",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "R8O5T",
+                  "name": "Scan Header",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": [
+                    16,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ltCZ8",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "설정 대조 중",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xns9p",
+                      "name": "Subtitle",
+                      "fill": "$text-2",
+                      "content": "수아 · 눈 색 확인 중...",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BuFVs",
+                  "name": "Scan Bars",
+                  "width": "fill_container",
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": [
+                    12,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "v92Y6",
+                      "name": "Scan Row - 캐릭터 설정 대조",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gQ3HJ",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "캐릭터 설정 대조",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "w2Xvk",
+                          "name": "Track",
+                          "width": "fill_container",
+                          "height": 6,
+                          "fill": "$surface-high",
+                          "cornerRadius": "$radius-pill",
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "wOx2K",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Fill",
+                              "width": 168,
+                              "height": 6,
+                              "fill": "$warning",
+                              "cornerRadius": "$radius-pill"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LlAz4",
+                      "name": "Scan Row - 타임라인 검증",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CzaAM",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "타임라인 검증",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "W3zEQY",
+                          "name": "Track",
+                          "width": "fill_container",
+                          "height": 6,
+                          "fill": "$surface-high",
+                          "cornerRadius": "$radius-pill",
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Hdjpv",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Fill",
+                              "width": 108,
+                              "height": 6,
+                              "fill": "$warning",
+                              "cornerRadius": "$radius-pill"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Ow7n2",
+                      "name": "Scan Row - 관계도 확인",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "H5orFJ",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "관계도 확인",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "APVyJ",
+                          "name": "Track",
+                          "width": "fill_container",
+                          "height": 6,
+                          "fill": "$surface-high",
+                          "cornerRadius": "$radius-pill",
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Rxkxz",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Fill",
+                              "width": 48,
+                              "height": 6,
+                              "fill": "$warning",
+                              "cornerRadius": "$radius-pill"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "gxv9a",
+          "name": "Section 3 Title",
+          "fill": "$text-1",
+          "content": "HighlightedText 툴팁",
+          "fontFamily": "$font",
+          "fontSize": 14,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "bOAUG",
+          "name": "HighlightedText 툴팁 Demo",
+          "width": 600,
+          "fill": "$surface",
+          "cornerRadius": "$radius-md",
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 6,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "QX5zO",
+              "name": "Tooltip",
+              "fill": "$surface-high",
+              "cornerRadius": "$radius-sm",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "gap": 6,
+              "padding": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "XED9j",
+                  "name": "Alert Icon",
+                  "width": 11,
+                  "height": 11,
+                  "icon": "triangle-alert",
+                  "library": "lucide",
+                  "fill": "$warning"
+                },
+                {
+                  "type": "text",
+                  "id": "GUgva",
+                  "name": "Tooltip Text",
+                  "fill": "$warning",
+                  "content": "23화: 갈색 눈으로 설정됨",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "polygon",
+              "polygonCount": 4,
+              "id": "lOkms",
+              "name": "Tooltip Pointer",
+              "rotation": 45,
+              "fill": "$surface-high",
+              "width": 8,
+              "height": 8,
+              "stroke": "$border",
+              "strokeWidth": 1
+            },
+            {
+              "type": "frame",
+              "id": "M4x8mQ",
+              "name": "Paragraph",
+              "width": "fill_container",
+              "padding": [
+                8,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hwVYL",
+                  "name": "Text Before",
+                  "fill": "$text-1",
+                  "content": "그가 고개를 돌리자, 그녀는 그의 ",
+                  "lineHeight": 1.8,
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "R3q1o",
+                  "name": "Highlight - 파란 눈",
+                  "stroke": "$warning",
+                  "strokeWidth": {
+                    "bottom": 1.5
+                  },
+                  "padding": [
+                    0,
+                    2
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xldsI",
+                      "name": "Highlight Text",
+                      "fill": "$warning",
+                      "content": "파란 눈",
+                      "lineHeight": 1.8,
+                      "fontFamily": "$font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Mb64d",
+                  "name": "Text After",
+                  "fill": "$text-1",
+                  "content": "을 마주보았다. 그 눈빛은 흔들리지 않았다.",
+                  "lineHeight": 1.8,
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {
