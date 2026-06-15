@@ -2256,7 +2256,7 @@ const TL_EVENTS: TLEvent[] = [
   { ch: '158화', title: 'DB 최신화',       desc: '분석 완료, 설정 최신 반영 상태',       type: 'current',  characters: [],                             eventTags: [],                items: [] },
   { ch: '159화', title: '설정 충돌 감지',  desc: '강민준 눈 색 충돌 ⚠, USB 재등장',    type: 'writing',  characters: ['수아', '강민준', '이레나'],   eventTags: ['충돌'],          items: ['증거 USB', '검사 배지'],
     errors: [
-      { type: 'time', desc: '\"그로부터 2년이 흘렀다\" 서술이 실제 흐름과 1년 차이' },
+      { type: 'time', desc: '"그로부터 2년이 흘렀다" 서술이 실제 흐름과 1년 차이' },
       { type: 'inventory', desc: '107화에서 이미 제출된 USB가 이 화에서 재등장 ⚠' },
     ] },
   { ch: '160화', title: '재판 결말부',     desc: '김판사 판결, 사건 결정적 분기점',      type: 'conflict', characters: ['강민준', '수아', '김판사'],   eventTags: ['재판', '반전'],  items: ['법정 판결문'] },
