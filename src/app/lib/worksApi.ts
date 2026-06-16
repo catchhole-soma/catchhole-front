@@ -3,7 +3,7 @@ import { apiFetch, apiFetchForm } from './api';
 export interface Work {
   id: string;
   title: string;
-  genre: string;
+  genre: string | null;
   episodeCount: number;
 }
 
@@ -66,7 +66,26 @@ export interface UploadEpisodeInput {
 }
 
 export interface UploadEpisodeResult {
-  episodeId: string;
+  batchId: string;
+  episodeCount: number;
+}
+
+/** 백엔드 WorkController가 반환하는 작품 응답 (필요한 필드만) */
+interface WorkResponse {
+  id: string;
+  title: string;
+  genre: string | null;
+  latestEpisodeNo: number;
+}
+
+/** 백엔드 EpisodeController.uploadEpisodes가 반환하는 업로드 응답 (필요한 필드만) */
+interface EpisodeUploadResponse {
+  batchId: string;
+  episodeCount: number;
+}
+
+function toWork(res: WorkResponse): Work {
+  return { id: res.id, title: res.title, genre: res.genre, episodeCount: res.latestEpisodeNo };
 }
 
 export async function getWorks(): Promise<Work[]> {
@@ -74,7 +93,8 @@ export async function getWorks(): Promise<Work[]> {
     await delay(DEMO_DELAY_MS);
     return loadDemoWorks();
   }
-  return apiFetch<Work[]>('/api/v1/works');
+  const works = await apiFetch<WorkResponse[]>('/api/v1/works');
+  return works.map(toWork);
 }
 
 export async function createWork(input: CreateWorkInput): Promise<CreateWorkResult> {
@@ -87,15 +107,19 @@ export async function createWork(input: CreateWorkInput): Promise<CreateWorkResu
     return { workId };
   }
 
-  const formData = new FormData();
-  formData.append('title', input.title);
-  formData.append('genre', input.genre);
-  formData.append('episodeFile', input.episodeFile);
-  if (input.settingsFile) {
-    formData.append('settingsFile', input.settingsFile);
-  }
+  const work = await apiFetch<WorkResponse>('/api/v1/works', {
+    method: 'POST',
+    body: JSON.stringify({ title: input.title, genre: input.genre, description: null }),
+  });
 
-  return apiFetchForm<CreateWorkResult>('/api/v1/works', formData);
+  await uploadEpisode({
+    workId: work.id,
+    episodeNumber: 1,
+    file: input.episodeFile,
+    settingsFile: input.settingsFile,
+  });
+
+  return { workId: work.id };
 }
 
 export async function uploadEpisode(input: UploadEpisodeInput): Promise<UploadEpisodeResult> {
@@ -107,16 +131,16 @@ export async function uploadEpisode(input: UploadEpisodeInput): Promise<UploadEp
       work.episodeCount += 1;
       saveDemoWorks(works);
     }
-    return { episodeId: `demo-ep-${Date.now()}` };
+    return { batchId: `demo-batch-${Date.now()}`, episodeCount: 1 };
   }
 
   const formData = new FormData();
-  formData.append('workId', input.workId);
-  formData.append('episodeNumber', String(input.episodeNumber));
-  formData.append('file', input.file);
+  const meta = { uploadType: 'SINGLE_EPISODE', episodeNo: input.episodeNumber };
+  formData.append('data', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+  formData.append('episodeFiles', input.file);
   if (input.settingsFile) {
-    formData.append('settingsFile', input.settingsFile);
+    formData.append('settingBookFile', input.settingsFile);
   }
 
-  return apiFetchForm<UploadEpisodeResult>('/api/v1/episodes/upload', formData);
+  return apiFetchForm<EpisodeUploadResponse>(`/api/v1/works/${input.workId}/episodes`, formData);
 }

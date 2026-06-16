@@ -13,7 +13,7 @@ export const C = {
 
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-export type WorkId = 'detective' | 'murim';
+export type WorkId = string;
 export type EditorMode = 'edit' | 'view';
 export type NavId = 'settingDB' | 'reports' | 'graph' | 'manuscripts';
 export type TransitionType = 'push-right' | 'push-left' | 'cover-up' | 'pop' | 'dissolve';

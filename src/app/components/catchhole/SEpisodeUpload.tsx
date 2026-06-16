@@ -8,7 +8,7 @@ import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { useBackendStatus } from '../../context/BackendStatusContext';
-import { WORK_INFO } from './AppSidebar';
+import { WORK_INFO, FALLBACK_WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
 import { BtnP, BtnG, FileDropArea } from './S1Dashboard';
 import { validateManuscriptFile } from '../../lib/fileValidation';
@@ -389,7 +389,7 @@ export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
   const { selectedWork } = useAppContext();
   const { suggestDemoMode } = useBackendStatus();
-  const work = WORK_INFO[selectedWork];
+  const work = WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO;
 
   const [step, setStep] = useState<EpisodeUploadStep>('select-mode');
   const [uploadMode, setUploadMode] = useState<EpisodeUploadMode | null>(null);
