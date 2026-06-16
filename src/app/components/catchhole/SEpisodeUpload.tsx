@@ -8,7 +8,7 @@ import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { useBackendStatus } from '../../context/BackendStatusContext';
-import { WORK_INFO } from './AppSidebar';
+import { WORK_INFO, FALLBACK_WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
 import { BtnP, BtnG, FileDropArea } from './S1Dashboard';
 import { validateManuscriptFile } from '../../lib/fileValidation';
@@ -389,7 +389,7 @@ export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
   const { selectedWork } = useAppContext();
   const { suggestDemoMode } = useBackendStatus();
-  const work = WORK_INFO[selectedWork];
+  const work = WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO;
 
   const [step, setStep] = useState<EpisodeUploadStep>('select-mode');
   const [uploadMode, setUploadMode] = useState<EpisodeUploadMode | null>(null);
@@ -457,7 +457,7 @@ export default function SEpisodeUpload() {
   // 다회차(단일 파일) 모드에서 파일을 선택하면 같은 화면에서 AI 분리 미리보기를 보여준다
   useEffect(() => {
     if (uploadMode === 'bulk-single-file' && bulkFile && boundaries.length === 0) {
-      const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+      const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
       setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
     }
   }, [uploadMode, bulkFile, boundaries.length, work.title]);
@@ -741,7 +741,7 @@ export default function SEpisodeUpload() {
                         onClick={() => {
                           if (!bulkFile) {
                             suggestDemoMode(() => {
-                              const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+                              const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
                               setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
                               setStep('boundary-preview');
                             });
@@ -912,7 +912,7 @@ export default function SEpisodeUpload() {
                   <BtnG
                     label="다시 분리"
                     onClick={() => {
-                      const lastChapters = work.title === WORK_INFO.detective.title ? 158 : 42;
+                      const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
                       setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
                       setSelectedBoundaryId(null);
                     }}

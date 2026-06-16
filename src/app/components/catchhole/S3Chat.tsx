@@ -4,7 +4,7 @@ import { C, WorkId } from './constants';
 import { useAppContext } from '../../context/AppContext';
 import { Shield, Send, ArrowRight } from 'lucide-react';
 import { UserMenu } from './UserMenu';
-import { AppSidebar } from './AppSidebar';
+import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
@@ -280,7 +280,7 @@ export default function S3Chat() {
             padding: '0 28px', flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{WORK_INFO[selectedWork].title}</span>
+              <span style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}</span>
               <span style={{ color: C.t3, fontSize: 13 }}>▾</span>
             </div>
             <span style={{ color: C.t3, fontSize: 12 }}>설정 DB 기반 · 158화 로드됨</span>

@@ -138,10 +138,6 @@ function NewWorkCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-function isKnownWorkId(id: string): id is WorkId {
-  return id === 'detective' || id === 'murim';
-}
-
 function SkeletonCard() {
   return (
     <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
@@ -161,14 +157,13 @@ export default function S0WorkPicker() {
   const [showNewWork, setShowNewWork] = useState(false);
 
   const handleSelect = (workId: string) => {
-    if (!isKnownWorkId(workId)) return;
     setSelectedWork(workId);
     navigate('/dashboard', 'push-right');
   };
 
   const cardWorks: CardWork[] = works.map(w => {
     const meta = KNOWN_WORK_META[w.id] ?? { conflicts: 0, status: 'pending' as const };
-    return { id: w.id, title: w.title, genre: w.genre, chapters: w.episodeCount, ...meta };
+    return { id: w.id, title: w.title, genre: w.genre ?? '', chapters: w.episodeCount, ...meta };
   });
 
   return (

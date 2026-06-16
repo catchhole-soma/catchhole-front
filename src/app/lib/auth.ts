@@ -1,6 +1,6 @@
-import { apiFetch } from './api';
+import { apiFetch, ACCESS_TOKEN_KEY } from './api';
 
-export const ACCESS_TOKEN_KEY = 'accessToken';
+export { ACCESS_TOKEN_KEY };
 
 interface AuthTokenResponse {
   accessToken: string;

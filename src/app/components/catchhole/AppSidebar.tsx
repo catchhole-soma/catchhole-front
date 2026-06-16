@@ -6,10 +6,13 @@ import { C, WorkId, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 
-export const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
+export const WORK_INFO: Partial<Record<WorkId, { title: string; genre: string }>> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
   murim: { title: '무협지존', genre: '무협' },
 };
+
+/** WORK_INFO에 없는(데모 외) 실제 작품을 선택했을 때 사용하는 기본 표시값 */
+export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
 
 function NavItem({
   icon, label, active, badge, onClick,
@@ -71,9 +74,9 @@ export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
           padding: '8px 12px', marginBottom: 6,
         }}>
           <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, marginBottom: 2, letterSpacing: '-0.2px' }}>
-            {WORK_INFO[selectedWork].title}
+            {(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}
           </div>
-          <div style={{ color: C.t3, fontSize: 11 }}>{WORK_INFO[selectedWork].genre}</div>
+          <div style={{ color: C.t3, fontSize: 11 }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).genre}</div>
         </div>
         <button onClick={() => navigate('/', 'push-left')} style={{
           width: '100%', padding: '5px 0', borderRadius: 5,

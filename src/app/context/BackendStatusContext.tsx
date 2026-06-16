@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { WifiOff, FileQuestion } from 'lucide-react';
 import { C } from '../components/catchhole/constants';
-import { setNetworkErrorListener } from '../lib/api';
+import { ACCESS_TOKEN_KEY, setAuthErrorListener, setNetworkErrorListener } from '../lib/api';
 import { setDemoMode } from '../lib/worksApi';
 
 type PromptKind = 'network' | 'no-file';
@@ -62,6 +62,14 @@ export function BackendStatusProvider({ children }: { children: React.ReactNode 
     });
     return () => setNetworkErrorListener(null);
   }, [networkDismissed]);
+
+  useEffect(() => {
+    setAuthErrorListener(() => {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      window.location.href = '/login';
+    });
+    return () => setAuthErrorListener(null);
+  }, []);
 
   const dismissPrompt = () => {
     if (promptKind === 'network') setNetworkDismissed(true);

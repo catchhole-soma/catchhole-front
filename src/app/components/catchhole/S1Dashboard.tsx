@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
-import { AppSidebar } from './AppSidebar';
+import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
@@ -2801,8 +2801,8 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
                     <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
-                      {WORK_INFO[selectedWork].title}
-                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{WORK_INFO[selectedWork].genre}</span>
+                      {(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}
+                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).genre}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -3015,7 +3015,7 @@ export default function S1Dashboard() {
                     { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', bars: [C.warning, C.warning] },
                     { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
                     { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
-                  ].filter(item => item.work === WORK_INFO[selectedWork].title).map((item, i) => (
+                  ].filter(item => item.work === (WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title).map((item, i) => (
                     <div key={i} onClick={() => navigate('/report', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
                       padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
@@ -3066,7 +3066,7 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
                     <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                      {WORK_INFO[selectedWork].title}
+                      {(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}
                     </span>
                   </div>
                   <BtnP label="회차 올리기" icon={<Upload size={13} />}
