@@ -94,7 +94,7 @@ export async function getWorks(): Promise<Work[]> {
     return loadDemoWorks();
   }
   const works = await apiFetch<WorkResponse[]>('/api/v1/works');
-  return works.map(toWork);
+  return (works ?? []).map(toWork);
 }
 
 export async function createWork(input: CreateWorkInput): Promise<CreateWorkResult> {

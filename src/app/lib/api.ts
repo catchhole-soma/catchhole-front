@@ -73,8 +73,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!body.success || !res.ok) {
     const status = body.error?.status ?? res.status;
-    // 로그인/회원가입 실패(토큰 미보유 상태의 401)는 자격 증명 오류이므로 전역 로그아웃 처리 대상에서 제외한다.
-    if (status === 401 && localStorage.getItem(ACCESS_TOKEN_KEY)) {
+    const isAuthEndpoint = res.url.includes('/api/v1/auth/login') || res.url.includes('/api/v1/auth/signup');
+    if (status === 401 && localStorage.getItem(ACCESS_TOKEN_KEY) && !isAuthEndpoint) {
       authErrorListener?.();
     }
     throw new ApiError(
