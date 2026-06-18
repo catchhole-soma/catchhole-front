@@ -134,7 +134,7 @@ export default function SLanding() {
       </div>
 
       {/* Features */}
-      <div style={{
+      <div id="features" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, padding: '64px 64px',
       }}>
         <div style={{ color: C.t1, fontSize: 26, fontWeight: 800, textAlign: 'center' }}>
@@ -167,7 +167,7 @@ export default function SLanding() {
           }}>
             무료로 시작하기
           </button>
-          <button style={{
+          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} style={{
             height: 44, padding: '0 20px', borderRadius: 6, border: `1px solid ${C.border}`,
             background: C.surface, color: C.t2, fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit',
