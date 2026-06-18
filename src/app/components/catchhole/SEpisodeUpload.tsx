@@ -564,9 +564,9 @@ export default function SEpisodeUpload() {
   const goToReview = () => {
     const episodeIds = createdEpisodes.map((e) => e.id);
     if (createdEpisodes[0]?.uploadPurpose === 'EPISODE_VALIDATION') {
-      navigate('/episode-validation-report', 'dissolve', { episodeIds });
+      navigate('/episode-validation-report', 'dissolve', { episodeIds, workId: selectedWork });
     } else {
-      navigate('/setting-review', 'dissolve', { episodeIds });
+      navigate('/setting-review', 'dissolve', { episodeIds, workId: selectedWork });
     }
   };
 
