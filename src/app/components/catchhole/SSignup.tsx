@@ -72,7 +72,7 @@ export default function SSignup() {
     setSubmitting(true);
     try {
       await signup({ email, password, phoneNumber, displayName: name });
-      navigate('/', 'push-right');
+      navigate('/works', 'push-right');
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === 'AUTH_EMAIL_DUPLICATED') {
@@ -239,7 +239,7 @@ export default function SSignup() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            <button onClick={() => navigate('/', 'push-right')} style={{
+            <button onClick={() => navigate('/works', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
               background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -249,7 +249,7 @@ export default function SSignup() {
               </svg>
               카카오로 계속하기
             </button>
-            <button onClick={() => navigate('/', 'push-right')} style={{
+            <button onClick={() => navigate('/works', 'push-right')} style={{
               width: '100%', height: 44, borderRadius: 8,
               border: `1px solid ${C.border}`, background: 'transparent',
               color: C.t1, fontSize: 14, fontWeight: 500,

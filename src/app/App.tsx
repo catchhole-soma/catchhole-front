@@ -5,6 +5,7 @@ import { AppContextProvider } from './context/AppContext';
 import { BackendStatusProvider } from './context/BackendStatusContext';
 import SLogin from './components/catchhole/SLogin';
 import SSignup from './components/catchhole/SSignup';
+import SLanding from './components/catchhole/SLanding';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
@@ -61,6 +62,11 @@ function PrivateRoute() {
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
+function RootRoute() {
+  const token = localStorage.getItem('accessToken');
+  return token ? <Navigate to="/works" replace /> : <SLanding />;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const transition = ((location.state as Record<string, unknown>)?.transition as TransitionType) ?? 'dissolve';
@@ -79,8 +85,9 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route path="/login" element={<SLogin />} />
           <Route path="/signup" element={<SSignup />} />
+          <Route path="/" element={<RootRoute />} />
           <Route element={<PrivateRoute />}>
-            <Route path="/" element={<S0WorkPicker />} />
+            <Route path="/works" element={<S0WorkPicker />} />
             <Route path="/dashboard" element={<S1Dashboard />} />
             <Route path="/editor" element={<S2Editor />} />
             <Route path="/chat" element={<S3Chat />} />

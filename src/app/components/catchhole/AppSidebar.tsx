@@ -78,7 +78,7 @@ export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
           </div>
           <div style={{ color: C.t3, fontSize: 11 }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).genre}</div>
         </div>
-        <button onClick={() => navigate('/', 'push-left')} style={{
+        <button onClick={() => navigate('/works', 'push-left')} style={{
           width: '100%', padding: '5px 0', borderRadius: 5,
           border: `1px solid ${C.border}`, background: 'transparent',
           color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
