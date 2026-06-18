@@ -86,6 +86,7 @@ function AnimatedRoutes() {
           <Route path="/login" element={<SLogin />} />
           <Route path="/signup" element={<SSignup />} />
           <Route path="/" element={<RootRoute />} />
+          <Route path="/landing" element={<SLanding />} />
           <Route element={<PrivateRoute />}>
             <Route path="/works" element={<S0WorkPicker />} />
             <Route path="/dashboard" element={<S1Dashboard />} />
