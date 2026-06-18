@@ -177,7 +177,12 @@ export default function S0WorkPicker() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 32px', flexShrink: 0,
       }}>
-        <div onClick={() => navigate('/works', 'dissolve')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <div
+          onClick={() => navigate('/works', 'dissolve')}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
+          role="button" tabIndex={0}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        >
           <div style={{
             width: 26, height: 26, borderRadius: 6,
             background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,

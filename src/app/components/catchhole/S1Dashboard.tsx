@@ -2762,7 +2762,12 @@ export default function S1Dashboard() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 24px', flexShrink: 0, zIndex: 10,
       }}>
-        <div onClick={() => navigate('/works', 'dissolve')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <div
+          onClick={() => navigate('/works', 'dissolve')}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
+          role="button" tabIndex={0}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        >
           <div style={{
             width: 26, height: 26, borderRadius: 6, background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
