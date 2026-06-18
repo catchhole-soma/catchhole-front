@@ -364,8 +364,8 @@
     {
       "type": "frame",
       "id": "fREKM",
-      "x": 1004,
-      "y": 322,
+      "x": 0,
+      "y": 5390,
       "name": "SEpisodeUpload / 01 업로드 방식 선택",
       "width": 1280,
       "height": 620,
@@ -865,8 +865,8 @@
     {
       "type": "frame",
       "id": "Yr63L",
-      "x": 1004,
-      "y": 1022,
+      "x": 0,
+      "y": 6110,
       "name": "SEpisodeUpload / 02A Mode A 입력",
       "width": 1280,
       "height": 1600,
@@ -1854,8 +1854,8 @@
     {
       "type": "frame",
       "id": "lTe6i",
-      "x": 1004,
-      "y": 2702,
+      "x": 1380,
+      "y": 7810,
       "name": "SEpisodeUpload / 03 회차 분리 확인",
       "width": 1280,
       "height": 1000,
@@ -3423,8 +3423,8 @@
     {
       "type": "frame",
       "id": "kvwV0",
-      "x": 1004,
-      "y": 3782,
+      "x": 1380,
+      "y": 8910,
       "name": "SEpisodeUpload / 04 설정 확인",
       "width": 1280,
       "height": 820,
@@ -4339,8 +4339,8 @@
     {
       "type": "frame",
       "id": "geQNP",
-      "x": 1004,
-      "y": 4682,
+      "x": 1380,
+      "y": 6110,
       "name": "SEpisodeUpload / 02B Mode B 입력",
       "width": 1280,
       "fill": "$bg",
@@ -5684,8 +5684,8 @@
     {
       "type": "frame",
       "id": "uBFUN",
-      "x": 1004,
-      "y": 6173,
+      "x": 2760,
+      "y": 6110,
       "name": "SEpisodeUpload / 02C Mode C 입력",
       "width": 1280,
       "height": 1600,
@@ -6747,8 +6747,8 @@
     {
       "type": "frame",
       "id": "tNdOk",
-      "x": 1004,
-      "y": 7853,
+      "x": 0,
+      "y": 470,
       "name": "SLogin / 로그인",
       "clip": true,
       "width": 1280,
@@ -7185,8 +7185,8 @@
     {
       "type": "frame",
       "id": "VI8zP",
-      "x": 2364,
-      "y": 7853,
+      "x": 1380,
+      "y": 470,
       "name": "SSignup / 회원가입",
       "clip": true,
       "width": 1280,
@@ -7587,8 +7587,8 @@
     {
       "type": "frame",
       "id": "BQqMv",
-      "x": 3724,
-      "y": 7853,
+      "x": 1380,
+      "y": 1450,
       "name": "Modal / TermsModal",
       "clip": true,
       "width": 1280,
@@ -7863,8 +7863,8 @@
     {
       "type": "frame",
       "id": "Mhex8",
-      "x": 1004,
-      "y": 8853,
+      "x": 2760,
+      "y": 2470,
       "name": "S0WorkPicker / Loaded",
       "clip": true,
       "width": 1280,
@@ -8371,8 +8371,8 @@
     {
       "type": "frame",
       "id": "DAsxW",
-      "x": 2364,
-      "y": 8853,
+      "x": 1380,
+      "y": 2470,
       "name": "S0WorkPicker / Loading",
       "clip": true,
       "width": 1280,
@@ -8711,8 +8711,8 @@
     {
       "type": "frame",
       "id": "gpJdz",
-      "x": 3724,
-      "y": 8853,
+      "x": 0,
+      "y": 2470,
       "name": "S0WorkPicker / Empty",
       "clip": true,
       "width": 1280,
@@ -9503,8 +9503,8 @@
     {
       "type": "frame",
       "id": "Z0hcsQ",
-      "x": 1004,
-      "y": 9653,
+      "x": 4140,
+      "y": 10870,
       "name": "S4Loading / 분석 진행",
       "clip": true,
       "width": 1280,
@@ -9707,8 +9707,8 @@
     {
       "type": "frame",
       "id": "cwRIz",
-      "x": 2364,
-      "y": 9653,
+      "x": 5520,
+      "y": 10870,
       "name": "S3Chat / Empty",
       "clip": true,
       "width": 1280,
@@ -10488,8 +10488,8 @@
     {
       "type": "frame",
       "id": "PEIta",
-      "x": 3724,
-      "y": 9653,
+      "x": 6900,
+      "y": 10870,
       "name": "S3Chat / With Messages",
       "clip": true,
       "width": 1280,
@@ -11088,8 +11088,8 @@
     {
       "type": "frame",
       "id": "qdK5y",
-      "x": 1004,
-      "y": 10453,
+      "x": 1380,
+      "y": 3490,
       "name": "S1Dashboard / 설정DB - 캐릭터",
       "clip": true,
       "width": 1280,
@@ -12432,8 +12432,8 @@
     {
       "type": "frame",
       "id": "XqIK7",
-      "x": 2284,
-      "y": 10453,
+      "x": 4140,
+      "y": 3490,
       "name": "S1Dashboard / 분석 리포트",
       "clip": true,
       "width": 1280,
@@ -13410,8 +13410,8 @@
     {
       "type": "frame",
       "id": "pUaEk",
-      "x": 3564,
-      "y": 10453,
+      "x": 5520,
+      "y": 3490,
       "name": "S1Dashboard / 업로드된 원고",
       "clip": true,
       "width": 1280,
@@ -14630,8 +14630,8 @@
     {
       "type": "frame",
       "id": "dVhGD",
-      "x": 4844,
-      "y": 10453,
+      "x": 1380,
+      "y": 4370,
       "name": "Modal / CharDetailModal",
       "clip": true,
       "width": 1280,
@@ -15900,8 +15900,8 @@
     {
       "type": "frame",
       "id": "Dn9nJ",
-      "x": 1004,
-      "y": 11353,
+      "x": 0,
+      "y": 10870,
       "name": "S2Editor / 분석 감지 (편집)",
       "clip": true,
       "width": 1280,
@@ -17528,8 +17528,8 @@
     {
       "type": "frame",
       "id": "vH0dF",
-      "x": 1004,
-      "y": 12253,
+      "x": 0,
+      "y": 11890,
       "name": "S5Report / 단일 회차 검수",
       "clip": true,
       "width": 1280,
@@ -19208,8 +19208,8 @@
     {
       "type": "frame",
       "id": "f0EDt",
-      "x": 1004,
-      "y": 13450,
+      "x": 700,
+      "y": 9830,
       "name": "SSettingReview / 검토 화면",
       "clip": true,
       "width": 1280,
@@ -20819,8 +20819,8 @@
     {
       "type": "frame",
       "id": "EmGjn",
-      "x": 1004,
-      "y": 14350,
+      "x": 2080,
+      "y": 9830,
       "name": "SEpisodeValidationReport / 검사 결과",
       "clip": true,
       "width": 1280,
@@ -22413,8 +22413,8 @@
     {
       "type": "frame",
       "id": "k9OL1",
-      "x": 2384,
-      "y": 14350,
+      "x": 0,
+      "y": 13350,
       "name": "Modal / BackendStatus (network)",
       "clip": true,
       "width": 1280,
@@ -22546,8 +22546,8 @@
     {
       "type": "frame",
       "id": "G2Sx5H",
-      "x": 3764,
-      "y": 14350,
+      "x": 1380,
+      "y": 13350,
       "name": "Modal / BackendStatus (no-file)",
       "clip": true,
       "width": 1280,
@@ -22679,8 +22679,8 @@
     {
       "type": "frame",
       "id": "t4uBvo",
-      "x": 6124,
-      "y": 0,
+      "x": 0,
+      "y": 3490,
       "name": "S1Dashboard / 그래프 뷰",
       "clip": true,
       "width": 1280,
@@ -24152,8 +24152,8 @@
     {
       "type": "frame",
       "id": "epA2f",
-      "x": 7404,
-      "y": 0,
+      "x": 0,
+      "y": 4370,
       "name": "Modal / ShareModal",
       "clip": true,
       "width": 1280,
@@ -25148,8 +25148,8 @@
     {
       "type": "frame",
       "id": "j7heI",
-      "x": 8684,
-      "y": 0,
+      "x": 1380,
+      "y": 11890,
       "name": "S5Report / 발행 전 전체 검수",
       "clip": true,
       "width": 1280,
@@ -26950,8 +26950,8 @@
     {
       "type": "frame",
       "id": "FrYW0",
-      "x": 10004,
-      "y": 0,
+      "x": 8280,
+      "y": 10870,
       "name": "S2Editor / 보기 모드 (view)",
       "clip": true,
       "width": 1280,
@@ -28615,8 +28615,8 @@
     {
       "type": "frame",
       "id": "P5f42",
-      "x": 11324,
-      "y": 0,
+      "x": 2760,
+      "y": 10870,
       "name": "Modal / S3Modal (분석 요청)",
       "clip": true,
       "width": 1280,
@@ -28883,8 +28883,8 @@
     {
       "type": "frame",
       "id": "vwGDR",
-      "x": 6164,
-      "y": 10453,
+      "x": 5520,
+      "y": 4370,
       "name": "Modal / UploadModal (회차 올리기)",
       "clip": true,
       "width": 1280,
@@ -29144,8 +29144,8 @@
     {
       "type": "frame",
       "id": "MCfXX",
-      "x": 7524,
-      "y": 10453,
+      "x": 2760,
+      "y": 4370,
       "name": "Modal / SettingsBuilderModal (캐릭터 설정)",
       "clip": true,
       "width": 1280,
@@ -29677,8 +29677,8 @@
     {
       "type": "frame",
       "id": "zMCfY",
-      "x": 8884,
-      "y": 10453,
+      "x": 4140,
+      "y": 4370,
       "name": "Modal / WorldBuilderModal (세계관 설정)",
       "clip": true,
       "width": 1280,
@@ -30354,8 +30354,8 @@
     {
       "type": "frame",
       "id": "M31J8c",
-      "x": 1004,
-      "y": 15250,
+      "x": 1380,
+      "y": 10870,
       "name": "S2Editor / 동적 상태 참고 (데모재생·충돌검사·툴팁)",
       "clip": true,
       "width": 1280,
@@ -31344,6 +31344,658 @@
           ]
         }
       ]
+    },
+    {
+      "type": "note",
+      "id": "t8X18",
+      "x": 0,
+      "y": 400,
+      "name": "Lane 1 Label",
+      "width": 600,
+      "height": 0,
+      "content": "1. 인증 — 로그인 → 회원가입 → 약관 동의"
+    },
+    {
+      "type": "frame",
+      "id": "s1ET9b",
+      "x": 1310,
+      "y": 900,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "Om1QV",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "RSH1v",
+      "x": 2000,
+      "y": 1390,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "UZajM",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "E7mFeK",
+      "x": 0,
+      "y": 2400,
+      "name": "Lane 2 Label",
+      "width": 700,
+      "height": 0,
+      "content": "2. 작품 선택 — 빈 상태 → 로딩 → 작품 목록"
+    },
+    {
+      "type": "frame",
+      "id": "QtHgb",
+      "x": 1310,
+      "y": 2850,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "F5r4ku",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xKBcL",
+      "x": 2690,
+      "y": 2850,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "rJerr",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "SZPhz",
+      "x": 0,
+      "y": 3420,
+      "name": "Lane 3 Label",
+      "width": 900,
+      "height": 0,
+      "content": "3. 대시보드 허브 — 그래프뷰 / 캐릭터 / 분석리포트 / 업로드된 원고 (아래: 각 화면이 여는 모달)"
+    },
+    {
+      "type": "frame",
+      "id": "Up0uD",
+      "x": 620,
+      "y": 4310,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "MWbNm",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "auYWf",
+      "x": 2000,
+      "y": 4310,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "gvJid",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "iz9zK",
+      "x": 6140,
+      "y": 4310,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "pVGkk",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "fSfbe",
+      "x": 0,
+      "y": 5320,
+      "name": "Lane 4 Label",
+      "width": 900,
+      "height": 0,
+      "content": "4. 회차 업로드 — 방식 선택 → (분기) 입력 방식 A/B/C"
+    },
+    {
+      "type": "frame",
+      "id": "s5o3Z",
+      "x": 620,
+      "y": 6040,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "Tpr8b",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "M5dvDg",
+      "x": 2020,
+      "y": 6040,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "vo5NO",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "SehiS",
+      "x": 3400,
+      "y": 6040,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "gnw4N",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Vi0lX",
+      "x": 620,
+      "y": 7740,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "Dq7bo",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mECFo",
+      "x": 2000,
+      "y": 7740,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "B1zvK3",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "gt5Vr",
+      "x": 3400,
+      "y": 7740,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "D3rD4C",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "YkKLl",
+      "x": 2000,
+      "y": 8840,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "a08tg9",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "UpIGh",
+      "x": 1320,
+      "y": 9760,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "YctBg",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zMuHs",
+      "x": 2700,
+      "y": 9760,
+      "name": "화살표 ↓",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "uwdBr",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-down",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "s0xGE",
+      "x": 1380,
+      "y": 7770,
+      "name": "Lane4 병합 라벨",
+      "width": 300,
+      "height": 0,
+      "content": "(병합) 회차 분리 확인"
+    },
+    {
+      "type": "note",
+      "id": "GeReF",
+      "x": 700,
+      "y": 9790,
+      "name": "Lane4 결과분기 라벨",
+      "width": 400,
+      "height": 0,
+      "content": "(분기) 검토 화면 / 검사 결과"
+    },
+    {
+      "type": "note",
+      "id": "D0rP44",
+      "x": 0,
+      "y": 10800,
+      "name": "Lane 5 Label",
+      "width": 1000,
+      "height": 0,
+      "content": "5. 에디터·분석 — 편집 → 분석요청 → 분석진행 → 챗봇(빈/대화중) → 보기모드"
+    },
+    {
+      "type": "frame",
+      "id": "RwJoq",
+      "x": 1310,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "aHkT2",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "QW1Cz",
+      "x": 2690,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "oF98s",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "WspA6",
+      "x": 4070,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "M1sX2",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yvxXw",
+      "x": 5450,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "x0n70",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "dIUEp",
+      "x": 6830,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "ZAOry",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yMp5c",
+      "x": 8210,
+      "y": 11250,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "elJYr",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "KZxtF",
+      "x": 0,
+      "y": 11820,
+      "name": "Lane 6 Label",
+      "width": 700,
+      "height": 0,
+      "content": "6. 리포트 — 단일 회차 검수 → 발행 전 전체 검수"
+    },
+    {
+      "type": "frame",
+      "id": "TCE1E",
+      "x": 1310,
+      "y": 12490,
+      "name": "화살표 →",
+      "width": 40,
+      "height": 40,
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon",
+          "id": "Ggy8j",
+          "name": "Icon",
+          "width": 24,
+          "height": 24,
+          "icon": "arrow-right",
+          "library": "lucide",
+          "fill": "$text-2"
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "qm9ge",
+      "x": 0,
+      "y": 13280,
+      "name": "Lane 7 Label",
+      "width": 800,
+      "height": 0,
+      "content": "7. 전역 오버레이 — 어디서든 트리거 가능한 백엔드 상태 모달"
+    },
+    {
+      "type": "text",
+      "id": "l8fxiN",
+      "x": -6431,
+      "y": 867,
+      "fill": "#ffffff",
+      "fontFamily": "Inter",
+      "fontSize": 16,
+      "fontWeight": "normal"
     }
   ],
   "variables": {
