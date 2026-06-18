@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Shield, Send, ArrowRight } from 'lucide-react';
 import { UserMenu } from './UserMenu';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
@@ -208,6 +209,7 @@ function NavItem({ icon, label, active, badge, onClick }: {
 }
 
 export default function S3Chat() {
+  const navigate = useAppNavigate();
   const { selectedWork } = useAppContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -246,7 +248,12 @@ export default function S3Chat() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 24px', flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div
+          onClick={() => navigate('/works', 'dissolve')}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
+          role="button" tabIndex={0}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        >
           <div style={{
             width: 26, height: 26, borderRadius: 6,
             background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
