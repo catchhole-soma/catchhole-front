@@ -53,6 +53,13 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 - `SLogin.tsx`의 소셜 로그인(카카오/구글) 버튼은 아직 **목(mock) 구현** — 실제 OAuth 연동 전까지 mock token만 저장됨
 - 인증 상태는 `AppContext`가 아니라 localStorage(accessToken) 기준으로 `PrivateRoute`가 직접 판단
 
+## 백엔드 API 문서 (Swagger)
+
+로컬에서 `catchhole-backend-java`를 `./gradlew bootRun`으로 띄우면(Docker Desktop 필요, `compose.yaml`이 로컬 Postgres 컨테이너를 자동 기동):
+
+- Swagger UI: `{VITE_API_BASE_URL}/swagger-ui/index.html`
+- OpenAPI JSON: `{VITE_API_BASE_URL}/v3/api-docs`
+
 ## 디자인 시스템 — "Obsidian Violet"
 
 다크 테마 기반. `src/app/components/catchhole/constants.ts`의 `C` 객체가 코드 상의 단일 진실 소스입니다.
