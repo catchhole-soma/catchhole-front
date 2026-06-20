@@ -1050,6 +1050,18 @@ const INIT_WORLD_SETTINGS: WorldSetting[] = [
   },
 ];
 
+function generateManualTemplateEntries(): SettingEntry[] {
+  const e = (label: string, placeholder: string): SettingEntry =>
+    ({ id: mkId(), label, content: '', placeholder, isSpoiler: false });
+  return [
+    e('역할', '주인공 / 라이벌 / 조력자'),
+    e('나이', '23세'),
+    e('눈', '갈색'),
+    e('직업', '검사 지망생'),
+    e('첫등장', '1화'),
+  ];
+}
+
 function generateMockEntries(_seed: string): SettingEntry[] {
   const e = (label: string, placeholder: string, isSpoiler = false): SettingEntry =>
     ({ id: mkId(), label, content: '', placeholder, isSpoiler });
@@ -1298,6 +1310,7 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
   const [seed, setSeed] = useState(initial?.seed ?? '');
   const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? []);
   const [generated, setGenerated] = useState(!!initial);
+  const [mode, setMode] = useState<'ai' | 'manual'>('ai');
 
   const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
   const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
@@ -1306,6 +1319,11 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
 
   const generate = () => {
     setEntries(generateMockEntries(seed));
+    setGenerated(true);
+  };
+
+  const startManual = () => {
+    setEntries(generateManualTemplateEntries());
     setGenerated(true);
   };
 
@@ -1348,27 +1366,59 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
 
         {/* 바디 */}
         <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* 힌트 입력 + AI 생성 */}
+          {/* 힌트 입력 + AI 생성 / 직접 입력 */}
           {!generated && (
             <>
-              <div>
-                <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>
-                  떠오르는 설정을 간단히 적으면 AI가 항목을 맞춤 생성합니다 (선택)
-                </div>
-                <textarea value={seed} onChange={e => setSeed(e.target.value)}
-                  placeholder={'예) 수아는 검사 지망생인데 아버지가 범인임. 이걸 숨기고 있고 강민준은 눈치채는 것 같음...'}
-                  style={{ ...baseStyle, width: '100%', height: 100, fontSize: 13, lineHeight: 1.7, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' }}
-                  onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              {/* 모드 탭 */}
+              <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.border}` }}>
+                {([['ai', 'AI로 생성'], ['manual', '직접 입력']] as const).map(([m, label]) => (
+                  <button key={m} onClick={() => setMode(m)} style={{
+                    height: 36, padding: '0 14px', background: 'none', border: 'none',
+                    borderBottom: `2px solid ${mode === m ? C.primary : 'transparent'}`,
+                    color: mode === m ? C.primary : C.t2,
+                    fontSize: 13, fontWeight: mode === m ? 600 : 400,
+                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', marginBottom: -1,
+                  }}>{label}</button>
+                ))}
               </div>
-              <button onClick={generate} style={{
-                height: 42, borderRadius: 7, border: 'none', background: C.primary, color: '#fff',
-                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
-                <Sparkles size={15} /> AI 항목 생성
-              </button>
+
+              {mode === 'ai' ? (
+                <>
+                  <div>
+                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>
+                      떠오르는 설정을 간단히 적으면 AI가 항목을 맞춤 생성합니다 (선택)
+                    </div>
+                    <textarea value={seed} onChange={e => setSeed(e.target.value)}
+                      placeholder={'예) 수아는 검사 지망생인데 아버지가 범인임. 이걸 숨기고 있고 강민준은 눈치채는 것 같음...'}
+                      style={{ ...baseStyle, width: '100%', height: 100, fontSize: 13, lineHeight: 1.7, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
+                  </div>
+                  <button onClick={generate} style={{
+                    height: 42, borderRadius: 7, border: 'none', background: C.primary, color: '#fff',
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
+                    <Sparkles size={15} /> AI 항목 생성
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ color: C.t3, fontSize: 13 }}>
+                    AI 없이 항목을 직접 추가해서 캐릭터 설정을 채울 수 있습니다. AI가 응답하지 않을 때도 사용할 수 있어요.
+                  </div>
+                  <button onClick={startManual} style={{
+                    height: 42, borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; }}>
+                    <Plus size={15} /> 직접 입력 시작
+                  </button>
+                </>
+              )}
             </>
           )}
 
@@ -1408,7 +1458,7 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
                   </span>
                   {' '}는 챗봇·공유 시 가려짐
                 </>
-              : 'AI 항목 생성 후 내용을 채워주세요'}
+              : mode === 'ai' ? 'AI 항목 생성 후 내용을 채워주세요' : '직접 입력을 시작한 뒤 내용을 채워주세요'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <BtnG label="취소" onClick={onClose} />
@@ -1640,7 +1690,7 @@ function WorldBuilderModal({ onClose, onSave, initial }: {
 }
 
 // ── CharCardDynamic (CharacterSetting 기반, 클릭 → 상세 / 수정 버튼 → 편집) ──
-function CharCardDynamic({ setting, onEdit, onView }: { setting: CharacterSetting; onEdit: () => void; onView: () => void }) {
+function CharCardDynamic({ setting, onEdit, onView, forceShowEdit }: { setting: CharacterSetting; onEdit: () => void; onView: () => void; forceShowEdit?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const color = CHAR_COLORS[setting.id] || C.primary;
   const get = (label: string) =>
@@ -1669,13 +1719,13 @@ function CharCardDynamic({ setting, onEdit, onView }: { setting: CharacterSettin
           width: 6, height: 6, borderRadius: '50%', background: C.warning,
         }} />
       )}
-      {hovered && (
+      {(hovered || forceShowEdit) && (
         <div
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
           style={{
             position: 'absolute', top: 10, right: 10, background: C.surface,
-            border: `1px solid ${C.border}`, borderRadius: 4,
-            padding: '2px 8px', fontSize: 11, color: C.t3, cursor: 'pointer',
+            border: `1px solid ${forceShowEdit ? C.primary : C.border}`, borderRadius: 4,
+            padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.primary : C.t3, cursor: 'pointer',
           }}
         >수정</div>
       )}
@@ -2727,6 +2777,8 @@ export default function S1Dashboard() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
+  const [charEditMode, setCharEditMode] = useState(false);
+  const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info' }[]>([]);
   const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
@@ -2734,10 +2786,15 @@ export default function S1Dashboard() {
   const [selectedCharDetail, setSelectedCharDetail] = useState<string | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
+    const isNew = !chars.some(c => c.id === s.id);
     setChars(prev => {
       const idx = prev.findIndex(c => c.id === s.id);
       return idx >= 0 ? prev.map(c => c.id === s.id ? s : c) : [...prev, s];
     });
+    setCharActivityLog(log => [
+      { id: mkId(), desc: isNew ? `${s.name} 캐릭터 설정 추가` : `${s.name} 설정 수정`, type: 'info' as const },
+      ...log,
+    ].slice(0, 5));
   };
 
   const handleWorldSave = (ws: WorldSetting) => {
@@ -2811,7 +2868,7 @@ export default function S1Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label="설정 수정" icon={<Settings size={12} />} />
+                    <BtnG label={charEditMode ? '수정 완료' : '설정 수정'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
                     <BtnP label="신규 회차 분석" onClick={() => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} icon={<Activity size={12} />} />
                   </div>
                 </div>
@@ -2848,6 +2905,7 @@ export default function S1Dashboard() {
                               setting={s}
                               onEdit={() => setEditTarget(s)}
                               onView={() => setSelectedCharDetail(s.id)}
+                              forceShowEdit={charEditMode}
                             />
                           ))}
                           <div onClick={() => setShowBuilder(true)} style={{
@@ -2864,21 +2922,21 @@ export default function S1Dashboard() {
                         <div style={{ marginTop: 24, maxWidth: 860 }}>
                           <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>변경 이력</div>
                           <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-                            {[
-                              { time: '방금 전', desc: '수아 · 눈 색 충돌 감지 (159화)', type: 'danger' },
-                              { time: '어제', desc: '이레나 관계 상태: 갈등 → 화해 (142화)', type: 'success' },
-                              { time: '2일 전', desc: '타임라인 이벤트 추가: 법정 첫 만남 (47화)', type: 'info' },
-                            ].map((item, i) => (
-                              <div key={i} style={{
+                            {charActivityLog.length === 0 ? (
+                              <div style={{ padding: '14px', color: C.t3, fontSize: 13 }}>
+                                아직 변경 이력이 없습니다. 캐릭터를 추가하거나 수정하면 여기 표시됩니다.
+                              </div>
+                            ) : charActivityLog.map((item, i) => (
+                              <div key={item.id} style={{
                                 display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '10px 14px', borderBottom: i < 2 ? `1px solid ${C.border}` : 'none',
+                                padding: '10px 14px', borderBottom: i < charActivityLog.length - 1 ? `1px solid ${C.border}` : 'none',
                               }}>
                                 <div style={{
                                   width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
                                   background: item.type === 'danger' ? C.danger : item.type === 'success' ? C.success : C.primary,
                                 }} />
                                 <span style={{ color: C.t2, fontSize: 13, flex: 1 }}>{item.desc}</span>
-                                <span style={{ color: C.t3, fontSize: 12 }}>{item.time}</span>
+                                <span style={{ color: C.t3, fontSize: 12 }}>방금 전</span>
                               </div>
                             ))}
                           </div>
