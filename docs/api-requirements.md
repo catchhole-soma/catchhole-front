@@ -66,6 +66,7 @@
 
 - 화면: `SSettingReview` ([`/setting-review`](https://catch-hole.vercel.app/setting-review)) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
 - 위와 같은 맥락으로, 아래 모양 부탁드립니다. 프론트는 `mockEpisodeData.ts`로 UI 먼저 구현해뒀습니다.
+- 참고: 현재 프론트 `SettingCandidate` 타입/mock 필드명(`characterName`/`settingType`/`settingKey`/`settingValue`/`evidenceChunk`)은 위 응답 예시의 백엔드 필드명(`entityName`/`attributeName`/`attributeValue`/`evidenceSpans`)과 다릅니다. 실 연동 시 프론트 타입을 백엔드 필드명에 맞춰 정리할 예정입니다.
 
 **`GET /api/v1/works/{workId}/setting-candidates`**
 ```jsonc
