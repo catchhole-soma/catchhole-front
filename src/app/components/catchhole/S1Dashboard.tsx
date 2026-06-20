@@ -1756,9 +1756,10 @@ function CharCardDynamic({ setting, onEdit, onView, forceShowEdit }: { setting: 
 }
 
 // ── CharDetailModal ──────────────────────────────────
-function CharDetailModal({ charId, chars, onClose, onEdit }: {
-  charId: string; chars: CharacterSetting[]; onClose: () => void; onEdit: () => void;
+function CharDetailModal({ charId, chars, onClose, onEdit, onDelete }: {
+  charId: string; chars: CharacterSetting[]; onClose: () => void; onEdit: () => void; onDelete: () => void;
 }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const setting = chars.find(c => c.id === charId);
   if (!setting) return null;
   const color = CHAR_COLORS[charId] || C.primary;
@@ -1815,14 +1816,35 @@ function CharDetailModal({ charId, chars, onClose, onEdit }: {
                 {setting.entries.find(e => e.label.includes('역할'))?.content || ''}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onEdit} style={{
-                padding: '6px 14px', borderRadius: 5, border: `1px solid ${C.border}`,
-                background: 'transparent', color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-              }}>수정</button>
-              <button onClick={onClose} style={{
-                background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4,
-              }}><X size={18} /></button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {confirmingDelete ? (
+                <>
+                  <span style={{ color: C.t2, fontSize: 12 }}>정말 삭제할까요?</span>
+                  <button onClick={() => setConfirmingDelete(false)} style={{
+                    padding: '6px 12px', borderRadius: 5, border: `1px solid ${C.border}`,
+                    background: 'transparent', color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>취소</button>
+                  <button onClick={onDelete} style={{
+                    padding: '6px 12px', borderRadius: 5, border: 'none',
+                    background: C.danger, color: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>삭제</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setConfirmingDelete(true)} style={{
+                    padding: '6px 14px', borderRadius: 5, border: `1px solid ${C.border}`,
+                    background: 'transparent', color: C.danger, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}><Trash2 size={13} /> 삭제</button>
+                  <button onClick={onEdit} style={{
+                    padding: '6px 14px', borderRadius: 5, border: `1px solid ${C.border}`,
+                    background: 'transparent', color: C.t2, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>수정</button>
+                  <button onClick={onClose} style={{
+                    background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4,
+                  }}><X size={18} /></button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -2797,6 +2819,17 @@ export default function S1Dashboard() {
     ].slice(0, 5));
   };
 
+  const handleCharDelete = (id: string) => {
+    const target = chars.find(c => c.id === id);
+    setChars(prev => prev.filter(c => c.id !== id));
+    if (target) {
+      setCharActivityLog(log => [
+        { id: mkId(), desc: `${target.name} 캐릭터 설정 삭제`, type: 'danger' as const },
+        ...log,
+      ].slice(0, 5));
+    }
+  };
+
   const handleWorldSave = (ws: WorldSetting) => {
     setWorldSettings(prev => {
       const idx = prev.findIndex(w => w.id === ws.id);
@@ -3035,6 +3068,10 @@ export default function S1Dashboard() {
                       onEdit={() => {
                         const s = chars.find(c => c.id === selectedCharDetail);
                         if (s) { setEditTarget(s); setSelectedCharDetail(null); }
+                      }}
+                      onDelete={() => {
+                        handleCharDelete(selectedCharDetail);
+                        setSelectedCharDetail(null);
                       }}
                     />
                   )}
