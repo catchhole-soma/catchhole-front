@@ -20018,6 +20018,80 @@
                       "children": [
                         {
                           "type": "frame",
+                          "id": "cPoP1",
+                          "name": "ListItemCard - 강민준 보유 아이템 (pending)",
+                          "width": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            12,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "L31ABg",
+                              "name": "Top Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "j1Bww",
+                                  "name": "Title",
+                                  "fill": "$text-1",
+                                  "content": "강민준 · 보유 아이템",
+                                  "fontFamily": "$font",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "K46YQN",
+                                  "name": "Badge",
+                                  "fill": "$warning-soft",
+                                  "cornerRadius": "$radius-pill",
+                                  "stroke": "$warning",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "k7Z1lj",
+                                      "name": "Label",
+                                      "fill": "$warning",
+                                      "content": "검토 대기",
+                                      "fontFamily": "$font",
+                                      "fontSize": 10,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "dDpp2",
+                              "name": "Subtitle",
+                              "fill": "$text-3",
+                              "content": "권총(분실), 수갑, 증거 사진",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
                           "id": "CXoDE",
                           "name": "ListItemCard - 수아 눈동자 색 (selected)",
                           "width": "fill_container",
@@ -20380,80 +20454,6 @@
                               "name": "Subtitle",
                               "fill": "$text-3",
                               "content": "푸른 장미 펜던트",
-                              "fontFamily": "$font",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "cPoP1",
-                          "name": "ListItemCard - 강민준 보유 아이템 (pending)",
-                          "width": "fill_container",
-                          "fill": "$surface",
-                          "cornerRadius": "$radius-md",
-                          "stroke": "$border",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 4,
-                          "padding": [
-                            12,
-                            14
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "L31ABg",
-                              "name": "Top Row",
-                              "width": "fill_container",
-                              "justifyContent": "space_between",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "j1Bww",
-                                  "name": "Title",
-                                  "fill": "$text-1",
-                                  "content": "강민준 · 보유 아이템",
-                                  "fontFamily": "$font",
-                                  "fontSize": 13,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "K46YQN",
-                                  "name": "Badge",
-                                  "fill": "$warning-soft",
-                                  "cornerRadius": "$radius-pill",
-                                  "stroke": "$warning",
-                                  "strokeWidth": 1,
-                                  "padding": [
-                                    2,
-                                    8
-                                  ],
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "k7Z1lj",
-                                      "name": "Label",
-                                      "fill": "$warning",
-                                      "content": "검토 대기",
-                                      "fontFamily": "$font",
-                                      "fontSize": 10,
-                                      "fontWeight": "700"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "dDpp2",
-                              "name": "Subtitle",
-                              "fill": "$text-3",
-                              "content": "권총(분실), 수갑, 증거 사진",
                               "fontFamily": "$font",
                               "fontSize": 11,
                               "fontWeight": "normal"
