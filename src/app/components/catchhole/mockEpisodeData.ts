@@ -103,6 +103,17 @@ export function mockCreateAnalysisJob(episodeId: string, type: AnalysisJobType):
 
 export const MOCK_SETTING_CANDIDATES: SettingCandidate[] = [
   {
+    id: 'sc-13',
+    episodeId: 'episode-160',
+    characterName: '강민준',
+    settingType: 'POSSESSION',
+    settingKey: '보유 아이템',
+    settingValue: '권총(분실), 수갑, 증거 사진',
+    confidence: 0.39,
+    evidenceChunk: { episodeNumber: 160, paragraph: 22, quote: '권총을 잃어버린 채로 수갑과 증거 사진만 챙겨 나왔다.' },
+    reviewStatus: 'PENDING_REVIEW',
+  },
+  {
     id: 'sc-1',
     episodeId: 'episode-159',
     characterName: '수아',
@@ -233,17 +244,6 @@ export const MOCK_SETTING_CANDIDATES: SettingCandidate[] = [
     settingValue: '사건 발생 후 5일',
     confidence: 0.71,
     evidenceChunk: { episodeNumber: 160, paragraph: 1, quote: '사건이 일어난 지 닷새가 지났다.' },
-    reviewStatus: 'PENDING_REVIEW',
-  },
-  {
-    id: 'sc-13',
-    episodeId: 'episode-160',
-    characterName: '강민준',
-    settingType: 'POSSESSION',
-    settingKey: '보유 아이템',
-    settingValue: '권총(분실), 수갑, 증거 사진',
-    confidence: 0.39,
-    evidenceChunk: { episodeNumber: 160, paragraph: 22, quote: '권총을 잃어버린 채로 수갑과 증거 사진만 챙겨 나왔다.' },
     reviewStatus: 'PENDING_REVIEW',
   },
   {
