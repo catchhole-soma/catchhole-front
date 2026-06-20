@@ -8,7 +8,7 @@
 
 ## 작품 (Work)
 
-- 화면: `S0WorkPicker`
+- 화면: `S0WorkPicker` (`/works`) — 로그인 후 첫 진입 화면, 작품 목록에서 작업할 작품 선택/생성
 - 현재 상태: 연동 완료 (`worksApi.ts`, 로컬 docker 백엔드 기준)
 
 **`GET /api/v1/works`**
@@ -29,7 +29,7 @@
 
 ## 회차 (Episode)
 
-- 화면: `SEpisodeUpload`
+- 화면: `SEpisodeUpload` (`/episode-upload`) — 회차 업로드 화면, 업로드 방식 선택(단일/다회차) → 파일 업로드 → 회차 분리 확인 → 설정집 분석까지 이어지는 흐름의 시작점
 - 현재 상태: 연동 완료 (로컬 docker 백엔드 기준)
 
 **`POST /api/v1/works/{workId}/episodes`** (multipart/form-data: `data`(JSON), `episodeFiles`, `settingBookFile?`)
@@ -42,7 +42,9 @@
 
 ## 분석 작업 (Analysis Job)
 
-- 화면: `S4Loading`, `SEpisodeValidationReport`
+- 화면:
+  - `S4Loading` (`/loading`) — 분석 진행 중 보여주는 진행률 화면(청킹/추출 등 단계 표시)
+  - `SEpisodeValidationReport` (`/episode-validation-report`) — 분석 완료 후 새 회차와 기존 설정 간 충돌·모순을 리포트로 보여주는 화면
 - 현재 상태: `analysis-jobs` 경로 swagger에 존재(연동 범위는 별도 확인 필요), 로컬 docker 백엔드 기준
 
 **`POST /api/v1/analysis-jobs`**
@@ -59,6 +61,7 @@
 
 ## 캐릭터 설정 — 캐릭터 DB 탭 (NVM-47, S1Dashboard)
 
+- 화면: `S1Dashboard` (`/dashboard`) → "캐릭터 DB" 탭 — 선택한 작품의 캐릭터 카드 목록, 캐릭터 추가/수정/확정/무시
 - **현재 상태: 백엔드 REST API 미구현 (`NVM-140` 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 `NVM-137`에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현(로컬/배포 모두 mock).
 - 요청사항: `NVM-140` API가 나오면 아래 엔드포인트 필요(필드명은 백엔드 `docs/character.md`의 `characters` 테이블 그대로)
 
@@ -92,6 +95,7 @@
 
 ## 캐릭터 설정 후보 확인 — AI 추출 검토 (NVM-154, SSettingReview)
 
+- 화면: `SSettingReview` (`/setting-review`) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
 - 현재 상태: 마찬가지로 백엔드 API 미구현, 프론트 mock(`mockEpisodeData.ts`)으로 UI 구현(로컬/배포 모두 mock)
 - 필드명은 백엔드 `docs/character.md`의 `setting_candidates` 테이블 기준
 
