@@ -119,18 +119,6 @@
 { "id": "sc1...", "reviewStatus": "CONFIRMED" }
 ```
 
-**신규 요청 항목 — 고신뢰도 일괄 확정 벌크 API** (현재 백엔드 계획에 없음, 프론트는 NVM-154에서 mock으로 먼저 구현)
-
-**`PATCH /api/v1/works/{workId}/setting-candidates/bulk-confirm`**
-```json
-// request body
-{ "minConfidence": 0.9, "reviewStatus": "PENDING_REVIEW" }
-// 또는 특정 id만 지정하고 싶을 때
-{ "candidateIds": ["sc1...", "sc2..."] }
-// response.data
-{ "confirmedCount": 7, "confirmedIds": ["sc1...", "sc2...", "..."] }
-```
-
 ## 상태값/필드명 합의 사항
 
 - `CharacterReviewStatus` / `CharacterFactReviewStatus` / `SettingCandidateReviewStatus`: 모두 `PENDING_REVIEW` / `CONFIRMED` / `DISMISSED` (백엔드 `docs/character.md` 기준)
