@@ -18,14 +18,14 @@
 - 프론트는 아직 `mockCreateAnalysisJob`으로 mock 처리 중이라, 실제 연동 전에 아래 계약(swagger 스키마 인용)을 미리 맞춰두고 싶습니다.
 
 **`POST /api/v1/analysis-jobs`**
-```json
+```jsonc
 // request body
 { "jobType": "EPISODE_VALIDATION", "batchId": "01970c2e-...d111" }
 // response.data
 {
   "id": "01970c2e-...d333", "workId": "01970c2e-...d444", "workTitle": "빛나는 검사 로맨스",
   "batchId": "01970c2e-...d111", "jobType": "EPISODE_VALIDATION", "status": "PENDING",
-  "currentStep": "원문 청킹", "modelName": "gpt-4.1-mini"
+  "currentStep": "원문 청킹", "modelName": "gpt-4o-mini"
 }
 ```
 
@@ -35,7 +35,7 @@
 - [NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140)(캐릭터 설정 저장·수정·확정·무시 API 구현) 작업하실 때 아래 모양으로 부탁드립니다. 프론트는 그동안 mock으로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/characters`**
-```json
+```jsonc
 // response.data
 [
   {
@@ -49,14 +49,14 @@
 ```
 
 **`POST /api/v1/works/{workId}/characters`**
-```json
+```jsonc
 // request body
 { "name": "수아", "roleLabel": "주인공", "currentAge": 23, "profileJson": { "gender": "여성" } }
 // response.data → 위 GET 응답의 개별 항목과 동일한 구조
 ```
 
 **`PATCH /api/v1/works/{workId}/characters/{id}/confirm`** / **`.../dismiss`**
-```json
+```jsonc
 // request body 없음
 // response.data
 { "id": "c1a2...", "reviewStatus": "CONFIRMED" }
@@ -68,7 +68,7 @@
 - 위와 같은 맥락으로, 아래 모양 부탁드립니다. 프론트는 `mockEpisodeData.ts`로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/setting-candidates`**
-```json
+```jsonc
 // response.data
 [
   {
@@ -81,7 +81,7 @@
 ```
 
 **`PATCH /api/v1/works/{workId}/setting-candidates/{id}/confirm`** / **`.../dismiss`**
-```json
+```jsonc
 // request body 없음
 // response.data
 { "id": "sc1...", "reviewStatus": "CONFIRMED" }
