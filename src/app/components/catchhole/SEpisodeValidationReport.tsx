@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { ChevronLeft, OctagonAlert, Clock, CircleCheckBig } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -120,7 +120,13 @@ export default function SEpisodeValidationReport() {
   const [ignoredIds, setIgnoredIds] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<IssueFilter>('ALL');
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const issueParam = searchParams.get('issue');
+  const selectedId = issueParam !== null && !Number.isNaN(Number(issueParam)) ? Number(issueParam) : null;
+  const setSelectedId = (id: number | null) => setSearchParams(prev => {
+    if (id !== null) prev.set('issue', String(id)); else prev.delete('issue');
+    return prev;
+  });
 
   const toggleIgnore = (id: number) => {
     setIgnoredIds((prev) => {

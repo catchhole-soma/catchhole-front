@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { ChevronLeft, Check, Pencil, EyeOff, RotateCcw, TriangleAlert } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -239,7 +239,12 @@ export default function SSettingReview() {
   const [filter, setFilter] = useState<SettingReviewFilter>('PENDING_REVIEW');
   const [typeFilter, setTypeFilter] = useState<SettingCandidateType | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedId = searchParams.get('candidate');
+  const setSelectedId = (id: string | null) => setSearchParams(prev => {
+    if (id) prev.set('candidate', id); else prev.delete('candidate');
+    return prev;
+  });
 
   const handleUpdate = (id: string, patch: Partial<SettingCandidate>) => {
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, ...patch } : c));

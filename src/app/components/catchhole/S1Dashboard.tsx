@@ -2796,10 +2796,11 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
 
 const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
 const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
+const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
-  const { selectedWork, setEditorMode, setReportMode } = useAppContext();
+  const { selectedWork, setEditorMode } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const navParam = searchParams.get('nav');
@@ -2817,7 +2818,9 @@ export default function S1Dashboard() {
     return prev;
   });
 
-  const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
+  const relGraphParam = searchParams.get('relGraph');
+  const relGraphId: RelGraphId = (REL_GRAPH_IDS as string[]).includes(relGraphParam ?? '') ? (relGraphParam as RelGraphId) : 'triangle';
+  const setRelGraphId = (id: RelGraphId) => setSearchParams(prev => { prev.set('relGraph', id); return prev; });
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
   const [msPage, setMsPage] = useState(0);
@@ -3117,7 +3120,7 @@ export default function S1Dashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>분석 리포트</span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label="발행 전 검수" onClick={() => { setReportMode('prePublish'); navigate('/report', 'push-right'); }} icon={<Shield size={12} />} />
+                    <BtnG label="발행 전 검수" onClick={() => navigate('/report?mode=prePublish', 'push-right')} icon={<Shield size={12} />} />
                     <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
                   </div>
                 </div>

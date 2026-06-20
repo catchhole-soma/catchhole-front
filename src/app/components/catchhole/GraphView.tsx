@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router';
 import { C } from './constants';
 import { Plus, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
@@ -328,7 +329,13 @@ function shortenEnd(sx: number, sy: number, tx: number, ty: number, r: number): 
 interface Props { onBack?: () => void; }
 
 export function GraphView({ onBack: _onBack }: Props) {
-  const [selectedId,    setSelectedId]    = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedId = searchParams.get('node');
+  const setSelectedId = (id: string | null | ((prev: string | null) => string | null)) => setSearchParams(prev => {
+    const next = typeof id === 'function' ? id(prev.get('node')) : id;
+    if (next) prev.set('node', next); else prev.delete('node');
+    return prev;
+  });
   const [hoverId,       setHoverId]       = useState<string | null>(null);
   const [hoverEdgeIdx,  setHoverEdgeIdx]  = useState<number | null>(null);
   const [hiddenTypes,   setHiddenTypes]   = useState<Set<TagType>>(new Set());

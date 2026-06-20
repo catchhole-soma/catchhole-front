@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
-import { useAppContext } from '../../context/AppContext';
 import {
   ChevronLeft, OctagonAlert, AlertTriangle, Sparkles,
   ChevronDown, ChevronUp, EyeOff, BookOpen, Clock, Users, Check,
@@ -601,8 +601,12 @@ const ERROR_DATA: ErrorCardData[] = [
 
 export default function S5Report() {
   const navigate = useAppNavigate();
-  const { reportMode, setReportMode } = useAppContext();
-  const mode = reportMode;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode: 'single' | 'prePublish' = searchParams.get('mode') === 'prePublish' ? 'prePublish' : 'single';
+  const setReportMode = (m: 'single' | 'prePublish') => setSearchParams(prev => {
+    if (m === 'prePublish') prev.set('mode', 'prePublish'); else prev.delete('mode');
+    return prev;
+  });
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
   const [showShare, setShowShare] = useState(false);
