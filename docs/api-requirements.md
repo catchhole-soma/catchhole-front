@@ -9,7 +9,7 @@
 ## 작품 (Work)
 
 - 화면: `S0WorkPicker` (`/works`) — 로그인 후 첫 진입 화면, 작품 목록에서 작업할 작품 선택/생성
-- 현재 상태: 연동 완료 (`worksApi.ts`, 로컬 docker 백엔드 기준)
+- 현재 상태: ~~연동 완료~~ **로컬 docker 백엔드 기준 연동 완료** (`worksApi.ts`), 실 배포(Vercel) 환경에서는 미확인
 
 **`GET /api/v1/works`**
 ```json
@@ -30,7 +30,7 @@
 ## 회차 (Episode)
 
 - 화면: `SEpisodeUpload` (`/episode-upload`) — 회차 업로드 화면, 업로드 방식 선택(단일/다회차) → 파일 업로드 → 회차 분리 확인 → 설정집 분석까지 이어지는 흐름의 시작점
-- 현재 상태: 연동 완료 (로컬 docker 백엔드 기준)
+- 현재 상태: ~~연동 완료~~ **로컬 docker 백엔드 기준 연동 완료**, 실 배포(Vercel) 환경에서는 미확인
 
 **`POST /api/v1/works/{workId}/episodes`** (multipart/form-data: `data`(JSON), `episodeFiles`, `settingBookFile?`)
 ```json
