@@ -6,39 +6,9 @@
 
 공통 응답 Envelope은 `global.md` 기준 `{ success, message, data, error, timestamp }` 형태를 그대로 사용합니다. 아래 예시는 `data` 필드 내용만 표기합니다.
 
-## 작품 (Work)
+## 작품 (Work) / 회차 (Episode) — 요청사항 없음
 
-- 화면: `S0WorkPicker` (`/works`) — 로그인 후 첫 진입 화면, 작품 목록에서 작업할 작품 선택/생성
-- 현재 상태: ~~연동 완료~~ **로컬 docker 백엔드 기준 연동 완료** (`worksApi.ts`), 실 배포(Vercel) 환경에서는 미확인
-
-**`GET /api/v1/works`**
-```json
-// response.data
-[
-  { "id": "01970c2e-...d111", "title": "빛나는 검사 로맨스", "genre": "로맨스", "latestEpisodeNo": 12 }
-]
-```
-
-**`POST /api/v1/works`**
-```json
-// request body
-{ "title": "빛나는 검사 로맨스", "genre": "로맨스", "description": null }
-// response.data
-{ "id": "01970c2e-...d111", "title": "빛나는 검사 로맨스", "genre": "로맨스", "latestEpisodeNo": 1 }
-```
-
-## 회차 (Episode)
-
-- 화면: `SEpisodeUpload` (`/episode-upload`) — 회차 업로드 화면, 업로드 방식 선택(단일/다회차) → 파일 업로드 → 회차 분리 확인 → 설정집 분석까지 이어지는 흐름의 시작점
-- 현재 상태: ~~연동 완료~~ **로컬 docker 백엔드 기준 연동 완료**, 실 배포(Vercel) 환경에서는 미확인
-
-**`POST /api/v1/works/{workId}/episodes`** (multipart/form-data: `data`(JSON), `episodeFiles`, `settingBookFile?`)
-```json
-// data 파트
-{ "uploadType": "SINGLE_EPISODE", "episodeNo": 13 }
-// response.data
-{ "batchId": "01970c2e-...d222", "episodeCount": 1 }
-```
+- `S0WorkPicker`(`/works`)의 작품 목록/생성, `SEpisodeUpload`(`/episode-upload`)의 회차 업로드는 이미 로컬 docker 백엔드 기준으로 연동 완료(`worksApi.ts`)되어 있어 별도 요청사항이 없습니다(실 배포 Vercel 환경에서는 미확인).
 
 ## 분석 작업 (Analysis Job)
 
