@@ -14733,6 +14733,43 @@
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "frame",
+                      "id": "SIVBq",
+                      "name": "Delete Button",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "gap": 5,
+                      "padding": [
+                        6,
+                        14
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "jbHrt",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$danger"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QnLWH",
+                          "name": "Label",
+                          "fill": "$danger",
+                          "content": "삭제",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
                       "id": "Y4vObB",
                       "type": "ref",
                       "ref": "OUit2",
@@ -32870,6 +32907,1311 @@
                           "content": "저장"
                         }
                       }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "x2KHG",
+      "x": 1380,
+      "y": 14230,
+      "name": "Modal / CharDetailModal (삭제 확인)",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000A6",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "u4hK0u",
+          "name": "Modal Card",
+          "width": 900,
+          "fill": "$surface",
+          "cornerRadius": 12,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "mDlSW",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 14,
+              "padding": [
+                22,
+                28,
+                18,
+                28
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "S97yC",
+                  "name": "Avatar",
+                  "width": 48,
+                  "height": 48,
+                  "fill": "#7C5CFC22",
+                  "cornerRadius": "$radius-pill",
+                  "stroke": "#7C5CFC",
+                  "strokeWidth": 2,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XEGvO",
+                      "name": "Avatar Letter",
+                      "fill": "#7C5CFC",
+                      "content": "수",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UEoo7",
+                  "name": "Title Col",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 1,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qnrMP",
+                      "name": "Char Name",
+                      "fill": "$text-1",
+                      "content": "수아",
+                      "fontFamily": "Inter",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lJ4qX",
+                      "name": "Char Role",
+                      "fill": "#7C5CFC",
+                      "content": "주인공",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bCmoh",
+                  "name": "Header Actions (삭제 확인)",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YUOqp",
+                      "name": "Confirm Label",
+                      "fill": "$text-2",
+                      "content": "정말 삭제할까요?",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H8ThO",
+                      "name": "Cancel Button",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PRgWX",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "취소",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ATKSD",
+                      "name": "Confirm Delete Button",
+                      "fill": "$danger",
+                      "cornerRadius": 5,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "H1JN0p",
+                          "name": "Label",
+                          "fill": "#FFFFFF",
+                          "content": "삭제",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TIbse",
+              "name": "Modal Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "T2RXN",
+                  "name": "Top Row",
+                  "width": "fill_container",
+                  "gap": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PrJOH",
+                      "name": "Info Col",
+                      "width": 200,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BOwtc",
+                          "name": "Info Label",
+                          "fill": "$text-3",
+                          "content": "기본 설정",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.08
+                        },
+                        {
+                          "type": "frame",
+                          "id": "F0h8L",
+                          "name": "Info List",
+                          "clip": true,
+                          "width": "fill_container",
+                          "fill": "$bg",
+                          "cornerRadius": 8,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "WIweL",
+                              "name": "Info Row 역할",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                9,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qM4sP",
+                                  "name": "Key",
+                                  "fill": "$text-3",
+                                  "content": "역할",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Xo893",
+                                  "name": "Value",
+                                  "fill": "$text-2",
+                                  "content": "주인공",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "KfJ1G",
+                              "name": "Info Row 나이",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                9,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "y4rpOs",
+                                  "name": "Key",
+                                  "fill": "$text-3",
+                                  "content": "나이",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "XWdQl",
+                                  "name": "Value",
+                                  "fill": "$text-2",
+                                  "content": "23세",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bbvlZ",
+                              "name": "Info Row 눈",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                9,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "c2jKX",
+                                  "name": "Key",
+                                  "fill": "$text-3",
+                                  "content": "눈",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "SSu7B",
+                                  "name": "Value",
+                                  "fill": "$warning",
+                                  "content": "갈색 ⚠",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Rj77Z",
+                              "name": "Info Row 직업",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                9,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "DXIKc",
+                                  "name": "Key",
+                                  "fill": "$text-3",
+                                  "content": "직업",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ZAzlC",
+                                  "name": "Value",
+                                  "fill": "$text-2",
+                                  "content": "검사 지망생",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "hOOAa",
+                              "name": "Info Row 첫등장",
+                              "width": "fill_container",
+                              "stroke": "#00000000",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                9,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "N7GbM",
+                                  "name": "Key",
+                                  "fill": "$text-3",
+                                  "content": "첫등장",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "pgXxf",
+                                  "name": "Value",
+                                  "fill": "$text-2",
+                                  "content": "1화",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RXskM",
+                      "name": "Relation Col",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ARdOL",
+                          "name": "Relation Label",
+                          "fill": "$text-3",
+                          "content": "관계도",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.08
+                        },
+                        {
+                          "type": "frame",
+                          "id": "uxtTz",
+                          "name": "Relation Box",
+                          "width": "fill_container",
+                          "height": 208,
+                          "fill": "$bg",
+                          "cornerRadius": 8,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "mydCP",
+                              "name": "Relation Nodes",
+                              "gap": 24,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "gY10m",
+                                  "name": "Rel Node - 강민준",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "Da14F",
+                                      "name": "Circle",
+                                      "width": 48,
+                                      "height": 48,
+                                      "fill": "#E25C5C22",
+                                      "cornerRadius": "$radius-pill",
+                                      "stroke": "#E25C5C",
+                                      "strokeWidth": 1.5,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "uW1Z2",
+                                          "name": "Node Name",
+                                          "fill": "#E25C5C",
+                                          "content": "강민준",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "qrMll",
+                                      "name": "Node Type",
+                                      "fill": "#E25C5C",
+                                      "content": "로맨스",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 9,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "S63SJC",
+                                  "name": "Rel Node - 이레나",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "FWy4k",
+                                      "name": "Circle",
+                                      "width": 48,
+                                      "height": 48,
+                                      "fill": "#4BB8D922",
+                                      "cornerRadius": "$radius-pill",
+                                      "stroke": "#4BB8D9",
+                                      "strokeWidth": 1.5,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "O1UfsY",
+                                          "name": "Node Name",
+                                          "fill": "#4BB8D9",
+                                          "content": "이레나",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "gx7Jc",
+                                      "name": "Node Type",
+                                      "fill": "#4BB8D9",
+                                      "content": "화해",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 9,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "v9w6b",
+                                  "name": "Rel Node - 하윤",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "oZqis",
+                                      "name": "Circle",
+                                      "width": 48,
+                                      "height": 48,
+                                      "fill": "#000000",
+                                      "cornerRadius": "$radius-pill",
+                                      "stroke": "$success",
+                                      "strokeWidth": 1.5,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "r10Ho",
+                                          "name": "Node Name",
+                                          "fill": "$success",
+                                          "content": "하윤",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "aqICC",
+                                      "name": "Node Type",
+                                      "fill": "$success",
+                                      "content": "절친",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 9,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "S23ga",
+                      "name": "Appearance Col",
+                      "width": 200,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ozXIT",
+                          "name": "Appearance Label",
+                          "fill": "$text-3",
+                          "content": "등장 이력 (4회)",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.08
+                        },
+                        {
+                          "type": "frame",
+                          "id": "EI4Ht",
+                          "name": "Appearance List",
+                          "clip": true,
+                          "width": "fill_container",
+                          "fill": "$bg",
+                          "cornerRadius": 8,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "EOleq",
+                              "name": "App Row 1화",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "gap": 8,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "vujVj",
+                                  "name": "Ep Badge",
+                                  "fill": "$surface",
+                                  "cornerRadius": 4,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "e6B11Z",
+                                      "name": "Ep Text",
+                                      "fill": "$text-3",
+                                      "content": "1화",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "f01A68",
+                                  "name": "App Desc",
+                                  "fill": "$text-2",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "첫 등장",
+                                  "lineHeight": 1.4,
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HAQB2",
+                              "name": "App Row 47화",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "gap": 8,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "w7YXC",
+                                  "name": "Ep Badge",
+                                  "fill": "$surface",
+                                  "cornerRadius": 4,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "fWgP8",
+                                      "name": "Ep Text",
+                                      "fill": "$text-3",
+                                      "content": "47화",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "qcDmc",
+                                  "name": "App Desc",
+                                  "fill": "$text-2",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "핵심 증거 발견 장면",
+                                  "lineHeight": 1.4,
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "f1GCZ8",
+                              "name": "App Row 142화",
+                              "width": "fill_container",
+                              "stroke": "$border",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "gap": 8,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "aEYuH",
+                                  "name": "Ep Badge",
+                                  "fill": "$surface",
+                                  "cornerRadius": 4,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "RVI6a",
+                                      "name": "Ep Text",
+                                      "fill": "$text-3",
+                                      "content": "142화",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "D24oA",
+                                  "name": "App Desc",
+                                  "fill": "$text-2",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "이레나와 화해",
+                                  "lineHeight": 1.4,
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "xt1t4",
+                              "name": "App Row 159화",
+                              "width": "fill_container",
+                              "stroke": "#00000000",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "gap": 8,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "G76Ex",
+                                  "name": "Ep Badge",
+                                  "fill": "#F4A2611A",
+                                  "cornerRadius": 4,
+                                  "stroke": "$warning",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "XNHp9",
+                                      "name": "Ep Text",
+                                      "fill": "$warning",
+                                      "content": "159화",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "e4QZ44",
+                                  "name": "App Desc",
+                                  "fill": "$warning",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "눈 색 충돌 감지",
+                                  "lineHeight": 1.4,
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MY0r3",
+                  "name": "Timeline Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GvANJ",
+                      "name": "Timeline Label",
+                      "fill": "$text-3",
+                      "content": "타임라인 (4건)",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.08
+                    },
+                    {
+                      "type": "frame",
+                      "id": "y8HAk",
+                      "name": "Timeline Box",
+                      "width": "fill_container",
+                      "fill": "$bg",
+                      "cornerRadius": 8,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "gap": 8,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "E2TYb",
+                          "name": "TL Event 1화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "x1flp",
+                              "name": "Dot",
+                              "fill": "$primary",
+                              "width": 10,
+                              "height": 10
+                            },
+                            {
+                              "type": "frame",
+                              "id": "N7t18",
+                              "name": "Ch Badge",
+                              "fill": "#7C5CFC18",
+                              "cornerRadius": 3,
+                              "stroke": "$primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                2,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "JQ8bN",
+                                  "name": "Ch Text",
+                                  "fill": "$primary",
+                                  "content": "1화",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "z2Ial8",
+                              "name": "Ev Title",
+                              "fill": "$text-1",
+                              "content": "첫 등장",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "TGnIl",
+                              "name": "Ev Desc",
+                              "fill": "$text-3",
+                              "content": "법정 출석",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "YkYBx",
+                          "name": "TL Event 47화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "quJtI",
+                              "name": "Dot",
+                              "fill": "$primary",
+                              "width": 10,
+                              "height": 10
+                            },
+                            {
+                              "type": "frame",
+                              "id": "M6idol",
+                              "name": "Ch Badge",
+                              "fill": "#7C5CFC18",
+                              "cornerRadius": 3,
+                              "stroke": "$primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                2,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Q4sJ6J",
+                                  "name": "Ch Text",
+                                  "fill": "$primary",
+                                  "content": "47화",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "ltQJR",
+                              "name": "Ev Title",
+                              "fill": "$text-1",
+                              "content": "증거 발견",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "QSXSJ",
+                              "name": "Ev Desc",
+                              "fill": "$text-3",
+                              "content": "핵심 USB 단서",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BAUtx",
+                          "name": "TL Event 142화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "uUyin",
+                              "name": "Dot",
+                              "fill": "$primary",
+                              "width": 10,
+                              "height": 10
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DxPr2",
+                              "name": "Ch Badge",
+                              "fill": "#7C5CFC18",
+                              "cornerRadius": 3,
+                              "stroke": "$primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                2,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "NgQke",
+                                  "name": "Ch Text",
+                                  "fill": "$primary",
+                                  "content": "142화",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "A5qYEk",
+                              "name": "Ev Title",
+                              "fill": "$text-1",
+                              "content": "화해",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "hLszS",
+                              "name": "Ev Desc",
+                              "fill": "$text-3",
+                              "content": "이레나와 갈등 해소",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "cu2tg",
+                          "name": "TL Event 159화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "ODx6L",
+                              "name": "Dot",
+                              "fill": "$warning",
+                              "width": 10,
+                              "height": 10
+                            },
+                            {
+                              "type": "frame",
+                              "id": "vYIoC",
+                              "name": "Ch Badge",
+                              "fill": "#F4A2611A",
+                              "cornerRadius": 3,
+                              "stroke": "$warning",
+                              "strokeWidth": 1,
+                              "padding": [
+                                2,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "ALfWT",
+                                  "name": "Ch Text",
+                                  "fill": "$warning",
+                                  "content": "159화",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "cN6pU",
+                              "name": "Ev Title",
+                              "fill": "$text-1",
+                              "content": "충돌 감지",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "mBcyM",
+                              "name": "Ev Desc",
+                              "fill": "$warning",
+                              "content": "눈 색 묘사 불일치",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "p425Tk",
+                      "name": "Legend",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hNYkt",
+                          "name": "Legend - 설정 등록",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "lS57r",
+                              "name": "Dot",
+                              "fill": "$primary",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "GPhv2",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "설정 등록",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qg8sw",
+                          "name": "Legend - 관계 해소",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "wl9NE",
+                              "name": "Dot",
+                              "fill": "$success",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "NPaQk",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "관계 해소",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "r3hiR",
+                          "name": "Legend - 갈등 발생",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "xvLXp",
+                              "name": "Dot",
+                              "fill": "$danger",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "OG5gt",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "갈등 발생",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HOPEk",
+                          "name": "Legend - 충돌 감지",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "nKdek",
+                              "name": "Dot",
+                              "fill": "$warning",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "Ak5fT",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "충돌 감지",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "NEFbK",
+                          "name": "Legend - 일반 이벤트",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "GtUlb",
+                              "name": "Dot",
+                              "fill": "$text-3",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "U6vP3",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "일반 이벤트",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
