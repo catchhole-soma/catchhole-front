@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -2793,11 +2794,29 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   murim: { title: '무협지존', genre: '무협' },
 };
 
+const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
+
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
   const { selectedWork, setEditorMode, setReportMode } = useAppContext();
-  const [activeNav, setActiveNav] = useState<NavId>('settingDB');
-  const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const navParam = searchParams.get('nav');
+  const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
+  const setActiveNav = (id: NavId) => setSearchParams(prev => { prev.set('nav', id); return prev; });
+
+  const tabParam = searchParams.get('tab');
+  const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
+  const setSettingTab = (id: SettingTabId) => setSearchParams(prev => { prev.set('tab', id); return prev; });
+
+  const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
+  const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
+    if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
+    else { prev.delete('modal'); prev.delete('charId'); }
+    return prev;
+  });
+
   const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
@@ -2814,7 +2833,6 @@ export default function S1Dashboard() {
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const [selectedCharDetail, setSelectedCharDetail] = useState<string | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
     let isNew = false;

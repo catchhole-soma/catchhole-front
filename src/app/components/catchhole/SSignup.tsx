@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { Shield, Mail, Lock, Eye, EyeOff, User, Phone, Check } from 'lucide-react';
 import { C, isValidEmail } from './constants';
@@ -49,7 +50,13 @@ export default function SSignup() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
-  const [termsTab, setTermsTab] = useState<'terms' | 'privacy' | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const termsParam = searchParams.get('terms');
+  const termsTab: 'terms' | 'privacy' | null = termsParam === 'terms' || termsParam === 'privacy' ? termsParam : null;
+  const setTermsTab = (tab: 'terms' | 'privacy' | null) => setSearchParams(prev => {
+    if (tab) prev.set('terms', tab); else prev.delete('terms');
+    return prev;
+  });
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; phoneNumber?: string; password?: string; passwordConfirm?: string }>({});
