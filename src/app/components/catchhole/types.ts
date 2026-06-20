@@ -35,7 +35,9 @@ export interface AnalysisJob {
 
 // ===== SettingCandidate =====
 export type SettingCandidateType = 'CHARACTER_BASIC' | 'NUMERIC_STATE' | 'POSSESSION' | 'TIME_STATUS' | 'EXTENDED';
-export type SettingCandidateReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'EDITED' | 'IGNORED';
+// 'CONFIRMED'/'DISMISSED'는 백엔드 CharacterReviewStatus와 이름을 맞춤(catchhole-backend-java/docs/character.md).
+// 'EDITED'는 FE 전용 상태로, 저장 시 'CONFIRMED'로 매핑된다.
+export type SettingCandidateReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED' | 'EDITED' | 'DISMISSED';
 
 export interface EvidenceChunk {
   episodeNumber: number;
@@ -104,9 +106,9 @@ export const SETTING_TYPE_LABELS: Record<SettingCandidateType, string> = {
 
 export const REVIEW_STATUS_LABELS: Record<SettingCandidateReviewStatus, string> = {
   PENDING_REVIEW: '검토 대기',
-  APPROVED: '확정',
+  CONFIRMED: '확정',
   EDITED: '수정 후 확정',
-  IGNORED: '무시',
+  DISMISSED: '무시',
 };
 
 export const PROCESSING_STATUS_LABELS: Record<EpisodeProcessingStatus, string> = {

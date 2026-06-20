@@ -18,7 +18,7 @@ const CHARACTER_COLORS: Record<string, string> = {
   '이레나': '#4BB8D9',
 };
 
-const FILTER_TABS: SettingReviewFilter[] = ['PENDING_REVIEW', 'APPROVED', 'EDITED', 'IGNORED', 'ALL'];
+const FILTER_TABS: SettingReviewFilter[] = ['PENDING_REVIEW', 'CONFIRMED', 'EDITED', 'DISMISSED', 'ALL'];
 
 function confidenceColor(confidence: number) {
   if (confidence >= 0.8) return C.success;
@@ -28,7 +28,7 @@ function confidenceColor(confidence: number) {
 
 function statusColor(status: SettingCandidateReviewStatus) {
   if (status === 'PENDING_REVIEW') return C.warning;
-  if (status === 'IGNORED') return C.t3;
+  if (status === 'DISMISSED') return C.t3;
   return C.success;
 }
 
@@ -208,7 +208,7 @@ function CandidateDetail({ candidate, onUpdate }: {
           <>
             <ActionButton
               icon={<EyeOff size={12} />} label="무시" color={C.t3}
-              onClick={() => onUpdate(candidate.id, { reviewStatus: 'IGNORED' })}
+              onClick={() => onUpdate(candidate.id, { reviewStatus: 'DISMISSED' })}
             />
             <ActionButton
               icon={<Pencil size={12} />} label="수정" color={C.warning}
@@ -216,7 +216,7 @@ function CandidateDetail({ candidate, onUpdate }: {
             />
             <ActionButton
               icon={<Check size={12} />} label="확정" color={C.success}
-              onClick={() => onUpdate(candidate.id, { reviewStatus: 'APPROVED' })}
+              onClick={() => onUpdate(candidate.id, { reviewStatus: 'CONFIRMED' })}
             />
           </>
         )}
@@ -251,7 +251,7 @@ export default function SSettingReview() {
 
   const counts = useMemo(() => {
     const base: Record<SettingReviewFilter, number> = {
-      ALL: candidates.length, PENDING_REVIEW: 0, APPROVED: 0, EDITED: 0, IGNORED: 0,
+      ALL: candidates.length, PENDING_REVIEW: 0, CONFIRMED: 0, EDITED: 0, DISMISSED: 0,
     };
     candidates.forEach((c) => { base[c.reviewStatus] += 1; });
     return base;
