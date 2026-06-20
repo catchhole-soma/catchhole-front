@@ -43,6 +43,15 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 화면 전환에는 `TransitionType`(`push-right`/`push-left`/`cover-up`/`pop`/`dissolve`, `constants.ts`)을 사용합니다.
 
+### 화면 ↔ URL 1:1 매핑 (딥링크) 방침
+
+탭/모달 같은 화면 내부 상태도 쿼리 파라미터로 딥링크화합니다(`?nav=`/`?tab=`/`?modal=` 등).
+
+- **목적**: 스크린샷 대신 URL로 화면을 정확히 지칭(PR·이슈·문서, AI에게 작업 전달 시 유용). 예: [`docs/api-requirements.md`](https://github.com/catchhole-soma/catchhole-front/blob/5b971dd383c5421da6134cd6cfcba81a4c1a9488/docs/api-requirements.md)처럼 화면명 옆에 URL을 적어두면 캡처 없이도 "이 화면" 하나로 지칭 가능. 단, 코드만 읽는 에이전트에게 URL은 "화면"이 아니라 `App.tsx` 라우트 표를 통해 찾아갈 파일 좌표일 뿐 — 브라우저 도구가 있어야 실제로 화면을 볼 수 있음.
+- **Figma는 대체 아님**: 시각 디자인 협업은 여전히 Figma/Pencil(`design/catchhole.pen`) 몫. 이 방침은 텍스트로 표현 가능한 정보(API 요청사항 등)에 한정.
+- **보안 예외**: URL을 인가 수단으로 쓰지 않음 — 권한/개인정보가 필요한 화면·데이터는 서버 측 검증 필수.
+- **배포 URL 주의**: `https://catch-hole.vercel.app/`은 백엔드 미연동([NVM-48](https://aiswmproject.atlassian.net/browse/NVM-48) 진행 중)이라 첫 접속 시 데모 모드 전환이 한 번 필요.
+
 ## 인증/세션
 
 핵심 로직은 `src/app/lib/auth.ts`에 있습니다.
