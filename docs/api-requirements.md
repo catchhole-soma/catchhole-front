@@ -15,7 +15,7 @@
 - 화면:
   - `S4Loading` (`/loading`) — 분석 진행 중 보여주는 진행률 화면(청킹/추출 등 단계 표시)
   - `SEpisodeValidationReport` (`/episode-validation-report`) — 분석 완료 후 새 회차와 기존 설정 간 충돌·모순을 리포트로 보여주는 화면
-- 현재 상태: 백엔드 swagger(로컬 docker 기준)에 `/api/v1/analysis-jobs` 경로가 존재하지만, **프론트는 아직 호출하지 않음** — `SEpisodeUpload.tsx`에서 `mockCreateAnalysisJob`으로 전부 mock 처리 중. 아래 예시는 실제 호출 테스트가 아니라 백엔드 swagger 스키마(`AnalysisJobResponse`/`AnalysisJobCreateRequest`)를 그대로 인용한 것
+- 프론트는 아직 `mockCreateAnalysisJob`으로 mock 처리 중이라, 실제 연동 전에 아래 계약(swagger 스키마 인용)을 미리 맞춰두고 싶습니다.
 
 **`POST /api/v1/analysis-jobs`**
 ```json
@@ -32,8 +32,7 @@
 ## 캐릭터 설정 — 캐릭터 DB 탭 ([NVM-47](https://aiswmproject.atlassian.net/browse/NVM-47) 설정 DB 대시보드 - 캐릭터 DB 탭 API 연동 및 CRUD, S1Dashboard)
 
 - 화면: `S1Dashboard` (`/dashboard`) → "캐릭터 DB" 탭 — 선택한 작품의 캐릭터 카드 목록, 캐릭터 추가/수정/확정/무시
-- **현재 상태: 백엔드 REST API 미구현 ([NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140) 캐릭터 설정 저장·수정·확정·무시 API 구현, 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 [NVM-137](https://aiswmproject.atlassian.net/browse/NVM-137)(캐릭터 설정 DB 일반 컬럼·JSONB 구조 구현)에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현(로컬/배포 모두 mock).
-- 요청사항: NVM-140 API가 나오면 아래 엔드포인트 필요(필드명은 백엔드 `docs/character.md`의 `characters` 테이블 그대로)
+- [NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140)(캐릭터 설정 저장·수정·확정·무시 API 구현) 작업하실 때 아래 모양으로 부탁드립니다. 프론트는 그동안 mock으로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/characters`**
 ```json
@@ -66,8 +65,7 @@
 ## 캐릭터 설정 후보 확인 — AI 추출 검토 ([NVM-154](https://aiswmproject.atlassian.net/browse/NVM-154) AI 추출 캐릭터 설정 확인 및 최소 수정 UI 구현, SSettingReview)
 
 - 화면: `SSettingReview` (`/setting-review`) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
-- 현재 상태: 마찬가지로 백엔드 API 미구현, 프론트 mock(`mockEpisodeData.ts`)으로 UI 구현(로컬/배포 모두 mock)
-- 필드명은 백엔드 `docs/character.md`의 `setting_candidates` 테이블 기준
+- 위와 같은 맥락으로, 아래 모양 부탁드립니다. 프론트는 `mockEpisodeData.ts`로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/setting-candidates`**
 ```json
