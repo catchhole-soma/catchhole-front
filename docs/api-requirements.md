@@ -1,10 +1,10 @@
 # 화면별 필요 데이터 및 API 요청사항 ([NVM-38](https://aiswmproject.atlassian.net/browse/NVM-38) 화면별 필요 데이터 및 API 요청사항 정리)
 
-프론트 화면 기준으로 정리한 필요 데이터/API 요청사항입니다. 캐릭터 도메인 필드명·상태값은 백엔드 `catchhole-backend-java/docs/character.md`를 기준 문서로 그대로 따릅니다(여기서 재정의하지 않음).
+프론트 화면 기준으로 정리한 필요 데이터/API 요청사항입니다. 캐릭터 도메인 필드명·상태값은 백엔드 [`docs/character.md`](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md)를 기준 문서로 그대로 따릅니다(여기서 재정의하지 않음).
 
 > **환경 구분 주의**: 아래 "연동 완료"는 모두 **로컬 docker로 띈 백엔드(`./gradlew bootRun`) 기준**으로 확인한 것입니다. 실제 배포 URL(`https://catch-hole.vercel.app/`)에는 아직 백엔드가 연결되어 있지 않습니다(소마 AWS 지원 전이라 백엔드 호스팅 자체가 없음 — [NVM-48](https://aiswmproject.atlassian.net/browse/NVM-48) 프론트엔드 배포 환경 구성/백엔드 배포 의존). 따라서 "연동 가능/완료"라는 표현은 전부 로컬 환경 기준이며, 배포 환경에서의 동작을 보장하지 않습니다.
 
-공통 응답 Envelope은 `global.md` 기준 `{ success, message, data, error, timestamp }` 형태를 그대로 사용합니다. 아래 예시는 `data` 필드 내용만 표기합니다.
+공통 응답 Envelope은 [`global.md`](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/global.md) 기준 `{ success, message, data, error, timestamp }` 형태를 그대로 사용합니다. 아래 예시는 `data` 필드 내용만 표기합니다.
 
 ## 작품 (Work) / 회차 (Episode) — 요청사항 없음
 
@@ -89,10 +89,10 @@
 
 ## 상태값/필드명 합의 사항
 
-- `CharacterReviewStatus` / `CharacterFactReviewStatus` / `SettingCandidateReviewStatus`: 모두 `PENDING_REVIEW` / `CONFIRMED` / `DISMISSED` (백엔드 `docs/character.md` 기준)
+- `CharacterReviewStatus` / `CharacterFactReviewStatus` / `SettingCandidateReviewStatus`: 모두 `PENDING_REVIEW` / `CONFIRMED` / `DISMISSED` (백엔드 [`docs/character.md`](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md) 기준)
 - 프론트 전용 `EDITED` 상태(수정 후 확정)는 백엔드에 대응 값이 없음 — 저장 시 `CONFIRMED`로 매핑하는 방식으로 처리 예정
 
 ## 에러 케이스 (초안)
 
-- 작품/회차/캐릭터 미존재 시 404 + 공통 에러 응답(`global.md` 기준 Envelope)
+- 작품/회차/캐릭터 미존재 시 404 + 공통 에러 응답([`global.md`](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/global.md) 기준 Envelope)
 - 분석 작업 진행 중 중복 요청 시 409 또는 진행 중 작업 정보 반환
