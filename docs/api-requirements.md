@@ -1,8 +1,8 @@
-# 화면별 필요 데이터 및 API 요청사항 (NVM-38)
+# 화면별 필요 데이터 및 API 요청사항 ([NVM-38](https://aiswmproject.atlassian.net/browse/NVM-38) 화면별 필요 데이터 및 API 요청사항 정리)
 
 프론트 화면 기준으로 정리한 필요 데이터/API 요청사항입니다. 캐릭터 도메인 필드명·상태값은 백엔드 `catchhole-backend-java/docs/character.md`를 기준 문서로 그대로 따릅니다(여기서 재정의하지 않음).
 
-> **환경 구분 주의**: 아래 "연동 완료"는 모두 **로컬 docker로 띈 백엔드(`./gradlew bootRun`) 기준**으로 확인한 것입니다. 실제 배포 URL(`https://catch-hole.vercel.app/`)에는 아직 백엔드가 연결되어 있지 않습니다(소마 AWS 지원 전이라 백엔드 호스팅 자체가 없음 — NVM-48/백엔드 배포 의존). 따라서 "연동 가능/완료"라는 표현은 전부 로컬 환경 기준이며, 배포 환경에서의 동작을 보장하지 않습니다.
+> **환경 구분 주의**: 아래 "연동 완료"는 모두 **로컬 docker로 띈 백엔드(`./gradlew bootRun`) 기준**으로 확인한 것입니다. 실제 배포 URL(`https://catch-hole.vercel.app/`)에는 아직 백엔드가 연결되어 있지 않습니다(소마 AWS 지원 전이라 백엔드 호스팅 자체가 없음 — [NVM-48](https://aiswmproject.atlassian.net/browse/NVM-48) 프론트엔드 배포 환경 구성/백엔드 배포 의존). 따라서 "연동 가능/완료"라는 표현은 전부 로컬 환경 기준이며, 배포 환경에서의 동작을 보장하지 않습니다.
 
 공통 응답 Envelope은 `global.md` 기준 `{ success, message, data, error, timestamp }` 형태를 그대로 사용합니다. 아래 예시는 `data` 필드 내용만 표기합니다.
 
@@ -59,11 +59,11 @@
 }
 ```
 
-## 캐릭터 설정 — 캐릭터 DB 탭 (NVM-47, S1Dashboard)
+## 캐릭터 설정 — 캐릭터 DB 탭 ([NVM-47](https://aiswmproject.atlassian.net/browse/NVM-47) 설정 DB 대시보드 - 캐릭터 DB 탭 API 연동 및 CRUD, S1Dashboard)
 
 - 화면: `S1Dashboard` (`/dashboard`) → "캐릭터 DB" 탭 — 선택한 작품의 캐릭터 카드 목록, 캐릭터 추가/수정/확정/무시
-- **현재 상태: 백엔드 REST API 미구현 (`NVM-140` 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 `NVM-137`에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현(로컬/배포 모두 mock).
-- 요청사항: `NVM-140` API가 나오면 아래 엔드포인트 필요(필드명은 백엔드 `docs/character.md`의 `characters` 테이블 그대로)
+- **현재 상태: 백엔드 REST API 미구현 ([NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140) 캐릭터 설정 저장·수정·확정·무시 API 구현, 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 [NVM-137](https://aiswmproject.atlassian.net/browse/NVM-137)(캐릭터 설정 DB 일반 컬럼·JSONB 구조 구현)에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현(로컬/배포 모두 mock).
+- 요청사항: NVM-140 API가 나오면 아래 엔드포인트 필요(필드명은 백엔드 `docs/character.md`의 `characters` 테이블 그대로)
 
 **`GET /api/v1/works/{workId}/characters`**
 ```json
@@ -93,7 +93,7 @@
 { "id": "c1a2...", "reviewStatus": "CONFIRMED" }
 ```
 
-## 캐릭터 설정 후보 확인 — AI 추출 검토 (NVM-154, SSettingReview)
+## 캐릭터 설정 후보 확인 — AI 추출 검토 ([NVM-154](https://aiswmproject.atlassian.net/browse/NVM-154) AI 추출 캐릭터 설정 확인 및 최소 수정 UI 구현, SSettingReview)
 
 - 화면: `SSettingReview` (`/setting-review`) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
 - 현재 상태: 마찬가지로 백엔드 API 미구현, 프론트 mock(`mockEpisodeData.ts`)으로 UI 구현(로컬/배포 모두 mock)
