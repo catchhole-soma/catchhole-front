@@ -155,7 +155,7 @@ export const MOCK_SETTING_CANDIDATES: SettingCandidate[] = [
     settingValue: '생존',
     confidence: 0.97,
     evidenceChunk: { episodeNumber: 159, paragraph: 33, quote: '민준은 가까스로 숨을 고르며 몸을 일으켰다.' },
-    reviewStatus: 'APPROVED',
+    reviewStatus: 'CONFIRMED',
   },
   {
     id: 'sc-6',
@@ -189,7 +189,7 @@ export const MOCK_SETTING_CANDIDATES: SettingCandidate[] = [
     settingValue: '서울 종로구',
     confidence: 0.42,
     evidenceChunk: { episodeNumber: 159, paragraph: 2, quote: '집으로 돌아가는 길, 익숙한 골목이 눈에 들어왔다.' },
-    reviewStatus: 'IGNORED',
+    reviewStatus: 'DISMISSED',
   },
   {
     id: 'sc-9',
