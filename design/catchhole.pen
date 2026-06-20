@@ -32247,7 +32247,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "./images/generated-1781791617852.png",
+                "url": "images/generated-1781791617852.png",
                 "mode": "fill"
               },
               "cornerRadius": "$radius-lg",
@@ -32567,6 +32567,315 @@
           "fontFamily": "$font",
           "fontSize": 13,
           "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "C8E26E",
+      "x": 2760,
+      "y": 7790,
+      "name": "Modal / SettingsBuilderModal (직접 입력 모드)",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000A6",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "e1np1",
+          "name": "Modal Card",
+          "width": 660,
+          "fill": "$surface",
+          "cornerRadius": 12,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "OZ0qY",
+              "name": "Header",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                28,
+                18,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SNsc8",
+                  "name": "Title Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "B3uPP",
+                      "name": "Title Left",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "zi1iy",
+                          "name": "Sparkles Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "sparkles",
+                          "library": "lucide",
+                          "fill": "$primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YaomE",
+                          "name": "Title",
+                          "fill": "$text-1",
+                          "content": "캐릭터 설정 만들기",
+                          "fontFamily": "$font",
+                          "fontSize": 16,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "jBMzt",
+                      "name": "Close Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Kwzzp",
+                  "name": "Name Input",
+                  "width": "fill_container",
+                  "height": 40,
+                  "fill": "$bg",
+                  "cornerRadius": 6,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "J4RUi",
+                      "name": "Name Value",
+                      "fill": "$text-3",
+                      "content": "캐릭터 이름",
+                      "fontFamily": "$font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "g6xMYj",
+              "name": "Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                22,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qibcs",
+                  "name": "Mode Tabs",
+                  "width": "fill_container",
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gPqQQ",
+                      "name": "Tab - AI로 생성",
+                      "stroke": "#00000000",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        8,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XkNWt",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "AI로 생성",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I3Bzqe",
+                      "name": "Tab - 직접 입력 (selected)",
+                      "stroke": "$primary",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        8,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "nVeeS",
+                          "name": "Label",
+                          "fill": "$primary",
+                          "content": "직접 입력",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "poJmF",
+                  "name": "Manual Mode Description",
+                  "fill": "$text-3",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "AI 없이 항목을 직접 추가해서 캐릭터 설정을 채울 수 있습니다. AI가 응답하지 않을 때도 사용할 수 있어요.",
+                  "fontFamily": "$font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "lI0qX",
+                  "name": "직접 입력 시작 Button",
+                  "width": "fill_container",
+                  "cornerRadius": 7,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 7,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "uJNBl",
+                      "name": "Plus Icon",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "$text-1"
+                    },
+                    {
+                      "type": "text",
+                      "id": "cSZiq",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "content": "직접 입력 시작",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Q7cMWQ",
+              "name": "Footer",
+              "width": "fill_container",
+              "stroke": "$border",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                16,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZEWzm",
+                  "name": "Summary",
+                  "fill": "$text-3",
+                  "content": "직접 입력을 시작한 뒤 내용을 채워주세요",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZFmhq",
+                  "name": "Button Row",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "S8YfgH",
+                      "type": "ref",
+                      "ref": "OUit2",
+                      "name": "취소 Button",
+                      "descendants": {
+                        "N7PKG": {
+                          "content": "취소"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Qf1sw",
+                      "type": "ref",
+                      "ref": "m035Yk",
+                      "name": "저장 Button",
+                      "descendants": {
+                        "a5O4dJ": {
+                          "content": "저장"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
