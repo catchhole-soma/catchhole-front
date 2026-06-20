@@ -8,13 +8,13 @@
 
 ## 작품 (Work) / 회차 (Episode) — 요청사항 없음
 
-- `S0WorkPicker`(`/works`)의 작품 목록/생성, `SEpisodeUpload`(`/episode-upload`)의 회차 업로드는 이미 로컬 docker 백엔드 기준으로 연동 완료(`worksApi.ts`)되어 있어 별도 요청사항이 없습니다(실 배포 Vercel 환경에서는 미확인).
+- `S0WorkPicker`([`/works`](https://catch-hole.vercel.app/works))의 작품 목록/생성, `SEpisodeUpload`([`/episode-upload`](https://catch-hole.vercel.app/episode-upload))의 회차 업로드는 이미 로컬 docker 백엔드 기준으로 연동 완료(`worksApi.ts`)되어 있어 별도 요청사항이 없습니다(실 배포 Vercel 환경에서는 미확인 — 배포에는 백엔드가 안 붙어있어 접속 시 데모 모드로 전환됩니다).
 
 ## 분석 작업 (Analysis Job)
 
 - 화면:
-  - `S4Loading` (`/loading`) — 분석 진행 중 보여주는 진행률 화면(청킹/추출 등 단계 표시)
-  - `SEpisodeValidationReport` (`/episode-validation-report`) — 분석 완료 후 새 회차와 기존 설정 간 충돌·모순을 리포트로 보여주는 화면
+  - `S4Loading` ([`/loading`](https://catch-hole.vercel.app/loading)) — 분석 진행 중 보여주는 진행률 화면(청킹/추출 등 단계 표시)
+  - `SEpisodeValidationReport` ([`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report)) — 분석 완료 후 새 회차와 기존 설정 간 충돌·모순을 리포트로 보여주는 화면
 - 프론트는 아직 `mockCreateAnalysisJob`으로 mock 처리 중이라, 실제 연동 전에 아래 계약(swagger 스키마 인용)을 미리 맞춰두고 싶습니다.
 
 **`POST /api/v1/analysis-jobs`**
@@ -31,7 +31,7 @@
 
 ## 캐릭터 설정 — 캐릭터 DB 탭 ([NVM-47](https://aiswmproject.atlassian.net/browse/NVM-47) 설정 DB 대시보드 - 캐릭터 DB 탭 API 연동 및 CRUD, S1Dashboard)
 
-- 화면: `S1Dashboard` (`/dashboard`) → "캐릭터 DB" 탭 — 선택한 작품의 캐릭터 카드 목록, 캐릭터 추가/수정/확정/무시
+- 화면: `S1Dashboard` (`/dashboard`) → "캐릭터 DB" 탭 — 선택한 작품의 캐릭터 카드 목록, 캐릭터 추가/수정/확정/무시 (탭이 URL이 아니라 화면 내부 상태라 배포 링크로 바로 연결은 안 됨)
 - [NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140)(캐릭터 설정 저장·수정·확정·무시 API 구현) 작업하실 때 아래 모양으로 부탁드립니다. 프론트는 그동안 mock으로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/characters`**
@@ -64,7 +64,7 @@
 
 ## 캐릭터 설정 후보 확인 — AI 추출 검토 ([NVM-154](https://aiswmproject.atlassian.net/browse/NVM-154) AI 추출 캐릭터 설정 확인 및 최소 수정 UI 구현, SSettingReview)
 
-- 화면: `SSettingReview` (`/setting-review`) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
+- 화면: `SSettingReview` ([`/setting-review`](https://catch-hole.vercel.app/setting-review)) — AI가 회차에서 추출한 설정 후보를 사람이 검토/확정/수정/무시하는 화면. 회차 업로드 흐름에서 설정집을 같이 올렸을 때 등장
 - 위와 같은 맥락으로, 아래 모양 부탁드립니다. 프론트는 `mockEpisodeData.ts`로 UI 먼저 구현해뒀습니다.
 
 **`GET /api/v1/works/{workId}/setting-candidates`**
