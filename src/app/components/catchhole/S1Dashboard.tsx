@@ -863,6 +863,15 @@ interface WorldSetting { id: string; category: WorldCategory; title: string; ent
 
 const mkId = () => Math.random().toString(36).slice(2, 8);
 
+function formatRelativeTime(at: number): string {
+  const diffSec = Math.max(0, Math.floor((Date.now() - at) / 1000));
+  if (diffSec < 60) return '방금 전';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  return `${diffHour}시간 전`;
+}
+
 const CHAR_COLORS: Record<string, string> = {
   sua: C.primary, min: '#E25C5C', lena: '#4BB8D9', hayun: C.success, choi: '#D4A04A',
 };
@@ -2800,7 +2809,7 @@ export default function S1Dashboard() {
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
   const [charEditMode, setCharEditMode] = useState(false);
-  const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info' }[]>([]);
+  const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info'; at: number }[]>([]);
   const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
@@ -2808,23 +2817,28 @@ export default function S1Dashboard() {
   const [selectedCharDetail, setSelectedCharDetail] = useState<string | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
-    const isNew = !chars.some(c => c.id === s.id);
+    let isNew = false;
     setChars(prev => {
       const idx = prev.findIndex(c => c.id === s.id);
-      return idx >= 0 ? prev.map(c => c.id === s.id ? s : c) : [...prev, s];
+      isNew = idx < 0;
+      return isNew ? [...prev, s] : prev.map(c => c.id === s.id ? s : c);
     });
     setCharActivityLog(log => [
-      { id: mkId(), desc: isNew ? `${s.name} 캐릭터 설정 추가` : `${s.name} 설정 수정`, type: 'info' as const },
+      { id: mkId(), desc: isNew ? `${s.name} 캐릭터 설정 추가` : `${s.name} 설정 수정`, type: 'info' as const, at: Date.now() },
       ...log,
     ].slice(0, 5));
   };
 
   const handleCharDelete = (id: string) => {
-    const target = chars.find(c => c.id === id);
-    setChars(prev => prev.filter(c => c.id !== id));
-    if (target) {
+    let deletedName: string | null = null;
+    setChars(prev => {
+      const target = prev.find(c => c.id === id);
+      deletedName = target?.name ?? null;
+      return prev.filter(c => c.id !== id);
+    });
+    if (deletedName) {
       setCharActivityLog(log => [
-        { id: mkId(), desc: `${target.name} 캐릭터 설정 삭제`, type: 'danger' as const },
+        { id: mkId(), desc: `${deletedName} 캐릭터 설정 삭제`, type: 'danger' as const, at: Date.now() },
         ...log,
       ].slice(0, 5));
     }
@@ -2969,7 +2983,7 @@ export default function S1Dashboard() {
                                   background: item.type === 'danger' ? C.danger : item.type === 'success' ? C.success : C.primary,
                                 }} />
                                 <span style={{ color: C.t2, fontSize: 13, flex: 1 }}>{item.desc}</span>
-                                <span style={{ color: C.t3, fontSize: 12 }}>방금 전</span>
+                                <span style={{ color: C.t3, fontSize: 12 }}>{formatRelativeTime(item.at)}</span>
                               </div>
                             ))}
                           </div>
@@ -3070,7 +3084,7 @@ export default function S1Dashboard() {
                         if (s) { setEditTarget(s); setSelectedCharDetail(null); }
                       }}
                       onDelete={() => {
-                        handleCharDelete(selectedCharDetail);
+                        if (selectedCharDetail) handleCharDelete(selectedCharDetail);
                         setSelectedCharDetail(null);
                       }}
                     />
