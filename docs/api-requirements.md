@@ -4,39 +4,128 @@
 
 > **환경 구분 주의**: 아래 "연동 완료"는 모두 **로컬 docker로 띈 백엔드(`./gradlew bootRun`) 기준**으로 확인한 것입니다. 실제 배포 URL(`https://catch-hole.vercel.app/`)에는 아직 백엔드가 연결되어 있지 않습니다(소마 AWS 지원 전이라 백엔드 호스팅 자체가 없음 — NVM-48/백엔드 배포 의존). 따라서 "연동 가능/완료"라는 표현은 전부 로컬 환경 기준이며, 배포 환경에서의 동작을 보장하지 않습니다.
 
+공통 응답 Envelope은 `global.md` 기준 `{ success, message, data, error, timestamp }` 형태를 그대로 사용합니다. 아래 예시는 `data` 필드 내용만 표기합니다.
+
 ## 작품 (Work)
 
 - 화면: `S0WorkPicker`
-- 필요 데이터: 작품 목록(id, title, genre, episodeCount)
-- 현재 상태: `GET /api/v1/works`, `POST /api/v1/works` 연동 완료 (`worksApi.ts`)
+- 현재 상태: 연동 완료 (`worksApi.ts`, 로컬 docker 백엔드 기준)
+
+**`GET /api/v1/works`**
+```json
+// response.data
+[
+  { "id": "01970c2e-...d111", "title": "빛나는 검사 로맨스", "genre": "로맨스", "latestEpisodeNo": 12 }
+]
+```
+
+**`POST /api/v1/works`**
+```json
+// request body
+{ "title": "빛나는 검사 로맨스", "genre": "로맨스", "description": null }
+// response.data
+{ "id": "01970c2e-...d111", "title": "빛나는 검사 로맨스", "genre": "로맨스", "latestEpisodeNo": 1 }
+```
 
 ## 회차 (Episode)
 
 - 화면: `SEpisodeUpload`
-- 필요 데이터: 회차 업로드(원고 파일, 설정집 파일 선택), 업로드 결과(batchId, episodeCount)
-- 현재 상태: `POST /api/v1/works/{id}/episodes` 연동 완료
+- 현재 상태: 연동 완료 (로컬 docker 백엔드 기준)
+
+**`POST /api/v1/works/{workId}/episodes`** (multipart/form-data: `data`(JSON), `episodeFiles`, `settingBookFile?`)
+```json
+// data 파트
+{ "uploadType": "SINGLE_EPISODE", "episodeNo": 13 }
+// response.data
+{ "batchId": "01970c2e-...d222", "episodeCount": 1 }
+```
 
 ## 분석 작업 (Analysis Job)
 
 - 화면: `S4Loading`, `SEpisodeValidationReport`
-- 필요 데이터: 작업 상태(PENDING/RUNNING/SUCCEEDED/FAILED), 진행 단계, 결과 요약
-- 현재 상태: `analysis-jobs` 경로 swagger에 존재(연동 범위는 별도 확인 필요)
+- 현재 상태: `analysis-jobs` 경로 swagger에 존재(연동 범위는 별도 확인 필요), 로컬 docker 백엔드 기준
+
+**`POST /api/v1/analysis-jobs`**
+```json
+// request body
+{ "jobType": "EPISODE_VALIDATION", "batchId": "01970c2e-...d111" }
+// response.data
+{
+  "id": "01970c2e-...d333", "workId": "01970c2e-...d444", "workTitle": "빛나는 검사 로맨스",
+  "batchId": "01970c2e-...d111", "jobType": "EPISODE_VALIDATION", "status": "PENDING",
+  "currentStep": "원문 청킹", "modelName": "gpt-4.1-mini"
+}
+```
 
 ## 캐릭터 설정 — 캐릭터 DB 탭 (NVM-47, S1Dashboard)
 
-- 필요 데이터: 작품별 캐릭터 목록(`WorkCharacter`: name/roleLabel/currentAge/currentLevel/profileJson/statsJson/skillsJson/itemsJson/statusesJson/firstAppearanceEpisodeId/reviewStatus/status), 캐릭터 추가/확정/무시
-- **현재 상태: 백엔드 REST API 미구현 (`NVM-140` 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 `NVM-137`에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현.
-- 요청사항: `NVM-140` API가 나오면 아래 엔드포인트 필요
-  - `GET /api/v1/works/{workId}/characters` — 캐릭터 목록 조회
-  - `POST /api/v1/works/{workId}/characters` — 캐릭터 추가
-  - `PATCH /api/v1/works/{workId}/characters/{id}/confirm` — 확정
-  - `PATCH /api/v1/works/{workId}/characters/{id}/dismiss` — 무시
+- **현재 상태: 백엔드 REST API 미구현 (`NVM-140` 진행 중, `@RestController` 없음)**. DB/도메인 모델(`WorkCharacter`, `CharacterFact`)은 `NVM-137`에서 완료됨. 프론트는 그동안 mock 데이터로 UI만 구현(로컬/배포 모두 mock).
+- 요청사항: `NVM-140` API가 나오면 아래 엔드포인트 필요(필드명은 백엔드 `docs/character.md`의 `characters` 테이블 그대로)
+
+**`GET /api/v1/works/{workId}/characters`**
+```json
+// response.data
+[
+  {
+    "id": "c1a2...", "name": "수아", "roleLabel": "주인공",
+    "currentAge": 23, "currentLevel": null,
+    "profileJson": { "gender": "여성", "affiliation": "검사 지망생" },
+    "statsJson": null, "skillsJson": null, "itemsJson": null, "statusesJson": null,
+    "firstAppearanceEpisodeId": "ep-1...", "reviewStatus": "CONFIRMED", "status": "ACTIVE"
+  }
+]
+```
+
+**`POST /api/v1/works/{workId}/characters`**
+```json
+// request body
+{ "name": "수아", "roleLabel": "주인공", "currentAge": 23, "profileJson": { "gender": "여성" } }
+// response.data → 위 GET 응답의 개별 항목과 동일한 구조
+```
+
+**`PATCH /api/v1/works/{workId}/characters/{id}/confirm`** / **`.../dismiss`**
+```json
+// request body 없음
+// response.data
+{ "id": "c1a2...", "reviewStatus": "CONFIRMED" }
+```
 
 ## 캐릭터 설정 후보 확인 — AI 추출 검토 (NVM-154, SSettingReview)
 
-- 필요 데이터: `SettingCandidate` 목록(entityName/attributeName/attributeValue/confidence/reviewStatus/evidenceSpans), 개별 확정/수정/무시
-- 현재 상태: 마찬가지로 백엔드 API 미구현, 프론트 mock(`mockEpisodeData.ts`)으로 UI 구현
-- **신규 요청 항목**: 고신뢰도 후보를 한 번에 처리하는 벌크 확정 API — `PATCH /api/v1/works/{workId}/setting-candidates/bulk-confirm` (body: 신뢰도 threshold 또는 후보 id 목록). 프론트는 이 기능을 mock 단계에서 먼저 구현(NVM-154), 백엔드 측 엔드포인트가 아직 계획에 없어 여기서 요청.
+- 현재 상태: 마찬가지로 백엔드 API 미구현, 프론트 mock(`mockEpisodeData.ts`)으로 UI 구현(로컬/배포 모두 mock)
+- 필드명은 백엔드 `docs/character.md`의 `setting_candidates` 테이블 기준
+
+**`GET /api/v1/works/{workId}/setting-candidates`**
+```json
+// response.data
+[
+  {
+    "id": "sc1...", "entityType": "CHARACTER", "entityName": "수아",
+    "attributeName": "age", "attributeValue": "23", "valueType": "NUMBER",
+    "confidence": 0.94, "reviewStatus": "PENDING_REVIEW",
+    "evidenceSpans": [{ "episodeNo": 3, "quote": "수아는 23살의..." }]
+  }
+]
+```
+
+**`PATCH /api/v1/works/{workId}/setting-candidates/{id}/confirm`** / **`.../dismiss`**
+```json
+// request body 없음
+// response.data
+{ "id": "sc1...", "reviewStatus": "CONFIRMED" }
+```
+
+**신규 요청 항목 — 고신뢰도 일괄 확정 벌크 API** (현재 백엔드 계획에 없음, 프론트는 NVM-154에서 mock으로 먼저 구현)
+
+**`PATCH /api/v1/works/{workId}/setting-candidates/bulk-confirm`**
+```json
+// request body
+{ "minConfidence": 0.9, "reviewStatus": "PENDING_REVIEW" }
+// 또는 특정 id만 지정하고 싶을 때
+{ "candidateIds": ["sc1...", "sc2..."] }
+// response.data
+{ "confirmedCount": 7, "confirmedIds": ["sc1...", "sc2...", "..."] }
+```
 
 ## 상태값/필드명 합의 사항
 
