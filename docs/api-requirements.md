@@ -45,7 +45,7 @@
 - 화면:
   - `S4Loading` (`/loading`) — 분석 진행 중 보여주는 진행률 화면(청킹/추출 등 단계 표시)
   - `SEpisodeValidationReport` (`/episode-validation-report`) — 분석 완료 후 새 회차와 기존 설정 간 충돌·모순을 리포트로 보여주는 화면
-- 현재 상태: `analysis-jobs` 경로 swagger에 존재(연동 범위는 별도 확인 필요), 로컬 docker 백엔드 기준
+- 현재 상태: 백엔드 swagger(로컬 docker 기준)에 `/api/v1/analysis-jobs` 경로가 존재하지만, **프론트는 아직 호출하지 않음** — `SEpisodeUpload.tsx`에서 `mockCreateAnalysisJob`으로 전부 mock 처리 중. 아래 예시는 실제 호출 테스트가 아니라 백엔드 swagger 스키마(`AnalysisJobResponse`/`AnalysisJobCreateRequest`)를 그대로 인용한 것
 
 **`POST /api/v1/analysis-jobs`**
 ```json
