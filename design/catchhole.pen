@@ -20092,6 +20092,154 @@
                         },
                         {
                           "type": "frame",
+                          "id": "zXRn6",
+                          "name": "ListItemCard - 수아 시간 경과 (pending)",
+                          "width": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            12,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "OvHg4",
+                              "name": "Top Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "U8sMOu",
+                                  "name": "Title",
+                                  "fill": "$text-1",
+                                  "content": "수아 · 시간 경과",
+                                  "fontFamily": "$font",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "FLOtk",
+                                  "name": "Badge",
+                                  "fill": "$warning-soft",
+                                  "cornerRadius": "$radius-pill",
+                                  "stroke": "$warning",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "ItZRa",
+                                      "name": "Label",
+                                      "fill": "$warning",
+                                      "content": "검토 대기",
+                                      "fontFamily": "$font",
+                                      "fontSize": 10,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "luueg",
+                              "name": "Subtitle",
+                              "fill": "$text-3",
+                              "content": "3년 후 (나이 재계산 필요)",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BoGmN",
+                          "name": "ListItemCard - 강민준 계급/직급 (pending)",
+                          "width": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            12,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "BMQ2p",
+                              "name": "Top Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gK86q",
+                                  "name": "Title",
+                                  "fill": "$text-1",
+                                  "content": "강민준 · 계급/직급",
+                                  "fontFamily": "$font",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "d25Gp",
+                                  "name": "Badge",
+                                  "fill": "$warning-soft",
+                                  "cornerRadius": "$radius-pill",
+                                  "stroke": "$warning",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Dp4Gp",
+                                      "name": "Label",
+                                      "fill": "$warning",
+                                      "content": "검토 대기",
+                                      "fontFamily": "$font",
+                                      "fontSize": 10,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "cLWmh",
+                              "name": "Subtitle",
+                              "fill": "$text-3",
+                              "content": "강력계 반장 (이전: 강력계 형사)",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
                           "id": "CXoDE",
                           "name": "ListItemCard - 수아 눈동자 색 (selected)",
                           "width": "fill_container",
@@ -20454,80 +20602,6 @@
                               "name": "Subtitle",
                               "fill": "$text-3",
                               "content": "푸른 장미 펜던트",
-                              "fontFamily": "$font",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "zXRn6",
-                          "name": "ListItemCard - 수아 시간 경과 (pending)",
-                          "width": "fill_container",
-                          "fill": "$surface",
-                          "cornerRadius": "$radius-md",
-                          "stroke": "$border",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 4,
-                          "padding": [
-                            12,
-                            14
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "OvHg4",
-                              "name": "Top Row",
-                              "width": "fill_container",
-                              "justifyContent": "space_between",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "U8sMOu",
-                                  "name": "Title",
-                                  "fill": "$text-1",
-                                  "content": "수아 · 시간 경과",
-                                  "fontFamily": "$font",
-                                  "fontSize": 13,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "FLOtk",
-                                  "name": "Badge",
-                                  "fill": "$warning-soft",
-                                  "cornerRadius": "$radius-pill",
-                                  "stroke": "$warning",
-                                  "strokeWidth": 1,
-                                  "padding": [
-                                    2,
-                                    8
-                                  ],
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "ItZRa",
-                                      "name": "Label",
-                                      "fill": "$warning",
-                                      "content": "검토 대기",
-                                      "fontFamily": "$font",
-                                      "fontSize": 10,
-                                      "fontWeight": "700"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "luueg",
-                              "name": "Subtitle",
-                              "fill": "$text-3",
-                              "content": "3년 후 (나이 재계산 필요)",
                               "fontFamily": "$font",
                               "fontSize": 11,
                               "fontWeight": "normal"
