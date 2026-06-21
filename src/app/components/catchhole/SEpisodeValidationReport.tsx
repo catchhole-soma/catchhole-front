@@ -122,7 +122,7 @@ export default function SEpisodeValidationReport() {
   const [search, setSearch] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue');
-  const selectedId = issueParam !== null && !Number.isNaN(Number(issueParam)) ? Number(issueParam) : null;
+  const selectedId = issueParam !== null && /^\d+$/.test(issueParam) ? Number(issueParam) : null;
   const setSelectedId = (id: number | null) => setSearchParams(prev => {
     if (id !== null) prev.set('issue', String(id)); else prev.delete('issue');
     return prev;
