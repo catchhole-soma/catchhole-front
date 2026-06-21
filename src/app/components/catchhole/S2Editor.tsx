@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { C, EditorMode } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -455,7 +456,12 @@ export default function S2Editor() {
   const { editorMode, setEditorMode } = useAppContext();
   const mode = editorMode;
   const isViewMode = mode === 'view';
-  const [showModal, setShowModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showModal = searchParams.get('modal') === 'analysis-request';
+  const setShowModal = (show: boolean) => setSearchParams(prev => {
+    if (show) prev.set('modal', 'analysis-request'); else prev.delete('modal');
+    return prev;
+  });
   const [showShare, setShowShare] = useState(false);
   const [intentional, setIntentional] = useState(false);
   const [activePill, setActivePill] = useState('수아');

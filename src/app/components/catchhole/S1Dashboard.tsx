@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -2793,12 +2794,33 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
   murim: { title: '무협지존', genre: '무협' },
 };
 
+const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
+const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
+
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
-  const { selectedWork, setEditorMode, setReportMode } = useAppContext();
-  const [activeNav, setActiveNav] = useState<NavId>('settingDB');
-  const [settingTab, setSettingTab] = useState<SettingTabId>('characters');
-  const [relGraphId, setRelGraphId] = useState<RelGraphId>('triangle');
+  const { selectedWork, setEditorMode } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const navParam = searchParams.get('nav');
+  const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
+  const setActiveNav = (id: NavId) => setSearchParams(prev => { prev.set('nav', id); return prev; });
+
+  const tabParam = searchParams.get('tab');
+  const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
+  const setSettingTab = (id: SettingTabId) => setSearchParams(prev => { prev.set('tab', id); return prev; });
+
+  const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
+  const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
+    if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
+    else { prev.delete('modal'); prev.delete('charId'); }
+    return prev;
+  });
+
+  const relGraphParam = searchParams.get('relGraph');
+  const relGraphId: RelGraphId = (REL_GRAPH_IDS as string[]).includes(relGraphParam ?? '') ? (relGraphParam as RelGraphId) : 'triangle';
+  const setRelGraphId = (id: RelGraphId) => setSearchParams(prev => { prev.set('relGraph', id); return prev; });
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
   const [msPage, setMsPage] = useState(0);
@@ -2814,7 +2836,6 @@ export default function S1Dashboard() {
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const [selectedCharDetail, setSelectedCharDetail] = useState<string | null>(null);
 
   const handleCharSave = (s: CharacterSetting) => {
     let isNew = false;
@@ -3099,7 +3120,7 @@ export default function S1Dashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                   <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>분석 리포트</span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label="발행 전 검수" onClick={() => { setReportMode('prePublish'); navigate('/report', 'push-right'); }} icon={<Shield size={12} />} />
+                    <BtnG label="발행 전 검수" onClick={() => navigate('/report?mode=prePublish', 'push-right')} icon={<Shield size={12} />} />
                     <BtnG label="전체 내보내기" icon={<Scroll size={12} />} />
                   </div>
                 </div>
