@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import { ChevronLeft, Check, Pencil, EyeOff, RotateCcw, TriangleAlert } from 'lucide-react';
 import { C } from './constants';
@@ -11,6 +11,8 @@ import {
 } from './types';
 import { MOCK_SETTING_CANDIDATES } from './mockEpisodeData';
 import { UserMenu } from './UserMenu';
+import { getSettingCandidates, updateCandidate } from '../../lib/settingsApi';
+import { isDemoMode } from '../../lib/worksApi';
 
 const CHARACTER_COLORS: Record<string, string> = {
   '수아': C.primary,
@@ -228,21 +230,42 @@ function CandidateDetail({ candidate, onUpdate }: {
 export default function SSettingReview() {
   const navigate = useAppNavigate();
   const location = useLocation();
-  const episodeIds = (location.state as { episodeIds?: string[] } | null)?.episodeIds;
+  const state = (location.state as { episodeIds?: string[]; workId?: string } | null);
+  const episodeIds = state?.episodeIds;
+  const workId = state?.workId;
 
-  const initialCandidates = () =>
-    episodeIds && episodeIds.length > 0
-      ? MOCK_SETTING_CANDIDATES.filter((c) => episodeIds.includes(c.episodeId))
-      : MOCK_SETTING_CANDIDATES;
-
-  const [candidates, setCandidates] = useState<SettingCandidate[]>(initialCandidates);
+  const [candidates, setCandidates] = useState<SettingCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<SettingReviewFilter>('PENDING_REVIEW');
   const [typeFilter, setTypeFilter] = useState<SettingCandidateType | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const fetchCandidates = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getSettingCandidates(workId ?? '', episodeIds);
+      setCandidates(data);
+    } catch {
+      const fallback = episodeIds && episodeIds.length > 0
+        ? MOCK_SETTING_CANDIDATES.filter((c) => episodeIds.includes(c.episodeId))
+        : MOCK_SETTING_CANDIDATES;
+      setCandidates(fallback);
+    } finally {
+      setLoading(false);
+    }
+  }, [workId, episodeIds]);
+
+  useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
+
   const handleUpdate = (id: string, patch: Partial<SettingCandidate>) => {
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, ...patch } : c));
+    if (workId && !isDemoMode()) {
+      updateCandidate(workId, id, {
+        reviewStatus: patch.reviewStatus,
+        editedValue: patch.editedValue ?? null,
+      }).catch(console.error);
+    }
   };
 
   const total = candidates.length;
@@ -286,6 +309,18 @@ export default function SSettingReview() {
       id: type, label, count: typeCounts[type as SettingCandidateType],
     })),
   ];
+
+  if (loading) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: C.bg, color: C.t2, fontSize: 14,
+        fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
+      }}>
+        설정 후보를 불러오는 중...
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -339,7 +374,7 @@ export default function SSettingReview() {
 
           <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
             <BtnG label="← 이전" onClick={() => navigate('/dashboard', 'pop')} />
-            <BtnG label="설정집 다시 분석" onClick={() => setCandidates(initialCandidates())} />
+            <BtnG label="설정집 다시 분석" onClick={fetchCandidates} />
             <div style={{ flex: 1 }}>
               {allReviewed
                 ? <BtnP label="회차 검사 시작 →" onClick={() => navigate('/dashboard', 'pop')} />
