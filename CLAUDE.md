@@ -32,7 +32,7 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 | `/login` | `SLogin` | 로그인 (공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 회원가입 (공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/` | `S0WorkPicker` | 작품 선택 (진입점) |
-| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|graph\|manuscripts`로 좌측 섹션, `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?nav=graph`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
+| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|graph\|manuscripts`로 좌측 섹션, `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?nav=settingDB&tab=relations`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
 | `/editor` | `S2Editor` | 원고 에디터. `?modal=analysis-request`로 분석 요청 모달 딥링크 |
 | `/chat` | `S3Chat` | 챗봇 |
 | `/loading` | `S4Loading` | 분석 진행률 |
