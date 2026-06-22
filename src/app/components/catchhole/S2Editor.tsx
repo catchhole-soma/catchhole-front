@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { C, EditorMode } from './constants';
+import { C, EditorMode, FALLBACK_MANUSCRIPT } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import {
@@ -15,6 +15,7 @@ interface Props {
   mode?: EditorMode;
 }
 
+// NOTE: 데모 충돌 시나리오 본문은 159화 내용에 고정되어 있으며, 선택된 회차에 따라 동적으로 바뀌지 않음(의도된 범위 한계)
 const DEMO_SCRIPT =
   `제159화. 운명의 실타래\n\n` +
   `이레나가 법정에 들어서는 순간, 방청석 전체가 숨을 죽였다. 그녀의 존재감은\n` +
@@ -73,7 +74,7 @@ function HighlightedText({ text, tooltip }: { text: string; tooltip: string }) {
   );
 }
 
-function S3Modal({ onStart, onCancel }: { onStart: () => void; onCancel: () => void }) {
+function S3Modal({ onStart, onCancel, chapter }: { onStart: () => void; onCancel: () => void; chapter: string }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -94,7 +95,7 @@ function S3Modal({ onStart, onCancel }: { onStart: () => void; onCancel: () => v
         }}
       >
         <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.4px' }}>
-          159화 분석 요청
+          {chapter}화 분석 요청
         </div>
         <div style={{ color: C.t2, fontSize: 14, marginBottom: 24 }}>기존 158개 회차 설정 DB와 대조합니다</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
@@ -453,7 +454,8 @@ function EditorText({ text, detectionPhase, showCursor }: {
 
 export default function S2Editor() {
   const navigate = useAppNavigate();
-  const { editorMode, setEditorMode } = useAppContext();
+  const { editorMode, setEditorMode, selectedManuscript } = useAppContext();
+  const ms = selectedManuscript ?? FALLBACK_MANUSCRIPT;
   const mode = editorMode;
   const isViewMode = mode === 'view';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -574,7 +576,7 @@ export default function S2Editor() {
         </button>
 
         <span style={{ color: C.t2, fontSize: 14, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-          빛나는 검사 로맨스 — 159화 작성
+          빛나는 검사 로맨스 — {ms.chapter}화 작성
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -761,7 +763,7 @@ export default function S2Editor() {
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
             <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>화수 정보</div>
-            <div style={{ color: C.t2, fontSize: 12 }}>현재: 159화</div>
+            <div style={{ color: C.t2, fontSize: 12 }}>현재: {ms.chapter}화</div>
             <div style={{ color: C.t3, fontSize: 12, marginTop: 4 }}>총 158화 설정 로드됨</div>
           </div>
         </div>
@@ -849,7 +851,7 @@ export default function S2Editor() {
             height: 36, borderTop: `1px solid ${C.border}`,
             display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0,
           }}>
-            <span style={{ color: C.t3, fontSize: 12 }}>159화</span>
+            <span style={{ color: C.t3, fontSize: 12 }}>{ms.chapter}화</span>
             <span style={{ color: C.t3, fontSize: 12 }}>·</span>
             <span style={{ color: C.t3, fontSize: 12 }}>
               {demoActive ? `${typedText.length}자 작성됨` : '432자 작성됨'}
@@ -893,7 +895,7 @@ export default function S2Editor() {
       </div>
 
       <AnimatePresence>
-        {showModal && <S3Modal onStart={handleAnalysisStart} onCancel={() => setShowModal(false)} />}
+        {showModal && <S3Modal onStart={handleAnalysisStart} onCancel={() => setShowModal(false)} chapter={ms.chapter} />}
         {showShare && <ShareModal workTitle="빛나는 검사 로맨스" onClose={() => setShowShare(false)} defaultTab="link" />}
       </AnimatePresence>
     </div>

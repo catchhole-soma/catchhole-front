@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { C } from './constants';
+import { C, FALLBACK_MANUSCRIPT } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAppContext } from '../../context/AppContext';
 import {
   ChevronLeft, OctagonAlert, AlertTriangle, Sparkles,
   ChevronDown, ChevronUp, EyeOff, BookOpen, Clock, Users, Check,
@@ -362,6 +363,7 @@ export function ErrorCard({ data, ignored, onIgnore, onFix }: {
   );
 }
 
+// NOTE: 목 이슈 본문은 159화 내용에 고정되어 있으며, 선택된 회차에 따라 동적으로 바뀌지 않음(의도된 범위 한계)
 const ERROR_DATA: ErrorCardData[] = [
   {
     id: 8,
@@ -611,6 +613,8 @@ export default function S5Report() {
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning'>('all');
   const [showShare, setShowShare] = useState(false);
   const isPrePublish = mode === 'prePublish';
+  const { selectedManuscript } = useAppContext();
+  const ms = selectedManuscript ?? FALLBACK_MANUSCRIPT;
 
   const toggleIgnore = (id: number) =>
     setIgnoredIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -650,7 +654,7 @@ export default function S5Report() {
           color: C.t1, fontSize: 16, fontWeight: 700, letterSpacing: '-0.3px',
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
         }}>
-          {isPrePublish ? '발행 전 전체 검수' : '159화 분석 결과'}
+          {isPrePublish ? '발행 전 전체 검수' : `${ms.chapter}화 분석 결과`}
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -738,7 +742,7 @@ export default function S5Report() {
           )}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <OctagonAlert size={13} color={C.t3} />
-            <span style={{ color: C.t3, fontSize: 12 }}>빛나는 검사 로맨스 · 159화</span>
+            <span style={{ color: C.t3, fontSize: 12 }}>빛나는 검사 로맨스 · {ms.chapter}화</span>
           </div>
         </div>
 
