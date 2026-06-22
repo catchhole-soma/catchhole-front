@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState } from 'react';
-import { WorkId, EditorMode } from '../components/catchhole/constants';
+import { WorkId, EditorMode, ManuscriptRow } from '../components/catchhole/constants';
 
 interface AppState {
   selectedWork: WorkId;
   setSelectedWork: (w: WorkId) => void;
   editorMode: EditorMode;
   setEditorMode: (m: EditorMode) => void;
+  selectedManuscript: ManuscriptRow | null;
+  setSelectedManuscript: (m: ManuscriptRow | null) => void;
 }
 
 const AppContext = createContext<AppState>(null!);
@@ -13,9 +15,10 @@ const AppContext = createContext<AppState>(null!);
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [selectedWork, setSelectedWork] = useState<WorkId>('detective');
   const [editorMode, setEditorMode] = useState<EditorMode>('edit');
+  const [selectedManuscript, setSelectedManuscript] = useState<ManuscriptRow | null>(null);
 
   return (
-    <AppContext.Provider value={{ selectedWork, setSelectedWork, editorMode, setEditorMode }}>
+    <AppContext.Provider value={{ selectedWork, setSelectedWork, editorMode, setEditorMode, selectedManuscript, setSelectedManuscript }}>
       {children}
     </AppContext.Provider>
   );

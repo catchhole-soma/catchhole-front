@@ -17,3 +17,10 @@ export type WorkId = string;
 export type EditorMode = 'edit' | 'view';
 export type NavId = 'settingDB' | 'reports' | 'graph' | 'manuscripts';
 export type TransitionType = 'push-right' | 'push-left' | 'cover-up' | 'pop' | 'dissolve';
+
+export type MsStatus = 'analyzed' | 'unanalyzed' | 'analyzing' | 'missing';
+export interface ManuscriptRow { chapter: string; title: string; date: string; words: string; errors: number; status: MsStatus; }
+
+export const FALLBACK_MANUSCRIPT: ManuscriptRow = {
+  chapter: '159', title: '운명의 실타래', date: '오늘', words: '4,200자', errors: 5, status: 'analyzing',
+};

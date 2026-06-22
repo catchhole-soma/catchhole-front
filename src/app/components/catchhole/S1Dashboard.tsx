@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { C, EditorMode, NavId } from './constants';
+import { C, EditorMode, NavId, ManuscriptRow, MsStatus } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
@@ -193,8 +193,6 @@ export function FileDropArea({ file, onFileChange, error, fileLabel }: {
 
 type UploadSubType = 'fresh' | 'ep-only';
 
-type MsStatus = 'analyzed' | 'unanalyzed' | 'analyzing' | 'missing';
-interface ManuscriptRow { chapter: string; title: string; date: string; words: string; errors: number; status: MsStatus; }
 interface SettingsDoc { name: string; date: string; }
 
 const INIT_SETTINGS_DOCS: SettingsDoc[] = [
@@ -2800,7 +2798,7 @@ const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
-  const { selectedWork, setEditorMode } = useAppContext();
+  const { selectedWork, setEditorMode, setSelectedManuscript } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const navParam = searchParams.get('nav');
@@ -2825,6 +2823,25 @@ export default function S1Dashboard() {
   const { works, refetch: refetchWorks } = useWorks();
   const [msPage, setMsPage] = useState(0);
   const MS_PAGE_SIZE = 20;
+  const [manuscripts, setManuscripts] = useState<ManuscriptRow[]>(INIT_MANUSCRIPTS);
+  const [settingsDocs, setSettingsDocs] = useState<SettingsDoc[]>(INIT_SETTINGS_DOCS);
+  const [confirmingDeleteDoc, setConfirmingDeleteDoc] = useState<string | null>(null);
+  const [confirmingDeleteMs, setConfirmingDeleteMs] = useState<string | null>(null);
+
+  const handleDeleteDoc = (name: string) => {
+    setSettingsDocs(prev => prev.filter(d => d.name !== name));
+    setConfirmingDeleteDoc(null);
+  };
+
+  const handleDeleteManuscript = (chapter: string) => {
+    setManuscripts(prev => {
+      const next = prev.filter(m => m.chapter !== chapter);
+      const newTotalPages = Math.max(1, Math.ceil(next.length / MS_PAGE_SIZE));
+      setMsPage(p => Math.min(p, newTotalPages - 1));
+      return next;
+    });
+    setConfirmingDeleteMs(null);
+  };
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
   const [episodeTargetChapters, setEpisodeTargetChapters] = useState(0);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -3218,28 +3235,53 @@ export default function S1Dashboard() {
                     <div style={{ fontSize: 12 }}>회차 올리기로 첫 원고를 추가하세요.</div>
                   </div>
                 ) : (() => {
-                    const pagedRows = INIT_MANUSCRIPTS.slice(msPage * MS_PAGE_SIZE, (msPage + 1) * MS_PAGE_SIZE);
-                    const totalPages = Math.ceil(INIT_MANUSCRIPTS.length / MS_PAGE_SIZE);
+                    const pagedRows = manuscripts.slice(msPage * MS_PAGE_SIZE, (msPage + 1) * MS_PAGE_SIZE);
+                    const totalPages = Math.max(1, Math.ceil(manuscripts.length / MS_PAGE_SIZE));
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 800 }}>
                         {/* 설정집 섹션 */}
                         <div>
                           <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 설정집</div>
-                          {INIT_SETTINGS_DOCS.map(doc => (
+                          {settingsDocs.length === 0 ? (
+                            <div style={{ padding: '14px 16px', color: C.t3, fontSize: 13, background: C.surface, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                              업로드된 설정집이 없습니다.
+                            </div>
+                          ) : settingsDocs.map(doc => (
                             <div key={doc.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <FileText size={14} color={C.primary} />
                                 <span style={{ color: C.t1, fontSize: 13 }}>{doc.name}</span>
                                 <span style={{ color: C.t3, fontSize: 12 }}>{doc.date}</span>
                               </div>
-                              <BtnG small label="삭제" />
+                              {confirmingDeleteDoc === doc.name ? (
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <span style={{ color: C.t2, fontSize: 12 }}>정말 삭제할까요?</span>
+                                  <BtnG small label="취소" onClick={() => setConfirmingDeleteDoc(null)} />
+                                  <button onClick={() => handleDeleteDoc(doc.name)} style={{
+                                    height: 32, padding: '0 12px', borderRadius: 6, border: 'none',
+                                    background: C.danger, color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                                  }}>삭제</button>
+                                </div>
+                              ) : (
+                                <BtnG small label="삭제" onClick={() => setConfirmingDeleteDoc(doc.name)} />
+                              )}
                             </div>
                           ))}
                         </div>
                         {/* 원고 목록 섹션 */}
                         <div>
-                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 원고 ({INIT_MANUSCRIPTS.length}화)</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 원고 ({manuscripts.length}화)</div>
+                          {manuscripts.length === 0 ? (
+                            <div style={{
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              height: 200, color: C.t3, gap: 12, background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
+                            }}>
+                              <FileText size={32} strokeWidth={1.2} />
+                              <div style={{ fontSize: 13 }}>업로드된 원고가 없습니다.</div>
+                            </div>
+                          ) : (
+                          <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 230px', padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                             <span>회차</span><span>제목</span><span>업로드</span><span>글자수</span><span>오류</span><span></span>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -3248,7 +3290,7 @@ export default function S1Dashboard() {
                               const isAnalyzing = row.status === 'analyzing';
                               const isUnanalyzed = row.status === 'unanalyzed';
                               return (
-                                <div key={row.chapter} style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', alignItems: 'center', padding: '12px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, opacity: isMissing ? 0.4 : 1, transition: 'border-color 0.15s' }}
+                                <div key={row.chapter} style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 230px', alignItems: 'center', padding: '12px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, opacity: isMissing ? 0.4 : 1, transition: 'border-color 0.15s' }}
                                   onMouseEnter={e => { if (!isMissing) e.currentTarget.style.borderColor = '#3A3A4A'; }}
                                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
                                 >
@@ -3260,11 +3302,25 @@ export default function S1Dashboard() {
                                     {isAnalyzing ? '분석 중...' : (isMissing || isUnanalyzed) ? '—' : row.errors > 0 ? `${row.errors}건` : '없음'}
                                   </span>
                                   <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                                    {!isMissing && <>
-                                      <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => navigate('/loading', 'dissolve')} />
-                                      <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => { setEditorMode('view'); navigate('/editor', 'push-right'); }} />
-                                      <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} />
-                                    </>}
+                                    {!isMissing && (
+                                      confirmingDeleteMs === row.chapter ? (
+                                        <>
+                                          <span style={{ color: C.t2, fontSize: 12, marginRight: 2 }}>정말 삭제할까요?</span>
+                                          <BtnG small label="취소" onClick={() => setConfirmingDeleteMs(null)} />
+                                          <button onClick={() => handleDeleteManuscript(row.chapter)} style={{
+                                            height: 32, padding: '0 12px', borderRadius: 6, border: 'none',
+                                            background: C.danger, color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                                          }}>삭제</button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => { setSelectedManuscript(row); navigate('/loading', 'dissolve'); }} />
+                                          <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => { setEditorMode('view'); setSelectedManuscript(row); navigate('/editor', 'push-right'); }} />
+                                          <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => { setEditorMode('edit'); setSelectedManuscript(row); navigate('/editor', 'push-right'); }} />
+                                          <BtnG small label="삭제" onClick={() => setConfirmingDeleteMs(row.chapter)} />
+                                        </>
+                                      )
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -3275,6 +3331,8 @@ export default function S1Dashboard() {
                             <span style={{ color: C.t2, fontSize: 13 }}>{msPage + 1} / {totalPages}</span>
                             <button onClick={() => setMsPage(p => Math.min(totalPages - 1, p + 1))} disabled={msPage === totalPages - 1} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: msPage === totalPages - 1 ? C.t3 : C.t2, fontSize: 13, cursor: msPage === totalPages - 1 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: msPage === totalPages - 1 ? 0.4 : 1 }}>다음 →</button>
                           </div>
+                          </>
+                          )}
                         </div>
                       </div>
                     );
