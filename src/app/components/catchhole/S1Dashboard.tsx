@@ -2993,7 +2993,7 @@ export default function S1Dashboard() {
                         {chars.length === 0 ? (
                           <div style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            maxWidth: 420, margin: '40px auto', textAlign: 'center', gap: 16,
+                            maxWidth: 860, height: 280, textAlign: 'center', gap: 16,
                           }}>
                             <div style={{
                               width: 56, height: 56, borderRadius: 14, background: C.primary + '14',
