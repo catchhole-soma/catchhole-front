@@ -1714,9 +1714,9 @@ function CharCardDynamic({ setting, onEdit, onView, onDelete, forceShowEdit }: {
 
   return (
     <div
-      onClick={onView}
+      onClick={confirmingDelete ? undefined : onView}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setConfirmingDelete(false); }}
+      onMouseLeave={() => setHovered(false)}
       style={{
         background: C.bg, borderRadius: 8,
         border: `1px solid ${hovered ? color + '88' : hasConflict ? C.warning + '55' : C.border}`,
@@ -1732,22 +1732,24 @@ function CharCardDynamic({ setting, onEdit, onView, onDelete, forceShowEdit }: {
       )}
       {(hovered || forceShowEdit) && !confirmingDelete && (
         <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6 }}>
-          <div
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             style={{
-              background: C.surface,
+              background: C.surface, fontFamily: 'inherit',
               border: `1px solid ${forceShowEdit ? C.primary : C.border}`, borderRadius: 4,
               padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.primary : C.t3, cursor: 'pointer',
             }}
-          >수정</div>
-          <div
+          >수정</button>
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
             style={{
-              background: C.surface,
+              background: C.surface, fontFamily: 'inherit',
               border: `1px solid ${forceShowEdit ? C.danger : C.border}`, borderRadius: 4,
               padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.danger : C.t3, cursor: 'pointer',
             }}
-          >삭제</div>
+          >삭제</button>
         </div>
       )}
       {confirmingDelete && (
@@ -1759,8 +1761,8 @@ function CharCardDynamic({ setting, onEdit, onView, onDelete, forceShowEdit }: {
           }}
         >
           <span style={{ color: C.t2, fontSize: 11 }}>삭제할까요?</span>
-          <div onClick={() => setConfirmingDelete(false)} style={{ color: C.t3, fontSize: 11, cursor: 'pointer' }}>취소</div>
-          <div onClick={onDelete} style={{ color: C.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>삭제</div>
+          <button type="button" onClick={() => setConfirmingDelete(false)} style={{ background: 'none', border: 'none', fontFamily: 'inherit', color: C.t3, fontSize: 11, cursor: 'pointer' }}>취소</button>
+          <button type="button" onClick={onDelete} style={{ background: 'none', border: 'none', fontFamily: 'inherit', color: C.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>삭제</button>
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
