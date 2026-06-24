@@ -11329,7 +11329,7 @@
                           ],
                           "descendants": {
                             "N7PKG": {
-                              "content": "설정 수정"
+                              "content": "편집"
                             }
                           }
                         },
@@ -11791,6 +11791,49 @@
                                   ]
                                 }
                               ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bHiTm",
+                              "layoutPosition": "absolute",
+                              "x": 122,
+                              "y": 10,
+                              "name": "Card Actions (hover)",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "id": "a5RRlJ",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "수정",
+                                      "fontSize": 11
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "v5Sl9h",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "stroke": "$danger",
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "삭제",
+                                      "fontSize": 11,
+                                      "fill": "$danger"
+                                    }
+                                  }
+                                }
+                              ]
                             }
                           ]
                         },
@@ -11996,6 +12039,49 @@
                                   ]
                                 }
                               ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "sKh0h",
+                              "layoutPosition": "absolute",
+                              "x": 122,
+                              "y": 10,
+                              "name": "Card Actions (hover)",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "id": "j8CuJ",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "수정",
+                                      "fontSize": 11
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "YhCHA",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "stroke": "$danger",
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "삭제",
+                                      "fontSize": 11,
+                                      "fill": "$danger"
+                                    }
+                                  }
+                                }
+                              ]
                             }
                           ]
                         },
@@ -12004,7 +12090,6 @@
                           "id": "znwDl",
                           "name": "Char Card - 이레나",
                           "width": 204,
-                          "height": 160,
                           "fill": "$bg",
                           "cornerRadius": 8,
                           "stroke": "$border",
@@ -12199,6 +12284,52 @@
                                       "fontWeight": "normal"
                                     }
                                   ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "dsmGI",
+                              "name": "Card Actions (confirm delete)",
+                              "width": "fill_container",
+                              "fill": "$surface",
+                              "cornerRadius": 4,
+                              "stroke": "$border",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                4,
+                                8
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "aePZA",
+                                  "fill": "$text-2",
+                                  "content": "삭제할까요?",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "wyesH",
+                                  "fill": "$text-3",
+                                  "content": "취소",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "f0XGcB",
+                                  "fill": "$danger",
+                                  "content": "삭제",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
                                 }
                               ]
                             }
@@ -42214,6 +42345,456 @@
                       "fontFamily": "$font",
                       "fontSize": 13,
                       "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "VFxs5",
+      "x": 13680,
+      "y": 3490,
+      "name": "S1Dashboard / 설정DB 탭 - 캐릭터 Empty 상태",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "wPB4a",
+          "name": "Header",
+          "width": "fill_container",
+          "height": 56,
+          "stroke": "$border",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "OjcTe",
+              "name": "Logo Group",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vZvZ4",
+                  "name": "Logo Box",
+                  "width": 26,
+                  "height": 26,
+                  "fill": "$primary",
+                  "cornerRadius": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "XgJhl",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "shield",
+                      "library": "lucide",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "V80qr",
+                  "fill": "$text-1",
+                  "content": "CatchHole",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "Tgmr9",
+                  "name": "Beta Badge",
+                  "fill": "$primary-soft",
+                  "cornerRadius": 3,
+                  "stroke": "$primary",
+                  "strokeWidth": 1,
+                  "padding": [
+                    2,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dPoaO",
+                      "fill": "$primary",
+                      "content": "BETA",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Eu1D3",
+              "name": "Header Right",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "kEwlx",
+                  "fill": "$text-3",
+                  "content": "구독제 · 이번 달 14/20회 사용",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "hOGOP",
+                  "name": "Avatar",
+                  "width": 28,
+                  "height": 28,
+                  "fill": "$surface-high",
+                  "cornerRadius": "$radius-pill"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UjvGg",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "children": [
+            {
+              "id": "z9aXq",
+              "type": "ref",
+              "ref": "T2PITB",
+              "height": "fill_container"
+            },
+            {
+              "type": "frame",
+              "id": "e5KMg",
+              "name": "Main Column",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                20,
+                40,
+                0,
+                40
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Wq5tT",
+                  "name": "Title Row",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "H3Lh7r",
+                      "name": "Title Col",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tudTs",
+                          "fill": "$text-3",
+                          "content": "설정 대시보드",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "s6NFR",
+                          "fill": "$text-1",
+                          "content": "빛나는 검사 로맨스",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "G9RK7B",
+                      "name": "Actions Row",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "id": "PYOTW",
+                          "type": "ref",
+                          "ref": "OUit2",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "descendants": {
+                            "N7PKG": {
+                              "content": "편집"
+                            }
+                          }
+                        },
+                        {
+                          "id": "SEJuu",
+                          "type": "ref",
+                          "ref": "m035Yk",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "descendants": {
+                            "a5O4dJ": {
+                              "content": "회차 올리기"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tQOeE",
+                  "name": "Tab Bar",
+                  "width": "fill_container",
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "cmhFf",
+                      "name": "Tab 캐릭터 DB",
+                      "height": 44,
+                      "stroke": "$primary",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iun1u",
+                          "fill": "$primary",
+                          "content": "캐릭터 DB",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CPG31",
+                      "name": "Tab 관계도",
+                      "height": 44,
+                      "stroke": "#00000000",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xO0B4",
+                          "fill": "$text-2",
+                          "content": "관계도",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yW0Sg",
+                      "name": "Tab 타임라인",
+                      "height": 44,
+                      "stroke": "#00000000",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LSxrw",
+                          "fill": "$text-2",
+                          "content": "타임라인",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "W2O6zd",
+                      "name": "Tab 세계관 규칙",
+                      "height": 44,
+                      "stroke": "#00000000",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "EzYOM",
+                          "fill": "$text-2",
+                          "content": "세계관 규칙",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "eTkkv",
+                      "name": "Tab 설정 검색",
+                      "height": 44,
+                      "stroke": "#00000000",
+                      "strokeWidth": {
+                        "bottom": 2
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MgP2J",
+                          "fill": "$text-2",
+                          "content": "설정 검색",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Wx5EJ",
+                  "name": "Empty State",
+                  "width": 860,
+                  "height": 280,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "w6aua",
+                      "name": "Icon Circle",
+                      "width": 56,
+                      "height": 56,
+                      "fill": "#7C5CFC14",
+                      "cornerRadius": 14,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "EzbW1",
+                          "width": 26,
+                          "height": 26,
+                          "icon": "users",
+                          "library": "lucide",
+                          "fill": "$primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E7uTm8",
+                      "name": "Text Col",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ye1h8",
+                          "fill": "$text-1",
+                          "content": "등록된 캐릭터가 없습니다",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "VV2nw",
+                          "fill": "$text-3",
+                          "content": "캐릭터를 추가하시겠어요?",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "r3wXy6",
+                      "type": "ref",
+                      "ref": "m035Yk",
+                      "padding": [
+                        8,
+                        14
+                      ],
+                      "descendants": {
+                        "a5O4dJ": {
+                          "content": "캐릭터 추가"
+                        }
+                      }
                     }
                   ]
                 }
