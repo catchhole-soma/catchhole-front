@@ -1700,8 +1700,9 @@ function WorldBuilderModal({ onClose, onSave, initial }: {
 }
 
 // ── CharCardDynamic (CharacterSetting 기반, 클릭 → 상세 / 수정 버튼 → 편집) ──
-function CharCardDynamic({ setting, onEdit, onView, forceShowEdit }: { setting: CharacterSetting; onEdit: () => void; onView: () => void; forceShowEdit?: boolean }) {
+function CharCardDynamic({ setting, onEdit, onView, onDelete, forceShowEdit }: { setting: CharacterSetting; onEdit: () => void; onView: () => void; onDelete: () => void; forceShowEdit?: boolean }) {
   const [hovered, setHovered] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const color = CHAR_COLORS[setting.id] || C.primary;
   const get = (label: string) =>
     setting.entries.find(e => e.label.includes(label))?.content || '—';
@@ -1715,7 +1716,7 @@ function CharCardDynamic({ setting, onEdit, onView, forceShowEdit }: { setting: 
     <div
       onClick={onView}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setConfirmingDelete(false); }}
       style={{
         background: C.bg, borderRadius: 8,
         border: `1px solid ${hovered ? color + '88' : hasConflict ? C.warning + '55' : C.border}`,
@@ -1729,15 +1730,38 @@ function CharCardDynamic({ setting, onEdit, onView, forceShowEdit }: { setting: 
           width: 6, height: 6, borderRadius: '50%', background: C.warning,
         }} />
       )}
-      {(hovered || forceShowEdit) && (
+      {(hovered || forceShowEdit) && !confirmingDelete && (
+        <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6 }}>
+          <div
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            style={{
+              background: C.surface,
+              border: `1px solid ${forceShowEdit ? C.primary : C.border}`, borderRadius: 4,
+              padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.primary : C.t3, cursor: 'pointer',
+            }}
+          >수정</div>
+          <div
+            onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
+            style={{
+              background: C.surface,
+              border: `1px solid ${forceShowEdit ? C.danger : C.border}`, borderRadius: 4,
+              padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.danger : C.t3, cursor: 'pointer',
+            }}
+          >삭제</div>
+        </div>
+      )}
+      {confirmingDelete && (
         <div
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          onClick={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute', top: 10, right: 10, background: C.surface,
-            border: `1px solid ${forceShowEdit ? C.primary : C.border}`, borderRadius: 4,
-            padding: '2px 8px', fontSize: 11, color: forceShowEdit ? C.primary : C.t3, cursor: 'pointer',
+            position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6,
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 8px',
           }}
-        >수정</div>
+        >
+          <span style={{ color: C.t2, fontSize: 11 }}>삭제할까요?</span>
+          <div onClick={() => setConfirmingDelete(false)} style={{ color: C.t3, fontSize: 11, cursor: 'pointer' }}>취소</div>
+          <div onClick={onDelete} style={{ color: C.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>삭제</div>
+        </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
@@ -2936,7 +2960,7 @@ export default function S1Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label={charEditMode ? '수정 완료' : '설정 수정'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
+                    <BtnG label={charEditMode ? '완료' : '편집'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
                     <BtnP label="회차 올리기" onClick={() => navigate('/episode-upload', 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
@@ -2966,27 +2990,47 @@ export default function S1Dashboard() {
                   <AnimatePresence mode="wait">
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
-                          {chars.map(s => (
-                            <CharCardDynamic
-                              key={s.id}
-                              setting={s}
-                              onEdit={() => setEditTarget(s)}
-                              onView={() => setSelectedCharDetail(s.id)}
-                              forceShowEdit={charEditMode}
-                            />
-                          ))}
-                          <div onClick={() => setShowBuilder(true)} style={{
-                            background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
+                        {chars.length === 0 ? (
+                          <div style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
-                          }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.primary; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
-                            <Sparkles size={20} color={C.primary} />
-                            <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 설정 만들기</span>
+                            maxWidth: 420, margin: '40px auto', textAlign: 'center', gap: 16,
+                          }}>
+                            <div style={{
+                              width: 56, height: 56, borderRadius: 14, background: C.primary + '14',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <Users size={26} color={C.primary} />
+                            </div>
+                            <div>
+                              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 캐릭터가 없습니다</div>
+                              <div style={{ color: C.t3, fontSize: 13 }}>캐릭터를 추가하시겠어요?</div>
+                            </div>
+                            <BtnP label="캐릭터 추가" icon={<Sparkles size={13} />} onClick={() => setShowBuilder(true)} />
                           </div>
-                        </div>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
+                            {chars.map(s => (
+                              <CharCardDynamic
+                                key={s.id}
+                                setting={s}
+                                onEdit={() => setEditTarget(s)}
+                                onView={() => setSelectedCharDetail(s.id)}
+                                onDelete={() => handleCharDelete(s.id)}
+                                forceShowEdit={charEditMode}
+                              />
+                            ))}
+                            <div onClick={() => setShowBuilder(true)} style={{
+                              background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
+                            }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.primary; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
+                              <Sparkles size={20} color={C.primary} />
+                              <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 설정 만들기</span>
+                            </div>
+                          </div>
+                        )}
                         <div style={{ marginTop: 24, maxWidth: 860 }}>
                           <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>변경 이력</div>
                           <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
