@@ -91,7 +91,7 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 두 가지 디자인 산출물 경로가 있으며, 서로 대체 관계가 아니라 보완 관계입니다.
 
 1. **Stitch → Figma (팀 공유용 와이어프레임)**: 화면을 Puppeteer로 정적 HTML 스냅샷 추출(`.stitch/*.html`, **gitignore됨 — 임시 작업 폴더**) → Stitch 프로젝트에 업로드 → Figma에서 팀과 함께 정리.
-   - **Stitch의 "code to design"은 별도 import 전용 도구가 없음**: `mcp__stitch__upload_design_md`/`create_design_system*`/`apply_design_system`/`generate_variants`는 디자인 시스템(컬러·폰트) 도구이고, 실제 화면 생성/수정은 `generate_screen_from_text`·`edit_screens` 두 개뿐. 코드(JSX/HTML)를 그대로 캡처해 가져오는 기능은 없고, 코드를 `prompt`에 텍스트로 넣어 Gemini가 해석·재현하는 방식이 Google이 안내하는 사실상의 code-to-design 경로임([공식 포럼](https://discuss.ai.google.dev/t/code-to-stitch-import-functionality/135237)). 따라서 결과가 원본과 1:1로 똑같지 않을 수 있음 — 픽셀 단위 정확도가 필요하면 Figma MCP의 `generate_figma_design`(로컬 dev 서버 URL을 그대로 캡처)을 대신 사용.
+   - **Stitch MCP 도구 자체(`mcp__stitch__*`)엔 code/HTML import 기능이 없음** — `generate_screen_from_text`/`edit_screens`는 텍스트 프롬프트 해석 방식이라 원본과 1:1로 똑같지 않음. 코드를 그대로(픽셀 단위로) 올리려면 위에서 설명한 `.stitch/*.html` 스냅샷을 `upload_html_to_stitch.py`(`.stitch/` 내, Stitch `screens:batchCreate` REST API를 직접 호출하는 래퍼 — `google-labs-code-stitch-skills` 플러그인의 `upload-to-stitch` 스킬 의존)로 업로드하는 게 실제 경로. MCP 도구 호출은 모델 출력 토큰 제한(~16K) 때문에 파일 base64를 통째로 못 보내서 이 스크립트가 필요함.
 2. **`design/catchhole.pen` (Pencil, 레포 내 버전관리 디자인 소스)**: Pencil MCP로 직접 편집·스크린샷 추출 가능한 `.pen` 파일. 코드와 함께 git으로 추적되는 디자인 소스로, `.stitch/design.md`의 Obsidian Violet 토큰과 `SEpisodeUpload.tsx` 등 실제 화면을 참고해 작성됨. 현재 회차 업로드 플로우 핵심 4화면(업로드 모드 선택/단일 회차 입력/회차 분리 확인/설정 확인) 포함.
 
 ## 상태 관리 & 데모 모드
