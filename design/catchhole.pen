@@ -11791,6 +11791,49 @@
                                   ]
                                 }
                               ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bHiTm",
+                              "layoutPosition": "absolute",
+                              "x": 122,
+                              "y": 10,
+                              "name": "Card Actions (hover)",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "id": "a5RRlJ",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "수정",
+                                      "fontSize": 11
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "v5Sl9h",
+                                  "type": "ref",
+                                  "ref": "OUit2",
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "stroke": "$danger",
+                                  "descendants": {
+                                    "N7PKG": {
+                                      "content": "삭제",
+                                      "fontSize": 11,
+                                      "fill": "$danger"
+                                    }
+                                  }
+                                }
+                              ]
                             }
                           ]
                         },
@@ -12047,7 +12090,6 @@
                           "id": "znwDl",
                           "name": "Char Card - 이레나",
                           "width": 204,
-                          "height": 160,
                           "fill": "$bg",
                           "cornerRadius": 8,
                           "stroke": "$border",
@@ -12242,6 +12284,52 @@
                                       "fontWeight": "normal"
                                     }
                                   ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "dsmGI",
+                              "name": "Card Actions (confirm delete)",
+                              "width": "fill_container",
+                              "fill": "$surface",
+                              "cornerRadius": 4,
+                              "stroke": "$border",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                4,
+                                8
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "aePZA",
+                                  "fill": "$text-2",
+                                  "content": "삭제할까요?",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "wyesH",
+                                  "fill": "$text-3",
+                                  "content": "취소",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "f0XGcB",
+                                  "fill": "$danger",
+                                  "content": "삭제",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
                                 }
                               ]
                             }
