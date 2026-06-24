@@ -9,7 +9,7 @@ import { UserMenu } from './UserMenu';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
   Settings, Shield, OctagonAlert, AlertTriangle, Plus,
-  Upload, ChevronRight, Activity, Scale, Scroll,
+  Upload, ChevronRight, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
   Share2, Copy, Mail, UserPlus, ExternalLink, CheckCheck, ChevronDown,
@@ -2937,7 +2937,7 @@ export default function S1Dashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BtnG label={charEditMode ? '수정 완료' : '설정 수정'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
-                    <BtnP label="신규 회차 분석" onClick={() => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} icon={<Activity size={12} />} />
+                    <BtnP label="회차 올리기" onClick={() => navigate('/episode-upload', 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
 
