@@ -1,5 +1,5 @@
 {
-  "version": "2.13",
+  "version": "2.14",
   "children": [
     {
       "type": "frame",
@@ -11337,14 +11337,14 @@
                           "id": "I0UNh",
                           "type": "ref",
                           "ref": "m035Yk",
-                          "name": "New Analysis Button",
+                          "name": "Episode Upload Button",
                           "padding": [
                             8,
                             14
                           ],
                           "descendants": {
                             "a5O4dJ": {
-                              "content": "신규 회차 분석"
+                              "content": "회차 올리기"
                             }
                           }
                         }
@@ -42329,5 +42329,6 @@
       "type": "color",
       "value": "#FFFFFF"
     }
-  }
+  },
+  "fileToken": "a1bc76cf-fcd3-43af-8d3c-852cf9034e13"
 }
