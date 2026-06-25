@@ -93,6 +93,7 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 1. **Stitch → Figma (팀 공유용 와이어프레임)**: 화면을 Puppeteer로 정적 HTML 스냅샷 추출(`.stitch/*.html`, **gitignore됨 — 임시 작업 폴더**) → Stitch 프로젝트에 업로드 → Figma에서 팀과 함께 정리.
    - **Stitch MCP 도구 자체(`mcp__stitch__*`)엔 code/HTML import 기능이 없음** — `generate_screen_from_text`/`edit_screens`는 텍스트 프롬프트 해석 방식이라 원본과 1:1로 똑같지 않음. 코드를 그대로(픽셀 단위로) 올리려면 위에서 설명한 `.stitch/*.html` 스냅샷을 `upload_html_to_stitch.py`(`.stitch/` 내, Stitch `screens:batchCreate` REST API를 직접 호출하는 래퍼 — `google-labs-code-stitch-skills` 플러그인의 `upload-to-stitch` 스킬 의존)로 업로드하는 게 실제 경로. MCP 도구 호출은 모델 출력 토큰 제한(~16K) 때문에 파일 base64를 통째로 못 보내서 이 스크립트가 필요함.
 2. **`design/catchhole.pen` (Pencil, 레포 내 버전관리 디자인 소스)**: Pencil MCP로 직접 편집·스크린샷 추출 가능한 `.pen` 파일. 코드와 함께 git으로 추적되는 디자인 소스로, `.stitch/design.md`의 Obsidian Violet 토큰과 `SEpisodeUpload.tsx` 등 실제 화면을 참고해 작성됨. 현재 회차 업로드 플로우 핵심 4화면(업로드 모드 선택/단일 회차 입력/회차 분리 확인/설정 확인) 포함.
+   - **API 요청사항 패널 템플릿** (`[템플릿] API 요청사항 패널` 노드): 각 화면별 API 요청사항을 Figma 캔버스에 배치하는 패널 템플릿. Episode 도메인 예시 포함. 새 도메인(Character, Work 등) 패널 생성 시 Figma `use_figma` MCP로 자동 생성 — 구조: 제목(도메인 접두사) → Page Title → Screen Path → 화면 타입 칩 → Description(번호 행, HTTP 메서드 색상) → Check Point. 실제 Figma 패널은 CatchHole-Wireframes 파일 캔버스 y=52000 라인에 `[도메인]` 접두사로 배치됨.
 
 ## 상태 관리 & 데모 모드
 
