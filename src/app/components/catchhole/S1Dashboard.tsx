@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
@@ -1292,6 +1292,8 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
   const [started, setStarted] = useState(!!initial);
   const [extracting, setExtracting] = useState(false);
   const demoMode = isDemoMode();
+  const isMounted = useRef(true);
+  useEffect(() => { return () => { isMounted.current = false; }; }, []);
 
   const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
   const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
@@ -1305,10 +1307,14 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
 
   const handleExtract = async () => {
     setExtracting(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setEntries(generateDemoExtractedEntries());
-    setExtracting(false);
-    setStarted(true);
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      if (!isMounted.current) return;
+      setEntries(generateDemoExtractedEntries());
+      setStarted(true);
+    } finally {
+      if (isMounted.current) setExtracting(false);
+    }
   };
 
   const handleSave = () => {
@@ -1390,13 +1396,14 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
                 <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
 
-              <button onClick={handleStart} style={{
+              <button onClick={extracting ? undefined : handleStart} disabled={extracting} style={{
                 height: 42, borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1,
-                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 14, fontWeight: 600, cursor: extracting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s',
+                opacity: extracting ? 0.45 : 1,
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; }}>
+                onMouseEnter={e => { if (!extracting) { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; } }}
+                onMouseLeave={e => { if (!extracting) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; } }}>
                 <Plus size={15} /> 직접 입력 시작
               </button>
             </div>
