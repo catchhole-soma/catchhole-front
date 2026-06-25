@@ -43546,8 +43546,8 @@
           "id": "Yojfh",
           "name": "사용법",
           "width": 460,
-          "height": 148,
-          "content": "API 요청사항 패널 템플릿 — NVM-180 기준\nFigma 캔버스 y=52000 라인에 [도메인] 접두사로 배치 (예: [Episode], [Character], [Work]).\n새 도메인 패널 생성: Figma MCP use_figma 코드로 자동 생성 (CLAUDE.md > 디자인 워크플로우 참고).\n구조: 제목 → Page Title → Screen Path → 화면 타입 칩 → Description 번호 행 → Check Point.\nHTTP 메서드 인라인 색상: GET=success, POST=primary, PATCH=warning, DELETE=danger.\n수동 편집: 설명 텍스트 노드 더블클릭으로 직접 수정 가능 (별도 프레임 없음)."
+          "height": 196,
+          "content": "API 요청사항 패널 템플릿 — NVM-219 기준\nFigma 캔버스 y=52000 라인에 [도메인] 접두사로 배치 (예: [Episode], [Character], [Work]).\n새 도메인 패널 생성: Figma MCP use_figma 코드로 자동 생성 (CLAUDE.md > 디자인 워크플로우 참고).\n구조: 제목 → Page Title → Screen Path → 화면 타입 칩 → Description 번호 행 → Check Point.\nHTTP 메서드 인라인 색상: GET=success, POST=primary, PATCH=warning, DELETE=danger.\n수동 편집: 설명 텍스트 노드 더블클릭으로 직접 수정 가능 (별도 프레임 없음).\nCheck Point: 기본 빈칸으로 생성 — 백엔드 docs/Swagger 근거가 있는 내용만 기입. FE 내부 구현 사항(라우팅, navigate state 등)은 기입하지 않음.\n패널 높이: 수직 auto-layout (Figma primaryAxisSizingMode=AUTO) — Description·Check Point에 텍스트를 추가하면 높이가 자동으로 늘어남 (flex)."
         },
         {
           "type": "text",
