@@ -29536,7 +29536,7 @@
       "id": "MCfXX",
       "x": 2760,
       "y": 4370,
-      "name": "SettingsBuilderModal / 캐릭터 설정 빌더 모달",
+      "name": "SettingsBuilderModal / 초기 상태 (데모 모드)",
       "clip": true,
       "width": 1280,
       "height": 800,
@@ -29642,8 +29642,8 @@
                       "type": "text",
                       "id": "b1Ell",
                       "name": "Name Value",
-                      "fill": "$text-1",
-                      "content": "수아",
+                      "fill": "$text-3",
+                      "content": "캐릭터 이름",
                       "fontFamily": "$font",
                       "fontSize": 15,
                       "fontWeight": "600"
@@ -29666,337 +29666,106 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "Chsuq",
-                  "name": "Table Header",
+                  "id": "x8G8h",
+                  "name": "원고에서 채우기 Button",
                   "width": "fill_container",
-                  "gap": 8,
-                  "padding": [
-                    0,
-                    2,
-                    0,
-                    8
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "vpQRr",
-                      "name": "Col Item",
-                      "fill": "$text-3",
-                      "textGrowth": "fixed-width",
-                      "width": 130,
-                      "content": "항목",
-                      "fontFamily": "$font",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "HNmV8",
-                      "name": "Col Content",
-                      "fill": "$text-3",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "내용  (→ 키로 예시 수용)",
-                      "fontFamily": "$font",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Wnzid",
-                      "name": "Col Lock",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "Z0U36X",
-                          "name": "Lock Icon",
-                          "width": 12,
-                          "height": 12,
-                          "icon": "lock",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "QBj72",
-                      "name": "Col Spacer",
-                      "width": 28,
-                      "height": 12
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "dNjTG",
-                  "name": "EntryRow - 이름",
-                  "width": "fill_container",
-                  "fill": "$bg",
-                  "cornerRadius": "$radius-sm",
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 8,
-                  "padding": [
-                    8,
-                    10
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "sEqkj",
-                      "name": "Label",
-                      "fill": "$text-1",
-                      "textGrowth": "fixed-width",
-                      "width": 130,
-                      "content": "이름",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "j2zBS",
-                      "name": "Content",
-                      "fill": "$text-2",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "수아",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "dPj93",
-                      "name": "Lock Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "Tpkqg",
-                          "name": "Lock",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "lock",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "fShLK",
-                      "name": "Delete Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "RYAR7",
-                          "name": "X",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "x",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "evy7l",
-                  "name": "EntryRow - 직업",
-                  "width": "fill_container",
-                  "fill": "$bg",
-                  "cornerRadius": "$radius-sm",
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 8,
-                  "padding": [
-                    8,
-                    10
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "kbt9Z",
-                      "name": "Label",
-                      "fill": "$text-1",
-                      "textGrowth": "fixed-width",
-                      "width": 130,
-                      "content": "직업",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "bij4p",
-                      "name": "Content",
-                      "fill": "$text-2",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "검사 지망생",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "R36wCY",
-                      "name": "Lock Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "q3R3bY",
-                          "name": "Lock",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "lock",
-                          "library": "lucide",
-                          "fill": "$danger"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "bIMuU",
-                      "name": "Delete Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "cmYQr",
-                          "name": "X",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "x",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "mW0oz",
-                  "name": "EntryRow - 첫 등장",
-                  "width": "fill_container",
-                  "fill": "$bg",
-                  "cornerRadius": "$radius-sm",
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 8,
-                  "padding": [
-                    8,
-                    10
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "ej7tX",
-                      "name": "Label",
-                      "fill": "$text-1",
-                      "textGrowth": "fixed-width",
-                      "width": 130,
-                      "content": "첫 등장",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "mw2CU",
-                      "name": "Content",
-                      "fill": "$text-2",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "1화",
-                      "fontFamily": "$font",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "is8wd",
-                      "name": "Lock Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "H5Hei",
-                          "name": "Lock",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "lock",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "zn8co",
-                      "name": "Delete Box",
-                      "width": 28,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "FC1Iu",
-                          "name": "X",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "x",
-                          "library": "lucide",
-                          "fill": "$text-3"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "ixZzr",
-                  "name": "Add Entry Button",
-                  "width": "fill_container",
-                  "height": 32,
-                  "cornerRadius": "$radius-sm",
-                  "stroke": "$border",
-                  "strokeWidth": 1,
+                  "height": 44,
+                  "fill": "$primary",
+                  "cornerRadius": 7,
+                  "gap": 7,
                   "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "icon",
+                      "id": "BH9K0",
+                      "name": "Sparkles",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "sparkles",
+                      "library": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
                       "type": "text",
-                      "id": "bu2ZD",
+                      "id": "Tryz3",
                       "name": "Label",
+                      "fill": "#FFFFFF",
+                      "content": "원고에서 채우기",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QVwF9",
+                  "name": "Divider",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JW7e8",
+                      "name": "Line L",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    },
+                    {
+                      "type": "text",
+                      "id": "epWK1",
+                      "name": "Or",
                       "fill": "$text-3",
-                      "content": "+ 항목 추가",
+                      "content": "또는",
                       "fontFamily": "$font",
                       "fontSize": 12,
                       "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ycZio",
+                      "name": "Line R",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "$border"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "F8Tf0R",
+                  "name": "직접 입력 시작 Button",
+                  "width": "fill_container",
+                  "height": 42,
+                  "cornerRadius": 7,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 7,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "HZz29",
+                      "name": "Plus",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "$text-1"
+                    },
+                    {
+                      "type": "text",
+                      "id": "cTD73",
+                      "name": "Label",
+                      "fill": "$text-1",
+                      "content": "직접 입력 시작",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "600"
                     }
                   ]
                 }
@@ -30023,7 +29792,7 @@
                   "id": "eBiJE",
                   "name": "Summary",
                   "fill": "$text-3",
-                  "content": "3개 항목 · 🔒1개는 챗봇·공유 시 가려짐",
+                  "content": "직접 입력 시작 버튼을 눌러 항목을 추가하세요",
                   "fontFamily": "$font",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -42793,6 +42562,652 @@
                       "descendants": {
                         "a5O4dJ": {
                           "content": "캐릭터 추가"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "M11IX",
+      "x": 6900,
+      "y": 4370,
+      "name": "SettingsBuilderModal / 원고 추출 후 (→ 수용 UX)",
+      "clip": true,
+      "width": 1280,
+      "height": 800,
+      "fill": "#000000A6",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "eamHR",
+          "name": "Modal Card",
+          "width": 660,
+          "fill": "$surface",
+          "cornerRadius": 12,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "zbegG",
+              "name": "Header",
+              "width": "fill_container",
+              "height": 52,
+              "stroke": "$border",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "padding": [
+                0,
+                20
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "C78yCq",
+                  "name": "Header Left",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "YtfNg",
+                      "name": "Header Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "book-open-check",
+                      "library": "lucide",
+                      "fill": "$primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "c3hpV",
+                      "name": "Header Title",
+                      "fill": "$text-1",
+                      "content": "캐릭터 설정 만들기",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "XgYDj",
+                  "name": "Close Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$text-3"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zyPwY",
+              "name": "Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FxqFs",
+                  "name": "Name Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CNHpq",
+                      "name": "Name Label",
+                      "fill": "$text-2",
+                      "content": "캐릭터 이름",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AYfae",
+                      "name": "Name Input Box",
+                      "width": "fill_container",
+                      "height": 36,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "K4UvaR",
+                          "name": "Name Value",
+                          "fill": "$text-1",
+                          "content": "한수아",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eMvAr",
+                  "name": "Entry Table",
+                  "clip": true,
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-sm",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SoRpJ",
+                      "name": "Table Header Row",
+                      "width": "fill_container",
+                      "height": 32,
+                      "fill": "$bg",
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "DGRwg",
+                          "name": "Label Col Header",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "MfW55",
+                              "name": "Label Header Text",
+                              "fill": "$text-3",
+                              "content": "항목",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "uNBKQ",
+                          "name": "Content Col Header",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "zAyIU",
+                              "name": "Content Header Text",
+                              "fill": "$text-3",
+                              "content": "내용  (→ 키로 예시 수용)",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PLNXH",
+                      "name": "Row / 역할",
+                      "width": "fill_container",
+                      "height": 36,
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "m6RO6",
+                          "name": "Label Cell",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "y4VLQ",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "역할",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "z7Eak",
+                          "name": "Content Cell",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "M6zSaG",
+                              "name": "Ghost Text",
+                              "fill": "$text-3",
+                              "content": "주인공",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal",
+                              "fontStyle": "italic"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nUKcw",
+                      "name": "Row / 성별",
+                      "width": "fill_container",
+                      "height": 36,
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "M9njMF",
+                          "name": "Label Cell",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "M9Qdy",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "성별",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d0Ivks",
+                          "name": "Content Cell",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Rlalw",
+                              "name": "Ghost Text",
+                              "fill": "$text-3",
+                              "content": "여성",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal",
+                              "fontStyle": "italic"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "l77k39",
+                      "name": "Row / 나이",
+                      "width": "fill_container",
+                      "height": 36,
+                      "fill": "#7C5CFC18",
+                      "stroke": "$primary",
+                      "strokeWidth": 1,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "o3VAl",
+                          "name": "Label Cell",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iiZDh",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "나이",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "q8Jr3",
+                          "name": "Content Cell",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "lNy9A",
+                              "name": "Ghost Text",
+                              "fill": "$text-3",
+                              "content": "23세",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal",
+                              "fontStyle": "italic"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "xzdTL",
+                              "name": "Accept Badge",
+                              "fill": "#7C5CFC18",
+                              "cornerRadius": 4,
+                              "stroke": "$primary",
+                              "strokeWidth": 1,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "utLnD",
+                                  "name": "Badge Text",
+                                  "fill": "$primary",
+                                  "content": "→ 수용",
+                                  "fontFamily": "$font",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "swLgC",
+                      "name": "Row / 직업",
+                      "width": "fill_container",
+                      "height": 36,
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "PRxU7",
+                          "name": "Label Cell",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N1Lwd",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "직업",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RIYKG",
+                          "name": "Content Cell",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l2ysq",
+                              "name": "Ghost Text",
+                              "fill": "$text-3",
+                              "content": "검사 지망생",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal",
+                              "fontStyle": "italic"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "apFLd",
+                      "name": "Row / 현재 처지",
+                      "width": "fill_container",
+                      "height": 36,
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "oWLTG",
+                          "name": "Label Cell",
+                          "width": 90,
+                          "height": "fill_container",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "right": 1
+                          },
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "haHMM",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "현재 처지",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LHLnw",
+                          "name": "Content Cell",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OyYhj",
+                              "name": "Ghost Text",
+                              "fill": "$text-3",
+                              "content": "시험 준비 중인 검사 지망생",
+                              "fontFamily": "$font",
+                              "fontSize": 13,
+                              "fontWeight": "normal",
+                              "fontStyle": "italic"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EtmcL",
+              "name": "Footer",
+              "width": "fill_container",
+              "height": 52,
+              "stroke": "$border",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                0,
+                20
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DhCcL",
+                  "name": "Footer Hint",
+                  "fill": "$text-3",
+                  "content": "→ 키로 AI 예시를 수용할 수 있어요",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "mKSqj",
+                  "name": "Footer Buttons",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "tKV96",
+                      "type": "ref",
+                      "ref": "OUit2",
+                      "name": "Cancel Button",
+                      "descendants": {
+                        "N7PKG": {
+                          "content": "취소"
+                        }
+                      }
+                    },
+                    {
+                      "id": "HuHfR",
+                      "type": "ref",
+                      "ref": "m035Yk",
+                      "name": "Save Button",
+                      "descendants": {
+                        "a5O4dJ": {
+                          "content": "저장"
                         }
                       }
                     }

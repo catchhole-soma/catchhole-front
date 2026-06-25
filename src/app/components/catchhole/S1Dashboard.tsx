@@ -18,7 +18,7 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { useWorks } from '../../hooks/useWorks';
-import { createWork, uploadEpisode, Work } from '../../lib/worksApi';
+import { createWork, uploadEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
 import { validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
 
@@ -852,12 +852,12 @@ function WorkCard({ title, genre, chapters, conflicts, hasConflict, lastUpdated,
 // ── 설정집 빌더 타입 ─────────────────────────────
 interface SettingEntry {
   id: string;
-  label: string;       // AI가 생성한 항목명 (편집 가능)
-  content: string;     // 사용자가 채우는 값
-  placeholder: string; // AI 예시 답변
+  label: string;
+  content: string;
+  placeholder: string;
   isSpoiler: boolean;
 }
-interface CharacterSetting { id: string; name: string; seed: string; entries: SettingEntry[]; }
+interface CharacterSetting { id: string; name: string; entries: SettingEntry[]; }
 
 type WorldCategory = 'geography' | 'society' | 'magic_tech' | 'history' | 'rules' | 'place';
 interface WorldSetting { id: string; category: WorldCategory; title: string; entries: SettingEntry[]; }
@@ -882,11 +882,11 @@ function mkE(label: string, content: string, isSpoiler = false): SettingEntry {
 }
 
 const INIT_CHARS: CharacterSetting[] = [
-  { id: 'sua',  name: '수아',    seed: '', entries: [mkE('역할','주인공'), mkE('나이','23세'), mkE('눈','갈색'), mkE('직업','검사 지망생'), mkE('첫등장','1화')] },
-  { id: 'min',  name: '강민준',  seed: '', entries: [mkE('역할','남자주인공'), mkE('나이','32세'), mkE('눈','짙은갈색'), mkE('직업','수석검사'), mkE('첫등장','3화')] },
-  { id: 'lena', name: '이레나',  seed: '', entries: [mkE('역할','라이벌/화해'), mkE('나이','28세'), mkE('눈','흑색'), mkE('직업','변호사'), mkE('첫등장','12화')] },
-  { id: 'hayun',name: '하윤',    seed: '', entries: [mkE('역할','절친'), mkE('나이','23세'), mkE('눈','밝은갈색'), mkE('직업','대학원생'), mkE('첫등장','2화')] },
-  { id: 'choi', name: '최 검사', seed: '', entries: [mkE('역할','상사'), mkE('나이','45세'), mkE('눈','—'), mkE('직업','검사장'), mkE('첫등장','5화')] },
+  { id: 'sua',  name: '수아',    entries: [mkE('역할','주인공'), mkE('나이','23세'), mkE('눈','갈색'), mkE('직업','검사 지망생'), mkE('첫등장','1화')] },
+  { id: 'min',  name: '강민준',  entries: [mkE('역할','남자주인공'), mkE('나이','32세'), mkE('눈','짙은갈색'), mkE('직업','수석검사'), mkE('첫등장','3화')] },
+  { id: 'lena', name: '이레나',  entries: [mkE('역할','라이벌/화해'), mkE('나이','28세'), mkE('눈','흑색'), mkE('직업','변호사'), mkE('첫등장','12화')] },
+  { id: 'hayun',name: '하윤',    entries: [mkE('역할','절친'), mkE('나이','23세'), mkE('눈','밝은갈색'), mkE('직업','대학원생'), mkE('첫등장','2화')] },
+  { id: 'choi', name: '최 검사', entries: [mkE('역할','상사'), mkE('나이','45세'), mkE('눈','—'), mkE('직업','검사장'), mkE('첫등장','5화')] },
 ];
 
 interface CharAppearance { ep: number; desc: string; conflict?: boolean }
@@ -1060,6 +1060,22 @@ const INIT_WORLD_SETTINGS: WorldSetting[] = [
   },
 ];
 
+function generateDemoExtractedEntries(): SettingEntry[] {
+  const e = (label: string, suggested: string, isSpoiler = false): SettingEntry =>
+    ({ id: mkId(), label, content: '', placeholder: suggested, isSpoiler });
+  return [
+    e('역할',     '주인공'),
+    e('성별',     '여성'),
+    e('나이',     '23세'),
+    e('직업',     '검사 지망생'),
+    e('첫등장',   '1화'),
+    e('외모',     '흑발 단발, 날카로운 인상'),
+    e('성격',     '원칙주의적이지만 감정에 약함'),
+    e('가족 관계','원고에서 확인 필요', true),
+    e('현재 처지','시험 준비 중인 검사 지망생'),
+  ];
+}
+
 function generateManualTemplateEntries(): SettingEntry[] {
   const e = (label: string, placeholder: string): SettingEntry =>
     ({ id: mkId(), label, content: '', placeholder, isSpoiler: false });
@@ -1072,51 +1088,6 @@ function generateManualTemplateEntries(): SettingEntry[] {
   ];
 }
 
-function generateMockEntries(_seed: string): SettingEntry[] {
-  const e = (label: string, placeholder: string, isSpoiler = false): SettingEntry =>
-    ({ id: mkId(), label, content: '', placeholder, isSpoiler });
-  return [
-    // 기본
-    e('역할',              '주인공 / 라이벌 / 조력자'),
-    e('성별',              '여성'),
-    e('나이',              '23세'),
-    e('호칭 / 별명',       '"검사님" — 직위에서 비롯된 호칭'),
-    // 외모
-    e('눈 색깔',           '짙은 갈색'),
-    e('머리 색 / 스타일',  '흑발, 단발'),
-    e('키 / 체형',         '170cm, 보통 체형'),
-    e('특이한 신체 특징',  '왼쪽 손목 흉터'),
-    e('목소리 특징',       '낮고 차분한 편'),
-    // 배경
-    e('출신지 / 성장 배경','서울 출신, 평범한 중산층 가정'),
-    e('학력 / 경력',       '서울대 법학전문대학원 수석 졸업'),
-    e('가족 관계',         '부모 사망, 현재 혼자 생활'),
-    e('현재 소속 / 직위',  '서울 중앙지검 검사 지망생'),
-    e('재산 / 경제 상황',  '학자금 대출 상환 중, 오피스텔 월세'),
-    // 성격
-    e('성격',              '원칙주의적이지만 감정에 약함'),
-    e('성격이 그렇게 된 이유', '어린 시절 부당한 일을 겪고 정의감 형성', true),
-    e('말버릇 / 입버릇',   '긴장하면 "그렇죠?"를 반복'),
-    e('습관',              '생각할 때 볼펜을 돌림'),
-    e('스트레스 받을 때 행동', '말없이 사라져서 혼자 해결하려 함'),
-    // 내면
-    e('매력',              '강직함 속에 숨은 따뜻함'),
-    e('강점',              '뛰어난 기억력과 논리적 사고'),
-    e('약점',              '특정 인물에 대한 집착으로 판단력 흐려짐', true),
-    e('콤플렉스',          '가족의 비밀로 인한 죄책감', true),
-    e('자신만의 가치관',   '진실은 반드시 밝혀져야 한다'),
-    e('가장 두려워하는 것','자신이 아버지와 같은 사람이 될까 봐', true),
-    e('표면적 욕구',       '검사가 되어 사회 정의를 실현'),
-    e('내면적 욕구',       '아버지에게서 도망치지 않는 자신이 되고 싶음', true),
-    e('자기기만',          '"나는 감정에 흔들리지 않는다"고 믿음', true),
-    e('타인이 모르는 비밀','핵심 증거를 은폐한 적이 있음', true),
-    // 서사
-    e('현재 처지',         '시험 준비 중인 검사 지망생'),
-    e('주인공과의 관계',   '처음엔 적대, 이후 협력 관계로 발전'),
-    e('주인공을 어떻게 변화시키는가', '주인공이 감정을 직면하도록 강제함'),
-    e('결말에서의 운명',   '모든 진실을 밝히고 떠남', true),
-  ];
-}
 
 function generateWorldEntries(category: WorldCategory, sourceText: string): SettingEntry[] {
   const filled = sourceText.trim().length > 0;
@@ -1317,28 +1288,31 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
   initial?: CharacterSetting;
 }) {
   const [name, setName] = useState(initial?.name ?? '');
-  const [seed, setSeed] = useState(initial?.seed ?? '');
   const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? []);
-  const [generated, setGenerated] = useState(!!initial);
-  const [mode, setMode] = useState<'ai' | 'manual'>('ai');
+  const [started, setStarted] = useState(!!initial);
+  const [extracting, setExtracting] = useState(false);
+  const demoMode = isDemoMode();
 
   const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
   const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
   const upEntry = (id: string, patch: Partial<SettingEntry>) =>
     setEntries(p => p.map(e => e.id === id ? { ...e, ...patch } : e));
 
-  const generate = () => {
-    setEntries(generateMockEntries(seed));
-    setGenerated(true);
+  const handleStart = () => {
+    setEntries(generateManualTemplateEntries());
+    setStarted(true);
   };
 
-  const startManual = () => {
-    setEntries(generateManualTemplateEntries());
-    setGenerated(true);
+  const handleExtract = async () => {
+    setExtracting(true);
+    await new Promise(r => setTimeout(r, 1500));
+    setEntries(generateDemoExtractedEntries());
+    setExtracting(false);
+    setStarted(true);
   };
 
   const handleSave = () => {
-    onSave({ id: initial?.id ?? mkId(), name: name.trim(), seed, entries });
+    onSave({ id: initial?.id ?? mkId(), name: name.trim(), entries });
     onClose();
   };
 
@@ -1376,64 +1350,59 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
 
         {/* 바디 */}
         <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* 힌트 입력 + AI 생성 / 직접 입력 */}
-          {!generated && (
-            <>
-              {/* 모드 탭 */}
-              <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.border}` }}>
-                {([['ai', 'AI로 생성'], ['manual', '직접 입력']] as const).map(([m, label]) => (
-                  <button key={m} onClick={() => setMode(m)} style={{
-                    height: 36, padding: '0 14px', background: 'none', border: 'none',
-                    borderBottom: `2px solid ${mode === m ? C.primary : 'transparent'}`,
-                    color: mode === m ? C.primary : C.t2,
-                    fontSize: 13, fontWeight: mode === m ? 600 : 400,
-                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', marginBottom: -1,
-                  }}>{label}</button>
-                ))}
+          {!started && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* 원고에서 채우기 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  onClick={demoMode ? handleExtract : undefined}
+                  disabled={!demoMode || extracting}
+                  style={{
+                    height: 44, borderRadius: 7,
+                    border: demoMode ? 'none' : `1px dashed ${C.border}`,
+                    background: demoMode ? C.primary : 'transparent',
+                    color: demoMode ? '#fff' : C.t3,
+                    fontSize: 14, fontWeight: 600,
+                    cursor: demoMode && !extracting ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    opacity: !demoMode ? 0.45 : 1,
+                    transition: 'opacity 0.15s',
+                  }}
+                  onMouseEnter={e => { if (demoMode && !extracting) e.currentTarget.style.opacity = '0.85'; }}
+                  onMouseLeave={e => { if (demoMode) e.currentTarget.style.opacity = '1'; }}
+                >
+                  {extracting
+                    ? <><motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} style={{ display: 'flex' }}><Loader2 size={15} /></motion.span> 원고 분석 중...</>
+                    : <><Sparkles size={15} /> 원고에서 채우기</>
+                  }
+                </button>
+                {!demoMode && (
+                  <span style={{ fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 1.5 }}>
+                    회차를 업로드하면 AI가 원고를 분석해 항목을 제안해요
+                  </span>
+                )}
               </div>
 
-              {mode === 'ai' ? (
-                <>
-                  <div>
-                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>
-                      떠오르는 설정을 간단히 적으면 AI가 항목을 맞춤 생성합니다 (선택)
-                    </div>
-                    <textarea value={seed} onChange={e => setSeed(e.target.value)}
-                      placeholder={'예) 수아는 검사 지망생인데 아버지가 범인임. 이걸 숨기고 있고 강민준은 눈치채는 것 같음...'}
-                      style={{ ...baseStyle, width: '100%', height: 100, fontSize: 13, lineHeight: 1.7, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' }}
-                      onFocus={e => (e.target.style.borderColor = C.primary)} onBlur={e => (e.target.style.borderColor = C.border)} />
-                  </div>
-                  <button onClick={generate} style={{
-                    height: 42, borderRadius: 7, border: 'none', background: C.primary, color: '#fff',
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
-                    <Sparkles size={15} /> AI 항목 생성
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div style={{ color: C.t3, fontSize: 13 }}>
-                    AI 없이 항목을 직접 추가해서 캐릭터 설정을 채울 수 있습니다. AI가 응답하지 않을 때도 사용할 수 있어요.
-                  </div>
-                  <button onClick={startManual} style={{
-                    height: 42, borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1,
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s',
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; }}>
-                    <Plus size={15} /> 직접 입력 시작
-                  </button>
-                </>
-              )}
-            </>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ color: C.t3, fontSize: 12 }}>또는</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+              </div>
+
+              <button onClick={handleStart} style={{
+                height: 42, borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1,
+                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; }}>
+                <Plus size={15} /> 직접 입력 시작
+              </button>
+            </div>
           )}
 
-          {/* 생성된 항목 목록 */}
-          {generated && (
+          {started && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px', paddingLeft: 8 }}>
                 {['항목', '내용  (→ 키로 예시 수용)', '🔒', ''].map((h, i) => (
@@ -1459,7 +1428,7 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
         {/* 푸터 */}
         <div style={{ padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: C.t3, fontSize: 12 }}>
-            {generated
+            {started
               ? <>
                   {entries.length}개 항목 ·{' '}
                   <span style={{ color: C.danger + 'AA' }}>
@@ -1468,11 +1437,11 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
                   </span>
                   {' '}는 챗봇·공유 시 가려짐
                 </>
-              : mode === 'ai' ? 'AI 항목 생성 후 내용을 채워주세요' : '직접 입력을 시작한 뒤 내용을 채워주세요'}
+              : '직접 입력 시작 버튼을 눌러 항목을 추가하세요'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <BtnG label="취소" onClick={onClose} />
-            <BtnP label="저장" onClick={name.trim() && generated ? handleSave : undefined} icon={<Check size={14} />} />
+            <BtnP label="저장" onClick={name.trim() && started ? handleSave : undefined} icon={<Check size={14} />} />
           </div>
         </div>
       </motion.div>
