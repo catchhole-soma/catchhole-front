@@ -2,7 +2,7 @@
 
 [← 전체 인덱스](./README.md)
 
-> 이 도메인은 BE에 Entity(`WorkCharacter`/`CharacterFact`/`SettingCandidate`)만 있고 조회/검토 API가 아직 없어, 협의 항목이 가장 많다.
+> 이 도메인은 협의 항목이 가장 많다. 설정 후보 검토 API는 BE [#40](https://github.com/catchhole-soma/catchhole-backend-java/pull/40)에서 구현됨([설정 검토](#설정-검토-ssettingreview) 참고). 캐릭터 목록/상세 조회 API는 아직 미구현.
 
 ## 목차
 
@@ -165,9 +165,11 @@
 
 회차 업로드(설정 구축 목적) 후 AI가 추출한 설정 후보를 사용자가 확정/수정/무시한다.
 
+> BE [#40](https://github.com/catchhole-soma/catchhole-backend-java/pull/40)에서 조회/수정 API가 구현됨(`GET`·`PATCH /api/v1/works/{workId}/setting-candidates`, [NVM-140](https://aiswmproject.atlassian.net/browse/NVM-140)). 응답은 `SettingCandidateResponse` **단일 DTO**이며, BE는 "목록/상세에 각각 필요한 필드가 확정되면 `SummaryResponse`/`DetailResponse`로 분리"를 제안. 아래 5·6번이 그 답이다.
+
 **1. 화면에 표시할 데이터**
-- 설정 후보 목록: 캐릭터명, 설정 유형, 설정 키, 값, 신뢰도, 검토 상태
-- 근거 문장: 회차·문단·인용
+- 설정 후보 목록: 대상명, 설정 키, 값, 검토 상태
+- 상세: 위 + 설정 유형, 신뢰도, 근거 문장(회차·문단·인용)
 - 검토 진행도, 필터(상태/유형), 검색
 
 **2. 사용자 액션**
@@ -181,15 +183,46 @@
 **4. 데이터 없음 / 실패 표시**
 - 후보 0개: 빈 상태 ([빈 상태](../screens/DhkMk.png))
 
-**5. BE에 요청할 데이터**
-- 설정 후보 목록: 캐릭터명, 설정 유형, 키, 값, 신뢰도, 근거(회차·문단·인용), 검토 상태
-- 검토 결과 저장: 확정 / 수정값 / 무시
+**5. BE에 요청할 데이터 — 목록/상세 필드 분리**
+
+`SettingCandidateResponse`(BE #40) 필드를 목록·상세 화면이 실제로 쓰는지 정리. (화면 근거: `src/app/components/catchhole/SSettingReview.tsx`)
+
+| BE 필드 | 목록 | 상세 | FE 화면 매핑 |
+| --- | :-: | :-: | --- |
+| `id` | ✅ | ✅ | 후보 선택 식별 |
+| `entityName` | ✅ | ✅ | 대상명 ("수아") |
+| `attributeName` | ✅ | ✅ | 설정 키 ("눈동자 색") |
+| `attributeValue` | ✅ | ✅ | 값 ("파란색") |
+| `reviewStatus` | ✅ | ✅ | 상태 뱃지 |
+| `confidence` | — | ✅ | 신뢰도 (목록 미표시) |
+| `evidenceSpans` | — | ✅ | 근거 문장 |
+| `entityType` | (필터) | ✅ | ※ 6번 협의 ③ 참고 |
+| `valueJson` | — | (후속) | 구조화 값 — 6번 협의 ② |
+| `rawAiResultJson` | — | — | FE 전혀 미사용 |
+| `sourceChunkId`·`analysisJobId`·`valueType`·`createdAt`·`updatedAt` | — | — | 화면 표시 안 함 |
+
+→ **목록 응답 분리 가능**: 목록은 `valueJson`·`evidenceSpans`·`rawAiResultJson`을 빼고 위 ✅ 필드만 내려도 충분.
+
+검토 결과 저장(`PATCH`): 확정 / 수정값(`attributeValue`) / 무시. FE는 `attributeValue` 문자열만 전송(아래 협의 ② 참고).
 
 **6. BE와 협의할 범위·상태값**
-- **설정 후보 API 미구현** → 제공·저장 형식
-- 신뢰도(confidence) 산출·표기 방식
-- 근거 위치(회차·문단) 형식
-- 확정 시 설정DB(`CharacterFact`) 반영 방식
+
+1. **`evidenceSpans` JSON 구조** — 현재 응답 타입이 `Object`(키 미정). 화면은 "159화 12문단 '인용'"을 그리므로 아래 모양으로 합의 제안:
+   ```json
+   "evidenceSpans": [
+     { "episodeNumber": 159, "paragraph": 12, "quote": "수아는 파란 눈을…", "charStart": 0, "charEnd": 24 }
+   ]
+   ```
+   배열로 받고 FE는 첫 항목 표시(현재 FE 타입은 `evidenceChunk` 단수). **회차 번호 동시 해결** — 응답엔 `episodeId`(UUID)만 있고 화면의 "159화" 숫자가 없으니 `episodeNumber`를 이 안에 포함.
+2. **`valueJson` 표준 (값 표시 방식)** — 표시·편집은 MVP에서 `attributeValue`(문자열)로. 단 `보유 아이템`처럼 목록형 값이 있고(판타지 스킬/능력치 확장 시 급증) **목록형 값은 배열로** 내려주는 표준을 지금 합의. 값 표시 UI 3안:
+   - **A** 콤마 문자열 한 줄(현행) — `attributeValue` 문자열
+   - **B(권장)** 칩/태그 목록 — `valueJson` 배열, 항목별 편집
+   - **C** 구조화 표(스탯 대응) — `valueJson` 객체
+
+   (시각 시안 A/B/C는 `design/catchhole.pen`에 작성 예정)
+3. **FE 카테고리 탭 ↔ BE `entityType` 축 불일치** — FE 필터는 설정 유형 5종(`SettingCandidateType`: 기본/수치/보유/시간/확장)인데 BE 응답 `entityType`은 `CHARACTER`/`ITEM`… 축이라 그대로 매핑 불가. 속성 분류 필드 추가 또는 매핑 규칙 협의 필요.
+
+> 상태값 참고: `EDITED`는 FE 전용 상태(저장 시 `CONFIRMED`로 매핑, `types.ts`)라 별도 협의 불필요. 확정/무시 상태 전이와 `CharacterFact` 반영은 BE 후속 PR.
 
 ---
 
