@@ -17,9 +17,10 @@ FE가 와이어프레임 기준으로 각 화면에서 필요한 데이터를 �
 
 - [auth](./auth.md) — 랜딩 · 로그인 · 회원가입 · 약관
 - [work](./work.md) — 작품 목록 · 작품 등록 · 대시보드
-- [episode](./episode.md) — 회차 업로드 · 원고 목록
+- [upload](./upload.md) — 회차 업로드 (SEpisodeUpload)
+- [episode](./episode.md) — 원고 목록
 - [character](./character.md) — 설정DB · 설정 검토 · 캐릭터
-- [report](./report.md) — 분석 진행 · 오류 리포트 · 회차 검사
+- [analysis](./analysis.md) — 분석 진행 · 오류 리포트 · 회차 검사
 
 ## 화면 ↔ 도메인 매핑
 
@@ -32,12 +33,12 @@ FE가 와이어프레임 기준으로 각 화면에서 필요한 데이터를 �
 | 작품 목록 | [`/works`](https://catch-hole.vercel.app/works) | [work](./work.md#작품-목록-s0workpicker) |
 | 작품 등록 모달 | — | [work](./work.md#작품-등록-모달-uploadmodal) |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | [work](./work.md#대시보드-s1dashboard) |
-| 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | [episode](./episode.md#회차-업로드-sepisodeupload) |
+| 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | [upload](./upload.md#회차-업로드-sepisodeupload) |
 | 원고 목록 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | [episode](./episode.md#원고-목록-대시보드-원고-탭) |
 | 설정DB | [`/dashboard?nav=settingDB`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | [character](./character.md#설정db-캐릭터-탭) |
 | 설정 검토 | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | [character](./character.md#설정-검토-ssettingreview) |
-| 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | [report](./report.md#분석-진행-s4loading) |
-| 오류 리포트 | [`/report`](https://catch-hole.vercel.app/report) | [report](./report.md#오류-리포트-s5report) |
-| 회차 검사 결과 | [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report) | [report](./report.md#회차-검사-결과-sepisodevalidationreport) |
+| 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | [analysis](./analysis.md#분석-진행-s4loading) |
+| 오류 리포트 | [`/report`](https://catch-hole.vercel.app/report) | [analysis](./analysis.md#오류-리포트-s5report) |
+| 회차 검사 결과 | [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report) | [analysis](./analysis.md#회차-검사-결과-sepisodevalidationreport) |
 
 > 캡처 이미지(`../screens/*.png`)는 Pencil 노드 id를 파일명으로 씁니다. 시각 디자인 원본은 `design/catchhole.pen`.

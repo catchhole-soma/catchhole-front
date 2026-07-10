@@ -89,8 +89,8 @@
 - 좌측 네비게이션 (설정DB / 분석 리포트 / 그래프 / 원고)
 
 **2. 사용자 액션**
-- 네비 전환 → [설정DB](./character.md#설정db-캐릭터-탭) / [원고 목록](./episode.md#원고-목록-대시보드-원고-탭) / [분석 리포트](./report.md#오류-리포트-s5report)
-- 회차 업로드 → [회차 업로드](./episode.md#회차-업로드-sepisodeupload)
+- 네비 전환 → [설정DB](./character.md#설정db-캐릭터-탭) / [원고 목록](./episode.md#원고-목록-대시보드-원고-탭) / [분석 리포트](./analysis.md#오류-리포트-s5report)
+- 회차 업로드 → [회차 업로드](./upload.md#회차-업로드-sepisodeupload)
 - 작품 전환 → [작품 목록](#작품-목록-s0workpicker)
 
 **3. 화면 전환 식별자**
