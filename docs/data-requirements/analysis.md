@@ -1,6 +1,6 @@
 # 데이터 요구사항 — Analysis(분석)
 
-> 분석 진행(S4Loading)은 BE `analysis`(analysis-job) 도메인과 대응한다. 오류 리포트·회차 검사(충돌 검수)는 아직 BE 대응 도메인이 없어, analysis 산하로 둘지 별도 domain으로 뺄지 BE 협의가 필요하다.
+> 분석 진행(S4Loading)은 BE `analysis`(analysis-job) 도메인과 대응한다. 오류 리포트·회차 검사(충돌 검수)의 BE 도메인 배치(analysis 산하 vs 별도 도메인)는 협의 필요([NVM-142](https://aiswmproject.atlassian.net/browse/NVM-142)와 연동).
 
 [← 전체 인덱스](./README.md)
 
@@ -20,7 +20,7 @@
 
 **1. 화면에 표시할 데이터**
 - 진행 애니메이션, 단계별 진행(캐릭터 설정 확인 → 타임라인 검증 → 관계·능력 탐지)
-- 회차별 처리 상태 (청킹 → 전처리 → AI 추출)
+- 회차별 처리 상태(청킹 → 전처리 → AI 추출, `Episode.status`) — 작업 상세 응답에 회차별 상태를 포함하는 것은 BE 후속 확장 대상 ([5. 분석 진행](./upload.md#5-분석-진행)과 공통)
 
 **2. 사용자 액션**
 - 자동 완료 후 결과 화면으로 이동
@@ -32,13 +32,14 @@
 - 분석 실패(FAILED) 상태, 재시도 안내
 
 **5. BE에 요청할 데이터**
-- 분석 작업 상태: 단계, 진행률, 상태(대기/진행/완료/실패)
+- 분석 작업 상태: `status`(`PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED`) + 현재 단계(`currentStep`) — 진행률(%)은 BE가 제공하지 않기로 확정(fake percentage 미저장)이므로 단계 매칭 기반 UI로 표시
+- 실패 시 `errorMessage`
 - 완료 시 결과 식별자
 
 **6. BE와 협의할 범위·상태값**
 - 진행 상태를 폴링으로 받을지 푸시(SSE 등)로 받을지
-- 단계·진행률 표기 형식
-- 실패 시 에러 정보·재시도 방식
+- `currentStep`은 Worker가 자유 기록하는 텍스트 — 고정 값 집합 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
+- 실패 시 재시도 방식 (FAILED 작업을 재PENDING할지 새 작업을 만들지 — BE 미확정 TODO와 동일 논의)
 
 ---
 
