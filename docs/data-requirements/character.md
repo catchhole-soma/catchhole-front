@@ -2,7 +2,7 @@
 
 [← 전체 인덱스](./README.md)
 
-> 이 도메인은 BE에 Entity(`WorkCharacter`/`CharacterFact`/`SettingCandidate`)만 있고 조회/검토 API가 아직 없어, 협의 항목이 가장 많다.
+> 설정 후보(검토) API 계약은 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md) 기준. 캐릭터 목록/상세/CRUD API는 제공 형식 협의가 필요하다(각 화면 참고).
 
 ## 목차
 
@@ -42,8 +42,8 @@
 - 작품 캐릭터 목록: 이름, 역할, 현재 나이, 현재 레벨, 프로필/스탯/스킬/아이템/상태
 
 **6. BE와 협의할 범위·상태값**
-- **캐릭터 조회 API 자체가 미구현** → 제공 형식
-- 스탯/스킬/아이템/상태를 어떤 구조(JSON 등)로 내려줄지
+- 캐릭터 목록 조회 API 제공 형식 (BE character.md "이후 작업" 항목)
+- 스탯/스킬/아이템/상태 JSON 구조 — 작품별 key 관리 방식은 [NVM-228](https://aiswmproject.atlassian.net/browse/NVM-228) 결정·[NVM-230](https://aiswmproject.atlassian.net/browse/NVM-230) schema 구현과 연동
 
 ---
 
@@ -149,7 +149,7 @@
 - 조회 실패
 
 **5. BE에 요청할 데이터**
-- 캐릭터 상세 + 설정 이력(`CharacterFact`: 유형·키·값·근거 회차·확정 여부)
+- 캐릭터 상세 + 설정 이력(`CharacterFact`: 유형·키·값·근거 회차·확정 여부) — 유형은 `CharacterFactType`(`AGE`/`LEVEL`/`STAT`/`SKILL`/`ITEM`/`STATUS`/`TIME`)
 
 **6. BE와 협의할 범위·상태값**
 - 캐릭터 수정/삭제 API
@@ -166,12 +166,14 @@
 회차 업로드(설정 구축 목적) 후 AI가 추출한 설정 후보를 사용자가 확정/수정/무시한다.
 
 **1. 화면에 표시할 데이터**
-- 설정 후보 목록: 캐릭터명, 설정 유형, 설정 키, 값, 신뢰도, 검토 상태
-- 근거 문장: 회차·문단·인용
+- 설정 후보 목록: 캐릭터명(`entityName`), 원문 표현(`rawEntityMention`), 속성명(`attributeName`), 값(`attributeValue`/`valueJson`), 신뢰도(`confidence`), 검토 상태(`reviewStatus`: `PENDING_REVIEW`/`CONFIRMED`/`DISMISSED`)
+- 캐릭터 매칭 상태(`matchStatus`: `MATCHED`/`UNRESOLVED`/`AMBIGUOUS`) — `AMBIGUOUS`는 "연결할 캐릭터가 확실하지 않음" 안내
+- 근거 문장(`evidenceSpans`): 회차·문단·인용
 - 검토 진행도, 필터(상태/유형), 검색
 
 **2. 사용자 액션**
-- 확정 / 수정 / 무시 / 되돌리기
+- 확정(confirm) / 수정 / 무시(dismiss) / 되돌리기
+- 캐릭터 연결 해소: `AMBIGUOUS` 후보(또는 대상을 바꾸고 싶은 후보)를 "기존 캐릭터에 연결" 또는 "새 캐릭터로 확정" (`character-match` API)
 - 필터·검색, 설정집 다시 분석
 - 회차 검사 시작 → [대시보드](./work.md#대시보드-s1dashboard)
 
@@ -182,14 +184,14 @@
 - 후보 0개: 빈 상태 ([빈 상태](../screens/DhkMk.png))
 
 **5. BE에 요청할 데이터**
-- 설정 후보 목록: 캐릭터명, 설정 유형, 키, 값, 신뢰도, 근거(회차·문단·인용), 검토 상태
-- 검토 결과 저장: 확정 / 수정값 / 무시
+- 설정 후보 목록/상세 조회·수정·확정·무시·캐릭터 연결 해소 — API 계약은 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md)의 `/works/{workId}/setting-candidates` 일대 기준
+- FE 추가 요청: 목록 화면용 요약 응답 분리 여부 (BE 문서의 "설정 후보 조회 응답 후속 TODO"와 동일 논의)
 
 **6. BE와 협의할 범위·상태값**
-- **설정 후보 API 미구현** → 제공·저장 형식
-- 신뢰도(confidence) 산출·표기 방식
-- 근거 위치(회차·문단) 형식
-- 확정 시 설정DB(`CharacterFact`) 반영 방식
+- 수정은 `PENDING_REVIEW` 상태에서만 가능, 수정 필드는 `attributeName`/`attributeValue`/`valueType`/`valueJson`/`evidenceSpans` 5개로 확정 — 확정/무시 후 재오픈("되돌리기")은 미지원이므로 FE UX를 어떻게 둘지 협의
+- `AMBIGUOUS` 후보는 연결 해소 전 confirm 거절(409) — 화면 안내 문구·흐름
+- 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229))만 미결
+- 신뢰도(confidence) 표기 방식
 
 ---
 

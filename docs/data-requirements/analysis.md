@@ -32,13 +32,14 @@
 - 분석 실패(FAILED) 상태, 재시도 안내
 
 **5. BE에 요청할 데이터**
-- 분석 작업 상태: 단계, 진행률, 상태(대기/진행/완료/실패)
+- 분석 작업 상태: `status`(`PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED`) + 현재 단계(`currentStep`) — 진행률(%)은 BE가 제공하지 않기로 확정(fake percentage 미저장)이므로 단계 매칭 기반 UI로 표시
+- 실패 시 `errorMessage`
 - 완료 시 결과 식별자
 
 **6. BE와 협의할 범위·상태값**
 - 진행 상태를 폴링으로 받을지 푸시(SSE 등)로 받을지
-- 단계·진행률 표기 형식
-- 실패 시 에러 정보·재시도 방식
+- `currentStep`은 Worker가 자유 기록하는 텍스트 — 고정 값 집합 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
+- 실패 시 재시도 방식 (FAILED 작업을 재PENDING할지 새 작업을 만들지 — BE 미확정 TODO와 동일 논의)
 
 ---
 
