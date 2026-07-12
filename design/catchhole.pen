@@ -32432,7 +32432,7 @@
       "id": "C8E26E",
       "x": 2760,
       "y": 7790,
-      "name": "SettingsBuilderModal / 직접 입력 설정 빌더 모달",
+      "name": "SettingsBuilderModal / 캐릭터 설정 수정 (스포일러 마스킹)",
       "clip": true,
       "width": 1280,
       "height": 800,
@@ -32442,7 +32442,7 @@
       "children": [
         {
           "type": "frame",
-          "id": "e1np1",
+          "id": "Mg5Nt",
           "name": "Modal Card",
           "width": 660,
           "fill": "$surface",
@@ -32453,7 +32453,7 @@
           "children": [
             {
               "type": "frame",
-              "id": "OZ0qY",
+              "id": "mOYFl",
               "name": "Header",
               "width": "fill_container",
               "stroke": "$border",
@@ -32463,15 +32463,15 @@
               "layout": "vertical",
               "gap": 14,
               "padding": [
-                22,
+                24,
                 28,
-                18,
+                20,
                 28
               ],
               "children": [
                 {
                   "type": "frame",
-                  "id": "SNsc8",
+                  "id": "eZObo",
                   "name": "Title Row",
                   "width": "fill_container",
                   "justifyContent": "space_between",
@@ -32479,14 +32479,14 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "B3uPP",
+                      "id": "wzSu1",
                       "name": "Title Left",
                       "gap": 8,
                       "alignItems": "center",
                       "children": [
                         {
                           "type": "icon",
-                          "id": "zi1iy",
+                          "id": "Mi9J4",
                           "name": "Sparkles Icon",
                           "width": 16,
                           "height": 16,
@@ -32496,10 +32496,10 @@
                         },
                         {
                           "type": "text",
-                          "id": "YaomE",
+                          "id": "GCJ55",
                           "name": "Title",
                           "fill": "$text-1",
-                          "content": "캐릭터 설정 만들기",
+                          "content": "캐릭터 설정 수정",
                           "fontFamily": "$font",
                           "fontSize": 16,
                           "fontWeight": "700"
@@ -32508,7 +32508,7 @@
                     },
                     {
                       "type": "icon",
-                      "id": "jBMzt",
+                      "id": "xhc9p",
                       "name": "Close Icon",
                       "width": 18,
                       "height": 18,
@@ -32520,7 +32520,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "Kwzzp",
+                  "id": "D4C91K",
                   "name": "Name Input",
                   "width": "fill_container",
                   "height": 40,
@@ -32536,138 +32536,12 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "J4RUi",
+                      "id": "wSsVS",
                       "name": "Name Value",
-                      "fill": "$text-3",
-                      "content": "캐릭터 이름",
+                      "fill": "$text-1",
+                      "content": "수아",
                       "fontFamily": "$font",
                       "fontSize": 15,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "g6xMYj",
-              "name": "Body",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 16,
-              "padding": [
-                22,
-                28
-              ],
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "qibcs",
-                  "name": "Mode Tabs",
-                  "width": "fill_container",
-                  "stroke": "$border",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "gPqQQ",
-                      "name": "Tab - AI로 생성",
-                      "stroke": "#00000000",
-                      "strokeWidth": {
-                        "bottom": 2
-                      },
-                      "padding": [
-                        8,
-                        14
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "XkNWt",
-                          "name": "Label",
-                          "fill": "$text-2",
-                          "content": "AI로 생성",
-                          "fontFamily": "$font",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "I3Bzqe",
-                      "name": "Tab - 직접 입력 (selected)",
-                      "stroke": "$primary",
-                      "strokeWidth": {
-                        "bottom": 2
-                      },
-                      "padding": [
-                        8,
-                        14
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "nVeeS",
-                          "name": "Label",
-                          "fill": "$primary",
-                          "content": "직접 입력",
-                          "fontFamily": "$font",
-                          "fontSize": 13,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "poJmF",
-                  "name": "Manual Mode Description",
-                  "fill": "$text-3",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "AI 없이 항목을 직접 추가해서 캐릭터 설정을 채울 수 있습니다. AI가 응답하지 않을 때도 사용할 수 있어요.",
-                  "fontFamily": "$font",
-                  "fontSize": 13,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "frame",
-                  "id": "lI0qX",
-                  "name": "직접 입력 시작 Button",
-                  "width": "fill_container",
-                  "cornerRadius": 7,
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 7,
-                  "padding": [
-                    12,
-                    16
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "uJNBl",
-                      "name": "Plus Icon",
-                      "width": 15,
-                      "height": 15,
-                      "icon": "plus",
-                      "library": "lucide",
-                      "fill": "$text-1"
-                    },
-                    {
-                      "type": "text",
-                      "id": "cSZiq",
-                      "name": "Label",
-                      "fill": "$text-1",
-                      "content": "직접 입력 시작",
-                      "fontFamily": "$font",
-                      "fontSize": 14,
                       "fontWeight": "600"
                     }
                   ]
@@ -32676,7 +32550,870 @@
             },
             {
               "type": "frame",
-              "id": "Q7cMWQ",
+              "id": "CAMLR",
+              "name": "Body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                20,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FHP7t",
+                  "name": "Column Header",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hgwvV",
+                      "name": "Col 항목",
+                      "width": 130,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "yKrmc",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "항목",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nFNGd",
+                      "name": "Col 내용",
+                      "width": "fill_container",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SoLK6",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "내용  (→ 키로 예시 수용)",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qcD74",
+                      "name": "Col 스포일러",
+                      "width": 28,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "eQF1x",
+                          "name": "Label",
+                          "fill": "$text-3",
+                          "content": "🔒",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "J3SCE",
+                      "name": "Col 삭제",
+                      "width": 28,
+                      "height": 14
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Ge294",
+                  "name": "Entry Row - 역할",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "TmcmC",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bytJU",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "역할",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WZneM",
+                      "name": "Content Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mwB3p",
+                          "name": "Value",
+                          "fill": "$text-1",
+                          "content": "주인공",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "c3902H",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "XJJOK",
+                          "name": "LockOpen Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock-open",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d6NtB",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "NDZbJ",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k6Nd5a",
+                  "name": "Entry Row - 나이",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wBTbQ",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JaK58",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "나이",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UILA1",
+                      "name": "Content Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uoE8o",
+                          "name": "Value",
+                          "fill": "$text-1",
+                          "content": "23세",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "O23cNf",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "SRMzH",
+                          "name": "LockOpen Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock-open",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I9OYE",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "iCKRF",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mZhXN",
+                  "name": "Entry Row - 눈",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "f5avX",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pAv79",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "눈",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ycSyT",
+                      "name": "Content Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZpYDW",
+                          "name": "Value",
+                          "fill": "$text-1",
+                          "content": "갈색",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "A6h4G",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "X7HAMg",
+                          "name": "LockOpen Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock-open",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gKNWV",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "VyeTB",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "a57IYE",
+                  "name": "Entry Row - 직업",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Dm7Jp",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "U18A5i",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "직업",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xzsrC",
+                      "name": "Content Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J3Mt7",
+                          "name": "Value",
+                          "fill": "$text-1",
+                          "content": "검사 지망생",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tIf0H",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "EIdZ5",
+                          "name": "LockOpen Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock-open",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lQQSU",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RYXqw",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vq9ua",
+                  "name": "Entry Row - 첫등장",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JW3Vm",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "jJobe",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "첫등장",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gOmyW",
+                      "name": "Content Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "go7Vk",
+                          "name": "Value",
+                          "fill": "$text-1",
+                          "content": "1화",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kL6uJ",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QSgvl",
+                          "name": "LockOpen Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock-open",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mWRTg",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "m9B1Gi",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UfgSD",
+                  "name": "Entry Row - 가족 관계 (스포일러)",
+                  "width": "fill_container",
+                  "stroke": "#FF4D4D66",
+                  "strokeWidth": {
+                    "left": 2
+                  },
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    6
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OOTvl",
+                      "name": "Label Cell",
+                      "width": 130,
+                      "height": 34,
+                      "fill": "$bg",
+                      "cornerRadius": 5,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "r0Hoyu",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "가족 관계",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q0XaFh",
+                      "name": "Masked Cell",
+                      "width": "fill_container",
+                      "height": 34,
+                      "fill": "$danger-soft",
+                      "cornerRadius": 5,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "eZnba",
+                          "name": "Masked Left",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "u8BPd5",
+                              "name": "Dots",
+                              "fill": "$danger",
+                              "content": "●●●●●",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 3
+                            },
+                            {
+                              "type": "text",
+                              "id": "vxR30",
+                              "name": "Spoiler Tag",
+                              "fill": "$danger",
+                              "content": "스포일러",
+                              "fontFamily": "$font",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aocXX",
+                          "name": "Reveal",
+                          "gap": 3,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "fVTWh",
+                              "name": "Eye Icon",
+                              "width": 11,
+                              "height": 11,
+                              "icon": "eye",
+                              "library": "lucide",
+                              "fill": "$text-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "K5giD",
+                              "name": "Label",
+                              "fill": "$text-3",
+                              "content": "잠깐 보기",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gU8cb",
+                      "name": "Spoiler Toggle",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MbQ7M",
+                          "name": "Lock Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "lock",
+                          "library": "lucide",
+                          "fill": "$danger"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UbAHW",
+                      "name": "Remove",
+                      "width": 28,
+                      "height": 34,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "BDxf6",
+                          "name": "Trash Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "trash-2",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "D2TAQ",
+                  "name": "항목 추가 Button",
+                  "width": "fill_container",
+                  "height": 32,
+                  "cornerRadius": 5,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 5,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "j5shwY",
+                      "name": "Plus Icon",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "$text-3"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SB2rM",
+                      "name": "Label",
+                      "fill": "$text-3",
+                      "content": "항목 추가",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XsJu1",
               "name": "Footer",
               "width": "fill_container",
               "stroke": "$border",
@@ -32691,23 +33428,62 @@
               "alignItems": "center",
               "children": [
                 {
-                  "type": "text",
-                  "id": "ZEWzm",
+                  "type": "frame",
+                  "id": "m89b5",
                   "name": "Summary",
-                  "fill": "$text-3",
-                  "content": "직접 입력을 시작한 뒤 내용을 채워주세요",
-                  "fontFamily": "$font",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b1lbmF",
+                      "name": "Count",
+                      "fill": "$text-3",
+                      "content": "6개 항목 ·",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "egtri",
+                      "name": "Lock Icon",
+                      "width": 10,
+                      "height": 10,
+                      "icon": "lock",
+                      "library": "lucide",
+                      "fill": "$danger"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SoSav",
+                      "name": "Spoiler Count",
+                      "fill": "$danger",
+                      "content": "1개",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "I2mVC6",
+                      "name": "Suffix",
+                      "fill": "$text-3",
+                      "content": "는 챗봇·공유 시 가려짐",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
-                  "id": "ZFmhq",
+                  "id": "s7g0T",
                   "name": "Button Row",
                   "gap": 8,
                   "children": [
                     {
-                      "id": "S8YfgH",
+                      "id": "ExqSw",
                       "type": "ref",
                       "ref": "OUit2",
                       "name": "취소 Button",
@@ -32718,7 +33494,7 @@
                       }
                     },
                     {
-                      "id": "Qf1sw",
+                      "id": "W1xPQz",
                       "type": "ref",
                       "ref": "m035Yk",
                       "name": "저장 Button",
