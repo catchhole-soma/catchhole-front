@@ -14,7 +14,7 @@
 
 ## 분석 진행 (S4Loading)
 
-**URL**: [`/loading`](https://catch-hole.vercel.app/loading)
+**URL**: [`/loading`](https://www.catchhole.com/loading)
 
 ![분석 진행 중](../screens/Z0hcsQ.png)
 
@@ -45,7 +45,7 @@
 
 ## 오류 리포트 (S5Report)
 
-**URL**: [`/report`](https://catch-hole.vercel.app/report) · 발행 전 전체 검수: [`/report?mode=prePublish`](https://catch-hole.vercel.app/report?mode=prePublish)
+**URL**: [`/report`](https://www.catchhole.com/report) · 발행 전 전체 검수: [`/report?mode=prePublish`](https://www.catchhole.com/report?mode=prePublish)
 
 ![오류 리포트 - 단일 회차 검수](../screens/vH0dF.png)
 
@@ -94,7 +94,7 @@
 
 ## 회차 검사 결과 (SEpisodeValidationReport)
 
-**URL**: [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report)
+**URL**: [`/episode-validation-report`](https://www.catchhole.com/episode-validation-report)
 
 ![회차 검사 결과](../screens/EmGjn.png)
 

@@ -19,7 +19,7 @@
 
 ## 설정DB 캐릭터 탭
 
-**URL**: [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters)
+**URL**: [`/dashboard?nav=settingDB&tab=characters`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters)
 
 ![설정DB - 캐릭터 탭](../screens/qdK5y.png)
 
@@ -49,7 +49,7 @@
 
 ## 설정DB 타임라인 탭
 
-**URL**: [`/dashboard?nav=settingDB&tab=timeline`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline)
+**URL**: [`/dashboard?nav=settingDB&tab=timeline`](https://www.catchhole.com/dashboard?nav=settingDB&tab=timeline)
 
 ![설정DB - 타임라인 탭](../screens/DHpUq.png)
 
@@ -76,7 +76,7 @@
 
 ## 설정DB 세계관 규칙 탭
 
-**URL**: [`/dashboard?nav=settingDB&tab=worldrules`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules)
+**URL**: [`/dashboard?nav=settingDB&tab=worldrules`](https://www.catchhole.com/dashboard?nav=settingDB&tab=worldrules)
 
 ![설정DB - 세계관 규칙 탭](../screens/Y1Sha3.png)
 
@@ -105,7 +105,7 @@
 
 ## 설정DB 검색 탭
 
-**URL**: [`/dashboard?nav=settingDB&tab=search`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
+**URL**: [`/dashboard?nav=settingDB&tab=search`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search)
 
 ![설정DB - 검색 탭](../screens/t6gN0t.png)
 
@@ -132,7 +132,7 @@
 
 ## 캐릭터 상세 모달 (CharDetailModal)
 
-**URL**: [`?modal=char-detail&charId=...`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters)
+**URL**: [`?modal=char-detail&charId=...`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters)
 
 ![캐릭터 상세 모달](../screens/dVhGD.png)
 
@@ -160,7 +160,7 @@
 
 ## 설정 검토 (SSettingReview)
 
-**URL**: [`/setting-review`](https://catch-hole.vercel.app/setting-review)
+**URL**: [`/setting-review`](https://www.catchhole.com/setting-review)
 
 ![설정 후보 검토](../screens/f0EDt.png)
 

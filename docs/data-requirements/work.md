@@ -12,7 +12,7 @@
 
 ## 작품 목록 (S0WorkPicker)
 
-**URL**: [`/works`](https://catch-hole.vercel.app/works)
+**URL**: [`/works`](https://www.catchhole.com/works)
 
 ![작품 목록 화면](../screens/Mhex8.png)
 
@@ -74,7 +74,7 @@
 
 ## 대시보드 (S1Dashboard)
 
-**URL**: [`/dashboard`](https://catch-hole.vercel.app/dashboard)
+**URL**: [`/dashboard`](https://www.catchhole.com/dashboard)
 
 ![대시보드 - 원고 탭](../screens/pUaEk.png)
 

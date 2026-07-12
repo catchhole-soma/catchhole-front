@@ -13,7 +13,7 @@
 
 ## 랜딩 (SLanding)
 
-**URL**: [`/landing`](https://catch-hole.vercel.app/landing)
+**URL**: [`/landing`](https://www.catchhole.com/landing)
 
 ![랜딩 화면](../screens/k7pzFp.png)
 
@@ -39,7 +39,7 @@
 
 ## 로그인 (SLogin)
 
-**URL**: [`/login`](https://catch-hole.vercel.app/login)
+**URL**: [`/login`](https://www.catchhole.com/login)
 
 ![로그인 화면](../screens/tNdOk.png)
 
@@ -75,7 +75,7 @@
 
 ## 회원가입 (SSignup)
 
-**URL**: [`/signup`](https://catch-hole.vercel.app/signup)
+**URL**: [`/signup`](https://www.catchhole.com/signup)
 
 ![회원가입 화면](../screens/VI8zP.png)
 
@@ -106,7 +106,7 @@
 
 ## 약관·개인정보 모달 (TermsModal)
 
-**URL**: [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms)
+**URL**: [`/login?terms=terms`](https://www.catchhole.com/login?terms=terms)
 
 ![약관·개인정보 모달](../screens/BQqMv.png)
 

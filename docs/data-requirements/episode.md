@@ -12,7 +12,7 @@
 
 ## 원고 목록 (대시보드 원고 탭)
 
-**URL**: [`/dashboard`](https://catch-hole.vercel.app/dashboard) (원고 네비)
+**URL**: [`/dashboard`](https://www.catchhole.com/dashboard) (원고 네비)
 
 ![대시보드 - 원고 탭](../screens/pUaEk.png)
 

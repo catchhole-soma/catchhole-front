@@ -17,7 +17,7 @@
 
 ## 회차 업로드 (SEpisodeUpload)
 
-**URL**: [`/episode-upload`](https://catch-hole.vercel.app/episode-upload)
+**URL**: [`/episode-upload`](https://www.catchhole.com/episode-upload)
 
 단일 라우트에서 단계로 진행하지만 각 단계는 역할이 다르다. 공통 식별자는 `workId`(현재 작품)이며, 마지막에 생성된 `episodeId`(들)을 후속 화면으로 전달한다.
 
