@@ -37,9 +37,9 @@
 - 완료 시 결과 식별자
 
 **6. BE와 협의할 범위·상태값**
-- 6-1. 진행 상태를 폴링으로 받을지 푸시(SSE 등)로 받을지
-- 6-2. `currentStep`은 계약상 자유 텍스트(길이 100 제한만 있음) — AI 워커의 `AnalysisStep` enum 8종(`LOADING`/`CHUNKING`/`PREPROCESSING`/`EMBEDDING`/`SETTING_EXTRACTION`/`VALIDATION`/`PERSISTING`/`DONE`)을 계약 값 집합으로 승격할지 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
-- 6-3. 실패(`FAILED`) 후 "다시 시도"의 서버 동작: 실패한 작업을 `PENDING`으로 되돌려 재실행할지, 새 분석 작업을 생성할지 — [BE analysis.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/analysis.md)의 '정책 미확정 TODO'와 동일 항목이라 그 논의에 합류하면 됨
+- 진행 상태를 폴링으로 받을지 푸시(SSE 등)로 받을지
+- `currentStep`은 계약상 자유 텍스트(길이 100 제한만 있음) — AI 워커의 `AnalysisStep` enum 8종(`LOADING`/`CHUNKING`/`PREPROCESSING`/`EMBEDDING`/`SETTING_EXTRACTION`/`VALIDATION`/`PERSISTING`/`DONE`)을 계약 값 집합으로 승격할지 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
+- 실패(`FAILED`) 후 "다시 시도"의 서버 동작: 실패한 작업을 `PENDING`으로 되돌려 재실행할지, 새 분석 작업을 생성할지 — [BE analysis.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/analysis.md)의 '정책 미확정 TODO'와 동일 항목이라 그 논의에 합류하면 됨
 
 ---
 
@@ -83,12 +83,12 @@
   - 수정 제안
 
 **6. BE와 협의할 범위·상태값**
-- 6-1. 심각도 단계 기준값과 표기 방식
-- 6-2. 근거 위치 정보 형식 (회차 / 문단 / 행 단위)
-- 6-3. 오류 유형 분류 체계 (사실·타임라인·관계·소지품·수치 등)
-- 6-4. AI 수정 제안 제공 여부·형식
-- 6-5. "발행 전 전체 검수"의 범위 지정 방식(전체 회차 일괄)
-- 6-6. **충돌/리포트 BE 도메인 미정**: 이 화면 응답을 analysis 도메인에 둘지 별도 domain(예: report/conflict)으로 뺄지 BE 협의 필요
+- 심각도 단계 기준값과 표기 방식
+- 근거 위치 정보 형식 (회차 / 문단 / 행 단위)
+- 오류 유형 분류 체계 (사실·타임라인·관계·소지품·수치 등)
+- AI 수정 제안 제공 여부·형식
+- "발행 전 전체 검수"의 범위 지정 방식(전체 회차 일괄)
+- **충돌/리포트 BE 도메인 미정**: 이 화면 응답을 analysis 도메인에 둘지 별도 domain(예: report/conflict)으로 뺄지 BE 협의 필요
 
 ---
 
@@ -117,6 +117,6 @@
 - 회차 검사 결과(충돌/모순) — 오류 리포트와 동일 구조
 
 **6. BE와 협의할 범위·상태값**
-- 6-1. 오류 리포트와 동일 (심각도·근거 위치·유형 분류·수정 제안)
-- 6-2. 단일 회차 검수와 동일 응답 스키마를 공유할지
-- 6-3. **충돌/리포트 BE 도메인 미정**: 오류 리포트와 동일한 협의 대상(analysis 산하 vs 별도 domain)
+- 오류 리포트와 동일 (심각도·근거 위치·유형 분류·수정 제안)
+- 단일 회차 검수와 동일 응답 스키마를 공유할지
+- **충돌/리포트 BE 도메인 미정**: 오류 리포트와 동일한 협의 대상(analysis 산하 vs 별도 domain)
