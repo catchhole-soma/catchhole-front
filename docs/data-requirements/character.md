@@ -42,8 +42,8 @@
 - 작품 캐릭터 목록: 이름, 역할, 현재 나이, 현재 레벨, 프로필/스탯/스킬/아이템/상태
 
 **6. BE와 협의할 범위·상태값**
-- 캐릭터 목록 조회 API 제공 형식 (BE character.md "이후 작업" 항목)
-- 스탯/스킬/아이템/상태 JSON 구조 — 작품별 key 관리 방식은 [NVM-228](https://aiswmproject.atlassian.net/browse/NVM-228) 결정·[NVM-230](https://aiswmproject.atlassian.net/browse/NVM-230) schema 구현과 연동
+- 6-1. 캐릭터 목록 조회 API 제공 형식 (BE character.md "이후 작업" 항목)
+- 6-2. 스탯/스킬/아이템/상태 JSON 구조 — 작품별 key 관리 방식은 [NVM-228](https://aiswmproject.atlassian.net/browse/NVM-228) 결정·[NVM-230](https://aiswmproject.atlassian.net/browse/NVM-230) schema 구현과 연동
 
 ---
 
@@ -69,8 +69,8 @@
 - 회차별 설정 변화 이벤트 (시점 회차, 대상 캐릭터/설정, 변화 내용)
 
 **6. BE와 협의할 범위·상태값**
-- 타임라인 이벤트 시점(회차) 표현 형식
-- 어떤 변화(나이·관계·아이템·상태 등)를 이벤트로 집계할지
+- 6-1. 타임라인 이벤트 시점(회차) 표현 형식
+- 6-2. 어떤 변화(나이·관계·아이템·상태 등)를 이벤트로 집계할지
 
 ---
 
@@ -97,9 +97,9 @@
 - 세계관 규칙 목록: 제목, 내용, 적용 범위
 
 **6. BE와 협의할 범위·상태값**
-- 세계관 규칙은 BE 모델/API 신설이 선행돼야 함([NVM-211](https://aiswmproject.atlassian.net/browse/NVM-211) — MVP 범위 포함 확인됨, BE 설계 티켓 필요)
-- 규칙 구조 (자유 텍스트 vs 구조화)
-- 수치 규칙(레벨링 등)을 어떻게 표현할지
+- 6-1. 세계관 규칙은 BE 모델/API 신설이 선행돼야 함([NVM-211](https://aiswmproject.atlassian.net/browse/NVM-211) — MVP 범위 포함 확인됨, BE 설계 티켓 필요)
+- 6-2. 규칙 구조 (자유 텍스트 vs 구조화)
+- 6-3. 수치 규칙(레벨링 등)을 어떻게 표현할지
 
 ---
 
@@ -125,8 +125,8 @@
 - 설정 통합 검색: 검색어 → 매칭 항목(유형·이름·요약)
 
 **6. BE와 협의할 범위·상태값**
-- 검색 범위·방식 (서버 검색 vs 클라이언트 필터)
-- 인덱싱 대상 (어떤 설정 유형까지 검색되는지)
+- 6-1. 검색 범위·방식 (서버 검색 vs 클라이언트 필터)
+- 6-2. 인덱싱 대상 (어떤 설정 유형까지 검색되는지)
 
 ---
 
@@ -153,8 +153,8 @@
 - 캐릭터 상세 + 설정 이력(`CharacterFact`: 유형·키·값·근거 회차·확정 여부) — 유형은 `CharacterFactType`(`AGE`/`LEVEL`/`STAT`/`SKILL`/`ITEM`/`STATUS`/`TIME`)
 
 **6. BE와 협의할 범위·상태값**
-- 캐릭터 수정/삭제 API
-- 설정 이력의 시점(회차) 표현 방식
+- 6-1. 캐릭터 수정/삭제 API
+- 6-2. 설정 이력의 시점(회차) 표현 방식
 
 ---
 
@@ -189,10 +189,10 @@
 - FE 추가 요청: 목록 화면용 요약 응답 분리 여부 (BE 문서의 "설정 후보 조회 응답 후속 TODO"와 동일 논의)
 
 **6. BE와 협의할 범위·상태값**
-- 수정은 `PENDING_REVIEW` 상태에서만 가능, 수정 필드는 `attributeName`/`attributeValue`/`valueType`/`valueJson`/`evidenceSpans` 5개로 확정 — 확정/무시 후 재오픈("되돌리기")은 미지원이므로 FE UX를 어떻게 둘지 협의
-- `AMBIGUOUS` 후보는 연결 해소 전 confirm 거절(409) — 화면 안내 문구·흐름
-- 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229))만 미결
-- 신뢰도(confidence) 표기 방식
+- 6-1. 수정은 `PENDING_REVIEW` 상태에서만 가능, 수정 필드는 `attributeName`/`attributeValue`/`valueType`/`valueJson`/`evidenceSpans` 5개로 확정 — 확정/무시 후 재오픈("되돌리기")은 미지원이므로 FE UX를 어떻게 둘지 협의
+- 6-2. `AMBIGUOUS` 후보는 연결 해소 전 confirm 거절(409) — 화면 안내 문구·흐름
+- 6-3. 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229))만 미결
+- 6-4. 신뢰도(confidence) 표기 방식
 
 ---
 
@@ -218,7 +218,7 @@
 - 직접 입력 항목 저장 API
 
 **6. BE와 협의할 범위·상태값**
-- 직접 입력 항목과 [설정 검토](#설정-검토-ssettingreview)에서 확정된 추출 설정을 같은 저장 경로(`CharacterFact`)로 둘지
+- 6-1. 직접 입력 항목과 [설정 검토](#설정-검토-ssettingreview)에서 확정된 추출 설정을 같은 저장 경로(`CharacterFact`)로 둘지
 
 ---
 
@@ -242,4 +242,4 @@
 - 세계관 규칙 저장 API
 
 **6. BE와 협의할 범위·상태값**
-- 규칙 데이터 모델 ([설정DB 세계관 규칙 탭](#설정db-세계관-규칙-탭)과 동일 구조)
+- 6-1. 규칙 데이터 모델 ([설정DB 세계관 규칙 탭](#설정db-세계관-규칙-탭)과 동일 구조)
