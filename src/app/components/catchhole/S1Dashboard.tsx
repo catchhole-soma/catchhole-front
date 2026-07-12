@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
@@ -18,7 +18,7 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { useWorks } from '../../hooks/useWorks';
-import { createWork, uploadEpisode, Work, isDemoMode } from '../../lib/worksApi';
+import { createWork, uploadEpisode, Work } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
 import { validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
 
@@ -1060,22 +1060,6 @@ const INIT_WORLD_SETTINGS: WorldSetting[] = [
   },
 ];
 
-function generateDemoExtractedEntries(): SettingEntry[] {
-  const e = (label: string, suggested: string, isSpoiler = false): SettingEntry =>
-    ({ id: mkId(), label, content: '', placeholder: suggested, isSpoiler });
-  return [
-    e('역할',     '주인공'),
-    e('성별',     '여성'),
-    e('나이',     '23세'),
-    e('직업',     '검사 지망생'),
-    e('첫등장',   '1화'),
-    e('외모',     '흑발 단발, 날카로운 인상'),
-    e('성격',     '원칙주의적이지만 감정에 약함'),
-    e('가족 관계','원고에서 확인 필요', true),
-    e('현재 처지','시험 준비 중인 검사 지망생'),
-  ];
-}
-
 function generateManualTemplateEntries(): SettingEntry[] {
   const e = (label: string, placeholder: string): SettingEntry =>
     ({ id: mkId(), label, content: '', placeholder, isSpoiler: false });
@@ -1288,34 +1272,12 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
   initial?: CharacterSetting;
 }) {
   const [name, setName] = useState(initial?.name ?? '');
-  const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? []);
-  const [started, setStarted] = useState(!!initial);
-  const [extracting, setExtracting] = useState(false);
-  const demoMode = isDemoMode();
-  const isMounted = useRef(true);
-  useEffect(() => { return () => { isMounted.current = false; }; }, []);
+  const [entries, setEntries] = useState<SettingEntry[]>(initial?.entries ?? generateManualTemplateEntries());
 
   const addEntry = () => setEntries(p => [...p, { id: mkId(), label: '', content: '', placeholder: '', isSpoiler: false }]);
   const rmEntry = (id: string) => setEntries(p => p.filter(e => e.id !== id));
   const upEntry = (id: string, patch: Partial<SettingEntry>) =>
     setEntries(p => p.map(e => e.id === id ? { ...e, ...patch } : e));
-
-  const handleStart = () => {
-    setEntries(generateManualTemplateEntries());
-    setStarted(true);
-  };
-
-  const handleExtract = async () => {
-    setExtracting(true);
-    try {
-      await new Promise(r => setTimeout(r, 1500));
-      if (!isMounted.current) return;
-      setEntries(generateDemoExtractedEntries());
-      setStarted(true);
-    } finally {
-      if (isMounted.current) setExtracting(false);
-    }
-  };
 
   const handleSave = () => {
     onSave({ id: initial?.id ?? mkId(), name: name.trim(), entries });
@@ -1356,99 +1318,40 @@ function SettingsBuilderModal({ onClose, onSave, initial }: {
 
         {/* 바디 */}
         <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {!started && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* 원고에서 채우기 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button
-                  onClick={demoMode ? handleExtract : undefined}
-                  disabled={!demoMode || extracting}
-                  style={{
-                    height: 44, borderRadius: 7,
-                    border: demoMode ? 'none' : `1px dashed ${C.border}`,
-                    background: demoMode ? C.primary : 'transparent',
-                    color: demoMode ? '#fff' : C.t3,
-                    fontSize: 14, fontWeight: 600,
-                    cursor: demoMode && !extracting ? 'pointer' : 'not-allowed',
-                    fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                    opacity: !demoMode ? 0.45 : 1,
-                    transition: 'opacity 0.15s',
-                  }}
-                  onMouseEnter={e => { if (demoMode && !extracting) e.currentTarget.style.opacity = '0.85'; }}
-                  onMouseLeave={e => { if (demoMode) e.currentTarget.style.opacity = '1'; }}
-                >
-                  {extracting
-                    ? <><motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} style={{ display: 'flex' }}><Loader2 size={15} /></motion.span> 원고 분석 중...</>
-                    : <><Sparkles size={15} /> 원고에서 채우기</>
-                  }
-                </button>
-                {!demoMode && (
-                  <span style={{ fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 1.5 }}>
-                    회차를 업로드하면 AI가 원고를 분석해 항목을 제안해요
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-                <span style={{ color: C.t3, fontSize: 12 }}>또는</span>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-              </div>
-
-              <button onClick={extracting ? undefined : handleStart} disabled={extracting} style={{
-                height: 42, borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1,
-                fontSize: 14, fontWeight: 600, cursor: extracting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s',
-                opacity: extracting ? 0.45 : 1,
-              }}
-                onMouseEnter={e => { if (!extracting) { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; } }}
-                onMouseLeave={e => { if (!extracting) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t1; } }}>
-                <Plus size={15} /> 직접 입력 시작
-              </button>
-            </div>
-          )}
-
-          {started && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px', paddingLeft: 8 }}>
-                {['항목', '내용  (→ 키로 예시 수용)', '🔒', ''].map((h, i) => (
-                  <span key={i} style={{ color: C.t3, fontSize: 11 }}>{h}</span>
-                ))}
-              </div>
-              {entries.map(e => (
-                <EntryRow key={e.id} entry={e} onChange={p => upEntry(e.id, p)} onRemove={() => rmEntry(e.id)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 28px 28px', gap: 8, padding: '0 2px', paddingLeft: 8 }}>
+              {['항목', '내용  (→ 키로 예시 수용)', '🔒', ''].map((h, i) => (
+                <span key={i} style={{ color: C.t3, fontSize: 11 }}>{h}</span>
               ))}
-              <button onClick={addEntry} style={{
-                height: 32, borderRadius: 5, border: `1px dashed ${C.border}`, background: 'transparent',
-                color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 0.13s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t3; }}>
-                <Plus size={13} /> 항목 추가
-              </button>
             </div>
-          )}
+            {entries.map(e => (
+              <EntryRow key={e.id} entry={e} onChange={p => upEntry(e.id, p)} onRemove={() => rmEntry(e.id)} />
+            ))}
+            <button onClick={addEntry} style={{
+              height: 32, borderRadius: 5, border: `1px dashed ${C.border}`, background: 'transparent',
+              color: C.t3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 0.13s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t3; }}>
+              <Plus size={13} /> 항목 추가
+            </button>
+          </div>
         </div>
 
         {/* 푸터 */}
         <div style={{ padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: C.t3, fontSize: 12 }}>
-            {started
-              ? <>
-                  {entries.length}개 항목 ·{' '}
-                  <span style={{ color: C.danger + 'AA' }}>
-                    <Lock size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
-                    {entries.filter(e => e.isSpoiler).length}개
-                  </span>
-                  {' '}는 챗봇·공유 시 가려짐
-                </>
-              : '직접 입력 시작 버튼을 눌러 항목을 추가하세요'}
+            {entries.length}개 항목 ·{' '}
+            <span style={{ color: C.danger + 'AA' }}>
+              <Lock size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
+              {entries.filter(e => e.isSpoiler).length}개
+            </span>
+            {' '}는 챗봇·공유 시 가려짐
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <BtnG label="취소" onClick={onClose} />
-            <BtnP label="저장" onClick={name.trim() && started ? handleSave : undefined} icon={<Check size={14} />} />
+            <BtnP label="저장" onClick={name.trim() ? handleSave : undefined} icon={<Check size={14} />} />
           </div>
         </div>
       </motion.div>
