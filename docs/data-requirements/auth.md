@@ -67,6 +67,7 @@
 
 **6. BE와 협의할 범위·상태값**
 - 소셜 로그인(OAuth) 제공 범위·연동 방식
+- 회원 role(`USER`/`ADMIN`)의 FE 사용 여부 — MVP에선 미사용으로 둘지, 어드민 전용 기능(모니터링 등)을 둘지 (BE global.md의 `ADMIN_URLS` 정책 문서화 TODO와 연동)
 - 토큰 갱신은 refresh 쿠키 회전(`POST /api/v1/auth/refresh`) 방식으로 확정 — FE의 401 처리 시 refresh 호출 흐름과 `credentials: 'include'` 적용 범위 협의
 - 로그인 실패 응답 형식(에러 코드/메시지)
 
