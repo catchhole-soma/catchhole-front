@@ -26,7 +26,7 @@
 - 자동 완료 후 결과 화면으로 이동
 
 **3. 화면 전환 식별자**
-- `analysisJobId`, `episodeId` → 완료 시 [오류 리포트](#오류-리포트-s5report) 또는 [회차 검사 결과](#회차-검사-결과-sepisodevalidationreport)
+- `analysisJobId`, `episodeId` → 완료 시 [오류 리포트](#오류-리포트-s5report)로 이동 (회차 업로드 쪽은 이 화면을 거치지 않고 자체 진행 단계에서 분기 — [회차 업로드의 분석 진행](./upload.md#5-분석-진행) 참고)
 
 **4. 데이터 없음 / 실패 표시**
 - 분석 실패(FAILED) 상태, 재시도 안내
@@ -38,8 +38,8 @@
 
 **6. BE와 협의할 범위·상태값**
 - 진행 상태를 폴링으로 받을지 푸시(SSE 등)로 받을지
-- `currentStep`은 Worker가 자유 기록하는 텍스트 — 고정 값 집합 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
-- 실패 시 재시도 방식 (FAILED 작업을 재PENDING할지 새 작업을 만들지 — BE 미확정 TODO와 동일 논의)
+- `currentStep`은 계약상 자유 텍스트(길이 100 제한만 있음) — AI 워커의 `AnalysisStep` enum 8종(`LOADING`/`CHUNKING`/`PREPROCESSING`/`EMBEDDING`/`SETTING_EXTRACTION`/`VALIDATION`/`PERSISTING`/`DONE`)을 계약 값 집합으로 승격할지 합의 필요([NVM-203](https://aiswmproject.atlassian.net/browse/NVM-203))
+- 실패(`FAILED`) 후 "다시 시도"의 서버 동작: 실패한 작업을 `PENDING`으로 되돌려 재실행할지, 새 분석 작업을 생성할지 — [BE analysis.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/analysis.md)의 '정책 미확정 TODO'와 동일 항목이라 그 논의에 합류하면 됨
 
 ---
 
@@ -49,7 +49,7 @@
 
 ![오류 리포트 - 단일 회차 검수](../screens/vH0dF.png)
 
-회차 원고와 기존 설정 DB를 대조해 충돌/모순을 보여준다.
+회차 원고와 기존 설정 DB를 대조해 충돌/모순을 보여준다. 대시보드·에디터에서 분석을 실행했을 때 도착하는 결과 화면으로, 단일 회차 또는 `?mode=prePublish`로 작품 전체 회차를 대상으로 한다. ([회차 검사 결과](#회차-검사-결과-sepisodevalidationreport)와 카드 구조는 같고, 대상 범위·진입 경로만 다름)
 
 **1. 화면에 표시할 데이터**
 - 요약: 탐지 오류 수, 심각도별(심각/주의/낮음) 집계
@@ -70,8 +70,8 @@
 - `episodeId`, `?mode=prePublish`, (오류) `issueId`
 
 **4. 데이터 없음 / 실패 표시**
-- 충돌 없음 상태 (발행 전 검수 충돌 없음: [f7ojLm](../screens/f7ojLm.png))
-- 발행 전 전체 검수: [j7heI](../screens/j7heI.png)
+- 충돌 없음 상태 ([발행 전 검수 충돌 없음](../screens/f7ojLm.png))
+- 발행 전 전체 검수 모드 ([화면 캡처](../screens/j7heI.png))
 
 **5. BE에 요청할 데이터**
 - 오류(충돌/모순) 목록, 각 항목:
@@ -98,7 +98,7 @@
 
 ![회차 검사 결과](../screens/EmGjn.png)
 
-신규 회차 검수(EPISODE_VALIDATION) 후 충돌/모순 결과. 오류 카드 구조는 [오류 리포트](#오류-리포트-s5report)와 동일.
+신규 회차 검수(EPISODE_VALIDATION) 후 충돌/모순 결과. [오류 리포트](#오류-리포트-s5report)와 오류 카드 구조는 동일하고, **방금 업로드한 회차(들)만 대상으로 한다**는 점과 회차 업로드 플로우의 종착지라는 진입 경로만 다르다.
 
 **1. 화면에 표시할 데이터**
 - 충돌·오류 건수 뱃지, 필터(전체/충돌/오류/무시)

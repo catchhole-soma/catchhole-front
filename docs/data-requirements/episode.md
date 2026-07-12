@@ -32,8 +32,10 @@
 - 조회 실패
 
 **5. BE에 요청할 데이터**
-- 작품의 회차 목록: 회차 번호, 제목, 업로드일, 글자 수, 충돌 건수, 분석 상태 — 목록/상세/수정/삭제 API 계약은 [BE episode.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/episode.md) 기준
+- 작품의 회차 목록: 회차 번호, 제목, 업로드일, 글자 수, 분석 상태(`EpisodeStatus`) — 목록/상세/수정/삭제 API 계약은 [BE episode.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/episode.md) 기준
+- 충돌 건수는 현재 계약에 없음 — 6번 협의 항목
 
 **6. BE와 협의할 범위·상태값**
-- 회차별 충돌 건수·분석 상태를 목록에서 바로 줄 수 있는지
+- 회차별 충돌 건수·분석 상태를 목록에서 바로 줄 수 있는지, 화면엔 어디까지 표시할지
 - 분할 회차(예: 151-1) 표기 방식 — BE `episodeNo`가 정수라 현 모델과 충돌, 표기 정책 협의 필요
+- 삭제는 현재 hard delete — 복구 불가 안내(확인 모달) 문구, soft delete(`ARCHIVED`) 전환 여부는 BE TODO와 동일 논의

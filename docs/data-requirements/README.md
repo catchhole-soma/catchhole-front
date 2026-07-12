@@ -11,7 +11,7 @@ FE가 와이어프레임 기준으로 각 화면에서 필요한 데이터를 �
 5. BE에 요청할 데이터
 6. BE와 협의할 범위·상태값
 
-- 배포: https://catch-hole.vercel.app — 첫 접속 시 데모 모드 전환을 수락하면 목 데이터로 화면 열람 가능 (백엔드 연동은 [NVM-218](https://aiswmproject.atlassian.net/browse/NVM-218))
+- 배포: https://catch-hole.vercel.app — 첫 접속 시 데모 모드 전환을 수락하면 mock 데이터로 화면 열람 가능 (백엔드 연동은 [NVM-218](https://aiswmproject.atlassian.net/browse/NVM-218))
 - 백엔드 API 계약: [공개 Swagger](https://api.catchhole.com/swagger-ui/index.html) · [BE 도메인 문서](https://github.com/catchhole-soma/catchhole-backend-java/tree/main/docs)
 
 ## 도메인별 문서
