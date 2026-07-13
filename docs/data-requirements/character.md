@@ -207,10 +207,17 @@
 - 후보 0개: 빈 상태 ([빈 상태](../screens/DhkMk.png))
 
 **5. BE에 요청할 데이터**
-- 설정 후보 목록/상세 조회·수정·확정·무시·캐릭터 연결 해소 — API 계약은 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md)의 `/works/{workId}/setting-candidates` 일대 기준
-- FE 추가 요청: 목록 화면용 요약 응답 분리 여부 (BE 문서의 "설정 후보 조회 응답 후속 TODO"와 동일 논의)
+- 설정 후보 목록/상세 조회·수정·확정·무시·캐릭터 연결 해소 — API 계약은 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md)의 `/works/{workId}/setting-candidates` 계열 기준
+- 목록(카드 리스트) 응답에 필요한 필드:
+  - 식별: `id`, 회차(`episodeId` — **`episodeNo` 추가 요청**)
+  - 캐릭터: 캐릭터명(`entityName`), 원문 표현(`rawEntityMention`), 매칭 상태(`matchStatus`)
+  - 설정 값: 속성명(`attributeName`), 표시용 값(`attributeValue`), 값 타입(`valueType`)
+  - 검토: 신뢰도(`confidence`), 검토 상태(`reviewStatus`)
+  - 구조화 값(`valueJson`), 근거 문장(`evidenceSpans`), AI 원본(`rawAiResultJson`, 디버깅용)은 **목록에서 빼기**
+- 상세 응답: **현행 계약 그대로** + 회차 번호 표시용 **`episodeNo` 추가 요청** (목록과 동일)
 
 **6. BE와 협의할 범위·상태값**
+- 목록 요약 응답 분리 + 회차 번호(`episodeNo`) 추가 — FE 필요 필드는 5번에 확정, BE 확인 대기 (BE 문서 "설정 후보 조회 응답 후속 TODO"와 동일 논의)
 - 수정은 `PENDING_REVIEW` 상태에서만 가능, 수정 필드는 `attributeName`/`attributeValue`/`valueType`/`valueJson`/`evidenceSpans` 5개로 확정 — 확정/무시 후 재오픈("되돌리기")은 미지원이므로 FE UX를 어떻게 둘지 협의
 - `AMBIGUOUS` 후보는 연결 해소 전 confirm 거절(409) — 화면 안내 문구·흐름
 - 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229))만 미결
