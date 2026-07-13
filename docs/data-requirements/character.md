@@ -220,7 +220,7 @@
 - 목록 요약 응답 분리 + 회차 번호(`episodeNo`) 추가 — FE 필요 필드는 5번에 확정, BE 확인 대기 (BE 문서 "설정 후보 조회 응답 후속 TODO"와 동일 논의)
 - 수정은 `PENDING_REVIEW` 상태에서만 가능, 수정 필드는 `attributeName`/`attributeValue`/`valueType`/`valueJson`/`evidenceSpans` 5개로 확정 — 확정/무시 후 재오픈("되돌리기")은 미지원이므로 FE UX를 어떻게 둘지 협의
 - `AMBIGUOUS` 후보는 연결 해소 전 confirm 거절(409) — 화면 안내 문구·흐름
-- 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229))만 미결
+- 확정 시 `CharacterFact`·현재 스냅샷 반영 정책은 BE 확정(문서 참고) — AI Worker 분석 결과 value 반영 정책([NVM-229](https://aiswmproject.atlassian.net/browse/NVM-229), 선행: [NVM-233](https://aiswmproject.atlassian.net/browse/NVM-233) schema 기반 snapshot 병합)만 미결. 결정에 따라 캐릭터 카드의 상태·아이템·스킬이 단일 값이냐 누적 목록이냐가 갈림
 - 신뢰도(confidence) 표기 방식
 
 ---
