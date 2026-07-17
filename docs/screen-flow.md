@@ -18,6 +18,18 @@ CatchHole 프론트엔드의 화면(라우트) 간 이동 흐름을 Mermaid로 �
 - 딥링크 쿼리 파라미터 — `CLAUDE.md` 라우팅 표
 - 화면별 상태/모달 카탈로그 — `design/PENCIL_MIGRATION.md`
 
+## Pencil Workflow Boards
+
+Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍니다. 흐름이 달라질 때는 이 문서의 Mermaid를 먼저 갱신하고, 보드와 PNG를 동기화합니다.
+
+| Workflow | Pencil Board ID | PNG |
+| --- | --- | --- |
+| WF-01 / 인증·작품 진입 | `q7BIt` | [WF-01.png](workflows/WF-01.png) |
+| WF-02 / 작품·대시보드 | `xuHzb` | [WF-02.png](workflows/WF-02.png) |
+| WF-03 / 원고·편집·분석 | `XqFyi` | [WF-03.png](workflows/WF-03.png) |
+| WF-04 / 회차 업로드 | `RLw7i` | [WF-04.png](workflows/WF-04.png) |
+| WF-05 / 검토·리포트 | `i7MrrQ` | [WF-05.png](workflows/WF-05.png) |
+
 ## 화면 한눈에 보기
 
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
@@ -208,12 +220,13 @@ flowchart TD
   t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
   t_world -. "세계관 만들기" .-> m_world["세계관 설정 빌더"]:::modal
 
-  dashboard -. "회차 올리기 (간단 모달)" .-> m_upload["회차·설정집 업로드 모달"]:::modal
   dashboard -- "회차 올리기 (전체 플로우)" --> upload["회차 업로드<br/>/episode-upload"]:::private
 
   classDef private fill:#1A1A22,stroke:#7C5CFC,stroke-width:1.5px,color:#F0F0F5;
   classDef modal fill:#0F0F13,stroke:#9090A8,stroke-dasharray:4 3,color:#F0F0F5;
 ```
+
+`UploadModal` 컴포넌트와 화면 원본은 남아 있지만 현재 `setShowUpload(...)`를 호출하는 사용자 진입점이 없습니다. 대시보드의 "회차 올리기"는 `/episode-upload` 전체 플로우로 이동합니다.
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
