@@ -138,3 +138,26 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 - `File Drop Area`의 "선택됨" 상태 (체크 아이콘 + "N개 파일 선택됨") ✅
 - `Status Badge`의 다른 상태 색상 (진행중/대기/오류) ✅
+
+## Workflow Boards
+
+라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 보기 모드 원본으로 통합했습니다.
+
+| Workflow | 상태 | Pencil Board ID | 리뷰 PNG |
+| --- | --- | --- | --- |
+| WF-01 / 인증·작품 진입 | ✅ 완료 | `q7BIt` | `docs/workflows/WF-01.png` |
+| WF-02 / 작품·대시보드 | ✅ 완료 | `xuHzb` | `docs/workflows/WF-02.png` |
+| WF-03 / 원고·편집·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
+| WF-04 / 회차 업로드 | ✅ 완료 | `RLw7i` | `docs/workflows/WF-04.png` |
+| WF-05 / 검토·리포트 | ✅ 완료 | `i7MrrQ` | `docs/workflows/WF-05.png` |
+
+### Workflow Board 유지보수 체크리스트
+
+- `docs/screen-flow.md`, `src/app/App.tsx`, 실제 `navigate(...)` 호출을 대조해 모든 전환과 분기를 확인합니다.
+- 화면 내용은 화면 원본 영역에서만 수정합니다. Workflow 복제본에는 `sourceNodeId` 메타데이터를 기록하고 내부 내용은 직접 수정하지 않습니다.
+- 원본 변경 시 해당 복제본을 다시 생성하고 번호 마커와 Description을 재적용합니다.
+- 전환 색상은 사용자 이동 `primary`, 모달·조건 분기 `warning`, 자동 완료 `success`, 실패 `danger`를 사용합니다.
+- 각 보드에 `snapshot_layout(problemsOnly: true)`를 실행해 겹침과 잘림이 없는지 확인합니다.
+- 보드 변경 후 `docs/workflows/WF-01.png`~`WF-05.png`를 다시 내보내고 문서 링크와 화면 가독성을 확인합니다.
+- Pencil 저장 후 `git status`에서 `design/catchhole.pen` 변경 여부를 확인합니다.
+- `design/images/현동멘토님 와이어프레임 예시.png`는 로컬 참고용으로만 사용하며 커밋하지 않습니다.
