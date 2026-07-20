@@ -244,6 +244,8 @@
 
 사용자가 회차 원고 없이 설정집 파일만 작품에 업로드하는 모달.
 
+![설정집 업로드 모달](../screens/dMyKy.png)
+
 > **MVP 범위 메모**: 한 번에 설정집 파일 하나를 업로드한다. 설정집 이름을 별도로 입력하지 않고 원본 파일명을 화면 표시명으로 사용한다. 같은 작품에 동일한 파일명의 설정집을 다시 업로드해도 기존 파일을 덮어쓰지 않고 새 파일로 누적한다.
 
 **1. 화면에 표시할 데이터**
@@ -293,7 +295,7 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=search`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search)
 
-![설정DB - 검색 탭](../screens/t6gN0t.png)
+![설정DB - 검색 탭](../screens/C37O20.png)
 
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
@@ -418,6 +420,8 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=search&modal=fact-detail&factId={characterFactId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search&modal=fact-detail)
 
+![설정DB 검색 결과 상세 모달](../screens/XVvBu.png)
+
 검색 결과로 선택한 하나의 `CharacterFact`를 현재·이전 설정 구분 없이 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
 
 > **MVP 표시 정책**
@@ -509,7 +513,9 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=characters&modal=char-detail&charId={characterId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters&modal=char-detail)
 
-![캐릭터 상세 모달](../screens/dVhGD.png)
+![캐릭터 상세 모달](../screens/nvylp.png)
+
+화면 상태: [수정](../screens/r1XIT.png) · [삭제 확인](../screens/ZDc0T.png) · [원문 근거](../screens/dHtfw.png) · [원문 청크 fallback 참고](../screens/OZzxl.png)
 
 선택한 캐릭터의 현재 대표 정보와 현재 설정 전체를 확인하고, 설정별 원문 근거를 조회하거나 현재 설정을 일괄 수정·삭제하는 모달.
 
@@ -692,6 +698,8 @@
 **URL**: [`/setting-review`](https://www.catchhole.com/setting-review)
 
 ![설정 후보 검토](../screens/f0EDt.png)
+
+화면 상태: [캐릭터 연결 필요](../screens/N4Py2r.png) · [캐릭터 연결 모달](../screens/P178Ug.png) · [후보 수정](../screens/CKQtd.png) · [검토 완료](../screens/VkfXH.png)
 
 회차 업로드 후 하나의 분석 작업에서 AI가 추출한 설정 후보를 원문 근거와 함께 검토하고, 캐릭터 연결과 설정값을 보정한 뒤 확정하거나 무시하는 화면.
 

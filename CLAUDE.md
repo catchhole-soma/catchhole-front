@@ -92,11 +92,17 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 1. **Stitch → Figma (팀 공유용 와이어프레임)**: 화면을 Puppeteer로 정적 HTML 스냅샷 추출(`.stitch/*.html`, **gitignore됨 — 임시 작업 폴더**) → Stitch 프로젝트에 업로드 → Figma에서 팀과 함께 정리.
    - **Stitch MCP 도구 자체(`mcp__stitch__*`)엔 code/HTML import 기능이 없음** — `generate_screen_from_text`/`edit_screens`는 텍스트 프롬프트 해석 방식이라 원본과 1:1로 똑같지 않음. 코드를 그대로(픽셀 단위로) 올리려면 위에서 설명한 `.stitch/*.html` 스냅샷을 `upload_html_to_stitch.py`(`.stitch/` 내, Stitch `screens:batchCreate` REST API를 직접 호출하는 래퍼 — `google-labs-code-stitch-skills` 플러그인의 `upload-to-stitch` 스킬 의존)로 업로드하는 게 실제 경로. MCP 도구 호출은 모델 출력 토큰 제한(~16K) 때문에 파일 base64를 통째로 못 보내서 이 스크립트가 필요함.
-2. **`design/catchhole.pen` (Pencil, 레포 내 버전관리 디자인 소스)**: Pencil MCP로 직접 편집·스크린샷 추출 가능한 `.pen` 파일. 코드와 함께 git으로 추적되는 디자인 소스로, `.stitch/design.md`의 Obsidian Violet 토큰과 `SEpisodeUpload.tsx` 등 실제 화면을 참고해 작성됨. 현재 회차 업로드 플로우 핵심 4화면(업로드 모드 선택/단일 회차 입력/회차 분리 확인/설정 확인) 포함.
+2. **`design/catchhole.pen` (Pencil, 레포 내 버전관리 디자인 소스)**: Pencil MCP로 직접 편집·스크린샷 추출 가능한 `.pen` 파일. 코드와 함께 git으로 추적되는 디자인 소스로, `.stitch/design.md`의 Obsidian Violet 토큰과 실제 React 화면을 참고해 작성됨.
+   - 캔버스는 **화면 원본 영역**과 **Workflow Boards 영역**으로 분리합니다. 라우트·분기의 기준 문서는 `docs/screen-flow.md`이며, Pencil 보드는 실제 화면을 포함한 시각적 보완 자료입니다.
+   - 원본 화면은 `<컴포넌트> / <상태>`, 보드는 `Workflow Board / WF-XX <이름>` 형식으로 이름을 붙입니다.
+   - Workflow 복제본에는 `sourceNodeId` 메타데이터를 기록하고 복제본 내부 내용은 직접 수정하지 않습니다. 원본이 바뀌면 복제본을 다시 만든 뒤 번호 마커와 Description만 재적용합니다.
+   - 전환 색상은 사용자 이동 `primary`, 모달·조건 분기 `warning`, 자동 완료 `success`, 실패 `danger`로 통일합니다.
+   - 리뷰용 PNG는 `docs/workflows/WF-01.png`부터 `WF-05.png`까지 관리하며, 보드 변경 후 함께 다시 내보냅니다.
+   - 파일럿 보드 `M7oaU`의 구성을 보드 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거했으며 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 사용합니다.
 
 ## 상태 관리 & 데모 모드
 
-- **`AppContext`** — 화면 간 공유되는 UI 상태: `selectedWork`(작품 선택, `WorkId`: `detective`/`murim`), `editorMode`(`edit`/`view`), `reportMode`(`single`/`prePublish`) 등. 인증/백엔드 연결과는 무관.
+- **`AppContext`** — 화면 간 공유되는 UI 상태: `selectedWork`(작품 선택, `WorkId`: `detective`/`murim`), 레거시 `editorMode`(`edit`/`view`), `reportMode`(`single`/`prePublish`) 등. 인증/백엔드 연결과는 무관. MVP의 `/editor`는 읽기 전용이므로 새 화면·Workflow에는 편집 전환을 노출하지 않습니다.
 - **`BackendStatusContext`** — `.env`의 `VITE_API_BASE_URL`로 설정된 백엔드와의 연결 상태를 감지(`api.ts`의 네트워크 에러 리스너 경유). 연결이 끊기거나(`promptKind: 'network'`) 업로드할 파일이 없을 때(`promptKind: 'no-file'`) 데모 모드 전환을 프롬프트로 제안.
 - **데모 모드**: 사용자가 전환을 수락하면 `mockEpisodeData.ts` 등의 목 데이터로 화면을 그대로 시연 (mock-first 개발 방식 — 백엔드 없이도 FE 작업/리뷰 가능).
 
