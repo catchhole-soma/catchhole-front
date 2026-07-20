@@ -295,8 +295,6 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=search`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search)
 
-![설정DB - 검색 탭](../screens/C37O20.png)
-
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
 > **MVP 범위 메모**
@@ -513,7 +511,15 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=characters&modal=char-detail&charId={characterId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters&modal=char-detail)
 
-![캐릭터 상세 모달](../screens/nvylp.png)
+**MVP 이후 고도화 참고 화면**
+
+![캐릭터 상세 모달 고도화 참고](../screens/dVhGD.png)
+
+> 관계도·등장 이력·사건 타임라인을 함께 제공하는 형태는 MVP 이후 고도화 범위다. 현재 MVP 구현 기준으로 사용하지 않는다.
+
+**현재 MVP 범위 화면**
+
+![캐릭터 상세 모달 MVP](../screens/nvylp.png)
 
 **수정 상태**
 
@@ -526,10 +532,6 @@
 **원문 근거 상태**
 
 ![캐릭터 설정 원문 근거](../screens/dHtfw.png)
-
-**원문 청크 fallback 참고 상태**
-
-![캐릭터 설정 원문 청크 fallback](../screens/OZzxl.png)
 
 선택한 캐릭터의 현재 대표 정보와 현재 설정 전체를 확인하고, 설정별 원문 근거를 조회하거나 현재 설정을 일괄 수정·삭제하는 모달.
 
