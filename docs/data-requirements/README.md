@@ -76,7 +76,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 | 회원가입 | [`/signup`](https://www.catchhole.com/signup) | [auth](./auth.md#회원가입-ssignup) |
 | 약관·개인정보 모달 | [`/login?terms=terms`](https://www.catchhole.com/login?terms=terms) | [auth](./auth.md#약관개인정보-모달-termsmodal) |
 | 작품 목록 | [`/works`](https://www.catchhole.com/works) | [work](./work.md#작품-목록-s0workpicker) |
-| 작품 등록 모달 | — | [work](./work.md#작품-등록-모달-uploadmodal) |
+| 작품 등록 모달 | — | [work](./work.md#작품-등록-모달-workcreatemodal) |
 | 대시보드 | [`/dashboard`](https://www.catchhole.com/dashboard) | [work](./work.md#대시보드-s1dashboard) |
 | 회차 업로드 | [`/episode-upload`](https://www.catchhole.com/episode-upload) | [upload](./upload.md#회차-업로드-sepisodeupload) |
 | 원고 목록 | [`/dashboard?nav=manuscripts`](https://www.catchhole.com/dashboard?nav=manuscripts) | [episode](./episode.md#원고-목록-대시보드-원고-탭) |
