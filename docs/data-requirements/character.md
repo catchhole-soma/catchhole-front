@@ -295,6 +295,8 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=search`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search)
 
+![설정DB - 검색 탭 MVP](../screens/C37O20.png)
+
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
 > **MVP 범위 메모**
@@ -417,8 +419,6 @@
 ## 설정DB 검색 결과 상세 모달
 
 **URL**: [`/dashboard?nav=settingDB&tab=search&modal=fact-detail&factId={characterFactId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search&modal=fact-detail)
-
-![설정DB 검색 결과 상세 모달](../screens/XVvBu.png)
 
 검색 결과로 선택한 하나의 `CharacterFact`를 현재·이전 설정 구분 없이 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
 
