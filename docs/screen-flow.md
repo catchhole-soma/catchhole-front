@@ -38,7 +38,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | 이메일·비밀번호 인증과 약관 동의 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | 작업할 작품을 고르는 진입점 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·그래프·원고 허브 |
-| 회차 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 선택한 회차 원본을 읽기 전용으로 확인 |
+| 공통 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 회차·설정집 원본을 읽기 전용으로 확인 |
 | AI 챗봇 | [`/chat`](https://catch-hole.vercel.app/chat) | 설정 관련 질의응답 챗봇 |
 | 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | 작업·회차 상태 추적(완료 후 사용자가 결과로 이동) |
 | 충돌·모순 리포트 | [`/report`](https://catch-hole.vercel.app/report) | 분석 결과(충돌/모순) 리포트 |
@@ -93,7 +93,7 @@ flowchart TD
     direction TB
     works["작품 선택<br/>/works"]
     dashboard["대시보드<br/>/dashboard"]
-    editor["회차 원문 보기<br/>/editor"]
+    editor["공통 원문 보기<br/>/editor"]
     chat["AI 챗봇<br/>/chat"]
     loading["분석 진행<br/>/loading"]
     report["충돌·모순 리포트<br/>/report"]
@@ -166,29 +166,24 @@ flowchart TD
   works["작품 선택<br/>/works"]:::private
   dashboard["대시보드<br/>/dashboard"]:::private
   manuscripts["원고 목록<br/>/dashboard?nav=manuscripts"]:::private
-  source["회차 원문 보기<br/>/editor · 읽기 전용"]:::private
+  source["공통 원문 보기<br/>/editor · 읽기 전용"]:::private
   upload["회차 업로드<br/>/episode-upload"]:::private
   uploadProgress["업로드 분석 진행<br/>/episode-upload 내부 단계"]:::private
-  review["설정 후보 검토<br/>/setting-review"]:::private
   loading["기존 작업 분석 진행<br/>/loading"]:::private
   report["충돌·모순 리포트<br/>/report"]:::private
   valreport["회차 검사 결과<br/>/episode-validation-report"]:::private
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
 
-  works -. "새 작품 등록" .-> workCreate["작품 등록 모달"]:::modal
-  workCreate -- "생성 성공" --> dashboard
   works -- "작품 선택" --> dashboard
   dashboard -- "작품 변경" --> works
   dashboard --> manuscripts
 
-  manuscripts -- "회차 원문 보기" --> source
+  manuscripts -- "회차 원문 보기 / 설정집 파일명" --> source
   source -- "뒤로" --> manuscripts
   manuscripts -- "회차 올리기" --> upload
   upload -- "회차 저장·분석 시작" --> uploadProgress
   uploadProgress -- "신규 회차 검수 완료 후<br/>오류 리포트 확인" --> valreport
-  uploadProgress -- "기존 설정 구축 완료 후<br/>설정 후보 검토" --> review
-  review -- "최초 원고 검토 완료" --> settingDB
-  review -- "추가 회차 검토 완료<br/>오류 탐지 시작" --> loading
+  uploadProgress -- "기존 설정 구축 완료 후<br/>설정 DB 보기" --> settingDB
 
   manuscripts -- "재분석 / 실패 다시 시도" --> loading
   loading -- "완료 후 결과 확인" --> report
@@ -200,10 +195,9 @@ flowchart TD
   settingDB -- "원고 목록" --> manuscripts
 
   classDef private fill:#1A1A22,stroke:#7C5CFC,stroke-width:1.5px,color:#F0F0F5;
-  classDef modal fill:#0F0F13,stroke:#9090A8,stroke-dasharray:4 3,color:#F0F0F5;
 ```
 
-> 회차 원문 보기는 선택한 회차 원본을 그대로 보여주는 **읽기 전용** 화면입니다. 원문 편집, 분석 요청, 설정 DB 편집, 공유·다운로드는 제공하지 않습니다.
+> 공통 원문 보기는 회차·설정집 원본을 그대로 보여주는 **읽기 전용** 화면입니다. 원문 편집, 분석 요청, 설정 DB 편집, 공유·다운로드는 제공하지 않습니다.
 > 리포트는 **단일 회차 검수**([`/report`](https://catch-hole.vercel.app/report)) / **발행 전 전체 검수**([`/report?mode=prePublish`](https://catch-hole.vercel.app/report?mode=prePublish)) 두 모드가 있습니다.
 
 ---
@@ -236,21 +230,21 @@ flowchart TD
     t_char["캐릭터"]
     t_rel["관계도"]
     t_time["타임라인"]
-    t_world["설정집"]
+    t_world["세계관 규칙"]
     t_search["검색"]
   end
   nav_settingDB --> t_char & t_rel & t_time & t_world & t_search
 
-  t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>수정·soft delete·원문 근거"]:::modal
-  t_search -. "설정 카드 클릭" .-> m_factdetail["설정 검색 상세 모달<br/>설정값·소유주·원문 근거"]:::modal
+  t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>(→ 삭제 확인)"]:::modal
+  t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
+  t_world -. "세계관 만들기" .-> m_world["세계관 설정 빌더"]:::modal
 
-  subgraph DASHBOARD_CONTENT["대시보드 화면 상태·관리"]
+  subgraph MANUSCRIPTS["원고 목록 상태·관리"]
     direction TB
-    setting_source["설정집 파일 목록<br/>최근 업로드 순"]
-    setting_panel["선택한 설정집 원문 패널<br/>목록과 2열 분할"]:::modal
+    setting_source["설정집 원본 목록<br/>최근 업로드 순"]
     episode_list["회차 목록<br/>번호 내림차순·페이지"]
-    list_state["원고 목록 빈 상태<br/>조회 실패·상태 갱신 실패"]:::modal
-    source_viewer["회차 원문 보기<br/>읽기 전용"]:::private
+    list_state["원고/설정집별 빈 상태<br/>영역별 조회 실패·상태 갱신 실패"]:::modal
+    source_viewer["공통 원문 보기<br/>읽기 전용"]:::private
     title_edit["회차 제목 인라인 수정"]:::modal
     episode_menu["회차 관리 메뉴"]:::modal
     setting_upload["설정집 업로드 모달<br/>원본만 저장"]:::modal
@@ -258,13 +252,11 @@ flowchart TD
     delete_confirm["회차/설정집 삭제 확인<br/>soft delete"]:::modal
   end
 
-  nav_manuscripts --> episode_list
-  t_world --> setting_source
+  nav_manuscripts --> setting_source & episode_list
   nav_manuscripts -. "독립적인 빈·실패 상태" .-> list_state
-  setting_source -- "파일 선택" --> setting_panel
-  setting_panel -. "원문 패널 닫기" .-> setting_source
-  setting_panel -. "삭제" .-> delete_confirm
+  setting_source -- "파일명" --> source_viewer
   setting_source -. "설정집 업로드" .-> setting_upload
+  setting_source -. "삭제" .-> delete_confirm
   episode_list -- "원문 보기" --> source_viewer
   episode_list -. "제목 입력·수정" .-> title_edit
   episode_list -. "⋯" .-> episode_menu
@@ -283,7 +275,7 @@ flowchart TD
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
-> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
+> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [세계관 규칙](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
 > - 관계도 샘플 — [triangle](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=triangle) · [prosecution](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=prosecution) · [court](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=court)
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`, 그래프 노드 `?nav=graph&node=<id>`
 
@@ -326,7 +318,7 @@ flowchart TD
 
   success --> qPur{"분석 목적은?"}:::decision
   qPur -- "신규 회차 검수<br/>오류 리포트 확인" --> valreport["회차 검사 결과<br/>/episode-validation-report"]:::private
-  qPur -- "기존 설정 구축<br/>설정 후보 검토" --> review["설정 후보 검토<br/>/setting-review"]:::private
+  qPur -- "기존 설정 구축<br/>설정 DB 보기" --> settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
 
   postMvp["Post-MVP<br/>설정집 분석 결과 확인"]:::modal
   persist -. "MVP에서는 경유하지 않음" .-> postMvp
@@ -340,20 +332,18 @@ flowchart TD
 
 > 회차 처리 상태: `UPLOADED` → `CHUNKING` → `CHUNKED` → `PREPROCESSING` → `PREPROCESSED` → `ANALYZING` → `ANALYZED`. 실제 진행률을 계산할 수 없으므로 숫자 퍼센트를 표시하지 않습니다.
 
-> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 목적별 결과가 준비됐을 때만 `오류 리포트 확인` 또는 `설정 후보 검토`가 활성화됩니다.
+> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 목적별 결과가 준비됐을 때만 `오류 리포트 확인` 또는 `설정 DB 보기`가 활성화됩니다.
 
 ---
 
 ## 6. 검토 · 리포트 흐름
 
-분석이 끝난 뒤 사용자가 명시적으로 이동하는 결과 화면들입니다. `기존 설정 구축` 결과는 설정 후보 검토에서 모두 확정·무시한 뒤 다음 단계로 이동합니다.
+분석이 끝난 뒤 사용자가 명시적으로 이동하는 결과 화면들입니다. 업로드의 `기존 설정 구축`은 설정 후보 검토를 강제하지 않고 설정 DB로 이동합니다.
 
 ```mermaid
 flowchart TD
   review["설정 후보 검토<br/>/setting-review<br/>(AI가 뽑은 설정을 작가가 확정)"]:::private
-  review -- "최초 원고 검토 완료" --> settingDB
-  review -- "추가 회차 검토 완료<br/>오류 탐지 시작" --> loading["분석 진행<br/>/loading"]:::private
-  loading -- "오류 탐지 완료" --> report
+  review -- "이전 / 회차 검사 시작" --> dashboard["대시보드<br/>/dashboard"]:::private
 
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
   settingDB -- "원고 목록" --> manuscripts["원고 목록<br/>/dashboard?nav=manuscripts"]:::private
@@ -362,7 +352,7 @@ flowchart TD
   valreport -- "뒤로" --> manuscripts
 
   report["충돌·모순 리포트<br/>/report<br/>(단일 회차 / 발행 전 전체)"]:::private
-  report -- "원문 보기" --> source["회차 원문 보기<br/>/editor · 읽기 전용"]:::private
+  report -- "원문 보기" --> source["공통 원문 보기<br/>/editor · 읽기 전용"]:::private
   source -- "뒤로" --> manuscripts
   report -- "뒤로" --> dashboard
   report -. "공유" .-> share["공유·협업 모달"]:::modal
@@ -372,4 +362,4 @@ flowchart TD
 ```
 
 > 딥링크 (클릭 시 이동): 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
-> ID 필요(형식만): 설정 후보 검토 `?analysisJobId=<id>&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
+> ID 필요(형식만): 설정 후보 검토 `?candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
