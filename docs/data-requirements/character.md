@@ -420,6 +420,8 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=search&modal=fact-detail&factId={characterFactId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search&modal=fact-detail)
 
+![설정DB 검색 결과 상세 모달 MVP](../screens/XVvBu.png)
+
 검색 결과로 선택한 하나의 `CharacterFact`를 현재·이전 설정 구분 없이 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
 
 > **MVP 표시 정책**
