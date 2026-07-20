@@ -85,12 +85,13 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 - `SettingsBuilderModal / 직접 입력 설정 빌더 모달` ✅ — NVM-47에서 AI 생성 외 수동 입력 경로 추가(`S1Dashboard.tsx`). 위 모달의 `!generated` 단계: "AI로 생성"/"직접 입력" 탭(밑줄 스타일) + 직접 입력 선택 시 안내 문구 + "직접 입력 시작" 버튼, 하단 안내 문구 "직접 입력을 시작한 뒤 내용을 채워주세요"
 - `WorldBuilderModal / 세계관 설정 빌더 모달` ✅ — 660px 모달(Globe 아이콘 + 제목 입력 + 카테고리 선택 탭(지리/역사/마법 체계/조직/문화), `generated` 상태: 항목 테이블(지형/기후/주요 도시) + "항목 추가" 버튼, 하단 항목 카운트 + 취소/저장 버튼)
 
-### S2Editor — ✅ 완료
+### SourceViewer — ✅ 완료
 
-- `S2Editor / 편집 모드 - 설정 변경 감지` ✅ — Header(뒤로/제목/보기모드·공유·데모재생·분석요청·아바타) + Body 3분할(좌: 설정DB 패널, 중: 원고+상태바, 우: 충돌 카드+AI 제안+전체분석 버튼)
-- `S2Editor / 보기 모드 (view)` ✅ — 위 화면을 복제해 Header 우측 버튼을 "편집 모드"로 변경, "분석 요청" 버튼 제거, Header 아래 "읽기 전용 / 편집으로 전환" 배너 추가
-- `S3Modal / 분석 요청 확인 모달` ✅ — 480px 모달(제목 "159화 분석 요청" + 설명 + 체크리스트 3항목(캐릭터 설정 대조/타임라인 검증/관계도 확인) + "분석 시작"/"취소" 버튼)
-- `S2Editor / 상태 전환 참고 (디자인 참고용, 실제 라우트 아님)` ✅ — 동적 상태 참고 시트 1종: ① 데모 재생 버튼+상태바 4종(idle/playing/paused/done), ② 우측 패널 충돌검사 상태 2종(none="이상 없음"+감지 대기 안내, scanning="스캔 중"+진행바 3개) — detected 상태는 본 화면 우측 패널에서 이미 표현됨, ③ HighlightedText 호버 툴팁(AlertTriangle 아이콘 + "23화: 갈색 눈으로 설정됨" + 포인터)
+- `SourceViewer / 회차 원본` ✅ — 공통 `/editor` 라우트에서 회차 메타데이터와 원문을 읽기 전용으로 표시
+- `SourceViewer / 설정집 원본` ✅ — 같은 라우트에서 설정집 파일 메타데이터와 변환 원문을 읽기 전용으로 표시
+- `SourceViewer / 원문 조회 중` ✅ — 메타데이터·원문 로딩 상태
+- `SourceViewer / 조회·변환·접근 오류` ✅ — 네트워크 조회 실패, TXT·DOCX 변환 실패, 삭제·접근 불가 상태와 원고 목록 복귀
+- 기존 `S2Editor` 편집·분석 화면과 `S3Modal` 분석 요청 모달은 레거시 디자인 참고용이며 MVP 라우트·Workflow Board에는 사용하지 않음
 
 ### S3Chat — ✅ 완료
 
@@ -103,7 +104,7 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 ### S5Report — ✅ 완료
 
-- `S5Report / 단일 회차 검수` ✅ — Header(뒤로/제목/공유·원고로 돌아가기·아바타) + Body(요약 통계 바 + 필터 탭 + ErrorCard 3종(확장된 danger/접힌 warning/무시된 카드) + 하단 안내 바)
+- `S5Report / 단일 회차 검수` ✅ — Header(뒤로/제목/공유·원고 목록으로·아바타) + Body(요약 통계 바 + 필터 탭 + ErrorCard 3종(확장된 danger/접힌 warning/무시된 카드) + 수정 제안 복사·원문 보기 액션 + 하단 안내 바)
 - `S5Report / 발행 전 전체 검수` ✅ — 위 화면을 복제해 제목을 "발행 전 전체 검수"로, 헤더 버튼을 "리포트로 돌아가기"로 변경하고, Body 상단에 "검수 범위"(빛나는 검사 로맨스 · 전체 158화 + 범위 변경 버튼) 바와 "발행 전 체크리스트" 안내 바를 추가
 - `S5Report / 발행 전 전체 검수 - 충돌 없음 (디자인 제안, 코드 미구현)` ✅ — `S5Report.tsx`엔 0건 분기가 없음(`ERROR_DATA` 8개 하드코딩). `SEpisodeValidationReport`의 성공 패턴을 차용해 제안: 통계 0건 + Error Cards List를 성공 메시지로 교체
 - 모달: `ShareModal / 공유·협업 모달` ✅
@@ -141,13 +142,13 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 ## Workflow Boards
 
-라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 보기 모드 원본으로 통합했습니다.
+라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 통합했습니다.
 
 | Workflow | 상태 | Pencil Board ID | 리뷰 PNG |
 | --- | --- | --- | --- |
 | WF-01 / 인증·작품 진입 | ✅ 완료 | `q7BIt` | `docs/workflows/WF-01.png` |
 | WF-02 / 작품·대시보드 | ✅ 완료 | `xuHzb` | `docs/workflows/WF-02.png` |
-| WF-03 / 원고·편집·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
+| WF-03 / 원고 관리·원문·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
 | WF-04 / 회차 업로드 | ✅ 완료 | `RLw7i` | `docs/workflows/WF-04.png` |
 | WF-05 / 검토·리포트 | ✅ 완료 | `i7MrrQ` | `docs/workflows/WF-05.png` |
 
