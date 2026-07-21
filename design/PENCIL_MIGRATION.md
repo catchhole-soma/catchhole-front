@@ -63,34 +63,45 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 ### S0WorkPicker — ✅ 완료
 
-- `S0WorkPicker / 작품 목록 (Loaded)` ✅
+- `S0WorkPicker / 작품 목록 (MVP)` (`Mhex8`) ✅ — 제목·장르·마지막 회차와 새 작품 등록 카드만 표시
 - `S0WorkPicker / 로딩 중 (Loading)` ✅
 - `S0WorkPicker / 작품 없음 (Empty)` ✅
 
+### WorkCreateModal — ✅ 완료
+
+- `WorkCreateModal / 작품 등록 (MVP)` (`U011GD`) ✅ — 작품 제목과 필수 장르만 입력하며 원고·설정집·커버 이미지는 받지 않음
+
 ### S1Dashboard — ✅ 완료
 
-- `S1Dashboard / 설정DB 탭 - 캐릭터` ✅
+- `S1Dashboard / 설정DB 탭 - 캐릭터 (MVP)` (`qdK5y`) ✅ — 이름·나이·장르별 대표 설정·첫 등장 회차를 표시하고 카드 선택으로 상세 모달 진입
 - `S1Dashboard / 설정DB 탭 - 타임라인` ✅ — `TimelineView()` 기반: 필터 칩 5종(전체/인물별/사건별/아이템별/오류별) + 가로 타임라인 트랙 대표 5노드(1화~159화, 시간흐름 오류/설정 충돌 표시) + 범례
-- `S1Dashboard / 설정DB 탭 - 세계관 규칙` ✅ — `WorldRulesView()` 기반: 카드 그리드 3열(법정·수사 규칙/캐릭터 공통 설정/장소 설정) + "세계관 설정 만들기" placeholder 카드
-- `S1Dashboard / 설정DB 탭 - 검색` ✅ — `SearchView()` 기반: 검색창 + 카테고리 칩 9종 + 결과 카드 대표 6개
+- `S1Dashboard / 설정DB 탭 - 설정집 원문 (MVP)` (`Y1Sha3`) ✅ — 세계관 규칙 추출 대신 설정집 파일 목록과 선택한 원문을 조회
+- `SettingBookUploadModal / 설정집 업로드 (MVP)` (`dMyKy`) ✅ — 설정집 원본 파일 하나를 별도 업로드
+- `S1Dashboard / 설정DB 탭 - 검색 (MVP)` (`C37O20`) ✅ — 현재·이전 `CharacterFact`를 유형·시점 필터와 함께 검색
+- `S1Dashboard / 설정DB 검색 상세 모달 (MVP)` (`XVvBu`) ✅ — 선택한 설정값·소유 캐릭터·출처 회차·근거 문장을 조회
 - `S1Dashboard / 분석 리포트 탭` ✅
 - `S1Dashboard / 업로드된 원고 탭` ✅
 - `S1Dashboard / 업로드된 원고 탭 - Empty 상태` ✅ — `selectedWork==='murim'` 분기: FileText 아이콘 + "아직 업로드된 원고가 없습니다." + "회차 올리기로 첫 원고를 추가하세요."
 - `S1Dashboard / 관계도 그래프뷰 - Empty 상태 (디자인 제안, 코드 미구현)` ✅ — `GraphView.tsx`에 전용 empty 분기는 없음(노드 데이터 하드코딩). 필터 전부 OFF 시나리오를 추론해 제안: Graph Canvas를 "표시할 노드가 없습니다" 안내로, Top Tags Box를 "표시할 데이터가 없습니다"로 교체
-- `CharDetailModal / 캐릭터 상세 모달` ✅ (176px overflow 의심 — Pencil 재시작 후 재검증 필요)
-- `CharDetailModal / 캐릭터 삭제 확인 모달` ✅ — NVM-47에서 캐릭터 통째로 삭제 기능 추가(`S1Dashboard.tsx`). 헤더 우측에 삭제 버튼 추가, 클릭 시 "정말 삭제할까요?" + 취소/삭제(빨간 버튼) 확인 단계로 전환
+- `Legacy / 캐릭터 상세 관계도·타임라인` (`dVhGD`) ✅ — MVP에서는 사용하지 않는 기존 참고 화면
+- `CharDetailModal / 기본 (MVP)` (`nvylp`) ✅
+- `CharDetailModal / 수정 (MVP)` (`r1XIT`) ✅ — 현재 대표 정보와 현재 설정을 일괄 편집
+- `CharDetailModal / 삭제 확인 (MVP)` (`ZDc0T`) ✅ — hard delete가 아니라 `ARCHIVED` 전환을 확인
+- `CharDetailModal / 원문 근거 (MVP)` (`dHtfw`) ✅ — 전체 회차 원문과 quote 하이라이트를 우선 표시
+- `CharDetailModal / 원문 청크 Fallback (참고용)` (`OZzxl`) ✅ — 전체 원문 위치를 확정할 수 없을 때 청크 안에서 근거를 표시
 - `S1Dashboard / 관계도 그래프뷰` ✅ — `GraphView.tsx` 기반: 좌측 필터 패널(통계 + 태그 유형 필터 5종 + 관계 유형 필터 7종 + 확대/축소/초기화 컨트롤), 중앙 그래프 캔버스(샘플 노드 8개 + 충돌 회차 강조 + 범례), 우측 패널(사용 방법 가이드 + 가장 연결된 태그 Top5)
 - `UploadModal / 회차·설정집 업로드 모달` ✅ — 500px 모달(제목 "회차 올리기" + 2단계 Step Row + 작품 선택/회차 번호 입력 + 파일 드롭 + 설정집 동시 업로드 체크박스 + 뒤로/다음 버튼)
-- `SettingsBuilderModal / 캐릭터 설정 빌더 모달` ✅ — 660px 모달(Sparkles 아이콘 + "캐릭터 설정 만들기" 제목 + X + 이름 입력, `generated` 상태: 항목 테이블(이름/직업/첫 등장, 스포일러 잠금 표시 포함) + "항목 추가" 버튼, 하단 항목/스포일러 카운트 + 취소/저장 버튼)
-- `SettingsBuilderModal / 직접 입력 설정 빌더 모달` ✅ — NVM-47에서 AI 생성 외 수동 입력 경로 추가(`S1Dashboard.tsx`). 위 모달의 `!generated` 단계: "AI로 생성"/"직접 입력" 탭(밑줄 스타일) + 직접 입력 선택 시 안내 문구 + "직접 입력 시작" 버튼, 하단 안내 문구 "직접 입력을 시작한 뒤 내용을 채워주세요"
-- `WorldBuilderModal / 세계관 설정 빌더 모달` ✅ — 660px 모달(Globe 아이콘 + 제목 입력 + 카테고리 선택 탭(지리/역사/마법 체계/조직/문화), `generated` 상태: 항목 테이블(지형/기후/주요 도시) + "항목 추가" 버튼, 하단 항목 카운트 + 취소/저장 버튼)
+- `SettingsBuilderModal / 캐릭터 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
+- `SettingsBuilderModal / 직접 입력 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
+- `WorldBuilderModal / 세계관 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
 
-### S2Editor — ✅ 완료
+### SourceViewer — ✅ 완료
 
-- `S2Editor / 편집 모드 - 설정 변경 감지` ✅ — Header(뒤로/제목/보기모드·공유·데모재생·분석요청·아바타) + Body 3분할(좌: 설정DB 패널, 중: 원고+상태바, 우: 충돌 카드+AI 제안+전체분석 버튼)
-- `S2Editor / 보기 모드 (view)` ✅ — 위 화면을 복제해 Header 우측 버튼을 "편집 모드"로 변경, "분석 요청" 버튼 제거, Header 아래 "읽기 전용 / 편집으로 전환" 배너 추가
-- `S3Modal / 분석 요청 확인 모달` ✅ — 480px 모달(제목 "159화 분석 요청" + 설명 + 체크리스트 3항목(캐릭터 설정 대조/타임라인 검증/관계도 확인) + "분석 시작"/"취소" 버튼)
-- `S2Editor / 상태 전환 참고 (디자인 참고용, 실제 라우트 아님)` ✅ — 동적 상태 참고 시트 1종: ① 데모 재생 버튼+상태바 4종(idle/playing/paused/done), ② 우측 패널 충돌검사 상태 2종(none="이상 없음"+감지 대기 안내, scanning="스캔 중"+진행바 3개) — detected 상태는 본 화면 우측 패널에서 이미 표현됨, ③ HighlightedText 호버 툴팁(AlertTriangle 아이콘 + "23화: 갈색 눈으로 설정됨" + 포인터)
+- `SourceViewer / 회차 원본` ✅ — `/editor` 라우트에서 회차 메타데이터와 원문을 읽기 전용으로 표시
+- `SourceViewer / 설정집 원본` ✅ — 기존 구현 참고 화면. MVP 목표 동선은 설정DB 설정집 탭의 목록·원문 2열 화면(`Y1Sha3`)을 사용
+- `SourceViewer / 원문 조회 중` ✅ — 메타데이터·원문 로딩 상태
+- `SourceViewer / 조회·변환·접근 오류` ✅ — 네트워크 조회 실패, TXT·DOCX 변환 실패, 삭제·접근 불가 상태와 원고 목록 복귀
+- 기존 `S2Editor` 편집·분석 화면과 `S3Modal` 분석 요청 모달은 레거시 디자인 참고용이며 MVP 라우트·Workflow Board에는 사용하지 않음
 
 ### S3Chat — ✅ 완료
 
@@ -103,15 +114,18 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 ### S5Report — ✅ 완료
 
-- `S5Report / 단일 회차 검수` ✅ — Header(뒤로/제목/공유·원고로 돌아가기·아바타) + Body(요약 통계 바 + 필터 탭 + ErrorCard 3종(확장된 danger/접힌 warning/무시된 카드) + 하단 안내 바)
+- `S5Report / 단일 회차 검수` ✅ — Header(뒤로/제목/공유·원고 목록으로·아바타) + Body(요약 통계 바 + 필터 탭 + ErrorCard 3종(확장된 danger/접힌 warning/무시된 카드) + 수정 제안 복사·원문 보기 액션 + 하단 안내 바)
 - `S5Report / 발행 전 전체 검수` ✅ — 위 화면을 복제해 제목을 "발행 전 전체 검수"로, 헤더 버튼을 "리포트로 돌아가기"로 변경하고, Body 상단에 "검수 범위"(빛나는 검사 로맨스 · 전체 158화 + 범위 변경 버튼) 바와 "발행 전 체크리스트" 안내 바를 추가
 - `S5Report / 발행 전 전체 검수 - 충돌 없음 (디자인 제안, 코드 미구현)` ✅ — `S5Report.tsx`엔 0건 분기가 없음(`ERROR_DATA` 8개 하드코딩). `SEpisodeValidationReport`의 성공 패턴을 차용해 제안: 통계 0건 + Error Cards List를 성공 메시지로 교체
 - 모달: `ShareModal / 공유·협업 모달` ✅
 
 ### SSettingReview — ✅ 완료
 
-- `SSettingReview / 설정 후보 검토` ✅ — Header(뒤로/제목/검토 진행률 바/아바타) + Body(InfoBar + SplitPane: 좌측 검색·필터탭·카테고리탭·후보 리스트, 우측 CandidateDetail(배지+값+근거 인용+AI 분석 의견 박스+무시/수정/확정 버튼) + 하단 버튼 행)
-- NVM-154에서 후보 리스트에 보유정보/시간정보/스탯 충돌 예시 3건 추가(`S1Dashboard.tsx`가 아니라 `mockEpisodeData.ts` 변경에 대응) — "강민준 · 보유 아이템"(권총 분실 등 다중 아이템), "수아 · 시간 경과"(3년 점프, 나이 재계산 필요), "강민준 · 계급/직급"(반장 진급)
+- `SSettingReview / 설정 후보 검토 (MVP)` (`f0EDt`) ✅ — 검색 없이 검토·연결·설정 유형 필터와 좌측 요약/우측 상세 분리
+- `SSettingReview / 캐릭터 연결 필요 (MVP)` (`N4Py2r`) ✅ — 연결 전에도 무시 가능, 수정·확정은 연결 후 활성화
+- `SSettingReview / 캐릭터 연결 모달 (MVP)` (`P178Ug`) ✅ — 기존 캐릭터 연결 또는 새 캐릭터 이름 지정
+- `SSettingReview / 후보 수정 (MVP)` (`CKQtd`) ✅ — 근거 원문은 유지한 채 사용자용 설정값 수정
+- `SSettingReview / 검토 완료 (MVP)` (`VkfXH`) ✅ — 모든 후보를 확정·무시한 뒤 다음 분석 단계로 이동
 - `SSettingReview / 설정 후보 검토 - 후보 없음` ✅ — `filtered.length===0` + 미선택 상태 결합, "0 / 0 검토 완료" + "해당하는 설정 후보가 없습니다." 안내
 
 ### SEpisodeValidationReport — ✅ 완료
@@ -141,13 +155,13 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 
 ## Workflow Boards
 
-라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 보기 모드 원본으로 통합했습니다.
+라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 통합했습니다.
 
 | Workflow | 상태 | Pencil Board ID | 리뷰 PNG |
 | --- | --- | --- | --- |
 | WF-01 / 인증·작품 진입 | ✅ 완료 | `q7BIt` | `docs/workflows/WF-01.png` |
 | WF-02 / 작품·대시보드 | ✅ 완료 | `xuHzb` | `docs/workflows/WF-02.png` |
-| WF-03 / 원고·편집·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
+| WF-03 / 원고 관리·원문·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
 | WF-04 / 회차 업로드 | ✅ 완료 | `RLw7i` | `docs/workflows/WF-04.png` |
 | WF-05 / 검토·리포트 | ✅ 완료 | `i7MrrQ` | `docs/workflows/WF-05.png` |
 

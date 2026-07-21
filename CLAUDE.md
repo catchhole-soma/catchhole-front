@@ -98,11 +98,11 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
    - Workflow 복제본에는 `sourceNodeId` 메타데이터를 기록하고 복제본 내부 내용은 직접 수정하지 않습니다. 원본이 바뀌면 복제본을 다시 만든 뒤 번호 마커와 Description만 재적용합니다.
    - 전환 색상은 사용자 이동 `primary`, 모달·조건 분기 `warning`, 자동 완료 `success`, 실패 `danger`로 통일합니다.
    - 리뷰용 PNG는 `docs/workflows/WF-01.png`부터 `WF-05.png`까지 관리하며, 보드 변경 후 함께 다시 내보냅니다.
-   - 파일럿 보드 `M7oaU`의 구성을 보드 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거했으며 `FrYW0`를 보기 모드 원본으로 사용합니다.
+   - 파일럿 보드 `M7oaU`의 구성을 보드 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거했으며 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 사용합니다.
 
 ## 상태 관리 & 데모 모드
 
-- **`AppContext`** — 화면 간 공유되는 UI 상태: `selectedWork`(작품 선택, `WorkId`: `detective`/`murim`), `editorMode`(`edit`/`view`), `reportMode`(`single`/`prePublish`) 등. 인증/백엔드 연결과는 무관.
+- **`AppContext`** — 화면 간 공유되는 UI 상태: `selectedWork`(작품 선택, `WorkId`: `detective`/`murim`), 레거시 `editorMode`(`edit`/`view`), `reportMode`(`single`/`prePublish`) 등. 인증/백엔드 연결과는 무관. MVP의 `/editor`는 읽기 전용이므로 새 화면·Workflow에는 편집 전환을 노출하지 않습니다.
 - **`BackendStatusContext`** — `.env`의 `VITE_API_BASE_URL`로 설정된 백엔드와의 연결 상태를 감지(`api.ts`의 네트워크 에러 리스너 경유). 연결이 끊기거나(`promptKind: 'network'`) 업로드할 파일이 없을 때(`promptKind: 'no-file'`) 데모 모드 전환을 프롬프트로 제안.
 - **데모 모드**: 사용자가 전환을 수락하면 `mockEpisodeData.ts` 등의 목 데이터로 화면을 그대로 시연 (mock-first 개발 방식 — 백엔드 없이도 FE 작업/리뷰 가능).
 
