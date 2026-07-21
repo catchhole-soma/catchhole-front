@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { LogOut, FlaskConical } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
-import { logout } from '../../lib/auth';
+import { logoutMutation } from '../../api/generated/@tanstack/react-query.gen';
+import { clearAuthSession } from '../../lib/auth';
 import { isDemoMode, setDemoMode } from '../../lib/worksApi';
 
 export function UserMenu() {
   const navigate = useAppNavigate();
+  const queryClient = useQueryClient();
+  const logoutRequest = useMutation(logoutMutation());
   const [menuOpen, setMenuOpen] = useState(false);
   const [demoMode, setDemoModeState] = useState(isDemoMode());
 
   const handleLogout = async () => {
     setMenuOpen(false);
-    await logout();
-    navigate('/login', 'push-left');
+    try {
+      await logoutRequest.mutateAsync({});
+    } catch {
+      // 서버 세션 폐기 실패 여부와 무관하게 로컬 인증 정보는 제거한다.
+    } finally {
+      clearAuthSession();
+      queryClient.clear();
+      navigate('/landing', 'dissolve', undefined, { replace: true });
+    }
   };
 
   const handleToggleDemo = () => {
@@ -27,15 +38,18 @@ export function UserMenu() {
 
   return (
     <div style={{ position: 'relative' }}>
-      <div
+      <button
+        type="button"
+        aria-label="사용자 메뉴 열기"
         onClick={() => setMenuOpen(o => !o)}
         style={{
           width: 32, height: 32, borderRadius: '50%',
           background: `linear-gradient(135deg, ${C.primary}, #9B7BFD)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          border: 'none', padding: 0, fontFamily: 'inherit',
         }}
-      >K</div>
+      >K</button>
       <AnimatePresence>
         {menuOpen && (
           <>
@@ -75,15 +89,17 @@ export function UserMenu() {
               </button>
               <button
                 onClick={handleLogout}
+                disabled={logoutRequest.isPending}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '10px 14px', background: 'none', border: 'none',
                   color: C.t1, fontSize: 13, fontFamily: 'inherit', textAlign: 'left',
+                  cursor: logoutRequest.isPending ? 'default' : 'pointer',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = C.border + '55'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
               >
-                <LogOut size={14} /> 로그아웃
+                <LogOut size={14} /> {logoutRequest.isPending ? '로그아웃 중...' : '로그아웃'}
               </button>
             </motion.div>
           </>

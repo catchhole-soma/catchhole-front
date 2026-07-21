@@ -1,53 +1,26 @@
-import { apiFetch, ACCESS_TOKEN_KEY } from './api';
+import type { CommonResponseAuthTokenResponse } from '../api/generated/types.gen';
+import { clearAccessToken, setAccessToken } from './api-config';
+import { ApiError } from './api-errors';
 
-export { ACCESS_TOKEN_KEY };
-
-interface AuthTokenResponse {
-  accessToken: string;
-  tokenType: string;
-  expiresIn: number;
-}
-
-export interface AuthSignupRequest {
-  email: string;
-  password: string;
-  phoneNumber: string;
-  displayName: string;
-}
-
-interface MemberResponse {
-  id: number;
-  email: string;
-  phoneNumber: string;
-  phoneVerified: boolean;
-  displayName: string;
-  profileImageUrl: string | null;
-  status: string;
-  role: string;
-}
-
-export async function login(email: string, password: string): Promise<void> {
-  const { accessToken } = await apiFetch<AuthTokenResponse>('/api/v1/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-}
-
-export async function signup(data: AuthSignupRequest): Promise<void> {
-  await apiFetch<MemberResponse>('/api/v1/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
-  await login(data.email, data.password);
-}
-
-export async function logout(): Promise<void> {
-  try {
-    await apiFetch<unknown>('/api/v1/auth/logout', { method: 'POST' });
-  } finally {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+export function saveAuthToken(response: CommonResponseAuthTokenResponse): void {
+  const accessToken = response.data?.accessToken;
+  if (!response.success || !accessToken) {
+    const details = (response.error?.details ?? []).flatMap(detail =>
+      detail.field && detail.message
+        ? [{ field: detail.field, message: detail.message }]
+        : [],
+    );
+    throw new ApiError(
+      response.message ?? '인증 토큰을 확인할 수 없습니다.',
+      response.error?.code ?? 'AUTH_TOKEN_MISSING',
+      response.error?.status ?? 500,
+      details,
+    );
   }
+
+  setAccessToken(accessToken);
+}
+
+export function clearAuthSession(): void {
+  clearAccessToken();
 }

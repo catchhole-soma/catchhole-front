@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sparkles, Zap, ShieldCheck, FileText, Lock } from 'lucide-react';
 import { C } from './constants';
-import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
@@ -45,7 +45,7 @@ const TRUST_ITEMS = [
 ];
 
 export default function SLanding() {
-  const navigate = useAppNavigate();
+  const { openAuth, openTerms } = usePublicModalNavigation();
 
   return (
     <div style={{
@@ -59,14 +59,14 @@ export default function SLanding() {
       }}>
         <span style={{ color: C.primary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.4px' }}>CatchHole</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate('/login', 'push-right')} style={{
+          <button onClick={() => openAuth('/login')} style={{
             height: 36, padding: '0 16px', borderRadius: 6, border: `1px solid ${C.border}`,
             background: C.surface, color: C.t2, fontSize: 13, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             로그인
           </button>
-          <button onClick={() => navigate('/signup', 'push-right')} style={{
+          <button onClick={() => openAuth('/signup')} style={{
             height: 36, padding: '0 16px', borderRadius: 6, border: 'none',
             background: C.primary, color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit',
@@ -96,14 +96,14 @@ export default function SLanding() {
             창작의 즐거움에만 집중할 수 있도록 CatchHole이 돕습니다.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => navigate('/signup', 'push-right')} style={{
+            <button onClick={() => openAuth('/signup')} style={{
               height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
               background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
               지금 무료로 시작하기
             </button>
-            <button onClick={() => navigate('/login', 'push-right')} style={{
+            <button onClick={() => openAuth('/login')} style={{
               height: 44, padding: '0 20px', borderRadius: 6, border: `1px solid ${C.border}`,
               background: C.surface, color: C.t2, fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
@@ -160,7 +160,7 @@ export default function SLanding() {
           더 이상 설정 오류에 시간을 낭비하지 마세요. AI가 완벽도를 책임지고, 작가님은 오직 창작의 즐거움에만 몰두하세요.
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate('/signup', 'push-right')} style={{
+          <button onClick={() => openAuth('/signup')} style={{
             height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit',
@@ -187,8 +187,14 @@ export default function SLanding() {
           <span style={{ color: C.t3, fontSize: 12 }}>The future of creative storytelling.</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <span style={{ color: C.t3, fontSize: 12 }}>Privacy Policy</span>
-          <span style={{ color: C.t3, fontSize: 12 }}>Terms of Service</span>
+          <button onClick={() => openTerms('privacy')} style={{
+            color: C.t3, fontSize: 12, background: 'none', border: 'none', padding: 0,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>개인정보 처리방침</button>
+          <button onClick={() => openTerms('terms')} style={{
+            color: C.t3, fontSize: 12, background: 'none', border: 'none', padding: 0,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>이용약관</button>
           <span style={{ color: C.t3, fontSize: 12 }}>Contact</span>
         </div>
       </div>
