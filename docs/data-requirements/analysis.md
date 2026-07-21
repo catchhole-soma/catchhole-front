@@ -50,7 +50,7 @@
 
 **URL**: `/loading?workId={workId}&analysisJobId={analysisJobId}`
 
-![기존 분석 진행 화면 참고 시안](../screens/Z0hcsQ.png)
+![분석 진행 중 MVP](../screens/D5jQY.png)
 
 설정 검토를 마친 추가 회차의 `EPISODE_VALIDATION` 작업 진행 상태를 확인하는 화면이다. 업로드 내부의 설정 추출 진행 상태는 [회차 업로드의 분석 진행](./upload.md#5-분석-진행)을 사용하고, 이 화면은 확정 설정과 신규 회차를 비교하는 오류 탐지 단계에 사용한다. 분석 작업 생성 직후뿐 아니라 [분석 리포트 목록](#분석-리포트-목록-s5reportlist)에서 대기·진행 중 작업을 선택해 다시 진입할 수 있다.
 
@@ -197,9 +197,9 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 
 **URL**: `/loading?workId={workId}&analysisJobId={analysisJobId}`
 
-분석 진행 화면과 별도 URL·API를 사용하는 화면이 아니라, 같은 `/loading` 컴포넌트가 폴링 응답에 따라 표시하는 완료 UI 상태다. 모든 대상 회차와 리포트 저장이 성공하여 `status=SUCCEEDED`와 `reportId`가 반환되면 이 상태로 바꾸고 폴링을 중단한다. 자동으로 다른 화면으로 이동하지 않으며, 한 회차라도 실패한 작업은 이 완료 상태로 전환하지 않는다. 진행 화면과 동일하게 좌측 사이드바를 표시하지 않고 `← 분석 내역`을 유지한다.
+![분석 완료 MVP](../screens/qNCrT.png)
 
-> **신규 화면 시안 필요** — 진행 화면의 레이아웃을 유지하되 상단 상태와 하단 주요 액션을 완료 상태로 교체한다.
+분석 진행 화면과 별도 URL·API를 사용하는 화면이 아니라, 같은 `/loading` 컴포넌트가 폴링 응답에 따라 표시하는 완료 UI 상태다. 모든 대상 회차와 리포트 저장이 성공하여 `status=SUCCEEDED`와 `reportId`가 반환되면 이 상태로 바꾸고 폴링을 중단한다. 자동으로 다른 화면으로 이동하지 않으며, 한 회차라도 실패한 작업은 이 완료 상태로 전환하지 않는다. 진행 화면과 동일하게 좌측 사이드바를 표시하지 않고 `← 분석 내역`을 유지한다.
 
 **1. 화면에 표시할 데이터**
 
@@ -276,6 +276,8 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 > - 완료 화면과 분석 리포트 목록에서 `reportId`의 [충돌 의심 상세 리포트](#충돌-의심-상세-리포트-sepisodevalidationreport)로 바로 이동한다.
 > - 이후 전체 결과 대시보드를 추가할 때는 충돌 유형 분포, 캐릭터별 충돌 추세, 이전 분석 대비 변화처럼 여러 회차와 분석 이력을 종합해야 의미가 있는 정보를 제공한다.
 
+![분석 결과 대시보드 MVP 이후 고도화 참고](../screens/S2wEU.png)
+
 ---
 
 <a id="과거-분석-내역-s5reporthistory"></a>
@@ -284,9 +286,9 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 
 **URL**: `/report?workId={workId}`
 
-사이드 메뉴의 `분석 리포트`로 진입했을 때 같은 작품에서 실행한 `EPISODE_VALIDATION` 작업을 시간순으로 조회하는 화면이다. 대기·진행 중 작업은 현재 상태를 다시 확인하는 진입점이고, 완료·실패 작업은 결과와 실패 이력으로 보존한다.
+![분석 리포트 목록 MVP](../screens/Z4Y3L.png)
 
-> **신규 화면 시안 필요** — 분석 작업을 최신순으로 표시하고, 선택한 작업의 상태에 따라 `/loading`의 대기·진행·완료·실패 UI를 연다. 이 화면은 설정 대시보드 내부이므로 좌측 사이드바에서 `분석 리포트`를 활성화한다.
+사이드 메뉴의 `분석 리포트`로 진입했을 때 같은 작품에서 실행한 `EPISODE_VALIDATION` 작업을 시간순으로 조회하는 화면이다. 대기·진행 중 작업은 현재 상태를 다시 확인하는 진입점이고, 완료·실패 작업은 결과와 실패 이력으로 보존한다.
 
 > **작업 목록·보존 정책**
 > - `PENDING`·`RUNNING`·`SUCCEEDED`·`FAILED` 작업을 같은 목록에 표시한다.
@@ -402,7 +404,7 @@ GET /api/v1/works/{workId}/analysis-jobs
 
 **URL**: `/episode-validation-report?workId={workId}&reportId={reportId}`
 
-![기존 회차 검사 결과 참고 시안](../screens/EmGjn.png)
+![충돌 의심 상세 리포트 MVP](../screens/SFZkR.png)
 
 한 번의 분석 묶음에서 발견한 충돌 의심 항목을 상세히 검토하는 화면이다. `episodeId`가 없으면 분석 묶음의 모든 대상 회차 결과를 표시하고, `episodeId`가 있으면 해당 회차만 필터링한다. 새로 완료된 작업과 분석 리포트 목록에서 다시 연 완료 작업 모두 `/loading`의 완료 상태를 거쳐 이 화면을 사용한다.
 
