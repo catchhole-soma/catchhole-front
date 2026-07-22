@@ -31,7 +31,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await page.goto('/dashboard');
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
 test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async ({ page }) => {
@@ -41,7 +41,7 @@ test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async 
   await page.goto('/dashboard');
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -1100,7 +1100,7 @@ test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용
   await page.getByRole('button', { name: '데모 버전으로 전환' }).click();
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
 test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async ({ page }) => {
@@ -1150,7 +1150,7 @@ test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async (
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
 });
 
@@ -1341,7 +1341,177 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
   releaseRefresh?.();
 
   await expect(protectedRequest).resolves.toBe(401);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+  await expect.poll(() => page
+    .evaluate(() => localStorage.getItem('accessToken'))
+    .catch(() => 'navigation-in-progress'))
+    .toBeNull();
+});
+
+test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 원고 분석으로 이동한다', async ({ page }) => {
+  let characterName = '수아';
+  let roleLabel = '주인공';
+  let archived = false;
+  let updateBody: Record<string, unknown> | undefined;
+  const characterAuthorizationHeaders: string[] = [];
+
+  const detailResponse = () => ({
+    id: 'char-1',
+    name: characterName,
+    roleLabel,
+    currentAge: 23,
+    currentLevel: 15,
+    firstAppearanceEpisode: { id: 'episode-1', episodeNo: 1 },
+    profile: [{
+      characterFactId: 'fact-profile-1',
+      key: 'profile.occupation',
+      displayName: '직업',
+      value: '검사 지망생',
+      valueType: 'STRING',
+      properties: [],
+      hasEvidence: true,
+    }],
+    stats: [{
+      characterFactId: 'fact-stat-1',
+      key: 'stats.strength',
+      displayName: '근력',
+      value: '42',
+      valueType: 'NUMBER',
+      properties: [],
+      hasEvidence: false,
+    }],
+    skills: [],
+    items: [],
+    statuses: [],
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const method = request.method();
+
+    if (pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'character@example.com',
+            displayName: '캐릭터 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith('/works/detective/characters') && method === 'GET') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: archived ? [] : [{
+            id: 'char-1',
+            name: characterName,
+            currentAge: 23,
+            representativeAttributeLabel: '레벨',
+            representativeAttributeValue: '15',
+            firstAppearanceEpisodeNo: 1,
+          }],
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'GET') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: detailResponse(), error: null }),
+      });
+    }
+
+    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'PATCH') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      updateBody = request.postDataJSON() as Record<string, unknown>;
+      characterName = String(updateBody.name);
+      roleLabel = String(updateBody.roleLabel);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: detailResponse(), error: null }),
+      });
+    }
+
+    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'DELETE') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      archived = true;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'char-1', status: 'ARCHIVED' },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'character-token'));
+  await page.goto('/dashboard?nav=settingDB&tab=characters');
+
+  await page.getByRole('button', { name: /수아/ }).click();
+  await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
+  await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('이름', { exact: true }).fill('수아 수정');
+  await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await saveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('핵심 주인공', { exact: true }).first()).toBeVisible();
+  expect(updateBody).toMatchObject({
+    name: '수아 수정',
+    roleLabel: '핵심 주인공',
+    currentAge: 23,
+    currentLevel: 15,
+    firstAppearanceEpisodeNo: 1,
+    profile: [{ key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] }],
+    stats: [{ key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] }],
+    skills: [],
+    items: [],
+    statuses: [],
+  });
+
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
+  await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
+
+  await expect(page.getByText('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('등록된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  expect(characterAuthorizationHeaders).not.toHaveLength(0);
+  expect(characterAuthorizationHeaders.every(value => value === 'Bearer character-token')).toBe(true);
+
+  await page.getByRole('button', { name: '원고 분석하기', exact: true }).click();
+  await expect(page).toHaveURL(/\/episode-upload$/);
 });
 
 test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {
