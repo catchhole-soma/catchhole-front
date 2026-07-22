@@ -11,6 +11,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  Upload,
   Users,
   X,
 } from 'lucide-react';
@@ -72,6 +73,7 @@ interface Props {
   onOpen: (characterId: string, edit: boolean) => void;
   onClose: () => void;
   onEditChange: (editing: boolean) => void;
+  onAnalyze: () => void;
 }
 
 const AVATAR_COLORS = [C.primary, '#E25C5C', '#4BB8D9', C.success, '#D4A04A', '#B48BFF'];
@@ -650,6 +652,7 @@ export function CharacterDatabase({
   onOpen,
   onClose,
   onEditChange,
+  onAnalyze,
 }: Props) {
   const queryClient = useQueryClient();
   const [demoCharacters, setDemoCharacters] = useState(INITIAL_DEMO_CHARACTERS);
@@ -821,6 +824,7 @@ export function CharacterDatabase({
             </div>
             <strong style={{ color: C.t1, fontSize: 17 }}>등록된 캐릭터가 없습니다</strong>
             <span style={{ color: C.t3, fontSize: 13 }}>원고를 분석하여 캐릭터를 추출해 보세요!</span>
+            <ModalButton primary onClick={onAnalyze}><Upload size={13} /> 원고 분석하기</ModalButton>
           </div>
         )}
 

@@ -3,7 +3,7 @@
 [← 전체 인덱스](./README.md)
 
 
-> 설정 후보(검토) API 계약은 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md) 기준. 캐릭터 목록/상세/CRUD API는 제공 형식 협의가 필요하다(각 화면 참고).
+> 설정 후보(검토)와 캐릭터 목록·상세·수정·삭제 API 계약은 백엔드 Swagger/OpenAPI와 [BE character.md](https://github.com/catchhole-soma/catchhole-backend-java/blob/main/docs/character.md)를 기준으로 한다.
 
 ## 목차
 

@@ -3382,6 +3382,7 @@ export default function S1Dashboard() {
                           onOpen={openCharDetail}
                           onClose={() => setSelectedCharDetail(null)}
                           onEditChange={setSelectedCharEditing}
+                          onAnalyze={() => navigate('/episode-upload', 'push-right')}
                         />
                       </motion.div>
                     )}
