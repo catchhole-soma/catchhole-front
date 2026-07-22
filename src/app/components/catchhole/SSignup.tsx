@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router';
-import { AnimatePresence, motion } from 'motion/react';
+import { useMutation } from '@tanstack/react-query';
 import { Shield, Mail, Lock, Eye, EyeOff, User, Phone, Check } from 'lucide-react';
 import { C, isValidEmail } from './constants';
-import { TermsModal } from './TermsModal';
+import { AuthModal } from './AuthModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
-import { signup } from '../../lib/auth';
-import { ApiError } from '../../lib/api';
+import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
+import { signupMutation } from '../../api/generated/@tanstack/react-query.gen';
+import { saveAuthToken } from '../../lib/auth';
+import { NetworkError, toApiError } from '../../lib/api-errors';
 
 function Input({
   type, placeholder, value, onChange, icon, right, error,
@@ -43,6 +44,7 @@ function Input({
 
 export default function SSignup() {
   const navigate = useAppNavigate();
+  const { openTerms, switchAuth } = usePublicModalNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -50,48 +52,52 @@ export default function SSignup() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const termsParam = searchParams.get('terms');
-  const termsTab: 'terms' | 'privacy' | null = termsParam === 'terms' || termsParam === 'privacy' ? termsParam : null;
-  const setTermsTab = (tab: 'terms' | 'privacy' | null) => setSearchParams(prev => {
-    if (tab) prev.set('terms', tab); else prev.delete('terms');
-    return prev;
-  });
   const [agreed, setAgreed] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; phoneNumber?: string; password?: string; passwordConfirm?: string }>({});
+  const signupRequest = useMutation(signupMutation());
+  const submitting = signupRequest.isPending;
 
   const handleSignup = async () => {
     const nextErrors: typeof errors = {};
     if (!name.trim()) nextErrors.name = '이름(필명)을 입력해주세요.';
+    else if (name.trim().length > 20) nextErrors.name = '이름(필명)은 20자 이하로 입력해주세요.';
     if (!email.trim()) nextErrors.email = '이메일을 입력해주세요.';
     else if (!isValidEmail(email)) nextErrors.email = '이메일 형식이 올바르지 않습니다.';
     if (!phoneNumber.trim()) nextErrors.phoneNumber = '휴대폰 번호를 입력해주세요.';
     else if (!/^010\d{8}$/.test(phoneNumber)) nextErrors.phoneNumber = '휴대폰 번호는 하이픈 없이 010으로 시작하는 11자리 숫자여야 합니다.';
     if (!password) nextErrors.password = '비밀번호를 입력해주세요.';
-    else if (password.length < 8) nextErrors.password = '비밀번호는 8자 이상이어야 합니다.';
+    else if (password.length < 8 || password.length > 64) nextErrors.password = '비밀번호는 8자 이상 64자 이하로 입력해주세요.';
+    else if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) nextErrors.password = '비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다.';
     if (!passwordConfirm) nextErrors.passwordConfirm = '비밀번호 확인을 입력해주세요.';
     else if (password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !agreed) return;
 
-    setSubmitting(true);
     try {
-      await signup({ email, password, phoneNumber, displayName: name });
-      navigate('/works', 'push-right');
+      const response = await signupRequest.mutateAsync({
+        body: {
+          email: email.trim(),
+          password,
+          phoneNumber,
+          displayName: name.trim(),
+        },
+      });
+      saveAuthToken(response);
+      navigate('/works', 'push-right', undefined, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.code === 'AUTH_EMAIL_DUPLICATED') {
+      const apiError = toApiError(err);
+      if (apiError) {
+        if (apiError.code === 'AUTH_EMAIL_DUPLICATED') {
           setErrors({ email: '이미 가입된 이메일입니다.' });
-        } else if (err.code === 'AUTH_PHONE_NUMBER_DUPLICATED') {
+        } else if (apiError.code === 'AUTH_PHONE_NUMBER_DUPLICATED') {
           setErrors({ phoneNumber: '이미 가입된 휴대폰 번호입니다.' });
-        } else if (err.code === 'REQUEST_VALIDATION_FAILED' && err.details.length > 0) {
+        } else if (apiError.code === 'REQUEST_VALIDATION_FAILED' && apiError.details.length > 0) {
           const fieldMap: Record<string, keyof typeof errors> = {
             displayName: 'name', email: 'email', phoneNumber: 'phoneNumber', password: 'password',
           };
           const fieldErrors: typeof errors = {};
-          err.details.forEach(detail => {
+          apiError.details.forEach(detail => {
             const key = fieldMap[detail.field];
             if (key) fieldErrors[key] = detail.message;
           });
@@ -99,37 +105,18 @@ export default function SSignup() {
         } else {
           setErrors({ password: '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
         }
+      } else if (err instanceof NetworkError) {
+        setErrors({ password: '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.' });
       } else {
         setErrors({ password: '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
       }
-    } finally {
-      setSubmitting(false);
     }
   };
 
   return (
-    <div style={{
-      background: C.bg, width: '100%', height: '100%',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
-    }}>
-      <AnimatePresence>
-        {termsTab && <TermsModal onClose={() => setTermsTab(null)} initialTab={termsTab} />}
-      </AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        style={{
-          display: 'flex', width: 840, minHeight: 540,
-          borderRadius: 16, overflow: 'hidden', border: `1px solid ${C.border}`,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
-        }}
-      >
+    <AuthModal ariaLabelledBy="signup-modal-title" variant="signup">
         {/* 좌측 브랜딩 */}
-        <div style={{
-          width: 340, background: `linear-gradient(145deg, #1a1030 0%, ${C.primary}33 60%, #0f0f13 100%)`,
-          padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          borderRight: `1px solid ${C.border}`, position: 'relative', overflow: 'hidden',
-        }}>
+        <div className="auth-modal-brand">
           <div style={{
             position: 'absolute', top: -60, right: -60,
             width: 200, height: 200, borderRadius: '50%',
@@ -158,11 +145,15 @@ export default function SSignup() {
         </div>
 
         {/* 우측 폼 */}
-        <div style={{
-          flex: 1, background: C.surface, padding: '48px 44px',
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        }}>
-          <div style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>회원가입</div>
+        <form
+          className="auth-modal-form"
+          noValidate
+          onSubmit={event => {
+            event.preventDefault();
+            void handleSignup();
+          }}
+        >
+          <div id="signup-modal-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>회원가입</div>
           <div style={{ color: C.t3, fontSize: 13, marginBottom: 28 }}>계정을 만들어 작품 분석을 시작하세요.</div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -173,9 +164,14 @@ export default function SSignup() {
               type={showPw ? 'text' : 'password'} placeholder="비밀번호"
               value={password} onChange={setPassword} icon={<Lock size={15} />} error={errors.password}
               right={
-                <button onClick={() => setShowPw(p => !p)} style={{
+                <button
+                  type="button"
+                  aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
+                  onClick={() => setShowPw(p => !p)}
+                  style={{
                   background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex',
-                }}>
+                  }}
+                >
                   {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               }
@@ -184,50 +180,56 @@ export default function SSignup() {
               type={showPwConfirm ? 'text' : 'password'} placeholder="비밀번호 확인"
               value={passwordConfirm} onChange={setPasswordConfirm} icon={<Lock size={15} />} error={errors.passwordConfirm}
               right={
-                <button onClick={() => setShowPwConfirm(p => !p)} style={{
+                <button
+                  type="button"
+                  aria-label={showPwConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 표시'}
+                  onClick={() => setShowPwConfirm(p => !p)}
+                  style={{
                   background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex',
-                }}>
+                  }}
+                >
                   {showPwConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               }
             />
           </div>
 
-          <button
-            onClick={() => setAgreed(a => !a)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', padding: 0, marginBottom: 20,
-            }}
-          >
-            <span style={{
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            width: '100%', marginBottom: 20,
+          }}>
+            <button
+              type="button"
+              aria-label="필수 약관에 동의"
+              aria-pressed={agreed}
+              onClick={() => setAgreed(a => !a)}
+              style={{
               width: 18, height: 18, borderRadius: 4, flexShrink: 0,
               border: `1px solid ${agreed ? C.primary : C.border}`,
               background: agreed ? C.primary : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s, border-color 0.15s',
-            }}>
+                transition: 'background 0.15s, border-color 0.15s',
+                cursor: 'pointer', padding: 0,
+              }}
+            >
               {agreed && <Check size={13} color="#fff" />}
-            </span>
+            </button>
             <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>
               가입하면{' '}
-              <span
-                role="button"
-                onClick={e => { e.stopPropagation(); setTermsTab('terms'); }}
-                style={{ color: C.t2, textDecoration: 'underline', cursor: 'pointer' }}
-              >이용약관</span>
+              <button type="button" onClick={() => openTerms('terms')} style={{
+                color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
+                border: 'none', padding: 0, font: 'inherit',
+              }}>이용약관</button>
               {' '}및{' '}
-              <span
-                role="button"
-                onClick={e => { e.stopPropagation(); setTermsTab('privacy'); }}
-                style={{ color: C.t2, textDecoration: 'underline', cursor: 'pointer' }}
-              >개인정보 처리방침</span>
+              <button type="button" onClick={() => openTerms('privacy')} style={{
+                color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
+                border: 'none', padding: 0, font: 'inherit',
+              }}>개인정보 처리방침</button>
               에 동의합니다.
             </span>
-          </button>
+          </div>
 
-          <button onClick={handleSignup} disabled={!agreed || submitting} style={{
+          <button type="submit" disabled={!agreed || submitting} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: agreed && !submitting ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 20,
@@ -246,25 +248,24 @@ export default function SSignup() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            <button onClick={() => { localStorage.setItem('accessToken', 'mock'); navigate('/works', 'push-right'); }} style={{
+            <button type="button" disabled style={{
               width: '100%', height: 44, borderRadius: 8, border: 'none',
-              background: '#FEE500', color: '#191919', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: '#2A2A33', color: C.t3, fontSize: 14, fontWeight: 600,
+              cursor: 'not-allowed', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: 0.7,
             }}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.13 5.01L3.9 15.3a.3.3 0 0 0 .43.34l3.62-2.4c.34.05.69.07 1.05.07 4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919" />
+                <path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.13 5.01L3.9 15.3a.3.3 0 0 0 .43.34l3.62-2.4c.34.05.69.07 1.05.07 4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="currentColor" />
               </svg>
-              카카오로 계속하기
+              카카오 로그인 · 준비 중
             </button>
-            <button onClick={() => { localStorage.setItem('accessToken', 'mock'); navigate('/works', 'push-right'); }} style={{
+            <button type="button" disabled style={{
               width: '100%', height: 44, borderRadius: 8,
-              border: `1px solid ${C.border}`, background: 'transparent',
-              color: C.t1, fontSize: 14, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              transition: 'border-color 0.15s',
+              border: `1px solid ${C.border}`, background: '#202028',
+              color: C.t3, fontSize: 14, fontWeight: 500,
+              cursor: 'not-allowed', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: 0.7,
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = C.t3; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -272,21 +273,20 @@ export default function SSignup() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              Google로 계속하기
+              Google 로그인 · 준비 중
             </button>
           </div>
 
           <div style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
             이미 계정이 있으신가요?{' '}
-            <button onClick={() => navigate('/login', 'push-left')} style={{
+            <button type="button" onClick={() => switchAuth('/login')} style={{
               background: 'none', border: 'none', color: C.primary, cursor: 'pointer',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit', padding: 0,
             }}>
               로그인
             </button>
           </div>
-        </div>
-      </motion.div>
-    </div>
+        </form>
+    </AuthModal>
   );
 }

@@ -9,9 +9,10 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 ## 기술 스택 & 명령어
 
 - React 18 + TypeScript(strict) + Vite 6
+- Hey API 생성 클라이언트 + TanStack Query 5
 - Tailwind CSS v4 + MUI 7 + Radix UI(shadcn 스타일 컴포넌트) + react-router 7
 - 경로 별칭: `@/*` → `src/*`
-- 명령어: `npm run dev` / `npm run build`(`tsc -b && vite build`) / `npm run preview`
+- 명령어: `npm run dev` / `npm run build`(`tsc -b && vite build`) / `npm run lint` / `npm run test:e2e` / `npm run api:generate`
 
 ## 디렉토리 구조
 
@@ -21,16 +22,19 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
   - `SLogin`, `SSignup`, `AppSidebar`, `GraphView`, `ReviewLayout` 등 공용 UI
   - `constants.ts` — 디자인 토큰(`C` 객체)과 공용 타입(`types.ts`)·목 데이터(`mockEpisodeData.ts`)
 - `src/app/context/` — `AppContext`(전역 상태), `BackendStatusContext`(백엔드 연결 상태 감지 → 데모 모드 판단)
-- `src/app/lib/` — `api.ts`, `auth.ts`, `worksApi.ts`, `fileValidation.ts`
+- `src/app/api/generated/` — 백엔드 OpenAPI에서 Hey API로 생성한 타입·SDK·TanStack Query 옵션 (직접 수정 금지)
+- `src/app/api/client-config.ts` — 생성 클라이언트의 base URL, 인증, 공통 fetch 런타임 설정
+- `src/app/lib/` — `api.ts`, `auth.ts`, `auth-fetch.ts`, `query-client.ts`, `worksApi.ts`, `fileValidation.ts`
 
 ## 라우팅
 
-라우트는 `src/app/App.tsx`에서 정의합니다. `/login`, `/signup`을 제외한 모든 라우트는 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login`으로 리다이렉트됩니다.
+라우트는 `src/app/App.tsx`에서 정의합니다. `/landing`, `/login`, `/signup`은 공개 라우트이며, `/login`과 `/signup`은 랜딩을 배경으로 유지하는 라우트 모달입니다. 그 외 화면은 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login` 모달로 리다이렉트됩니다.
 
 | 경로 | 화면 | 설명 |
 | --- | --- | --- |
-| `/login` | `SLogin` | 로그인 (공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
-| `/signup` | `SSignup` | 회원가입 (공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
+| `/landing` | `SLanding` | 비로그인 서비스 소개 화면과 Auth 모달의 공통 배경 |
+| `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
+| `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/` | `S0WorkPicker` | 작품 선택 (진입점) |
 | `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|graph\|manuscripts`로 좌측 섹션, `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?nav=settingDB&tab=relations`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
 | `/editor` | `S2Editor` | 원고 에디터. `?modal=analysis-request`로 분석 요청 모달 딥링크 |
@@ -54,13 +58,14 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 ## 인증/세션
 
-핵심 로직은 `src/app/lib/auth.ts`에 있습니다.
+API 호출은 `src/app/api/generated/`의 Hey API SDK와 TanStack Query 옵션을 사용합니다. 세션 저장은 `src/app/lib/auth.ts`, access token 자동 갱신은 `src/app/lib/auth-fetch.ts`에서 담당합니다.
 
-- 로그인: `POST /api/v1/auth/login` → accessToken을 localStorage에 저장
-- 회원가입: `POST /api/v1/auth/signup` → 가입 즉시 자동 로그인
-- 로그아웃: `POST /api/v1/auth/logout` → localStorage 토큰 제거
-- `SLogin.tsx`의 소셜 로그인(카카오/구글) 버튼은 아직 **목(mock) 구현** — 실제 OAuth 연동 전까지 mock token만 저장됨
-- 인증 상태는 `AppContext`가 아니라 localStorage(accessToken) 기준으로 `PrivateRoute`가 직접 판단
+- 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다. 실제 토큰을 저장할 때는 데모 모드와 데모 작품 데이터를 제거합니다.
+- Auth 모달 히스토리: 랜딩에서 열면 한 개의 히스토리 항목을 추가해 브라우저 뒤로가기로 닫습니다. 로그인↔회원가입 전환은 현재 항목을 교체하고, 직접 진입·보호 화면 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 항목을 교체합니다.
+- 인증 요청: `credentials: include`를 사용하며, 보호 API가 401을 반환하면 refresh를 한 번 수행한 뒤 원래 요청을 재시도합니다. 동시에 발생한 401은 하나의 refresh 요청을 공유합니다.
+- 인증 확인: `PrivateRoute`는 저장된 토큰 존재 여부뿐 아니라 `GET /api/v1/auth/me` 성공 여부를 TanStack Query로 확인합니다. 401에서만 세션을 제거하며, 5xx나 네트워크 오류는 토큰을 유지하고 화면 진입을 보류한 채 재시도를 제공합니다.
+- 로그아웃: 진행 중인 refresh와 localStorage 토큰·Query 캐시를 먼저 제거한 뒤 서버 refresh token 폐기를 요청하고 `/landing`으로 이동합니다.
+- 소셜 로그인(카카오/Google)은 OAuth 계약이 준비될 때까지 비활성 상태이며 mock token을 발급하지 않습니다.
 
 ## 백엔드 API 문서 (Swagger)
 
@@ -68,6 +73,14 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 - Swagger UI: `{VITE_API_BASE_URL}/swagger-ui/index.html`
 - OpenAPI JSON: `{VITE_API_BASE_URL}/v3/api-docs`
+
+OpenAPI 계약을 변경한 뒤에는 생성물을 갱신합니다. 기본 입력은 `http://localhost:8080/v3/api-docs`이며, 다른 환경이나 포트를 사용할 때는 입력 URL을 명시합니다.
+
+```bash
+CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
+```
+
+`src/app/api/generated/`는 생성 전용이므로 직접 고치지 않습니다. 생성 결과가 기대와 다르면 백엔드 Swagger annotation 또는 `openapi-ts.config.ts`를 먼저 수정합니다.
 
 ## 디자인 시스템 — "Obsidian Violet"
 

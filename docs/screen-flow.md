@@ -35,7 +35,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
 | 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 전 서비스 소개 페이지 |
-| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | 이메일·비밀번호 인증과 약관 동의 |
+| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | 랜딩 위 라우트 모달로 제공하는 이메일·비밀번호 인증과 약관 동의 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | 작업할 작품을 고르는 진입점 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·그래프·원고 허브 |
 | 공통 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 회차·설정집 원본을 읽기 전용으로 확인 |
@@ -76,13 +76,15 @@ flowchart TD
   subgraph PUBLIC["공개 (로그인 불필요)"]
     direction TB
     landing["랜딩 페이지<br/>/landing"]
-    login["로그인<br/>/login"]
-    signup["회원가입<br/>/signup"]
+    login["로그인 라우트 모달<br/>/login"]
+    signup["회원가입 라우트 모달<br/>/signup"]
   end
 
-  landing --> login
-  landing --> signup
-  login <--> signup
+  landing -- "모달 열기" --> login
+  landing -- "모달 열기" --> signup
+  login <-->|"현재 항목 대체"| signup
+  login -- "닫기 · Esc · 뒤로" --> landing
+  signup -- "닫기 · Esc · 뒤로" --> landing
 
   login -- "로그인 성공" --> gate
   signup -- "가입 = 자동 로그인" --> gate
@@ -122,11 +124,16 @@ flowchart TD
   landing -- "로그인" --> login
   landing -- "회원가입" --> signup
 
-  login["로그인<br/>/login"]:::public
-  signup["회원가입<br/>/signup"]:::public
+  login["로그인 라우트 모달<br/>/login"]:::public
+  signup["회원가입 라우트 모달<br/>/signup"]:::public
 
-  login -- "회원가입 링크" --> signup
-  signup -- "로그인 링크" --> login
+  landing -- "로그인 선택<br/>(history push)" --> login
+  landing -- "회원가입 선택<br/>(history push)" --> signup
+  login -- "닫기 · 배경 · Esc · 뒤로" --> landing
+  signup -- "닫기 · 배경 · Esc · 뒤로" --> landing
+
+  login -- "회원가입 링크<br/>(history replace)" --> signup
+  signup -- "로그인 링크<br/>(history replace)" --> login
 
   login -- "이메일·비밀번호 제출" --> loginReq{"로그인 결과"}:::decision
   loginReq -- "성공" --> ok["로그인 토큰 저장"]:::private
@@ -142,9 +149,11 @@ flowchart TD
 
   login -. "약관/개인정보 보기" .-> terms["약관·개인정보 모달<br/>이용약관 / 개인정보 탭"]:::modal
   signup -. "약관/개인정보 보기" .-> terms
+  terms -. "닫기 · Esc · 뒤로" .-> login
+  terms -. "닫기 · Esc · 뒤로" .-> signup
 
   ok --> works["작품 선택<br/>/works"]:::private
-  works -- "로그아웃" --> login
+  works -- "로그아웃" --> landing
 
   classDef public fill:#1A1A22,stroke:#00C896,stroke-width:1.5px,color:#F0F0F5;
   classDef private fill:#1A1A22,stroke:#7C5CFC,stroke-width:1.5px,color:#F0F0F5;
@@ -152,6 +161,8 @@ flowchart TD
   classDef decision fill:#0F0F13,stroke:#F4A261,color:#F0F0F5;
 ```
 
+> `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
+>
 > MVP에서는 카카오·Google 로그인 버튼을 보이되 비활성으로 표시하며, 인증 요청이나 mock token 저장을 실행하지 않습니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
 
