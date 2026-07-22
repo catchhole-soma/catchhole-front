@@ -60,11 +60,11 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 API 호출은 `src/app/api/generated/`의 Hey API SDK와 TanStack Query 옵션을 사용합니다. 세션 저장은 `src/app/lib/auth.ts`, access token 자동 갱신은 `src/app/lib/auth-fetch.ts`에서 담당합니다.
 
-- 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다.
+- 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다. 실제 토큰을 저장할 때는 데모 모드와 데모 작품 데이터를 제거합니다.
 - Auth 모달 히스토리: 랜딩에서 열면 한 개의 히스토리 항목을 추가해 브라우저 뒤로가기로 닫습니다. 로그인↔회원가입 전환은 현재 항목을 교체하고, 직접 진입·보호 화면 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 항목을 교체합니다.
 - 인증 요청: `credentials: include`를 사용하며, 보호 API가 401을 반환하면 refresh를 한 번 수행한 뒤 원래 요청을 재시도합니다. 동시에 발생한 401은 하나의 refresh 요청을 공유합니다.
-- 인증 확인: `PrivateRoute`는 저장된 토큰 존재 여부뿐 아니라 `GET /api/v1/auth/me` 성공 여부를 TanStack Query로 확인합니다.
-- 로그아웃: 서버 refresh token 폐기를 요청한 뒤 localStorage 토큰과 Query 캐시를 제거하고 `/landing`으로 이동합니다.
+- 인증 확인: `PrivateRoute`는 저장된 토큰 존재 여부뿐 아니라 `GET /api/v1/auth/me` 성공 여부를 TanStack Query로 확인합니다. 401에서만 세션을 제거하며, 5xx나 네트워크 오류는 토큰을 유지하고 화면 진입을 보류한 채 재시도를 제공합니다.
+- 로그아웃: 진행 중인 refresh와 localStorage 토큰·Query 캐시를 먼저 제거한 뒤 서버 refresh token 폐기를 요청하고 `/landing`으로 이동합니다.
 - 소셜 로그인(카카오/Google)은 OAuth 계약이 준비될 때까지 비활성 상태이며 mock token을 발급하지 않습니다.
 
 ## 백엔드 API 문서 (Swagger)
