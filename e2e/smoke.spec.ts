@@ -300,3 +300,186 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
   await expect(protectedRequest).resolves.toBe(401);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
 });
+
+test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {
+  await page.route('**/api/v1/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        id: 1,
+        email: 'works@example.com',
+        displayName: '작품 테스트',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/works', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: [
+        { id: 'work-new', title: '새 작품', genre: '판타지', latestEpisodeNo: 0 },
+        { id: 'work-old', title: '연재 작품', genre: '로맨스', latestEpisodeNo: 12 },
+      ],
+      error: null,
+    }),
+  }));
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'works-token'));
+
+  await page.goto('/works');
+
+  await expect(page.getByText('등록된 회차 없음', { exact: true })).toBeVisible();
+  await expect(page.getByText('마지막 회차 12화', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '새 작품 작품 선택' }).click();
+
+  await expect(page).toHaveURL(/\/dashboard\?workId=work-new&nav=manuscripts$/);
+  await expect(page.getByText('새 작품', { exact: true }).first()).toBeVisible();
+});
+
+test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 뒤 재시도한다', async ({ page }) => {
+  let createAttempts = 0;
+  let created = false;
+  await page.route('**/api/v1/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        id: 1,
+        email: 'create@example.com',
+        displayName: '등록 테스트',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/works', route => {
+    if (route.request().method() === 'POST') {
+      createAttempts += 1;
+      if (createAttempts === 1) {
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '요청값이 올바르지 않습니다.',
+            data: null,
+            error: {
+              code: 'REQUEST_VALIDATION_FAILED',
+              status: 400,
+              details: [{ field: 'title', message: '작품 제목을 다시 확인해 주세요.' }],
+            },
+          }),
+        });
+      }
+      created = true;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'created-work', title: '검은 달의 기사', genre: '판타지', latestEpisodeNo: 0 },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: created
+          ? [{ id: 'created-work', title: '검은 달의 기사', genre: '판타지', latestEpisodeNo: 0 }]
+          : [],
+        error: null,
+      }),
+    });
+  });
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'create-token'));
+  await page.goto('/works');
+
+  await page.getByRole('button', { name: '새 작품 등록' }).click();
+  await expect(page).toHaveURL(/\/works\?modal=work-create$/);
+  const dialog = page.getByRole('dialog', { name: '새 작품 등록' });
+  await dialog.getByRole('button', { name: '작품 만들기' }).click();
+  await expect(dialog.getByText('작품 제목을 입력해 주세요.', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('작품 장르를 선택해 주세요.', { exact: true })).toBeVisible();
+
+  await dialog.getByLabel('작품 제목 *').fill('검은 달의 기사');
+  await dialog.getByLabel('작품 장르 *').selectOption('판타지');
+  await dialog.getByRole('button', { name: '작품 만들기' }).click();
+
+  await expect(dialog.getByText('작품 제목을 다시 확인해 주세요.', { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel('작품 제목 *')).toHaveValue('검은 달의 기사');
+  await expect(dialog.getByLabel('작품 장르 *')).toHaveValue('판타지');
+
+  await dialog.getByRole('button', { name: '작품 만들기' }).click();
+  await expect(page).toHaveURL(/\/dashboard\?workId=created-work&nav=manuscripts$/);
+  expect(createAttempts).toBe(2);
+});
+
+test('작품 목록 조회 오류는 화면 안에서 재시도해 복구한다', async ({ page }) => {
+  let listAttempts = 0;
+  await page.route('**/api/v1/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        id: 1,
+        email: 'retry-works@example.com',
+        displayName: '목록 재시도',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/works', route => {
+    listAttempts += 1;
+    if (listAttempts <= 2) {
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '일시적인 오류입니다.',
+          data: null,
+          error: { code: 'SERVICE_UNAVAILABLE', status: 503, details: [] },
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [{ id: 'recovered-work', title: '복구된 작품', genre: '무협', latestEpisodeNo: 3 }],
+        error: null,
+      }),
+    });
+  });
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'retry-works-token'));
+  await page.goto('/works');
+
+  await expect(page.getByText('작품 목록을 불러오지 못했습니다.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '다시 시도' }).click();
+
+  await expect(page.getByText('복구된 작품', { exact: true })).toBeVisible();
+});

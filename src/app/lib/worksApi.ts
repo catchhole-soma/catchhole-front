@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchForm } from './api';
+import type { WorkResponse as GeneratedWorkResponse } from '../api/generated/types.gen';
 
 export interface Work {
   id: string;
@@ -10,6 +11,8 @@ export interface Work {
 const DEMO_MODE_KEY = 'catchhole_demo_mode';
 const DEMO_WORKS_KEY = 'catchhole_demo_works';
 const DEMO_DELAY_MS = 600;
+
+export const DEMO_WORKS_QUERY_KEY = ['works', 'demo'] as const;
 
 const DEFAULT_DEMO_WORKS: Work[] = [
   { id: 'detective', title: '탐정 사무소의 비밀', genre: '추리', episodeCount: 12 },
@@ -84,17 +87,45 @@ interface EpisodeUploadResponse {
   episodeCount: number;
 }
 
-function toWork(res: WorkResponse): Work {
-  return { id: res.id, title: res.title, genre: res.genre, episodeCount: res.latestEpisodeNo };
+export function toWork(res: GeneratedWorkResponse): Work | null {
+  if (!res.id || !res.title || typeof res.latestEpisodeNo !== 'number') return null;
+  return {
+    id: res.id,
+    title: res.title,
+    genre: res.genre ?? '',
+    episodeCount: res.latestEpisodeNo,
+  };
+}
+
+export async function getDemoWorks(): Promise<Work[]> {
+  await delay(DEMO_DELAY_MS);
+  return loadDemoWorks();
+}
+
+export async function createDemoWork(input: Pick<CreateWorkInput, 'title' | 'genre'>): Promise<Work> {
+  await delay(DEMO_DELAY_MS);
+  const works = loadDemoWorks();
+  const work = {
+    id: `demo-${Date.now()}`,
+    title: input.title,
+    genre: input.genre,
+    episodeCount: 0,
+  };
+  saveDemoWorks([work, ...works]);
+  return work;
 }
 
 export async function getWorks(): Promise<Work[]> {
   if (isDemoMode()) {
-    await delay(DEMO_DELAY_MS);
-    return loadDemoWorks();
+    return getDemoWorks();
   }
   const works = await apiFetch<WorkResponse[]>('/api/v1/works');
-  return (works ?? []).map(toWork);
+  return (works ?? []).map(res => ({
+    id: res.id,
+    title: res.title,
+    genre: res.genre,
+    episodeCount: res.latestEpisodeNo,
+  }));
 }
 
 export async function createWork(input: CreateWorkInput): Promise<CreateWorkResult> {
