@@ -20,6 +20,7 @@ import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { SettingBookDeleteModal } from './SettingBookDeleteModal';
+import { CharacterDatabase } from './character/CharacterDatabase';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -2953,9 +2954,28 @@ export default function S1Dashboard() {
   const setSettingTab = (id: SettingTabId) => setSearchParams(prev => { prev.set('tab', id); return prev; });
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
+  const selectedCharEditing = selectedCharDetail !== null && searchParams.get('mode') === 'edit';
   const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
     if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
-    else { prev.delete('modal'); prev.delete('charId'); }
+    else {
+      prev.delete('modal');
+      prev.delete('charId');
+      prev.delete('mode');
+      prev.delete('factId');
+    }
+    return prev;
+  });
+  const openCharDetail = (id: string, edit: boolean) => setSearchParams(prev => {
+    prev.set('modal', 'char-detail');
+    prev.set('charId', id);
+    if (edit) prev.set('mode', 'edit');
+    else prev.delete('mode');
+    prev.delete('factId');
+    return prev;
+  });
+  const setSelectedCharEditing = (editing: boolean) => setSearchParams(prev => {
+    if (editing) prev.set('mode', 'edit');
+    else prev.delete('mode');
     return prev;
   });
 
@@ -3353,69 +3373,16 @@ export default function S1Dashboard() {
                   <AnimatePresence mode="wait">
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
-                        {chars.length === 0 ? (
-                          <div style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            maxWidth: 860, height: 280, textAlign: 'center', gap: 16,
-                          }}>
-                            <div style={{
-                              width: 56, height: 56, borderRadius: 14, background: C.primary + '14',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <Users size={26} color={C.primary} />
-                            </div>
-                            <div>
-                              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 캐릭터가 없습니다</div>
-                              <div style={{ color: C.t3, fontSize: 13 }}>캐릭터를 추가하시겠어요?</div>
-                            </div>
-                            <BtnP label="캐릭터 추가" icon={<Sparkles size={13} />} onClick={() => setShowBuilder(true)} />
-                          </div>
-                        ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
-                            {chars.map(s => (
-                              <CharCardDynamic
-                                key={s.id}
-                                setting={s}
-                                onEdit={() => setEditTarget(s)}
-                                onView={() => setSelectedCharDetail(s.id)}
-                                onDelete={() => handleCharDelete(s.id)}
-                                forceShowEdit={charEditMode}
-                              />
-                            ))}
-                            <div onClick={() => setShowBuilder(true)} style={{
-                              background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                              gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
-                            }}
-                              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.primary; }}
-                              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
-                              <Sparkles size={20} color={C.primary} />
-                              <span style={{ color: C.t3, fontSize: 13 }}>캐릭터 설정 만들기</span>
-                            </div>
-                          </div>
-                        )}
-                        <div style={{ marginTop: 24, maxWidth: 860 }}>
-                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>변경 이력</div>
-                          <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-                            {charActivityLog.length === 0 ? (
-                              <div style={{ padding: '14px', color: C.t3, fontSize: 13 }}>
-                                아직 변경 이력이 없습니다. 캐릭터를 추가하거나 수정하면 여기 표시됩니다.
-                              </div>
-                            ) : charActivityLog.map((item, i) => (
-                              <div key={item.id} style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '10px 14px', borderBottom: i < charActivityLog.length - 1 ? `1px solid ${C.border}` : 'none',
-                              }}>
-                                <div style={{
-                                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                                  background: item.type === 'danger' ? C.danger : item.type === 'success' ? C.success : C.primary,
-                                }} />
-                                <span style={{ color: C.t2, fontSize: 13, flex: 1 }}>{item.desc}</span>
-                                <span style={{ color: C.t3, fontSize: 12 }}>{formatRelativeTime(item.at)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                        <CharacterDatabase
+                          workId={selectedWork}
+                          selectedCharacterId={selectedCharDetail}
+                          isEditing={selectedCharEditing}
+                          openInEditMode={charEditMode}
+                          demoMode={isDemoMode()}
+                          onOpen={openCharDetail}
+                          onClose={() => setSelectedCharDetail(null)}
+                          onEditChange={setSelectedCharEditing}
+                        />
                       </motion.div>
                     )}
 
@@ -3501,23 +3468,6 @@ export default function S1Dashboard() {
                     )}
                   </AnimatePresence>
                 </div>
-                <AnimatePresence>
-                  {selectedCharDetail && (
-                    <CharDetailModal
-                      charId={selectedCharDetail}
-                      chars={chars}
-                      onClose={() => setSelectedCharDetail(null)}
-                      onEdit={() => {
-                        const s = chars.find(c => c.id === selectedCharDetail);
-                        if (s) { setEditTarget(s); setSelectedCharDetail(null); }
-                      }}
-                      onDelete={() => {
-                        if (selectedCharDetail) handleCharDelete(selectedCharDetail);
-                        setSelectedCharDetail(null);
-                      }}
-                    />
-                  )}
-                </AnimatePresence>
               </motion.div>
             )}
 
