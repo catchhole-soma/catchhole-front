@@ -17,13 +17,13 @@ export function UserMenu() {
 
   const handleLogout = async () => {
     setMenuOpen(false);
+    clearAuthSession();
+    queryClient.clear();
     try {
       await logoutRequest.mutateAsync({});
     } catch {
       // 서버 세션 폐기 실패 여부와 무관하게 로컬 인증 정보는 제거한다.
     } finally {
-      clearAuthSession();
-      queryClient.clear();
       navigate('/landing', 'dissolve', undefined, { replace: true });
     }
   };

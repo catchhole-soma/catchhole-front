@@ -60,6 +60,57 @@ test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용
   await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
 });
 
+test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async ({ page }) => {
+  let getMeRequestCount = 0;
+  await page.route('**/api/v1/**', route => {
+    const isGetMe = new URL(route.request().url()).pathname.endsWith('/auth/me');
+    if (isGetMe && getMeRequestCount++ === 0) {
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '서버가 일시적으로 요청을 처리할 수 없습니다.',
+          data: null,
+          error: { code: 'SERVICE_UNAVAILABLE', status: 503, details: [] },
+        }),
+      });
+    }
+
+    const data = isGetMe
+      ? {
+          id: 1,
+          email: 'retry@example.com',
+          displayName: '재시도 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'valid-token'));
+
+  await page.goto('/dashboard');
+
+  await expect(page.getByText('인증 정보를 확인하지 못했습니다.', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
+
+  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+
+  await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
+  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
+});
+
 test('Auth 모달은 닫기·배경·Esc·뒤로가기로 랜딩에 복귀한다', async ({ page }) => {
   await page.goto('/landing');
 
@@ -147,7 +198,7 @@ test('모바일 Auth 모달은 뷰포트 전체를 사용한다', async ({ page 
   }).toEqual({ x: 0, y: 0, width: 390, height: 844 });
 });
 
-test('비밀번호 입력창에서 Enter를 누르면 로그인을 제출한다', async ({ page }) => {
+test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인증을 확인한다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/login')
@@ -171,6 +222,10 @@ test('비밀번호 입력창에서 Enter를 누르면 로그인을 제출한다'
     });
   });
   await page.goto('/login');
+  await page.evaluate(() => {
+    localStorage.setItem('catchhole_demo_mode', 'true');
+    localStorage.setItem('catchhole_demo_works', '[]');
+  });
   await page.getByPlaceholder('이메일').fill('enter@example.com');
   await page.getByPlaceholder('비밀번호').fill('Password1');
 
@@ -181,6 +236,8 @@ test('비밀번호 입력창에서 Enter를 누르면 로그인을 제출한다'
   ]);
 
   await expect(page).toHaveURL(/\/works$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_mode'))).toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_works'))).toBeNull();
 });
 
 test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
@@ -198,4 +255,48 @@ test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', 
   await page.getByRole('button', { name: '로그아웃' }).click();
 
   await expect(page).toHaveURL(/\/landing$/);
+});
+
+test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원하지 않는다', async ({ page }) => {
+  let releaseRefresh: (() => void) | undefined;
+  const refreshStarted = new Promise<void>(resolve => {
+    void page.route('**/api/v1/auth/refresh', async route => {
+      resolve();
+      await new Promise<void>(release => {
+        releaseRefresh = release;
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 'late-refresh-token' },
+          error: null,
+        }),
+      }).catch(() => undefined);
+    });
+  });
+  await page.route('**/api/v1/protected', route => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'AUTH_UNAUTHORIZED' } }),
+  }));
+  await page.goto('/landing');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'expired-token'));
+
+  const protectedRequest = page.evaluate(async () => {
+    const { fetchWithAuth } = await import('/src/app/lib/auth-fetch.ts');
+    const response = await fetchWithAuth('http://localhost:8080/api/v1/protected');
+    return response.status;
+  });
+  await refreshStarted;
+
+  await page.evaluate(async () => {
+    const { clearAuthSession } = await import('/src/app/lib/auth.ts');
+    clearAuthSession();
+  });
+  releaseRefresh?.();
+
+  await expect(protectedRequest).resolves.toBe(401);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
 });

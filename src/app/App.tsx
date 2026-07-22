@@ -16,11 +16,11 @@ import S5Report from './components/catchhole/S5Report';
 import SEpisodeUpload from './components/catchhole/SEpisodeUpload';
 import SSettingReview from './components/catchhole/SSettingReview';
 import SEpisodeValidationReport from './components/catchhole/SEpisodeValidationReport';
-import { TransitionType } from './components/catchhole/constants';
+import { C, TransitionType } from './components/catchhole/constants';
 import { getMeOptions } from './api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from './lib/auth';
 import { getAccessToken } from './lib/api-config';
-import { NetworkError } from './lib/api-errors';
+import { NetworkError, toApiError } from './lib/api-errors';
 import { isDemoMode } from './lib/worksApi';
 import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
@@ -75,26 +75,53 @@ function PrivateRoute() {
     staleTime: 60_000,
   });
   const isNetworkFailure = session.error instanceof NetworkError;
+  const isAuthenticationFailure = session.isError && toApiError(session.error)?.status === 401;
 
   useEffect(() => {
-    if (session.isError && !isNetworkFailure && !demoMode) clearAuthSession();
-  }, [demoMode, isNetworkFailure, session.isError]);
+    if (isAuthenticationFailure && !demoMode) clearAuthSession();
+  }, [demoMode, isAuthenticationFailure]);
 
   if (demoMode) {
     return <Outlet />;
   }
 
-  if (!hasAccessToken || (session.isError && !isNetworkFailure)) {
+  if (!hasAccessToken || isAuthenticationFailure) {
     return <Navigate to="/login" replace />;
   }
 
-  if (session.isPending || isNetworkFailure) {
+  if (session.isPending) {
     return (
       <div style={{
         width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#0F0F13', color: '#A0A0AD', fontSize: 13,
+        background: C.bg, color: C.t2, fontSize: 13,
       }}>
-        {isNetworkFailure ? '인증 서버에 연결할 수 없습니다.' : '인증 확인 중...'}
+        인증 확인 중...
+      </div>
+    );
+  }
+
+  if (session.isError) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 12,
+        alignItems: 'center', justifyContent: 'center', background: C.bg, color: C.t2, fontSize: 13,
+      }}>
+        <div style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>
+          {isNetworkFailure ? '인증 서버에 연결할 수 없습니다.' : '인증 정보를 확인하지 못했습니다.'}
+        </div>
+        <div>잠시 후 다시 시도해 주세요.</div>
+        <button
+          type="button"
+          onClick={() => void session.refetch()}
+          disabled={session.isFetching}
+          style={{
+            height: 36, padding: '0 16px', borderRadius: 6, border: `1px solid ${C.border}`,
+            background: C.surface, color: C.t1, fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            cursor: session.isFetching ? 'default' : 'pointer', opacity: session.isFetching ? 0.6 : 1,
+          }}
+        >
+          {session.isFetching ? '다시 시도 중...' : '다시 시도'}
+        </button>
       </div>
     );
   }

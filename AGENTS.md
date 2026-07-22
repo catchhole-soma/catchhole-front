@@ -28,8 +28,11 @@ npm run test:e2e
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
 - 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
+- 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.
+- 실제 로그인·회원가입 성공으로 access token을 저장할 때는 데모 모드와 데모 작품 데이터를 함께 제거해 실제 API 모드로 전환합니다.
 - 인증 상태는 `GET /api/v1/auth/me`로 검증하며, localStorage 토큰 존재만으로 로그인 성공을 판단하지 않습니다.
+- `/auth/me`의 401에서만 세션을 제거하고 로그인으로 이동합니다. 5xx나 네트워크 오류에서는 토큰을 유지하고 보호 화면 진입을 보류한 채 재시도를 제공합니다.
 
 ## 변경 원칙
 
