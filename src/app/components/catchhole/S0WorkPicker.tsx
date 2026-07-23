@@ -162,7 +162,7 @@ function WorkCard({
   );
 }
 
-function NewWorkCard({ onClick }: { onClick: () => void }) {
+function NewWorkCard({ onClick, compact = false }: { onClick: () => void; compact?: boolean }) {
   const [hovered, setHovered] = useState(false);
   return (
     <motion.button
@@ -174,7 +174,9 @@ function NewWorkCard({ onClick }: { onClick: () => void }) {
       transition={{ duration: 0.18 }}
       style={{
         borderRadius: 12, cursor: 'pointer', border: `1.5px dashed ${hovered ? C.primary + '77' : C.border}`,
-        background: hovered ? C.primary + '08' : 'transparent', minHeight: 288, padding: 16,
+        background: hovered ? C.primary + '08' : 'transparent',
+        width: compact ? 184 : '100%', height: compact ? 184 : undefined, minHeight: compact ? undefined : 288,
+        padding: 16, boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
         transitionProperty: 'border-color, background', transitionDuration: '0.18s', fontFamily: 'inherit',
       }}
@@ -323,9 +325,7 @@ export default function S0WorkPicker() {
                 <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 작품이 없습니다</div>
                 <div style={{ color: C.t3, fontSize: 13 }}>첫 작품을 등록하고 AI 설정 분석을 시작해보세요.</div>
               </div>
-              <div style={{ width: '100%', maxWidth: 280 }}>
-                <NewWorkCard onClick={openCreateModal} />
-              </div>
+              <NewWorkCard compact onClick={openCreateModal} />
             </div>
           ) : !error ? (
             <div style={{

@@ -249,6 +249,9 @@ export function WorkCreateModal({ onClose, onCreated }: Props) {
             }
           }}
         />
+        <p style={{ margin: '8px 0 0', color: C.t3, fontSize: 11, lineHeight: 1.5 }}>
+          * 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.
+        </p>
         <div id="work-genre-error" style={{ minHeight: 24, paddingTop: 6, color: C.danger, fontSize: 12 }}>
           {fieldErrors.genre}
         </div>

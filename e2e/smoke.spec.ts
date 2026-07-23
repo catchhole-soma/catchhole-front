@@ -439,9 +439,14 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
   await page.evaluate(() => localStorage.setItem('accessToken', 'create-token'));
   await page.goto('/works');
 
-  await page.getByRole('button', { name: '새 작품 등록' }).click();
+  const emptyCreateButton = page.getByRole('button', { name: '새 작품 등록' });
+  await expect(emptyCreateButton).toHaveCSS('width', '184px');
+  await expect(emptyCreateButton).toHaveCSS('height', '184px');
+  await emptyCreateButton.click();
   await expect(page).toHaveURL(/\/works\?modal=work-create$/);
   const dialog = page.getByRole('dialog', { name: '새 작품 등록' });
+  const genreOptimizationNotice = '* 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.';
+  await expect(dialog.getByText(genreOptimizationNotice, { exact: true })).toBeVisible();
   for (const genre of ['판타지', '로맨스', '추리', '코미디', 'SF', '스포츠', '호러', '무협', '일상', '기타']) {
     await expect(dialog.getByRole('radio', { name: genre })).toBeVisible();
   }
@@ -555,6 +560,10 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
 
   await expect(page).toHaveURL(/\/works\?modal=work-edit&targetWorkId=managed-work$/);
   const editDialog = page.getByRole('dialog', { name: '작품 정보 수정' });
+  await expect(editDialog.getByText(
+    '* 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.',
+    { exact: true },
+  )).toHaveCount(0);
   await editDialog.getByLabel('작품 제목 *').fill('변경된 작품');
   await expect(editDialog.getByLabel('작품 설명 (선택)')).toHaveValue('기존 작품 설명');
   await editDialog.getByLabel('작품 설명 (선택)').fill('변경된 한 줄 소개');
