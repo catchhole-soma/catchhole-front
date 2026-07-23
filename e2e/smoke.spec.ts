@@ -44,6 +44,164 @@ test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async 
   await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
 });
 
+test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const batchId = '22222222-2222-4222-8222-222222222222';
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  let detectionMultipartBody = '';
+  let uploadMultipartBody = '';
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
+      detectionMultipartBody = request.postData() ?? '';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            uploadType: 'MULTI_EPISODE_SINGLE_FILE',
+            episodeCount: 2,
+            totalCharCount: 16,
+            detectedEpisodes: [
+              {
+                detectionOrder: 0,
+                sourceFileIndex: 0,
+                episodeNo: 1,
+                title: '첫 제목',
+                charCount: 8,
+                content: '첫 번째 본문입니다.',
+              },
+              {
+                detectionOrder: 1,
+                sourceFileIndex: 0,
+                episodeNo: 2,
+                title: '둘째 제목',
+                charCount: 8,
+                content: '두 번째 본문입니다.',
+              },
+            ],
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (request.method() === 'POST' && pathname.endsWith(`/${workId}/episodes`)) {
+      uploadMultipartBody = request.postData() ?? '';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            batchId,
+            uploadType: 'MULTI_EPISODE_SINGLE_FILE',
+            status: 'COMPLETED',
+            episodeCount: 2,
+            createdEpisodes: [
+              { id: '44444444-4444-4444-8444-444444444444', episodeNo: 10, title: '첫 제목', status: 'UPLOADED' },
+              { id: '55555555-5555-4555-8555-555555555555', episodeNo: 11, title: '둘째 제목', status: 'UPLOADED' },
+            ],
+            files: [],
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: analysisJobId, jobType: 'EPISODE_VALIDATION', status: 'PENDING' },
+          error: null,
+        }),
+      });
+    }
+
+    if (request.method() === 'GET' && pathname.endsWith(`/analysis-jobs/${analysisJobId}`)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: analysisJobId,
+            workId,
+            workTitle: '테스트 작품',
+            jobType: 'EPISODE_VALIDATION',
+            status: 'PENDING',
+            episodes: [],
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode@example.com',
+          displayName: '회차 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? []
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '테스트 작품', genre: '판타지' }
+          : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-flow-token'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'episodes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 1화 첫 제목\n첫 번째 본문입니다.\n제 2화 둘째 제목\n두 번째 본문입니다.'),
+  });
+
+  await expect(page.getByText('2개 회차 감지됨', { exact: true })).toBeVisible();
+  expect(detectionMultipartBody).toContain('name="metadata"');
+  expect(detectionMultipartBody).not.toContain('name="data"');
+  expect(detectionMultipartBody).toContain('"uploadType":"MULTI_EPISODE_SINGLE_FILE"');
+
+  await page.getByRole('button', { name: '다음 — 회차 분리 확인' }).click();
+  await page.locator('input[type="number"]').fill('10');
+  await page.getByRole('button', { name: /2화 둘째 제목/ }).click();
+  await page.locator('input[type="number"]').fill('11');
+  await page.getByRole('button', { name: /회차 분리 확정 \(2개\)/ }).click();
+
+  await expect.poll(() => uploadMultipartBody).not.toBe('');
+  expect(uploadMultipartBody).toContain('name="metadata"');
+  expect(uploadMultipartBody).toContain('"episodeConfirmations"');
+  expect(uploadMultipartBody).toContain('"detectionOrder":0');
+  expect(uploadMultipartBody).toContain('"episodeNo":10');
+  expect(uploadMultipartBody).toContain('"detectionOrder":1');
+  expect(uploadMultipartBody).toContain('"episodeNo":11');
+  expect(uploadMultipartBody).not.toContain('"episodes"');
+  await expect(page).toHaveURL(/analysisJobIds=33333333-3333-4333-8333-333333333333/);
+  await expect(page).toHaveURL(/currentAnalysisJobIds=33333333-3333-4333-8333-333333333333/);
+  await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
+});
+
 test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용한다', async ({ page }) => {
   await page.route('**/api/v1/auth/me', route => route.abort('connectionfailed'));
   await page.goto('/login');
