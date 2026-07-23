@@ -282,7 +282,7 @@ flowchart TD
 
 대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 설정집 영역의 `설정집 업로드`는 목록 안의 별도 모달을 열며, MVP에서는 TXT·DOCX 원본만 저장하고 분석·추출하지 않습니다.
 
-> 분석 중인 회차는 원문 보기만 허용하고 파일 변경·삭제·중복 분석 요청을 비활성화합니다. 회차 파일 변경은 새 파일 저장과 분석 시작이 모두 성공하기 전까지 기존 원문과 유효 분석 결과를 유지합니다.
+> 분석 중인 회차는 원문 보기와 제목 수정만 허용하고 파일 변경·삭제·중복 분석 요청을 비활성화합니다. 회차 파일 변경은 새 파일 저장과 분석 시작이 모두 성공하기 전까지 기존 원문과 유효 분석 결과를 유지합니다.
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
