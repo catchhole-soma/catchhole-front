@@ -490,12 +490,12 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
 
   await dialog.getByLabel('작품 제목 *').fill('검은 달의 기사');
   const descriptionInput = dialog.getByLabel('작품 설명 (선택)');
-  await descriptionInput.fill('가'.repeat(21));
+  await descriptionInput.fill('가'.repeat(51));
   const fantasyGenre = dialog.getByRole('radio', { name: '판타지' });
   const romanceGenre = dialog.getByRole('radio', { name: '로맨스' });
   await fantasyGenre.click();
   await dialog.getByRole('button', { name: '작품 만들기' }).click();
-  await expect(dialog.getByText('작품 설명은 20자 이하로 입력해 주세요.', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('작품 설명은 50자 이하로 입력해 주세요.', { exact: true })).toBeVisible();
   expect(createAttempts).toBe(0);
   await descriptionInput.fill('달빛 아래 시작된 모험');
   await expect(fantasyGenre).toHaveAttribute('aria-checked', 'true');

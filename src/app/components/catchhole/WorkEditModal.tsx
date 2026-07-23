@@ -34,7 +34,7 @@ function validate(title: string, description: string, genre: string): FieldError
   const errors: FieldErrors = {};
   if (!title.trim()) errors.title = '작품 제목을 입력해 주세요.';
   else if (title.trim().length > 100) errors.title = '작품 제목은 100자 이하로 입력해 주세요.';
-  if (description.trim().length > 20) errors.description = '작품 설명은 20자 이하로 입력해 주세요.';
+  if (description.trim().length > 50) errors.description = '작품 설명은 50자 이하로 입력해 주세요.';
   if (!genre) errors.genre = '작품 장르를 선택해 주세요.';
   return errors;
 }
@@ -268,10 +268,10 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
             position: 'absolute',
             right: 12,
             top: 15,
-            color: description.trim().length > 20 ? C.danger : C.t3,
+            color: description.trim().length > 50 ? C.danger : C.t3,
             fontSize: 11,
           }}>
-            {description.trim().length}/20
+            {description.trim().length}/50
           </span>
         </div>
         <div id="work-edit-description-error" style={{ minHeight: 24, paddingTop: 6, color: C.danger, fontSize: 12 }}>
