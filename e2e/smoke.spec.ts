@@ -1360,7 +1360,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
     roleLabel,
     currentAge: 23,
     currentLevel: 15,
-    firstAppearanceEpisode: { id: 'episode-1', episodeNo: 1 },
+    firstAppearanceEpisode: null,
     profile: [{
       characterFactId: 'fact-profile-1',
       key: 'profile.occupation',
@@ -1422,7 +1422,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
             currentAge: 23,
             representativeAttributeLabel: '레벨',
             representativeAttributeValue: '15',
-            firstAppearanceEpisodeNo: 1,
+            firstAppearanceEpisodeNo: null,
           }],
           error: null,
         }),
@@ -1475,7 +1475,10 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await page.evaluate(() => localStorage.setItem('accessToken', 'character-token'));
   await page.goto('/dashboard?nav=settingDB&tab=characters');
 
-  await page.getByRole('button', { name: /수아/ }).click();
+  const characterCard = page.getByRole('button', { name: /수아/ });
+  await expect(characterCard).toContainText('첫 등장');
+  await expect(characterCard).toContainText('—');
+  await characterCard.click();
   await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
   await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
 
@@ -1493,7 +1496,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
     roleLabel: '핵심 주인공',
     currentAge: 23,
     currentLevel: 15,
-    firstAppearanceEpisodeNo: 1,
+    firstAppearanceEpisodeNo: null,
     profile: [{ key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] }],
     stats: [{ key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] }],
     skills: [],
