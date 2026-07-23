@@ -239,7 +239,12 @@ export default function S0WorkPicker() {
   }, { replace: true });
   const selectWork = (work: Work, replace = false) => {
     setSelectedWork(work.id);
-    setSelectedWorkInfo({ id: work.id, title: work.title, genre: work.genre ?? '' });
+    setSelectedWorkInfo({
+      id: work.id,
+      title: work.title,
+      genre: work.genre ?? '',
+      episodeCount: work.episodeCount,
+    });
     navigate(
       `/dashboard?workId=${encodeURIComponent(work.id)}&nav=manuscripts`,
       'push-right',
@@ -364,6 +369,7 @@ export default function S0WorkPicker() {
                   id: updatedWork.id,
                   title: updatedWork.title,
                   genre: updatedWork.genre ?? '',
+                  episodeCount: updatedWork.episodeCount,
                 });
               }
               closeModal();

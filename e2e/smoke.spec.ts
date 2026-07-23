@@ -356,6 +356,40 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
 
   await expect(page).toHaveURL(/\/dashboard\?workId=work-new&nav=manuscripts$/);
   await expect(page.getByText('새 작품', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('아직 업로드된 원고가 없습니다.', { exact: true })).toBeVisible();
+});
+
+test('데모 작품 수정 후 세션을 초기화하면 기본 작품 정보가 복원된다', async ({ page }) => {
+  await page.goto('/login');
+
+  const resetWork = await page.evaluate(async () => {
+    localStorage.clear();
+    const {
+      getDemoWorks,
+      setDemoMode,
+      updateDemoWork,
+    } = await import('/src/app/lib/worksApi.ts');
+
+    setDemoMode(true);
+    await updateDemoWork('detective', {
+      title: '변경된 데모 작품',
+      genre: '추리',
+      description: '변경된 설명',
+    });
+    setDemoMode(false);
+    setDemoMode(true);
+
+    const works = await getDemoWorks();
+    return works.find(work => work.id === 'detective');
+  });
+
+  expect(resetWork).toMatchObject({
+    id: 'detective',
+    title: '탐정 사무소의 비밀',
+    genre: '추리',
+    description: null,
+    episodeCount: 12,
+  });
 });
 
 test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 뒤 재시도한다', async ({ page }) => {

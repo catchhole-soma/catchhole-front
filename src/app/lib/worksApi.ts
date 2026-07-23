@@ -35,11 +35,11 @@ export function setDemoMode(enabled: boolean): void {
 
 function loadDemoWorks(): Work[] {
   const raw = localStorage.getItem(DEMO_WORKS_KEY);
-  if (!raw) return DEFAULT_DEMO_WORKS;
+  if (!raw) return DEFAULT_DEMO_WORKS.map(work => ({ ...work }));
   try {
     return JSON.parse(raw) as Work[];
   } catch {
-    return DEFAULT_DEMO_WORKS;
+    return DEFAULT_DEMO_WORKS.map(work => ({ ...work }));
   }
 }
 

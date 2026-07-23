@@ -2790,9 +2790,9 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
 
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
-const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
-  detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
-  murim: { title: '무협지존', genre: '무협' },
+const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
+  detective: { title: '빛나는 검사 로맨스', genre: '로맨스', episodeCount: 12 },
+  murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
@@ -2836,8 +2836,17 @@ export default function S1Dashboard() {
   const selectedWorkDisplay = selectedWorkInfo?.id === effectiveWorkId
     ? selectedWorkInfo
     : apiWork
-      ? { id: apiWork.id, title: apiWork.title, genre: apiWork.genre ?? '' }
-      : WORK_INFO[effectiveWorkId] ?? { id: effectiveWorkId, ...FALLBACK_WORK_INFO };
+      ? {
+          id: apiWork.id,
+          title: apiWork.title,
+          genre: apiWork.genre ?? '',
+          episodeCount: apiWork.episodeCount,
+        }
+      : WORK_INFO[effectiveWorkId] ?? {
+          id: effectiveWorkId,
+          ...FALLBACK_WORK_INFO,
+          episodeCount: 0,
+        };
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -2849,8 +2858,14 @@ export default function S1Dashboard() {
       selectedWorkInfo?.id !== apiWork.id
       || selectedWorkInfo.title !== apiWork.title
       || selectedWorkInfo.genre !== (apiWork.genre ?? '')
+      || selectedWorkInfo.episodeCount !== apiWork.episodeCount
     ) {
-      setSelectedWorkInfo({ id: apiWork.id, title: apiWork.title, genre: apiWork.genre ?? '' });
+      setSelectedWorkInfo({
+        id: apiWork.id,
+        title: apiWork.title,
+        genre: apiWork.genre ?? '',
+        episodeCount: apiWork.episodeCount,
+      });
     }
   }, [apiWork, selectedWorkInfo, setSelectedWorkInfo]);
   const [msPage, setMsPage] = useState(0);
@@ -3258,7 +3273,7 @@ export default function S1Dashboard() {
                     onClick={() => navigate('/episode-upload', 'push-right')} />
                 </div>
 
-                {selectedWork === 'murim' ? (
+                {selectedWorkDisplay.episodeCount === 0 ? (
                   <div style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     height: 280, color: C.t3, gap: 12,

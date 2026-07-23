@@ -17,4 +17,5 @@ export interface SelectedWorkInfo {
   id: string;
   title: string;
   genre: string;
+  episodeCount: number;
 }
