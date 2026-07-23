@@ -3668,14 +3668,13 @@ export default function S1Dashboard() {
                                       <BtnG small label="저장" onClick={() => void saveEpisodeTitle(episode)} />
                                     </div>
                                   ) : (
-                                    <button type="button" disabled={isAnalyzing} onClick={() => {
+                                    <button type="button" onClick={() => {
                                       setEditingEpisodeId(episode.id ?? null);
                                       setEditingEpisodeTitle(episode.title ?? '');
                                     }} style={{
                                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left',
                                       border: 0, padding: '4px 8px 4px 0', background: 'transparent',
-                                      color: episode.title ? C.t1 : C.warning, cursor: isAnalyzing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 13,
-                                      opacity: isAnalyzing ? 0.55 : 1,
+                                      color: episode.title ? C.t1 : C.warning, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
                                     }} title="제목 수정">
                                       {episode.title || '제목을 찾지 못했어요 · 제목 입력'}
                                     </button>
@@ -3700,7 +3699,14 @@ export default function S1Dashboard() {
                                         : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
                                           : episode.analysisStatus === 'IN_PROGRESS' ? '분석 중' : '재분석'}
                                       onClick={episode.analysisStatus === 'COMPLETED'
-                                        ? () => navigate('/episode-validation-report', 'push-right', { episodeIds: episode.id ? [episode.id] : [] })
+                                        ? () => navigate(
+                                            `/episode-validation-report?workId=${encodeURIComponent(effectiveWorkId)}`,
+                                            'push-right',
+                                            {
+                                              workId: effectiveWorkId,
+                                              episodeIds: episode.id ? [episode.id] : [],
+                                            },
+                                          )
                                         : () => void openEpisodeAnalysis(episode)}
                                     />
                                     <BtnG small label="원문" onClick={() => {

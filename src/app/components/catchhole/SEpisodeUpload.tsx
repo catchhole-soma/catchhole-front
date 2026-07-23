@@ -1268,14 +1268,21 @@ export default function SEpisodeUpload() {
                     <PrimaryButton onClick={() => {
                       const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
                       if (resolvedAnalysisJobType === 'EPISODE_VALIDATION') {
-                        navigate('/episode-validation-report', 'dissolve', {
-                          workId,
-                          batchId: episodeUploadBatchId,
-                          analysisJobIds: currentAnalysisJobIds,
-                          episodeIds,
-                        });
+                        navigate(
+                          `/episode-validation-report?workId=${encodeURIComponent(workId)}`,
+                          'dissolve',
+                          {
+                            workId,
+                            batchId: episodeUploadBatchId,
+                            analysisJobIds: currentAnalysisJobIds,
+                            episodeIds,
+                          },
+                        );
                       } else {
-                        navigate('/dashboard?nav=settingDB', 'dissolve');
+                        navigate(
+                          `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB`,
+                          'dissolve',
+                        );
                       }
                     }}>
                       {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}

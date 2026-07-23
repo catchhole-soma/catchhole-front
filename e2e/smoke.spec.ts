@@ -207,6 +207,223 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   );
 });
 
+test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const batchId = '22222222-2222-4222-8222-222222222222';
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'setting-complete@example.com',
+          displayName: '설정 구축 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'SETTING_EXTRACTION',
+            status: 'SUCCEEDED',
+            episodes: [{
+              id: '44444444-4444-4444-8444-444444444444',
+              episodeNo: 1,
+              title: '첫 회차',
+              status: 'ANALYZED',
+            }],
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'setting-complete-token'));
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
+    + '&jobType=SETTING_EXTRACTION',
+  );
+
+  await page.getByRole('button', { name: '설정 DB 보기' }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard\\?workId=${workId}&nav=settingDB$`),
+  );
+  await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
+});
+
+test('분석 중에는 제목 수정만 허용하고 파일 변경과 삭제를 막는다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode-active@example.com',
+          displayName: '분석 중 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{
+            id: episodeId,
+            episodeNo: 1,
+            title: '분석 중 회차',
+            originalFilename: 'episode-1.txt',
+            contentUpdatedAt: '2026-07-23T12:00:00',
+            charCount: 100,
+            analysisStatus: 'IN_PROGRESS',
+            unresolvedFindingCount: null,
+          }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-active-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+
+  const titleButton = page.getByRole('button', { name: '분석 중 회차' });
+  await expect(titleButton).toBeEnabled();
+  await expect(page.getByRole('button', { name: '파일 변경' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '삭제' })).toBeDisabled();
+
+  await titleButton.click();
+  await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
+});
+
+test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode-report@example.com',
+          displayName: '회차 결과 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{
+            id: episodeId,
+            episodeNo: 1,
+            title: '분석 완료 회차',
+            originalFilename: 'episode-1.txt',
+            contentUpdatedAt: '2026-07-23T12:00:00',
+            charCount: 100,
+            analysisStatus: 'COMPLETED',
+            unresolvedFindingCount: 0,
+          }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-report-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+
+  await page.getByRole('button', { name: '결과 보기' }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/episode-validation-report\\?workId=${workId}$`),
+  );
+  await page.reload();
+
+  await page.getByRole('button', { name: '← 이전' }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
+  );
+  await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
+});
+
+test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode-content-date@example.com',
+          displayName: '원문 날짜 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/episodes/${episodeId}`)
+        ? {
+            id: episodeId,
+            episodeNo: 1,
+            title: '원문 날짜 회차',
+            content: '원문입니다.',
+            originalFilename: 'episode-1.txt',
+            contentUpdatedAt: '2026-07-20T12:34:00+09:00',
+            createdAt: '2026-07-19T09:00:00+09:00',
+            updatedAt: '2026-07-23T23:59:00+09:00',
+            charCount: 6,
+          }
+        : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-content-date-token'));
+  await page.goto(`/editor?workId=${workId}&episodeId=${episodeId}`);
+
+  const article = page.getByRole('article');
+  await expect(article).toContainText('2026. 7. 20.');
+  await expect(article).not.toContainText('2026. 7. 23.');
+});
+
 test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용한다', async ({ page }) => {
   await page.route('**/api/v1/auth/me', route => route.abort('connectionfailed'));
   await page.goto('/login');

@@ -108,7 +108,10 @@ function Header({ onBack, dangerCount, warningCount }: { onBack: () => void; dan
 export default function SEpisodeValidationReport() {
   const navigate = useAppNavigate();
   const location = useLocation();
-  const episodeIds = (location.state as { episodeIds?: string[] } | null)?.episodeIds;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reportState = location.state as { episodeIds?: string[]; workId?: string } | null;
+  const episodeIds = reportState?.episodeIds;
+  const workId = searchParams.get('workId') ?? reportState?.workId;
 
   const issues = useMemo(
     () => (episodeIds && episodeIds.length > 0
@@ -120,7 +123,6 @@ export default function SEpisodeValidationReport() {
   const [ignoredIds, setIgnoredIds] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<IssueFilter>('ALL');
   const [search, setSearch] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue');
   const selectedId = issueParam !== null && /^\d+$/.test(issueParam) ? Number(issueParam) : null;
   const setSelectedId = (id: number | null) => setSearchParams(prev => {
@@ -139,7 +141,12 @@ export default function SEpisodeValidationReport() {
   const activeIssues = issues.filter((i) => !ignoredIds.has(i.id));
   const dangerCount = activeIssues.filter((i) => i.severity === 'danger').length;
   const warningCount = activeIssues.filter((i) => i.severity === 'warning').length;
-  const goToDashboard = () => navigate('/dashboard', 'pop');
+  const goToDashboard = () => navigate(
+    workId
+      ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`
+      : '/dashboard?nav=manuscripts',
+    'pop',
+  );
 
   const categoryTabs = [
     { id: 'ALL', label: '전체', count: issues.length },

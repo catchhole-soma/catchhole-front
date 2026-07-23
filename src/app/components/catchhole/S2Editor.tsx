@@ -454,7 +454,7 @@ function EditorText({ text, detectionPhase, showCursor }: {
   );
 }
 
-function formatOriginalDate(value?: string) {
+function formatOriginalDate(value?: string | null) {
   if (!value) return '변경일 없음';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '변경일 없음';
@@ -557,7 +557,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, color: C.t3, fontSize: 12 }}>
                 <span>{(episode.charCount ?? episode.content?.length ?? 0).toLocaleString()}자</span>
                 <span>·</span>
-                <span>{formatOriginalDate(episode.updatedAt ?? episode.createdAt)}</span>
+                <span>{formatOriginalDate(episode.contentUpdatedAt)}</span>
               </div>
             </div>
             <OriginalLines content={episode.content || '원문 내용이 없습니다.'} />
