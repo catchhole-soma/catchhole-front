@@ -41,7 +41,7 @@ export const getMyWorks = <ThrowOnError extends boolean = true>(options?: Option
 /**
  * 내 작품 생성
  *
- * 로그인한 사용자의 새 작품을 등록합니다. 최신 회차 번호는 서버에서 초기화합니다.
+ * 로그인한 사용자의 새 작품을 제목과 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
  */
 export const createWork = <ThrowOnError extends boolean = true>(options: Options<CreateWorkData, ThrowOnError>): RequestResult<CreateWorkResponses, CreateWorkErrors, ThrowOnError> => (options.client ?? client).post<CreateWorkResponses, CreateWorkErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -67,7 +67,7 @@ export const dismissSettingCandidate = <ThrowOnError extends boolean = true>(opt
 /**
  * 설정 후보 확정
  *
- * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입을 검증합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
+ * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입과 merge policy를 검증합니다. UNRESOLVED 캐릭터 후보는 같은 이름의 활성 캐릭터를 재사용하거나 새로 생성하고, 같은 이름의 검토 대기 미해소 후보도 해당 캐릭터에 연결합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
  */
 export const confirmSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<ConfirmSettingCandidateData, ThrowOnError>): RequestResult<ConfirmSettingCandidateResponses, ConfirmSettingCandidateErrors, ThrowOnError> => (options.client ?? client).post<ConfirmSettingCandidateResponses, ConfirmSettingCandidateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -174,6 +174,7 @@ export const login = <ThrowOnError extends boolean = true>(options: Options<Logi
  * AI Worker 분석 작업 실패
  */
 export const failAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<FailAnalysisJobData, ThrowOnError>): RequestResult<FailAnalysisJobResponses, FailAnalysisJobErrors, ThrowOnError> => (options.client ?? client).post<FailAnalysisJobResponses, FailAnalysisJobErrors, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/fail',
     ...options,
     headers: {
@@ -186,6 +187,7 @@ export const failAnalysisJob = <ThrowOnError extends boolean = true>(options: Op
  * AI Worker 분석 작업 완료
  */
 export const completeAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<CompleteAnalysisJobData, ThrowOnError>): RequestResult<CompleteAnalysisJobResponses, CompleteAnalysisJobErrors, ThrowOnError> => (options.client ?? client).post<CompleteAnalysisJobResponses, CompleteAnalysisJobErrors, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/complete',
     ...options,
     headers: {
@@ -198,6 +200,7 @@ export const completeAnalysisJob = <ThrowOnError extends boolean = true>(options
  * AI Worker 분석 작업 claim
  */
 export const claimAnalysisJob = <ThrowOnError extends boolean = true>(options?: Options<ClaimAnalysisJobData, ThrowOnError>): RequestResult<ClaimAnalysisJobResponses, ClaimAnalysisJobErrors, ThrowOnError> => (options?.client ?? client).post<ClaimAnalysisJobResponses, ClaimAnalysisJobErrors, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/claim',
     ...options,
     headers: {
@@ -325,6 +328,7 @@ export const updateEpisode = <ThrowOnError extends boolean = true>(options: Opti
  * AI Worker 분석 작업 진행 단계 갱신
  */
 export const updateProgress = <ThrowOnError extends boolean = true>(options: Options<UpdateProgressData, ThrowOnError>): RequestResult<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/progress',
     ...options,
     headers: {

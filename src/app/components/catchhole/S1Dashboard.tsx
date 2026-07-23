@@ -21,6 +21,7 @@ import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
 import { validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
+import { WORK_GENRES } from '../../lib/work-contract';
 
 import { WorkId } from './constants';
 interface Props { onPrePublish?: () => void; }
@@ -96,8 +97,6 @@ export function BtnP({ label, onClick, icon }: { label: string; onClick?: () => 
     </button>
   );
 }
-
-export const GENRES = ['로맨스', '판타지', '무협', '현대', '미스터리', '기타'];
 
 export function TypeCard({ icon, label, desc, color, onSelect }: {
   icon: React.ReactNode; label: string; desc: string; color: string; onSelect: () => void;
@@ -483,7 +482,7 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
             <div style={{ marginBottom: 20 }}>
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>장르</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {GENRES.map((g) => (
+                {WORK_GENRES.map((g) => (
                   <button key={g} onClick={() => setGenre(g)} style={{
                     padding: '5px 12px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit',
                     background: genre === g ? C.primary + '22' : 'transparent',
@@ -2791,9 +2790,9 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
 
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
-const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
-  detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
-  murim: { title: '무협지존', genre: '무협' },
+const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
+  detective: { title: '빛나는 검사 로맨스', genre: '로맨스', episodeCount: 12 },
+  murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
@@ -2802,8 +2801,15 @@ const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
-  const { selectedWork, setEditorMode } = useAppContext();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+    setEditorMode,
+  } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  const workIdParam = searchParams.get('workId');
 
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
@@ -2825,6 +2831,43 @@ export default function S1Dashboard() {
   const setRelGraphId = (id: RelGraphId) => setSearchParams(prev => { prev.set('relGraph', id); return prev; });
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
+  const effectiveWorkId = workIdParam ?? selectedWork;
+  const apiWork = works.find(work => work.id === effectiveWorkId);
+  const selectedWorkDisplay = selectedWorkInfo?.id === effectiveWorkId
+    ? selectedWorkInfo
+    : apiWork
+      ? {
+          id: apiWork.id,
+          title: apiWork.title,
+          genre: apiWork.genre ?? '',
+          episodeCount: apiWork.episodeCount,
+        }
+      : WORK_INFO[effectiveWorkId] ?? {
+          id: effectiveWorkId,
+          ...FALLBACK_WORK_INFO,
+          episodeCount: 0,
+        };
+
+  useEffect(() => {
+    if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
+  }, [selectedWork, setSelectedWork, workIdParam]);
+
+  useEffect(() => {
+    if (!apiWork) return;
+    if (
+      selectedWorkInfo?.id !== apiWork.id
+      || selectedWorkInfo.title !== apiWork.title
+      || selectedWorkInfo.genre !== (apiWork.genre ?? '')
+      || selectedWorkInfo.episodeCount !== apiWork.episodeCount
+    ) {
+      setSelectedWorkInfo({
+        id: apiWork.id,
+        title: apiWork.title,
+        genre: apiWork.genre ?? '',
+        episodeCount: apiWork.episodeCount,
+      });
+    }
+  }, [apiWork, selectedWorkInfo, setSelectedWorkInfo]);
   const [msPage, setMsPage] = useState(0);
   const MS_PAGE_SIZE = 20;
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
@@ -2933,8 +2976,8 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
                     <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
-                      {(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}
-                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).genre}</span>
+                      {selectedWorkDisplay.title}
+                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{selectedWorkDisplay.genre}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -3172,7 +3215,7 @@ export default function S1Dashboard() {
                     { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', bars: [C.warning, C.warning] },
                     { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
                     { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
-                  ].filter(item => item.work === (WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title).map((item, i) => (
+                  ].filter(item => item.work === selectedWorkDisplay.title).map((item, i) => (
                     <div key={i} onClick={() => navigate('/report', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
                       padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
@@ -3223,14 +3266,14 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
                     <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                      {(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}
+                      {selectedWorkDisplay.title}
                     </span>
                   </div>
                   <BtnP label="회차 올리기" icon={<Upload size={13} />}
                     onClick={() => navigate('/episode-upload', 'push-right')} />
                 </div>
 
-                {selectedWork === 'murim' ? (
+                {selectedWorkDisplay.episodeCount === 0 ? (
                   <div style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     height: 280, color: C.t3, gap: 12,

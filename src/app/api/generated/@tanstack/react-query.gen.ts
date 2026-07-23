@@ -110,7 +110,7 @@ export const createWorkMutationKey = (options?: Partial<Options<CreateWorkData>>
 /**
  * 내 작품 생성
  *
- * 로그인한 사용자의 새 작품을 등록합니다. 최신 회차 번호는 서버에서 초기화합니다.
+ * 로그인한 사용자의 새 작품을 제목과 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
  */
 export const createWorkMutation = (options?: Partial<Options<CreateWorkData>>): UseMutationOptions<CreateWorkResponse, CreateWorkError, Options<CreateWorkData>> => {
     const mutationOptions: UseMutationOptions<CreateWorkResponse, CreateWorkError, Options<CreateWorkData>> = {
@@ -154,7 +154,7 @@ export const confirmSettingCandidateMutationKey = (options?: Partial<Options<Con
 /**
  * 설정 후보 확정
  *
- * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입을 검증합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
+ * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입과 merge policy를 검증합니다. UNRESOLVED 캐릭터 후보는 같은 이름의 활성 캐릭터를 재사용하거나 새로 생성하고, 같은 이름의 검토 대기 미해소 후보도 해당 캐릭터에 연결합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
  */
 export const confirmSettingCandidateMutation = (options?: Partial<Options<ConfirmSettingCandidateData>>): UseMutationOptions<ConfirmSettingCandidateResponse, ConfirmSettingCandidateError, Options<ConfirmSettingCandidateData>> => {
     const mutationOptions: UseMutationOptions<ConfirmSettingCandidateResponse, ConfirmSettingCandidateError, Options<ConfirmSettingCandidateData>> = {
