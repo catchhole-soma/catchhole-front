@@ -1,65 +1,16 @@
 import {
-  AnalysisJob, AnalysisJobType, DetectedEpisodeBoundary, Episode, SettingCandidate,
-  SettingsExtractionCategory, UploadPurpose,
+  AnalysisJob, AnalysisJobType, Episode, SettingCandidate,
+  SettingsExtractionCategory,
 } from './types';
 
 let idCounter = 1000;
 const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
 
-export function mockDetectBoundaries(fileCount: number, startEpisodeNumber: number): DetectedEpisodeBoundary[] {
-  const count = Math.max(3, Math.min(8, fileCount * 4));
-  const previews = [
-    '수아는 어두운 골목 끝에서 낯선 그림자를 발견했다.',
-    '강민준은 서류 더미 속에서 결정적인 단서를 찾아냈다.',
-    '이레나는 차가운 미소를 지으며 거래를 제안했다.',
-    '법정에 들어선 수아는 깊게 숨을 들이쉬었다.',
-    '오래된 사진 한 장이 모든 것을 뒤바꿔 놓았다.',
-    '두 사람은 약속 장소에서 다시 마주쳤다.',
-    '비밀스러운 편지가 책상 위에 놓여 있었다.',
-    '폭풍이 몰아치는 밤, 사건은 새로운 국면을 맞았다.',
-  ];
-
-  return Array.from({ length: count }, (_, i) => {
-    const startParagraph = i * 18 + 1;
-    const endParagraph = startParagraph + 16 + (i % 3);
-    return {
-      tempId: nextId('boundary'),
-      episodeNumber: startEpisodeNumber + i,
-      title: `${startEpisodeNumber + i}화`,
-      startParagraph,
-      endParagraph,
-      preview: previews[i % previews.length],
-      charCount: 3500 + (i % 5) * 250,
-      confirmed: true,
-    };
-  });
-}
-
-const MANUSCRIPT_FILLER_LINES = [
-  '창밖으로 빗줄기가 가늘게 흩날리고 있었다.',
-  '복도는 형광등 불빛 아래 길게 늘어져 있었다.',
-  '그녀는 손끝으로 책상 위 서류를 천천히 정리했다.',
-  '멀리서 사이렌 소리가 희미하게 들려왔다.',
-  '아무도 입을 열지 않은 채 시간이 흘렀다.',
-  '그는 창밖을 바라보며 깊은 생각에 잠겼다.',
-  '낡은 시계가 정각을 알리며 종을 울렸다.',
-  '복잡한 생각들이 머릿속을 스쳐 지나갔다.',
-];
-
-export function mockManuscriptParagraphs(boundaries: DetectedEpisodeBoundary[]): { number: number; text: string }[] {
-  const total = boundaries.length > 0 ? boundaries[boundaries.length - 1].endParagraph : 0;
-  const startMap = new Map(boundaries.map((b) => [b.startParagraph, b.preview]));
-  return Array.from({ length: total }, (_, i) => {
-    const number = i + 1;
-    return { number, text: startMap.get(number) ?? MANUSCRIPT_FILLER_LINES[number % MANUSCRIPT_FILLER_LINES.length] };
-  });
-}
-
 export function mockCreateEpisode(
   workId: string,
   episodeNumber: number,
   title: string,
-  uploadPurpose: UploadPurpose,
+  analysisJobType: AnalysisJobType,
 ): Episode {
   return {
     id: `episode-${episodeNumber}`,
@@ -67,7 +18,7 @@ export function mockCreateEpisode(
     episodeNumber,
     title: title || `${episodeNumber}화`,
     rawText: '',
-    uploadPurpose,
+    analysisJobType,
     processingStatus: 'UPLOADED',
   };
 }
@@ -76,11 +27,11 @@ export function mockCreateMultiFileEpisodes(
   workId: string,
   startEpisodeNumber: number,
   fileCount: number,
-  uploadPurpose: UploadPurpose,
+  analysisJobType: AnalysisJobType,
 ): Episode[] {
   return Array.from({ length: fileCount }, (_, i) => {
     const episodeNumber = startEpisodeNumber + i;
-    return mockCreateEpisode(workId, episodeNumber, `${episodeNumber}화`, uploadPurpose);
+    return mockCreateEpisode(workId, episodeNumber, `${episodeNumber}화`, analysisJobType);
   });
 }
 
@@ -91,11 +42,14 @@ export const MOCK_SETTINGS_EXTRACTION: SettingsExtractionCategory[] = [
   { type: '타임라인', count: 8, items: ['1화: 수아 등장', '3화: 강민준 등장', '23화: 갈색 눈 설정'] },
 ];
 
-export function mockCreateAnalysisJob(episodeId: string, type: AnalysisJobType): AnalysisJob {
+export function mockCreateAnalysisJob(
+  episodeId: string,
+  jobType: AnalysisJobType,
+): AnalysisJob {
   return {
     id: nextId('job'),
     episodeId,
-    type,
+    jobType,
     status: 'PENDING',
     retryCount: 0,
   };

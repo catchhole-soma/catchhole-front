@@ -1,3 +1,5 @@
+import type { AnalysisJobCreateRequest } from '../../api/generated/types.gen';
+
 // ===== Episode =====
 export type EpisodeProcessingStatus =
   | 'UPLOADED'
@@ -9,7 +11,7 @@ export type EpisodeProcessingStatus =
   | 'ANALYZED'
   | 'FAILED';
 
-export type UploadPurpose = 'SETTING_EXTRACTION' | 'EPISODE_VALIDATION';
+export type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
 
 export interface Episode {
   id: string;
@@ -17,18 +19,17 @@ export interface Episode {
   episodeNumber: number;
   title: string;
   rawText: string;
-  uploadPurpose: UploadPurpose;
+  analysisJobType: AnalysisJobType;
   processingStatus: EpisodeProcessingStatus;
 }
 
 // ===== AnalysisJob =====
-export type AnalysisJobType = 'SETTING_EXTRACTION' | 'BASELINE_CONSISTENCY_CHECK' | 'EPISODE_VALIDATION';
 export type AnalysisJobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
 
 export interface AnalysisJob {
   id: string;
   episodeId: string;
-  type: AnalysisJobType;
+  jobType: AnalysisJobType;
   status: AnalysisJobStatus;
   retryCount: number;
 }
@@ -59,26 +60,11 @@ export interface SettingCandidate {
 }
 
 // ===== 화면 전용 보조 타입 =====
-export type EpisodeUploadMode = 'single' | 'bulk-single-file' | 'bulk-multi-file';
-
 export interface SingleUploadForm {
   episodeNumber: string;
   title: string;
   file: File | null;
 }
-
-export interface DetectedEpisodeBoundary {
-  tempId: string;
-  episodeNumber: number;
-  title: string;
-  startParagraph: number;
-  endParagraph: number;
-  preview: string;
-  charCount: number;
-  confirmed: boolean;
-}
-
-export type EpisodeUploadStep = 'select-mode' | 'boundary-preview' | 'settings-review' | 'processing';
 
 export interface SettingsExtractionCategory {
   type: string;

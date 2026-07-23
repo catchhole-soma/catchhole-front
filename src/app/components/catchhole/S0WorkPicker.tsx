@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Tag, Hash, RefreshCw, AlertCircle } from 'lucide-react';
 import { C, WorkId } from './constants';
@@ -7,10 +8,20 @@ import { useAppContext } from '../../context/AppContext';
 import { useWorks } from '../../hooks/useWorks';
 import { UploadModal } from './S1Dashboard';
 import { UserMenu } from './UserMenu';
+import { createWorkMutation } from '../../api/generated/@tanstack/react-query.gen';
+import { toApiError } from '../../lib/api-errors';
+import { isDemoMode } from '../../lib/worksApi';
 
 interface Props { workId?: WorkId; }
 
 type CardWork = { id: string; title: string; genre: string; chapters: number; conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' };
+
+const EPISODE_TEST_WORK_ID = '__episode-api-test-work__';
+const EPISODE_TEST_WORK = {
+  title: 'Episode API 테스트 작품',
+  genre: '판타지',
+  description: 'Episode·Upload API 로컬 연동 확인용 작품',
+};
 
 const KNOWN_WORK_META: Record<string, { conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' }> = {
   detective: { conflicts: 5, status: 'danger' },
@@ -152,19 +163,59 @@ function SkeletonCard() {
 
 export default function S0WorkPicker() {
   const navigate = useAppNavigate();
-  const { setSelectedWork } = useAppContext();
+  const { selectWork } = useAppContext();
   const { works, loading, error, refetch } = useWorks();
   const [showNewWork, setShowNewWork] = useState(false);
+  const [fixtureError, setFixtureError] = useState<string | null>(null);
+  const createEpisodeTestWork = useMutation(createWorkMutation());
 
-  const handleSelect = (workId: string) => {
-    setSelectedWork(workId);
+  const enterWork = (work: { id: string; title: string; genre: string }) => {
+    selectWork(work);
     navigate('/dashboard', 'push-right');
+  };
+
+  const handleSelect = async (work: CardWork) => {
+    if (work.id !== EPISODE_TEST_WORK_ID) {
+      enterWork({ id: work.id, title: work.title, genre: work.genre });
+      return;
+    }
+
+    setFixtureError(null);
+    try {
+      const response = await createEpisodeTestWork.mutateAsync({
+        body: EPISODE_TEST_WORK,
+      });
+      const created = response.data;
+      if (!created?.id) throw new Error('작품 ID가 응답에 없습니다.');
+      enterWork({
+        id: created.id,
+        title: EPISODE_TEST_WORK.title,
+        genre: EPISODE_TEST_WORK.genre,
+      });
+    } catch (requestError) {
+      const apiError = toApiError(requestError);
+      setFixtureError(apiError?.message ?? 'Episode 테스트 작품을 준비하지 못했습니다. 다시 시도해주세요.');
+    }
   };
 
   const cardWorks: CardWork[] = works.map(w => {
     const meta = KNOWN_WORK_META[w.id] ?? { conflicts: 0, status: 'pending' as const };
     return { id: w.id, title: w.title, genre: w.genre ?? '', chapters: w.episodeCount, ...meta };
   });
+  const existingEpisodeTestWork = cardWorks.find(work => work.title === EPISODE_TEST_WORK.title);
+  const visibleWorks = isDemoMode()
+    ? cardWorks
+    : [
+        existingEpisodeTestWork ?? {
+          id: EPISODE_TEST_WORK_ID,
+          title: EPISODE_TEST_WORK.title,
+          genre: EPISODE_TEST_WORK.genre,
+          chapters: 0,
+          conflicts: 0,
+          status: 'pending' as const,
+        },
+        ...cardWorks.filter(work => work.id !== existingEpisodeTestWork?.id),
+      ];
 
   return (
     <div style={{
@@ -227,6 +278,12 @@ export default function S0WorkPicker() {
             </div>
           )}
 
+          {fixtureError && (
+            <div style={{ color: C.danger, fontSize: 13, marginBottom: 16 }}>
+              {fixtureError}
+            </div>
+          )}
+
           {loading ? (
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -234,7 +291,7 @@ export default function S0WorkPicker() {
             }}>
               {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
             </div>
-          ) : !error && cardWorks.length === 0 ? (
+          ) : !error && visibleWorks.length === 0 ? (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               maxWidth: 480, margin: '40px auto', textAlign: 'center', gap: 16,
@@ -259,8 +316,12 @@ export default function S0WorkPicker() {
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: 16, maxWidth: 960,
             }}>
-              {cardWorks.map(work => (
-                <WorkCard key={work.id} work={work} onClick={() => handleSelect(work.id)} />
+              {visibleWorks.map(work => (
+                <WorkCard
+                  key={work.id}
+                  work={work}
+                  onClick={() => { if (!createEpisodeTestWork.isPending) void handleSelect(work); }}
+                />
               ))}
               <NewWorkCard onClick={() => setShowNewWork(true)} />
             </div>

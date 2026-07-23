@@ -21,6 +21,9 @@ npm run test:e2e
 - 기본 생성 입력은 `http://localhost:8080/v3/api-docs`입니다. 다른 환경이나 포트는 `CATCHHOLE_OPENAPI_INPUT=<OpenAPI URL> npm run api:generate`로 지정합니다.
 - `src/app/api/generated/`는 항상 생성기로 갱신하고 직접 수정하지 않습니다. 생성 오류는 백엔드 OpenAPI annotation 또는 생성기 설정에서 해결합니다.
 - 서버 상태를 다루는 새 API 호출은 생성된 SDK와 `@tanstack/react-query.gen.ts`의 query/mutation options를 우선 사용합니다.
+- 회차 감지·업로드 multipart 요청도 생성 SDK를 사용하고 JSON part 이름은 `metadata`로 유지합니다. 직접 `FormData`를 직렬화해야 할 때도 생성 타입의 `EpisodeDetectionRequest`와 `EpisodeUploadRequest`를 사용해 같은 계약을 보존합니다.
+- 회차 감지 결과는 `detectedEpisodes`/`detectionOrder`, 사용자가 편집해 최종 전송하는 값은 `episodeConfirmations`/`confirmation`으로 구분합니다. 감지값과 확정값을 모두 `episodes`나 `drafts`로 부르지 않아 API 단계가 코드에서 드러나게 합니다.
+- 최종 업로드에서 `SINGLE_EPISODE`는 `singleEpisodeNo`만 확정값으로 보내고 `episodeConfirmations`를 보내지 않습니다. 두 다회차 방식은 단일 회차 전용 필드 없이 감지 결과 전체와 대응하는 `episodeConfirmations`를 반드시 전송합니다.
 
 ## 인증과 세션
 
