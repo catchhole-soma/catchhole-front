@@ -200,6 +200,11 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   await expect(page).toHaveURL(/analysisJobIds=33333333-3333-4333-8333-333333333333/);
   await expect(page).toHaveURL(/currentAnalysisJobIds=33333333-3333-4333-8333-333333333333/);
   await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
+
+  await page.getByRole('button', { name: '원고 목록으로', exact: true }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
+  );
 });
 
 test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용한다', async ({ page }) => {
@@ -460,6 +465,8 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
 });
 
 test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {
+  const newWorkId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const existingWorkId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   await page.route('**/api/v1/auth/me', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -484,14 +491,14 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
       success: true,
       data: [
         {
-          id: 'work-new',
+          id: newWorkId,
           title: '새 작품',
           description: '처음 시작하는 판타지',
           genre: '판타지',
           latestEpisodeNo: 0,
         },
         {
-          id: 'work-old',
+          id: existingWorkId,
           title: '연재 작품',
           description: null,
           genre: '로맨스',
@@ -500,6 +507,11 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
       ],
       error: null,
     }),
+  }));
+  await page.route(`**/api/v1/works/${newWorkId}/**`, route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: [], error: null }),
   }));
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'works-token'));
@@ -512,7 +524,9 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
   await expect(page.getByText('작품 소개가 없습니다.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '새 작품 작품 선택' }).click();
 
-  await expect(page).toHaveURL(/\/dashboard\?workId=work-new&nav=manuscripts$/);
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard\\?workId=${newWorkId}&nav=manuscripts$`),
+  );
   await expect(page.getByText('새 작품', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('아직 업로드된 원고가 없습니다.', { exact: true })).toBeVisible();
 });

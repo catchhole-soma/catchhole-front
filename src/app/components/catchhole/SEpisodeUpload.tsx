@@ -1259,7 +1259,10 @@ export default function SEpisodeUpload() {
               </div>
 
               <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-                <SecondaryButton onClick={() => navigate('/dashboard?nav=manuscripts', 'pop')}>원고 목록으로</SecondaryButton>
+                <SecondaryButton onClick={() => navigate(
+                  `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+                  'pop',
+                )}>원고 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
                     <PrimaryButton onClick={() => {
