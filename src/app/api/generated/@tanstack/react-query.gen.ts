@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, conflict, createAnalysisJob, createWork, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, notFound, type Options, refresh, replaceEpisodeFile, retryAnalysisJob, signup, success, unknownError, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook, validation } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, ConflictData, ConflictResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, NotFoundData, NotFoundResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, SuccessData, SuccessResponse, UnknownErrorData, UnknownErrorResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookResponse, ValidationData, ValidationResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, retryAnalysisJob, signup, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -53,23 +53,6 @@ export const replaceEpisodeFileMutation = (options?: Partial<Options<ReplaceEpis
             return data;
         },
         mutationKey: replaceEpisodeFileMutationKey(options)
-    };
-    return mutationOptions;
-};
-
-export const validationMutationKey = (options?: Partial<Options<ValidationData>>) => createMutationKey('validation', options);
-
-export const validationMutation = (options?: Partial<Options<ValidationData>>): UseMutationOptions<ValidationResponse, DefaultError, Options<ValidationData>> => {
-    const mutationOptions: UseMutationOptions<ValidationResponse, DefaultError, Options<ValidationData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await validation({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        },
-        mutationKey: validationMutationKey(options)
     };
     return mutationOptions;
 };
@@ -132,7 +115,7 @@ export const createWorkMutationKey = (options?: Partial<Options<CreateWorkData>>
 /**
  * 내 작품 생성
  *
- * 로그인한 사용자의 새 작품을 제목과 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
+ * 로그인한 사용자의 새 작품을 제목, 선택형 20자 한 줄 소개와 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
  */
 export const createWorkMutation = (options?: Partial<Options<CreateWorkData>>): UseMutationOptions<CreateWorkResponse, CreateWorkError, Options<CreateWorkData>> => {
     const mutationOptions: UseMutationOptions<CreateWorkResponse, CreateWorkError, Options<CreateWorkData>> = {
@@ -740,66 +723,6 @@ export const updateProgressMutation = (options?: Partial<Options<UpdateProgressD
     };
     return mutationOptions;
 };
-
-export const unknownErrorQueryKey = (options?: Options<UnknownErrorData>) => createQueryKey('unknownError', options);
-
-export const unknownErrorOptions = (options?: Options<UnknownErrorData>) => queryOptions<UnknownErrorResponse, DefaultError, UnknownErrorResponse, ReturnType<typeof unknownErrorQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await unknownError({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: unknownErrorQueryKey(options)
-});
-
-export const successQueryKey = (options?: Options<SuccessData>) => createQueryKey('success', options);
-
-export const successOptions = (options?: Options<SuccessData>) => queryOptions<SuccessResponse, DefaultError, SuccessResponse, ReturnType<typeof successQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await success({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: successQueryKey(options)
-});
-
-export const notFoundQueryKey = (options?: Options<NotFoundData>) => createQueryKey('notFound', options);
-
-export const notFoundOptions = (options?: Options<NotFoundData>) => queryOptions<NotFoundResponse, DefaultError, NotFoundResponse, ReturnType<typeof notFoundQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await notFound({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: notFoundQueryKey(options)
-});
-
-export const conflictQueryKey = (options?: Options<ConflictData>) => createQueryKey('conflict', options);
-
-export const conflictOptions = (options?: Options<ConflictData>) => queryOptions<ConflictResponse, DefaultError, ConflictResponse, ReturnType<typeof conflictQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await conflict({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: conflictQueryKey(options)
-});
 
 export const getSettingCandidatesQueryKey = (options: Options<GetSettingCandidatesData>) => createQueryKey('getSettingCandidates', options);
 
