@@ -479,6 +479,10 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
     description: '달빛 아래 시작된 모험',
     genre: '판타지',
   });
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/works$/);
+  await expect(page.getByRole('dialog', { name: '새 작품 등록' })).not.toBeVisible();
 });
 
 test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영구 삭제한다', async ({ page }) => {

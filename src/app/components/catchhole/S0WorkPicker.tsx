@@ -235,10 +235,15 @@ export default function S0WorkPicker() {
     params.delete('targetWorkId');
     return params;
   }, { replace: true });
-  const selectWork = (work: Work) => {
+  const selectWork = (work: Work, replace = false) => {
     setSelectedWork(work.id);
     setSelectedWorkInfo({ id: work.id, title: work.title, genre: work.genre ?? '' });
-    navigate(`/dashboard?workId=${encodeURIComponent(work.id)}&nav=manuscripts`, 'push-right');
+    navigate(
+      `/dashboard?workId=${encodeURIComponent(work.id)}&nav=manuscripts`,
+      'push-right',
+      undefined,
+      { replace },
+    );
   };
 
   return (
@@ -345,7 +350,7 @@ export default function S0WorkPicker() {
         {modal === 'work-create' && (
           <WorkCreateModal
             onClose={closeModal}
-            onCreated={selectWork}
+            onCreated={work => selectWork(work, true)}
           />
         )}
         {modal === 'work-edit' && targetWork && (
