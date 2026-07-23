@@ -432,7 +432,12 @@ function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodePr
 export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
   const routerNavigate = useRouterNavigate();
-  const { selectedWork, selectedWorkMeta, selectWork } = useAppContext();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+  } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const routeWorkId = searchParams.get('workId');
   const workId = routeWorkId ?? selectedWork;
@@ -478,7 +483,12 @@ export default function SEpisodeUpload() {
   const goBackToEntry = () => {
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
     if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
-    else navigate('/dashboard?nav=manuscripts', 'pop', undefined, { replace: true });
+    else navigate(
+      `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+      'pop',
+      undefined,
+      { replace: true },
+    );
   };
 
   const workQuery = useQuery({
@@ -491,11 +501,31 @@ export default function SEpisodeUpload() {
   useEffect(() => {
     if (!routeWorkId || !routeWork?.id || !routeWork.title) return;
     const nextGenre = routeWork.genre ?? '';
-    if (selectedWorkMeta.id === routeWork.id
-      && selectedWorkMeta.title === routeWork.title
-      && selectedWorkMeta.genre === nextGenre) return;
-    selectWork({ id: routeWork.id, title: routeWork.title, genre: nextGenre });
-  }, [routeWorkId, routeWork?.genre, routeWork?.id, routeWork?.title, selectWork, selectedWorkMeta]);
+    if (
+      selectedWork === routeWork.id
+      && selectedWorkInfo?.id === routeWork.id
+      && selectedWorkInfo.title === routeWork.title
+      && selectedWorkInfo.genre === nextGenre
+      && selectedWorkInfo.episodeCount === routeWork.latestEpisodeNo
+    ) return;
+    setSelectedWork(routeWork.id);
+    setSelectedWorkInfo({
+      id: routeWork.id,
+      title: routeWork.title,
+      genre: nextGenre,
+      episodeCount: routeWork.latestEpisodeNo,
+    });
+  }, [
+    routeWorkId,
+    routeWork?.genre,
+    routeWork?.id,
+    routeWork?.latestEpisodeNo,
+    routeWork?.title,
+    selectedWork,
+    selectedWorkInfo,
+    setSelectedWork,
+    setSelectedWorkInfo,
+  ]);
 
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId } }),
@@ -543,7 +573,8 @@ export default function SEpisodeUpload() {
   const currentAnalysisJobs = currentAnalysisJobIds.flatMap(
     analysisJobId => jobsById.get(analysisJobId) ? [jobsById.get(analysisJobId)!] : [],
   );
-  const workTitle = jobs.find(job => job.workTitle)?.workTitle ?? routeWork?.title ?? selectedWorkMeta.title;
+  const selectedWorkTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
+  const workTitle = jobs.find(job => job.workTitle)?.workTitle ?? routeWork?.title ?? selectedWorkTitle;
   const resolvedAnalysisJobType = jobs.find(job => job.jobType)?.jobType ?? analysisJobType;
 
   const progressEpisodes = useMemo(() => {

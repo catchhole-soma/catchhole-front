@@ -3,11 +3,13 @@ import type {
   EpisodeUploadResponse,
 } from '../api/generated/types.gen';
 import { apiFetch, apiFetchForm } from './api';
+import type { WorkResponse as GeneratedWorkResponse } from '../api/generated/types.gen';
 
 export interface Work {
   id: string;
   title: string;
   genre: string | null;
+  description: string | null;
   episodeCount: number;
 }
 
@@ -15,9 +17,11 @@ const DEMO_MODE_KEY = 'catchhole_demo_mode';
 const DEMO_WORKS_KEY = 'catchhole_demo_works';
 const DEMO_DELAY_MS = 600;
 
+export const DEMO_WORKS_QUERY_KEY = ['works', 'demo'] as const;
+
 const DEFAULT_DEMO_WORKS: Work[] = [
-  { id: 'detective', title: '탐정 사무소의 비밀', genre: '추리', episodeCount: 12 },
-  { id: 'murim', title: '무림 세계의 전설', genre: '무협', episodeCount: 8 },
+  { id: 'detective', title: '탐정 사무소의 비밀', genre: '추리', description: null, episodeCount: 12 },
+  { id: 'murim', title: '무림 세계의 전설', genre: '무협', description: null, episodeCount: 8 },
 ];
 
 export function isDemoMode(): boolean {
@@ -35,11 +39,11 @@ export function setDemoMode(enabled: boolean): void {
 
 function loadDemoWorks(): Work[] {
   const raw = localStorage.getItem(DEMO_WORKS_KEY);
-  if (!raw) return DEFAULT_DEMO_WORKS;
+  if (!raw) return DEFAULT_DEMO_WORKS.map(work => ({ ...work }));
   try {
     return JSON.parse(raw) as Work[];
   } catch {
-    return DEFAULT_DEMO_WORKS;
+    return DEFAULT_DEMO_WORKS.map(work => ({ ...work }));
   }
 }
 
@@ -54,6 +58,7 @@ function delay(ms: number): Promise<void> {
 export interface CreateWorkInput {
   title: string;
   genre: string;
+  description?: string | null;
   episodeFile: File;
   settingsFile?: File | null;
 }
@@ -79,20 +84,78 @@ interface WorkResponse {
   id: string;
   title: string;
   genre: string | null;
+  description?: string | null;
   latestEpisodeNo: number;
 }
 
-function toWork(res: WorkResponse): Work {
-  return { id: res.id, title: res.title, genre: res.genre, episodeCount: res.latestEpisodeNo };
+export function toWork(res: GeneratedWorkResponse): Work | null {
+  if (!res.id || !res.title || typeof res.latestEpisodeNo !== 'number') return null;
+  return {
+    id: res.id,
+    title: res.title,
+    genre: res.genre ?? '',
+    description: res.description ?? null,
+    episodeCount: res.latestEpisodeNo,
+  };
+}
+
+export async function getDemoWorks(): Promise<Work[]> {
+  await delay(DEMO_DELAY_MS);
+  return loadDemoWorks();
+}
+
+export async function createDemoWork(
+  input: Pick<CreateWorkInput, 'title' | 'genre' | 'description'>,
+): Promise<Work> {
+  await delay(DEMO_DELAY_MS);
+  const works = loadDemoWorks();
+  const work = {
+    id: `demo-${Date.now()}`,
+    title: input.title,
+    genre: input.genre,
+    description: input.description?.trim() || null,
+    episodeCount: 0,
+  };
+  saveDemoWorks([work, ...works]);
+  return work;
 }
 
 export async function getWorks(): Promise<Work[]> {
   if (isDemoMode()) {
-    await delay(DEMO_DELAY_MS);
-    return loadDemoWorks();
+    return getDemoWorks();
   }
   const works = await apiFetch<WorkResponse[]>('/api/v1/works');
-  return (works ?? []).map(toWork);
+  return (works ?? []).map(res => ({
+    id: res.id,
+    title: res.title,
+    genre: res.genre,
+    description: res.description ?? null,
+    episodeCount: res.latestEpisodeNo,
+  }));
+}
+
+export async function updateDemoWork(
+  workId: string,
+  input: Pick<CreateWorkInput, 'title' | 'genre' | 'description'>,
+): Promise<Work | null> {
+  await delay(DEMO_DELAY_MS);
+  const works = loadDemoWorks();
+  const work = works.find(item => item.id === workId);
+  if (!work) return null;
+  work.title = input.title;
+  work.genre = input.genre;
+  work.description = input.description?.trim() || null;
+  saveDemoWorks(works);
+  return work;
+}
+
+export async function deleteDemoWork(workId: string): Promise<boolean> {
+  await delay(DEMO_DELAY_MS);
+  const works = loadDemoWorks();
+  const remainingWorks = works.filter(work => work.id !== workId);
+  if (remainingWorks.length === works.length) return false;
+  saveDemoWorks(remainingWorks);
+  return true;
 }
 
 export async function createWork(input: CreateWorkInput): Promise<CreateWorkResult> {
@@ -100,14 +163,24 @@ export async function createWork(input: CreateWorkInput): Promise<CreateWorkResu
     await delay(DEMO_DELAY_MS);
     const works = loadDemoWorks();
     const workId = `demo-${Date.now()}`;
-    works.push({ id: workId, title: input.title, genre: input.genre, episodeCount: 1 });
+    works.push({
+      id: workId,
+      title: input.title,
+      genre: input.genre,
+      description: input.description?.trim() || null,
+      episodeCount: 1,
+    });
     saveDemoWorks(works);
     return { workId };
   }
 
   const work = await apiFetch<WorkResponse>('/api/v1/works', {
     method: 'POST',
-    body: JSON.stringify({ title: input.title, genre: input.genre, description: null }),
+    body: JSON.stringify({
+      title: input.title,
+      genre: input.genre,
+      description: input.description?.trim() || null,
+    }),
   });
 
   await uploadSingleEpisode({

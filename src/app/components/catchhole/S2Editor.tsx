@@ -476,19 +476,25 @@ function OriginalLines({ content }: { content: string }) {
   );
 }
 
-function useOriginalBack() {
+function useOriginalBack(workId: string) {
   const routerNavigate = useRouterNavigate();
   const navigate = useAppNavigate();
   return () => {
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
     if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
-    else navigate('/dashboard?nav=manuscripts', 'pop', undefined, { replace: true });
+    else navigate(
+      `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+      'pop',
+      undefined,
+      { replace: true },
+    );
   };
 }
 
 function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeId: string }) {
-  const goBack = useOriginalBack();
-  const { selectedWorkMeta } = useAppContext();
+  const goBack = useOriginalBack(workId);
+  const { selectedWorkInfo } = useAppContext();
+  const workTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
   const episodeQuery = useQuery({
     ...getEpisodeOptions({ path: { workId, episodeId } }),
     retry: false,
@@ -511,7 +517,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
           <ChevronLeft size={16} /> 원고 목록
         </button>
         <span style={{ color: C.t2, fontSize: 14 }}>
-          {selectedWorkMeta.title} · {episode?.originalFilename || (episode?.episodeNo ? `${episode.episodeNo}화 원문` : '회차 원문')}
+          {workTitle} · {episode?.originalFilename || (episode?.episodeNo ? `${episode.episodeNo}화 원문` : '회차 원문')}
         </span>
         <UserMenu />
       </header>
@@ -563,8 +569,9 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
 }
 
 function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; settingBookId: string }) {
-  const goBack = useOriginalBack();
-  const { selectedWorkMeta } = useAppContext();
+  const goBack = useOriginalBack(workId);
+  const { selectedWorkInfo } = useAppContext();
+  const workTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
   const settingBookQuery = useQuery({
     ...getSettingBookOptions({ path: { workId, settingBookId } }),
     retry: false,
@@ -584,7 +591,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
           color: C.t2, cursor: 'pointer', fontSize: 13, padding: '4px 8px', fontFamily: 'inherit',
         }}><ChevronLeft size={16} /> 원고 목록</button>
-        <span style={{ color: C.t2, fontSize: 14 }}>{selectedWorkMeta.title} · {settingBook?.originalFilename || '설정집 원문'}</span>
+        <span style={{ color: C.t2, fontSize: 14 }}>{workTitle} · {settingBook?.originalFilename || '설정집 원문'}</span>
         <UserMenu />
       </header>
       <div style={{

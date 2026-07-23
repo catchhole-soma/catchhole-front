@@ -52,11 +52,14 @@ interface Props {
 
 export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
   const navigate = useAppNavigate();
-  const { selectedWorkMeta } = useAppContext();
+  const { selectedWork, selectedWorkInfo } = useAppContext();
+  const workInfo = selectedWorkInfo?.id === selectedWork
+    ? selectedWorkInfo
+    : WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO;
 
   const nav = (id: NavId) => {
     if (activePage !== 'dashboard') {
-      navigate('/dashboard', 'pop');
+      navigate(`/dashboard?workId=${encodeURIComponent(selectedWork)}&nav=${id}`, 'pop');
     }
     onNavChange?.(id);
   };
@@ -74,9 +77,9 @@ export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
           padding: '8px 12px', marginBottom: 6,
         }}>
           <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, marginBottom: 2, letterSpacing: '-0.2px' }}>
-            {selectedWorkMeta.title || FALLBACK_WORK_INFO.title}
+            {workInfo.title}
           </div>
-          <div style={{ color: C.t3, fontSize: 11 }}>{selectedWorkMeta.genre}</div>
+          <div style={{ color: C.t3, fontSize: 11 }}>{workInfo.genre}</div>
         </div>
         <button onClick={() => navigate('/works', 'push-left')} style={{
           width: '100%', padding: '5px 0', borderRadius: 5,

@@ -165,11 +165,33 @@ export type WorkCreateRequest = {
     /**
      * 작품 장르
      */
-    genre?: string | null;
+    genre: '판타지' | '로맨스' | '추리' | '코미디' | 'SF' | '스포츠' | '호러' | '무협' | '일상' | '기타';
     /**
-     * 작품 설명
+     * 작품 목록에 한 줄로 표시할 짧은 소개
      */
     description?: string | null;
+};
+
+/**
+ * 공통 API 실패 응답 Envelope
+ */
+export type CommonErrorResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 에러 메시지
+     */
+    message?: string;
+    /**
+     * 에러 정보
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
 };
 
 /**
@@ -205,31 +227,31 @@ export type WorkResponse = {
     /**
      * 작품 ID
      */
-    id?: string;
+    id: string;
     /**
      * 작품 제목
      */
-    title?: string;
+    title: string;
     /**
      * 작품 장르
      */
-    genre?: string | null;
+    genre: '판타지' | '로맨스' | '추리' | '코미디' | 'SF' | '스포츠' | '호러' | '무협' | '일상' | '기타';
     /**
-     * 작품 설명
+     * 작품 목록에 한 줄로 표시할 짧은 소개
      */
     description?: string | null;
     /**
-     * 가장 최근 회차 번호
+     * 가장 최근 회차 번호. 등록된 회차가 없으면 0
      */
-    latestEpisodeNo?: number;
+    latestEpisodeNo: number;
     /**
      * 작품 생성 시각
      */
-    createdAt?: string;
+    createdAt: string;
     /**
      * 작품 수정 시각
      */
-    updatedAt?: string;
+    updatedAt: string;
 };
 
 /**
@@ -801,28 +823,6 @@ export type AuthSignupRequest = {
 };
 
 /**
- * 공통 API 실패 응답 Envelope
- */
-export type CommonErrorResponse = {
-    /**
-     * 요청 처리 성공 여부
-     */
-    success?: boolean;
-    /**
-     * 에러 메시지
-     */
-    message?: string;
-    /**
-     * 에러 정보
-     */
-    error?: ErrorResponse;
-    /**
-     * 응답 생성 시각
-     */
-    timestamp?: string;
-};
-
-/**
  * 액세스 토큰 발급 응답
  */
 export type AuthTokenResponse = {
@@ -1141,9 +1141,9 @@ export type WorkUpdateRequest = {
     /**
      * 작품 장르
      */
-    genre?: string | null;
+    genre: '판타지' | '로맨스' | '추리' | '코미디' | 'SF' | '스포츠' | '호러' | '무협' | '일상' | '기타';
     /**
-     * 작품 설명
+     * 작품 목록에 한 줄로 표시할 짧은 소개
      */
     description?: string | null;
 };
@@ -1732,7 +1732,7 @@ export type GetMyWorksErrors = {
     /**
      * 액세스 토큰 없음, 만료 또는 검증 실패
      */
-    401: CommonResponseListWorkResponse;
+    401: CommonErrorResponse;
 };
 
 export type GetMyWorksError = GetMyWorksErrors[keyof GetMyWorksErrors];
@@ -1755,17 +1755,17 @@ export type CreateWorkData = {
 
 export type CreateWorkErrors = {
     /**
-     * 요청 값 검증 실패
+     * 제목 또는 장르 검증 실패
      */
-    400: CommonResponseWorkResponse;
+    400: CommonErrorResponse;
     /**
      * 액세스 토큰 없음, 만료 또는 검증 실패
      */
-    401: CommonResponseWorkResponse;
+    401: CommonErrorResponse;
     /**
      * 인증된 회원 정보를 찾을 수 없음
      */
-    404: CommonResponseWorkResponse;
+    404: CommonErrorResponse;
 };
 
 export type CreateWorkError = CreateWorkErrors[keyof CreateWorkErrors];

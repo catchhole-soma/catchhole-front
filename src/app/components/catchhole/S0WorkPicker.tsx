@@ -1,161 +1,206 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { motion } from 'motion/react';
-import { Shield, Plus, OctagonAlert, AlertTriangle, CircleCheckBig, BookOpen, Tag, Hash, RefreshCw, AlertCircle } from 'lucide-react';
-import { C, WorkId } from './constants';
+import { AnimatePresence, motion } from 'motion/react';
+import { useSearchParams } from 'react-router';
+import {
+  AlertCircle,
+  BookOpen,
+  Hash,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Shield,
+  Tag,
+  Trash2,
+} from 'lucide-react';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { useWorks } from '../../hooks/useWorks';
-import { UploadModal } from './S1Dashboard';
+import type { Work } from '../../lib/worksApi';
+import { C } from './constants';
 import { UserMenu } from './UserMenu';
-import { createWorkMutation } from '../../api/generated/@tanstack/react-query.gen';
-import { toApiError } from '../../lib/api-errors';
-import { isDemoMode } from '../../lib/worksApi';
+import { WorkCreateModal } from './WorkCreateModal';
+import { WorkDeleteModal } from './WorkDeleteModal';
+import { WorkEditModal } from './WorkEditModal';
 
-interface Props { workId?: WorkId; }
+const COVER_GRADIENTS = [
+  'linear-gradient(135deg, #1a1030 0%, #2d1b4e 50%, #1a0820 100%)',
+  'linear-gradient(135deg, #0d1a2e 0%, #1a3040 50%, #0d2010 100%)',
+  'linear-gradient(135deg, #26121b 0%, #3a2433 50%, #17151f 100%)',
+  'linear-gradient(135deg, #101d24 0%, #20313b 50%, #171725 100%)',
+] as const;
 
-type CardWork = { id: string; title: string; genre: string; chapters: number; conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' };
-
-const EPISODE_TEST_WORK_ID = '__episode-api-test-work__';
-const EPISODE_TEST_WORK = {
-  title: 'Episode API 테스트 작품',
-  genre: '판타지',
-  description: 'Episode·Upload API 로컬 연동 확인용 작품',
-};
-
-const KNOWN_WORK_META: Record<string, { conflicts: number; status: 'danger' | 'warning' | 'ok' | 'pending' }> = {
-  detective: { conflicts: 5, status: 'danger' },
-  murim: { conflicts: 0, status: 'ok' },
-};
-
-const COVER_GRADIENTS: Record<string, string> = {
-  detective: `linear-gradient(135deg, #1a1030 0%, #2d1b4e 50%, #1a0820 100%)`,
-  murim: `linear-gradient(135deg, #0d1a2e 0%, #1a3040 50%, #0d2010 100%)`,
-};
-
-const DEFAULT_COVER_GRADIENT = `linear-gradient(135deg, #1a1a2e 0%, #25253d 50%, #16161f 100%)`;
-
-function ConflictBadge({ status, count }: { status: 'danger' | 'warning' | 'ok' | 'pending'; count: number }) {
-  if (status === 'pending') return (
-    <span style={{
-      padding: '3px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-      background: C.t3 + '33', color: C.t3, border: `1px solid ${C.t3}44`,
-      display: 'flex', alignItems: 'center', gap: 4,
-    }}>
-      분석 대기 중
-    </span>
-  );
-  if (status === 'ok') return (
-    <span style={{
-      padding: '3px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-      background: C.success + '22', color: C.success, border: `1px solid ${C.success}44`,
-      display: 'flex', alignItems: 'center', gap: 4,
-    }}>
-      <CircleCheckBig size={11} /> 모두 해결됨
-    </span>
-  );
-  const isHigh = status === 'danger';
-  return (
-    <span style={{
-      padding: '3px 9px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-      background: (isHigh ? C.danger : C.warning) + '22',
-      color: isHigh ? C.danger : C.warning,
-      border: `1px solid ${(isHigh ? C.danger : C.warning)}44`,
-      display: 'flex', alignItems: 'center', gap: 4,
-    }}>
-      {isHigh ? <OctagonAlert size={11} /> : <AlertTriangle size={11} />}
-      {count}개의 충돌
-    </span>
-  );
+function coverGradient(workId: string): string {
+  const seed = Array.from(workId).reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return COVER_GRADIENTS[seed % COVER_GRADIENTS.length];
 }
 
-function WorkCard({ work, onClick }: { work: CardWork; onClick: () => void }) {
+function WorkCard({
+  work,
+  onClick,
+  onEdit,
+  onDelete,
+}: {
+  work: Work;
+  onClick: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
+  const [actionsFocused, setActionsFocused] = useState(false);
+  const showActions = hovered || actionsFocused;
+  const episodeLabel = work.episodeCount > 0
+    ? `마지막 회차 ${work.episodeCount}화`
+    : '등록된 회차 없음';
 
   return (
     <motion.div
-      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setActionsFocused(true)}
+      onBlurCapture={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setActionsFocused(false);
+        }
+      }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.18 }}
       style={{
-        borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
-        border: `1px solid ${hovered ? C.primary + '55' : C.border}`,
-        transition: 'border-color 0.18s',
+        position: 'relative', borderRadius: 12, overflow: 'hidden',
+        border: `1px solid ${hovered ? C.primary + '66' : C.border}`,
+        background: C.surface, transitionProperty: 'border-color, box-shadow', transitionDuration: '0.18s',
         boxShadow: hovered ? `0 8px 32px ${C.primary}18` : 'none',
       }}
     >
-      {/* 커버 이미지 영역 */}
-      <div style={{
-        height: 200, background: COVER_GRADIENTS[work.id] ?? DEFAULT_COVER_GRADIENT,
-        position: 'relative', display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'flex-end', padding: 12,
-      }}>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.12 }}>
-          <BookOpen size={80} color="#fff" />
-        </div>
-        <ConflictBadge status={work.status} count={work.conflicts} />
+      <div
+        aria-label={`${work.title} 작품 관리`}
+        style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
+          display: 'flex', alignItems: 'center', gap: 6,
+          opacity: showActions ? 1 : 0,
+          transform: showActions ? 'translateY(0)' : 'translateY(-4px)',
+          pointerEvents: showActions ? 'auto' : 'none',
+          transition: 'opacity 0.15s, transform 0.15s',
+        }}
+      >
+        <button
+          type="button"
+          aria-label={`${work.title} 수정`}
+          onClick={onEdit}
+          style={{
+            height: 32, padding: '0 10px', borderRadius: 7,
+            border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(15,15,19,0.9)',
+            color: C.t1, display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <Pencil size={12} /> 수정
+        </button>
+        <button
+          type="button"
+          aria-label={`${work.title} 삭제`}
+          onClick={onDelete}
+          style={{
+            height: 32, padding: '0 10px', borderRadius: 7,
+            border: `1px solid ${C.danger}55`, background: 'rgba(15,15,19,0.9)',
+            color: C.danger, display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <Trash2 size={12} /> 삭제
+        </button>
       </div>
 
-      {/* 정보 영역 */}
-      <div style={{ background: C.surface, padding: '14px 16px' }}>
-        <div style={{ color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.3px' }}>
-          {work.title}
+      <button
+        type="button"
+        aria-label={`${work.title} 작품 선택`}
+        onClick={onClick}
+        style={{
+          width: '100%', padding: 0, border: 'none', background: 'transparent',
+          textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'block',
+        }}
+      >
+        <div style={{
+          height: 200, background: coverGradient(work.id), position: 'relative',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <BookOpen size={80} color="#fff" style={{ opacity: 0.13 }} />
         </div>
-        <div style={{ display: 'flex', gap: 14, color: C.t3, fontSize: 12 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Tag size={11} /> {work.genre}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Hash size={11} /> {work.chapters}화
-          </span>
+        <div style={{ padding: '15px 16px 16px' }}>
+          <div style={{
+            color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 5, letterSpacing: '-0.3px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {work.title}
+          </div>
+          <div
+            title={work.description ?? undefined}
+            style={{
+              color: work.description ? C.t2 : C.t3,
+              fontSize: 12,
+              lineHeight: 1.5,
+              marginBottom: 9,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {work.description || '작품 소개가 없습니다.'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px 14px', color: C.t3, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Tag size={11} /> {work.genre}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Hash size={11} /> {episodeLabel}
+            </span>
+          </div>
         </div>
-      </div>
+      </button>
     </motion.div>
   );
 }
 
-function NewWorkCard({ onClick }: { onClick: () => void }) {
+function NewWorkCard({ onClick, compact = false }: { onClick: () => void; compact?: boolean }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <motion.div
+    <motion.button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.18 }}
       style={{
-        borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
-        border: `1.5px dashed ${hovered ? C.primary + '66' : C.border}`,
+        borderRadius: 12, cursor: 'pointer', border: `1.5px dashed ${hovered ? C.primary + '77' : C.border}`,
         background: hovered ? C.primary + '08' : 'transparent',
-        transition: 'all 0.18s',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: 256, gap: 10,
+        width: compact ? 184 : '100%', height: compact ? 184 : undefined, minHeight: compact ? undefined : 288,
+        padding: 16, boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
+        transitionProperty: 'border-color, background', transitionDuration: '0.18s', fontFamily: 'inherit',
       }}
     >
       <div style={{
-        width: 40, height: 40, borderRadius: 10,
-        background: hovered ? C.primary + '22' : C.border + '66',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.18s',
+        width: 42, height: 42, borderRadius: 10, background: hovered ? C.primary + '22' : C.border + '66',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.18s',
       }}>
         <Plus size={20} color={hovered ? C.primary : C.t3} />
       </div>
-      <span style={{ color: hovered ? C.primary : C.t3, fontSize: 13, fontWeight: 500, transition: 'color 0.18s' }}>
+      <span style={{ color: hovered ? C.primary : C.t3, fontSize: 13, fontWeight: 500 }}>
         새 작품 등록
       </span>
-    </motion.div>
+    </motion.button>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
-      <div style={{ height: 200, background: C.surface }} />
-      <div style={{ background: C.surface, padding: '14px 16px', borderTop: `1px solid ${C.border}` }}>
-        <div style={{ height: 16, width: '60%', borderRadius: 4, background: C.border, marginBottom: 10 }} />
-        <div style={{ height: 12, width: '40%', borderRadius: 4, background: C.border }} />
+    <div aria-hidden="true" style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+      <div className="work-skeleton" style={{ height: 200, background: C.surface }} />
+      <div style={{ background: C.surface, padding: '15px 16px 16px', borderTop: `1px solid ${C.border}` }}>
+        <div className="work-skeleton" style={{ height: 16, width: '62%', borderRadius: 4, background: C.border, marginBottom: 11 }} />
+        <div className="work-skeleton" style={{ height: 12, width: '48%', borderRadius: 4, background: C.border }} />
       </div>
     </div>
   );
@@ -163,112 +208,98 @@ function SkeletonCard() {
 
 export default function S0WorkPicker() {
   const navigate = useAppNavigate();
-  const { selectWork } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+  } = useAppContext();
   const { works, loading, error, refetch } = useWorks();
-  const [showNewWork, setShowNewWork] = useState(false);
-  const [fixtureError, setFixtureError] = useState<string | null>(null);
-  const createEpisodeTestWork = useMutation(createWorkMutation());
+  const modal = searchParams.get('modal');
+  const targetWorkId = searchParams.get('targetWorkId');
+  const targetWork = targetWorkId
+    ? works.find(work => work.id === targetWorkId) ?? null
+    : null;
 
-  const enterWork = (work: { id: string; title: string; genre: string }) => {
-    selectWork(work);
-    navigate('/dashboard', 'push-right');
-  };
-
-  const handleSelect = async (work: CardWork) => {
-    if (work.id !== EPISODE_TEST_WORK_ID) {
-      enterWork({ id: work.id, title: work.title, genre: work.genre });
-      return;
-    }
-
-    setFixtureError(null);
-    try {
-      const response = await createEpisodeTestWork.mutateAsync({
-        body: EPISODE_TEST_WORK,
-      });
-      const created = response.data;
-      if (!created?.id) throw new Error('작품 ID가 응답에 없습니다.');
-      enterWork({
-        id: created.id,
-        title: EPISODE_TEST_WORK.title,
-        genre: EPISODE_TEST_WORK.genre,
-      });
-    } catch (requestError) {
-      const apiError = toApiError(requestError);
-      setFixtureError(apiError?.message ?? 'Episode 테스트 작품을 준비하지 못했습니다. 다시 시도해주세요.');
-    }
-  };
-
-  const cardWorks: CardWork[] = works.map(w => {
-    const meta = KNOWN_WORK_META[w.id] ?? { conflicts: 0, status: 'pending' as const };
-    return { id: w.id, title: w.title, genre: w.genre ?? '', chapters: w.episodeCount, ...meta };
+  const openCreateModal = () => setSearchParams(params => {
+    params.set('modal', 'work-create');
+    params.delete('targetWorkId');
+    return params;
   });
-  const existingEpisodeTestWork = cardWorks.find(work => work.title === EPISODE_TEST_WORK.title);
-  const visibleWorks = isDemoMode()
-    ? cardWorks
-    : [
-        existingEpisodeTestWork ?? {
-          id: EPISODE_TEST_WORK_ID,
-          title: EPISODE_TEST_WORK.title,
-          genre: EPISODE_TEST_WORK.genre,
-          chapters: 0,
-          conflicts: 0,
-          status: 'pending' as const,
-        },
-        ...cardWorks.filter(work => work.id !== existingEpisodeTestWork?.id),
-      ];
+  const openWorkModal = (kind: 'work-edit' | 'work-delete', work: Work) => setSearchParams(params => {
+    params.set('modal', kind);
+    params.set('targetWorkId', work.id);
+    return params;
+  });
+  const closeModal = () => setSearchParams(params => {
+    params.delete('modal');
+    params.delete('targetWorkId');
+    return params;
+  }, { replace: true });
+  const selectWork = (work: Work, replace = false) => {
+    setSelectedWork(work.id);
+    setSelectedWorkInfo({
+      id: work.id,
+      title: work.title,
+      genre: work.genre ?? '',
+      episodeCount: work.episodeCount,
+    });
+    navigate(
+      `/dashboard?workId=${encodeURIComponent(work.id)}&nav=manuscripts`,
+      'push-right',
+      undefined,
+      { replace },
+    );
+  };
 
   return (
     <div style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      {/* 헤더 */}
-      <div style={{
-        height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 32px', flexShrink: 0,
+      <header style={{
+        height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex',
+        alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', flexShrink: 0,
       }}>
-        <div
+        <button
+          type="button"
           onClick={() => navigate('/works', 'dissolve')}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
-          role="button" tabIndex={0}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}
         >
           <div style={{
-            width: 26, height: 26, borderRadius: 6,
-            background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
+            width: 26, height: 26, borderRadius: 6, background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Shield size={14} color="#fff" />
           </div>
           <span style={{ color: C.t1, fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>CatchHole</span>
           <span style={{
-            padding: '2px 7px', borderRadius: 3, background: C.primary + '18',
-            color: C.primary, fontSize: 10, fontWeight: 600, border: `1px solid ${C.primary}33`, marginLeft: 2,
+            padding: '2px 7px', borderRadius: 3, background: C.primary + '18', color: C.primary,
+            fontSize: 10, fontWeight: 600, border: `1px solid ${C.primary}33`, marginLeft: 2,
           }}>BETA</span>
-        </div>
+        </button>
         <UserMenu />
-      </div>
+      </header>
 
-      {/* 콘텐츠 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px' }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '48px 64px' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <div style={{ marginBottom: 6 }}>
-            <span style={{ color: C.t1, fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px' }}>작품 선택</span>
-          </div>
-          <div style={{ color: C.t3, fontSize: 14, marginBottom: 36 }}>
+          <h1 style={{ color: C.t1, fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px', margin: '0 0 6px' }}>
+            작품 선택
+          </h1>
+          <p style={{ color: C.t3, fontSize: 14, margin: '0 0 36px' }}>
             분석할 작품을 선택하거나 새 작품을 등록하세요.
-          </div>
+          </p>
 
           {error && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
-              borderRadius: 8, background: C.danger + '14', border: `1px solid ${C.danger}44`,
-              color: C.danger, fontSize: 13, marginBottom: 20, maxWidth: 960,
+            <div role="alert" style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderRadius: 8,
+              background: C.danger + '14', border: `1px solid ${C.danger}44`, color: C.danger,
+              fontSize: 13, marginBottom: 20, maxWidth: 960,
             }}>
               <AlertCircle size={16} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{error}</span>
-              <button onClick={refetch} style={{
+              <button type="button" onClick={refetch} style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 6,
                 background: 'transparent', border: `1px solid ${C.danger}66`, color: C.danger,
                 fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
@@ -278,20 +309,13 @@ export default function S0WorkPicker() {
             </div>
           )}
 
-          {fixtureError && (
-            <div style={{ color: C.danger, fontSize: 13, marginBottom: 16 }}>
-              {fixtureError}
-            </div>
-          )}
-
           {loading ? (
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 16, maxWidth: 960,
+            <div aria-label="작품 목록 불러오는 중" style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
             }}>
-              {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
+              {[0, 1, 2].map(index => <SkeletonCard key={index} />)}
             </div>
-          ) : !error && visibleWorks.length === 0 ? (
+          ) : !error && works.length === 0 ? (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               maxWidth: 480, margin: '40px auto', textAlign: 'center', gap: 16,
@@ -306,37 +330,67 @@ export default function S0WorkPicker() {
                 <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 작품이 없습니다</div>
                 <div style={{ color: C.t3, fontSize: 13 }}>첫 작품을 등록하고 AI 설정 분석을 시작해보세요.</div>
               </div>
-              <div style={{ width: '100%', maxWidth: 280 }}>
-                <NewWorkCard onClick={() => setShowNewWork(true)} />
-              </div>
+              <NewWorkCard compact onClick={openCreateModal} />
             </div>
-          ) : (
+          ) : !error ? (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 16, maxWidth: 960,
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
             }}>
-              {visibleWorks.map(work => (
+              {works.map(work => (
                 <WorkCard
                   key={work.id}
                   work={work}
-                  onClick={() => { if (!createEpisodeTestWork.isPending) void handleSelect(work); }}
+                  onClick={() => selectWork(work)}
+                  onEdit={() => openWorkModal('work-edit', work)}
+                  onDelete={() => openWorkModal('work-delete', work)}
                 />
               ))}
-              <NewWorkCard onClick={() => setShowNewWork(true)} />
+              <NewWorkCard onClick={openCreateModal} />
             </div>
-          )}
+          ) : null}
         </motion.div>
-      </div>
+      </main>
 
-      {showNewWork && (
-        <UploadModal
-          mode="new-work"
-          onClose={() => setShowNewWork(false)}
-          works={works}
-          onUploaded={refetch}
-        />
-      )}
+      <AnimatePresence>
+        {modal === 'work-create' && (
+          <WorkCreateModal
+            onClose={closeModal}
+            onCreated={work => selectWork(work, true)}
+          />
+        )}
+        {modal === 'work-edit' && targetWork && (
+          <WorkEditModal
+            key={targetWork.id}
+            work={targetWork}
+            onClose={closeModal}
+            onUpdated={updatedWork => {
+              if (selectedWork === updatedWork.id || selectedWorkInfo?.id === updatedWork.id) {
+                setSelectedWorkInfo({
+                  id: updatedWork.id,
+                  title: updatedWork.title,
+                  genre: updatedWork.genre ?? '',
+                  episodeCount: updatedWork.episodeCount,
+                });
+              }
+              closeModal();
+            }}
+          />
+        )}
+        {modal === 'work-delete' && targetWork && (
+          <WorkDeleteModal
+            key={targetWork.id}
+            work={targetWork}
+            onClose={closeModal}
+            onDeleted={deletedWorkId => {
+              if (selectedWork === deletedWorkId || selectedWorkInfo?.id === deletedWorkId) {
+                setSelectedWork('');
+                setSelectedWorkInfo(null);
+              }
+              closeModal();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

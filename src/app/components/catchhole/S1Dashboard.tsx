@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
-import { AppSidebar } from './AppSidebar';
+import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
@@ -36,6 +36,7 @@ import {
 } from '../../api/generated/@tanstack/react-query.gen';
 import type { EpisodeSummaryResponse, SettingBookSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
+import { WORK_GENRES } from '../../lib/work-contract';
 
 import { WorkId } from './constants';
 interface Props { onPrePublish?: () => void; }
@@ -118,8 +119,6 @@ export function BtnP({ label, onClick, icon }: { label: string; onClick?: () => 
     </button>
   );
 }
-
-export const GENRES = ['로맨스', '판타지', '무협', '현대', '미스터리', '기타'];
 
 export function TypeCard({ icon, label, desc, color, onSelect }: {
   icon: React.ReactNode; label: string; desc: string; color: string; onSelect: () => void;
@@ -560,7 +559,7 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
             <div style={{ marginBottom: 20 }}>
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>장르</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {GENRES.map((g) => (
+                {WORK_GENRES.map((g) => (
                   <button key={g} onClick={() => setGenre(g)} style={{
                     padding: '5px 12px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit',
                     background: genre === g ? C.primary + '22' : 'transparent',
@@ -2868,9 +2867,9 @@ function WorldRulesView({ worldSettings, onAdd, onEdit }: {
 
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
-const WORK_INFO: Record<WorkId, { title: string; genre: string }> = {
-  detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
-  murim: { title: '무협지존', genre: '무협' },
+const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
+  detective: { title: '빛나는 검사 로맨스', genre: '로맨스', episodeCount: 12 },
+  murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
@@ -2897,30 +2896,16 @@ function episodeAnalysisLabel(episode: EpisodeSummaryResponse): { label: string;
 
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
-  const { selectedWork, selectedWorkMeta, setEditorMode } = useAppContext();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+    setEditorMode,
+  } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  const workIdParam = searchParams.get('workId');
   const queryClient = useQueryClient();
-  const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedWork);
-  const episodesQuery = useQuery({
-    ...getEpisodesOptions({ path: { workId: selectedWork } }),
-    enabled: episodeApiEnabled,
-    retry: false,
-    refetchInterval: query => {
-      const episodes = query.state.data?.data ?? [];
-      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
-    },
-  });
-  const settingBooksQuery = useQuery({
-    ...getSettingBooksOptions({ path: { workId: selectedWork } }),
-    enabled: episodeApiEnabled,
-    retry: false,
-  });
-  const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
-  const deleteSettingBookRequest = useMutation(deleteSettingBookMutation());
-  const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
-  const uploadSettingBookRequest = useMutation(uploadSettingBookMutation());
-  const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
-  const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
 
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
@@ -2942,6 +2927,64 @@ export default function S1Dashboard() {
   const setRelGraphId = (id: RelGraphId) => setSearchParams(prev => { prev.set('relGraph', id); return prev; });
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
+  const effectiveWorkId = workIdParam ?? selectedWork;
+  const apiWork = works.find(work => work.id === effectiveWorkId);
+  const selectedWorkDisplay = selectedWorkInfo?.id === effectiveWorkId
+    ? selectedWorkInfo
+    : apiWork
+      ? {
+          id: apiWork.id,
+          title: apiWork.title,
+          genre: apiWork.genre ?? '',
+          episodeCount: apiWork.episodeCount,
+        }
+      : WORK_INFO[effectiveWorkId] ?? {
+          id: effectiveWorkId,
+          ...FALLBACK_WORK_INFO,
+          episodeCount: 0,
+        };
+  const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(effectiveWorkId);
+  const episodesQuery = useQuery({
+    ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
+    enabled: episodeApiEnabled,
+    retry: false,
+    refetchInterval: query => {
+      const episodes = query.state.data?.data ?? [];
+      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
+    },
+  });
+  const settingBooksQuery = useQuery({
+    ...getSettingBooksOptions({ path: { workId: effectiveWorkId } }),
+    enabled: episodeApiEnabled,
+    retry: false,
+  });
+  const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
+  const deleteSettingBookRequest = useMutation(deleteSettingBookMutation());
+  const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
+  const uploadSettingBookRequest = useMutation(uploadSettingBookMutation());
+  const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
+  const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
+
+  useEffect(() => {
+    if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
+  }, [selectedWork, setSelectedWork, workIdParam]);
+
+  useEffect(() => {
+    if (!apiWork) return;
+    if (
+      selectedWorkInfo?.id !== apiWork.id
+      || selectedWorkInfo.title !== apiWork.title
+      || selectedWorkInfo.genre !== (apiWork.genre ?? '')
+      || selectedWorkInfo.episodeCount !== apiWork.episodeCount
+    ) {
+      setSelectedWorkInfo({
+        id: apiWork.id,
+        title: apiWork.title,
+        genre: apiWork.genre ?? '',
+        episodeCount: apiWork.episodeCount,
+      });
+    }
+  }, [apiWork, selectedWorkInfo, setSelectedWorkInfo]);
   const initialManuscriptPage = Math.max(0, Number.parseInt(searchParams.get('page') ?? '1', 10) - 1 || 0);
   const [msPage, setMsPage] = useState(initialManuscriptPage);
   const MS_PAGE_SIZE = 20;
@@ -3007,11 +3050,11 @@ export default function S1Dashboard() {
   };
 
   const refreshEpisodeList = () => queryClient.invalidateQueries({
-    queryKey: getEpisodesQueryKey({ path: { workId: selectedWork } }),
+    queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
   });
 
   const refreshSettingBookList = () => queryClient.invalidateQueries({
-    queryKey: getSettingBooksQueryKey({ path: { workId: selectedWork } }),
+    queryKey: getSettingBooksQueryKey({ path: { workId: effectiveWorkId } }),
   });
 
   const changeManuscriptPage = (nextPage: number) => {
@@ -3028,7 +3071,7 @@ export default function S1Dashboard() {
     setEpisodeActionError(null);
     try {
       await updateEpisodeTitleRequest.mutateAsync({
-        path: { workId: selectedWork, episodeId: episode.id },
+        path: { workId: effectiveWorkId, episodeId: episode.id },
         body: { title: editingEpisodeTitle.trim() || null },
       });
       setEditingEpisodeId(null);
@@ -3044,7 +3087,7 @@ export default function S1Dashboard() {
     if (!confirmed) return;
     setEpisodeActionError(null);
     try {
-      await deleteEpisodeRequest.mutateAsync({ path: { workId: selectedWork, episodeId: episode.id } });
+      await deleteEpisodeRequest.mutateAsync({ path: { workId: effectiveWorkId, episodeId: episode.id } });
       await refreshEpisodeList();
     } catch (error) {
       setEpisodeActionError(toApiError(error)?.message ?? '회차를 삭제하지 못했습니다.');
@@ -3056,7 +3099,7 @@ export default function S1Dashboard() {
     setSettingBookActionError(null);
     try {
       await uploadSettingBookRequest.mutateAsync({
-        path: { workId: selectedWork },
+        path: { workId: effectiveWorkId },
         body: { file: settingBookFile },
       });
       await refreshSettingBookList();
@@ -3075,7 +3118,7 @@ export default function S1Dashboard() {
     setSettingBookActionError(null);
     try {
       await deleteSettingBookRequest.mutateAsync({
-        path: { workId: selectedWork, settingBookId: settingBook.id },
+        path: { workId: effectiveWorkId, settingBookId: settingBook.id },
       });
       await refreshSettingBookList();
     } catch (error) {
@@ -3088,7 +3131,7 @@ export default function S1Dashboard() {
     setEpisodeActionError(null);
     try {
       await replaceEpisodeFileRequest.mutateAsync({
-        path: { workId: selectedWork, episodeId: replaceEpisodeTarget.id },
+        path: { workId: effectiveWorkId, episodeId: replaceEpisodeTarget.id },
         body: { file: replacementFile },
       });
       await refreshEpisodeList();
@@ -3108,7 +3151,7 @@ export default function S1Dashboard() {
     }
     if (episode.analysisStatus === 'FAILED' && episode.latestAnalysisJobId) {
       navigate(
-        `/episode-upload?workId=${selectedWork}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
       return;
@@ -3116,13 +3159,13 @@ export default function S1Dashboard() {
     setEpisodeActionError(null);
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
-        path: { workId: selectedWork },
+        path: { workId: effectiveWorkId },
         body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
       });
       const analysisJobId = response.data?.id;
       if (!analysisJobId) throw new Error('분석 작업 ID가 응답에 없습니다.');
       navigate(
-        `/episode-upload?workId=${selectedWork}&batchId=${episode.batchId}&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
     } catch (error) {
@@ -3194,13 +3237,13 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
                     <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
-                      {selectedWorkMeta.title}
-                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{selectedWorkMeta.genre}</span>
+                      {selectedWorkDisplay.title}
+                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{selectedWorkDisplay.genre}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BtnG label={charEditMode ? '완료' : '편집'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
-                    <BtnP label="회차 올리기" onClick={() => navigate('/episode-upload', 'push-right')} icon={<Upload size={12} />} />
+                    <BtnP label="회차 올리기" onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
 
@@ -3433,7 +3476,7 @@ export default function S1Dashboard() {
                     { work: '빛나는 검사 로맨스', chapter: '158화', count: 2, severity: '주의 2건', date: '3일 전', bars: [C.warning, C.warning] },
                     { work: '무협지존', chapter: '42화', count: 0, severity: '오류 없음', date: '1주 전', bars: [] },
                     { work: '빛나는 검사 로맨스', chapter: '155화', count: 1, severity: '주의 1건', date: '2주 전', bars: [C.warning] },
-                  ].filter(item => item.work === selectedWorkMeta.title).map((item, i) => (
+                  ].filter(item => item.work === selectedWorkDisplay.title).map((item, i) => (
                     <div key={i} onClick={() => navigate('/report', 'push-right')} style={{
                       background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
                       padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
@@ -3484,11 +3527,11 @@ export default function S1Dashboard() {
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
                     <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                      {selectedWorkMeta.title}
+                      {selectedWorkDisplay.title}
                     </span>
                   </div>
                   <BtnP label="회차 올리기" icon={<Upload size={13} />}
-                    onClick={() => navigate(`/episode-upload?workId=${selectedWork}`, 'push-right')} />
+                    onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} />
                 </div>
 
                 {!episodeApiEnabled ? (
@@ -3497,8 +3540,8 @@ export default function S1Dashboard() {
                     height: 280, color: C.t3, gap: 12,
                   }}>
                     <AlertCircle size={40} strokeWidth={1.2} />
-                    <div style={{ fontSize: 14 }}>실제 Episode API에 연결할 작품이 필요합니다.</div>
-                    <div style={{ fontSize: 12 }}>작품 선택 화면에서 Episode API 테스트 작품을 선택하세요.</div>
+                    <div style={{ fontSize: 14 }}>데모 작품은 원고 API에 연결되지 않습니다.</div>
+                    <div style={{ fontSize: 12 }}>실제 계정으로 로그인해 작품을 선택하거나 등록하세요.</div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
@@ -3543,7 +3586,7 @@ export default function S1Dashboard() {
                               display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) 140px 150px', alignItems: 'center',
                               padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
                             }}>
-                              <button type="button" onClick={() => navigate(`/editor?workId=${selectedWork}&settingBookId=${settingBook.id}`, 'push-right')} style={{
+                              <button type="button" onClick={() => navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`, 'push-right')} style={{
                                 border: 0, background: 'transparent', color: C.t1, fontFamily: 'inherit', fontSize: 13,
                                 textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                               }}>
@@ -3551,7 +3594,7 @@ export default function S1Dashboard() {
                               </button>
                               <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(settingBook.uploadedAt)}</span>
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
-                                <BtnG small label="원문" onClick={() => navigate(`/editor?workId=${selectedWork}&settingBookId=${settingBook.id}`, 'push-right')} />
+                                <BtnG small label="원문" onClick={() => navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`, 'push-right')} />
                                 <BtnG small label="삭제" disabled={deleteSettingBookRequest.isPending} onClick={() => void removeSettingBook(settingBook)} />
                               </div>
                             </div>
@@ -3662,7 +3705,7 @@ export default function S1Dashboard() {
                                     />
                                     <BtnG small label="원문" onClick={() => {
                                       setEditorMode('view');
-                                      navigate(`/editor?workId=${selectedWork}&episodeId=${episode.id}`, 'push-right');
+                                      navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&episodeId=${episode.id}`, 'push-right');
                                     }} />
                                     <BtnG small label="파일 변경" disabled={isAnalyzing} onClick={() => {
                                       setReplacementFile(null);
