@@ -4,14 +4,10 @@ export type ClientOptions = {
     baseUrl: 'http://localhost:18080' | (string & {});
 };
 
-export type TestRequest = {
-    email?: string;
-};
-
 /**
  * 공통 API 응답 Envelope
  */
-export type CommonResponseTestResponse = {
+export type CommonResponseEpisodeSummaryResponse = {
     /**
      * 요청 처리 성공 여부
      */
@@ -23,7 +19,7 @@ export type CommonResponseTestResponse = {
     /**
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
-    data?: TestResponse;
+    data?: EpisodeSummaryResponse;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -32,6 +28,64 @@ export type CommonResponseTestResponse = {
      * 응답 생성 시각
      */
     timestamp?: string;
+};
+
+/**
+ * 회차 목록 응답
+ */
+export type EpisodeSummaryResponse = {
+    /**
+     * 회차 ID
+     */
+    id?: string;
+    /**
+     * 회차 번호
+     */
+    episodeNo?: number;
+    /**
+     * 회차 제목
+     */
+    title?: string | null;
+    /**
+     * 글자 수
+     */
+    charCount?: number;
+    /**
+     * 회차 상태
+     */
+    status?: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
+    /**
+     * 원본 파일명
+     */
+    originalFilename?: string | null;
+    /**
+     * 원본이 포함된 업로드 배치 ID
+     */
+    batchId?: string | null;
+    /**
+     * 원고 목록용 분석 상태
+     */
+    analysisStatus?: 'COMPLETED' | 'REANALYSIS_REQUIRED' | 'IN_PROGRESS' | 'FAILED';
+    /**
+     * 최신 유효 리포트의 미처리 항목 수
+     */
+    unresolvedFindingCount?: number | null;
+    /**
+     * 가장 최근 분석 작업 ID
+     */
+    latestAnalysisJobId?: string | null;
+    /**
+     * 원문 변경 시각
+     */
+    contentUpdatedAt?: string;
+    /**
+     * 회차 생성 시각
+     */
+    createdAt?: string;
+    /**
+     * 회차 수정 시각
+     */
+    updatedAt?: string;
 };
 
 /**
@@ -64,6 +118,36 @@ export type FieldErrorResponse = {
      * 필드 검증 실패 메시지
      */
     message?: string;
+};
+
+export type TestRequest = {
+    email?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseTestResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: TestResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
 };
 
 export type TestResponse = {
@@ -189,21 +273,91 @@ export type SettingCandidateReviewStatusResponse = {
 };
 
 /**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseSettingBookSummaryResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: SettingBookSummaryResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 설정집 원본 목록 항목
+ */
+export type SettingBookSummaryResponse = {
+    /**
+     * 설정집 원본 ID
+     */
+    id?: string;
+    /**
+     * 원본 파일명
+     */
+    originalFilename?: string;
+    /**
+     * 파일 크기(byte)
+     */
+    fileSize?: number;
+    /**
+     * 업로드 시각
+     */
+    uploadedAt?: string;
+};
+
+/**
+ * 사용자가 확정한 업로드 회차 정보
+ */
+export type EpisodeUploadConfirmationRequest = {
+    /**
+     * 감지 결과에서의 0부터 시작하는 순서
+     */
+    detectionOrder: number;
+    /**
+     * 사용자가 확정한 회차 번호
+     */
+    episodeNo: number;
+    /**
+     * 사용자가 확정한 회차 제목
+     */
+    title?: string | null;
+};
+
+/**
  * 회차 업로드 요청 메타데이터
  */
 export type EpisodeUploadRequest = {
     /**
      * 업로드 방식
      */
-    uploadType: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE' | 'INITIAL_IMPORT';
+    uploadType: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE';
     /**
      * 단일 회차 업로드 시 사용자가 입력한 회차 번호
      */
-    episodeNo?: number | null;
+    singleEpisodeNo?: number | null;
     /**
      * 단일 회차 업로드 시 사용자가 입력한 회차 제목
      */
-    title?: string | null;
+    singleEpisodeTitle?: string | null;
+    /**
+     * 감지 후 사용자가 최종 확정한 회차 목록. 감지 결과 순서와 동일해야 합니다.
+     */
+    episodeConfirmations?: Array<EpisodeUploadConfirmationRequest>;
 };
 
 /**
@@ -239,23 +393,27 @@ export type EpisodeUploadResponse = {
     /**
      * 업로드 배치 ID
      */
-    batchId?: string;
+    batchId: string;
     /**
      * 업로드 방식
      */
-    uploadType?: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE' | 'INITIAL_IMPORT';
+    uploadType: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE';
     /**
      * 업로드 처리 상태
      */
-    status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     /**
      * 생성된 회차 수
      */
-    episodeCount?: number;
+    episodeCount: number;
+    /**
+     * 생성된 회차 목록
+     */
+    createdEpisodes: Array<EpisodeSummaryResponse>;
     /**
      * 업로드 파일 목록
      */
-    files?: Array<UploadFileResponse>;
+    files: Array<UploadFileResponse>;
 };
 
 /**
@@ -287,21 +445,117 @@ export type UploadFileResponse = {
      */
     fileSize?: number;
     /**
-     * 탐지된 시작 회차 번호
+     * 사용자 확정값이 적용된 시작 회차 번호
      */
-    detectedEpisodeStartNo?: number | null;
+    episodeStartNo?: number | null;
     /**
-     * 탐지된 마지막 회차 번호
+     * 사용자 확정값이 적용된 마지막 회차 번호
      */
-    detectedEpisodeEndNo?: number | null;
+    episodeEndNo?: number | null;
     /**
-     * 탐지된 회차 수
+     * 파일에서 최종 생성된 회차 수
      */
-    detectedEpisodeCount?: number | null;
+    episodeCount?: number | null;
     /**
      * 파일 파싱 상태
      */
     parseStatus?: 'PENDING' | 'PARSED' | 'FAILED';
+};
+
+/**
+ * 회차 감지 요청 메타데이터
+ */
+export type EpisodeDetectionRequest = {
+    /**
+     * 업로드 방식
+     */
+    uploadType: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE';
+    /**
+     * 단일 회차 감지 시 사용자가 입력한 회차 번호
+     */
+    singleEpisodeNo?: number | null;
+    /**
+     * 단일 회차 감지 시 사용자가 입력한 회차 제목
+     */
+    singleEpisodeTitle?: string | null;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseEpisodeDetectionResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: EpisodeDetectionResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 영구 저장 전 감지된 회차
+ */
+export type DetectedEpisodeResponse = {
+    /**
+     * 감지 결과에서의 0부터 시작하는 순서
+     */
+    detectionOrder: number;
+    /**
+     * 원본 파일의 0부터 시작하는 순서
+     */
+    sourceFileIndex: number;
+    /**
+     * 감지한 회차 번호
+     */
+    episodeNo: number;
+    /**
+     * 원문 제목 행에서 감지한 제목
+     */
+    title: string | null;
+    /**
+     * 회차 본문 글자 수
+     */
+    charCount: number;
+    /**
+     * 고정된 감지 경계 안의 회차 본문
+     */
+    content: string;
+};
+
+/**
+ * 영구 저장 전 회차 표기 감지 결과
+ */
+export type EpisodeDetectionResponse = {
+    /**
+     * 업로드 방식
+     */
+    uploadType: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE';
+    /**
+     * 감지된 회차 수
+     */
+    episodeCount: number;
+    /**
+     * 감지된 전체 본문 글자 수
+     */
+    totalCharCount: number;
+    /**
+     * 원문 순서의 감지 회차 목록
+     */
+    detectedEpisodes: Array<DetectedEpisodeResponse>;
 };
 
 /**
@@ -316,6 +570,40 @@ export type AnalysisJobCreateRequest = {
      * 분석 대상 업로드 배치 ID
      */
     batchId: string;
+    /**
+     * 배치 전체가 아닌 특정 회차만 재분석할 때 사용하는 회차 ID
+     */
+    episodeId?: string | null;
+};
+
+/**
+ * 분석 작업 대상 회차의 진행 상태
+ */
+export type AnalysisJobEpisodeResponse = {
+    /**
+     * 회차 ID
+     */
+    id?: string;
+    /**
+     * 회차 번호
+     */
+    episodeNo?: number;
+    /**
+     * 회차 제목
+     */
+    title?: string | null;
+    /**
+     * 회차 처리 상태
+     */
+    status?: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
+    /**
+     * 회차별 실패 사유
+     */
+    errorMessage?: string | null;
+    /**
+     * 회차 상태 수정 시각
+     */
+    updatedAt?: string;
 };
 
 /**
@@ -346,6 +634,10 @@ export type AnalysisJobResponse = {
      * 회차 ID
      */
     episodeId?: string;
+    /**
+     * 분석 대상 회차 목록
+     */
+    episodes?: Array<AnalysisJobEpisodeResponse>;
     /**
      * 분석 작업 유형
      */
@@ -407,7 +699,7 @@ export type AnalysisJobTargetResponse = {
     /**
      * 업로드 방식
      */
-    uploadType?: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE' | 'INITIAL_IMPORT';
+    uploadType?: 'SINGLE_EPISODE' | 'MULTI_EPISODE_SINGLE_FILE' | 'MULTI_EPISODE_MULTI_FILE' | 'SETTING_BOOK' | 'INITIAL_IMPORT';
     /**
      * 업로드 출처
      */
@@ -450,6 +742,32 @@ export type CommonResponseAnalysisJobResponse = {
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
     data?: AnalysisJobResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseListAnalysisJobResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Array<AnalysisJobResponse>;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -1059,6 +1377,14 @@ export type EpisodeResponse = {
      */
     content?: string;
     /**
+     * 현재 원본 파일명
+     */
+    originalFilename?: string | null;
+    /**
+     * 현재 원문 업로드 또는 교체 시각
+     */
+    contentUpdatedAt?: string | null;
+    /**
      * 원문 S3 key
      */
     contentS3Key?: string | null;
@@ -1086,6 +1412,16 @@ export type EpisodeResponse = {
      * 회차 수정 시각
      */
     updatedAt?: string;
+};
+
+/**
+ * 회차 제목 수정 요청
+ */
+export type EpisodeTitleUpdateRequest = {
+    /**
+     * 회차 제목. 비어 있으면 제목 없음으로 저장합니다.
+     */
+    title?: string | null;
 };
 
 /**
@@ -1153,6 +1489,88 @@ export type CommonResponseListSettingCandidateResponse = {
 /**
  * 공통 API 응답 Envelope
  */
+export type CommonResponseListSettingBookSummaryResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Array<SettingBookSummaryResponse>;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseSettingBookResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: SettingBookResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 설정집 읽기 전용 원문
+ */
+export type SettingBookResponse = {
+    /**
+     * 설정집 원본 ID
+     */
+    id?: string;
+    /**
+     * 작품 ID
+     */
+    workId?: string;
+    /**
+     * 원본 파일명
+     */
+    originalFilename?: string;
+    /**
+     * 파일 크기(byte)
+     */
+    fileSize?: number;
+    /**
+     * TXT 또는 DOCX에서 변환한 텍스트 원문
+     */
+    content?: string;
+    /**
+     * 업로드 시각
+     */
+    uploadedAt?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
 export type CommonResponseListEpisodeSummaryResponse = {
     /**
      * 요청 처리 성공 여부
@@ -1166,66 +1584,6 @@ export type CommonResponseListEpisodeSummaryResponse = {
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
     data?: Array<EpisodeSummaryResponse>;
-    /**
-     * 에러 정보. 성공 응답에서는 null입니다.
-     */
-    error?: ErrorResponse;
-    /**
-     * 응답 생성 시각
-     */
-    timestamp?: string;
-};
-
-/**
- * 회차 목록 응답
- */
-export type EpisodeSummaryResponse = {
-    /**
-     * 회차 ID
-     */
-    id?: string;
-    /**
-     * 회차 번호
-     */
-    episodeNo?: number;
-    /**
-     * 회차 제목
-     */
-    title?: string | null;
-    /**
-     * 글자 수
-     */
-    charCount?: number;
-    /**
-     * 회차 상태
-     */
-    status?: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
-    /**
-     * 회차 생성 시각
-     */
-    createdAt?: string;
-    /**
-     * 회차 수정 시각
-     */
-    updatedAt?: string;
-};
-
-/**
- * 공통 API 응답 Envelope
- */
-export type CommonResponseListAnalysisJobResponse = {
-    /**
-     * 요청 처리 성공 여부
-     */
-    success?: boolean;
-    /**
-     * 응답 메시지
-     */
-    message?: string;
-    /**
-     * 성공 응답 데이터. 실패 응답에서는 null입니다.
-     */
-    data?: Array<AnalysisJobResponse>;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -1325,6 +1683,27 @@ export type CommonErrorResponseWritable = {
      */
     timestamp?: string;
 };
+
+export type ReplaceEpisodeFileData = {
+    body?: {
+        file: Blob | File;
+    };
+    path: {
+        workId: string;
+        episodeId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/episodes/{episodeId}/file';
+};
+
+export type ReplaceEpisodeFileResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseEpisodeSummaryResponse;
+};
+
+export type ReplaceEpisodeFileResponse = ReplaceEpisodeFileResponses[keyof ReplaceEpisodeFileResponses];
 
 export type ValidationData = {
     body: TestRequest;
@@ -1472,7 +1851,7 @@ export type ConfirmSettingCandidateErrors = {
      */
     404: CommonResponseSettingCandidateReviewStatusResponse;
     /**
-     * 검토/캐릭터 매칭 상태 충돌, 유효하지 않은 연결, 중복 이름 또는 schema 복수 매칭
+     * 검토/캐릭터 매칭 상태 충돌, 유효하지 않은 연결, 비활성 동일 이름 충돌, schema 복수 매칭 또는 미지원 merge policy
      */
     409: CommonResponseSettingCandidateReviewStatusResponse;
 };
@@ -1487,6 +1866,44 @@ export type ConfirmSettingCandidateResponses = {
 };
 
 export type ConfirmSettingCandidateResponse = ConfirmSettingCandidateResponses[keyof ConfirmSettingCandidateResponses];
+
+export type GetSettingBooksData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/setting-books';
+};
+
+export type GetSettingBooksResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseListSettingBookSummaryResponse;
+};
+
+export type GetSettingBooksResponse = GetSettingBooksResponses[keyof GetSettingBooksResponses];
+
+export type UploadSettingBookData = {
+    body?: {
+        file: Blob | File;
+    };
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/setting-books';
+};
+
+export type UploadSettingBookResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseSettingBookSummaryResponse;
+};
+
+export type UploadSettingBookResponse = UploadSettingBookResponses[keyof UploadSettingBookResponses];
 
 export type GetEpisodesData = {
     body?: never;
@@ -1519,9 +1936,9 @@ export type GetEpisodesResponses = {
 
 export type GetEpisodesResponse = GetEpisodesResponses[keyof GetEpisodesResponses];
 
-export type UploadEpisodeData = {
-    body?: {
-        data: EpisodeUploadRequest;
+export type UploadEpisodesData = {
+    body: {
+        metadata: EpisodeUploadRequest;
         episodeFiles: Array<Blob | File>;
         settingBookFile?: Blob | File;
     };
@@ -1532,7 +1949,7 @@ export type UploadEpisodeData = {
     url: '/api/v1/works/{workId}/episodes';
 };
 
-export type UploadEpisodeErrors = {
+export type UploadEpisodesErrors = {
     /**
      * 요청 값 검증 실패 또는 업로드 파일 오류
      */
@@ -1551,16 +1968,54 @@ export type UploadEpisodeErrors = {
     409: CommonResponseEpisodeUploadResponse;
 };
 
-export type UploadEpisodeError = UploadEpisodeErrors[keyof UploadEpisodeErrors];
+export type UploadEpisodesError = UploadEpisodesErrors[keyof UploadEpisodesErrors];
 
-export type UploadEpisodeResponses = {
+export type UploadEpisodesResponses = {
     /**
      * 회차 업로드 성공
      */
     200: CommonResponseEpisodeUploadResponse;
 };
 
-export type UploadEpisodeResponse = UploadEpisodeResponses[keyof UploadEpisodeResponses];
+export type UploadEpisodesResponse = UploadEpisodesResponses[keyof UploadEpisodesResponses];
+
+export type DetectEpisodesData = {
+    body: {
+        metadata: EpisodeDetectionRequest;
+        episodeFiles: Array<Blob | File>;
+    };
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/episodes/detect';
+};
+
+export type DetectEpisodesErrors = {
+    /**
+     * 파일 검증 또는 회차 감지 실패
+     */
+    400: CommonResponseEpisodeDetectionResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonResponseEpisodeDetectionResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonResponseEpisodeDetectionResponse;
+};
+
+export type DetectEpisodesError = DetectEpisodesErrors[keyof DetectEpisodesErrors];
+
+export type DetectEpisodesResponses = {
+    /**
+     * 회차 감지 성공
+     */
+    200: CommonResponseEpisodeDetectionResponse;
+};
+
+export type DetectEpisodesResponse = DetectEpisodesResponses[keyof DetectEpisodesResponses];
 
 export type GetAnalysisJobsData = {
     body?: never;
@@ -1627,6 +2082,42 @@ export type CreateAnalysisJobResponses = {
 };
 
 export type CreateAnalysisJobResponse = CreateAnalysisJobResponses[keyof CreateAnalysisJobResponses];
+
+export type RetryAnalysisJobData = {
+    body?: never;
+    path: {
+        workId: string;
+        analysisJobId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/analysis-jobs/{analysisJobId}/retry';
+};
+
+export type RetryAnalysisJobErrors = {
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonResponseListAnalysisJobResponse;
+    /**
+     * 작품, 분석 작업 또는 실패 회차를 찾을 수 없음
+     */
+    404: CommonResponseListAnalysisJobResponse;
+    /**
+     * 실패 상태가 아닌 작업
+     */
+    409: CommonResponseListAnalysisJobResponse;
+};
+
+export type RetryAnalysisJobError = RetryAnalysisJobErrors[keyof RetryAnalysisJobErrors];
+
+export type RetryAnalysisJobResponses = {
+    /**
+     * 실패 회차 재시도 작업 생성 성공
+     */
+    200: CommonResponseListAnalysisJobResponse;
+};
+
+export type RetryAnalysisJobResponse = RetryAnalysisJobResponses[keyof RetryAnalysisJobResponses];
 
 export type SignupData = {
     body: AuthSignupRequest;
@@ -2157,6 +2648,42 @@ export type UpdateEpisodeResponses = {
 
 export type UpdateEpisodeResponse = UpdateEpisodeResponses[keyof UpdateEpisodeResponses];
 
+export type UpdateEpisodeTitleData = {
+    body: EpisodeTitleUpdateRequest;
+    path: {
+        workId: string;
+        episodeId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/episodes/{episodeId}/title';
+};
+
+export type UpdateEpisodeTitleErrors = {
+    /**
+     * 제목 길이 검증 실패
+     */
+    400: CommonResponseEpisodeSummaryResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonResponseEpisodeSummaryResponse;
+    /**
+     * 작품 또는 회차를 찾을 수 없음
+     */
+    404: CommonResponseEpisodeSummaryResponse;
+};
+
+export type UpdateEpisodeTitleError = UpdateEpisodeTitleErrors[keyof UpdateEpisodeTitleErrors];
+
+export type UpdateEpisodeTitleResponses = {
+    /**
+     * 회차 제목 수정 성공
+     */
+    200: CommonResponseEpisodeSummaryResponse;
+};
+
+export type UpdateEpisodeTitleResponse = UpdateEpisodeTitleResponses[keyof UpdateEpisodeTitleResponses];
+
 export type UpdateProgressData = {
     body: WorkerAnalysisJobProgressRequest;
     path: {
@@ -2298,6 +2825,44 @@ export type GetSettingCandidatesResponses = {
 };
 
 export type GetSettingCandidatesResponse = GetSettingCandidatesResponses[keyof GetSettingCandidatesResponses];
+
+export type DeleteSettingBookData = {
+    body?: never;
+    path: {
+        workId: string;
+        settingBookId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/setting-books/{settingBookId}';
+};
+
+export type DeleteSettingBookResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseVoid;
+};
+
+export type DeleteSettingBookResponse = DeleteSettingBookResponses[keyof DeleteSettingBookResponses];
+
+export type GetSettingBookData = {
+    body?: never;
+    path: {
+        workId: string;
+        settingBookId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/setting-books/{settingBookId}';
+};
+
+export type GetSettingBookResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseSettingBookResponse;
+};
+
+export type GetSettingBookResponse = GetSettingBookResponses[keyof GetSettingBookResponses];
 
 export type GetAnalysisJobData = {
     body?: never;
