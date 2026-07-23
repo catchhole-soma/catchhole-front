@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useSearchParams } from 'react-router';
-import { AlertCircle, BookOpen, Hash, Plus, RefreshCw, Shield, Tag } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  Hash,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Shield,
+  Tag,
+  Trash2,
+} from 'lucide-react';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { useWorks } from '../../hooks/useWorks';
@@ -9,6 +19,8 @@ import type { Work } from '../../lib/worksApi';
 import { C } from './constants';
 import { UserMenu } from './UserMenu';
 import { WorkCreateModal } from './WorkCreateModal';
+import { WorkDeleteModal } from './WorkDeleteModal';
+import { WorkEditModal } from './WorkEditModal';
 
 const COVER_GRADIENTS = [
   'linear-gradient(135deg, #1a1030 0%, #2d1b4e 50%, #1a0820 100%)',
@@ -22,51 +34,131 @@ function coverGradient(workId: string): string {
   return COVER_GRADIENTS[seed % COVER_GRADIENTS.length];
 }
 
-function WorkCard({ work, onClick }: { work: Work; onClick: () => void }) {
+function WorkCard({
+  work,
+  onClick,
+  onEdit,
+  onDelete,
+}: {
+  work: Work;
+  onClick: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
+  const [actionsFocused, setActionsFocused] = useState(false);
+  const showActions = hovered || actionsFocused;
   const episodeLabel = work.episodeCount > 0
     ? `마지막 회차 ${work.episodeCount}화`
     : '등록된 회차 없음';
 
   return (
-    <motion.button
-      type="button"
-      aria-label={`${work.title} 작품 선택`}
-      onClick={onClick}
+    <motion.div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setActionsFocused(true)}
+      onBlurCapture={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setActionsFocused(false);
+        }
+      }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.18 }}
       style={{
-        padding: 0, textAlign: 'left', borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+        position: 'relative', borderRadius: 12, overflow: 'hidden',
         border: `1px solid ${hovered ? C.primary + '66' : C.border}`,
         background: C.surface, transitionProperty: 'border-color, box-shadow', transitionDuration: '0.18s',
-        boxShadow: hovered ? `0 8px 32px ${C.primary}18` : 'none', fontFamily: 'inherit',
+        boxShadow: hovered ? `0 8px 32px ${C.primary}18` : 'none',
       }}
     >
-      <div style={{
-        height: 200, background: coverGradient(work.id), position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <BookOpen size={80} color="#fff" style={{ opacity: 0.13 }} />
+      <div
+        aria-label={`${work.title} 작품 관리`}
+        style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
+          display: 'flex', alignItems: 'center', gap: 6,
+          opacity: showActions ? 1 : 0,
+          transform: showActions ? 'translateY(0)' : 'translateY(-4px)',
+          pointerEvents: showActions ? 'auto' : 'none',
+          transition: 'opacity 0.15s, transform 0.15s',
+        }}
+      >
+        <button
+          type="button"
+          aria-label={`${work.title} 수정`}
+          onClick={onEdit}
+          style={{
+            height: 32, padding: '0 10px', borderRadius: 7,
+            border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(15,15,19,0.9)',
+            color: C.t1, display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <Pencil size={12} /> 수정
+        </button>
+        <button
+          type="button"
+          aria-label={`${work.title} 삭제`}
+          onClick={onDelete}
+          style={{
+            height: 32, padding: '0 10px', borderRadius: 7,
+            border: `1px solid ${C.danger}55`, background: 'rgba(15,15,19,0.9)',
+            color: C.danger, display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <Trash2 size={12} /> 삭제
+        </button>
       </div>
-      <div style={{ padding: '15px 16px 16px' }}>
+
+      <button
+        type="button"
+        aria-label={`${work.title} 작품 선택`}
+        onClick={onClick}
+        style={{
+          width: '100%', padding: 0, border: 'none', background: 'transparent',
+          textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'block',
+        }}
+      >
         <div style={{
-          color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.3px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          height: 200, background: coverGradient(work.id), position: 'relative',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {work.title}
+          <BookOpen size={80} color="#fff" style={{ opacity: 0.13 }} />
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px 14px', color: C.t3, fontSize: 12 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Tag size={11} /> {work.genre}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Hash size={11} /> {episodeLabel}
-          </span>
+        <div style={{ padding: '15px 16px 16px' }}>
+          <div style={{
+            color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 5, letterSpacing: '-0.3px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {work.title}
+          </div>
+          <div
+            title={work.description ?? undefined}
+            style={{
+              color: work.description ? C.t2 : C.t3,
+              fontSize: 12,
+              lineHeight: 1.5,
+              marginBottom: 9,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {work.description || '작품 소개가 없습니다.'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px 14px', color: C.t3, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Tag size={11} /> {work.genre}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Hash size={11} /> {episodeLabel}
+            </span>
+          </div>
         </div>
-      </div>
-    </motion.button>
+      </button>
+    </motion.div>
   );
 }
 
@@ -82,7 +174,7 @@ function NewWorkCard({ onClick }: { onClick: () => void }) {
       transition={{ duration: 0.18 }}
       style={{
         borderRadius: 12, cursor: 'pointer', border: `1.5px dashed ${hovered ? C.primary + '77' : C.border}`,
-        background: hovered ? C.primary + '08' : 'transparent', minHeight: 267, padding: 16,
+        background: hovered ? C.primary + '08' : 'transparent', minHeight: 288, padding: 16,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
         transitionProperty: 'border-color, background', transitionDuration: '0.18s', fontFamily: 'inherit',
       }}
@@ -115,16 +207,32 @@ function SkeletonCard() {
 export default function S0WorkPicker() {
   const navigate = useAppNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { setSelectedWork, setSelectedWorkInfo } = useAppContext();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+  } = useAppContext();
   const { works, loading, error, refetch } = useWorks();
-  const createModalOpen = searchParams.get('modal') === 'work-create';
+  const modal = searchParams.get('modal');
+  const targetWorkId = searchParams.get('targetWorkId');
+  const targetWork = targetWorkId
+    ? works.find(work => work.id === targetWorkId) ?? null
+    : null;
 
   const openCreateModal = () => setSearchParams(params => {
     params.set('modal', 'work-create');
+    params.delete('targetWorkId');
     return params;
   });
-  const closeCreateModal = () => setSearchParams(params => {
+  const openWorkModal = (kind: 'work-edit' | 'work-delete', work: Work) => setSearchParams(params => {
+    params.set('modal', kind);
+    params.set('targetWorkId', work.id);
+    return params;
+  });
+  const closeModal = () => setSearchParams(params => {
     params.delete('modal');
+    params.delete('targetWorkId');
     return params;
   }, { replace: true });
   const selectWork = (work: Work) => {
@@ -218,7 +326,15 @@ export default function S0WorkPicker() {
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
             }}>
-              {works.map(work => <WorkCard key={work.id} work={work} onClick={() => selectWork(work)} />)}
+              {works.map(work => (
+                <WorkCard
+                  key={work.id}
+                  work={work}
+                  onClick={() => selectWork(work)}
+                  onEdit={() => openWorkModal('work-edit', work)}
+                  onDelete={() => openWorkModal('work-delete', work)}
+                />
+              ))}
               <NewWorkCard onClick={openCreateModal} />
             </div>
           ) : null}
@@ -226,10 +342,41 @@ export default function S0WorkPicker() {
       </main>
 
       <AnimatePresence>
-        {createModalOpen && (
+        {modal === 'work-create' && (
           <WorkCreateModal
-            onClose={closeCreateModal}
+            onClose={closeModal}
             onCreated={selectWork}
+          />
+        )}
+        {modal === 'work-edit' && targetWork && (
+          <WorkEditModal
+            key={targetWork.id}
+            work={targetWork}
+            onClose={closeModal}
+            onUpdated={updatedWork => {
+              if (selectedWork === updatedWork.id || selectedWorkInfo?.id === updatedWork.id) {
+                setSelectedWorkInfo({
+                  id: updatedWork.id,
+                  title: updatedWork.title,
+                  genre: updatedWork.genre ?? '',
+                });
+              }
+              closeModal();
+            }}
+          />
+        )}
+        {modal === 'work-delete' && targetWork && (
+          <WorkDeleteModal
+            key={targetWork.id}
+            work={targetWork}
+            onClose={closeModal}
+            onDeleted={deletedWorkId => {
+              if (selectedWork === deletedWorkId || selectedWorkInfo?.id === deletedWorkId) {
+                setSelectedWork('');
+                setSelectedWorkInfo(null);
+              }
+              closeModal();
+            }}
           />
         )}
       </AnimatePresence>

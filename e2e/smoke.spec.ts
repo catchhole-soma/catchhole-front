@@ -325,8 +325,20 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
     body: JSON.stringify({
       success: true,
       data: [
-        { id: 'work-new', title: '새 작품', genre: '판타지', latestEpisodeNo: 0 },
-        { id: 'work-old', title: '연재 작품', genre: '로맨스', latestEpisodeNo: 12 },
+        {
+          id: 'work-new',
+          title: '새 작품',
+          description: '처음 시작하는 판타지',
+          genre: '판타지',
+          latestEpisodeNo: 0,
+        },
+        {
+          id: 'work-old',
+          title: '연재 작품',
+          description: null,
+          genre: '로맨스',
+          latestEpisodeNo: 12,
+        },
       ],
       error: null,
     }),
@@ -338,6 +350,8 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
 
   await expect(page.getByText('등록된 회차 없음', { exact: true })).toBeVisible();
   await expect(page.getByText('마지막 회차 12화', { exact: true })).toBeVisible();
+  await expect(page.getByText('처음 시작하는 판타지', { exact: true })).toBeVisible();
+  await expect(page.getByText('작품 소개가 없습니다.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '새 작품 작품 선택' }).click();
 
   await expect(page).toHaveURL(/\/dashboard\?workId=work-new&nav=manuscripts$/);
@@ -347,6 +361,7 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
 test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 뒤 재시도한다', async ({ page }) => {
   let createAttempts = 0;
   let created = false;
+  let createPayload: Record<string, unknown> | null = null;
   await page.route('**/api/v1/auth/me', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -367,6 +382,7 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
   await page.route('**/api/v1/works', route => {
     if (route.request().method() === 'POST') {
       createAttempts += 1;
+      createPayload = route.request().postDataJSON() as Record<string, unknown>;
       if (createAttempts === 1) {
         return route.fulfill({
           status: 400,
@@ -389,7 +405,13 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: 'created-work', title: '검은 달의 기사', genre: '판타지', latestEpisodeNo: 0 },
+          data: {
+            id: 'created-work',
+            title: '검은 달의 기사',
+            description: '달빛 아래 시작된 모험',
+            genre: '판타지',
+            latestEpisodeNo: 0,
+          },
           error: null,
         }),
       });
@@ -401,7 +423,13 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
       body: JSON.stringify({
         success: true,
         data: created
-          ? [{ id: 'created-work', title: '검은 달의 기사', genre: '판타지', latestEpisodeNo: 0 }]
+          ? [{
+              id: 'created-work',
+              title: '검은 달의 기사',
+              description: '달빛 아래 시작된 모험',
+              genre: '판타지',
+              latestEpisodeNo: 0,
+            }]
           : [],
         error: null,
       }),
@@ -414,21 +442,148 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
   await page.getByRole('button', { name: '새 작품 등록' }).click();
   await expect(page).toHaveURL(/\/works\?modal=work-create$/);
   const dialog = page.getByRole('dialog', { name: '새 작품 등록' });
+  for (const genre of ['판타지', '로맨스', '추리', '코미디', 'SF', '스포츠', '호러', '무협', '일상', '기타']) {
+    await expect(dialog.getByRole('radio', { name: genre })).toBeVisible();
+  }
   await dialog.getByRole('button', { name: '작품 만들기' }).click();
   await expect(dialog.getByText('작품 제목을 입력해 주세요.', { exact: true })).toBeVisible();
   await expect(dialog.getByText('작품 장르를 선택해 주세요.', { exact: true })).toBeVisible();
 
   await dialog.getByLabel('작품 제목 *').fill('검은 달의 기사');
-  await dialog.getByLabel('작품 장르 *').selectOption('판타지');
+  const descriptionInput = dialog.getByLabel('작품 설명 (선택)');
+  await descriptionInput.fill('가'.repeat(21));
+  const fantasyGenre = dialog.getByRole('radio', { name: '판타지' });
+  const romanceGenre = dialog.getByRole('radio', { name: '로맨스' });
+  await fantasyGenre.click();
+  await dialog.getByRole('button', { name: '작품 만들기' }).click();
+  await expect(dialog.getByText('작품 설명은 20자 이하로 입력해 주세요.', { exact: true })).toBeVisible();
+  expect(createAttempts).toBe(0);
+  await descriptionInput.fill('달빛 아래 시작된 모험');
+  await expect(fantasyGenre).toHaveAttribute('aria-checked', 'true');
+  await romanceGenre.click();
+  await expect(fantasyGenre).toHaveAttribute('aria-checked', 'false');
+  await expect(romanceGenre).toHaveAttribute('aria-checked', 'true');
+  await fantasyGenre.click();
   await dialog.getByRole('button', { name: '작품 만들기' }).click();
 
   await expect(dialog.getByText('작품 제목을 다시 확인해 주세요.', { exact: true })).toBeVisible();
   await expect(dialog.getByLabel('작품 제목 *')).toHaveValue('검은 달의 기사');
-  await expect(dialog.getByLabel('작품 장르 *')).toHaveValue('판타지');
+  await expect(descriptionInput).toHaveValue('달빛 아래 시작된 모험');
+  await expect(fantasyGenre).toHaveAttribute('aria-checked', 'true');
 
   await dialog.getByRole('button', { name: '작품 만들기' }).click();
   await expect(page).toHaveURL(/\/dashboard\?workId=created-work&nav=manuscripts$/);
   expect(createAttempts).toBe(2);
+  expect(createPayload).toMatchObject({
+    title: '검은 달의 기사',
+    description: '달빛 아래 시작된 모험',
+    genre: '판타지',
+  });
+});
+
+test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영구 삭제한다', async ({ page }) => {
+  let works = [{
+    id: 'managed-work',
+    title: '변경 전 작품',
+    genre: '판타지',
+    description: '기존 작품 설명',
+    latestEpisodeNo: 4,
+  }];
+  let updatePayload: Record<string, unknown> | null = null;
+
+  await page.route('**/api/v1/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        id: 1,
+        email: 'manage@example.com',
+        displayName: '작품 관리 테스트',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/works/managed-work', async route => {
+    if (route.request().method() === 'PATCH') {
+      updatePayload = route.request().postDataJSON() as Record<string, unknown>;
+      works = [{
+        ...works[0],
+        title: String(updatePayload.title),
+        description: String(updatePayload.description),
+        genre: String(updatePayload.genre),
+      }];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: works[0], error: null }),
+      });
+    }
+    if (route.request().method() === 'DELETE') {
+      works = [];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null, error: null }),
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/v1/works', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: works, error: null }),
+  }));
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'manage-token'));
+  await page.goto('/works');
+
+  const originalCard = page.getByRole('button', { name: '변경 전 작품 작품 선택' });
+  await originalCard.hover();
+  await expect(page.getByRole('button', { name: '변경 전 작품 수정' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '변경 전 작품 삭제' })).toBeVisible();
+  await page.getByRole('button', { name: '변경 전 작품 수정' }).click();
+
+  await expect(page).toHaveURL(/\/works\?modal=work-edit&targetWorkId=managed-work$/);
+  const editDialog = page.getByRole('dialog', { name: '작품 정보 수정' });
+  await editDialog.getByLabel('작품 제목 *').fill('변경된 작품');
+  await expect(editDialog.getByLabel('작품 설명 (선택)')).toHaveValue('기존 작품 설명');
+  await editDialog.getByLabel('작품 설명 (선택)').fill('변경된 한 줄 소개');
+  await editDialog.getByRole('radio', { name: '로맨스' }).click();
+  await editDialog.getByRole('button', { name: '저장', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/works$/);
+  await expect(page.getByRole('button', { name: '변경된 작품 작품 선택' })).toBeVisible();
+  await expect(page.getByText('변경된 한 줄 소개', { exact: true })).toBeVisible();
+  expect(updatePayload).toMatchObject({
+    title: '변경된 작품',
+    genre: '로맨스',
+    description: '변경된 한 줄 소개',
+  });
+
+  const updatedCard = page.getByRole('button', { name: '변경된 작품 작품 선택' });
+  await updatedCard.hover();
+  await page.getByRole('button', { name: '변경된 작품 삭제' }).click();
+
+  const firstDeleteDialog = page.getByRole('dialog', { name: '작품을 삭제하시겠습니까?' });
+  await expect(firstDeleteDialog.getByText('변경된 작품', { exact: true })).toBeVisible();
+  await expect(firstDeleteDialog.getByText(/보관이 아닌 영구 삭제/)).toBeVisible();
+  await firstDeleteDialog.getByRole('button', { name: '취소' }).click();
+  await expect(page.getByRole('button', { name: '변경된 작품 작품 선택' })).toBeVisible();
+
+  await updatedCard.hover();
+  await page.getByRole('button', { name: '변경된 작품 삭제' }).click();
+  await page.getByRole('dialog', { name: '작품을 삭제하시겠습니까?' })
+    .getByRole('button', { name: '영구 삭제' })
+    .click();
+
+  await expect(page).toHaveURL(/\/works$/);
+  await expect(page.getByText('등록된 작품이 없습니다', { exact: true })).toBeVisible();
 });
 
 test('작품 목록 조회 오류는 화면 안에서 재시도해 복구한다', async ({ page }) => {
