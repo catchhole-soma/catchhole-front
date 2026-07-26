@@ -31,8 +31,10 @@ import type {
   CharacterSummaryResponse,
   CharacterUpdateRequest,
 } from '../../../api/generated/types.gen';
+import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPagination';
 import { toApiError } from '../../../lib/api-errors';
 import { C } from '../constants';
+import { PageNavigation } from '../PageNavigation';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 type SettingGroupKey = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
@@ -77,6 +79,15 @@ interface Props {
 }
 
 const AVATAR_COLORS = [C.primary, '#E25C5C', '#4BB8D9', C.success, '#D4A04A', '#B48BFF'];
+const CHARACTER_CARD_HEIGHT = 177;
+const CHARACTER_GRID_GAP = 16;
+const SETTING_GROUP_LABELS: Record<SettingGroupKey, string> = {
+  profile: '프로필',
+  stats: '스탯',
+  skills: '스킬',
+  items: '아이템',
+  statuses: '상태',
+};
 
 function colorFor(id: string): string {
   const hash = Array.from(id).reduce((value, char) => value + char.charCodeAt(0), 0);
@@ -113,7 +124,9 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
     name: '수아',
     roleLabel: '주인공',
     currentAge: 23,
+    currentAgeFact: { characterFactId: 'sua-age', hasEvidence: true },
     currentLevel: 15,
+    currentLevelFact: { characterFactId: 'sua-level', hasEvidence: true },
     firstAppearanceEpisode: { id: 'demo-episode-1', episodeNo: 1 },
     profile: [
       setting('sua-gender', 'profile.gender', '성별', '여성'),
@@ -302,12 +315,24 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     properties: item.properties,
     hasEvidence: false,
   }));
+  const currentAge = optionalInteger(draft.currentAge, 0, '현재 나이');
+  const currentLevel = optionalInteger(draft.currentLevel, 0, '현재 레벨');
   return {
     ...previous,
     name: draft.name.trim(),
     roleLabel: nullable(draft.roleLabel),
-    currentAge: optionalInteger(draft.currentAge, 0, '현재 나이'),
-    currentLevel: optionalInteger(draft.currentLevel, 0, '현재 레벨'),
+    currentAge,
+    currentAgeFact: currentAge == null
+      ? undefined
+      : currentAge === previous.currentAge
+        ? previous.currentAgeFact
+        : { characterFactId: `demo-fact-age-${Date.now()}`, hasEvidence: false },
+    currentLevel,
+    currentLevelFact: currentLevel == null
+      ? undefined
+      : currentLevel === previous.currentLevel
+        ? previous.currentLevelFact
+        : { characterFactId: `demo-fact-level-${Date.now()}`, hasEvidence: false },
     firstAppearanceEpisode: draft.firstAppearanceEpisodeNo.trim()
       ? { episodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차') ?? undefined }
       : undefined,
@@ -352,7 +377,8 @@ function CharacterCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        minHeight: 160, padding: 20, borderRadius: 10, textAlign: 'left',
+        height: CHARACTER_CARD_HEIGHT, boxSizing: 'border-box', overflow: 'hidden',
+        padding: 20, borderRadius: 10, textAlign: 'left',
         border: `1.5px solid ${selected || hovered ? color : C.border}`,
         background: selected ? color + '0D' : C.bg, color: C.t1,
         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
@@ -360,7 +386,9 @@ function CharacterCard({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
         <Avatar id={id} name={character.name ?? ''} size={48} />
-        <strong style={{ flex: 1, fontSize: 16 }}>{character.name || '이름 없음'}</strong>
+        <strong style={{ flex: 1, minWidth: 0, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {character.name || '이름 없음'}
+        </strong>
         <ChevronRight size={17} color={hovered || selected ? color : C.t3} />
       </div>
       {[
@@ -387,12 +415,20 @@ function EmptyArea({ label }: { label: string }) {
   );
 }
 
-function EvidenceButton({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
+function EvidenceButton({
+  enabled,
+  label,
+  onClick,
+}: {
+  enabled: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   if (!enabled) return null;
   return (
     <button
       type="button"
-      aria-label="원문 근거 보기"
+      aria-label={`${label} 원문 근거 보기`}
       title="원문 근거 보기"
       onClick={onClick}
       style={{ background: 'none', border: 'none', color: C.primary, padding: 2, cursor: 'pointer', lineHeight: 0 }}
@@ -405,23 +441,32 @@ function EvidenceButton({ enabled, onClick }: { enabled: boolean; onClick: () =>
 function SimpleSettingList({
   settings,
   emptyLabel,
+  columns = 1,
   onEvidence,
 }: {
   settings: CharacterSettingResponse[];
   emptyLabel: string;
-  onEvidence: () => void;
+  columns?: 1 | 2;
+  onEvidence: (characterFactId: string) => void;
 }) {
   if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
   return (
-    <div>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {settings.map((item, index) => (
         <div key={item.characterFactId ?? item.key ?? index} style={{
-          minHeight: 40, padding: '8px 14px', display: 'grid', gridTemplateColumns: '110px 1fr auto',
-          alignItems: 'center', gap: 10, borderBottom: index < settings.length - 1 ? `1px solid ${C.border}` : 'none',
+          minHeight: 40, padding: '8px 14px', display: 'grid',
+          gridTemplateColumns: columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
+          alignItems: 'center', gap: 10,
+          borderRight: columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : 'none',
+          borderBottom: index < settings.length - columns ? `1px solid ${C.border}` : 'none',
         }}>
           <span style={{ color: C.t3, fontSize: 12 }}>{item.displayName ?? item.key}</span>
           <span style={{ color: C.t2, fontSize: 12, overflowWrap: 'anywhere' }}>{item.value || '—'}</span>
-          <EvidenceButton enabled={item.hasEvidence ?? false} onClick={onEvidence} />
+          <EvidenceButton
+            enabled={Boolean(item.hasEvidence && item.characterFactId)}
+            label={item.displayName ?? item.key ?? emptyLabel}
+            onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
+          />
         </div>
       ))}
     </div>
@@ -435,7 +480,7 @@ function ComplexSettingCards({
 }: {
   settings: CharacterSettingResponse[];
   emptyLabel: string;
-  onEvidence: () => void;
+  onEvidence: (characterFactId: string) => void;
 }) {
   if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
   return (
@@ -461,7 +506,11 @@ function ComplexSettingCards({
             {extraProperties.length > 0 && item.value && (
               <span style={{ color: C.primary, fontSize: 12, fontWeight: 600 }}>{item.value}</span>
             )}
-            <EvidenceButton enabled={item.hasEvidence ?? false} onClick={onEvidence} />
+            <EvidenceButton
+              enabled={Boolean(item.hasEvidence && item.characterFactId)}
+              label={item.displayName ?? item.key ?? emptyLabel}
+              onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
+            />
           </div>
         );
       })}
@@ -480,33 +529,47 @@ function EditSettingList({
   group,
   emptyLabel,
   complex = false,
+  columns = 1,
   onChange,
   onRemove,
   onAdd,
+  onEvidence,
 }: {
   settings: DraftSetting[];
   group: SettingGroupKey;
   emptyLabel: string;
   complex?: boolean;
+  columns?: 1 | 2;
   onChange: (index: number, setting: DraftSetting) => void;
   onRemove: (index: number) => void;
   onAdd?: () => void;
+  onEvidence?: (characterFactId: string) => void;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: complex ? 8 : 0 }}>
-      {settings.length === 0 && <EmptyArea label={emptyLabel} />}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: complex || columns === 1 ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))',
+      gap: complex ? 8 : 0,
+    }}>
+      {settings.length === 0 && <div style={{ gridColumn: '1 / -1' }}><EmptyArea label={emptyLabel} /></div>}
       {settings.map((item, index) => {
         const namePropertyIndex = item.properties.findIndex(property => property.key === 'name');
+        const editableName = namePropertyIndex >= 0;
         return (
           <div key={item.characterFactId ?? item.key} style={{
             display: 'grid',
-            gridTemplateColumns: complex ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto' : '110px 1fr auto',
+            gridTemplateColumns: complex
+              ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
+              : columns === 2
+                ? '80px minmax(0, 1fr) auto'
+                : '110px minmax(0, 1fr) auto',
             gap: 8, alignItems: 'center', padding: complex ? 8 : '7px 12px',
             border: complex ? `1px solid ${C.border}` : 'none',
-            borderBottom: !complex && index < settings.length - 1 ? `1px solid ${C.border}` : undefined,
+            borderRight: !complex && columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : undefined,
+            borderBottom: !complex && index < settings.length - columns ? `1px solid ${C.border}` : undefined,
             borderRadius: complex ? 7 : 0,
           }}>
-            {complex ? (
+            {complex || editableName ? (
               <input
                 aria-label={`${emptyLabel} 이름`}
                 value={namePropertyIndex >= 0 ? item.properties[namePropertyIndex].value ?? '' : item.displayName}
@@ -530,14 +593,21 @@ function EditSettingList({
               onChange={event => onChange(index, { ...item, value: event.target.value })}
               style={inputStyle}
             />
-            <button
-              type="button"
-              aria-label={`${item.displayName} 제거`}
-              onClick={() => onRemove(index)}
-              style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4, lineHeight: 0 }}
-            >
-              <X size={14} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <EvidenceButton
+                enabled={Boolean(item.hasEvidence && item.characterFactId && onEvidence)}
+                label={item.displayName}
+                onClick={() => item.characterFactId && onEvidence?.(item.characterFactId)}
+              />
+              <button
+                type="button"
+                aria-label={`${item.displayName} 제거`}
+                onClick={() => onRemove(index)}
+                style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 4, lineHeight: 0 }}
+              >
+                <X size={14} />
+              </button>
+            </div>
             {complex && item.properties.filter(property => property.key !== 'name').map((property, propertyIndex) => {
               const actualIndex = item.properties.findIndex(candidate => candidate === property);
               return (
@@ -561,11 +631,12 @@ function EditSettingList({
       })}
       {onAdd && (
         <button type="button" onClick={onAdd} style={{
+          gridColumn: '1 / -1',
           height: 32, borderRadius: 6, border: `1px dashed ${C.border}`,
           background: 'transparent', color: C.t3, fontSize: 12, fontFamily: 'inherit',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
         }}>
-          <Plus size={13} /> {group === 'skills' ? '스킬 추가' : '아이템 추가'}
+          <Plus size={13} /> {SETTING_GROUP_LABELS[group]} 추가
         </button>
       )}
     </div>
@@ -660,11 +731,27 @@ export function CharacterDatabase({
   const [confirming, setConfirming] = useState<'delete' | 'save' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [evidenceNotice, setEvidenceNotice] = useState(false);
+  const [selectedEvidenceFactId, setSelectedEvidenceFactId] = useState<string | null>(null);
+  const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
+  const {
+    containerRef,
+    contentStartRef,
+    columnCount,
+    pageSize,
+    ready: layoutReady,
+  } = useResponsiveGridPagination({
+    minItemWidth: 280,
+    itemHeight: CHARACTER_CARD_HEIGHT,
+    gap: CHARACTER_GRID_GAP,
+    maxColumns: 5,
+    maxPageSize: 24,
+    reservedBottomSpace: 72,
+  });
+  const page = Math.floor(firstVisibleIndex / pageSize);
 
   const charactersQuery = useQuery({
-    ...getCharactersOptions({ path: { workId } }),
-    enabled: !demoMode && Boolean(workId),
+    ...getCharactersOptions({ path: { workId }, query: { page, size: pageSize } }),
+    enabled: !demoMode && Boolean(workId) && layoutReady,
   });
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
@@ -707,17 +794,52 @@ export function CharacterDatabase({
 
   const demoDetail = demoCharacters.find(character => character.id === selectedCharacterId);
   const detail = demoMode ? demoDetail : detailQuery.data?.data;
+  const demoSummaries = useMemo(() => demoCharacters.map(toSummary), [demoCharacters]);
+  const characterPage = charactersQuery.data?.data;
   const characters = useMemo(
-    () => demoMode ? demoCharacters.map(toSummary) : charactersQuery.data?.data ?? [],
-    [charactersQuery.data?.data, demoCharacters, demoMode],
+    () => demoMode
+      ? demoSummaries.slice(page * pageSize, (page + 1) * pageSize)
+      : characterPage?.content ?? [],
+    [characterPage?.content, demoMode, demoSummaries, page, pageSize],
   );
+  const totalElements = demoMode ? demoSummaries.length : characterPage?.totalElements ?? 0;
+  const totalPages = demoMode
+    ? Math.ceil(totalElements / pageSize)
+    : characterPage?.totalPages ?? 0;
+
+  useEffect(() => {
+    setFirstVisibleIndex(0);
+  }, [demoMode, workId]);
+
+  useEffect(() => {
+    const pageMetadataReady = demoMode || charactersQuery.isSuccess;
+    if (!pageMetadataReady) return;
+    if (totalPages === 0 && firstVisibleIndex !== 0) {
+      setFirstVisibleIndex(0);
+    } else if (totalPages > 0 && page >= totalPages) {
+      setFirstVisibleIndex((totalPages - 1) * pageSize);
+    }
+  }, [
+    charactersQuery.isSuccess,
+    demoMode,
+    firstVisibleIndex,
+    page,
+    pageSize,
+    totalPages,
+  ]);
 
   useEffect(() => {
     if (isEditing && detail) setDraft(toDraft(detail));
     if (!isEditing) setDraft(null);
     setActionError(null);
-    setEvidenceNotice(false);
+    setSelectedEvidenceFactId(null);
   }, [detail, isEditing]);
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timeoutId = window.setTimeout(() => setFeedback(null), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
 
   const changeSetting = (group: SettingGroupKey, index: number, value: DraftSetting) => {
     setDraft(current => current ? {
@@ -733,10 +855,26 @@ export function CharacterDatabase({
     } : current);
   };
 
-  const addComplexSetting = (group: 'skills' | 'items') => {
+  const addSimpleSetting = (group: 'profile' | 'stats') => {
     const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const singular = group === 'skills' ? 'skill' : 'item';
-    const label = group === 'skills' ? '새 스킬' : '새 아이템';
+    const label = group === 'profile' ? '새 프로필' : '새 스탯';
+    setDraft(current => current ? {
+      ...current,
+      [group]: [...current[group], {
+        key: `${group}.manual_${suffix}`,
+        displayName: label,
+        value: '',
+        valueType: group === 'stats' ? 'NUMBER' : 'STRING',
+        properties: [{ key: 'name', displayName: '이름', value: label, valueType: 'STRING' }],
+        hasEvidence: false,
+      }],
+    } : current);
+  };
+
+  const addComplexSetting = (group: 'skills' | 'items' | 'statuses') => {
+    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const singular = group === 'skills' ? 'skill' : group === 'items' ? 'item' : 'status';
+    const label = group === 'skills' ? '새 스킬' : group === 'items' ? '새 아이템' : '새 상태';
     setDraft(current => current ? {
       ...current,
       [group]: [...current[group], {
@@ -783,12 +921,39 @@ export function CharacterDatabase({
     deleteMutation.mutate({ path: { workId, characterId: selectedCharacterId } });
   };
 
-  const loadingList = !demoMode && charactersQuery.isPending;
+  const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
   const listError = !demoMode && charactersQuery.isError;
 
   return (
     <>
-      <div style={{ maxWidth: 1000 }}>
+      {feedback && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed', top: 84, right: 20, zIndex: 400,
+            width: 360, maxWidth: 'calc(100vw - 40px)', boxSizing: 'border-box',
+            padding: '11px 13px', borderRadius: 8,
+            background: '#14241F', border: `1px solid ${C.success}66`,
+            color: C.success, fontSize: 12,
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.36)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <Check size={14} />
+          <span style={{ flex: 1 }}>{feedback}</span>
+          <button
+            type="button"
+            aria-label="알림 닫기"
+            onClick={() => setFeedback(null)}
+            style={{ background: 'none', border: 'none', color: C.success, cursor: 'pointer', padding: 2, lineHeight: 0 }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
+      <div ref={containerRef} style={{ width: '100%', maxWidth: 1680 }}>
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 DB</h2>
           <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
@@ -797,11 +962,7 @@ export function CharacterDatabase({
           </p>
         </div>
 
-        {feedback && (
-          <div role="status" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.success + '12', border: `1px solid ${C.success}44`, color: C.success, fontSize: 12 }}>
-            {feedback}
-          </div>
-        )}
+        <div ref={contentStartRef} />
 
         {loadingList && (
           <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
@@ -829,15 +990,29 @@ export function CharacterDatabase({
         )}
 
         {!loadingList && !listError && characters.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
-            {characters.map(character => (
-              <CharacterCard
-                key={character.id}
-                character={character}
-                selected={selectedCharacterId === character.id}
-                onClick={() => character.id && onOpen(character.id, openInEditMode)}
+          <div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+              gap: CHARACTER_GRID_GAP,
+            }}>
+              {characters.map(character => (
+                <CharacterCard
+                  key={character.id}
+                  character={character}
+                  selected={selectedCharacterId === character.id}
+                  onClick={() => character.id && onOpen(character.id, openInEditMode)}
+                />
+              ))}
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <PageNavigation
+                page={page}
+                totalPages={totalPages}
+                disabled={!demoMode && charactersQuery.isFetching}
+                onPageChange={nextPage => setFirstVisibleIndex(nextPage * pageSize)}
               />
-            ))}
+            </div>
           </div>
         )}
       </div>
@@ -906,10 +1081,10 @@ export function CharacterDatabase({
                       {actionError}
                     </div>
                   )}
-                  {evidenceNotice && (
+                  {selectedEvidenceFactId && (
                     <div role="status" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.primary + '12', border: `1px solid ${C.primary}44`, color: C.t2, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <FileText size={14} color={C.primary} /> 원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.
-                      <button type="button" aria-label="안내 닫기" onClick={() => setEvidenceNotice(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: C.t3, cursor: 'pointer', lineHeight: 0 }}><X size={13} /></button>
+                      <button type="button" aria-label="안내 닫기" onClick={() => setSelectedEvidenceFactId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: C.t3, cursor: 'pointer', lineHeight: 0 }}><X size={13} /></button>
                     </div>
                   )}
 
@@ -922,9 +1097,22 @@ export function CharacterDatabase({
                         ['현재 나이', 'currentAge', draft.currentAge],
                         ['현재 레벨', 'currentLevel', draft.currentLevel],
                         ['첫 등장 회차', 'firstAppearanceEpisodeNo', draft.firstAppearanceEpisodeNo],
-                      ].map(([label, key, value], index) => (
+                      ].map(([label, key, value], index) => {
+                        const factReference = key === 'currentAge'
+                          ? detail.currentAgeFact
+                          : key === 'currentLevel'
+                            ? detail.currentLevelFact
+                            : null;
+                        return (
                         <div key={key} style={{ padding: '10px 12px', borderRight: index < 4 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ color: C.t3, fontSize: 10, marginBottom: 6 }}>{label}</div>
+                          <div style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                            {label}
+                            <EvidenceButton
+                              enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
+                              label={label}
+                              onClick={() => factReference?.characterFactId && setSelectedEvidenceFactId(factReference.characterFactId)}
+                            />
+                          </div>
                           <input
                             aria-label={label}
                             value={value}
@@ -933,17 +1121,25 @@ export function CharacterDatabase({
                             style={inputStyle}
                           />
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       [
-                        ['이름', detail.name || '—'],
-                        ['역할', detail.roleLabel || '—'],
-                        ['현재 나이', detail.currentAge == null ? '—' : `${detail.currentAge}세`],
-                        ['현재 레벨', detail.currentLevel == null ? '—' : String(detail.currentLevel)],
-                        ['첫 등장 회차', detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화`],
-                      ].map(([label, value], index) => (
+                        { label: '이름', value: detail.name || '—' },
+                        { label: '역할', value: detail.roleLabel || '—' },
+                        { label: '현재 나이', value: detail.currentAge == null ? '—' : `${detail.currentAge}세`, factReference: detail.currentAgeFact },
+                        { label: '현재 레벨', value: detail.currentLevel == null ? '—' : String(detail.currentLevel), factReference: detail.currentLevelFact },
+                        { label: '첫 등장 회차', value: detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화` },
+                      ].map(({ label, value, factReference }, index) => (
                         <div key={label} style={{ padding: '12px 14px', borderRight: index < 4 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>{label}</div>
+                          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                            {label}
+                            <EvidenceButton
+                              enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
+                              label={label}
+                              onClick={() => factReference?.characterFactId && setSelectedEvidenceFactId(factReference.characterFactId)}
+                            />
+                          </div>
                           <div style={{ color: C.t1, fontSize: 13, fontWeight: 600 }}>{value}</div>
                         </div>
                       ))
@@ -955,8 +1151,8 @@ export function CharacterDatabase({
                       <SectionTitle>프로필</SectionTitle>
                       <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                         {isEditing && draft
-                          ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} />
-                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={() => setEvidenceNotice(true)} />}
+                          ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} onAdd={() => addSimpleSetting('profile')} onEvidence={setSelectedEvidenceFactId} />
+                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={setSelectedEvidenceFactId} />}
                       </div>
                     </div>
 
@@ -965,8 +1161,8 @@ export function CharacterDatabase({
                         <SectionTitle>스탯</SectionTitle>
                         <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} />
-                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" onEvidence={() => setEvidenceNotice(true)} />}
+                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={setSelectedEvidenceFactId} />
+                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={setSelectedEvidenceFactId} />}
                         </div>
                       </div>
 
@@ -974,14 +1170,14 @@ export function CharacterDatabase({
                         <div>
                           <SectionTitle>스킬</SectionTitle>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} />
-                            : <ComplexSettingCards settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={() => setEvidenceNotice(true)} />}
+                            ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={setSelectedEvidenceFactId} />
+                            : <ComplexSettingCards settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={setSelectedEvidenceFactId} />}
                         </div>
                         <div>
                           <SectionTitle>아이템</SectionTitle>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} />
-                            : <ComplexSettingCards settings={detail.items ?? []} emptyLabel="아이템" onEvidence={() => setEvidenceNotice(true)} />}
+                            ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={setSelectedEvidenceFactId} />
+                            : <ComplexSettingCards settings={detail.items ?? []} emptyLabel="아이템" onEvidence={setSelectedEvidenceFactId} />}
                         </div>
                       </div>
 
@@ -989,8 +1185,8 @@ export function CharacterDatabase({
                         <SectionTitle>상태</SectionTitle>
                         <div style={{ borderRadius: 8, border: `1px solid ${C.warning}`, background: C.warning + '10', overflow: 'hidden' }}>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} />
-                            : <ComplexSettingCards settings={detail.statuses ?? []} emptyLabel="상태" onEvidence={() => setEvidenceNotice(true)} />}
+                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={setSelectedEvidenceFactId} />
+                            : <ComplexSettingCards settings={detail.statuses ?? []} emptyLabel="상태" onEvidence={setSelectedEvidenceFactId} />}
                         </div>
                       </div>
                     </div>

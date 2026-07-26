@@ -1359,7 +1359,15 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
     name: characterName,
     roleLabel,
     currentAge: 23,
+    currentAgeFact: {
+      characterFactId: 'fact-age-1',
+      hasEvidence: true,
+    },
     currentLevel: 15,
+    currentLevelFact: {
+      characterFactId: 'fact-level-1',
+      hasEvidence: true,
+    },
     firstAppearanceEpisode: null,
     profile: [{
       characterFactId: 'fact-profile-1',
@@ -1370,15 +1378,26 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       properties: [],
       hasEvidence: true,
     }],
-    stats: [{
-      characterFactId: 'fact-stat-1',
-      key: 'stats.strength',
-      displayName: '근력',
-      value: '42',
-      valueType: 'NUMBER',
-      properties: [],
-      hasEvidence: false,
-    }],
+    stats: [
+      {
+        characterFactId: 'fact-stat-1',
+        key: 'stats.strength',
+        displayName: '근력',
+        value: '42',
+        valueType: 'NUMBER',
+        properties: [],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-stat-2',
+        key: 'stats.agility',
+        displayName: '민첩',
+        value: '58',
+        valueType: 'NUMBER',
+        properties: [],
+        hasEvidence: true,
+      },
+    ],
     skills: [],
     items: [],
     statuses: [],
@@ -1411,19 +1430,27 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
 
     if (pathname.endsWith('/works/detective/characters') && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      const content = archived ? [] : [{
+        id: 'char-1',
+        name: characterName,
+        currentAge: 23,
+        representativeAttributeLabel: '레벨',
+        representativeAttributeValue: '15',
+        firstAppearanceEpisodeNo: null,
+      }];
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: archived ? [] : [{
-            id: 'char-1',
-            name: characterName,
-            currentAge: 23,
-            representativeAttributeLabel: '레벨',
-            representativeAttributeValue: '15',
-            firstAppearanceEpisodeNo: null,
-          }],
+          data: {
+            content,
+            page: 0,
+            size: 24,
+            totalElements: content.length,
+            totalPages: content.length === 0 ? 0 : 1,
+            hasNext: false,
+          },
           error: null,
         }),
       });
@@ -1481,15 +1508,46 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await characterCard.click();
   await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
   await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '현재 나이 원문 근거 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '현재 레벨 원문 근거 보기' })).toBeVisible();
+
+  const strengthRow = page.getByText('근력', { exact: true }).locator('..');
+  const agilityRow = page.getByText('민첩', { exact: true }).locator('..');
+  const [strengthBox, agilityBox] = await Promise.all([
+    strengthRow.boundingBox(),
+    agilityRow.boundingBox(),
+  ]);
+  expect(strengthBox).not.toBeNull();
+  expect(agilityBox).not.toBeNull();
+  expect(Math.abs((strengthBox?.y ?? 0) - (agilityBox?.y ?? 0))).toBeLessThan(2);
+  expect(agilityBox?.x ?? 0).toBeGreaterThan(strengthBox?.x ?? 0);
+
+  await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
+  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '안내 닫기' }).click();
+  await page.getByRole('button', { name: '현재 레벨 원문 근거 보기' }).click();
+  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '안내 닫기' }).click();
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
   await page.getByLabel('이름', { exact: true }).fill('수아 수정');
   await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
+  await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
+  await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
+  await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
+  await page.getByRole('button', { name: '스탯 추가', exact: true }).click();
+  await page.getByLabel('스탯 이름', { exact: true }).fill('행운');
+  await page.getByLabel('행운 값', { exact: true }).fill('7');
+  await page.getByRole('button', { name: '상태 추가', exact: true }).click();
+  await page.getByLabel('상태 이름', { exact: true }).fill('부상');
+  await page.getByLabel('부상 값', { exact: true }).fill('경상');
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
   await saveConfirm.getByRole('button', { name: '저장', exact: true }).click();
 
-  await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
+  const saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  await expect(saveFeedback.locator('..')).toHaveCSS('position', 'fixed');
   await expect(page.getByText('핵심 주인공', { exact: true }).first()).toBeVisible();
   expect(updateBody).toMatchObject({
     name: '수아 수정',
@@ -1497,11 +1555,32 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
     currentAge: 23,
     currentLevel: 15,
     firstAppearanceEpisodeNo: null,
-    profile: [{ key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] }],
-    stats: [{ key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] }],
+    profile: expect.arrayContaining([
+      { key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] },
+      expect.objectContaining({
+        value: '끝까지 포기하지 않는다',
+        valueType: 'STRING',
+        properties: [{ key: 'name', value: '좌우명', valueType: 'STRING' }],
+      }),
+    ]),
+    stats: expect.arrayContaining([
+      { key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] },
+      { key: 'stats.agility', value: '58', valueType: 'NUMBER', properties: [] },
+      expect.objectContaining({
+        value: '7',
+        valueType: 'NUMBER',
+        properties: [{ key: 'name', value: '행운', valueType: 'STRING' }],
+      }),
+    ]),
     skills: [],
     items: [],
-    statuses: [],
+    statuses: [
+      expect.objectContaining({
+        value: '경상',
+        valueType: 'JSON',
+        properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],
+      }),
+    ],
   });
 
   await page.getByRole('button', { name: '삭제', exact: true }).click();
@@ -1515,6 +1594,93 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
 
   await page.getByRole('button', { name: '원고 분석하기', exact: true }).click();
   await expect(page).toHaveURL(/\/episode-upload$/);
+});
+
+test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조정한다', async ({ page }) => {
+  const characters = Array.from({ length: 48 }, (_, index) => ({
+    id: `character-${index + 1}`,
+    name: `캐릭터 ${String(index + 1).padStart(2, '0')}`,
+    currentAge: 20 + index,
+    representativeAttributeLabel: '레벨',
+    representativeAttributeValue: String(index + 1),
+    firstAppearanceEpisodeNo: null,
+  }));
+  const requests: Array<{ page: number; size: number }> = [];
+
+  await page.setViewportSize({ width: 1280, height: 850 });
+  await page.route('**/api/v1/**', route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'pagination@example.com',
+            displayName: '페이지 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (url.pathname.endsWith('/works/detective/characters')) {
+      const requestedPage = Number(url.searchParams.get('page') ?? 0);
+      const requestedSize = Number(url.searchParams.get('size') ?? 24);
+      requests.push({ page: requestedPage, size: requestedSize });
+      const start = requestedPage * requestedSize;
+      const content = characters.slice(start, start + requestedSize);
+      const totalPages = Math.ceil(characters.length / requestedSize);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: requestedPage,
+            size: requestedSize,
+            totalElements: characters.length,
+            totalPages,
+            hasNext: requestedPage + 1 < totalPages,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'pagination-token'));
+  await page.goto('/dashboard?nav=settingDB&tab=characters');
+
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  const laptopSize = requests.at(-1)?.size ?? 0;
+  expect(laptopSize).toBeGreaterThan(0);
+  expect(laptopSize).toBeLessThanOrEqual(24);
+  await expect(page.getByRole('button', { name: '다음 페이지' })).toBeEnabled();
+
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect.poll(() => requests.at(-1)?.page).toBe(1);
+  await expect(page.getByRole('button', {
+    name: `캐릭터 ${String(laptopSize + 1).padStart(2, '0')}`,
+  })).toBeVisible();
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect.poll(() => requests.at(-1)?.size).toBeGreaterThan(laptopSize);
+  expect(requests.at(-1)?.size).toBeLessThanOrEqual(24);
 });
 
 test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {

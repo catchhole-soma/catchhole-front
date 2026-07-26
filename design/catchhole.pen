@@ -9939,9 +9939,9 @@
                     {
                       "type": "frame",
                       "id": "Sc6wY",
-                      "name": "New Work Card",
-                      "width": 280,
-                      "height": 256,
+                      "name": "New Work Card / Empty Compact",
+                      "width": 184,
+                      "height": 184,
                       "cornerRadius": "$radius-lg",
                       "stroke": "$border",
                       "strokeWidth": 1,
@@ -12560,7 +12560,7 @@
                   "width": "fill_container",
                   "height": "fill_container",
                   "layout": "vertical",
-                  "gap": 22,
+                  "gap": 16,
                   "padding": [
                     24,
                     40
@@ -12570,7 +12570,7 @@
                       "type": "frame",
                       "id": "dnyWx",
                       "name": "Character List Header",
-                      "width": 860,
+                      "width": "fill_container",
                       "alignItems": "end",
                       "children": [
                         {
@@ -12608,14 +12608,14 @@
                       "type": "frame",
                       "id": "MM5OT",
                       "name": "Character Cards / Clickable List",
-                      "width": 860,
+                      "width": "fill_container",
                       "gap": 14,
                       "children": [
                         {
                           "type": "frame",
                           "id": "deZAB",
                           "name": "Character Card / 수아 / Open Detail",
-                          "width": 204,
+                          "width": "fill_container",
                           "height": 160,
                           "fill": "#7C5CFC12",
                           "cornerRadius": 8,
@@ -12812,7 +12812,7 @@
                           "type": "frame",
                           "id": "xgPIX",
                           "name": "Character Card / 강민준 / Open Detail",
-                          "width": 204,
+                          "width": "fill_container",
                           "height": 160,
                           "fill": "#0F0F13",
                           "cornerRadius": 8,
@@ -13009,7 +13009,7 @@
                           "type": "frame",
                           "id": "e599l1",
                           "name": "Character Card / 이레나 / Open Detail",
-                          "width": 204,
+                          "width": "fill_container",
                           "height": 160,
                           "fill": "#0F0F13",
                           "cornerRadius": 8,
@@ -13199,6 +13199,76 @@
                                   ]
                                 }
                               ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MOL5R",
+                      "name": "Character Pagination / Responsive Page",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xfYoD",
+                          "name": "Previous Page / Disabled",
+                          "opacity": 0.4,
+                          "cornerRadius": 6,
+                          "stroke": "#2A2A36",
+                          "strokeWidth": 1,
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "q30IZ7",
+                              "name": "Previous Page Label",
+                              "fill": "#55556A",
+                              "content": "← 이전",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "uP3mp",
+                          "name": "Current Page Indicator",
+                          "fill": "#9090A8",
+                          "content": "1 / 8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zwgVJ",
+                          "name": "Next Page",
+                          "cornerRadius": 6,
+                          "stroke": "#2A2A36",
+                          "strokeWidth": 1,
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hluB0",
+                              "name": "Next Page Label",
+                              "fill": "#9090A8",
+                              "content": "다음 →",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -221327,7 +221397,7 @@
                           "id": "tZO3g",
                           "name": "Work Description Limit",
                           "fill": "#55556A",
-                          "content": "최대 20자",
+                          "content": "최대 50자",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
                           "fontWeight": "normal"
@@ -221366,7 +221436,7 @@
                           "id": "rBgIi",
                           "name": "Work Description Count",
                           "fill": "#55556A",
-                          "content": "0/20",
+                          "content": "0/50",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
                           "fontWeight": "normal"
@@ -221688,6 +221758,19 @@
                           ]
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "XLEXx",
+                      "name": "Genre Optimization Notice",
+                      "fill": "#55556A",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "* 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -255690,7 +255773,7 @@
                           "id": "ODInc",
                           "name": "Work Description Limit",
                           "fill": "#55556A",
-                          "content": "최대 20자",
+                          "content": "최대 50자",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
                           "fontWeight": "normal"
@@ -255729,7 +255812,7 @@
                           "id": "auL1z",
                           "name": "Work Description Count",
                           "fill": "#55556A",
-                          "content": "15/20",
+                          "content": "15/50",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
                           "fontWeight": "normal"

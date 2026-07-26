@@ -3778,7 +3778,6 @@ export default function S1Dashboard() {
                               );
                             })}
                           </div>
-                          </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
                             <button onClick={() => changeManuscriptPage(Math.max(0, currentEpisodePage - 1))} disabled={currentEpisodePage === 0} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: currentEpisodePage === 0 ? C.t3 : C.t2, fontSize: 13, cursor: currentEpisodePage === 0 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: currentEpisodePage === 0 ? 0.4 : 1 }}>← 이전</button>
                             <span style={{ color: C.t2, fontSize: 13 }}>{currentEpisodePage + 1} / {totalEpisodePages}</span>

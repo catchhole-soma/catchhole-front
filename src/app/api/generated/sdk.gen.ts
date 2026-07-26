@@ -379,7 +379,7 @@ export const getSettingCandidates = <ThrowOnError extends boolean = true>(option
 /**
  * 캐릭터 목록 조회
  *
- * 본인 작품의 ACTIVE 캐릭터 카드 목록을 최신 생성순으로 조회합니다. 보관된 캐릭터는 제외합니다.
+ * 본인 작품의 ACTIVE 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
  */
 export const getCharacters = <ThrowOnError extends boolean = true>(options: Options<GetCharactersData, ThrowOnError>): RequestResult<GetCharactersResponses, GetCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetCharactersResponses, GetCharactersErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
