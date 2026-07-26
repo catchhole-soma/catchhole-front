@@ -321,6 +321,86 @@ test('분석 중에는 제목 수정만 허용하고 파일 변경과 삭제를 
   await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
 });
 
+test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+  const batchId = '22222222-2222-4222-8222-222222222222';
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  let analysisRequestCount = 0;
+  let releaseAnalysisRequest!: () => void;
+  const analysisResponseGate = new Promise<void>(resolve => {
+    releaseAnalysisRequest = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
+      analysisRequestCount += 1;
+      await analysisResponseGate;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: analysisJobId },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode-reanalysis@example.com',
+          displayName: '재분석 중복 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{
+            id: episodeId,
+            batchId,
+            episodeNo: 1,
+            title: '재분석 대상 회차',
+            originalFilename: 'episode-1.txt',
+            contentUpdatedAt: '2026-07-23T12:00:00',
+            charCount: 100,
+            analysisStatus: 'REANALYSIS_REQUIRED',
+            unresolvedFindingCount: null,
+          }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-reanalysis-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+
+  const reanalysisButton = page.getByRole('button', { name: '재분석', exact: true });
+  await reanalysisButton.click();
+
+  await expect.poll(() => analysisRequestCount).toBe(1);
+  await expect(reanalysisButton).toBeDisabled();
+  await reanalysisButton.click({ force: true });
+
+  releaseAnalysisRequest();
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
+  expect(analysisRequestCount).toBe(1);
+});
+
 test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';

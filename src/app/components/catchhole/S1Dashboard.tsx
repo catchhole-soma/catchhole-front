@@ -3144,7 +3144,7 @@ export default function S1Dashboard() {
   };
 
   const openEpisodeAnalysis = async (episode: EpisodeSummaryResponse) => {
-    if (episode.analysisStatus === 'IN_PROGRESS') return;
+    if (episode.analysisStatus === 'IN_PROGRESS' || createEpisodeAnalysisRequest.isPending) return;
     if (!episode.batchId) {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
@@ -3694,7 +3694,7 @@ export default function S1Dashboard() {
                                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
                                     <BtnG
                                       small
-                                      disabled={isAnalyzing}
+                                      disabled={isAnalyzing || createEpisodeAnalysisRequest.isPending}
                                       label={episode.analysisStatus === 'FAILED' ? '다시 시도'
                                         : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
                                           : episode.analysisStatus === 'IN_PROGRESS' ? '분석 중' : '재분석'}
