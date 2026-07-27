@@ -1602,7 +1602,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           data: {
             content,
             page: 0,
-            size: 12,
+            size: 9,
             totalElements: content.length,
             totalPages: content.length === 0 ? 0 : 1,
             hasNext: false,
@@ -1909,6 +1909,112 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   expect(characterRequestPaths).not.toHaveLength(0);
   expect(characterRequestPaths.every(path => path.includes(`/works/${workId}/characters`))).toBe(true);
 
+});
+
+test('보관함은 9개씩 조회하고 로딩 중에도 다음 페이지를 유지한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
+  const archivedCharacters = Array.from({ length: 10 }, (_, index) => ({
+    id: `archived-${index + 1}`,
+    name: `보관 캐릭터 ${String(index + 1).padStart(2, '0')}`,
+    currentAge: 20 + index,
+    representativeAttributeLabel: '레벨',
+    representativeAttributeValue: String(index + 1),
+    firstAppearanceEpisodeNo: null,
+  }));
+  const archiveRequests: Array<{ page: number; size: number }> = [];
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'archive-pagination@example.com',
+            displayName: '보관함 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (requestUrl.pathname.endsWith(`/works/${workId}/characters/archived`)) {
+      const requestedPage = Number(requestUrl.searchParams.get('page') ?? 0);
+      const requestedSize = Number(requestUrl.searchParams.get('size') ?? 0);
+      archiveRequests.push({ page: requestedPage, size: requestedSize });
+      if (requestedPage === 1) {
+        await new Promise(resolve => setTimeout(resolve, 80));
+      }
+      const content = archivedCharacters.slice(
+        requestedPage * requestedSize,
+        (requestedPage + 1) * requestedSize,
+      );
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: requestedPage,
+            size: requestedSize,
+            totalElements: archivedCharacters.length,
+            totalPages: Math.ceil(archivedCharacters.length / requestedSize),
+            hasNext: requestedPage < 1,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (requestUrl.pathname.endsWith(`/works/${workId}/characters`)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content: [],
+            page: 0,
+            size: 24,
+            totalElements: 0,
+            totalPages: 0,
+            hasNext: false,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'archive-pagination-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('보관 캐릭터 01', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByRole('button', { name: '복구', exact: true })).toHaveCount(9);
+  await expect(archiveDialog.getByText('1 / 2', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '다음 페이지' }).click();
+
+  await expect(archiveDialog.getByText('보관 캐릭터 10', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByText('2 / 2', { exact: true })).toBeVisible();
+  expect(archiveRequests).toContainEqual({ page: 0, size: 9 });
+  expect(archiveRequests).toContainEqual({ page: 1, size: 9 });
 });
 
 test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조정한다', async ({ page }) => {

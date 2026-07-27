@@ -1217,11 +1217,11 @@ export type CharacterEpisodeResponse = {
  */
 export type CharacterFactReferenceResponse = {
     /**
-     * 현재 CharacterFact ID. 원문 근거 조회 시 사용합니다.
+     * 현재 CharacterFact ID. MVP 후속 PR의 CharacterFact 상세·원문 근거 조회 식별자로 사용합니다.
      */
     characterFactId: string;
     /**
-     * 선택 가능한 원문 근거 존재 여부
+     * 후속 원문 근거 패널에서 선택 가능한 근거 존재 여부
      */
     hasEvidence: boolean;
 };
@@ -1253,7 +1253,7 @@ export type CharacterSettingPropertyResponse = {
  */
 export type CharacterSettingResponse = {
     /**
-     * 현재 설정 CharacterFact ID
+     * 현재 설정 CharacterFact ID. MVP 후속 PR의 상세·원문 근거 조회 식별자
      */
     characterFactId?: string;
     /**
@@ -1277,7 +1277,7 @@ export type CharacterSettingResponse = {
      */
     properties?: Array<CharacterSettingPropertyResponse>;
     /**
-     * 선택 가능한 원문 근거 존재 여부
+     * 후속 원문 근거 패널에서 선택 가능한 근거 존재 여부
      */
     hasEvidence?: boolean;
 };
@@ -2800,7 +2800,7 @@ export type GetArchivedCharactersData = {
          */
         page?: number;
         /**
-         * 페이지 크기. 1~24 사이로 요청합니다.
+         * 페이지 크기. 보관함은 기본 9개이며 1~24 사이로 요청합니다.
          */
         size?: number;
     };

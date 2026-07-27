@@ -91,6 +91,7 @@ interface Props {
 const AVATAR_COLORS = [C.primary, '#E25C5C', '#4BB8D9', C.success, '#D4A04A', '#B48BFF'];
 const CHARACTER_CARD_HEIGHT = 177;
 const CHARACTER_GRID_GAP = 16;
+const ARCHIVE_PAGE_SIZE = 9;
 const SETTING_GROUP_LABELS: Record<SettingGroupKey, string> = {
   profile: '프로필',
   stats: '스탯',
@@ -816,7 +817,10 @@ export function CharacterDatabase({
     enabled: !demoMode && Boolean(workId) && Boolean(selectedCharacterId),
   });
   const archivedCharactersQuery = useQuery({
-    ...getArchivedCharactersOptions({ path: { workId }, query: { page: archivePage, size: 12 } }),
+    ...getArchivedCharactersOptions({
+      path: { workId },
+      query: { page: archivePage, size: ARCHIVE_PAGE_SIZE },
+    }),
     enabled: !demoMode && Boolean(workId) && archiveOpen,
   });
 
@@ -895,10 +899,13 @@ export function CharacterDatabase({
   );
   const archivedCharacterPage = archivedCharactersQuery.data?.data;
   const archivedCharacters = demoMode
-    ? demoArchivedSummaries.slice(archivePage * 12, (archivePage + 1) * 12)
+    ? demoArchivedSummaries.slice(
+      archivePage * ARCHIVE_PAGE_SIZE,
+      (archivePage + 1) * ARCHIVE_PAGE_SIZE,
+    )
     : archivedCharacterPage?.content ?? [];
   const archivedTotalPages = demoMode
-    ? Math.ceil(demoArchivedSummaries.length / 12)
+    ? Math.ceil(demoArchivedSummaries.length / ARCHIVE_PAGE_SIZE)
     : archivedCharacterPage?.totalPages ?? 0;
 
   useEffect(() => {
@@ -945,12 +952,21 @@ export function CharacterDatabase({
       setArchiveError(null);
       return;
     }
+    // 다음 페이지 응답을 기다리는 동안 totalPages가 잠시 0이 되어 첫 페이지로 되돌아가지 않게 한다.
+    const pageMetadataReady = demoMode || archivedCharactersQuery.isSuccess;
+    if (!pageMetadataReady) return;
     if (archivedTotalPages === 0 && archivePage !== 0) {
       setArchivePage(0);
     } else if (archivedTotalPages > 0 && archivePage >= archivedTotalPages) {
       setArchivePage(archivedTotalPages - 1);
     }
-  }, [archiveOpen, archivePage, archivedTotalPages]);
+  }, [
+    archiveOpen,
+    archivePage,
+    archivedCharactersQuery.isSuccess,
+    archivedTotalPages,
+    demoMode,
+  ]);
 
   useEffect(() => {
     if (!feedback) return;
