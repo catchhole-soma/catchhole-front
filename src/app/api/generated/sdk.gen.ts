@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetCharacterData, GetCharacterErrors, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodeData, UploadEpisodeErrors, UploadEpisodeResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodeData, UploadEpisodeErrors, UploadEpisodeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -353,6 +353,17 @@ export const updateCharacter = <ThrowOnError extends boolean = true>(options: Op
 });
 
 /**
+ * 보관 캐릭터 복구
+ *
+ * 보관된 캐릭터의 설정 이력과 원문 근거는 유지한 채 상태를 ARCHIVED에서 ACTIVE로 변경합니다.
+ */
+export const restoreCharacter = <ThrowOnError extends boolean = true>(options: Options<RestoreCharacterData, ThrowOnError>): RequestResult<RestoreCharacterResponses, RestoreCharacterErrors, ThrowOnError> => (options.client ?? client).patch<RestoreCharacterResponses, RestoreCharacterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/{characterId}/restore',
+    ...options
+});
+
+/**
  * AI Worker 분석 작업 진행 단계 갱신
  */
 export const updateProgress = <ThrowOnError extends boolean = true>(options: Options<UpdateProgressData, ThrowOnError>): RequestResult<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError>({
@@ -384,6 +395,17 @@ export const getSettingCandidates = <ThrowOnError extends boolean = true>(option
 export const getCharacters = <ThrowOnError extends boolean = true>(options: Options<GetCharactersData, ThrowOnError>): RequestResult<GetCharactersResponses, GetCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetCharactersResponses, GetCharactersErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/characters',
+    ...options
+});
+
+/**
+ * 보관 캐릭터 목록 조회
+ *
+ * 본인 작품의 ARCHIVED 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다.
+ */
+export const getArchivedCharacters = <ThrowOnError extends boolean = true>(options: Options<GetArchivedCharactersData, ThrowOnError>): RequestResult<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/archived',
     ...options
 });
 

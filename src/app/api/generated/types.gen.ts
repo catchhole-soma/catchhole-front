@@ -1309,6 +1309,46 @@ export type CommonResponseCharacterDetailResponse = {
 };
 
 /**
+ * 보관 캐릭터 복구 응답
+ */
+export type CharacterRestoreResponse = {
+    /**
+     * 복구된 캐릭터 ID
+     */
+    id?: string;
+    /**
+     * 복구된 캐릭터 상태
+     */
+    status?: 'ACTIVE' | 'ARCHIVED';
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterRestoreResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterRestoreResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * AI Worker 분석 작업 진행 단계 갱신 요청
  */
 export type WorkerAnalysisJobProgressRequest = {
@@ -2591,6 +2631,42 @@ export type UpdateCharacterResponses = {
 
 export type UpdateCharacterResponse = UpdateCharacterResponses[keyof UpdateCharacterResponses];
 
+export type RestoreCharacterData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}/restore';
+};
+
+export type RestoreCharacterErrors = {
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 보관 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 같은 작품 안의 캐릭터 이름 중복
+     */
+    409: CommonErrorResponse;
+};
+
+export type RestoreCharacterError = RestoreCharacterErrors[keyof RestoreCharacterErrors];
+
+export type RestoreCharacterResponses = {
+    /**
+     * 캐릭터 복구 성공
+     */
+    200: CommonResponseCharacterRestoreResponse;
+};
+
+export type RestoreCharacterResponse = RestoreCharacterResponses[keyof RestoreCharacterResponses];
+
 export type UpdateProgressData = {
     body: WorkerAnalysisJobProgressRequest;
     path: {
@@ -2712,6 +2788,50 @@ export type GetCharactersResponses = {
 };
 
 export type GetCharactersResponse = GetCharactersResponses[keyof GetCharactersResponses];
+
+export type GetArchivedCharactersData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        /**
+         * 0부터 시작하는 페이지 번호
+         */
+        page?: number;
+        /**
+         * 페이지 크기. 1~24 사이로 요청합니다.
+         */
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/characters/archived';
+};
+
+export type GetArchivedCharactersErrors = {
+    /**
+     * 페이지 번호 또는 크기 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetArchivedCharactersError = GetArchivedCharactersErrors[keyof GetArchivedCharactersErrors];
+
+export type GetArchivedCharactersResponses = {
+    /**
+     * 보관 캐릭터 목록 조회 성공
+     */
+    200: CommonResponsePageResponseCharacterSummaryResponse;
+};
+
+export type GetArchivedCharactersResponse = GetArchivedCharactersResponses[keyof GetArchivedCharactersResponses];
 
 export type GetAnalysisJobData = {
     body?: never;

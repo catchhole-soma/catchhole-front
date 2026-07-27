@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteWork, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, signup, updateCharacter, updateEpisode, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisode } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodeData, UploadEpisodeError, UploadEpisodeResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteWork, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, restoreCharacter, signup, updateCharacter, updateEpisode, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisode } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodeData, UploadEpisodeError, UploadEpisodeResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -642,6 +642,28 @@ export const updateCharacterMutation = (options?: Partial<Options<UpdateCharacte
     return mutationOptions;
 };
 
+export const restoreCharacterMutationKey = (options?: Partial<Options<RestoreCharacterData>>) => createMutationKey('restoreCharacter', options);
+
+/**
+ * 보관 캐릭터 복구
+ *
+ * 보관된 캐릭터의 설정 이력과 원문 근거는 유지한 채 상태를 ARCHIVED에서 ACTIVE로 변경합니다.
+ */
+export const restoreCharacterMutation = (options?: Partial<Options<RestoreCharacterData>>): UseMutationOptions<RestoreCharacterResponse, RestoreCharacterError, Options<RestoreCharacterData>> => {
+    const mutationOptions: UseMutationOptions<RestoreCharacterResponse, RestoreCharacterError, Options<RestoreCharacterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await restoreCharacter({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: restoreCharacterMutationKey(options)
+    };
+    return mutationOptions;
+};
+
 export const updateProgressMutationKey = (options?: Partial<Options<UpdateProgressData>>) => createMutationKey('updateProgress', options);
 
 /**
@@ -759,6 +781,58 @@ export const getCharactersInfiniteOptions = (options: Options<GetCharactersData>
             return data;
         },
         queryKey: getCharactersInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getArchivedCharactersQueryKey = (options: Options<GetArchivedCharactersData>) => createQueryKey('getArchivedCharacters', options);
+
+/**
+ * 보관 캐릭터 목록 조회
+ *
+ * 본인 작품의 ARCHIVED 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다.
+ */
+export const getArchivedCharactersOptions = (options: Options<GetArchivedCharactersData>) => queryOptions<GetArchivedCharactersResponse, GetArchivedCharactersError, GetArchivedCharactersResponse, ReturnType<typeof getArchivedCharactersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getArchivedCharacters({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getArchivedCharactersQueryKey(options)
+});
+
+export const getArchivedCharactersInfiniteQueryKey = (options: Options<GetArchivedCharactersData>): QueryKey<Options<GetArchivedCharactersData>> => createQueryKey('getArchivedCharacters', options, true);
+
+/**
+ * 보관 캐릭터 목록 조회
+ *
+ * 본인 작품의 ARCHIVED 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다.
+ */
+export const getArchivedCharactersInfiniteOptions = (options: Options<GetArchivedCharactersData>) => {
+    const opts = infiniteQueryOptions<GetArchivedCharactersResponse, GetArchivedCharactersError, InfiniteData<GetArchivedCharactersResponse>, QueryKey<Options<GetArchivedCharactersData>>, number | Pick<QueryKey<Options<GetArchivedCharactersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetArchivedCharactersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getArchivedCharacters({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getArchivedCharactersInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
