@@ -700,7 +700,7 @@ function ArchivedCharactersLayer({
             </div>
           )}
 
-          {!loading && error && (
+          {!loading && error && characters.length === 0 && (
             <div role="alert" style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
               <AlertCircle size={24} color={C.danger} />
               <span>{error}</span>
@@ -716,8 +716,13 @@ function ArchivedCharactersLayer({
             </div>
           )}
 
-          {!loading && !error && characters.length > 0 && (
+          {!loading && characters.length > 0 && (
             <>
+              {error && (
+                <div role="alert" style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12 }}>
+                  {error}
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {characters.map(character => (
                   <div

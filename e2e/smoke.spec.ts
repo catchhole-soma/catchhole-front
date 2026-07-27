@@ -1417,6 +1417,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   let characterName = '수아';
   let roleLabel = '주인공';
   let archived = false;
+  let restoreAttempt = 0;
   let updateAttempt = 0;
   let updateBody: Record<string, unknown> | undefined;
   let detailRequestCount = 0;
@@ -1636,6 +1637,18 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
     if (pathname.endsWith(`/works/${workId}/characters/char-1/restore`) && method === 'PATCH') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      if (restoreAttempt++ === 0) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '같은 이름의 캐릭터가 이미 존재합니다.',
+            data: null,
+            error: { code: 'CHARACTER_NAME_DUPLICATED', status: 409, details: [] },
+          }),
+        });
+      }
       archived = false;
       return route.fulfill({
         status: 200,
@@ -1916,6 +1929,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
   await expect(page).toHaveURL(/modal=character-archive/);
   const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await expect(archiveDialog.getByRole('alert')).toContainText('같은 이름의 캐릭터가 이미 존재합니다.');
   await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
   await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
   await expect(page.getByText('캐릭터를 복구했습니다.', { exact: true })).toBeVisible();
