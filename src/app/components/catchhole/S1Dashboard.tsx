@@ -9,7 +9,7 @@ import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { UserMenu } from './UserMenu';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
-  Settings, Shield, OctagonAlert, AlertTriangle, Plus,
+  Shield, OctagonAlert, AlertTriangle, Plus,
   Upload, ChevronRight, Scale, Scroll,
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
@@ -21,6 +21,7 @@ import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { SettingBookDeleteModal } from './SettingBookDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
+import { createInitialDemoCharacters } from './character/demoCharacters';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -2955,6 +2956,7 @@ export default function S1Dashboard() {
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
   const selectedCharEditing = selectedCharDetail !== null && searchParams.get('mode') === 'edit';
+  const characterArchiveOpen = searchParams.get('modal') === 'character-archive';
   const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
     if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
     else {
@@ -2976,6 +2978,14 @@ export default function S1Dashboard() {
   const setSelectedCharEditing = (editing: boolean) => setSearchParams(prev => {
     if (editing) prev.set('mode', 'edit');
     else prev.delete('mode');
+    return prev;
+  });
+  const setCharacterArchiveOpen = (open: boolean) => setSearchParams(prev => {
+    if (open) prev.set('modal', 'character-archive');
+    else prev.delete('modal');
+    prev.delete('charId');
+    prev.delete('mode');
+    prev.delete('factId');
     return prev;
   });
 
@@ -3064,7 +3074,10 @@ export default function S1Dashboard() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
-  const [charEditMode, setCharEditMode] = useState(false);
+  const [demoCharacters, setDemoCharacters] = useState(createInitialDemoCharacters);
+  const [demoArchivedCharacters, setDemoArchivedCharacters] = useState<
+    ReturnType<typeof createInitialDemoCharacters>
+  >([]);
   const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info'; at: number }[]>([]);
   const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
@@ -3356,7 +3369,6 @@ export default function S1Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <BtnG label={charEditMode ? '완료' : '편집'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
                     <BtnP label="회차 올리기" onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
@@ -3390,10 +3402,16 @@ export default function S1Dashboard() {
                           workId={effectiveWorkId}
                           selectedCharacterId={selectedCharDetail}
                           isEditing={selectedCharEditing}
-                          openInEditMode={charEditMode}
                           demoMode={demoMode}
+                          archiveOpen={characterArchiveOpen}
+                          demoCharacters={demoCharacters}
+                          demoArchivedCharacters={demoArchivedCharacters}
+                          setDemoCharacters={setDemoCharacters}
+                          setDemoArchivedCharacters={setDemoArchivedCharacters}
                           onOpen={openCharDetail}
                           onClose={() => setSelectedCharDetail(null)}
+                          onArchiveOpen={() => setCharacterArchiveOpen(true)}
+                          onArchiveClose={() => setCharacterArchiveOpen(false)}
                           onEditChange={setSelectedCharEditing}
                           onAnalyze={() => navigate('/episode-upload', 'push-right')}
                         />

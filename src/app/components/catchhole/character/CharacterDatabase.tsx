@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import {
@@ -17,10 +18,13 @@ import {
 } from 'lucide-react';
 import {
   deleteCharacterMutation,
+  getArchivedCharactersOptions,
+  getArchivedCharactersQueryKey,
   getCharacterOptions,
   getCharacterQueryKey,
   getCharactersOptions,
   getCharactersQueryKey,
+  restoreCharacterMutation,
   updateCharacterMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
@@ -70,10 +74,16 @@ interface Props {
   workId: string;
   selectedCharacterId: string | null;
   isEditing: boolean;
-  openInEditMode?: boolean;
   demoMode: boolean;
+  archiveOpen: boolean;
+  demoCharacters: CharacterDetailResponse[];
+  demoArchivedCharacters: CharacterDetailResponse[];
+  setDemoCharacters: Dispatch<SetStateAction<CharacterDetailResponse[]>>;
+  setDemoArchivedCharacters: Dispatch<SetStateAction<CharacterDetailResponse[]>>;
   onOpen: (characterId: string, edit: boolean) => void;
   onClose: () => void;
+  onArchiveOpen: () => void;
+  onArchiveClose: () => void;
   onEditChange: (editing: boolean) => void;
   onAnalyze: () => void;
 }
@@ -93,93 +103,6 @@ function colorFor(id: string): string {
   const hash = Array.from(id).reduce((value, char) => value + char.charCodeAt(0), 0);
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
-
-function setting(
-  id: string,
-  key: string,
-  displayName: string,
-  value: string,
-  valueType: SettingValueType = 'STRING',
-  properties: Array<{ key: string; displayName: string; value: string; valueType?: SettingValueType }> = [],
-): CharacterSettingResponse {
-  return {
-    characterFactId: id,
-    key,
-    displayName,
-    value,
-    valueType,
-    properties: properties.map(property => ({
-      key: property.key,
-      displayName: property.displayName,
-      value: property.value,
-      valueType: property.valueType ?? 'STRING',
-    })),
-    hasEvidence: true,
-  };
-}
-
-const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
-  {
-    id: 'sua',
-    name: '수아',
-    roleLabel: '주인공',
-    currentAge: 23,
-    currentAgeFact: { characterFactId: 'sua-age', hasEvidence: true },
-    currentLevel: 15,
-    currentLevelFact: { characterFactId: 'sua-level', hasEvidence: true },
-    firstAppearanceEpisode: { id: 'demo-episode-1', episodeNo: 1 },
-    profile: [
-      setting('sua-gender', 'profile.gender', '성별', '여성'),
-      setting('sua-species', 'profile.species', '종족', '인간'),
-      setting('sua-affiliation', 'profile.affiliation', '소속', '왕립 검술학교'),
-      setting('sua-occupation', 'profile.occupation', '직업', '검사 지망생'),
-      setting('sua-eye', 'profile.eye_color', '눈 색깔', '갈색'),
-      setting('sua-description', 'profile.description', '설명', '왕립 검술학교에 재학 중인 검사 지망생'),
-    ],
-    stats: [
-      setting('sua-strength', 'stats.strength', '근력', '42', 'NUMBER'),
-      setting('sua-agility', 'stats.agility', '민첩', '58', 'NUMBER'),
-      setting('sua-mana', 'stats.mana', '마력', '31', 'NUMBER'),
-    ],
-    skills: [
-      setting('sua-skill-1', 'skill.basic_sword', '기본 검술', 'Lv.3', 'JSON', [
-        { key: 'name', displayName: '이름', value: '기본 검술' },
-        { key: 'level', displayName: '레벨', value: '3', valueType: 'NUMBER' },
-      ]),
-      setting('sua-skill-2', 'skill.magic_sense', '마력 감지', 'Lv.1', 'JSON', [
-        { key: 'name', displayName: '이름', value: '마력 감지' },
-        { key: 'level', displayName: '레벨', value: '1', valueType: 'NUMBER' },
-      ]),
-    ],
-    items: [
-      setting('sua-item-1', 'item.training_sword', '훈련용 검', '1개', 'JSON', [
-        { key: 'name', displayName: '이름', value: '훈련용 검' },
-        { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
-      ]),
-      setting('sua-item-2', 'item.student_id', '학생증', '보유', 'JSON', [
-        { key: 'name', displayName: '이름', value: '학생증' },
-        { key: 'state', displayName: '상태', value: '보유' },
-      ]),
-    ],
-    statuses: [
-      setting('sua-status', 'status.normal', '정상', '정상', 'JSON', [
-        { key: 'name', displayName: '이름', value: '정상' },
-      ]),
-    ],
-  },
-  {
-    id: 'min', name: '강민준', roleLabel: '남자주인공', currentAge: 28, currentLevel: 21,
-    firstAppearanceEpisode: { id: 'demo-episode-2', episodeNo: 2 },
-    profile: [setting('min-job', 'profile.occupation', '직업', '왕실 기사')],
-    stats: [], skills: [], items: [], statuses: [],
-  },
-  {
-    id: 'lena', name: '이레나', roleLabel: '라이벌', currentAge: 24, currentLevel: 18,
-    firstAppearanceEpisode: { id: 'demo-episode-3', episodeNo: 3 },
-    profile: [setting('lena-job', 'profile.occupation', '직업', '마법 연구원')],
-    stats: [], skills: [], items: [], statuses: [],
-  },
-];
 
 function toSummary(detail: CharacterDetailResponse): CharacterSummaryResponse {
   const representative = detail.profile?.find(item => item.key === 'profile.occupation')
@@ -689,25 +612,185 @@ function ConfirmLayer({
   );
 }
 
+function ArchivedCharactersLayer({
+  characters,
+  loading,
+  error,
+  page,
+  totalPages,
+  restoringCharacterId,
+  onClose,
+  onRetry,
+  onRestore,
+  onPageChange,
+}: {
+  characters: CharacterSummaryResponse[];
+  loading: boolean;
+  error: string | null;
+  page: number;
+  totalPages: number;
+  restoringCharacterId: string | null;
+  onClose: () => void;
+  onRetry: () => void;
+  onRestore: (characterId: string) => void;
+  onPageChange: (page: number) => void;
+}) {
+  const restoring = restoringCharacterId !== null;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      data-testid="character-archive-backdrop"
+      onClick={() => {
+        if (!restoring) onClose();
+      }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 210, padding: '48px 20px',
+        background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start',
+        justifyContent: 'center', overflowY: 'auto',
+      }}
+    >
+      <motion.div
+        role="dialog"
+        aria-label="보관된 캐릭터"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        onClick={event => event.stopPropagation()}
+        style={{
+          width: 680, maxWidth: 'calc(100vw - 40px)', borderRadius: 12,
+          background: C.surface, border: `1px solid ${C.border}`,
+          boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden',
+        }}
+      >
+        <div style={{
+          padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 9, background: C.primary + '18',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Archive size={18} color={C.primary} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: C.t1, fontSize: 17, fontWeight: 700 }}>보관된 캐릭터</div>
+            <div style={{ color: C.t3, fontSize: 11, marginTop: 3 }}>
+              삭제한 캐릭터를 설정 이력과 원문 근거 그대로 복구할 수 있습니다.
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="보관함 닫기"
+            onClick={onClose}
+            disabled={restoring}
+            style={{
+              background: 'none', border: 'none', color: C.t3,
+              cursor: restoring ? 'default' : 'pointer', padding: 5, lineHeight: 0,
+            }}
+          >
+            <X size={19} />
+          </button>
+        </div>
+
+        <div style={{ padding: 24, minHeight: 250 }}>
+          {loading && (
+            <div style={{ height: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
+              <Loader2 size={18} className="spin" /> 보관된 캐릭터를 불러오는 중입니다.
+            </div>
+          )}
+
+          {!loading && error && (
+            <div role="alert" style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
+              <AlertCircle size={24} color={C.danger} />
+              <span>{error}</span>
+              <ModalButton onClick={onRetry}><RefreshCw size={13} /> 다시 시도</ModalButton>
+            </div>
+          )}
+
+          {!loading && !error && characters.length === 0 && (
+            <div style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <Archive size={28} color={C.t3} />
+              <strong style={{ color: C.t1, fontSize: 15 }}>보관된 캐릭터가 없습니다</strong>
+              <span style={{ color: C.t3, fontSize: 12 }}>삭제한 캐릭터가 이곳에 표시됩니다.</span>
+            </div>
+          )}
+
+          {!loading && !error && characters.length > 0 && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {characters.map(character => (
+                  <div
+                    key={character.id}
+                    style={{
+                      minHeight: 70, padding: '12px 14px', borderRadius: 8,
+                      border: `1px solid ${C.border}`, background: C.bg,
+                      display: 'flex', alignItems: 'center', gap: 12,
+                    }}
+                  >
+                    <Avatar id={character.id ?? character.name ?? ''} name={character.name ?? ''} size={40} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: C.t1, fontSize: 13, fontWeight: 650 }}>{character.name}</div>
+                      <div style={{ color: C.t3, fontSize: 11, marginTop: 4 }}>
+                        나이 {character.currentAge == null ? '—' : `${character.currentAge}세`}
+                        {' · '}
+                        첫 등장 {character.firstAppearanceEpisodeNo == null ? '—' : `${character.firstAppearanceEpisodeNo}화`}
+                      </div>
+                    </div>
+                    <ModalButton
+                      primary
+                      disabled={restoring}
+                      onClick={() => character.id && onRestore(character.id)}
+                    >
+                      {restoringCharacterId === character.id && <Loader2 size={13} className="spin" />}
+                      복구
+                    </ModalButton>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <PageNavigation
+                  page={page}
+                  totalPages={totalPages}
+                  disabled={restoring}
+                  onPageChange={onPageChange}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function CharacterDatabase({
   workId,
   selectedCharacterId,
   isEditing,
-  openInEditMode = false,
   demoMode,
+  archiveOpen,
+  demoCharacters,
+  demoArchivedCharacters,
+  setDemoCharacters,
+  setDemoArchivedCharacters,
   onOpen,
   onClose,
+  onArchiveOpen,
+  onArchiveClose,
   onEditChange,
   onAnalyze,
 }: Props) {
   const queryClient = useQueryClient();
-  const [demoCharacters, setDemoCharacters] = useState(INITIAL_DEMO_CHARACTERS);
   const [draft, setDraft] = useState<CharacterDraft | null>(null);
   const [confirming, setConfirming] = useState<'delete' | 'save' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedEvidenceFactId, setSelectedEvidenceFactId] = useState<string | null>(null);
   const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
+  const [archivePage, setArchivePage] = useState(0);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [restoringCharacterId, setRestoringCharacterId] = useState<string | null>(null);
+  const draftCharacterIdRef = useRef<string | null>(null);
   const {
     containerRef,
     contentStartRef,
@@ -731,6 +814,10 @@ export function CharacterDatabase({
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
     enabled: !demoMode && Boolean(workId) && Boolean(selectedCharacterId),
+  });
+  const archivedCharactersQuery = useQuery({
+    ...getArchivedCharactersOptions({ path: { workId }, query: { page: archivePage, size: 12 } }),
+    enabled: !demoMode && Boolean(workId) && archiveOpen,
   });
 
   const updateMutation = useMutation({
@@ -756,7 +843,10 @@ export function CharacterDatabase({
   const deleteMutation = useMutation({
     ...deleteCharacterMutation(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
+        queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+      ]);
       setConfirming(null);
       setFeedback('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.');
       onClose();
@@ -764,6 +854,24 @@ export function CharacterDatabase({
     onError: error => {
       setConfirming(null);
       setActionError(errorMessage(error, '캐릭터를 보관하지 못했습니다.'));
+    },
+  });
+
+  const restoreMutation = useMutation({
+    ...restoreCharacterMutation(),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
+        queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+      ]);
+      setArchiveError(null);
+      setFeedback('캐릭터를 복구했습니다.');
+    },
+    onError: error => {
+      setArchiveError(errorMessage(error, '캐릭터를 복구하지 못했습니다.'));
+    },
+    onSettled: () => {
+      setRestoringCharacterId(null);
     },
   });
 
@@ -781,6 +889,17 @@ export function CharacterDatabase({
   const totalPages = demoMode
     ? Math.ceil(totalElements / pageSize)
     : characterPage?.totalPages ?? 0;
+  const demoArchivedSummaries = useMemo(
+    () => demoArchivedCharacters.map(toSummary),
+    [demoArchivedCharacters],
+  );
+  const archivedCharacterPage = archivedCharactersQuery.data?.data;
+  const archivedCharacters = demoMode
+    ? demoArchivedSummaries.slice(archivePage * 12, (archivePage + 1) * 12)
+    : archivedCharacterPage?.content ?? [];
+  const archivedTotalPages = demoMode
+    ? Math.ceil(demoArchivedSummaries.length / 12)
+    : archivedCharacterPage?.totalPages ?? 0;
 
   useEffect(() => {
     setFirstVisibleIndex(0);
@@ -804,11 +923,34 @@ export function CharacterDatabase({
   ]);
 
   useEffect(() => {
-    if (isEditing && detail) setDraft(toDraft(detail));
-    if (!isEditing) setDraft(null);
+    if (!isEditing) {
+      setDraft(null);
+      draftCharacterIdRef.current = null;
+      setActionError(null);
+      setSelectedEvidenceFactId(null);
+      return;
+    }
+    if (!detail || !selectedCharacterId || draftCharacterIdRef.current === selectedCharacterId) {
+      return;
+    }
+    setDraft(toDraft(detail));
+    draftCharacterIdRef.current = selectedCharacterId;
     setActionError(null);
     setSelectedEvidenceFactId(null);
-  }, [detail, isEditing]);
+  }, [detail, isEditing, selectedCharacterId]);
+
+  useEffect(() => {
+    if (!archiveOpen) {
+      setArchivePage(0);
+      setArchiveError(null);
+      return;
+    }
+    if (archivedTotalPages === 0 && archivePage !== 0) {
+      setArchivePage(0);
+    } else if (archivedTotalPages > 0 && archivePage >= archivedTotalPages) {
+      setArchivePage(archivedTotalPages - 1);
+    }
+  }, [archiveOpen, archivePage, archivedTotalPages]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -887,7 +1029,10 @@ export function CharacterDatabase({
   const archive = () => {
     if (!selectedCharacterId) return;
     if (demoMode) {
+      const archivedCharacter = demoCharacters.find(character => character.id === selectedCharacterId);
+      if (!archivedCharacter) return;
       setDemoCharacters(current => current.filter(character => character.id !== selectedCharacterId));
+      setDemoArchivedCharacters(current => [archivedCharacter, ...current]);
       setConfirming(null);
       setFeedback('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.');
       onClose();
@@ -896,9 +1041,28 @@ export function CharacterDatabase({
     deleteMutation.mutate({ path: { workId, characterId: selectedCharacterId } });
   };
 
+  const restore = (characterId: string) => {
+    setArchiveError(null);
+    setRestoringCharacterId(characterId);
+    if (demoMode) {
+      const restoredCharacter = demoArchivedCharacters.find(character => character.id === characterId);
+      if (!restoredCharacter) {
+        setRestoringCharacterId(null);
+        setArchiveError('복구할 캐릭터를 찾을 수 없습니다.');
+        return;
+      }
+      setDemoArchivedCharacters(current => current.filter(character => character.id !== characterId));
+      setDemoCharacters(current => [restoredCharacter, ...current]);
+      setRestoringCharacterId(null);
+      setFeedback('캐릭터를 복구했습니다.');
+      return;
+    }
+    restoreMutation.mutate({ path: { workId, characterId } });
+  };
+
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
   const listError = !demoMode && charactersQuery.isError;
-  const mutationPending = updateMutation.isPending || deleteMutation.isPending;
+  const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending;
 
   return (
     <>
@@ -930,12 +1094,14 @@ export function CharacterDatabase({
       )}
 
       <div ref={containerRef} style={{ width: '100%', maxWidth: 1680 }}>
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 DB</h2>
-          <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
-            캐릭터 카드를 선택하면 현재 설정과 원문 근거를 확인할 수 있습니다.
-            {openInEditMode && <span style={{ color: C.primary, marginLeft: 8 }}>편집할 캐릭터를 선택해 주세요.</span>}
-          </p>
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 DB</h2>
+            <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
+              캐릭터 카드를 선택하면 현재 설정과 원문 근거를 확인할 수 있습니다.
+            </p>
+          </div>
+          <ModalButton onClick={onArchiveOpen}><Archive size={14} /> 보관된 캐릭터</ModalButton>
         </div>
 
         <div ref={contentStartRef} />
@@ -977,7 +1143,7 @@ export function CharacterDatabase({
                   key={character.id}
                   character={character}
                   selected={selectedCharacterId === character.id}
-                  onClick={() => character.id && onOpen(character.id, openInEditMode)}
+                  onClick={() => character.id && onOpen(character.id, false)}
                 />
               ))}
             </div>
@@ -992,6 +1158,28 @@ export function CharacterDatabase({
           </div>
         )}
       </div>
+
+      {archiveOpen && (
+        <ArchivedCharactersLayer
+          characters={archivedCharacters}
+          loading={!demoMode && archivedCharactersQuery.isPending}
+          error={archiveError ?? (
+            !demoMode && archivedCharactersQuery.isError
+              ? errorMessage(archivedCharactersQuery.error, '보관된 캐릭터를 불러오지 못했습니다.')
+              : null
+          )}
+          page={archivePage}
+          totalPages={archivedTotalPages}
+          restoringCharacterId={restoringCharacterId}
+          onClose={onArchiveClose}
+          onRetry={() => {
+            setArchiveError(null);
+            void archivedCharactersQuery.refetch();
+          }}
+          onRestore={restore}
+          onPageChange={setArchivePage}
+        />
+      )}
 
       {selectedCharacterId && (
         <motion.div

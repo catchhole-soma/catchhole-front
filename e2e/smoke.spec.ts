@@ -91,6 +91,22 @@ test('데모 모드는 access token 없이 열리고 이름만 수정해도 설�
 
   await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '관계도', exact: true }).click();
+  await page.getByRole('button', { name: '캐릭터 DB', exact: true }).click();
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: /수아 이름 수정/ }).click();
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
+  await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('수아 이름 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await archiveDialog.getByRole('button', { name: '보관함 닫기' }).click();
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -1396,13 +1412,14 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
     .toBeNull();
 });
 
-test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 원고 분석으로 이동한다', async ({ page }) => {
+test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보관함에서 복구한다', async ({ page }) => {
   const workId = TEST_WORK_ID;
   let characterName = '수아';
   let roleLabel = '주인공';
   let archived = false;
   let updateAttempt = 0;
   let updateBody: Record<string, unknown> | undefined;
+  let detailRequestCount = 0;
   let releaseUpdate!: () => void;
   const updateGate = new Promise<void>(resolve => {
     releaseUpdate = resolve;
@@ -1568,12 +1585,54 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       });
     }
 
+    if (pathname.endsWith(`/works/${workId}/characters/archived`) && method === 'GET') {
+      const content = archived ? [{
+        id: 'char-1',
+        name: characterName,
+        currentAge: 23,
+        representativeAttributeLabel: '레벨',
+        representativeAttributeValue: '15',
+        firstAppearanceEpisodeNo: null,
+      }] : [];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: 0,
+            size: 12,
+            totalElements: content.length,
+            totalPages: content.length === 0 ? 0 : 1,
+            hasNext: false,
+          },
+          error: null,
+        }),
+      });
+    }
+
     if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      detailRequestCount += 1;
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data: detailResponse(), error: null }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/char-1/restore`) && method === 'PATCH') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      archived = false;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'char-1', status: 'ACTIVE' },
+          error: null,
+        }),
       });
     }
 
@@ -1692,6 +1751,13 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
   await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
+  const detailRequestsBeforeRefetch = detailRequestCount;
+  await page.evaluate(async () => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    await queryClient.invalidateQueries();
+  });
+  await expect.poll(() => detailRequestCount).toBeGreaterThan(detailRequestsBeforeRefetch);
+  await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
   const confirmSaveButton = saveConfirm.getByRole('button', { name: '저장', exact: true });
@@ -1829,13 +1895,20 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
 
   await expect(page.getByText('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('등록된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+  await expect(page).toHaveURL(/modal=character-archive/);
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await expect(page.getByText('캐릭터를 복구했습니다.', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByText('보관된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '보관함 닫기' }).click();
+  await expect(page.getByRole('button', { name: /수아 수정/ })).toBeVisible();
   expect(characterAuthorizationHeaders).not.toHaveLength(0);
   expect(characterAuthorizationHeaders.every(value => value === 'Bearer character-token')).toBe(true);
   expect(characterRequestPaths).not.toHaveLength(0);
   expect(characterRequestPaths.every(path => path.includes(`/works/${workId}/characters`))).toBe(true);
 
-  await page.getByRole('button', { name: '원고 분석하기', exact: true }).click();
-  await expect(page).toHaveURL(/\/episode-upload$/);
 });
 
 test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조정한다', async ({ page }) => {
