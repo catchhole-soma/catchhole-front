@@ -263,11 +263,11 @@ function validateTypedValue(value: string | null | undefined, valueType: Setting
   }
 }
 
-function toRequestSettings(settings: DraftSetting[]): CharacterSettingUpdateRequest[] {
+function toRequestSettings(settings: DraftSetting[], complex: boolean): CharacterSettingUpdateRequest[] {
   return settings.map(item => {
     // 복합 설정의 valueType은 valueJson 전체 타입이다. 화면용 factValue(Lv.3, 보유 등)는
-    // 일반 문자열일 수 있으므로 세부 properties가 없을 때만 대표값 자체를 타입 검증한다.
-    if (item.properties.length === 0) {
+    // 일반 문자열일 수 있으므로 대표값은 검증하지 않고, 세부 properties만 각 타입대로 검증한다.
+    if (!complex) {
       validateTypedValue(item.value, item.valueType, item.displayName);
     }
     item.properties.forEach(property => validateTypedValue(
@@ -296,25 +296,51 @@ function toRequest(draft: CharacterDraft): CharacterUpdateRequest {
     currentAge: optionalInteger(draft.currentAge, 0, '현재 나이'),
     currentLevel: optionalInteger(draft.currentLevel, 0, '현재 레벨'),
     firstAppearanceEpisodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차'),
-    profile: toRequestSettings(draft.profile),
-    stats: toRequestSettings(draft.stats),
-    skills: toRequestSettings(draft.skills),
-    items: toRequestSettings(draft.items),
-    statuses: toRequestSettings(draft.statuses),
+    profile: toRequestSettings(draft.profile, false),
+    stats: toRequestSettings(draft.stats, false),
+    skills: toRequestSettings(draft.skills, true),
+    items: toRequestSettings(draft.items, true),
+    statuses: toRequestSettings(draft.statuses, true),
   };
 }
 
+function isUnchangedSetting(previous: CharacterSettingResponse | undefined, draft: DraftSetting): boolean {
+  if (!previous || previous.key !== draft.key || (previous.valueType ?? 'STRING') !== draft.valueType) {
+    return false;
+  }
+  if ((previous.value ?? null) !== nullable(draft.value)) return false;
+
+  const previousProperties = previous.properties ?? [];
+  if (previousProperties.length !== draft.properties.length) return false;
+  return draft.properties.every((property, index) => {
+    const previousProperty = previousProperties[index];
+    return previousProperty?.key === property.key
+      && (previousProperty.value ?? null) === nullable(property.value ?? '')
+      && (previousProperty.valueType ?? 'STRING') === property.valueType;
+  });
+}
+
 function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDraft): CharacterDetailResponse {
-  const toResponse = (items: DraftSetting[]): CharacterSettingResponse[] => items.map(item => ({
-    characterFactId: item.characterFactId ?? `demo-fact-${item.key}`,
-    key: item.key,
-    displayName: item.properties.find(property => property.key === 'name')?.value
-      ?? item.displayName,
-    value: nullable(item.value),
-    valueType: item.valueType,
-    properties: item.properties,
-    hasEvidence: false,
-  }));
+  const toResponse = (
+    items: DraftSetting[],
+    previousItems: CharacterSettingResponse[] | undefined,
+  ): CharacterSettingResponse[] => items.map(item => {
+    const previousItem = previousItems?.find(candidate => (
+      candidate.characterFactId === item.characterFactId
+    ));
+    return {
+      characterFactId: item.characterFactId ?? `demo-fact-${item.key}`,
+      key: item.key,
+      displayName: item.properties.find(property => property.key === 'name')?.value
+        ?? item.displayName,
+      value: nullable(item.value),
+      valueType: item.valueType,
+      properties: item.properties,
+      hasEvidence: isUnchangedSetting(previousItem, item)
+        ? previousItem?.hasEvidence ?? false
+        : false,
+    };
+  });
   const currentAge = optionalInteger(draft.currentAge, 0, '현재 나이');
   const currentLevel = optionalInteger(draft.currentLevel, 0, '현재 레벨');
   return {
@@ -336,11 +362,11 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     firstAppearanceEpisode: draft.firstAppearanceEpisodeNo.trim()
       ? { episodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차') ?? undefined }
       : undefined,
-    profile: toResponse(draft.profile),
-    stats: toResponse(draft.stats),
-    skills: toResponse(draft.skills),
-    items: toResponse(draft.items),
-    statuses: toResponse(draft.statuses),
+    profile: toResponse(draft.profile, previous.profile),
+    stats: toResponse(draft.stats, previous.stats),
+    skills: toResponse(draft.skills, previous.skills),
+    items: toResponse(draft.items, previous.items),
+    statuses: toResponse(draft.statuses, previous.statuses),
   };
 }
 
@@ -458,7 +484,9 @@ function SimpleSettingList({
           gridTemplateColumns: columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
           alignItems: 'center', gap: 10,
           borderRight: columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : 'none',
-          borderBottom: index < settings.length - columns ? `1px solid ${C.border}` : 'none',
+          borderBottom: Math.floor(index / columns) < Math.ceil(settings.length / columns) - 1
+            ? `1px solid ${C.border}`
+            : 'none',
         }}>
           <span style={{ color: C.t3, fontSize: 12 }}>{item.displayName ?? item.key}</span>
           <span style={{ color: C.t2, fontSize: 12, overflowWrap: 'anywhere' }}>{item.value || '—'}</span>
@@ -469,51 +497,6 @@ function SimpleSettingList({
           />
         </div>
       ))}
-    </div>
-  );
-}
-
-function ComplexSettingCards({
-  settings,
-  emptyLabel,
-  onEvidence,
-}: {
-  settings: CharacterSettingResponse[];
-  emptyLabel: string;
-  onEvidence: (characterFactId: string) => void;
-}) {
-  if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-      {settings.map((item, index) => {
-        const extraProperties = (item.properties ?? []).filter(property => property.key !== 'name');
-        return (
-          <div key={item.characterFactId ?? item.key ?? index} style={{
-            minHeight: 48, padding: '10px 12px', borderRadius: 7,
-            border: `1px solid ${C.border}`, background: '#22222D',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.displayName ?? item.key}
-              </div>
-              <div style={{ color: C.t3, fontSize: 10, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {extraProperties.length > 0
-                  ? extraProperties.map(property => `${property.displayName ?? property.key} ${property.value ?? '—'}`).join(' · ')
-                  : item.value || '—'}
-              </div>
-            </div>
-            {extraProperties.length > 0 && item.value && (
-              <span style={{ color: C.primary, fontSize: 12, fontWeight: 600 }}>{item.value}</span>
-            )}
-            <EvidenceButton
-              enabled={Boolean(item.hasEvidence && item.characterFactId)}
-              label={item.displayName ?? item.key ?? emptyLabel}
-              onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
-            />
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -548,7 +531,7 @@ function EditSettingList({
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: complex || columns === 1 ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))',
+      gridTemplateColumns: columns === 2 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
       gap: complex ? 8 : 0,
     }}>
       {settings.length === 0 && <div style={{ gridColumn: '1 / -1' }}><EmptyArea label={emptyLabel} /></div>}
@@ -566,7 +549,10 @@ function EditSettingList({
             gap: 8, alignItems: 'center', padding: complex ? 8 : '7px 12px',
             border: complex ? `1px solid ${C.border}` : 'none',
             borderRight: !complex && columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : undefined,
-            borderBottom: !complex && index < settings.length - columns ? `1px solid ${C.border}` : undefined,
+            borderBottom: !complex
+              && Math.floor(index / columns) < Math.ceil(settings.length / columns) - 1
+              ? `1px solid ${C.border}`
+              : undefined,
             borderRadius: complex ? 7 : 0,
           }}>
             {complex || editableName ? (
@@ -577,6 +563,13 @@ function EditSettingList({
                   const properties = [...item.properties];
                   if (namePropertyIndex >= 0) {
                     properties[namePropertyIndex] = { ...properties[namePropertyIndex], value: event.target.value };
+                  } else if (complex) {
+                    properties.push({
+                      key: 'name',
+                      displayName: '이름',
+                      value: event.target.value,
+                      valueType: 'STRING',
+                    });
                   }
                   onChange(index, { ...item, displayName: event.target.value, properties });
                 }}
@@ -608,24 +601,6 @@ function EditSettingList({
                 <X size={14} />
               </button>
             </div>
-            {complex && item.properties.filter(property => property.key !== 'name').map((property, propertyIndex) => {
-              const actualIndex = item.properties.findIndex(candidate => candidate === property);
-              return (
-                <div key={`${property.key}-${propertyIndex}`} style={{ gridColumn: '1 / 3', display: 'grid', gridTemplateColumns: '100px 1fr', gap: 8, alignItems: 'center' }}>
-                  <span style={{ color: C.t3, fontSize: 11 }}>{property.displayName}</span>
-                  <input
-                    aria-label={`${item.displayName} ${property.displayName}`}
-                    value={property.value ?? ''}
-                    onChange={event => {
-                      const properties = [...item.properties];
-                      properties[actualIndex] = { ...property, value: event.target.value };
-                      onChange(index, { ...item, properties });
-                    }}
-                    style={inputStyle}
-                  />
-                </div>
-              );
-            })}
           </div>
         );
       })}
@@ -923,6 +898,7 @@ export function CharacterDatabase({
 
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
   const listError = !demoMode && charactersQuery.isError;
+  const mutationPending = updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <>
@@ -1020,7 +996,10 @@ export function CharacterDatabase({
       {selectedCharacterId && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={onClose}
+          data-testid="character-modal-backdrop"
+          onClick={() => {
+            if (!mutationPending) onClose();
+          }}
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
         >
           <motion.div
@@ -1169,24 +1148,31 @@ export function CharacterDatabase({
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
                         <div>
                           <SectionTitle>스킬</SectionTitle>
-                          {isEditing && draft
-                            ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={setSelectedEvidenceFactId} />
-                            : <ComplexSettingCards settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={setSelectedEvidenceFactId} />}
+                          <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                            {isEditing && draft
+                              ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={setSelectedEvidenceFactId} />
+                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={setSelectedEvidenceFactId} />}
+                          </div>
                         </div>
                         <div>
                           <SectionTitle>아이템</SectionTitle>
-                          {isEditing && draft
-                            ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={setSelectedEvidenceFactId} />
-                            : <ComplexSettingCards settings={detail.items ?? []} emptyLabel="아이템" onEvidence={setSelectedEvidenceFactId} />}
+                          <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                            {isEditing && draft
+                              ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={setSelectedEvidenceFactId} />
+                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={setSelectedEvidenceFactId} />}
+                          </div>
                         </div>
                       </div>
 
                       <div>
                         <SectionTitle>상태</SectionTitle>
-                        <div style={{ borderRadius: 8, border: `1px solid ${C.warning}`, background: C.warning + '10', overflow: 'hidden' }}>
+                        <div
+                          data-testid="character-status-settings"
+                          style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}
+                        >
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={setSelectedEvidenceFactId} />
-                            : <ComplexSettingCards settings={detail.statuses ?? []} emptyLabel="상태" onEvidence={setSelectedEvidenceFactId} />}
+                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex columns={2} onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={setSelectedEvidenceFactId} />
+                            : <SimpleSettingList settings={detail.statuses ?? []} emptyLabel="상태" columns={2} onEvidence={setSelectedEvidenceFactId} />}
                         </div>
                       </div>
                     </div>

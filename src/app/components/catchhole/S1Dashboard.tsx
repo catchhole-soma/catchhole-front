@@ -2984,7 +2984,14 @@ export default function S1Dashboard() {
   const setRelGraphId = (id: RelGraphId) => setSearchParams(prev => { prev.set('relGraph', id); return prev; });
   const [showUpload, setShowUpload] = useState<false | 'settings' | 'episode' | 'new-work'>(false);
   const { works, refetch: refetchWorks } = useWorks();
-  const effectiveWorkId = workIdParam ?? selectedWork;
+  const demoMode = isDemoMode();
+  const restoredWorkId = selectedWorkInfo?.id === selectedWork ? selectedWork : '';
+  const requestedWorkId = workIdParam ?? (demoMode ? selectedWork : restoredWorkId);
+  const demoOnlyWorkId = ['detective', 'murim'].includes(requestedWorkId)
+    || requestedWorkId.startsWith('demo-');
+  const effectiveWorkId = demoMode || (Boolean(requestedWorkId) && !demoOnlyWorkId)
+    ? requestedWorkId
+    : '';
   const apiWork = works.find(work => work.id === effectiveWorkId);
   const selectedWorkDisplay = selectedWorkInfo?.id === effectiveWorkId
     ? selectedWorkInfo
@@ -3026,6 +3033,12 @@ export default function S1Dashboard() {
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
   }, [selectedWork, setSelectedWork, workIdParam]);
+
+  useEffect(() => {
+    if (!demoMode && !effectiveWorkId) {
+      navigate('/works', 'dissolve', undefined, { replace: true });
+    }
+  }, [demoMode, effectiveWorkId, navigate]);
 
   useEffect(() => {
     if (!apiWork) return;
@@ -3374,11 +3387,11 @@ export default function S1Dashboard() {
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
                         <CharacterDatabase
-                          workId={selectedWork}
+                          workId={effectiveWorkId}
                           selectedCharacterId={selectedCharDetail}
                           isEditing={selectedCharEditing}
                           openInEditMode={charEditMode}
-                          demoMode={isDemoMode()}
+                          demoMode={demoMode}
                           onOpen={openCharDetail}
                           onClose={() => setSelectedCharDetail(null)}
                           onEditChange={setSelectedCharEditing}

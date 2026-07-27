@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
+
 // 실제 로그인/작품선택(백엔드 연동)은 검증하지 않음 — accessToken을 직접 주입해
 // "이미 인증된 상태"만 흉내 내고, 그 상태에서 /dashboard 렌더링이 깨지지 않는지만 확인한다.
 test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ page }) => {
@@ -28,20 +30,67 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mock'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
-test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async ({ page }) => {
+test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
+  let characterRequestCount = 0;
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.includes('/characters')) characterRequestCount += 1;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'work-required@example.com',
+          displayName: '작품 선택 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : [];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
   await page.goto('/login');
-  await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
+  await page.evaluate(() => localStorage.setItem('accessToken', 'work-required-token'));
 
   await page.goto('/dashboard');
 
+  await expect(page).toHaveURL(/\/works$/);
+  expect(characterRequestCount).toBe(0);
+
+  await page.goto('/dashboard?workId=detective');
+
+  await expect(page).toHaveURL(/\/works$/);
+  expect(characterRequestCount).toBe(0);
+});
+
+test('데모 모드는 access token 없이 열리고 이름만 수정해도 설정 근거를 유지한다', async ({ page }) => {
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
+
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
+
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /수아/ }).click();
+  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const confirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await confirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -1092,7 +1141,7 @@ test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mock'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('백엔드 서버에 연결할 수 없습니다', { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('mock');
@@ -1141,10 +1190,10 @@ test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async (
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'valid-token'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('인증 정보를 확인하지 못했습니다.', { exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${TEST_WORK_ID}$`));
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
 
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
@@ -1348,11 +1397,18 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
 });
 
 test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 원고 분석으로 이동한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
   let characterName = '수아';
   let roleLabel = '주인공';
   let archived = false;
+  let updateAttempt = 0;
   let updateBody: Record<string, unknown> | undefined;
+  let releaseUpdate!: () => void;
+  const updateGate = new Promise<void>(resolve => {
+    releaseUpdate = resolve;
+  });
   const characterAuthorizationHeaders: string[] = [];
+  const characterRequestPaths: string[] = [];
 
   const detailResponse = () => ({
     id: 'char-1',
@@ -1398,15 +1454,71 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
         hasEvidence: true,
       },
     ],
-    skills: [],
-    items: [],
-    statuses: [],
+    skills: [{
+      characterFactId: 'fact-skill-1',
+      key: 'skill.생존_감각',
+      displayName: '생존 감각',
+      value: 'Lv.6',
+      valueType: 'JSON',
+      properties: [
+        { key: 'name', displayName: '이름', value: '생존 감각', valueType: 'STRING' },
+        { key: 'level', displayName: '레벨', value: '6', valueType: 'NUMBER' },
+      ],
+      hasEvidence: false,
+    }],
+    items: [{
+      characterFactId: 'fact-item-1',
+      key: 'item.치유_물약',
+      displayName: '치유 물약',
+      value: '1개',
+      valueType: 'JSON',
+      properties: [
+        { key: 'name', displayName: '이름', value: '치유 물약', valueType: 'STRING' },
+        { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
+      ],
+      hasEvidence: false,
+    }],
+    statuses: [
+      {
+        characterFactId: 'fact-status-1',
+        key: 'status.경상',
+        displayName: '경상',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', displayName: '이름', value: '경상', valueType: 'STRING' },
+          { key: 'severity', displayName: '심각도', value: '낮음', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-status-2',
+        key: 'status.회복_중',
+        displayName: '회복 중',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'severity', displayName: '심각도', value: '보통', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-status-3',
+        key: 'status.잠복',
+        displayName: '잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+        hasEvidence: false,
+      },
+    ],
   });
 
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
+    if (pathname.includes('/characters')) characterRequestPaths.push(pathname);
 
     if (pathname.endsWith('/auth/me')) {
       return route.fulfill({
@@ -1428,7 +1540,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       });
     }
 
-    if (pathname.endsWith('/works/detective/characters') && method === 'GET') {
+    if (pathname.endsWith(`/works/${workId}/characters`) && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       const content = archived ? [] : [{
         id: 'char-1',
@@ -1456,7 +1568,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       });
     }
 
-    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'GET') {
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       return route.fulfill({
         status: 200,
@@ -1465,9 +1577,22 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       });
     }
 
-    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'PATCH') {
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'PATCH') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       updateBody = request.postDataJSON() as Record<string, unknown>;
+      if (updateAttempt++ === 0) {
+        await updateGate;
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 설정을 저장하지 못했습니다.',
+            data: null,
+            error: { code: 'INTERNAL_SERVER_ERROR', status: 500, details: [] },
+          }),
+        });
+      }
       characterName = String(updateBody.name);
       roleLabel = String(updateBody.roleLabel);
       return route.fulfill({
@@ -1477,7 +1602,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
       });
     }
 
-    if (pathname.endsWith('/works/detective/characters/char-1') && method === 'DELETE') {
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'DELETE') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       archived = true;
       return route.fulfill({
@@ -1500,7 +1625,7 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'character-token'));
-  await page.goto('/dashboard?nav=settingDB&tab=characters');
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
 
   const characterCard = page.getByRole('button', { name: /수아/ });
   await expect(characterCard).toContainText('첫 등장');
@@ -1508,6 +1633,18 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await characterCard.click();
   await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
   await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
+  await expect(page.getByText('생존 감각', { exact: true })).toBeVisible();
+  await expect(page.getByText('Lv.6', { exact: true })).toBeVisible();
+  await expect(page.getByText('치유 물약', { exact: true })).toBeVisible();
+  await expect(page.getByText('1개', { exact: true })).toBeVisible();
+  await expect(page.getByText('경상', { exact: true })).toBeVisible();
+  await expect(page.getByText('회복 중', { exact: true })).toBeVisible();
+  await expect(page.getByText('잠복', { exact: true })).toBeVisible();
+  await expect(page.getByText('관찰 중', { exact: true })).toBeVisible();
+  await expect(page.getByText('활성', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('레벨 6', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('수량 1', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('심각도 낮음', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '현재 나이 원문 근거 보기' })).toBeVisible();
   await expect(page.getByRole('button', { name: '현재 레벨 원문 근거 보기' })).toBeVisible();
 
@@ -1522,6 +1659,27 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   expect(Math.abs((strengthBox?.y ?? 0) - (agilityBox?.y ?? 0))).toBeLessThan(2);
   expect(agilityBox?.x ?? 0).toBeGreaterThan(strengthBox?.x ?? 0);
 
+  const statusPanel = page.getByTestId('character-status-settings');
+  await expect(statusPanel).toHaveCSS('border-color', 'rgb(42, 42, 54)');
+  const statusRow = page.getByText('경상', { exact: true }).locator('..');
+  const recoveringStatusRow = page.getByText('회복 중', { exact: true }).locator('..');
+  const dormantStatusRow = page.getByText('잠복', { exact: true }).locator('..');
+  const [statusBox, recoveringStatusBox, dormantStatusBox] = await Promise.all([
+    statusRow.boundingBox(),
+    recoveringStatusRow.boundingBox(),
+    dormantStatusRow.boundingBox(),
+  ]);
+  expect(statusBox).not.toBeNull();
+  expect(recoveringStatusBox).not.toBeNull();
+  expect(dormantStatusBox).not.toBeNull();
+  expect(Math.abs((statusBox?.y ?? 0) - (recoveringStatusBox?.y ?? 0))).toBeLessThan(2);
+  expect(recoveringStatusBox?.x ?? 0).toBeGreaterThan(statusBox?.x ?? 0);
+  expect(dormantStatusBox?.y ?? 0).toBeGreaterThan(statusBox?.y ?? 0);
+  expect(Math.abs((statusBox?.x ?? 0) - (dormantStatusBox?.x ?? 0))).toBeLessThan(2);
+  await expect(statusRow).toHaveCSS('border-bottom-width', '1px');
+  await expect(recoveringStatusRow).toHaveCSS('border-bottom-width', '1px');
+  await expect(dormantStatusRow).toHaveCSS('border-bottom-width', '0px');
+
   await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
   await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '안내 닫기' }).click();
@@ -1530,6 +1688,45 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await page.getByRole('button', { name: '안내 닫기' }).click();
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByLabel('생존 감각 레벨', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
+  await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  const confirmSaveButton = saveConfirm.getByRole('button', { name: '저장', exact: true });
+  await confirmSaveButton.click();
+  await expect(confirmSaveButton).toBeDisabled();
+  await page.getByTestId('character-modal-backdrop').click({ position: { x: 5, y: 5 } });
+  await expect(page.getByText('수정 내용을 저장하시겠습니까?', { exact: true })).toBeVisible();
+  releaseUpdate();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
+
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const retryConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await retryConfirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  let saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  await expect(saveFeedback.locator('..')).toHaveCSS('position', 'fixed');
+  await expect(page.getByText('수아 이름만 수정', { exact: true }).first()).toBeVisible();
+  expect(updateBody).toMatchObject({
+    name: '수아 이름만 수정',
+    roleLabel: '주인공',
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+      },
+    ]),
+  });
+
+  await page.getByRole('button', { name: '알림 닫기' }).click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('상태 이름', { exact: true }).nth(1).fill('안정');
   await page.getByLabel('이름', { exact: true }).fill('수아 수정');
   await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
   await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
@@ -1539,15 +1736,14 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await page.getByLabel('스탯 이름', { exact: true }).fill('행운');
   await page.getByLabel('행운 값', { exact: true }).fill('7');
   await page.getByRole('button', { name: '상태 추가', exact: true }).click();
-  await page.getByLabel('상태 이름', { exact: true }).fill('부상');
+  await page.getByLabel('상태 이름', { exact: true }).last().fill('부상');
   await page.getByLabel('부상 값', { exact: true }).fill('경상');
   await page.getByRole('button', { name: '저장', exact: true }).click();
-  const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
-  await saveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  const secondSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await secondSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
 
-  const saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
   await expect(saveFeedback).toBeVisible();
-  await expect(saveFeedback.locator('..')).toHaveCSS('position', 'fixed');
   await expect(page.getByText('핵심 주인공', { exact: true }).first()).toBeVisible();
   expect(updateBody).toMatchObject({
     name: '수아 수정',
@@ -1572,15 +1768,59 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
         properties: [{ key: 'name', value: '행운', valueType: 'STRING' }],
       }),
     ]),
-    skills: [],
-    items: [],
-    statuses: [
+    skills: [
+      {
+        key: 'skill.생존_감각',
+        value: 'Lv.6',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '생존 감각', valueType: 'STRING' },
+          { key: 'level', value: '6', valueType: 'NUMBER' },
+        ],
+      },
+    ],
+    items: [
+      {
+        key: 'item.치유_물약',
+        value: '1개',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '치유 물약', valueType: 'STRING' },
+          { key: 'quantity', value: '1', valueType: 'NUMBER' },
+        ],
+      },
+    ],
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.경상',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '경상', valueType: 'STRING' },
+          { key: 'severity', value: '낮음', valueType: 'STRING' },
+        ],
+      },
+      {
+        key: 'status.회복_중',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'severity', value: '보통', valueType: 'STRING' },
+          { key: 'name', value: '안정', valueType: 'STRING' },
+        ],
+      },
+      {
+        key: 'status.잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+      },
       expect.objectContaining({
         value: '경상',
         valueType: 'JSON',
         properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],
       }),
-    ],
+    ]),
   });
 
   await page.getByRole('button', { name: '삭제', exact: true }).click();
@@ -1591,12 +1831,15 @@ test('캐릭터 현재 설정을 조회·수정·삭제하고 빈 상태에서 �
   await expect(page.getByText('등록된 캐릭터가 없습니다', { exact: true })).toBeVisible();
   expect(characterAuthorizationHeaders).not.toHaveLength(0);
   expect(characterAuthorizationHeaders.every(value => value === 'Bearer character-token')).toBe(true);
+  expect(characterRequestPaths).not.toHaveLength(0);
+  expect(characterRequestPaths.every(path => path.includes(`/works/${workId}/characters`))).toBe(true);
 
   await page.getByRole('button', { name: '원고 분석하기', exact: true }).click();
   await expect(page).toHaveURL(/\/episode-upload$/);
 });
 
 test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조정한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
   const characters = Array.from({ length: 48 }, (_, index) => ({
     id: `character-${index + 1}`,
     name: `캐릭터 ${String(index + 1).padStart(2, '0')}`,
@@ -1630,7 +1873,7 @@ test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조
       });
     }
 
-    if (url.pathname.endsWith('/works/detective/characters')) {
+    if (url.pathname.endsWith(`/works/${workId}/characters`)) {
       const requestedPage = Number(url.searchParams.get('page') ?? 0);
       const requestedSize = Number(url.searchParams.get('size') ?? 24);
       requests.push({ page: requestedPage, size: requestedSize });
@@ -1664,7 +1907,7 @@ test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'pagination-token'));
-  await page.goto('/dashboard?nav=settingDB&tab=characters');
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
 
   await expect.poll(() => requests.length).toBeGreaterThan(0);
   const laptopSize = requests.at(-1)?.size ?? 0;
