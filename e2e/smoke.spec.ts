@@ -1615,6 +1615,18 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       detailRequestCount += 1;
+      if (archived) {
+        return route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 정보를 찾을 수 없습니다.',
+            data: null,
+            error: { code: 'CHARACTER_NOT_FOUND', status: 404, details: [] },
+          }),
+        });
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -1895,6 +1907,12 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
   await expect(page.getByText('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('등록된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/charId=char-1/);
+  await expect(page.getByText('캐릭터 정보를 찾을 수 없습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '수정', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '삭제', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
   await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
   await expect(page).toHaveURL(/modal=character-archive/);
   const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });

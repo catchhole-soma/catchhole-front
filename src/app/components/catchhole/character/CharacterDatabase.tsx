@@ -846,7 +846,14 @@ export function CharacterDatabase({
 
   const deleteMutation = useMutation({
     ...deleteCharacterMutation(),
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
+      // ACTIVE 전용 상세 캐시가 뒤로가기로 보관 캐릭터를 다시 노출하지 않게 제거한다.
+      queryClient.removeQueries({
+        queryKey: getCharacterQueryKey({
+          path: { workId, characterId: variables.path.characterId },
+        }),
+        exact: true,
+      });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
         queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
@@ -1239,7 +1246,7 @@ export function CharacterDatabase({
               </div>
             )}
 
-            {detail && (!detailQuery.isPending || demoMode) && (
+            {detail && (demoMode || (!detailQuery.isPending && !detailQuery.isError)) && (
               <>
                 <div style={{ padding: '22px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
                   <Avatar id={detail.id ?? selectedCharacterId} name={isEditing ? draft?.name ?? detail.name ?? '' : detail.name ?? ''} size={54} />
