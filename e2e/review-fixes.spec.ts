@@ -72,6 +72,53 @@ test('삭제된 회차의 저장된 분석 URL은 사용할 수 없는 종료 �
   await expect(page.getByRole('button', { name: '분석 결과를 열 수 없습니다' })).toBeDisabled();
 });
 
+test('분석 실패 화면은 내부 오류 원문 대신 사용자용 안내를 표시한다', async ({ page }) => {
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  const internalError = 'LLM extraction failed after 3 attempts: source_chunk_id Input should be a valid UUID';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            errorMessage: internalError,
+            episodes: [{
+              id: episodeId,
+              episodeNo: 20,
+              title: '실패한 회차',
+              status: 'FAILED',
+            }],
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : [];
+
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'failed-analysis-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  await expect(page.getByText(
+    '분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요.',
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByText(internalError, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/마지막 실패 사유/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toBeVisible();
+});
+
 test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling 대상으로 연다', async ({ page }) => {
   const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
   const retryAnalysisJobId = '55555555-5555-4555-8555-555555555555';
