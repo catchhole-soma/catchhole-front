@@ -465,8 +465,8 @@ function getEpisodeConfirmationValidationError(
   }.`;
 }
 
-function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodeProcessingStatus {
-  return status === 'ARCHIVED' || !status ? 'UPLOADED' : status;
+function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodeProcessingStatus | null {
+  return status === 'ARCHIVED' ? null : status ?? 'UPLOADED';
 }
 
 export default function SEpisodeUpload() {
@@ -662,6 +662,8 @@ export default function SEpisodeUpload() {
   const analysisFailed = currentAnalysisJobsLoaded
     && !analysisRunning
     && currentAnalysisJobs.some(job => job.status === 'FAILED');
+  const analysisUnavailable = currentAnalysisJobsLoaded
+    && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisSucceeded = currentAnalysisJobsLoaded
     && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED')
     && progressEpisodes.length > 0
@@ -1301,13 +1303,16 @@ export default function SEpisodeUpload() {
               <div style={{ textAlign: 'center', marginBottom: 26 }}>
                 {analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
-                  : analysisFailed
+                  : analysisUnavailable
+                    ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
+                    : analysisFailed
                     ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
-                    : analysisFailed ? '일부 회차 분석에 실패했습니다'
-                      : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
+                    : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
+                      : analysisFailed ? '일부 회차 분석에 실패했습니다'
+                        : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
                 </div>
                 <div style={{ color: C.t2, fontSize: 13 }}>
                   {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
@@ -1337,6 +1342,9 @@ export default function SEpisodeUpload() {
               {analysisFailed && failedJobMessages.length > 0 && (
                 <ErrorBanner message={`마지막 실패 사유: ${failedJobMessages.join(' / ')}`} />
               )}
+              {analysisUnavailable && (
+                <ErrorBanner message="삭제된 회차는 분석 결과를 열거나 다시 시도할 수 없습니다. 원고 목록에서 현재 회차를 확인해주세요." />
+              )}
               {statusQueryFailed && (
                 <ErrorBanner
                   message="상태를 갱신하지 못했습니다. 마지막으로 확인한 상태를 유지합니다."
@@ -1350,7 +1358,9 @@ export default function SEpisodeUpload() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {progressEpisodes.map(episode => {
                   const status = toProcessingStatus(episode.status);
-                  const sequenceIndex = status === 'FAILED' ? -1 : PROCESSING_SEQUENCE.indexOf(status);
+                  const sequenceIndex = status === null || status === 'FAILED'
+                    ? -1
+                    : PROCESSING_SEQUENCE.indexOf(status);
                   return (
                     <div key={episode.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -1358,24 +1368,36 @@ export default function SEpisodeUpload() {
                           {episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}
                         </div>
                         <span style={{
-                          color: status === 'FAILED' ? C.danger : status === 'ANALYZED' ? C.success : C.t2,
+                          color: status === null
+                            ? C.warning
+                            : status === 'FAILED'
+                              ? C.danger
+                              : status === 'ANALYZED' ? C.success : C.t2,
                           fontSize: 12, fontWeight: 700,
                         }}>
-                          {status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status]}
+                          {status === null
+                            ? '사용할 수 없음'
+                            : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status]}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {PROCESSING_SEQUENCE.map((item, index) => (
-                          <span key={item} style={{
-                            padding: '3px 8px', borderRadius: 12, fontSize: 10.5,
-                            background: index <= sequenceIndex ? `${C.primary}18` : C.bg,
-                            border: `1px solid ${index <= sequenceIndex ? `${C.primary}55` : C.border}`,
-                            color: index <= sequenceIndex ? C.primary : C.t3,
-                          }}>
-                            {PROCESSING_STATUS_LABELS[item]}
-                          </span>
-                        ))}
-                      </div>
+                      {status === null ? (
+                        <div style={{ color: C.t3, fontSize: 12 }}>
+                          이 회차는 삭제되어 더 이상 분석 대상에 포함되지 않습니다.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {PROCESSING_SEQUENCE.map((item, index) => (
+                            <span key={item} style={{
+                              padding: '3px 8px', borderRadius: 12, fontSize: 10.5,
+                              background: index <= sequenceIndex ? `${C.primary}18` : C.bg,
+                              border: `1px solid ${index <= sequenceIndex ? `${C.primary}55` : C.border}`,
+                              color: index <= sequenceIndex ? C.primary : C.t3,
+                            }}>
+                              {PROCESSING_STATUS_LABELS[item]}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1409,6 +1431,10 @@ export default function SEpisodeUpload() {
                       }
                     }}>
                       {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}
+                    </PrimaryButton>
+                  ) : analysisUnavailable ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      분석 결과를 열 수 없습니다
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton

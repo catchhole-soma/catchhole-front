@@ -32,6 +32,7 @@ import {
   getSettingBooksOptions,
   getSettingBooksQueryKey,
   replaceEpisodeFileMutation,
+  retryAnalysisJobMutation,
   updateEpisodeTitleMutation,
   uploadSettingBookMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
@@ -2969,6 +2970,7 @@ export default function S1Dashboard() {
   const uploadSettingBookRequest = useMutation(uploadSettingBookMutation());
   const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
   const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
+  const retryEpisodeAnalysisRequest = useMutation(retryAnalysisJobMutation());
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -3157,16 +3159,13 @@ export default function S1Dashboard() {
   };
 
   const openEpisodeAnalysis = async (episode: EpisodeSummaryResponse) => {
-    if (createEpisodeAnalysisRequest.isPending) return;
+    if (createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending) return;
     setEpisodeActionError(null);
     if (!episode.batchId) {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
-    if (
-      (episode.analysisStatus === 'IN_PROGRESS' || episode.analysisStatus === 'FAILED')
-      && episode.latestAnalysisJobId
-    ) {
+    if (episode.analysisStatus === 'IN_PROGRESS' && episode.latestAnalysisJobId) {
       navigate(
         `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
         'push-right',
@@ -3175,6 +3174,33 @@ export default function S1Dashboard() {
     }
     if (episode.analysisStatus === 'IN_PROGRESS') {
       setEpisodeActionError('진행 중인 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    if (episode.analysisStatus === 'FAILED') {
+      if (!episode.latestAnalysisJobId) {
+        setEpisodeActionError('실패한 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      try {
+        const response = await retryEpisodeAnalysisRequest.mutateAsync({
+          path: { workId: effectiveWorkId, analysisJobId: episode.latestAnalysisJobId },
+        });
+        const retryAnalysisJobIds = [...new Set(
+          (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+        )];
+        if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
+        const trackedAnalysisJobIds = [
+          episode.latestAnalysisJobId,
+          ...retryAnalysisJobIds,
+        ].join(',');
+        const currentAnalysisJobIds = retryAnalysisJobIds.join(',');
+        navigate(
+          `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${trackedAnalysisJobIds}&currentAnalysisJobIds=${currentAnalysisJobIds}&jobType=EPISODE_VALIDATION`,
+          'push-right',
+        );
+      } catch (error) {
+        setEpisodeActionError(toApiError(error)?.message ?? '실패한 회차 분석을 다시 요청하지 못했습니다.');
+      }
       return;
     }
     try {
@@ -3717,7 +3743,7 @@ export default function S1Dashboard() {
                                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
                                     <BtnG
                                       small
-                                      disabled={createEpisodeAnalysisRequest.isPending}
+                                      disabled={createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending}
                                       label={episode.analysisStatus === 'FAILED' ? '다시 시도'
                                         : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
                                           : episode.analysisStatus === 'IN_PROGRESS' ? '진행 보기' : '재분석'}
