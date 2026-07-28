@@ -18,6 +18,7 @@ import {
   detectEpisodesMutation as detectEpisodesMutationOptions,
   getAnalysisJobOptions,
   getEpisodesOptions,
+  getSettingBooksOptions,
   getWorkOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
   uploadEpisodesMutation as uploadEpisodesMutationOptions,
@@ -606,6 +607,20 @@ export default function SEpisodeUpload() {
     const latest = existingEpisodes.reduce((max, episode) => Math.max(max, episode.episodeNo ?? 0), 0);
     return latest + 1;
   }, [episodesQuery.isError, episodesQuery.isPending, existingEpisodes]);
+  const settingBooksQuery = useQuery({
+    ...getSettingBooksOptions({ path: { workId } }),
+    enabled: UUID_PATTERN.test(workId)
+      && includeSettings
+      && settingSaveStatus !== 'success'
+      && step !== 'processing',
+    retry: false,
+  });
+  const existingSettingBookNames = useMemo(
+    () => new Set((settingBooksQuery.data?.data ?? []).flatMap(
+      settingBook => settingBook.originalFilename ? [settingBook.originalFilename] : [],
+    )),
+    [settingBooksQuery.data?.data],
+  );
 
   const detectEpisodesMutation = useMutation(detectEpisodesMutationOptions());
   const uploadEpisodesMutation = useMutation(uploadEpisodesMutationOptions());
@@ -659,9 +674,15 @@ export default function SEpisodeUpload() {
   const analysisRunning = currentAnalysisJobs.some(
     job => job.status === 'PENDING' || job.status === 'RUNNING',
   );
+  const retryableFailedAnalysisJobIds = currentAnalysisJobs.flatMap(job =>
+    job.status === 'FAILED'
+      && job.id
+      && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
+      ? [job.id]
+      : []);
   const analysisFailed = currentAnalysisJobsLoaded
     && !analysisRunning
-    && currentAnalysisJobs.some(job => job.status === 'FAILED');
+    && retryableFailedAnalysisJobIds.length > 0;
   const analysisUnavailable = currentAnalysisJobsLoaded
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisSucceeded = currentAnalysisJobsLoaded
@@ -908,14 +929,11 @@ export default function SEpisodeUpload() {
   };
 
   const retryFailedAnalysisJobs = async () => {
-    const failedAnalysisJobIds = currentAnalysisJobs.flatMap(
-      job => job.status === 'FAILED' && job.id ? [job.id] : [],
-    );
-    if (failedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
+    if (retryableFailedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
     setAnalysisStartError(null);
     try {
       const responses = await Promise.all(
-        failedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
+        retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
           path: { workId, analysisJobId },
         })),
       );
@@ -952,8 +970,15 @@ export default function SEpisodeUpload() {
     && settingsFile
     && !settingsFile.name.toLowerCase().endsWith('.txt')
     ? '다회차 여러 파일 업로드에서는 설정집도 TXT 파일만 지원합니다.'
-    : settingsFileError;
-  const settingsValid = !includeSettings || Boolean(settingsFile && !settingsModeError);
+    : settingsFileError
+      ?? (settingSaveStatus !== 'success'
+        && settingsFile
+        && existingSettingBookNames.has(settingsFile.name)
+        ? '같은 이름의 설정집이 이미 업로드되어 있습니다.'
+        : null);
+  const settingsValid = !includeSettings
+    || settingSaveStatus === 'success'
+    || Boolean(settingsFile && !settingsModeError && settingBooksQuery.isSuccess);
   const canSubmit = UUID_PATTERN.test(workId)
     && settingsValid
     && !detectEpisodesMutation.isPending
@@ -1165,6 +1190,24 @@ export default function SEpisodeUpload() {
                     disabled={submitting}
                     txtOnly={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
                   />
+                  {includeSettings
+                    && settingSaveStatus !== 'success'
+                    && settingBooksQuery.isPending && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      color: C.t2, fontSize: 12, margin: '-4px 0 14px',
+                    }}>
+                      <Spinner size={13} /> 기존 설정집 이름을 확인하고 있습니다.
+                    </div>
+                  )}
+                  {includeSettings
+                    && settingSaveStatus !== 'success'
+                    && settingBooksQuery.isError && (
+                    <ErrorBanner
+                      message="기존 설정집 이름을 확인하지 못했습니다."
+                      onRetry={() => void settingBooksQuery.refetch()}
+                    />
+                  )}
                   {settingSaveStatus === 'success' && (
                     <div style={{ color: C.success, fontSize: 12, margin: '-4px 0 14px' }}>
                       설정집 원본은 저장되었습니다. 회차를 다시 시도해도 중복 저장하지 않습니다.
@@ -1301,15 +1344,15 @@ export default function SEpisodeUpload() {
               <div style={{ textAlign: 'center', marginBottom: 26 }}>
                 {analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
-                  : analysisUnavailable
-                    ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
-                    : analysisFailed
+                  : analysisFailed
                     ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
+                    : analysisUnavailable
+                      ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
-                    : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
-                      : analysisFailed ? '일부 회차 분석에 실패했습니다'
+                    : analysisFailed ? '일부 회차 분석에 실패했습니다'
+                      : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
                 </div>
                 <div style={{ color: C.t2, fontSize: 13 }}>
@@ -1430,16 +1473,16 @@ export default function SEpisodeUpload() {
                     }}>
                       {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}
                     </PrimaryButton>
-                  ) : analysisUnavailable ? (
-                    <PrimaryButton disabled onClick={() => undefined}>
-                      분석 결과를 열 수 없습니다
-                    </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton
                       disabled={retryAnalysisJobMutation.isPending}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
                       {retryAnalysisJobMutation.isPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                    </PrimaryButton>
+                  ) : analysisUnavailable ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      분석 결과를 열 수 없습니다
                     </PrimaryButton>
                   ) : (
                     <PrimaryButton disabled onClick={() => undefined}>
