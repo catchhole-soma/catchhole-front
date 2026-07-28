@@ -3,6 +3,7 @@ import type {
   CharacterSettingResponse,
   CharacterSettingUpdateRequest,
 } from '../../../api/generated/types.gen';
+import { DEMO_CHARACTER_STATE_KEY } from '../../../lib/worksApi';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 
@@ -100,4 +101,39 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
 
 export function createInitialDemoCharacters(): CharacterDetailResponse[] {
   return structuredClone(INITIAL_DEMO_CHARACTERS);
+}
+
+interface DemoCharacterState {
+  characters: CharacterDetailResponse[];
+  archivedCharacters: CharacterDetailResponse[];
+}
+
+type DemoCharacterStateByWork = Record<string, DemoCharacterState>;
+
+function loadDemoCharacterStateByWork(): DemoCharacterStateByWork {
+  const raw = localStorage.getItem(DEMO_CHARACTER_STATE_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as DemoCharacterStateByWork;
+  } catch {
+    return {};
+  }
+}
+
+export function loadDemoCharacterState(workId: string): DemoCharacterState {
+  const saved = loadDemoCharacterStateByWork()[workId];
+  if (!saved || !Array.isArray(saved.characters) || !Array.isArray(saved.archivedCharacters)) {
+    return { characters: createInitialDemoCharacters(), archivedCharacters: [] };
+  }
+  return structuredClone(saved);
+}
+
+export function saveDemoCharacterState(
+  workId: string,
+  characters: CharacterDetailResponse[],
+  archivedCharacters: CharacterDetailResponse[],
+): void {
+  const stateByWork = loadDemoCharacterStateByWork();
+  stateByWork[workId] = { characters, archivedCharacters };
+  localStorage.setItem(DEMO_CHARACTER_STATE_KEY, JSON.stringify(stateByWork));
 }

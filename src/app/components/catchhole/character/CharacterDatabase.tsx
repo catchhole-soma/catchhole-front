@@ -39,6 +39,7 @@ import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPag
 import { toApiError } from '../../../lib/api-errors';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
+import { saveDemoCharacterState } from './demoCharacters';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 type SettingGroupKey = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
@@ -840,6 +841,7 @@ export function CharacterDatabase({
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
     enabled: !demoMode && Boolean(workId) && Boolean(selectedCharacterId),
+    retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 3,
   });
   const archivedCharactersQuery = useQuery({
     ...getArchivedCharactersOptions({
@@ -851,19 +853,29 @@ export function CharacterDatabase({
 
   const updateMutation = useMutation({
     ...updateCharacterMutation(),
-    onSuccess: async response => {
-      if (!selectedCharacterId) return;
+    onSuccess: async (response, variables) => {
+      const targetWorkId = variables.path.workId;
+      const targetCharacterId = variables.path.characterId;
       queryClient.setQueryData(
-        getCharacterQueryKey({ path: { workId, characterId: selectedCharacterId } }),
+        getCharacterQueryKey({
+          path: { workId: targetWorkId, characterId: targetCharacterId },
+        }),
         response,
       );
-      await queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) });
+      await queryClient.invalidateQueries({
+        queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
+      });
+      if (workId !== targetWorkId || selectedCharacterId !== targetCharacterId) return;
       setConfirming(null);
       setActionError(null);
       setFeedback('캐릭터 설정을 저장했습니다.');
       onEditChange(false);
     },
-    onError: error => {
+    onError: (error, variables) => {
+      if (
+        workId !== variables.path.workId
+        || selectedCharacterId !== variables.path.characterId
+      ) return;
       setConfirming(null);
       setActionError(errorMessage(error, '캐릭터 설정을 저장하지 못했습니다.'));
     },
@@ -915,6 +927,7 @@ export function CharacterDatabase({
   const detail = demoMode ? demoDetail : detailQuery.data?.data;
   const demoSummaries = useMemo(() => demoCharacters.map(toSummary), [demoCharacters]);
   const characterPage = charactersQuery.data?.data;
+  const hasCharacterPage = characterPage !== undefined;
   const characters = useMemo(
     () => demoMode
       ? demoSummaries.slice(page * pageSize, (page + 1) * pageSize)
@@ -945,7 +958,7 @@ export function CharacterDatabase({
   }, [demoMode, workId]);
 
   useEffect(() => {
-    const pageMetadataReady = demoMode || charactersQuery.isSuccess;
+    const pageMetadataReady = demoMode || hasCharacterPage;
     if (!pageMetadataReady) return;
     if (totalPages === 0 && firstVisibleIndex !== 0) {
       setFirstVisibleIndex(0);
@@ -953,13 +966,17 @@ export function CharacterDatabase({
       setFirstVisibleIndex((totalPages - 1) * pageSize);
     }
   }, [
-    charactersQuery.isSuccess,
     demoMode,
     firstVisibleIndex,
+    hasCharacterPage,
     page,
     pageSize,
     totalPages,
   ]);
+
+  useEffect(() => {
+    setConfirming(null);
+  }, [selectedCharacterId]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -1058,9 +1075,11 @@ export function CharacterDatabase({
     try {
       const body = toRequest(draft);
       if (demoMode) {
-        setDemoCharacters(current => current.map(character => (
+        const nextCharacters = demoCharacters.map(character => (
           character.id === selectedCharacterId ? draftToDemoDetail(character, draft) : character
-        )));
+        ));
+        setDemoCharacters(nextCharacters);
+        saveDemoCharacterState(workId, nextCharacters, demoArchivedCharacters);
         setConfirming(null);
         setActionError(null);
         setFeedback('캐릭터 설정을 저장했습니다.');
@@ -1079,8 +1098,11 @@ export function CharacterDatabase({
     if (demoMode) {
       const archivedCharacter = demoCharacters.find(character => character.id === selectedCharacterId);
       if (!archivedCharacter) return;
-      setDemoCharacters(current => current.filter(character => character.id !== selectedCharacterId));
-      setDemoArchivedCharacters(current => [archivedCharacter, ...current]);
+      const nextCharacters = demoCharacters.filter(character => character.id !== selectedCharacterId);
+      const nextArchivedCharacters = [archivedCharacter, ...demoArchivedCharacters];
+      setDemoCharacters(nextCharacters);
+      setDemoArchivedCharacters(nextArchivedCharacters);
+      saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
       setConfirming(null);
       setFeedback('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.');
       onClose();
@@ -1099,8 +1121,11 @@ export function CharacterDatabase({
         setArchiveError('복구할 캐릭터를 찾을 수 없습니다.');
         return;
       }
-      setDemoArchivedCharacters(current => current.filter(character => character.id !== characterId));
-      setDemoCharacters(current => [restoredCharacter, ...current]);
+      const nextArchivedCharacters = demoArchivedCharacters.filter(character => character.id !== characterId);
+      const nextCharacters = [restoredCharacter, ...demoCharacters];
+      setDemoArchivedCharacters(nextArchivedCharacters);
+      setDemoCharacters(nextCharacters);
+      saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
       setRestoringCharacterId(null);
       setFeedback('캐릭터를 복구했습니다.');
       return;
@@ -1109,8 +1134,14 @@ export function CharacterDatabase({
   };
 
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
-  const listError = !demoMode && charactersQuery.isError;
+  const listError = !demoMode && charactersQuery.isError && !hasCharacterPage;
+  const listRefetchError = !demoMode && charactersQuery.isError && hasCharacterPage;
   const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending;
+  const closeDetail = () => {
+    if (mutationPending) return;
+    setConfirming(null);
+    onClose();
+  };
 
   return (
     <>
@@ -1153,6 +1184,16 @@ export function CharacterDatabase({
         </div>
 
         <div ref={contentStartRef} />
+
+        {listRefetchError && (
+          <div role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={14} />
+            <span style={{ flex: 1 }}>{errorMessage(charactersQuery.error, '캐릭터 목록을 새로고침하지 못했습니다.')}</span>
+            <button type="button" onClick={() => charactersQuery.refetch()} style={{ background: 'none', border: 'none', color: C.danger, cursor: 'pointer', padding: 0, fontSize: 12 }}>
+              다시 시도
+            </button>
+          </div>
+        )}
 
         {loadingList && (
           <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
@@ -1233,9 +1274,7 @@ export function CharacterDatabase({
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           data-testid="character-modal-backdrop"
-          onClick={() => {
-            if (!mutationPending) onClose();
-          }}
+          onClick={closeDetail}
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
         >
           <motion.div
@@ -1266,7 +1305,7 @@ export function CharacterDatabase({
                 </span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {!demoMode && <ModalButton onClick={() => detailQuery.refetch()}><RefreshCw size={13} /> 다시 시도</ModalButton>}
-                  <ModalButton onClick={onClose}>닫기</ModalButton>
+                  <ModalButton onClick={closeDetail}>닫기</ModalButton>
                 </div>
               </div>
             )}
@@ -1285,7 +1324,7 @@ export function CharacterDatabase({
                       <ModalButton onClick={() => onEditChange(true)}>수정</ModalButton>
                     </>
                   )}
-                  <button type="button" aria-label="닫기" onClick={onClose} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 5, lineHeight: 0 }}>
+                  <button type="button" aria-label="닫기" onClick={closeDetail} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 5, lineHeight: 0 }}>
                     <X size={19} />
                   </button>
                 </div>

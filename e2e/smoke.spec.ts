@@ -83,6 +83,13 @@ test('데모 모드는 access token 없이 열리고 이름만 수정해도 설�
   await page.getByRole('button', { name: /수아/ }).click();
   await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
 
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toBeVisible();
+  await page.getByTestId('character-modal-backdrop').click({ position: { x: 5, y: 5 } });
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /수아/ }).click();
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
+
   await page.getByRole('button', { name: '수정', exact: true }).click();
   await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
   await page.getByRole('button', { name: '저장', exact: true }).click();
@@ -97,10 +104,16 @@ test('데모 모드는 access token 없이 열리고 이름만 수정해도 설�
   await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
   await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0);
 
+  await page.goto('/works');
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
+
   await page.getByRole('button', { name: /수아 이름 수정/ }).click();
   await page.getByRole('button', { name: '삭제', exact: true }).click();
   const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
   await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.goto('/works');
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
   await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
   const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
   await expect(archiveDialog.getByText('수아 이름 수정', { exact: true })).toBeVisible();
@@ -1333,6 +1346,7 @@ test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인�
   await page.evaluate(() => {
     localStorage.setItem('catchhole_demo_mode', 'true');
     localStorage.setItem('catchhole_demo_works', '[]');
+    localStorage.setItem('catchhole_demo_character_state', '{}');
   });
   await page.getByPlaceholder('이메일').fill('enter@example.com');
   await page.getByPlaceholder('비밀번호').fill('Password1');
@@ -1346,6 +1360,7 @@ test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인�
   await expect(page).toHaveURL(/\/works$/);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_mode'))).toBeNull();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_works'))).toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_character_state'))).toBeNull();
 });
 
 test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
@@ -1421,6 +1436,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   let updateAttempt = 0;
   let updateBody: Record<string, unknown> | undefined;
   let detailRequestCount = 0;
+  let failCharacterListRefetch = false;
   let releaseUpdate!: () => void;
   const updateGate = new Promise<void>(resolve => {
     releaseUpdate = resolve;
@@ -1582,6 +1598,18 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
     if (pathname.endsWith(`/works/${workId}/characters`) && method === 'GET') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      if (failCharacterListRefetch) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 목록 재조회에 실패했습니다.',
+            data: null,
+            error: { code: 'INTERNAL_SERVER_ERROR', status: 503, details: [] },
+          }),
+        });
+      }
       const content = archived ? [] : [{
         id: 'char-1',
         name: characterName,
@@ -1736,6 +1764,19 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   const characterCard = page.getByRole('button', { name: /수아/ });
   await expect(characterCard).toContainText('첫 등장');
   await expect(characterCard).toContainText('—');
+
+  failCharacterListRefetch = true;
+  await page.evaluate(async () => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    await queryClient.invalidateQueries();
+  });
+  const listRefetchAlert = page.getByRole('alert').filter({ hasText: '캐릭터 목록 재조회에 실패했습니다.' });
+  await expect(listRefetchAlert).toBeVisible();
+  await expect(characterCard).toBeVisible();
+  failCharacterListRefetch = false;
+  await listRefetchAlert.getByRole('button', { name: '다시 시도' }).click();
+  await expect(listRefetchAlert).toHaveCount(0);
+
   await characterCard.click();
   await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
   await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();

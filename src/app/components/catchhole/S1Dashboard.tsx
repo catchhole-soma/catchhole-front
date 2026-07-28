@@ -21,7 +21,7 @@ import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { SettingBookDeleteModal } from './SettingBookDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
-import { createInitialDemoCharacters } from './character/demoCharacters';
+import { loadDemoCharacterState } from './character/demoCharacters';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -3074,10 +3074,12 @@ export default function S1Dashboard() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [chars, setChars] = useState<CharacterSetting[]>(INIT_CHARS);
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
-  const [demoCharacters, setDemoCharacters] = useState(createInitialDemoCharacters);
+  const [demoCharacters, setDemoCharacters] = useState(
+    () => loadDemoCharacterState(effectiveWorkId).characters,
+  );
   const [demoArchivedCharacters, setDemoArchivedCharacters] = useState<
-    ReturnType<typeof createInitialDemoCharacters>
-  >([]);
+    ReturnType<typeof loadDemoCharacterState>['archivedCharacters']
+  >(() => loadDemoCharacterState(effectiveWorkId).archivedCharacters);
   const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info'; at: number }[]>([]);
   const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
@@ -3098,6 +3100,13 @@ export default function S1Dashboard() {
   const [episodeDeleteTarget, setEpisodeDeleteTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [episodeDeleteSubmitting, setEpisodeDeleteSubmitting] = useState(false);
   const [episodeDeleteFailed, setEpisodeDeleteFailed] = useState(false);
+
+  useEffect(() => {
+    if (!demoMode || !effectiveWorkId) return;
+    const saved = loadDemoCharacterState(effectiveWorkId);
+    setDemoCharacters(saved.characters);
+    setDemoArchivedCharacters(saved.archivedCharacters);
+  }, [demoMode, effectiveWorkId]);
 
   const handleCharSave = (s: CharacterSetting) => {
     let isNew = false;
