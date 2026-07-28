@@ -44,10 +44,414 @@ test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async 
   await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
 });
 
+test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const detectionMultipartBodies: string[] = [];
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
+      const detectionIndex = detectionMultipartBodies.length;
+      detectionMultipartBodies.push(request.postData() ?? '');
+      const detectedEpisodeNo = detectionIndex === 0 ? 20 : 21;
+      const detectedTitle = detectionIndex === 0 ? '첫 번째 감지 제목' : '교체 파일 감지 제목';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            uploadType: 'SINGLE_EPISODE',
+            episodeCount: 1,
+            totalCharCount: 12,
+            detectedEpisodes: [{
+              detectionOrder: 0,
+              sourceFileIndex: 0,
+              episodeNo: detectedEpisodeNo,
+              title: detectedTitle,
+              sourceHeading: null,
+              charCount: 12,
+              content: '자동 감지할 본문입니다.',
+            }],
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'single-detection@example.com',
+          displayName: '단일 감지 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{ id: '44444444-4444-4444-8444-444444444444', episodeNo: 12 }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '테스트 작품', genre: '판타지', latestEpisodeNo: 12 }
+          : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'single-detection-token'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+
+  await page.getByText('단일 회차 업로드', { exact: true }).click();
+
+  const episodeNoInput = page.getByPlaceholder('비우면 파일에서 감지');
+  const episodeTitleInput = page.getByPlaceholder('비우면 원문 제목 행에서 감지');
+  await expect(episodeNoInput).toHaveValue('');
+  await expect(episodeTitleInput).toHaveValue('');
+  await expect(page.getByText('추천 다음 회차: 13화', { exact: true })).toBeVisible();
+
+  await episodeTitleInput.fill('직접 입력한 제목');
+  await episodeTitleInput.fill('');
+  const episodeFileInput = page.locator('input[type="file"]').first();
+  await episodeFileInput.setInputFiles({
+    name: '20화.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 20화 첫 번째 감지 제목\n자동 감지할 본문입니다.'),
+  });
+
+  await expect(episodeNoInput).toHaveValue('20');
+  await expect(episodeTitleInput).toHaveValue('첫 번째 감지 제목');
+  expect(detectionMultipartBodies[0]).toContain('"singleEpisodeNo":null');
+  expect(detectionMultipartBodies[0]).toContain('"singleEpisodeTitle":null');
+
+  await episodeFileInput.setInputFiles({
+    name: '21화.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 21화 교체 파일 감지 제목\n교체한 파일의 본문입니다.'),
+  });
+
+  await expect(episodeNoInput).toHaveValue('21');
+  await expect(episodeTitleInput).toHaveValue('교체 파일 감지 제목');
+  expect(detectionMultipartBodies[1]).toContain('"singleEpisodeNo":null');
+  expect(detectionMultipartBodies[1]).toContain('"singleEpisodeTitle":null');
+});
+
+test('다회차 단일 파일에서 한 회차만 감지되면 파일을 제거하고 모드 변경 시 오류를 초기화한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const detectionErrorMessage = '다회차 업로드에는 정상 감지된 회차가 2개 이상 필요합니다.';
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
+      return route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '다회차 업로드에는 두 개 이상의 회차가 필요합니다.',
+          data: null,
+          error: {
+            code: 'UPLOAD_EPISODE_COUNT_INVALID',
+            status: 400,
+            details: [],
+          },
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'bulk-detection-error@example.com',
+          displayName: '다회차 감지 오류 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? []
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '테스트 작품', genre: '판타지' }
+          : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'bulk-detection-error-token'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'single-episode.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 21화 한 회차뿐인 원고\n본문입니다.'),
+  });
+
+  await expect(page.getByText(detectionErrorMessage, { exact: true })).toBeVisible();
+  await expect(page.getByText(/single-episode\.txt/)).not.toBeVisible();
+  await expect(page.getByRole('button', { name: '다음 — 회차 분리 확인' })).toBeDisabled();
+
+  await page.getByText('다회차 - 여러 파일', { exact: true }).click();
+  await expect(page.getByText(detectionErrorMessage, { exact: true })).not.toBeVisible();
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await expect(page.getByText(detectionErrorMessage, { exact: true })).not.toBeVisible();
+  await expect(page.getByText(/single-episode\.txt/)).not.toBeVisible();
+});
+
+test('업로드 방식을 전환해도 각 방식의 파일과 감지 결과를 함께 보존한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  let detectionRequestCount = 0;
+  const detectionResponses = [
+    {
+      uploadType: 'SINGLE_EPISODE',
+      episodes: [{ episodeNo: 51, title: '단일 제목', sourceFileIndex: 0 }],
+    },
+    {
+      uploadType: 'MULTI_EPISODE_SINGLE_FILE',
+      episodes: [
+        { episodeNo: 52, title: '합본 첫 제목', sourceFileIndex: 0 },
+        { episodeNo: 53, title: '합본 둘째 제목', sourceFileIndex: 0 },
+      ],
+    },
+    {
+      uploadType: 'MULTI_EPISODE_MULTI_FILE',
+      episodes: [
+        { episodeNo: 54, title: '여러 파일 첫 제목', sourceFileIndex: 0 },
+        { episodeNo: 55, title: '여러 파일 둘째 제목', sourceFileIndex: 1 },
+      ],
+    },
+  ];
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
+      const detection = detectionResponses[detectionRequestCount];
+      detectionRequestCount += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            uploadType: detection.uploadType,
+            episodeCount: detection.episodes.length,
+            totalCharCount: detection.episodes.length * 8,
+            detectedEpisodes: detection.episodes.map((episode, detectionOrder) => ({
+              detectionOrder,
+              sourceFileIndex: episode.sourceFileIndex,
+              episodeNo: episode.episodeNo,
+              title: episode.title,
+              sourceHeading: `제 ${episode.episodeNo}화 ${episode.title}`,
+              charCount: 8,
+              content: `${episode.episodeNo}화 본문입니다.`,
+            })),
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'mode-state@example.com',
+          displayName: '모드 상태 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? []
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '테스트 작품', genre: '판타지', latestEpisodeNo: 50 }
+          : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'mode-state-token'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+
+  await page.getByText('단일 회차 업로드', { exact: true }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: '51화.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 51화 단일 제목\n본문'),
+  });
+  await expect(page.getByPlaceholder('비우면 파일에서 감지')).toHaveValue('51');
+  await page.getByPlaceholder('비우면 원문 제목 행에서 감지').fill('수정한 단일 제목');
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await page.getByText('단일 회차 업로드', { exact: true }).click();
+  await expect(page.getByText(/51화\.txt/)).toBeVisible();
+  await expect(page.getByPlaceholder('비우면 파일에서 감지')).toHaveValue('51');
+  await expect(page.getByPlaceholder('비우면 원문 제목 행에서 감지')).toHaveValue('수정한 단일 제목');
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: '52-53화.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 52화 합본 첫 제목\n본문\n제 53화 합본 둘째 제목\n본문'),
+  });
+  await expect(page.getByText('2개 회차 감지됨', { exact: true })).toBeVisible();
+
+  await page.getByText('다회차 - 여러 파일', { exact: true }).click();
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await expect(page.getByText(/52-53화\.txt/)).toBeVisible();
+  await expect(page.getByText('2개 회차 감지됨', { exact: true })).toBeVisible();
+
+  await page.getByText('다회차 - 여러 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').setInputFiles([
+    {
+      name: '54화.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('제 54화 여러 파일 첫 제목\n본문'),
+    },
+    {
+      name: '55화.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('제 55화 여러 파일 둘째 제목\n본문'),
+    },
+  ]);
+  await expect(page.getByText('2개 파일 선택됨', { exact: true })).toBeVisible();
+  await page.getByRole('textbox').first().fill('수정한 여러 파일 제목');
+
+  await page.getByText('단일 회차 업로드', { exact: true }).click();
+  await page.getByText('다회차 - 여러 파일', { exact: true }).click();
+  await expect(page.getByText('2개 파일 선택됨', { exact: true })).toBeVisible();
+  await expect(page.getByRole('spinbutton').nth(0)).toHaveValue('54');
+  await expect(page.getByRole('spinbutton').nth(1)).toHaveValue('55');
+  await expect(page.getByRole('textbox').first()).toHaveValue('수정한 여러 파일 제목');
+});
+
+test('다회차 업로드에 기존 회차가 포함되면 두 방식 모두 중복 번호를 안내한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  let detectionRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
+      const multiFileDetection = detectionRequestCount > 0;
+      detectionRequestCount += 1;
+      const episodeNos = multiFileDetection ? [20, 21] : [19, 20, 21];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            uploadType: multiFileDetection
+              ? 'MULTI_EPISODE_MULTI_FILE'
+              : 'MULTI_EPISODE_SINGLE_FILE',
+            episodeCount: episodeNos.length,
+            totalCharCount: episodeNos.length * 8,
+            detectedEpisodes: episodeNos.map((episodeNo, detectionOrder) => ({
+              detectionOrder,
+              sourceFileIndex: multiFileDetection ? detectionOrder : 0,
+              episodeNo,
+              title: `${episodeNo}화 제목`,
+              sourceHeading: `제 ${episodeNo}화 ${episodeNo}화 제목`,
+              charCount: 8,
+              content: `${episodeNo}화 본문입니다.`,
+            })),
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'bulk-duplicate@example.com',
+          displayName: '다회차 중복 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{ id: '44444444-4444-4444-8444-444444444444', episodeNo: 20 }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '테스트 작품', genre: '판타지', latestEpisodeNo: 20 }
+          : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'bulk-duplicate-token'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+
+  await page.getByText('다회차 - 단일 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: '19-21화.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('제 19화\n본문\n제 20화\n본문\n제 21화\n본문'),
+  });
+
+  await expect(page.getByText('3개 회차 감지됨', { exact: true })).toBeVisible();
+  await expect(page.getByText(
+    '이미 등록된 회차 번호가 포함되어 있습니다: 20화.',
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByRole('button', { name: '다음 — 회차 분리 확인' })).toBeDisabled();
+
+  await page.getByText('다회차 - 여러 파일', { exact: true }).click();
+  await page.locator('input[type="file"]').setInputFiles([
+    {
+      name: '20화.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('제 20화\n본문'),
+    },
+    {
+      name: '21화.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('제 21화\n본문'),
+    },
+  ]);
+
+  await expect(page.getByText(
+    '이미 등록된 회차 번호가 포함되어 있습니다: 20화.',
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByRole('button', { name: '다음 — 분석 시작' })).toBeDisabled();
+});
+
 test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  const secondAnalysisJobId = '66666666-6666-4666-8666-666666666666';
   let detectionMultipartBody = '';
   let uploadMultipartBody = '';
 
@@ -72,6 +476,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
                 sourceFileIndex: 0,
                 episodeNo: 1,
                 title: '첫 제목',
+                sourceHeading: '제 1화 첫 제목',
                 charCount: 8,
                 content: '첫 번째 본문입니다.',
               },
@@ -80,6 +485,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
                 sourceFileIndex: 0,
                 episodeNo: 2,
                 title: '둘째 제목',
+                sourceHeading: '제 2화 둘째 제목',
                 charCount: 8,
                 content: '두 번째 본문입니다.',
               },
@@ -119,25 +525,52 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: analysisJobId, jobType: 'EPISODE_VALIDATION', status: 'PENDING' },
+          data: [
+            {
+              id: analysisJobId,
+              episodeId: '44444444-4444-4444-8444-444444444444',
+              jobType: 'EPISODE_VALIDATION',
+              status: 'PENDING',
+            },
+            {
+              id: secondAnalysisJobId,
+              episodeId: '55555555-5555-4555-8555-555555555555',
+              jobType: 'EPISODE_VALIDATION',
+              status: 'PENDING',
+            },
+          ],
           error: null,
         }),
       });
     }
 
-    if (request.method() === 'GET' && pathname.endsWith(`/analysis-jobs/${analysisJobId}`)) {
+    if (
+      request.method() === 'GET'
+      && (
+        pathname.endsWith(`/analysis-jobs/${analysisJobId}`)
+        || pathname.endsWith(`/analysis-jobs/${secondAnalysisJobId}`)
+      )
+    ) {
+      const firstJob = pathname.endsWith(`/analysis-jobs/${analysisJobId}`);
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
           data: {
-            id: analysisJobId,
+            id: firstJob ? analysisJobId : secondAnalysisJobId,
             workId,
             workTitle: '테스트 작품',
             jobType: 'EPISODE_VALIDATION',
             status: 'PENDING',
-            episodes: [],
+            episodes: [{
+              id: firstJob
+                ? '44444444-4444-4444-8444-444444444444'
+                : '55555555-5555-4555-8555-555555555555',
+              episodeNo: firstJob ? 10 : 11,
+              title: firstJob ? '첫 제목' : '둘째 제목',
+              status: 'UPLOADED',
+            }],
           },
           error: null,
         }),
@@ -184,9 +617,13 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   expect(detectionMultipartBody).toContain('"uploadType":"MULTI_EPISODE_SINGLE_FILE"');
 
   await page.getByRole('button', { name: '다음 — 회차 분리 확인' }).click();
+  await expect(page.getByText('제 1화 첫 제목', { exact: true })).toBeVisible();
   await page.locator('input[type="number"]').fill('10');
+  await expect(page.getByText('제 1화 첫 제목', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /2화 둘째 제목/ }).click();
+  await expect(page.getByText('제 2화 둘째 제목', { exact: true })).toBeVisible();
   await page.locator('input[type="number"]').fill('11');
+  await expect(page.getByText('제 2화 둘째 제목', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /회차 분리 확정 \(2개\)/ }).click();
 
   await expect.poll(() => uploadMultipartBody).not.toBe('');
@@ -197,8 +634,10 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   expect(uploadMultipartBody).toContain('"detectionOrder":1');
   expect(uploadMultipartBody).toContain('"episodeNo":11');
   expect(uploadMultipartBody).not.toContain('"episodes"');
-  await expect(page).toHaveURL(/analysisJobIds=33333333-3333-4333-8333-333333333333/);
-  await expect(page).toHaveURL(/currentAnalysisJobIds=33333333-3333-4333-8333-333333333333/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds'))
+    .toBe(`${analysisJobId},${secondAnalysisJobId}`);
+  await expect.poll(() => new URL(page.url()).searchParams.get('currentAnalysisJobIds'))
+    .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
 
   await page.getByRole('button', { name: '원고 목록으로', exact: true }).click();
@@ -268,12 +707,19 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
   await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
 });
 
-test('분석 중에는 제목 수정만 허용하고 파일 변경과 삭제를 막는다', async ({ page }) => {
+test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변경·삭제·중복 요청을 막는다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
+  const batchId = '22222222-2222-4222-8222-222222222222';
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  let analysisCreateRequestCount = 0;
 
   await page.route('**/api/v1/**', route => {
-    const pathname = new URL(route.request().url()).pathname;
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
+      analysisCreateRequestCount += 1;
+    }
     const data = pathname.endsWith('/auth/me')
       ? {
           id: 1,
@@ -284,15 +730,32 @@ test('분석 중에는 제목 수정만 허용하고 파일 변경과 삭제를 
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
+      : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'RUNNING',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 1,
+              title: '분석 중 회차',
+              status: 'ANALYZING',
+            }],
+          }
       : pathname.endsWith(`/${workId}/episodes`)
         ? [{
             id: episodeId,
+            batchId,
             episodeNo: 1,
             title: '분석 중 회차',
             originalFilename: 'episode-1.txt',
             contentUpdatedAt: '2026-07-23T12:00:00',
             charCount: 100,
             analysisStatus: 'IN_PROGRESS',
+            latestAnalysisJobId: analysisJobId,
             unresolvedFindingCount: null,
           }]
         : pathname.endsWith(`/works/${workId}`)
@@ -313,12 +776,132 @@ test('분석 중에는 제목 수정만 허용하고 파일 변경과 삭제를 
   await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
 
   const titleButton = page.getByRole('button', { name: '분석 중 회차' });
+  const progressButton = page.getByRole('button', { name: '진행 보기' });
   await expect(titleButton).toBeEnabled();
+  await expect(progressButton).toBeEnabled();
   await expect(page.getByRole('button', { name: '파일 변경' })).toBeDisabled();
   await expect(page.getByRole('button', { name: '삭제' })).toBeDisabled();
 
   await titleButton.click();
   await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
+  await page.keyboard.press('Escape');
+
+  await progressButton.click();
+
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
+  await expect(page).toHaveURL(new RegExp(`batchId=${batchId}`));
+  await expect(page).toHaveURL(new RegExp(`analysisJobIds=${analysisJobId}`));
+  await expect(page.getByText('회차를 분석하고 있습니다')).toBeVisible();
+  expect(analysisCreateRequestCount).toBe(0);
+});
+
+test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도할 수 있다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+  let deleteRequestCount = 0;
+  let nativeDialogCount = 0;
+  let episodes = [{
+    id: episodeId,
+    episodeNo: 20,
+    title: '파일 교체 후 제목',
+    originalFilename: '20화_파일_교체_후.docx',
+    contentUpdatedAt: '2026-07-27T12:00:00',
+    charCount: 4200,
+    analysisStatus: 'REANALYSIS_REQUIRED',
+    unresolvedFindingCount: null,
+  }];
+
+  page.on('dialog', async dialog => {
+    nativeDialogCount += 1;
+    await dialog.dismiss();
+  });
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'DELETE' && pathname.endsWith(`/${workId}/episodes/${episodeId}`)) {
+      deleteRequestCount += 1;
+      if (deleteRequestCount === 1) {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            data: null,
+            error: {
+              code: 'EPISODE_DELETE_FAILED',
+              message: '회차를 삭제하지 못했습니다.',
+              details: [],
+            },
+          }),
+        });
+      }
+
+      episodes = [];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null, error: null }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'episode-delete@example.com',
+          displayName: '회차 삭제 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? episodes
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: episodes.length }]
+            : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-delete-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  let modal = page.getByRole('dialog', { name: '20화를 삭제할까요?' });
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText('20화 · 파일 교체 후 제목')).toBeVisible();
+  await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
+  await expect(modal.getByText('현재 서비스에서는 직접 복구할 수 없습니다.')).toBeVisible();
+  expect(nativeDialogCount).toBe(0);
+
+  await modal.getByRole('button', { name: '취소' }).click();
+  await expect(modal).not.toBeVisible();
+  expect(deleteRequestCount).toBe(0);
+
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  modal = page.getByRole('dialog', { name: '20화를 삭제할까요?' });
+  await modal.getByRole('button', { name: '삭제', exact: true }).click();
+
+  await expect.poll(() => deleteRequestCount).toBe(1);
+  await expect(modal.getByRole('alert')).toHaveText(
+    '삭제에 실패했습니다. 회차는 목록에 그대로 유지됩니다.',
+  );
+  await expect(page.getByRole('button', { name: '파일 교체 후 제목' })).toBeVisible();
+
+  await modal.getByRole('button', { name: '다시 시도' }).click();
+
+  await expect.poll(() => deleteRequestCount).toBe(2);
+  await expect(modal).not.toBeVisible();
+  await expect(page.getByRole('button', { name: '파일 교체 후 제목' })).not.toBeVisible();
 });
 
 test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ page }) => {
@@ -344,7 +927,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ 
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: analysisJobId },
+          data: [{ id: analysisJobId }],
           error: null,
         }),
       });
