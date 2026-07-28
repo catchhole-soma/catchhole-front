@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, EditorMode, NavId } from './constants';
@@ -13,14 +14,31 @@ import {
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
   Share2, Copy, Mail, UserPlus, ExternalLink, CheckCheck, ChevronDown,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
+import { EpisodeDeleteModal } from './EpisodeDeleteModal';
+import { SettingBookDeleteModal } from './SettingBookDeleteModal';
 import { useWorks } from '../../hooks/useWorks';
-import { createWork, uploadEpisode, Work, isDemoMode } from '../../lib/worksApi';
+import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
-import { validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
+import { ALLOWED_EXTENSIONS, validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
+import {
+  createAnalysisJobMutation,
+  deleteEpisodeMutation,
+  deleteSettingBookMutation,
+  getEpisodesOptions,
+  getEpisodesQueryKey,
+  getSettingBooksOptions,
+  getSettingBooksQueryKey,
+  replaceEpisodeFileMutation,
+  retryAnalysisJobMutation,
+  updateEpisodeTitleMutation,
+  uploadSettingBookMutation,
+} from '../../api/generated/@tanstack/react-query.gen';
+import type { EpisodeSummaryResponse, SettingBookSummaryResponse } from '../../api/generated/types.gen';
+import { toApiError } from '../../lib/api-errors';
 import { WORK_GENRES } from '../../lib/work-contract';
 
 import { WorkId } from './constants';
@@ -69,15 +87,22 @@ function NavItem({
   );
 }
 
-export function BtnG({ label, onClick, icon, small }: { label: string; onClick?: () => void; icon?: React.ReactNode; small?: boolean }) {
+export function BtnG({ label, onClick, icon, small, disabled = false }: {
+  label: string;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  small?: boolean;
+  disabled?: boolean;
+}) {
   const [h, setH] = useState(false);
   return (
-    <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+    <button disabled={disabled} onClick={onClick} onMouseEnter={() => { if (!disabled) setH(true); }} onMouseLeave={() => setH(false)}
       style={{
         height: small ? 32 : 38, padding: small ? '0 12px' : '0 16px', borderRadius: 6,
         border: `1px solid ${h ? '#3A3A4A' : C.border}`, background: h ? '#1F1F2A' : 'transparent',
-        color: C.t2, fontSize: small ? 12 : 13, cursor: 'pointer', transition: 'all 0.15s',
+        color: C.t2, fontSize: small ? 12 : 13, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
         whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+        opacity: disabled ? 0.45 : 1,
       }}>
       {icon}{label}
     </button>
@@ -132,18 +157,36 @@ export function TypeCard({ icon, label, desc, color, onSelect }: {
   );
 }
 
-export function FileDropArea({ file, onFileChange, error, fileLabel }: {
+export function FileDropArea({
+  file,
+  onFileChange,
+  error,
+  fileLabel,
+  allowedExtensions = ALLOWED_EXTENSIONS,
+  disabled = false,
+}: {
   file: File | null;
   onFileChange: (file: File | null, error: string | null) => void;
   error?: string | null;
   fileLabel: string;
+  allowedExtensions?: readonly string[];
+  disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
+  useEffect(() => {
+    if (!file && inputRef.current) inputRef.current.value = '';
+  }, [file]);
+
+  useEffect(() => {
+    if (disabled) setDragging(false);
+  }, [disabled]);
+
   const handleFile = (f: File | null | undefined) => {
+    if (disabled) return;
     if (!f) { onFileChange(null, null); return; }
-    const validationError = validateManuscriptFile(f);
+    const validationError = validateManuscriptFile(f, allowedExtensions);
     if (validationError) { onFileChange(null, validationError); return; }
     onFileChange(f, null);
   };
@@ -151,19 +194,30 @@ export function FileDropArea({ file, onFileChange, error, fileLabel }: {
   return (
     <div style={{ marginBottom: error ? 4 : 12 }}>
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        aria-disabled={disabled}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
-        onClick={() => inputRef.current?.click()}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!disabled) handleFile(e.dataTransfer.files?.[0]);
+        }}
+        onClick={() => {
+          if (!disabled) inputRef.current?.click();
+        }}
         style={{
           border: `2px dashed ${error ? C.danger : dragging ? C.primary : file ? C.success : C.border}`,
           borderRadius: 8, padding: '24px', textAlign: 'center',
           background: error ? C.danger + '08' : dragging ? C.primary + '08' : file ? C.success + '08' : 'transparent',
-          cursor: 'pointer', transition: 'all 0.15s',
+          cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+          opacity: disabled ? 0.55 : 1,
         }}
       >
         <input
-          ref={inputRef} type="file" accept=".txt,.docx" style={{ display: 'none' }}
+          ref={inputRef} type="file" accept={allowedExtensions.join(',')} disabled={disabled} style={{ display: 'none' }}
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
         {file ? (
@@ -177,7 +231,7 @@ export function FileDropArea({ file, onFileChange, error, fileLabel }: {
           <>
             <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
             <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-            <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 (최대 10MB) · {fileLabel}</div>
+            <div style={{ color: C.t3, fontSize: 12 }}>{allowedExtensions.join(', ')} 지원 (최대 10MB) · {fileLabel}</div>
           </>
         )}
       </div>
@@ -187,6 +241,66 @@ export function FileDropArea({ file, onFileChange, error, fileLabel }: {
         </div>
       )}
     </div>
+  );
+}
+
+function SourceFileModal({
+  title, description, currentFilename, warning, file, fileError, requestError,
+  pending, submitLabel, onFileChange, onClose, onSubmit,
+}: {
+  title: string;
+  description: string;
+  currentFilename?: string | null;
+  warning?: string;
+  file: File | null;
+  fileError: string | null;
+  requestError: string | null;
+  pending: boolean;
+  submitLabel: string;
+  onFileChange: (file: File | null, error: string | null) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{
+      position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.68)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <motion.div initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{
+        width: 480, maxWidth: '100%', borderRadius: 12, border: `1px solid ${C.border}`,
+        background: C.surface, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <div style={{ color: C.t1, fontSize: 17, fontWeight: 700 }}>{title}</div>
+          <button type="button" aria-label="닫기" disabled={pending} onClick={onClose} style={{
+            width: 28, height: 28, border: 0, background: 'transparent', color: C.t3,
+            cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.4 : 1,
+          }}><X size={16} /></button>
+        </div>
+        <div style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>{description}</div>
+        {currentFilename && <div style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>현재 원본: {currentFilename}</div>}
+        <FileDropArea
+          file={file}
+          error={fileError}
+          onFileChange={onFileChange}
+          fileLabel="TXT 또는 DOCX · 최대 10MB"
+          disabled={pending}
+        />
+        {warning && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.warning}12`, color: C.warning, fontSize: 12 }}>{warning}</div>}
+        {requestError && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.danger}12`, color: C.danger, fontSize: 12 }}>{requestError}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" disabled={pending} onClick={onClose} style={{
+            flex: 1, height: 40, borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent',
+            color: C.t2, fontFamily: 'inherit', cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.5 : 1,
+          }}>취소</button>
+          <button type="button" disabled={!file || Boolean(fileError) || pending} onClick={onSubmit} style={{
+            flex: 2, height: 40, borderRadius: 6, border: 0, background: C.primary, color: '#fff',
+            fontFamily: 'inherit', fontWeight: 700, cursor: !file || fileError || pending ? 'not-allowed' : 'pointer',
+            opacity: !file || fileError || pending ? 0.45 : 1,
+          }}>{pending ? '처리 중...' : submitLabel}</button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -365,11 +479,11 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
           settingsFile: includeSettings ? settingsFile : null,
         });
       } else {
-        await uploadEpisode({
+        await uploadSingleEpisode({
           workId: episodeWorkId,
-          episodeNumber: parseInt(episodeNum, 10) || 0,
-          file: episodeFile as File,
-          settingsFile: includeSettings ? settingsFile : null,
+          episodeNo: parseInt(episodeNum, 10) || 0,
+          sourceEpisodeFile: episodeFile as File,
+          attachedSettingBookFile: includeSettings ? settingsFile : null,
         });
       }
       onUploaded?.();
@@ -2799,6 +2913,24 @@ const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
 const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
+function formatEpisodeDate(value?: string): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function episodeAnalysisLabel(episode: EpisodeSummaryResponse): { label: string; color: string } {
+  switch (episode.analysisStatus) {
+    case 'COMPLETED': return { label: '분석 완료', color: C.success };
+    case 'IN_PROGRESS': return { label: '분석 중', color: C.primary };
+    case 'FAILED': return { label: '분석 실패', color: C.danger };
+    default: return { label: '재분석 필요', color: C.warning };
+  }
+}
+
 export default function S1Dashboard() {
   const navigate = useAppNavigate();
   const {
@@ -2810,6 +2942,7 @@ export default function S1Dashboard() {
   } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const workIdParam = searchParams.get('workId');
+  const queryClient = useQueryClient();
 
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
@@ -2847,6 +2980,28 @@ export default function S1Dashboard() {
           ...FALLBACK_WORK_INFO,
           episodeCount: 0,
         };
+  const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(effectiveWorkId);
+  const episodesQuery = useQuery({
+    ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
+    enabled: episodeApiEnabled,
+    retry: false,
+    refetchInterval: query => {
+      const episodes = query.state.data?.data ?? [];
+      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
+    },
+  });
+  const settingBooksQuery = useQuery({
+    ...getSettingBooksOptions({ path: { workId: effectiveWorkId } }),
+    enabled: episodeApiEnabled,
+    retry: false,
+  });
+  const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
+  const deleteSettingBookRequest = useMutation(deleteSettingBookMutation());
+  const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
+  const uploadSettingBookRequest = useMutation(uploadSettingBookMutation());
+  const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
+  const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
+  const retryEpisodeAnalysisRequest = useMutation(retryAnalysisJobMutation());
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -2868,7 +3023,8 @@ export default function S1Dashboard() {
       });
     }
   }, [apiWork, selectedWorkInfo, setSelectedWorkInfo]);
-  const [msPage, setMsPage] = useState(0);
+  const initialManuscriptPage = Math.max(0, Number.parseInt(searchParams.get('page') ?? '1', 10) - 1 || 0);
+  const [msPage, setMsPage] = useState(initialManuscriptPage);
   const MS_PAGE_SIZE = 20;
   const [episodeTargetWork, setEpisodeTargetWork] = useState('');
   const [episodeTargetChapters, setEpisodeTargetChapters] = useState(0);
@@ -2881,6 +3037,21 @@ export default function S1Dashboard() {
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
+  const [editingEpisodeTitle, setEditingEpisodeTitle] = useState('');
+  const [episodeActionError, setEpisodeActionError] = useState<string | null>(null);
+  const [settingBookActionError, setSettingBookActionError] = useState<string | null>(null);
+  const [showSettingBookUpload, setShowSettingBookUpload] = useState(false);
+  const [settingBookFile, setSettingBookFile] = useState<File | null>(null);
+  const [settingBookFileError, setSettingBookFileError] = useState<string | null>(null);
+  const [settingBookDeleteTarget, setSettingBookDeleteTarget] = useState<SettingBookSummaryResponse | null>(null);
+  const [settingBookDeleteFailed, setSettingBookDeleteFailed] = useState(false);
+  const [replaceEpisodeTarget, setReplaceEpisodeTarget] = useState<EpisodeSummaryResponse | null>(null);
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [replacementFileError, setReplacementFileError] = useState<string | null>(null);
+  const [episodeDeleteTarget, setEpisodeDeleteTarget] = useState<EpisodeSummaryResponse | null>(null);
+  const [episodeDeleteSubmitting, setEpisodeDeleteSubmitting] = useState(false);
+  const [episodeDeleteFailed, setEpisodeDeleteFailed] = useState(false);
 
   const handleCharSave = (s: CharacterSetting) => {
     let isNew = false;
@@ -2920,6 +3091,177 @@ export default function S1Dashboard() {
   const goToSettingDB = () => {
     setActiveNav('settingDB');
   };
+
+  const refreshEpisodeList = () => queryClient.invalidateQueries({
+    queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
+  });
+
+  const refreshSettingBookList = () => queryClient.invalidateQueries({
+    queryKey: getSettingBooksQueryKey({ path: { workId: effectiveWorkId } }),
+  });
+
+  const changeManuscriptPage = (nextPage: number) => {
+    setMsPage(nextPage);
+    setSearchParams(params => {
+      if (nextPage === 0) params.delete('page');
+      else params.set('page', String(nextPage + 1));
+      return params;
+    }, { replace: true });
+  };
+
+  const saveEpisodeTitle = async (episode: EpisodeSummaryResponse) => {
+    if (!episode.id || editingEpisodeTitle.trim().length > 100) return;
+    setEpisodeActionError(null);
+    try {
+      await updateEpisodeTitleRequest.mutateAsync({
+        path: { workId: effectiveWorkId, episodeId: episode.id },
+        body: { title: editingEpisodeTitle.trim() || null },
+      });
+      setEditingEpisodeId(null);
+      await refreshEpisodeList();
+    } catch (error) {
+      setEpisodeActionError(toApiError(error)?.message ?? '회차 제목을 수정하지 못했습니다.');
+    }
+  };
+
+  const removeEpisode = async () => {
+    if (!episodeDeleteTarget?.id || episodeDeleteSubmitting) return;
+    setEpisodeDeleteSubmitting(true);
+    setEpisodeDeleteFailed(false);
+    setEpisodeActionError(null);
+    try {
+      await deleteEpisodeRequest.mutateAsync({
+        path: { workId: effectiveWorkId, episodeId: episodeDeleteTarget.id },
+      });
+      await refreshEpisodeList();
+      setEpisodeDeleteTarget(null);
+    } catch {
+      setEpisodeDeleteFailed(true);
+    } finally {
+      setEpisodeDeleteSubmitting(false);
+    }
+  };
+
+  const uploadSettingBook = async () => {
+    if (!settingBookFile || settingBookFileError) return;
+    setSettingBookActionError(null);
+    try {
+      await uploadSettingBookRequest.mutateAsync({
+        path: { workId: effectiveWorkId },
+        body: { file: settingBookFile },
+      });
+      await refreshSettingBookList();
+      setShowSettingBookUpload(false);
+      setSettingBookFile(null);
+      setSettingBookFileError(null);
+    } catch (error) {
+      setSettingBookActionError(toApiError(error)?.message ?? '설정집 원본을 업로드하지 못했습니다.');
+    }
+  };
+
+  const removeSettingBook = async () => {
+    if (!settingBookDeleteTarget?.id || deleteSettingBookRequest.isPending) return;
+    setSettingBookDeleteFailed(false);
+    try {
+      await deleteSettingBookRequest.mutateAsync({
+        path: { workId: effectiveWorkId, settingBookId: settingBookDeleteTarget.id },
+      });
+      await refreshSettingBookList();
+      setSettingBookDeleteTarget(null);
+    } catch {
+      setSettingBookDeleteFailed(true);
+    }
+  };
+
+  const replaceEpisodeFile = async () => {
+    if (!replaceEpisodeTarget?.id || !replacementFile || replacementFileError) return;
+    setEpisodeActionError(null);
+    try {
+      await replaceEpisodeFileRequest.mutateAsync({
+        path: { workId: effectiveWorkId, episodeId: replaceEpisodeTarget.id },
+        body: { file: replacementFile },
+      });
+      await refreshEpisodeList();
+      setReplaceEpisodeTarget(null);
+      setReplacementFile(null);
+      setReplacementFileError(null);
+    } catch (error) {
+      setEpisodeActionError(toApiError(error)?.message ?? '회차 원문 파일을 변경하지 못했습니다.');
+    }
+  };
+
+  const openEpisodeAnalysis = async (episode: EpisodeSummaryResponse) => {
+    if (createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending) return;
+    setEpisodeActionError(null);
+    if (!episode.batchId) {
+      setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
+      return;
+    }
+    if (episode.analysisStatus === 'IN_PROGRESS' && episode.latestAnalysisJobId) {
+      navigate(
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
+        'push-right',
+      );
+      return;
+    }
+    if (episode.analysisStatus === 'IN_PROGRESS') {
+      setEpisodeActionError('진행 중인 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    if (episode.analysisStatus === 'FAILED') {
+      if (!episode.latestAnalysisJobId) {
+        setEpisodeActionError('실패한 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      try {
+        const response = await retryEpisodeAnalysisRequest.mutateAsync({
+          path: { workId: effectiveWorkId, analysisJobId: episode.latestAnalysisJobId },
+        });
+        const retryAnalysisJobIds = [...new Set(
+          (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+        )];
+        if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
+        const trackedAnalysisJobIds = [
+          episode.latestAnalysisJobId,
+          ...retryAnalysisJobIds,
+        ].join(',');
+        const currentAnalysisJobIds = retryAnalysisJobIds.join(',');
+        navigate(
+          `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${trackedAnalysisJobIds}&currentAnalysisJobIds=${currentAnalysisJobIds}&jobType=EPISODE_VALIDATION`,
+          'push-right',
+        );
+      } catch (error) {
+        setEpisodeActionError(toApiError(error)?.message ?? '실패한 회차 분석을 다시 요청하지 못했습니다.');
+      }
+      return;
+    }
+    try {
+      const response = await createEpisodeAnalysisRequest.mutateAsync({
+        path: { workId: effectiveWorkId },
+        body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
+      });
+      const analysisJobIds = [...new Set(
+        (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+      )];
+      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      const analysisJobIdParam = analysisJobIds.join(',');
+      navigate(
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
+        'push-right',
+      );
+    } catch (error) {
+      setEpisodeActionError(toApiError(error)?.message ?? '분석 작업을 시작하지 못했습니다.');
+    }
+  };
+
+  const episodeRows = episodesQuery.data?.data ?? [];
+  const totalEpisodePages = Math.max(1, Math.ceil(episodeRows.length / MS_PAGE_SIZE));
+  const currentEpisodePage = Math.min(msPage, totalEpisodePages - 1);
+  const pagedEpisodeRows = episodeRows.slice(
+    currentEpisodePage * MS_PAGE_SIZE,
+    (currentEpisodePage + 1) * MS_PAGE_SIZE,
+  );
+  const settingBookRows = settingBooksQuery.data?.data ?? [];
 
   return (
     <div style={{
@@ -2982,7 +3324,7 @@ export default function S1Dashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BtnG label={charEditMode ? '완료' : '편집'} icon={<Settings size={12} />} onClick={() => setCharEditMode(v => !v)} />
-                    <BtnP label="회차 올리기" onClick={() => navigate('/episode-upload', 'push-right')} icon={<Upload size={12} />} />
+                    <BtnP label="회차 올리기" onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
 
@@ -3270,80 +3612,232 @@ export default function S1Dashboard() {
                     </span>
                   </div>
                   <BtnP label="회차 올리기" icon={<Upload size={13} />}
-                    onClick={() => navigate('/episode-upload', 'push-right')} />
+                    onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} />
                 </div>
 
-                {selectedWorkDisplay.episodeCount === 0 ? (
+                {!episodeApiEnabled ? (
                   <div style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     height: 280, color: C.t3, gap: 12,
                   }}>
-                    <FileText size={40} strokeWidth={1.2} />
-                    <div style={{ fontSize: 14 }}>아직 업로드된 원고가 없습니다.</div>
-                    <div style={{ fontSize: 12 }}>회차 올리기로 첫 원고를 추가하세요.</div>
+                    <AlertCircle size={40} strokeWidth={1.2} />
+                    <div style={{ fontSize: 14 }}>데모 작품은 원고 API에 연결되지 않습니다.</div>
+                    <div style={{ fontSize: 12 }}>실제 계정으로 로그인해 작품을 선택하거나 등록하세요.</div>
                   </div>
-                ) : (() => {
-                    const pagedRows = INIT_MANUSCRIPTS.slice(msPage * MS_PAGE_SIZE, (msPage + 1) * MS_PAGE_SIZE);
-                    const totalPages = Math.ceil(INIT_MANUSCRIPTS.length / MS_PAGE_SIZE);
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 800 }}>
-                        {/* 설정집 섹션 */}
-                        <div>
-                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 설정집</div>
-                          {INIT_SETTINGS_DOCS.map(doc => (
-                            <div key={doc.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <FileText size={14} color={C.primary} />
-                                <span style={{ color: C.t1, fontSize: 13 }}>{doc.name}</span>
-                                <span style={{ color: C.t3, fontSize: 12 }}>{doc.date}</span>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
+                    {episodeActionError && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px',
+                        color: C.danger, background: `${C.danger}10`, border: `1px solid ${C.danger}44`,
+                        borderRadius: 6, fontSize: 12,
+                      }}>
+                        <AlertCircle size={13} /> {episodeActionError}
+                      </div>
+                    )}
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          업로드된 설정집 ({settingBookRows.length}개)
+                        </div>
+                        <BtnG small label="설정집 업로드" icon={<Upload size={11} />} onClick={() => {
+                          setSettingBookActionError(null);
+                          setShowSettingBookUpload(true);
+                        }} />
+                      </div>
+                      {settingBookActionError && (
+                        <div style={{ color: C.danger, fontSize: 12, marginBottom: 8 }}>{settingBookActionError}</div>
+                      )}
+                      {settingBooksQuery.isPending ? (
+                        <div style={{ padding: 22, color: C.t3, textAlign: 'center' }}><Loader2 size={16} className="spin" /> 설정집을 불러오는 중...</div>
+                      ) : settingBooksQuery.isError ? (
+                        <div style={{ padding: 18, border: `1px solid ${C.danger}44`, borderRadius: 8, color: C.t2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>설정집 목록을 불러오지 못했습니다.</span>
+                          <BtnG small label="다시 시도" icon={<RefreshCw size={11} />} onClick={() => void settingBooksQuery.refetch()} />
+                        </div>
+                      ) : settingBookRows.length === 0 ? (
+                        <div style={{ padding: '24px 16px', color: C.t3, background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, textAlign: 'center' }}>
+                          아직 업로드된 설정집이 없습니다.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {settingBookRows.map(settingBook => (
+                            <div key={settingBook.id} style={{
+                              display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) 140px 150px', alignItems: 'center',
+                              padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
+                            }}>
+                              <button type="button" onClick={() => navigate(
+                                `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
+                                'push-right',
+                                { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                              )} style={{
+                                border: 0, background: 'transparent', color: C.t1, fontFamily: 'inherit', fontSize: 13,
+                                textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>
+                                {settingBook.originalFilename}
+                              </button>
+                              <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(settingBook.uploadedAt)}</span>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
+                                <BtnG small label="원문" onClick={() => navigate(
+                                  `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
+                                  'push-right',
+                                  { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                                )} />
+                                <BtnG small label="삭제" disabled={deleteSettingBookRequest.isPending} onClick={() => {
+                                  setSettingBookActionError(null);
+                                  setSettingBookDeleteFailed(false);
+                                  setSettingBookDeleteTarget(settingBook);
+                                }} />
                               </div>
-                              <BtnG small label="삭제" />
                             </div>
                           ))}
                         </div>
-                        {/* 원고 목록 섹션 */}
-                        <div>
-                          <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>업로드된 원고 ({INIT_MANUSCRIPTS.length}화)</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', padding: '8px 16px', color: C.t3, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                            <span>회차</span><span>제목</span><span>업로드</span><span>글자수</span><span>오류</span><span></span>
+                      )}
+                    </div>
+
+                    <div>
+                      <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                        총 {episodeRows.length}개 회차
+                      </div>
+                      {episodesQuery.isPending ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: C.t3, gap: 8 }}>
+                          <Loader2 size={18} className="spin" /> 회차 목록을 불러오는 중...
+                        </div>
+                      ) : episodesQuery.isError ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 240, color: C.t3, gap: 12 }}>
+                          <AlertCircle size={36} color={C.danger} />
+                          <div style={{ color: C.t2, fontSize: 14 }}>원고 목록을 불러오지 못했습니다.</div>
+                          <BtnG label="다시 불러오기" icon={<RefreshCw size={12} />} onClick={() => void episodesQuery.refetch()} />
+                        </div>
+                      ) : episodeRows.length === 0 ? (
+                        <div style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          height: 240, color: C.t3, gap: 10,
+                        }}>
+                          <FileText size={36} strokeWidth={1.2} />
+                          <div style={{ fontSize: 14 }}>아직 업로드된 원고가 없습니다.</div>
+                          <div style={{ fontSize: 12 }}>회차 올리기로 첫 원고를 추가하세요.</div>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ overflowX: 'auto' }}>
+                          <div style={{
+                            minWidth: 1160, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 76px 330px',
+                            padding: '8px 14px', color: C.t3, fontSize: 11, fontWeight: 600,
+                          }}>
+                            <span>회차</span><span>제목</span><span>원본 파일</span><span>변경일</span><span>글자수</span><span>분석 상태</span><span>미처리</span><span />
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {pagedRows.map((row) => {
-                              const isMissing = row.status === 'missing';
-                              const isAnalyzing = row.status === 'analyzing';
-                              const isUnanalyzed = row.status === 'unanalyzed';
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {pagedEpisodeRows.map(episode => {
+                              const status = episodeAnalysisLabel(episode);
+                              const isAnalyzing = episode.analysisStatus === 'IN_PROGRESS';
+                              const editing = editingEpisodeId === episode.id;
                               return (
-                                <div key={row.chapter} style={{ display: 'grid', gridTemplateColumns: '88px 1fr 100px 80px 90px 176px', alignItems: 'center', padding: '12px 16px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, opacity: isMissing ? 0.4 : 1, transition: 'border-color 0.15s' }}
-                                  onMouseEnter={e => { if (!isMissing) e.currentTarget.style.borderColor = '#3A3A4A'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
-                                >
-                                  <span style={{ color: C.t2, fontSize: 13, fontWeight: 600 }}>{isNaN(Number(row.chapter)) ? row.chapter : `${row.chapter}화`}</span>
-                                  <span style={{ color: isMissing ? C.t3 : C.t1, fontSize: 13 }}>{row.title}</span>
-                                  <span style={{ color: C.t3, fontSize: 12 }}>{row.date}</span>
-                                  <span style={{ color: C.t3, fontSize: 12 }}>{row.words}</span>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: isAnalyzing ? C.primary : (isMissing || isUnanalyzed) ? C.t3 : row.errors >= 3 ? C.danger : row.errors > 0 ? C.warning : C.success }}>
-                                    {isAnalyzing ? '분석 중...' : (isMissing || isUnanalyzed) ? '—' : row.errors > 0 ? `${row.errors}건` : '없음'}
+                                <div key={episode.id} style={{
+                                  minWidth: 1160, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 76px 330px',
+                                  alignItems: 'center', padding: '11px 14px', background: C.surface,
+                                  borderRadius: 8, border: `1px solid ${C.border}`,
+                                }}>
+                                  <span style={{ color: C.t2, fontSize: 13, fontWeight: 700 }}>{episode.episodeNo}화</span>
+                                  {editing ? (
+                                    <div style={{ display: 'flex', gap: 5, paddingRight: 8 }}>
+                                      <input
+                                        autoFocus
+                                        value={editingEpisodeTitle}
+                                        maxLength={100}
+                                        onChange={event => setEditingEpisodeTitle(event.target.value)}
+                                        onKeyDown={event => {
+                                          if (event.key === 'Enter') void saveEpisodeTitle(episode);
+                                          if (event.key === 'Escape') setEditingEpisodeId(null);
+                                        }}
+                                        style={{
+                                          minWidth: 0, flex: 1, height: 30, padding: '0 8px', borderRadius: 5,
+                                          border: `1px solid ${C.primary}`, background: C.bg, color: C.t1,
+                                          fontFamily: 'inherit', fontSize: 12,
+                                        }}
+                                      />
+                                      <BtnG small label="취소" onClick={() => setEditingEpisodeId(null)} />
+                                      <BtnG small label="저장" onClick={() => void saveEpisodeTitle(episode)} />
+                                    </div>
+                                  ) : (
+                                    <button type="button" onClick={() => {
+                                      setEditingEpisodeId(episode.id ?? null);
+                                      setEditingEpisodeTitle(episode.title ?? '');
+                                    }} style={{
+                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left',
+                                      border: 0, padding: '4px 8px 4px 0', background: 'transparent',
+                                      color: episode.title ? C.t1 : C.warning, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                                    }} title="제목 수정">
+                                      {episode.title || '제목을 찾지 못했어요 · 제목 입력'}
+                                    </button>
+                                  )}
+                                  <span style={{ color: C.t3, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }} title={episode.originalFilename ?? ''}>
+                                    {episode.originalFilename ?? '—'}
                                   </span>
-                                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                                    {!isMissing && <>
-                                      <BtnG small label="분석" onClick={isAnalyzing ? undefined : () => navigate('/loading', 'dissolve')} />
-                                      <BtnG small label="보기" onClick={isAnalyzing ? undefined : () => { setEditorMode('view'); navigate('/editor', 'push-right'); }} />
-                                      <BtnG small label="편집" onClick={isAnalyzing ? undefined : () => { setEditorMode('edit'); navigate('/editor', 'push-right'); }} />
-                                    </>}
+                                  <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
+                                  <span style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
+                                  <span style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  <span style={{ color: C.t3, fontSize: 11 }}>
+                                    {episode.analysisStatus === 'COMPLETED'
+                                      ? episode.unresolvedFindingCount === null || episode.unresolvedFindingCount === undefined
+                                        ? '—' : episode.unresolvedFindingCount === 0 ? '없음' : `${episode.unresolvedFindingCount}건`
+                                      : '—'}
+                                  </span>
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
+                                    <BtnG
+                                      small
+                                      disabled={createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending}
+                                      label={episode.analysisStatus === 'FAILED' ? '다시 시도'
+                                        : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
+                                          : episode.analysisStatus === 'IN_PROGRESS' ? '진행 보기' : '재분석'}
+                                      onClick={episode.analysisStatus === 'COMPLETED'
+                                        ? () => navigate(
+                                            `/episode-validation-report?workId=${encodeURIComponent(effectiveWorkId)}`,
+                                            'push-right',
+                                            {
+                                              workId: effectiveWorkId,
+                                              episodeIds: episode.id ? [episode.id] : [],
+                                            },
+                                          )
+                                        : () => void openEpisodeAnalysis(episode)}
+                                    />
+                                    <BtnG small label="원문" onClick={() => {
+                                      setEditorMode('view');
+                                      navigate(
+                                        `/editor?workId=${encodeURIComponent(effectiveWorkId)}&episodeId=${episode.id}`,
+                                        'push-right',
+                                        { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                                      );
+                                    }} />
+                                    <BtnG small label="파일 변경" disabled={isAnalyzing} onClick={() => {
+                                      setReplacementFile(null);
+                                      setReplacementFileError(null);
+                                      setEpisodeActionError(null);
+                                      setReplaceEpisodeTarget(episode);
+                                    }} />
+                                    <BtnG small label="삭제" disabled={isAnalyzing || !episode.id} onClick={() => {
+                                      if (!episode.id) return;
+                                      setEpisodeActionError(null);
+                                      setEpisodeDeleteFailed(false);
+                                      setEpisodeDeleteTarget(episode);
+                                    }} />
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
-                            <button onClick={() => setMsPage(p => Math.max(0, p - 1))} disabled={msPage === 0} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: msPage === 0 ? C.t3 : C.t2, fontSize: 13, cursor: msPage === 0 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: msPage === 0 ? 0.4 : 1 }}>← 이전</button>
-                            <span style={{ color: C.t2, fontSize: 13 }}>{msPage + 1} / {totalPages}</span>
-                            <button onClick={() => setMsPage(p => Math.min(totalPages - 1, p + 1))} disabled={msPage === totalPages - 1} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: msPage === totalPages - 1 ? C.t3 : C.t2, fontSize: 13, cursor: msPage === totalPages - 1 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: msPage === totalPages - 1 ? 0.4 : 1 }}>다음 →</button>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+                            <button onClick={() => changeManuscriptPage(Math.max(0, currentEpisodePage - 1))} disabled={currentEpisodePage === 0} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: currentEpisodePage === 0 ? C.t3 : C.t2, fontSize: 13, cursor: currentEpisodePage === 0 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: currentEpisodePage === 0 ? 0.4 : 1 }}>← 이전</button>
+                            <span style={{ color: C.t2, fontSize: 13 }}>{currentEpisodePage + 1} / {totalEpisodePages}</span>
+                            <button onClick={() => changeManuscriptPage(Math.min(totalEpisodePages - 1, currentEpisodePage + 1))} disabled={currentEpisodePage >= totalEpisodePages - 1} style={{ height: 32, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: currentEpisodePage >= totalEpisodePages - 1 ? C.t3 : C.t2, fontSize: 13, cursor: currentEpisodePage >= totalEpisodePages - 1 ? 'default' : 'pointer', fontFamily: 'inherit', opacity: currentEpisodePage >= totalEpisodePages - 1 ? 0.4 : 1 }}>다음 →</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -3351,6 +3845,82 @@ export default function S1Dashboard() {
       </div>
 
       <AnimatePresence>
+      {showSettingBookUpload && (
+        <SourceFileModal
+          title="설정집 업로드"
+          description="현재 작품에 설정집 원본만 저장합니다. 분석이나 설정 추출은 실행하지 않습니다."
+          file={settingBookFile}
+          fileError={settingBookFileError}
+          requestError={settingBookActionError}
+          pending={uploadSettingBookRequest.isPending}
+          submitLabel="업로드"
+          onFileChange={(file, error) => {
+            setSettingBookFile(file);
+            setSettingBookFileError(error);
+            setSettingBookActionError(null);
+          }}
+          onClose={() => {
+            if (uploadSettingBookRequest.isPending) return;
+            setShowSettingBookUpload(false);
+            setSettingBookFile(null);
+            setSettingBookFileError(null);
+            setSettingBookActionError(null);
+          }}
+          onSubmit={() => void uploadSettingBook()}
+        />
+      )}
+      {replaceEpisodeTarget && (
+        <SourceFileModal
+          title="회차 파일 변경"
+          description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
+          currentFilename={replaceEpisodeTarget.originalFilename}
+          warning="파일을 변경하면 기존 분석 결과는 현재 원고에 적용되지 않으며 재분석이 필요합니다."
+          file={replacementFile}
+          fileError={replacementFileError}
+          requestError={episodeActionError}
+          pending={replaceEpisodeFileRequest.isPending}
+          submitLabel="파일 변경"
+          onFileChange={(file, error) => {
+            setReplacementFile(file);
+            setReplacementFileError(error);
+            setEpisodeActionError(null);
+          }}
+          onClose={() => {
+            if (replaceEpisodeFileRequest.isPending) return;
+            setReplaceEpisodeTarget(null);
+            setReplacementFile(null);
+            setReplacementFileError(null);
+            setEpisodeActionError(null);
+          }}
+          onSubmit={() => void replaceEpisodeFile()}
+        />
+      )}
+      {episodeDeleteTarget && (
+        <EpisodeDeleteModal
+          episode={episodeDeleteTarget}
+          submitting={episodeDeleteSubmitting}
+          failed={episodeDeleteFailed}
+          onClose={() => {
+            if (episodeDeleteSubmitting) return;
+            setEpisodeDeleteTarget(null);
+            setEpisodeDeleteFailed(false);
+          }}
+          onDelete={() => void removeEpisode()}
+        />
+      )}
+      {settingBookDeleteTarget && (
+        <SettingBookDeleteModal
+          settingBook={settingBookDeleteTarget}
+          submitting={deleteSettingBookRequest.isPending}
+          failed={settingBookDeleteFailed}
+          onClose={() => {
+            if (deleteSettingBookRequest.isPending) return;
+            setSettingBookDeleteTarget(null);
+            setSettingBookDeleteFailed(false);
+          }}
+          onDelete={() => void removeSettingBook()}
+        />
+      )}
         {editTarget && (
         <SettingsBuilderModal
           initial={editTarget}

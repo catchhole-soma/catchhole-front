@@ -1,3 +1,7 @@
+import type {
+  EpisodeUploadRequest,
+  EpisodeUploadResponse,
+} from '../api/generated/types.gen';
 import { apiFetch, apiFetchForm } from './api';
 import type { WorkResponse as GeneratedWorkResponse } from '../api/generated/types.gen';
 
@@ -63,17 +67,17 @@ export interface CreateWorkResult {
   workId: string;
 }
 
-export interface UploadEpisodeInput {
+export interface UploadSingleEpisodeInput {
   workId: string;
-  episodeNumber: number;
-  file: File;
-  settingsFile?: File | null;
+  episodeNo: number;
+  sourceEpisodeFile: File;
+  attachedSettingBookFile?: File | null;
 }
 
-export interface UploadEpisodeResult {
-  batchId: string;
-  episodeCount: number;
-}
+export type UploadSingleEpisodeResult = Pick<
+  EpisodeUploadResponse,
+  'batchId' | 'episodeCount'
+>;
 
 /** 백엔드 WorkController가 반환하는 작품 응답 (필요한 필드만) */
 interface WorkResponse {
@@ -82,12 +86,6 @@ interface WorkResponse {
   genre: string | null;
   description?: string | null;
   latestEpisodeNo: number;
-}
-
-/** 백엔드 EpisodeController.uploadEpisodes가 반환하는 업로드 응답 (필요한 필드만) */
-interface EpisodeUploadResponse {
-  batchId: string;
-  episodeCount: number;
 }
 
 export function toWork(res: GeneratedWorkResponse): Work | null {
@@ -185,17 +183,19 @@ export async function createWork(input: CreateWorkInput): Promise<CreateWorkResu
     }),
   });
 
-  await uploadEpisode({
+  await uploadSingleEpisode({
     workId: work.id,
-    episodeNumber: 1,
-    file: input.episodeFile,
-    settingsFile: input.settingsFile,
+    episodeNo: 1,
+    sourceEpisodeFile: input.episodeFile,
+    attachedSettingBookFile: input.settingsFile,
   });
 
   return { workId: work.id };
 }
 
-export async function uploadEpisode(input: UploadEpisodeInput): Promise<UploadEpisodeResult> {
+export async function uploadSingleEpisode(
+  input: UploadSingleEpisodeInput,
+): Promise<UploadSingleEpisodeResult> {
   if (isDemoMode()) {
     await delay(DEMO_DELAY_MS);
     const works = loadDemoWorks();
@@ -208,11 +208,14 @@ export async function uploadEpisode(input: UploadEpisodeInput): Promise<UploadEp
   }
 
   const formData = new FormData();
-  const meta = { uploadType: 'SINGLE_EPISODE', episodeNo: input.episodeNumber };
-  formData.append('data', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-  formData.append('episodeFiles', input.file);
-  if (input.settingsFile) {
-    formData.append('settingBookFile', input.settingsFile);
+  const metadata: EpisodeUploadRequest = {
+    uploadType: 'SINGLE_EPISODE',
+    singleEpisodeNo: input.episodeNo,
+  };
+  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  formData.append('episodeFiles', input.sourceEpisodeFile);
+  if (input.attachedSettingBookFile) {
+    formData.append('settingBookFile', input.attachedSettingBookFile);
   }
 
   return apiFetchForm<EpisodeUploadResponse>(`/api/v1/works/${input.workId}/episodes`, formData);

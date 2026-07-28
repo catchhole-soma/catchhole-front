@@ -15,25 +15,25 @@
    - 설정 후보 추출 → 설정 검토 완료 → `EPISODE_VALIDATION` 작업 생성
    - [분석 진행 중](#분석-진행-중-s4loadingrunning) → [분석 완료](#분석-완료-s4loadingcompleted) → [충돌 의심 상세 리포트](#충돌-의심-상세-리포트-sepisodevalidationreport)
 3. **실패한 분석 다시 시도**
-   - 한 회차라도 실패하면 분석 작업 전체를 `FAILED`로 처리하고 결과를 공개하지 않는다.
-   - 기존 실패 작업을 되살리지 않고 같은 `batchId`와 분석 조건으로 새 작업을 생성하여 배치 전체를 다시 분석한다.
+   - 회차별 Job은 독립적으로 성공·실패하며, 한 회차 실패가 다른 회차 결과나 상태를 바꾸지 않는다.
+   - 기존 실패 Job을 되살리지 않고 서버가 확인한 실패 회차만 새 Job으로 재시도한다.
 4. **분석 작업 다시 확인**
-   - 사이드 메뉴의 [분석 리포트 목록](#분석-리포트-목록-s5reportlist)에서 대기·진행 중·완료·실패 작업을 모두 조회한다.
-   - 대기·진행 중 작업을 선택하면 같은 `analysisJobId`의 진행 화면으로 돌아가 폴링을 재개한다.
-   - 완료 작업을 선택하면 같은 `analysisJobId`의 완료 상태를 열고, 충돌 의심이 있을 때 검토 버튼으로 전체 회차 결과에 진입한다. 실패 작업을 선택하면 실패 내용과 배치 전체 재시도를 확인한다.
+   - 사이드 메뉴의 [분석 리포트 목록](#분석-리포트-목록-s5reportlist)에서 회차별 작업을 `batchId` 실행 묶음으로 집계해 확인한다.
+   - 대기·진행 중 묶음을 선택하면 같은 `analysisJobIds`의 진행 화면으로 돌아가 폴링을 재개한다.
+   - 모든 Job이 완료되면 완료 상태를 열고, 실패가 있으면 실패 회차만 재시도한다.
 
 > **MVP 공통 정책**
-> - 하나의 업로드 묶음에는 대표 `analysisJobId` 하나를 사용하고, 그 안에서 대상 회차별 처리 상태를 제공한다.
-> - 분석 묶음은 원자적으로 처리한다. 대상 회차가 모두 성공해야 `SUCCEEDED`와 리포트를 제공하며, 한 회차라도 실패하면 작업 전체를 `FAILED`로 처리한다.
-> - 진행 중 회차별 상태는 처리 현황 안내에만 사용한다. 전체 작업이 `SUCCEEDED`가 되기 전에는 완료된 개별 회차 결과도 공개하지 않는다.
-> - 작업 중 저장한 중간 결과가 있더라도 `FAILED` 작업의 결과는 조회 대상에서 제외한다. `reportId`는 모든 대상 회차와 결과 저장이 성공한 뒤에만 FE에 제공한다.
-> - BE는 리포트 저장과 `reportId` 연결을 마친 뒤 `AnalysisJob.status`를 `SUCCEEDED`로 변경한다. 따라서 `SUCCEEDED` 응답에는 `reportId`가 반드시 포함된다.
-> - MVP의 `분석 다시 시도`는 실패한 회차만 선택하지 않고 같은 배치 전체를 새 작업으로 실행한다. 성공한 결과의 사용자 요청 재분석과 실패 회차만의 부분 재시도는 MVP 이후 지원한다.
+> - 하나의 업로드 묶음은 회차마다 하나씩 생성된 `analysisJobIds` 목록을 사용한다. `UploadBatch`는 출처·화면 문맥이고 실행 원자 단위는 단일 회차 Job이다.
+> - FE는 Job별 `PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED`를 집계한다. 별도 `PARTIAL_FAILED` 상태를 만들지 않는다.
+> - 성공한 회차의 결과와 `ANALYZED` 상태는 다른 회차가 실패해도 유지한다.
+> - 전체 결과 화면은 현재 묶음의 모든 회차가 성공했을 때만 활성화하되, 개별 Job의 성공 이력은 지우지 않는다.
+> - `분석 다시 시도`는 서버가 확인한 실패 회차만 새 Job으로 생성하고 기존 실패·성공 Job은 이력으로 유지한다.
 > - 실제 진행률을 정확히 계산할 수 없으므로 가짜 퍼센트는 표시하거나 저장하지 않는다.
 > - 분석 화면을 벗어나도 서버 작업은 취소되지 않는다.
 > - 분석 리포트 목록은 성공 결과만 모아 놓은 화면이 아니라, 사용자가 실행한 `EPISODE_VALIDATION` 작업의 대기·진행·완료·실패 이력을 함께 확인하는 진입점이다.
 > - 충돌 의심 결과는 확정 오류가 아니다. 화면에서는 `오류`보다 `충돌 의심`, `검토 필요` 표현을 우선 사용한다.
 > - 원고는 화면에서 직접 수정하지 않는다. 회차 파일 교체 후 사용자 요청 재분석은 MVP 이후 지원한다.
+> - Job·Episode의 상세 실패 문자열은 개발·운영 진단 정보로 취급하며 사용자 화면에 원문을 표시하지 않는다. 화면은 실패 상태, 간단한 사용자용 안내와 재시도 액션을 제공한다.
 
 ## 목차
 
@@ -48,7 +48,7 @@
 
 ## 분석 진행 중 (S4LoadingRunning)
 
-**URL**: `/loading?workId={workId}&analysisJobId={analysisJobId}`
+**URL**: `/loading?workId={workId}&analysisJobIds={commaSeparatedAnalysisJobIds}`
 
 ![분석 진행 중 MVP](../screens/D5jQY.png)
 
@@ -58,10 +58,10 @@
 > - 분석 진행 화면은 설정 대시보드의 하위 탭이 아닌 독립 작업 상세 화면으로 표시한다.
 > - 좌측 대시보드 사이드바를 표시하지 않고 상단에 `← 분석 내역`을 제공한다.
 > - `← 분석 내역`은 `/report?workId={workId}`로 이동하며, 화면을 벗어나도 서버 분석은 계속된다.
-> - 같은 작업에 다시 진입하면 URL의 `analysisJobId`로 최신 상태를 조회하고 폴링을 재개한다.
+> - 같은 실행 묶음에 다시 진입하면 URL의 모든 `analysisJobIds`로 최신 상태를 조회하고 폴링을 재개한다.
 
-> **전체 분석 작업의 현재 단계 표시 정책**
-> - `currentStep`은 분석 작업 전체가 현재 어떤 종류의 처리를 수행하고 있는지 나타낸다.
+> **회차별 분석 작업의 현재 단계 표시 정책**
+> - `currentStep`은 해당 단일 회차 Job이 현재 어떤 처리를 수행하고 있는지 나타낸다.
 > - Python의 공통 `AnalysisStep` 8종을 이 화면에 그대로 적용하지 않는다. `CHUNKING`, `PREPROCESSING`, `EMBEDDING`, `SETTING_EXTRACTION`은 설정 후보 추출 과정에서 사용하는 단계이며, 설정 검토 이후의 `EPISODE_VALIDATION`이 이 작업들을 다시 수행한다고 전제하지 않는다.
 > - `EPISODE_VALIDATION` 구현 시 기존 enum 중 필요한 단계만 사용한다는 전제의 권장 표시값은 다음과 같다.
 > - `LOADING` → `분석 준비 중`
@@ -71,13 +71,10 @@
 > - 알 수 없는 값 또는 `null` → 상위 `status`가 `RUNNING`이면 `분석 진행 중`, `PENDING`이면 `분석 대기 중`
 
 > **대상 회차별 처리 상태 표시 정책**
-> - 회차별 상태는 같은 분석 작업에 포함된 각 회차가 대기·진행·완료·실패 중 어디에 있는지 나타내며, 작업 전체의 `currentStep`과 구분한다.
-> - `PENDING` → `대기`
-> - `RUNNING` → `분석 중`
-> - `SUCCEEDED` → `완료`
-> - `FAILED` → `실패`
-> - 회차별 상태는 진행 현황만 표시하며 개별 결과 공개 여부를 뜻하지 않는다.
-> - 한 회차라도 실패하면 작업 전체를 `FAILED`로 처리한다. 완료 표시된 다른 회차도 해당 작업에서는 결과를 열 수 없다.
+> - 각 회차 카드는 해당 회차 `AnalysisJob.status`, `currentStep`, 단일 `Episode.status`를 함께 사용한다.
+> - Job `PENDING` → `대기`, `RUNNING` → `분석 중`, `SUCCEEDED` → `완료`, `FAILED` → `실패`
+> - 일부 Job이 실패해도 다른 `PENDING`/`RUNNING` Job의 polling을 계속한다.
+> - 실패 재시도 버튼은 현재 묶음의 활성 Job이 모두 종료된 뒤 활성화한다.
 
 **1. 화면에 표시할 데이터**
 
@@ -91,34 +88,33 @@
 - 회차별 처리 목록
   - 회차 번호와 제목
   - 처리 상태
-  - 현재 단계 또는 실패 요약
+  - 현재 단계 또는 실패 상태
 - 전체 작업이 아직 진행 중임을 알리는 안내
-- 작업 전체가 `SUCCEEDED`가 되기 전에는 비활성화된 `분석 결과 확인` 버튼
+- 현재 Job이 모두 `SUCCEEDED`가 되기 전에는 비활성화된 `분석 결과 확인` 버튼
 
 **2. 사용자 액션**
 
-- 화면 진입 시 작업 상세 조회
-- `PENDING` 또는 `RUNNING` 동안 2~3초 간격으로 상태 폴링
+- 화면 진입 시 모든 작업 상세 조회
+- Job 중 하나라도 `PENDING` 또는 `RUNNING`인 동안 2~3초 간격으로 상태 폴링
 - 브라우저 탭이 비활성화되면 폴링을 중단하거나 주기를 늦추고, 탭 복귀 시 즉시 최신 상태 조회
-- 실패한 회차의 오류 요약 확인
+- 실패한 회차의 상태와 사용자용 재시도 안내 확인
 - 화면 이탈 → 분석은 계속 진행
 - `분석 내역` 선택 → [분석 리포트 목록](#분석-리포트-목록-s5reportlist)으로 이동
-- 같은 `analysisJobId`로 다시 진입 → 최신 진행 상태 복원
-- 폴링 응답이 `SUCCEEDED`와 `reportId`를 반환하면 폴링을 중단하고, URL 이동 없이 같은 화면에 [분석 완료](#분석-완료-s4loadingcompleted) 상태를 표시한다. 충돌 의심 항목이 있으면 해당 건수를 포함한 검토 버튼을 활성화하며 자동으로 결과 화면으로 이동하지 않는다.
-- 작업 전체가 `FAILED`이면 `분석 다시 시도` 선택
+- 같은 `analysisJobIds`로 다시 진입 → 최신 진행 상태 복원
+- 모든 Job이 `SUCCEEDED`이고 결과가 준비되면 폴링을 중단하고, URL 이동 없이 같은 화면에 [분석 완료](#분석-완료-s4loadingcompleted) 상태를 표시한다.
+- 활성 Job이 없고 하나 이상 `FAILED`이면 `분석 다시 시도` 선택
   - 기존 실패 작업은 실패 이력으로 유지
-  - 같은 `batchId`와 `jobType=EPISODE_VALIDATION`으로 새 분석 작업 생성
-  - 실패 회차만 선택하지 않고 배치의 모든 대상 회차를 다시 분석
-  - 새로 반환된 `analysisJobId`로 URL을 교체하고 폴링 시작
+  - 각 실패 Job의 재시도 API로 서버가 확인한 실패 회차 Job만 생성
+  - 새로 반환된 `analysisJobIds`를 현재 polling 대상으로 교체
 
 **3. 화면 전환 식별자**
 
 - 현재 작품: `workId`
-- 현재 분석 작업: `analysisJobId`
+- 현재 분석 작업들: `analysisJobIds`
 - 분석 대상 묶음: `batchId`
 - 준비된 분석 결과 묶음: `reportId`
 - 분석 내역 이동: `/report?workId={workId}`
-- 재시도 성공 후 이동 예시: `/loading?workId={workId}&analysisJobId={newAnalysisJobId}`
+- 재시도 성공 후 이동 예시: `/loading?workId={workId}&analysisJobIds={newAnalysisJobIds}`
 
 **4. 데이터 없음 / 실패 표시**
 
@@ -127,10 +123,11 @@
 - 분석 대상 회차가 0개이면 `분석할 회차를 찾지 못했습니다.` 표시와 원고 목록 이동 제공
 - 작업 조회 404이면 `분석 작업을 찾을 수 없습니다.` 표시
 - 상태 조회 일시 실패 시 마지막으로 성공한 화면 데이터를 유지하고 `상태를 새로 불러오지 못했습니다.`와 다시 시도 제공
-- 전체 작업 `FAILED` 시
-  - `분석에 실패했습니다.` 표시
-  - 실패가 발생한 회차와 사용자용 오류 요약 표시
-  - 완료된 회차가 있어도 해당 작업의 결과와 `분석 결과 확인`은 제공하지 않음
+- 활성 Job이 없고 하나 이상 `FAILED`일 때
+  - `일부 회차 분석에 실패했습니다.` 표시
+  - 실패가 발생한 회차와 간단한 사용자용 안내 표시
+  - LLM 응답 검증 오류, 내부 식별자 등 상세 실패 원문은 표시하지 않음
+  - 완료된 회차 상태와 결과는 유지하되 전체 `분석 결과 확인`은 아직 제공하지 않음
   - `분석 다시 시도`, `분석 내역으로 돌아가기`, `원고 목록으로 이동` 제공
 - 회차가 완료되었지만 결과 저장이 아직 끝나지 않았으면 `결과를 정리하고 있습니다.` 표시 후 다음 폴링에서 갱신
 
@@ -138,7 +135,7 @@
 
 **5-1. BE → FE 제공 데이터 요구사항 — 분석 작업 기본 정보**
 
-분석 작업 기본 정보는 현재 Java BE의 `AnalysisJobResponse`를 재사용할 수 있다.
+분석 작업 기본 정보는 현재 Java BE의 회차별 `AnalysisJobResponse` 목록을 재사용한다.
 
 | 데이터 의미 | 현재 필드 | 화면 사용 |
 | --- | --- | --- |
@@ -148,10 +145,10 @@
 | 작업 유형 | `jobType` | `EPISODE_VALIDATION` 확인 |
 | 작업 상태 | `status` | `PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED` 표시 |
 | 현재 단계 | `currentStep` | 사용자용 단계 문구 변환 |
-| 실패 요약 | `errorMessage` | 전체 작업 실패 표시 |
+| 상세 실패 정보 | `errorMessage` | 현재 응답에는 포함되지만 개발·운영 진단용으로 취급하며 화면에 원문을 표시하지 않음 |
 | 실행 시각 | `startedAt`, `completedAt`, `createdAt`, `updatedAt` | 진행·완료 시각 표시 |
 
-현재 상세 조회 API:
+각 Job의 현재 상세 조회 API:
 
 ```http
 GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
@@ -159,47 +156,41 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 **5-2. BE → FE 제공 데이터 요구사항 — 회차별 진행 정보**
 
-현재 작업 상세 응답에 없으므로 다음 회차별 진행 정보와 성공 결과 식별자가 필요하다. 분석 완료 여부는 기존 분석 작업 상세 폴링 응답으로 판단하며 별도의 완료 확인 API를 만들지 않는다. 회차별 진행 정보는 기존 상세 응답을 확장하거나 별도의 작업 회차 목록 API로 제공할 수 있다.
+현재 작업 상세 응답의 `episodes`에는 해당 Job의 단일 회차 ID·번호·제목·`Episode.status`가 포함된다. FE는 여러 상세 응답을 회차 번호순으로 합치며 다른 Job의 상태를 복제하지 않는다. 검수 결과 식별자는 후속 리포트 계약에서 추가한다.
 
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
-| 대상 회차 전체 수 | 0 이상의 정수·필수 | 대상이 없으면 `0` |
-| 상태별 회차 수 | 상태별 집계·필수 | 없는 상태는 `0` |
-| 회차 식별자·번호·제목 | 회차별 값·필수 | 제목이 없으면 `null` |
-| 회차별 분석 상태 | enum·필수 | `PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED` |
-| 회차별 현재 단계 | enum 또는 문자열·선택 | 시작 전·완료 후 `null` 가능 |
-| 회차별 실패 요약 | 문자열·선택 | 실패가 아니면 `null` |
+| 대상 회차 전체 수 | Job 목록 길이·필수 | 생성 대상이 없으면 API가 Job을 만들지 않음 |
+| 상태별 회차 수 | FE의 Job 상태 집계·필수 | 없는 상태는 `0` |
+| 회차 식별자·번호·제목 | 각 응답 `episodes[0]`·필수 | 제목이 없으면 `null` |
+| 회차별 분석 상태 | Job `status`와 Episode `status`·필수 | 작업 상태와 처리 단계를 구분 |
+| 회차별 현재 단계 | Job `currentStep`·선택 | 시작 전·완료 후 `null` 가능 |
+| 회차별 상세 실패 정보 | Job `errorMessage`·선택 | 실패가 아니면 `null`; 화면은 원문 대신 상태값과 사용자용 안내를 사용 |
 | 전체 결과 식별자 | 단일 값·조건부 필수 | `SUCCEEDED`이면 필수, 그 외 상태에서는 `null` |
-
-신설 또는 확장 API 예시:
-
-```http
-GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
-```
 
 **5-3. FE → BE 전달 데이터 요구사항**
 
-- 작업 상세·회차 목록 조회: `workId`, `analysisJobId`
-- 실패 작업 재시도: 기존 작업의 `batchId`, `jobType=EPISODE_VALIDATION`
+- 작업 상세·회차 목록 조회: `workId`, `analysisJobIds`
+- 실패 작업 재시도: 각 기존 실패 `analysisJobId`
 - FE는 작업 상태, 단계, 충돌 건수를 임의로 계산하거나 변경하지 않는다.
-- 재시도 요청이 성공하면 새 `analysisJobId`를 반드시 응답받는다.
+- 재시도 요청이 성공하면 새 `analysisJobIds` 목록을 응답받는다.
 
 **6. BE와 협의할 범위·상태값**
 
 - 현재 Python Worker가 `jobType=EPISODE_VALIDATION`을 실제 분기 처리하도록 구현할 범위
 - 검증 작업의 `currentStep` 계약으로 공통 `AnalysisStep` 중 `LOADING`/`VALIDATION`/`PERSISTING`/`DONE`만 재사용할지, 검증 전용 단계 enum을 별도로 정의할지
-- 하나의 분석 작업 안에서 회차별 상태를 어디에 기록하고 작업 상세 응답으로 어떻게 제공할지
 - 동일 재시도 요청의 중복 생성 방지를 위한 idempotency 기준과 이전 작업·새 작업 연결 방식
+- 원인별 사용자 안내가 필요할 때 상세 문자열이 아닌 안정적인 실패 식별값을 별도로 제공하는 계약
 
 ---
 
 ## 분석 완료 (S4LoadingCompleted)
 
-**URL**: `/loading?workId={workId}&analysisJobId={analysisJobId}`
+**URL**: `/loading?workId={workId}&analysisJobIds={commaSeparatedAnalysisJobIds}`
 
 ![분석 완료 MVP](../screens/qNCrT.png)
 
-분석 진행 화면과 별도 URL·API를 사용하는 화면이 아니라, 같은 `/loading` 컴포넌트가 폴링 응답에 따라 표시하는 완료 UI 상태다. 모든 대상 회차와 리포트 저장이 성공하여 `status=SUCCEEDED`와 `reportId`가 반환되면 이 상태로 바꾸고 폴링을 중단한다. 자동으로 다른 화면으로 이동하지 않으며, 한 회차라도 실패한 작업은 이 완료 상태로 전환하지 않는다. 진행 화면과 동일하게 좌측 사이드바를 표시하지 않고 `← 분석 내역`을 유지한다.
+분석 진행 화면과 별도 URL·API를 사용하는 화면이 아니라, 같은 `/loading` 컴포넌트가 폴링 응답에 따라 표시하는 완료 UI 상태다. 현재 `analysisJobIds`의 모든 Job과 대상 회차가 성공하고 결과가 준비되면 이 상태로 바꾸고 폴링을 중단한다. 자동으로 다른 화면으로 이동하지 않으며 실패 Job이 있으면 이 완료 상태로 전환하지 않는다.
 
 **1. 화면에 표시할 데이터**
 
@@ -227,7 +218,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 **3. 화면 전환 식별자**
 
 - 현재 작품: `workId`
-- 완료된 작업: `analysisJobId`
+- 완료된 작업들: `analysisJobIds`
 - 전체 결과: `reportId`
 - 충돌 의심 검토 이동: `/episode-validation-report?workId={workId}&reportId={reportId}`
 - 분석 내역 이동: `/report?workId={workId}`
@@ -249,19 +240,19 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
-| 분석 작업 식별자 | 단일 값·필수 | 없음 |
-| 작업 완료 상태·완료 시각 | 단일 값·필수 | 완료 전 이 화면을 표시하지 않음 |
+| 분석 작업 식별자 | 회차별 목록·필수 | 없음 |
+| 작업 완료 상태·완료 시각 | Job별 값·필수 | 모든 Job 완료 전 이 화면을 표시하지 않음 |
 | 전체 결과 식별자 | 단일 값·필수 | `SUCCEEDED` 응답에 반드시 포함 |
 | 대상·완료 회차 수 | 0 이상의 정수·필수 | 완료 화면에서는 두 값이 같아야 함 |
 | 전체 충돌 의심 건수 | 0 이상의 정수·필수 | 없으면 `0` |
 | 심각도별 집계 | 단계별 정수·필수 | 없는 단계는 `0` |
 | 분석 기준 표시 정보 | 단일 값·필수 | 설정 기준과 원고 버전 추적에 사용 |
 
-완료 화면은 진행 화면과 같은 분석 작업 상세 응답을 재사용하며, 충돌 의심 상세를 열 수 있는 `reportId`와 전체 집계만 추가로 사용한다. 회차별 충돌 분포와 개별 항목은 상세 리포트에서 조회한다.
+완료 화면은 진행 화면과 같은 회차별 분석 작업 상세 응답들을 재사용하며, 충돌 의심 상세를 열 수 있는 `reportId`와 전체 집계만 추가로 사용한다.
 
 **5-2. FE → BE 전달 데이터 요구사항**
 
-- 완료 결과 조회: `workId`, `analysisJobId`
+- 완료 결과 조회: `workId`, `analysisJobIds`
 - 충돌 의심 상세 조회: `workId`, `reportId`
 
 **6. BE와 협의할 범위·상태값**
@@ -306,17 +297,17 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
   - 작업 상태: 대기·진행 중·완료·실패
   - 대기·진행 중이면 현재 사용자용 단계와 완료 회차 수 / 전체 회차 수
   - 완료이면 전체 충돌 의심 건수, 검토 필요 건수, 심각·주의·참고 건수
-  - 실패이면 실패 시각과 사용자용 실패 요약
+  - 실패이면 실패 시각과 사용자용 실패 안내
   - 완료이면 사용한 분석 기준 요약
 - 상태 필터: 전체·대기·진행 중·완료·실패
 - 페이지네이션
 
 **2. 사용자 액션**
 
-- 대기·진행 중 작업 선택 → 해당 `analysisJobId`의 [분석 진행 중](#분석-진행-중-s4loadingrunning) 화면을 열고 폴링 재개
-- 완료 작업 선택 → 해당 `analysisJobId`의 [분석 완료](#분석-완료-s4loadingcompleted) 화면을 열고, 충돌 의심이 있으면 검토 버튼 제공
-- 실패 작업 선택 → 해당 `analysisJobId`의 `/loading` 실패 상태에서 실패 요약과 실행 시각 확인
-- 실패 작업의 `분석 다시 시도` → 기존 실패 이력을 유지하고 같은 배치 전체를 대상으로 새 분석 작업 생성
+- 대기·진행 중 실행 묶음 선택 → 해당 `analysisJobIds`의 [분석 진행 중](#분석-진행-중-s4loadingrunning) 화면을 열고 폴링 재개
+- 완료 실행 묶음 선택 → 해당 `analysisJobIds`의 [분석 완료](#분석-완료-s4loadingcompleted) 화면을 열고, 충돌 의심이 있으면 검토 버튼 제공
+- 실패 실행 묶음 선택 → 해당 `analysisJobIds`의 `/loading` 실패 상태에서 실패 회차와 실행 시각 확인
+- `분석 다시 시도` → 기존 실패 이력을 유지하고 실패한 회차 Job만 새로 생성
 - 작업 상태 필터 선택
 - 대기·진행 중 작업이 목록에 있으면 화면 활성 상태에서 목록을 주기적으로 갱신하거나 다시 조회하여 상태 반영
 - 페이지 이동
@@ -326,10 +317,10 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 - 현재 작품: `workId`
 - 작업 상태: `jobStatus={ALL|PENDING|RUNNING|SUCCEEDED|FAILED}`
 - 페이지: `page={1 이상의 정수}&size=20`
-- 선택 작업: `analysisJobId`, 성공 결과가 있으면 `reportId`
-- 작업 상세 이동: `/loading?workId={workId}&analysisJobId={analysisJobId}`
+- 선택 실행 묶음: `analysisJobIds`, 성공 결과가 있으면 `reportId`
+- 작업 상세 이동: `/loading?workId={workId}&analysisJobIds={analysisJobIds}`
 - 완료 화면의 충돌 의심 검토 이동: `/episode-validation-report?workId={workId}&reportId={reportId}`
-- 재시도 이동: `/loading?workId={workId}&analysisJobId={newAnalysisJobId}`
+- 재시도 이동: `/loading?workId={workId}&analysisJobIds={newAnalysisJobIds}`
 
 **4. 데이터 없음 / 실패 표시**
 
@@ -338,7 +329,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 - 필터 결과가 없으면 `조건에 맞는 분석 내역이 없습니다.`와 필터 초기화 제공
 - 대기 작업은 현재 단계가 없어도 `분석을 기다리고 있습니다.` 표시
 - 진행 중 작업의 회차별 집계를 아직 받지 못했으면 작업 상태와 현재 단계만 표시
-- 실패 작업은 결과 식별자 없이 실패 시각과 사용자용 오류 요약 표시
+- 실패 작업은 결과 식별자 없이 실패 시각과 간단한 사용자용 안내 표시
 - 과거 결과의 대상 회차가 현재 삭제되었어도 이력 자체는 유지하고 `삭제된 회차 포함` 안내
 - 목록 조회 실패 시 오류 안내와 다시 시도 제공
 
@@ -346,7 +337,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}/episodes
 
 **5-1. BE → FE 제공 데이터 요구사항 — 분석 작업 기본 정보**
 
-분석 작업 이력의 기본 정보는 현재 분석 작업 목록 API의 작업 ID, 대상 배치, 작업 유형, 작업 상태, 오류 메시지, 생성·시작·완료 시각을 재사용할 수 있다.
+분석 작업 이력의 기본 정보는 현재 분석 작업 목록 API의 작업 ID, 대상 배치, 작업 유형, 작업 상태, 생성·시작·완료 시각을 재사용할 수 있다. 현재 응답의 상세 `errorMessage`는 사용자 화면에 재사용하지 않는다.
 
 ```http
 GET /api/v1/works/{workId}/analysis-jobs
@@ -366,7 +357,7 @@ GET /api/v1/works/{workId}/analysis-jobs
 | 검토 상태별 건수 | 상태별 정수·결과가 있으면 필수 | 없는 상태는 `0` |
 | 심각도별 검토 필요 건수 | 단계별 정수·결과가 있으면 필수 | 없는 단계는 `0` |
 | 분석 기준 요약 | 문자열 또는 구조화 값·결과가 있으면 필수 | 없음 |
-| 실패 요약 | 문자열·선택 | `FAILED`가 아니면 `null` |
+| 사용자용 실패 식별값 또는 요약 | 안정적인 코드 또는 사전 정제된 문자열·선택 | 원인별 안내가 필요할 때만 제공하며 내부 상세 오류 문자열은 사용하지 않음 |
 | 생성·시작·완료 시각 | 상태별 시각·필수 | 시작·완료 전 해당 값은 `null` |
 | 재시도 원본 작업 식별자 | 단일 값·선택 | 최초 실행이면 `null` |
 
@@ -381,9 +372,9 @@ GET /api/v1/works/{workId}/analysis-jobs
 - 작업 목록 조회 대상: `workId`
 - 필터: `jobStatus`
 - 페이지: `page`, `size`
-- 목록에서 진행 상태를 다시 조회할 대상: `analysisJobId`
-- 재시도 대상: 기존 `analysisJobId`
-- FE는 실패 작업을 `PENDING`으로 되돌리지 않고 새 작업 생성 응답의 `analysisJobId`를 사용한다.
+- 목록에서 진행 상태를 다시 조회할 대상: `analysisJobIds`
+- 재시도 대상: 기존 실패 `analysisJobId` 목록
+- FE는 실패 작업을 `PENDING`으로 되돌리지 않고 재시도 응답의 새 `analysisJobIds`를 사용한다.
 
 **6. BE와 협의할 범위·상태값**
 

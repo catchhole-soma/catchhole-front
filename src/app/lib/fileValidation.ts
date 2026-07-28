@@ -1,12 +1,19 @@
 export const ALLOWED_EXTENSIONS = ['.txt', '.docx'];
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
-export function validateManuscriptFile(file: File): string | null {
+export function validateManuscriptFile(
+  file: File,
+  allowedExtensions: readonly string[] = ALLOWED_EXTENSIONS,
+): string | null {
   const lowerName = file.name.toLowerCase();
-  const hasAllowedExtension = ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+  const hasAllowedExtension = allowedExtensions.some(ext => lowerName.endsWith(ext));
 
   if (!hasAllowedExtension) {
-    return `${ALLOWED_EXTENSIONS.join(', ')} 형식의 파일만 업로드할 수 있습니다.`;
+    return `${allowedExtensions.join(', ')} 형식의 파일만 업로드할 수 있습니다.`;
+  }
+
+  if (file.size === 0) {
+    return '빈 파일은 업로드할 수 없습니다.';
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {

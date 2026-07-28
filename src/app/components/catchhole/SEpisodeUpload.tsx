@@ -1,126 +1,190 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
+import { useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
 import { motion } from 'motion/react';
 import {
-  ChevronLeft, FileText, BookMarked, Files, Check, CircleCheckBig, Trash2,
-  Users, BookOpen, Sparkles, Clock, GitMerge, Scissors, Upload, AlertCircle,
+  AlertCircle,
+  BookMarked,
+  Check,
+  ChevronLeft,
+  CircleCheckBig,
+  FileText,
+  Files,
+  RefreshCw,
+  Upload,
 } from 'lucide-react';
-import { C } from './constants';
-import { useAppNavigate } from '../../hooks/useAppNavigate';
+import {
+  createAnalysisJobMutation as createAnalysisJobMutationOptions,
+  detectEpisodesMutation as detectEpisodesMutationOptions,
+  getAnalysisJobOptions,
+  getEpisodesOptions,
+  getSettingBooksOptions,
+  getWorkOptions,
+  retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
+  uploadEpisodesMutation as uploadEpisodesMutationOptions,
+  uploadSettingBookMutation as uploadSettingBookMutationOptions,
+} from '../../api/generated/@tanstack/react-query.gen';
+import type {
+  AnalysisJobCreateRequest,
+  DetectedEpisodeResponse,
+  EpisodeDetectionRequest,
+  EpisodeSummaryResponse,
+  EpisodeUploadRequest,
+  GetAnalysisJobResponse,
+} from '../../api/generated/types.gen';
 import { useAppContext } from '../../context/AppContext';
-import { useBackendStatus } from '../../context/BackendStatusContext';
-import { WORK_INFO, FALLBACK_WORK_INFO } from './AppSidebar';
-import { UserMenu } from './UserMenu';
-import { BtnP, BtnG, FileDropArea } from './S1Dashboard';
+import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { toApiError } from '../../lib/api-errors';
 import { validateManuscriptFile } from '../../lib/fileValidation';
-import { ModeCard, InfoBar, SplitPane, ListItemCard } from './ReviewLayout';
-import {
-  AnalysisJobType, DetectedEpisodeBoundary, Episode, EpisodeProcessingStatus,
-  EpisodeUploadMode, EpisodeUploadStep, JobProgressItem, UploadPurpose,
-  PROCESSING_STATUS_LABELS, JOB_STATUS_LABELS,
-} from './types';
-import {
-  mockCreateAnalysisJob, mockCreateEpisode, mockCreateMultiFileEpisodes, mockDetectBoundaries,
-  mockManuscriptParagraphs, MOCK_SETTINGS_EXTRACTION,
-} from './mockEpisodeData';
+import { C } from './constants';
+import { FileDropArea } from './S1Dashboard';
+import { UserMenu } from './UserMenu';
+import type { EpisodeProcessingStatus } from './types';
+import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
+import { ModeCard } from './ReviewLayout';
 
-const SETTINGS_CATEGORY_STYLE: Record<string, { color: string; icon: React.ReactNode }> = {
-  캐릭터: { color: C.primary, icon: <Users size={12} /> },
-  아이템: { color: C.warning, icon: <BookOpen size={12} /> },
-  스킬: { color: C.success, icon: <Sparkles size={12} /> },
-  타임라인: { color: '#4BB8D9', icon: <Clock size={12} /> },
+type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
+type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
+type EpisodeUploadType = EpisodeDetectionRequest['uploadType'];
+
+type EpisodeConfirmation = {
+  detectionOrder: number;
+  sourceFileIndex: number;
+  episodeNo: number;
+  title: string;
+  sourceHeading: string | null;
+  content: string;
+  charCount: number;
 };
 
+type EpisodeMultipartBody = {
+  metadata: EpisodeDetectionRequest | EpisodeUploadRequest;
+  episodeFiles: Array<Blob | File>;
+};
+
+type EpisodeDetectionResult = {
+  episodeConfirmations: EpisodeConfirmation[];
+  error: unknown | null;
+};
+
+type EpisodeConfirmationUpdate =
+  | EpisodeConfirmation[]
+  | ((current: EpisodeConfirmation[]) => EpisodeConfirmation[]);
+
 const PROCESSING_SEQUENCE: EpisodeProcessingStatus[] = [
-  'UPLOADED', 'CHUNKING', 'CHUNKED', 'PREPROCESSING', 'PREPROCESSED', 'ANALYZING', 'ANALYZED',
+  'UPLOADED',
+  'CHUNKING',
+  'CHUNKED',
+  'PREPROCESSING',
+  'PREPROCESSED',
+  'ANALYZING',
+  'ANALYZED',
 ];
 
-function SpinningRing() {
-  const size = 56;
-  const strokeWidth = 2.5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const arcLength = (270 / 360) * circumference;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  return (
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-      style={{ width: size, height: size }}
-    >
-      <svg width={size} height={size} style={{ display: 'block' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={C.border} strokeWidth={strokeWidth} />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={C.primary} strokeWidth={strokeWidth}
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-    </motion.div>
-  );
+function episodeMultipartSerializer(body: unknown): FormData {
+  const multipartBody = body as EpisodeMultipartBody;
+  const formData = new FormData();
+  formData.append('metadata', new Blob([JSON.stringify(multipartBody.metadata)], { type: 'application/json' }));
+  multipartBody.episodeFiles.forEach(file => formData.append('episodeFiles', file));
+  return formData;
 }
 
-function SmallSpinner() {
-  return (
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-      style={{ width: 14, height: 14, flexShrink: 0 }}
-    >
-      <svg width="14" height="14" viewBox="0 0 16 16">
-        <circle cx="8" cy="8" r="6" fill="none" stroke={C.border} strokeWidth="2" />
-        <circle
-          cx="8" cy="8" r="6"
-          fill="none" stroke={C.primary} strokeWidth="2"
-          strokeDasharray={`${(270 / 360) * 2 * Math.PI * 6} ${2 * Math.PI * 6}`}
-          strokeLinecap="round"
-          transform="rotate(-90 8 8)"
-        />
-      </svg>
-    </motion.div>
-  );
+function toEpisodeConfirmations(
+  detectedEpisodes: DetectedEpisodeResponse[] | undefined,
+): EpisodeConfirmation[] {
+  return (detectedEpisodes ?? []).map(detectedEpisode => ({
+    detectionOrder: detectedEpisode.detectionOrder,
+    sourceFileIndex: detectedEpisode.sourceFileIndex,
+    episodeNo: detectedEpisode.episodeNo,
+    title: detectedEpisode.title ?? '',
+    sourceHeading: detectedEpisode.sourceHeading,
+    content: detectedEpisode.content,
+    charCount: detectedEpisode.charCount,
+  }));
 }
 
-function Header({ title, onBack }: { title: string; onBack: () => void }) {
+function errorMessage(error: unknown, fallback: string): string {
+  const apiError = toApiError(error);
+  switch (apiError?.code) {
+    case 'EPISODE_UPLOAD_DUPLICATED':
+      return apiError.message || '이미 등록된 회차 번호가 포함되어 있습니다.';
+    case 'UPLOAD_EPISODE_NO_CONFLICT':
+      return '파일명과 원문의 회차 번호가 다릅니다. 회차 번호를 직접 입력해주세요.';
+    case 'UPLOAD_EPISODE_NO_DETECTION_FAILED':
+      return '회차 번호를 찾지 못했습니다. 파일의 회차 표기를 확인해주세요.';
+    case 'UPLOAD_EPISODE_COUNT_INVALID':
+      return '다회차 업로드에는 정상 감지된 회차가 2개 이상 필요합니다.';
+    case 'UPLOAD_EPISODE_CONFIRMATION_INVALID':
+    case 'UPLOAD_EPISODE_ORDER_INVALID':
+      return '회차 번호는 원문 순서대로 중복 없이 오름차순이어야 합니다.';
+    case 'UPLOAD_SETTING_BOOK_DUPLICATED':
+      return '같은 이름의 설정집이 이미 업로드되어 있습니다.';
+    case 'UPLOAD_FILE_TYPE_NOT_SUPPORTED':
+    case 'UPLOAD_FILE_TOO_LARGE':
+    case 'UPLOAD_FILE_EMPTY':
+      return apiError.message;
+    default:
+      return apiError?.message || fallback;
+  }
+}
+
+function requiresBulkFileReselection(error: unknown): boolean {
+  switch (toApiError(error)?.code) {
+    case 'UPLOAD_EPISODE_NO_DETECTION_FAILED':
+    case 'UPLOAD_EPISODE_NO_INVALID':
+    case 'UPLOAD_EPISODE_COUNT_INVALID':
+    case 'UPLOAD_EPISODE_ORDER_INVALID':
+    case 'UPLOAD_FILE_PARSE_FAILED':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function Header({ onBack }: { onBack: () => void }) {
   return (
     <div style={{
       height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 20px', borderBottom: `1px solid ${C.border}`,
     }}>
-      <button onClick={onBack} style={{
+      <button type="button" aria-label="원고 목록으로 돌아가기" onClick={onBack} style={{
         width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
         background: 'transparent', color: C.t2, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <ChevronLeft size={16} />
       </button>
-      <div style={{ color: C.t1, fontSize: 15, fontWeight: 700, letterSpacing: '-0.2px' }}>{title}</div>
+      <div style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>회차 업로드</div>
       <div style={{ flex: 1 }} />
       <UserMenu />
     </div>
   );
 }
 
-function Stepper({ labels, current, maxWidth = 720 }: { labels: string[]; current: number; maxWidth?: number }) {
+function Stepper({ labels, current }: { labels: string[]; current: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', maxWidth, margin: '0 auto', padding: '24px 20px 0' }}>
-      {labels.map((label, i, arr) => (
+    <div style={{ display: 'flex', alignItems: 'center', maxWidth: 860, margin: '0 auto', padding: '24px 20px 0' }}>
+      {labels.map((label, index) => (
         <React.Fragment key={label}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{
               width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              background: i + 1 <= current ? C.primary : C.border,
+              background: index + 1 <= current ? C.primary : C.border,
+              color: index + 1 <= current ? '#fff' : C.t3,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: i + 1 <= current ? '#fff' : C.t3,
+              fontSize: 11, fontWeight: 700,
             }}>
-              {i + 1 < current ? <Check size={12} /> : i + 1}
+              {index + 1 < current ? <Check size={12} /> : index + 1}
             </div>
-            <span style={{ fontSize: 12, color: i + 1 === current ? C.t1 : C.t3, fontWeight: i + 1 === current ? 600 : 400, whiteSpace: 'nowrap' }}>
+            <span style={{ color: index + 1 === current ? C.t1 : C.t3, fontSize: 12, whiteSpace: 'nowrap' }}>
               {label}
             </span>
           </div>
-          {i < arr.length - 1 && <div style={{ flex: 1, height: 1, background: i + 1 < current ? C.primary : C.border, margin: '0 12px' }} />}
+          {index < labels.length - 1 && (
+            <div style={{ flex: 1, height: 1, background: index + 1 < current ? C.primary : C.border, margin: '0 12px' }} />
+          )}
         </React.Fragment>
       ))}
     </div>
@@ -129,195 +193,119 @@ function Stepper({ labels, current, maxWidth = 720 }: { labels: string[]; curren
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: '0.05em' }}>
       {children}
     </div>
   );
 }
 
-function TextInput({ value, onChange, placeholder, type = 'text' }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+function TextInput({ value, onChange, type = 'text', placeholder, disabled }: {
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <input
-      value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} type={type}
+      value={value}
+      onChange={event => onChange(event.target.value)}
+      type={type}
+      placeholder={placeholder}
+      disabled={disabled}
       style={{
-        width: '100%', height: 40, borderRadius: 6,
-        background: C.bg, border: `1px solid ${C.border}`,
-        color: C.t1, fontSize: 14, padding: '0 12px',
-        fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+        width: '100%', height: 40, boxSizing: 'border-box', padding: '0 12px',
+        borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg,
+        color: C.t1, fontFamily: 'inherit', fontSize: 14, outline: 'none',
+        opacity: disabled ? 0.55 : 1,
       }}
     />
   );
 }
 
-function SplitGap({ active, onClick }: { active: boolean; onClick: () => void }) {
-  const [hover, setHover] = useState(false);
-  const show = active || hover;
-  const color = active ? C.warning : C.primary;
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={onClick}
-      style={{
-        cursor: 'pointer', padding: '3px 12px', minHeight: 6,
-        display: 'flex', alignItems: 'center', gap: 8, color, fontSize: 10.5,
-      }}
-    >
-      <div style={{ flex: 1, borderTop: `1px dashed ${show ? color : 'transparent'}` }} />
-      {show && <span style={{ whiteSpace: 'nowrap' }}>{active ? '✂ 여기서 회차 분리' : '✂ 여기서 분리'}</span>}
-      <div style={{ flex: 1, borderTop: `1px dashed ${show ? color : 'transparent'}` }} />
-    </div>
-  );
-}
-
-function BoundaryDivider({ label, onMerge }: { label: string; onMerge: () => void }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', color: C.t3, fontSize: 10.5 }}
-    >
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-      <span style={{ whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>{label}</span>
-      {hover && (
-        <button
-          onClick={onMerge}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 10,
-            background: C.primary + '1A', border: `1px solid ${C.primary}55`, color: C.primary,
-            fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          <GitMerge size={10} /> 합치기
-        </button>
-      )}
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-    </div>
-  );
-}
-
-function ManuscriptPreview({ paragraphs, boundaries, selectedBoundaryId, splitAtParagraph, onSelectSplitParagraph, onMergeWithPrevious }: {
-  paragraphs: { number: number; text: string }[];
-  boundaries: DetectedEpisodeBoundary[];
-  selectedBoundaryId: string | null;
-  splitAtParagraph: number | null;
-  onSelectSplitParagraph: (n: number | null) => void;
-  onMergeWithPrevious: (tempId: string) => void;
+function PrimaryButton({ children, onClick, disabled = false }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
 }) {
-  const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const selected = boundaries.find((b) => b.tempId === selectedBoundaryId);
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={{
+      width: '100%', height: 40, border: 'none', borderRadius: 6,
+      background: C.primary, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+    }}>
+      {children}
+    </button>
+  );
+}
 
-  useEffect(() => {
-    if (!selected) return;
-    rowRefs.current.get(selected.startParagraph)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [selected]);
+function SecondaryButton({ children, onClick, disabled = false }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={{
+      height: 40, padding: '0 16px', borderRadius: 6, border: `1px solid ${C.border}`,
+      background: 'transparent', color: C.t2, fontFamily: 'inherit', fontSize: 13,
+      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+    }}>
+      {children}
+    </button>
+  );
+}
 
+function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div style={{
-      border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg,
-      maxHeight: 360, overflowY: 'auto', fontFamily: "'JetBrains Mono', 'Menlo', monospace", fontSize: 12,
+      display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', marginBottom: 16,
+      borderRadius: 6, border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
+      color: C.danger, fontSize: 12,
     }}>
-      {paragraphs.map(({ number, text }) => {
-        const boundaryIdx = boundaries.findIndex((b) => b.startParagraph === number);
-        const boundary = boundaryIdx >= 0 ? boundaries[boundaryIdx] : null;
-        const prevBoundary = boundaryIdx > 0 ? boundaries[boundaryIdx - 1] : null;
-        const inSelectedRange = !!selected && number >= selected.startParagraph && number <= selected.endParagraph;
-        const isSplitCandidate = !!selected && number > selected.startParagraph && number <= selected.endParagraph;
-        const isSplitPoint = number === splitAtParagraph;
-        return (
-          <React.Fragment key={number}>
-            {boundary && prevBoundary && (
-              <BoundaryDivider
-                label={`EP ${prevBoundary.episodeNumber} END`}
-                onMerge={() => onMergeWithPrevious(boundary.tempId)}
-              />
-            )}
-            {boundary && (
-              <div style={{
-                padding: '8px 12px', margin: '2px 0', background: C.primary + '1A',
-                borderLeft: `3px solid ${C.primary}`, color: C.primary, fontWeight: 700, fontSize: 13,
-              }}>
-                EP{boundary.episodeNumber}. {boundary.title}
-              </div>
-            )}
-            {isSplitCandidate && (
-              <SplitGap active={isSplitPoint} onClick={() => onSelectSplitParagraph(isSplitPoint ? null : number)} />
-            )}
-            <div
-              ref={(el) => { if (el) rowRefs.current.set(number, el); else rowRefs.current.delete(number); }}
-              style={{
-                display: 'flex', gap: 12, padding: '3px 12px',
-                background: isSplitPoint ? C.warning + '14' : inSelectedRange ? C.primary + '0A' : 'transparent',
-              }}
-            >
-              <span style={{ width: 28, flexShrink: 0, textAlign: 'right', color: isSplitPoint ? C.warning : C.t3 }}>{number}</span>
-              <span style={{ color: C.t2, lineHeight: 1.7 }}>{text}</span>
-            </div>
-          </React.Fragment>
-        );
-      })}
+      <AlertCircle size={14} style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1 }}>{message}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry} style={{
+          border: 0, background: 'transparent', color: C.danger, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+        }}>
+          <RefreshCw size={12} /> 다시 시도
+        </button>
+      )}
     </div>
   );
 }
 
-function SettingsDocToggle({
-  includeSettings, setIncludeSettings, settingsFile, settingsFileError, onSettingsFileChange,
-}: {
-  includeSettings: boolean; setIncludeSettings: (v: boolean) => void;
-  settingsFile: File | null; settingsFileError: string | null;
-  onSettingsFileChange: (file: File | null, error: string | null) => void;
-}) {
+function Spinner({ size = 16 }: { size?: number }) {
   return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 8px' }}>
-        <input
-          type="checkbox" id="includeSettingsDoc" checked={includeSettings}
-          onChange={(e) => setIncludeSettings(e.target.checked)}
-          style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer' }}
-        />
-        <label htmlFor="includeSettingsDoc" style={{ color: C.t2, fontSize: 13, cursor: 'pointer' }}>
-          설정집도 함께 업로드 <span style={{ color: C.t3 }}>(선택사항)</span>
-        </label>
-      </div>
-      {includeSettings && (
-        <>
-          <FieldLabel>설정집 파일</FieldLabel>
-          <FileDropArea
-            file={settingsFile} error={settingsFileError}
-            onFileChange={onSettingsFileChange}
-            fileLabel="설정집.txt"
-          />
-        </>
-      )}
-    </>
+    <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
+      <RefreshCw size={size} color={C.primary} />
+    </motion.div>
   );
 }
 
-function UploadPurposeSelector({ uploadPurpose, setUploadPurpose }: {
-  uploadPurpose: UploadPurpose; setUploadPurpose: (p: UploadPurpose) => void;
+function AnalysisJobTypeSelector({ value, onChange, disabled }: {
+  value: AnalysisJobType;
+  onChange: (value: AnalysisJobType) => void;
+  disabled: boolean;
 }) {
   return (
     <>
-      <FieldLabel>업로드 목적</FieldLabel>
+      <FieldLabel>분석 유형</FieldLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['EPISODE_VALIDATION', 'SETTING_EXTRACTION'] as UploadPurpose[]).map((p) => (
-          <button key={p} onClick={() => setUploadPurpose(p)} style={{
-            flex: 1, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
-            textAlign: 'left',
-            background: uploadPurpose === p ? C.primary + '14' : C.surface,
-            border: `1px solid ${uploadPurpose === p ? C.primary : C.border}`,
-            color: uploadPurpose === p ? C.t1 : C.t2,
+        {(['EPISODE_VALIDATION', 'SETTING_EXTRACTION'] as AnalysisJobType[]).map(jobType => (
+          <button key={jobType} type="button" disabled={disabled} onClick={() => onChange(jobType)} style={{
+            flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
+            background: value === jobType ? `${C.primary}14` : C.surface,
+            border: `1px solid ${value === jobType ? C.primary : C.border}`,
+            color: value === jobType ? C.t1 : C.t2, cursor: disabled ? 'default' : 'pointer',
+            fontFamily: 'inherit', opacity: disabled ? 0.55 : 1,
           }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-              {p === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+              {jobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
             </div>
             <div style={{ fontSize: 11, color: C.t3 }}>
-              {p === 'EPISODE_VALIDATION'
-                ? '확정된 설정과 충돌하는지 검수합니다'
-                : '원고에서 설정 후보를 추출합니다'}
+              {jobType === 'EPISODE_VALIDATION' ? '확정된 설정과의 충돌을 검사합니다' : '원고에서 설정 후보를 추출합니다'}
             </div>
           </button>
         ))}
@@ -326,713 +314,1187 @@ function UploadPurposeSelector({ uploadPurpose, setUploadPurpose }: {
   );
 }
 
-function MultiFileDropArea({ files, onFilesChange, error, fileLabel }: {
+function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
   files: File[];
+  error: string | null;
   onFilesChange: (files: File[], error: string | null) => void;
-  error?: string | null;
-  fileLabel: string;
+  disabled: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const handleFiles = (fileList: FileList | null | undefined) => {
-    if (!fileList || fileList.length === 0) { onFilesChange([], null); return; }
-    const list = Array.from(fileList);
-    for (const f of list) {
-      const validationError = validateManuscriptFile(f);
-      if (validationError) { onFilesChange([], validationError); return; }
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    const nextFiles = Array.from(fileList);
+    const invalid = nextFiles.find(file => validateManuscriptFile(file) || !file.name.toLowerCase().endsWith('.txt'));
+    if (invalid) {
+      onFilesChange([], validateManuscriptFile(invalid) ?? '여러 파일 업로드는 TXT 파일만 지원합니다.');
+      return;
     }
-    onFilesChange(list, null);
+    if (nextFiles.length < 2) {
+      onFilesChange(nextFiles, '두 개 이상의 TXT 파일을 선택해주세요.');
+      return;
+    }
+    onFilesChange(nextFiles, null);
   };
 
   return (
-    <div style={{ marginBottom: error ? 4 : 12 }}>
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
-        onClick={() => inputRef.current?.click()}
-        style={{
-          border: `2px dashed ${error ? C.danger : dragging ? C.primary : files.length > 0 ? C.success : C.border}`,
-          borderRadius: 8, padding: '24px', textAlign: 'center',
-          background: error ? C.danger + '08' : dragging ? C.primary + '08' : files.length > 0 ? C.success + '08' : 'transparent',
-          cursor: 'pointer', transition: 'all 0.15s',
-        }}
-      >
+    <div style={{ marginBottom: 16 }}>
+      <button type="button" disabled={disabled} onClick={() => inputRef.current?.click()} style={{
+        width: '100%', minHeight: 110, borderRadius: 8,
+        border: `2px dashed ${error ? C.danger : files.length >= 2 ? C.success : C.border}`,
+        background: files.length >= 2 ? `${C.success}08` : 'transparent',
+        color: files.length >= 2 ? C.success : C.t2, cursor: disabled ? 'default' : 'pointer',
+        fontFamily: 'inherit', opacity: disabled ? 0.55 : 1,
+      }}>
         <input
-          ref={inputRef} type="file" accept=".txt,.docx" multiple style={{ display: 'none' }}
-          onChange={(e) => handleFiles(e.target.files)}
+          ref={inputRef}
+          type="file"
+          accept=".txt"
+          multiple
+          hidden
+          onChange={event => handleFiles(event.target.files)}
         />
-        {files.length > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <CircleCheckBig size={18} color={C.success} />
-            <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>{files.length}개 파일 선택됨</span>
-          </div>
-        ) : (
-          <>
-            <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
-            <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-            <div style={{ color: C.t3, fontSize: 12 }}>txt, docx 지원 (최대 10MB) · {fileLabel}</div>
-          </>
-        )}
-      </div>
-      {error && (
-        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <AlertCircle size={12} /> {error}
-        </div>
+        <Upload size={22} style={{ margin: '0 auto 8px' }} />
+        {files.length > 0 ? `${files.length}개 파일 선택됨` : '회차별 TXT 파일을 두 개 이상 선택하세요'}
+      </button>
+      {error && <div style={{ color: C.danger, fontSize: 12, marginTop: 6 }}>{error}</div>}
+    </div>
+  );
+}
+
+function SettingsFileInput({ include, setInclude, file, error, setFile, disabled, txtOnly = false }: {
+  include: boolean;
+  setInclude: (include: boolean) => void;
+  file: File | null;
+  error: string | null;
+  setFile: (file: File | null, error: string | null) => void;
+  disabled: boolean;
+  txtOnly?: boolean;
+}) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.t2, fontSize: 13, marginBottom: include ? 10 : 0 }}>
+        <input
+          type="checkbox"
+          checked={include}
+          disabled={disabled}
+          onChange={event => setInclude(event.target.checked)}
+          style={{ accentColor: C.primary }}
+        />
+        설정집도 함께 업로드 <span style={{ color: C.t3 }}>(원본만 저장)</span>
+      </label>
+      {include && (
+        <FileDropArea
+          file={file}
+          error={error}
+          onFileChange={setFile}
+          fileLabel={txtOnly ? '설정집.txt' : '설정집.txt 또는 설정집.docx'}
+          allowedExtensions={txtOnly ? ['.txt'] : undefined}
+        />
       )}
     </div>
   );
 }
 
+function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
+  episodeConfirmations: EpisodeConfirmation[];
+  onChange: (episodeConfirmations: EpisodeConfirmation[]) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+      {episodeConfirmations.map(confirmation => (
+        <div key={confirmation.detectionOrder} style={{
+          display: 'grid', gridTemplateColumns: '90px 1fr 90px', gap: 10, alignItems: 'center',
+          padding: 12, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
+        }}>
+          <TextInput
+            type="number"
+            value={String(confirmation.episodeNo)}
+            disabled={disabled}
+            onChange={value => onChange(episodeConfirmations.map(item =>
+              item.detectionOrder === confirmation.detectionOrder
+                ? { ...item, episodeNo: Number.parseInt(value, 10) || 0 }
+                : item))}
+          />
+          <TextInput
+            value={confirmation.title}
+            placeholder="제목을 찾지 못했어요"
+            disabled={disabled}
+            onChange={value => onChange(episodeConfirmations.map(item =>
+              item.detectionOrder === confirmation.detectionOrder
+                ? { ...item, title: value }
+                : item))}
+          />
+          <span style={{ color: C.t3, fontSize: 12, textAlign: 'right' }}>
+            {confirmation.charCount.toLocaleString()}자
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getEpisodeConfirmationValidationError(
+  episodeConfirmations: EpisodeConfirmation[],
+  existingEpisodeNos: Set<number>,
+): string | null {
+  if (episodeConfirmations.length === 0) return null;
+  let previousEpisodeNo = 0;
+  for (const confirmation of episodeConfirmations) {
+    if (confirmation.episodeNo < 1) return '회차 번호는 1 이상의 정수여야 합니다.';
+    if (confirmation.episodeNo <= previousEpisodeNo) {
+      return '회차 번호는 원문 순서대로 중복 없이 오름차순이어야 합니다.';
+    }
+    if (confirmation.title.trim().length > 100) {
+      return `${confirmation.episodeNo}화 제목은 100자 이하여야 합니다.`;
+    }
+    previousEpisodeNo = confirmation.episodeNo;
+  }
+
+  const duplicatedEpisodeNos = episodeConfirmations
+    .filter(confirmation => existingEpisodeNos.has(confirmation.episodeNo))
+    .map(confirmation => confirmation.episodeNo);
+  if (duplicatedEpisodeNos.length === 0) return null;
+
+  const visibleEpisodeNos = duplicatedEpisodeNos
+    .slice(0, 5)
+    .map(episodeNo => `${episodeNo}화`)
+    .join(', ');
+  const remainingCount = duplicatedEpisodeNos.length - 5;
+  return `이미 등록된 회차 번호가 포함되어 있습니다: ${visibleEpisodeNos}${
+    remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
+  }.`;
+}
+
+function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodeProcessingStatus | null {
+  return status === 'ARCHIVED' ? null : status ?? 'UPLOADED';
+}
+
 export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
-  const { selectedWork } = useAppContext();
-  const { suggestDemoMode } = useBackendStatus();
-  const work = WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO;
+  const routerNavigate = useRouterNavigate();
+  const {
+    selectedWork,
+    setSelectedWork,
+    selectedWorkInfo,
+    setSelectedWorkInfo,
+  } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const routeWorkId = searchParams.get('workId');
+  const workId = routeWorkId ?? selectedWork;
+  const initialTrackedAnalysisJobIds = (searchParams.get('analysisJobIds') ?? '').split(',').filter(Boolean);
+  const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
 
-  const [step, setStep] = useState<EpisodeUploadStep>('select-mode');
-  const [uploadMode, setUploadMode] = useState<EpisodeUploadMode | null>(null);
-
-  // single
-  const [episodeNumber, setEpisodeNumber] = useState('');
+  const [step, setStep] = useState<UploadStep>(
+    initialTrackedAnalysisJobIds.length > 0 ? 'processing' : 'select-mode',
+  );
+  const [uploadType, setUploadType] = useState<EpisodeUploadType | null>(null);
+  const [episodeNo, setEpisodeNo] = useState('');
   const [episodeTitle, setEpisodeTitle] = useState('');
   const [singleFile, setSingleFile] = useState<File | null>(null);
   const [singleFileError, setSingleFileError] = useState<string | null>(null);
-  const [uploadPurpose, setUploadPurpose] = useState<UploadPurpose>(
-    selectedWork === 'murim' ? 'SETTING_EXTRACTION' : 'EPISODE_VALIDATION'
-  );
-
-  // bulk-single-file (회차 경계 감지)
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkFileError, setBulkFileError] = useState<string | null>(null);
-  const [boundaries, setBoundaries] = useState<DetectedEpisodeBoundary[]>([]);
-  const [separationCriteria, setSeparationCriteria] = useState<'AUTO' | 'TITLE_NUMBER'>('AUTO');
-  const [selectedBoundaryId, setSelectedBoundaryId] = useState<string | null>(null);
-  const [splitAtParagraph, setSplitAtParagraph] = useState<number | null>(null);
-
-  // bulk-multi-file (파일별 1회차)
-  const [multiStartEpisodeNumber, setMultiStartEpisodeNumber] = useState('');
-  const [multiFileCount, setMultiFileCount] = useState('2');
   const [multiFiles, setMultiFiles] = useState<File[]>([]);
   const [multiFilesError, setMultiFilesError] = useState<string | null>(null);
-
-  // 설정집 함께 업로드
+  const [episodeConfirmationsByUploadType, setEpisodeConfirmationsByUploadType] = useState<
+    Partial<Record<EpisodeUploadType, EpisodeConfirmation[]>>
+  >({});
+  const episodeConfirmations = uploadType
+    ? episodeConfirmationsByUploadType[uploadType] ?? []
+    : [];
+  const replaceEpisodeConfirmations = (
+    targetUploadType: EpisodeUploadType,
+    confirmations: EpisodeConfirmation[],
+  ) => {
+    setEpisodeConfirmationsByUploadType(current => ({
+      ...current,
+      [targetUploadType]: confirmations,
+    }));
+  };
+  const setEpisodeConfirmations = (update: EpisodeConfirmationUpdate) => {
+    if (!uploadType) return;
+    setEpisodeConfirmationsByUploadType(current => {
+      const currentConfirmations = current[uploadType] ?? [];
+      const nextConfirmations = typeof update === 'function' ? update(currentConfirmations) : update;
+      return { ...current, [uploadType]: nextConfirmations };
+    });
+  };
+  const [selectedDetectionOrder, setSelectedDetectionOrder] = useState<number | null>(null);
+  const initialAnalysisJobType: AnalysisJobType = searchParams.get('jobType') === 'SETTING_EXTRACTION'
+    ? 'SETTING_EXTRACTION'
+    : 'EPISODE_VALIDATION';
+  const [analysisJobType, setAnalysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
   const [includeSettings, setIncludeSettings] = useState(false);
   const [settingsFile, setSettingsFile] = useState<File | null>(null);
   const [settingsFileError, setSettingsFileError] = useState<string | null>(null);
-  const [pendingEpisodes, setPendingEpisodes] = useState<Episode[]>([]);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [episodeUploadBatchId, setEpisodeUploadBatchId] = useState<string | null>(searchParams.get('batchId'));
+  const [uploadedEpisodes, setUploadedEpisodes] = useState<EpisodeSummaryResponse[]>([]);
+  const [trackedAnalysisJobIds, setTrackedAnalysisJobIds] = useState<string[]>(initialTrackedAnalysisJobIds);
+  const [currentAnalysisJobIds, setCurrentAnalysisJobIds] = useState<string[]>(
+    initialCurrentAnalysisJobIds.length > 0
+      ? initialCurrentAnalysisJobIds
+      : initialTrackedAnalysisJobIds,
+  );
+  const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
+  const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+  const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
+  const detectionRequestSequence = useRef(0);
 
-  // processing
-  const [createdEpisodes, setCreatedEpisodes] = useState<Episode[]>([]);
-  const [jobProgress, setJobProgress] = useState<JobProgressItem[]>([]);
-  const [allDone, setAllDone] = useState(false);
+  const goBackToEntry = () => {
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
+    else navigate(
+      `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+      'pop',
+      undefined,
+      { replace: true },
+    );
+  };
 
-  const manuscriptParagraphs = useMemo(() => mockManuscriptParagraphs(boundaries), [boundaries]);
+  const workQuery = useQuery({
+    ...getWorkOptions({ path: { workId } }),
+    enabled: UUID_PATTERN.test(workId),
+    retry: false,
+  });
+  const routeWork = workQuery.data?.data;
 
   useEffect(() => {
-    setSplitAtParagraph(null);
-  }, [selectedBoundaryId]);
-
-  const hasBoundaryStep = uploadMode === 'bulk-single-file';
-  const wideLayout = step === 'select-mode' || step === 'boundary-preview';
-
-  const stepLabels = (() => {
-    const labels = ['업로드 방식', hasBoundaryStep ? '회차 분리 확인' : '회차 정보 입력'];
-    if (includeSettings) labels.push('설정집 분석 결과');
-    labels.push('분석 진행');
-    return labels;
-  })();
-
-  const stepIndex = (() => {
-    switch (step) {
-      case 'select-mode': return uploadMode ? 2 : 1;
-      case 'boundary-preview': return 2;
-      case 'settings-review': return 3;
-      case 'processing': return 2 + (includeSettings ? 1 : 0);
-      default: return 1;
-    }
-  })();
-
-  // 다회차(단일 파일) 모드에서 파일을 선택하면 같은 화면에서 AI 분리 미리보기를 보여준다
-  useEffect(() => {
-    if (uploadMode === 'bulk-single-file' && bulkFile && boundaries.length === 0) {
-      const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
-      setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
-    }
-  }, [uploadMode, bulkFile, boundaries.length, work.title]);
-
-  const mergeWithPrevious = (tempId: string) => {
-    setBoundaries((prev) => {
-      const idx = prev.findIndex((b) => b.tempId === tempId);
-      if (idx <= 0) return prev;
-      const current = prev[idx];
-      const previous = prev[idx - 1];
-      const merged: DetectedEpisodeBoundary = {
-        ...previous,
-        endParagraph: current.endParagraph,
-        charCount: previous.charCount + current.charCount,
-      };
-      const next = [...prev];
-      next.splice(idx - 1, 2, merged);
-      setSelectedBoundaryId(merged.tempId);
-      return next;
+    if (!routeWorkId || !routeWork?.id || !routeWork.title) return;
+    const nextGenre = routeWork.genre ?? '';
+    if (
+      selectedWork === routeWork.id
+      && selectedWorkInfo?.id === routeWork.id
+      && selectedWorkInfo.title === routeWork.title
+      && selectedWorkInfo.genre === nextGenre
+      && selectedWorkInfo.episodeCount === routeWork.latestEpisodeNo
+    ) return;
+    setSelectedWork(routeWork.id);
+    setSelectedWorkInfo({
+      id: routeWork.id,
+      title: routeWork.title,
+      genre: nextGenre,
+      episodeCount: routeWork.latestEpisodeNo,
     });
-  };
+  }, [
+    routeWorkId,
+    routeWork?.genre,
+    routeWork?.id,
+    routeWork?.latestEpisodeNo,
+    routeWork?.title,
+    selectedWork,
+    selectedWorkInfo,
+    setSelectedWork,
+    setSelectedWorkInfo,
+  ]);
 
-  const splitBoundary = (tempId: string) => {
-    setBoundaries((prev) => {
-      const idx = prev.findIndex((b) => b.tempId === tempId);
-      if (idx === -1) return prev;
-      const b = prev[idx];
-      const midParagraph = splitAtParagraph !== null && splitAtParagraph > b.startParagraph && splitAtParagraph <= b.endParagraph
-        ? splitAtParagraph - 1
-        : Math.floor((b.startParagraph + b.endParagraph) / 2);
-      const ratio = (midParagraph - b.startParagraph + 1) / (b.endParagraph - b.startParagraph + 1);
-      const firstChars = Math.round(b.charCount * ratio);
-      const first: DetectedEpisodeBoundary = { ...b, endParagraph: midParagraph, charCount: firstChars };
-      const second: DetectedEpisodeBoundary = {
-        ...b, tempId: `${b.tempId}-split`, episodeNumber: b.episodeNumber + 1,
-        title: `${b.title} (계속)`, startParagraph: midParagraph + 1, charCount: b.charCount - firstChars,
-      };
-      const next = [...prev];
-      next.splice(idx, 1, first, second);
-      setSelectedBoundaryId(first.tempId);
-      return next;
-    });
-    setSplitAtParagraph(null);
-  };
+  const episodesQuery = useQuery({
+    ...getEpisodesOptions({ path: { workId } }),
+    enabled: UUID_PATTERN.test(workId),
+    retry: false,
+  });
+  const existingEpisodes = useMemo(
+    () => episodesQuery.data?.data ?? [],
+    [episodesQuery.data?.data],
+  );
+  const existingEpisodeNos = useMemo(
+    () => new Set(existingEpisodes.flatMap(episode => episode.episodeNo === undefined ? [] : [episode.episodeNo])),
+    [existingEpisodes],
+  );
+  const suggestedEpisodeNo = useMemo(() => {
+    if (episodesQuery.isPending || episodesQuery.isError) return null;
+    const latest = existingEpisodes.reduce((max, episode) => Math.max(max, episode.episodeNo ?? 0), 0);
+    return latest + 1;
+  }, [episodesQuery.isError, episodesQuery.isPending, existingEpisodes]);
+  const settingBooksQuery = useQuery({
+    ...getSettingBooksOptions({ path: { workId } }),
+    enabled: UUID_PATTERN.test(workId)
+      && includeSettings
+      && settingSaveStatus !== 'success'
+      && step !== 'processing',
+    retry: false,
+  });
+  const existingSettingBookNames = useMemo(
+    () => new Set((settingBooksQuery.data?.data ?? []).flatMap(
+      settingBook => settingBook.originalFilename ? [settingBook.originalFilename] : [],
+    )),
+    [settingBooksQuery.data?.data],
+  );
 
-  // 입력 단계 완료 후: 설정집 포함 시 분석 결과 확인 단계로, 아니면 바로 분석 시작
-  const proceedFromInput = (episodes: Episode[]) => {
-    if (includeSettings) {
-      setPendingEpisodes(episodes);
-      setStep('settings-review');
-    } else {
-      startProcessing(episodes);
-    }
-  };
+  const detectEpisodesMutation = useMutation(detectEpisodesMutationOptions());
+  const uploadEpisodesMutation = useMutation(uploadEpisodesMutationOptions());
+  const uploadSettingBookMutation = useMutation(uploadSettingBookMutationOptions());
+  const createAnalysisJobMutation = useMutation(createAnalysisJobMutationOptions());
+  const retryAnalysisJobMutation = useMutation(retryAnalysisJobMutationOptions());
+  const submitting = uploadEpisodesMutation.isPending
+    || uploadSettingBookMutation.isPending
+    || createAnalysisJobMutation.isPending;
 
-  const startProcessing = (episodes: Episode[]) => {
-    const jobType: AnalysisJobType = episodes[0]?.uploadPurpose === 'SETTING_EXTRACTION'
-      ? 'SETTING_EXTRACTION' : 'EPISODE_VALIDATION';
+  const jobQueries = useQueries({
+    queries: trackedAnalysisJobIds.map(analysisJobId => ({
+      ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
+      enabled: step === 'processing' && UUID_PATTERN.test(workId),
+      retry: false,
+      refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
+        const status = query.state.data?.data?.status;
+        return status === 'SUCCEEDED' || status === 'FAILED' ? false : 3_000;
+      },
+    })),
+  });
 
-    setCreatedEpisodes(episodes);
-    setJobProgress(episodes.map((ep) => ({
-      episodeId: ep.id,
-      episodeLabel: ep.title === `${ep.episodeNumber}화` ? ep.title : `${ep.episodeNumber}화 ${ep.title}`.trim(),
-      job: mockCreateAnalysisJob(ep.id, jobType),
-      processingStatus: 'UPLOADED',
-    })));
-    setStep('processing');
-  };
+  const jobs = jobQueries.flatMap(query => query.data?.data ? [query.data.data] : []);
+  const jobsById = new Map(jobs.flatMap(job => job.id ? [[job.id, job] as const] : []));
+  const currentAnalysisJobs = currentAnalysisJobIds.flatMap(
+    analysisJobId => jobsById.get(analysisJobId) ? [jobsById.get(analysisJobId)!] : [],
+  );
+  const selectedWorkTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
+  const workTitle = jobs.find(job => job.workTitle)?.workTitle ?? routeWork?.title ?? selectedWorkTitle;
+  const resolvedAnalysisJobType = jobs.find(job => job.jobType)?.jobType ?? analysisJobType;
 
-  // 회차/작업 진행 시뮬레이션
-  useEffect(() => {
-    if (step !== 'processing' || jobProgress.length === 0) return;
-
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    jobProgress.forEach((item, idx) => {
-      const stagger = idx * 250;
-
-      // processingStatus 진행
-      PROCESSING_SEQUENCE.forEach((status, i) => {
-        if (i === 0) return; // 0번(UPLOADED)은 초기값
-        timers.push(setTimeout(() => {
-          setJobProgress((prev) => prev.map((p) => p.episodeId === item.episodeId ? { ...p, processingStatus: status } : p));
-        }, stagger + i * 350));
+  const progressEpisodes = useMemo(() => {
+    const byId = new Map<string, EpisodeSummaryResponse>();
+    uploadedEpisodes.forEach(episode => { if (episode.id) byId.set(episode.id, episode); });
+    jobs.forEach(job => job.episodes?.forEach(episode => {
+      if (!episode.id) return;
+      byId.set(episode.id, {
+        ...byId.get(episode.id),
+        id: episode.id,
+        episodeNo: episode.episodeNo,
+        title: episode.title,
+        status: episode.status,
+        updatedAt: episode.updatedAt,
       });
+    }));
+    return [...byId.values()].sort((a, b) => (a.episodeNo ?? 0) - (b.episodeNo ?? 0));
+  }, [jobs, uploadedEpisodes]);
 
-      // AnalysisJob 상태 진행 (PENDING -> RUNNING -> SUCCEEDED)
-      timers.push(setTimeout(() => {
-        setJobProgress((prev) => prev.map((p) => p.episodeId === item.episodeId ? { ...p, job: { ...p.job, status: 'RUNNING' } } : p));
-      }, stagger + 500));
+  const currentAnalysisJobsLoaded = currentAnalysisJobIds.length > 0
+    && currentAnalysisJobs.length === currentAnalysisJobIds.length;
+  const analysisRunning = currentAnalysisJobs.some(
+    job => job.status === 'PENDING' || job.status === 'RUNNING',
+  );
+  const retryableFailedAnalysisJobIds = currentAnalysisJobs.flatMap(job =>
+    job.status === 'FAILED'
+      && job.id
+      && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
+      ? [job.id]
+      : []);
+  const analysisFailed = currentAnalysisJobsLoaded
+    && !analysisRunning
+    && retryableFailedAnalysisJobIds.length > 0;
+  const analysisUnavailable = currentAnalysisJobsLoaded
+    && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
+  const analysisSucceeded = currentAnalysisJobsLoaded
+    && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED')
+    && progressEpisodes.length > 0
+    && progressEpisodes.every(episode => episode.status === 'ANALYZED');
+  const statusQueryFailed = jobQueries.some(query => query.isError);
 
-      timers.push(setTimeout(() => {
-        setJobProgress((prev) => prev.map((p) => p.episodeId === item.episodeId ? { ...p, job: { ...p.job, status: 'SUCCEEDED' } } : p));
-      }, stagger + PROCESSING_SEQUENCE.length * 350 + 200));
-    });
+  const labels = uploadType === 'MULTI_EPISODE_SINGLE_FILE'
+    ? ['업로드 방식', '원고 파일 입력', '회차 분리 확인', '분석 진행']
+    : ['업로드 방식', '회차 정보 입력', '분석 진행'];
+  const currentStep = step === 'processing'
+    ? labels.length
+    : step === 'boundary-preview'
+      ? 3
+      : uploadType
+        ? 2
+        : 1;
 
-    const lastFinish = (jobProgress.length - 1) * 250 + PROCESSING_SEQUENCE.length * 350 + 400;
-    timers.push(setTimeout(() => setAllDone(true), lastFinish));
+  const persistAnalysisRoute = (
+    batchId: string,
+    nextTrackedAnalysisJobIds: string[],
+    nextCurrentAnalysisJobIds: string[],
+  ) => {
+    setSearchParams(params => {
+      params.set('workId', workId);
+      params.set('batchId', batchId);
+      params.set('analysisJobIds', nextTrackedAnalysisJobIds.join(','));
+      params.set('currentAnalysisJobIds', nextCurrentAnalysisJobIds.join(','));
+      params.set('jobType', analysisJobType);
+      return params;
+    }, { replace: true });
+  };
 
-    return () => timers.forEach(clearTimeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
-
-  const goToReview = () => {
-    const episodeIds = createdEpisodes.map((e) => e.id);
-    if (createdEpisodes[0]?.uploadPurpose === 'EPISODE_VALIDATION') {
-      navigate('/episode-validation-report', 'dissolve', { episodeIds });
-    } else {
-      navigate('/setting-review', 'dissolve', { episodeIds });
+  const detectEpisodesFromFiles = async (
+    nextUploadType: EpisodeUploadType,
+    sourceEpisodeFiles: File[],
+    singleEpisodeMetadata: Pick<
+      EpisodeDetectionRequest,
+      'singleEpisodeNo' | 'singleEpisodeTitle'
+    > = {},
+  ): Promise<EpisodeDetectionResult> => {
+    const requestSequence = ++detectionRequestSequence.current;
+    setRequestError(null);
+    try {
+      const response = await detectEpisodesMutation.mutateAsync({
+        path: { workId },
+        body: {
+          metadata: { uploadType: nextUploadType, ...singleEpisodeMetadata },
+          episodeFiles: sourceEpisodeFiles,
+        },
+        bodySerializer: episodeMultipartSerializer,
+      });
+      if (requestSequence !== detectionRequestSequence.current) {
+        return { episodeConfirmations: [], error: null };
+      }
+      const nextEpisodeConfirmations = toEpisodeConfirmations(
+        response.data?.detectedEpisodes,
+      );
+      replaceEpisodeConfirmations(nextUploadType, nextEpisodeConfirmations);
+      if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
+        setSelectedDetectionOrder(nextEpisodeConfirmations[0]?.detectionOrder ?? null);
+      }
+      return { episodeConfirmations: nextEpisodeConfirmations, error: null };
+    } catch (error) {
+      if (requestSequence !== detectionRequestSequence.current) {
+        return { episodeConfirmations: [], error: null };
+      }
+      replaceEpisodeConfirmations(nextUploadType, []);
+      if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
+        setSelectedDetectionOrder(null);
+      }
+      setRequestError(errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.'));
+      return { episodeConfirmations: [], error };
     }
   };
+
+  const handleSingleFile = async (file: File | null, error: string | null) => {
+    const replacingFile = singleFile !== null;
+    setSingleFile(file);
+    setSingleFileError(error);
+    setRequestError(null);
+    if (replacingFile) {
+      setEpisodeNo('');
+      setEpisodeTitle('');
+    }
+    if (!file || error) {
+      detectionRequestSequence.current += 1;
+      replaceEpisodeConfirmations('SINGLE_EPISODE', []);
+      return;
+    }
+    const { episodeConfirmations } = await detectEpisodesFromFiles(
+      'SINGLE_EPISODE',
+      [file],
+      {
+        singleEpisodeNo: replacingFile
+          ? null
+          : episodeNo.trim() ? Number.parseInt(episodeNo, 10) : null,
+        singleEpisodeTitle: replacingFile ? null : episodeTitle.trim() || null,
+      },
+    );
+    const firstDetectedEpisode = episodeConfirmations[0];
+    if (!firstDetectedEpisode) return;
+    if (replacingFile) {
+      setEpisodeNo(String(firstDetectedEpisode.episodeNo));
+      setEpisodeTitle(firstDetectedEpisode.title ?? '');
+      return;
+    }
+    setEpisodeNo(currentEpisodeNo =>
+      currentEpisodeNo.trim() ? currentEpisodeNo : String(firstDetectedEpisode.episodeNo));
+    if (firstDetectedEpisode.title) {
+      setEpisodeTitle(currentTitle => currentTitle.trim() ? currentTitle : firstDetectedEpisode.title ?? '');
+    }
+  };
+
+  const handleBulkFile = async (file: File | null, error: string | null) => {
+    setBulkFile(file);
+    setBulkFileError(error);
+    replaceEpisodeConfirmations('MULTI_EPISODE_SINGLE_FILE', []);
+    setSelectedDetectionOrder(null);
+    setRequestError(null);
+    if (!file || error) return;
+    const detectionResult = await detectEpisodesFromFiles('MULTI_EPISODE_SINGLE_FILE', [file]);
+    if (requiresBulkFileReselection(detectionResult.error)) {
+      setBulkFile(null);
+      setBulkFileError(errorMessage(
+        detectionResult.error,
+        '파일의 회차 표기를 수정한 뒤 다시 선택해주세요.',
+      ));
+      setRequestError(null);
+    }
+  };
+
+  const handleMultiFiles = async (files: File[], error: string | null) => {
+    setMultiFiles(files);
+    setMultiFilesError(error);
+    replaceEpisodeConfirmations('MULTI_EPISODE_MULTI_FILE', []);
+    setRequestError(null);
+    if (files.length < 2 || error) return;
+    await detectEpisodesFromFiles('MULTI_EPISODE_MULTI_FILE', files);
+  };
+
+  const selectUploadType = (nextUploadType: EpisodeUploadType | null) => {
+    if (submitting) return;
+    detectionRequestSequence.current += 1;
+    setUploadType(nextUploadType);
+    setRequestError(null);
+    if (!singleFile) setSingleFileError(null);
+    if (!bulkFile) setBulkFileError(null);
+    if (multiFiles.length === 0) setMultiFilesError(null);
+  };
+
+  const createBatchAnalysisJob = async (batchId: string) => {
+    setAnalysisStartError(null);
+    try {
+      const response = await createAnalysisJobMutation.mutateAsync({
+        path: { workId },
+        body: { jobType: analysisJobType, batchId },
+      });
+      const analysisJobIds = [...new Set(
+        (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+      )];
+      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      setTrackedAnalysisJobIds(analysisJobIds);
+      setCurrentAnalysisJobIds(analysisJobIds);
+      persistAnalysisRoute(batchId, analysisJobIds, analysisJobIds);
+    } catch (error) {
+      setAnalysisStartError(errorMessage(error, '회차는 저장했지만 분석을 시작하지 못했습니다.'));
+    }
+  };
+
+  const uploadSelectedSettingBook = async () => {
+    if (!includeSettings || !settingsFile || settingSaveStatus === 'success') return;
+    setSettingUploadError(null);
+    try {
+      await uploadSettingBookMutation.mutateAsync({
+        path: { workId },
+        body: { file: settingsFile },
+      });
+      setSettingSaveStatus('success');
+    } catch (error) {
+      setSettingSaveStatus('failed');
+      setSettingUploadError(errorMessage(error, '설정집 원본 저장에 실패했습니다. 설정집만 다시 시도할 수 있습니다.'));
+      throw error;
+    }
+  };
+
+  const submitEpisodeUpload = async () => {
+    if (!uploadType) return;
+    setRequestError(null);
+    const sourceEpisodeFiles = uploadType === 'SINGLE_EPISODE'
+      ? (singleFile ? [singleFile] : [])
+      : uploadType === 'MULTI_EPISODE_SINGLE_FILE'
+        ? (bulkFile ? [bulkFile] : [])
+        : multiFiles;
+    const metadata: EpisodeUploadRequest = uploadType === 'SINGLE_EPISODE'
+      ? {
+          uploadType,
+          singleEpisodeNo: Number.parseInt(episodeNo, 10),
+          singleEpisodeTitle: episodeTitle.trim() || null,
+        }
+      : {
+          uploadType,
+          episodeConfirmations: episodeConfirmations.map(confirmation => ({
+            detectionOrder: confirmation.detectionOrder,
+            episodeNo: confirmation.episodeNo,
+            title: confirmation.title.trim() || null,
+          })),
+        };
+
+    const episodeUploadPromise = uploadEpisodesMutation.mutateAsync({
+      path: { workId },
+      body: {
+        metadata,
+        episodeFiles: sourceEpisodeFiles,
+      },
+      bodySerializer: episodeMultipartSerializer,
+    });
+    const settingUploadPromise = includeSettings && settingsFile && settingSaveStatus !== 'success'
+      ? uploadSelectedSettingBook()
+      : Promise.resolve();
+    const [episodeResult, settingResult] = await Promise.allSettled([episodeUploadPromise, settingUploadPromise]);
+
+    if (episodeResult.status === 'rejected') {
+      setRequestError(errorMessage(
+        episodeResult.reason,
+        includeSettings && settingResult.status === 'fulfilled'
+          ? '설정집은 저장했지만 회차 저장에 실패했습니다. 회차만 다시 시도해주세요.'
+          : '회차 저장에 실패했습니다. 입력값과 파일을 유지했으니 다시 시도해주세요.',
+      ));
+      return;
+    }
+
+    try {
+      const episodeUpload = episodeResult.value.data;
+      if (!episodeUpload?.batchId) throw new Error('업로드 배치 ID가 응답에 없습니다.');
+      setEpisodeUploadBatchId(episodeUpload.batchId);
+      setUploadedEpisodes(episodeUpload.createdEpisodes ?? []);
+      setStep('processing');
+      await createBatchAnalysisJob(episodeUpload.batchId);
+    } catch (error) {
+      setRequestError(errorMessage(error, '회차 저장에 실패했습니다. 입력값과 파일을 유지했으니 다시 시도해주세요.'));
+    }
+  };
+
+  const retryFailedAnalysisJobs = async () => {
+    if (retryableFailedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
+    setAnalysisStartError(null);
+    try {
+      const responses = await Promise.all(
+        retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
+          path: { workId, analysisJobId },
+        })),
+      );
+      const retryAnalysisJobIds = responses
+        .flatMap(response => response.data ?? [])
+        .flatMap(job => job.id ? [job.id] : []);
+      if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
+      const nextTrackedAnalysisJobIds = [...trackedAnalysisJobIds, ...retryAnalysisJobIds];
+      setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
+      setCurrentAnalysisJobIds(retryAnalysisJobIds);
+      persistAnalysisRoute(
+        episodeUploadBatchId,
+        nextTrackedAnalysisJobIds,
+        retryAnalysisJobIds,
+      );
+    } catch (error) {
+      setAnalysisStartError(errorMessage(error, '실패 회차 분석을 다시 요청하지 못했습니다.'));
+    }
+  };
+
+  const singleNo = Number.parseInt(episodeNo, 10);
+  const singleValid = Boolean(singleFile)
+    && Number.isInteger(singleNo)
+    && singleNo >= 1
+    && !existingEpisodeNos.has(singleNo)
+    && episodeTitle.trim().length <= 100;
+  const episodeConfirmationValidationError = getEpisodeConfirmationValidationError(
+    episodeConfirmations,
+    existingEpisodeNos,
+  );
+  const episodeConfirmationsValid = episodeConfirmations.length > 0
+    && !episodeConfirmationValidationError;
+  const settingsModeError = uploadType === 'MULTI_EPISODE_MULTI_FILE'
+    && settingsFile
+    && !settingsFile.name.toLowerCase().endsWith('.txt')
+    ? '다회차 여러 파일 업로드에서는 설정집도 TXT 파일만 지원합니다.'
+    : settingsFileError
+      ?? (settingSaveStatus !== 'success'
+        && settingsFile
+        && existingSettingBookNames.has(settingsFile.name)
+        ? '같은 이름의 설정집이 이미 업로드되어 있습니다.'
+        : null);
+  const settingsValid = !includeSettings
+    || settingSaveStatus === 'success'
+    || Boolean(settingsFile && !settingsModeError && settingBooksQuery.isSuccess);
+  const canSubmit = UUID_PATTERN.test(workId)
+    && settingsValid
+    && !detectEpisodesMutation.isPending
+    && !submitting
+    && (uploadType === 'SINGLE_EPISODE' ? singleValid
+      : uploadType === 'MULTI_EPISODE_SINGLE_FILE'
+        ? Boolean(bulkFile) && episodeConfirmations.length >= 2 && episodeConfirmationsValid
+        : multiFiles.length >= 2 && episodeConfirmationsValid);
+
+  if (!UUID_PATTERN.test(workId)) {
+    return (
+      <div style={{ width: '100%', height: '100%', background: C.bg, color: C.t2 }}>
+        <Header onBack={() => navigate('/works', 'pop')} />
+        <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center' }}>
+          <AlertCircle size={36} color={C.warning} style={{ marginBottom: 14 }} />
+          <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 8 }}>실제 API에 연결할 작품이 필요합니다</div>
+          <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
+            작품 선택 화면에서 <b>Episode API 테스트 작품</b>을 선택하면 실제 소유 UUID가 준비됩니다.
+          </div>
+          <PrimaryButton onClick={() => navigate('/works', 'pop')}>작품 선택으로 이동</PrimaryButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
+      background: C.bg, color: C.t1,
+      fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
     }}>
-      <Header title="회차 업로드" onBack={() => navigate('/dashboard', 'pop')} />
-      <Stepper labels={stepLabels} current={stepIndex} maxWidth={wideLayout ? 1040 : 720} />
-
+      <Header onBack={goBackToEntry} />
+      <Stepper labels={labels} current={currentStep} />
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: wideLayout ? 1040 : 720, margin: '0 auto', padding: '24px 20px 60px' }}>
-
+        <div style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
           {step === 'select-mode' && (
             <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>
-                {work.title} · 회차 업로드
-              </div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식을 선택하세요</div>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
+              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식과 분석 목적을 선택하세요.</div>
 
-              <div style={{ display: 'flex', gap: 12, marginBottom: uploadMode ? 28 : 0 }}>
+              {episodesQuery.isError && (
+                <ErrorBanner message="기존 회차 번호를 불러오지 못했습니다. 번호를 직접 확인해주세요." onRetry={() => void episodesQuery.refetch()} />
+              )}
+              {requestError && <ErrorBanner message={requestError} />}
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: uploadType ? 28 : 0 }}>
                 <ModeCard
                   icon={<FileText size={22} />}
                   title="단일 회차 업로드"
-                  desc="새 회차 1개를 업로드합니다"
+                  desc="새 회차 파일 한 개를 등록합니다"
                   color={C.primary}
-                  selected={uploadMode === 'single'}
-                  onSelect={() => setUploadMode('single')}
+                  selected={uploadType === 'SINGLE_EPISODE'}
+                  onSelect={() => selectUploadType('SINGLE_EPISODE')}
                 />
                 <ModeCard
                   icon={<BookMarked size={22} />}
-                  title="다회차 - 단일 파일 업로드"
-                  desc="여러 회차가 담긴 파일 1개를 업로드하고 회차 경계를 확인합니다"
+                  title="다회차 - 단일 파일"
+                  desc="명시적인 회차 제목 행을 기준으로 분리합니다"
                   color={C.success}
-                  selected={uploadMode === 'bulk-single-file'}
-                  onSelect={() => setUploadMode('bulk-single-file')}
+                  selected={uploadType === 'MULTI_EPISODE_SINGLE_FILE'}
+                  onSelect={() => selectUploadType('MULTI_EPISODE_SINGLE_FILE')}
                 />
                 <ModeCard
                   icon={<Files size={22} />}
-                  title="다회차 - 여러 파일 업로드"
-                  desc="회차별로 파일이 분리되어 있을 때, 파일마다 1개의 회차로 생성합니다"
+                  title="다회차 - 여러 파일"
+                  desc="TXT 파일마다 한 회차로 등록합니다"
                   color={C.warning}
-                  selected={uploadMode === 'bulk-multi-file'}
-                  onSelect={() => setUploadMode('bulk-multi-file')}
+                  selected={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
+                  onSelect={() => selectUploadType('MULTI_EPISODE_MULTI_FILE')}
                 />
               </div>
 
-              {uploadMode === 'single' && (
+              {uploadType === 'SINGLE_EPISODE' && (
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ width: 160 }}>
                       <FieldLabel>회차 번호</FieldLabel>
-                      <TextInput value={episodeNumber} onChange={setEpisodeNumber} placeholder="예: 159" type="number" />
+                      <TextInput
+                        value={episodeNo}
+                        type="number"
+                        disabled={submitting || detectEpisodesMutation.isPending}
+                        placeholder="비우면 파일에서 감지"
+                        onChange={setEpisodeNo}
+                      />
+                      <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.45, marginTop: 6 }}>
+                        {episodesQuery.isPending
+                          ? '추천 회차를 확인하고 있습니다.'
+                          : suggestedEpisodeNo
+                            ? `추천 다음 회차: ${suggestedEpisodeNo}화`
+                            : '번호를 직접 입력하거나 파일에서 감지하세요.'}
+                      </div>
                     </div>
-                    <div style={{ flex: 2 }}>
-                      <FieldLabel>회차 제목</FieldLabel>
-                      <TextInput value={episodeTitle} onChange={setEpisodeTitle} placeholder="예: 운명의 실타래" />
+                    <div style={{ flex: 1 }}>
+                      <FieldLabel>회차 제목 (선택)</FieldLabel>
+                      <TextInput
+                        value={episodeTitle}
+                        disabled={submitting || detectEpisodesMutation.isPending}
+                        placeholder="비우면 원문 제목 행에서 감지"
+                        onChange={setEpisodeTitle}
+                      />
                     </div>
                   </div>
-
+                  {existingEpisodeNos.has(singleNo) && (
+                    <div style={{ color: C.danger, fontSize: 12, margin: '-8px 0 12px' }}>이미 등록된 회차 번호입니다.</div>
+                  )}
                   <FieldLabel>회차 파일</FieldLabel>
                   <FileDropArea
-                    file={singleFile} error={singleFileError}
-                    onFileChange={(f, err) => { setSingleFile(f); setSingleFileError(err); }}
-                    fileLabel="회차파일.txt"
+                    file={singleFile}
+                    error={singleFileError}
+                    onFileChange={(file, error) => void handleSingleFile(file, error)}
+                    fileLabel="회차파일.txt 또는 회차파일.docx"
                   />
-
-                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
-
-                  <SettingsDocToggle
-                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                    settingsFile={settingsFile} settingsFileError={settingsFileError}
-                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
-                  />
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
-                    <div style={{ flex: 1 }}>
-                      <BtnP
-                        label="다음 — 분석 시작"
-                        onClick={() => {
-                          const num = parseInt(episodeNumber, 10) || 0;
-                          const ep = mockCreateEpisode(selectedWork, num, episodeTitle, uploadPurpose);
-                          if (!singleFile) {
-                            suggestDemoMode(() => proceedFromInput([ep]));
-                            return;
-                          }
-                          proceedFromInput([ep]);
-                        }}
-                      />
+                  {detectEpisodesMutation.isPending && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.t2, fontSize: 12, marginBottom: 14 }}>
+                      <Spinner size={13} /> 회차 번호와 제목을 확인하고 있습니다.
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
-              {uploadMode === 'bulk-single-file' && (
+              {uploadType === 'MULTI_EPISODE_SINGLE_FILE' && (
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                  <FieldLabel>원고 파일</FieldLabel>
+                  <FieldLabel>다회차 원고 파일</FieldLabel>
                   <FileDropArea
-                    file={bulkFile} error={bulkFileError}
-                    onFileChange={(f, err) => { setBulkFile(f); setBulkFileError(err); if (!f) setBoundaries([]); }}
-                    fileLabel="대량 원고 파일"
+                    file={bulkFile}
+                    error={bulkFileError}
+                    onFileChange={(file, error) => void handleBulkFile(file, error)}
+                    fileLabel="제 N화, EP N, Episode N, Chapter N 제목 행이 있는 TXT 또는 DOCX"
                   />
-                  <div style={{ color: C.t3, fontSize: 11, margin: '6px 0 20px' }}>
-                    지원 형식: .txt, .docx (최대 10MB)
-                  </div>
+                  {detectEpisodesMutation.isPending && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.t2, fontSize: 12, marginBottom: 14 }}>
+                      <Spinner size={13} /> 회차 표기를 확인하고 있습니다.
+                    </div>
+                  )}
+                  {episodeConfirmations.length > 0 && (
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', padding: '10px 12px', marginBottom: 16,
+                      borderRadius: 6, background: `${C.success}10`, border: `1px solid ${C.success}44`,
+                      color: C.success, fontSize: 12,
+                    }}>
+                      <span>{episodeConfirmations.length}개 회차 감지됨</span>
+                      <span>
+                        {episodeConfirmations
+                          .reduce((sum, confirmation) => sum + confirmation.charCount, 0)
+                          .toLocaleString()}자
+                      </span>
+                    </div>
+                  )}
+                  {episodeConfirmationValidationError && (
+                    <ErrorBanner message={episodeConfirmationValidationError} />
+                  )}
+                </div>
+              )}
 
-                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
-
-                  <SettingsDocToggle
-                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                    settingsFile={settingsFile} settingsFileError={settingsFileError}
-                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
+              {uploadType === 'MULTI_EPISODE_MULTI_FILE' && (
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                  <FieldLabel>회차별 TXT 파일</FieldLabel>
+                  <MultiFileDropArea
+                    files={multiFiles}
+                    error={multiFilesError}
+                    onFilesChange={(files, error) => void handleMultiFiles(files, error)}
+                    disabled={submitting}
                   />
-
-                  <FieldLabel>회차 구분 기준</FieldLabel>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                    {([
-                      { id: 'AUTO', label: '자동 감지', desc: 'AI가 문맥 흐름으로 회차 경계를 감지합니다' },
-                      { id: 'TITLE_NUMBER', label: '제목·회차 번호 기준', desc: '"제 N화", "Chapter N" 등의 표기를 기준으로 분리합니다' },
-                    ] as { id: 'AUTO' | 'TITLE_NUMBER'; label: string; desc: string }[]).map((opt) => (
-                      <button key={opt.id} onClick={() => setSeparationCriteria(opt.id)} style={{
-                        flex: 1, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                        background: separationCriteria === opt.id ? C.primary + '14' : C.surface,
-                        border: `1px solid ${separationCriteria === opt.id ? C.primary : C.border}`,
-                        color: separationCriteria === opt.id ? C.t1 : C.t2,
-                      }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{opt.label}</div>
-                        <div style={{ fontSize: 11, color: C.t3 }}>{opt.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  {bulkFile && boundaries.length > 0 && (
+                  {detectEpisodesMutation.isPending && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.t2, fontSize: 12, marginBottom: 14 }}>
+                      <Spinner size={13} /> 파일별 회차 번호와 제목을 확인하고 있습니다.
+                    </div>
+                  )}
+                  {episodeConfirmations.length > 0 && (
                     <>
-                      <FieldLabel>AI 분리 미리보기</FieldLabel>
-                      <InfoBar
-                        items={[
-                          { label: '감지된 회차', value: `${boundaries.length}개` },
-                          { label: '총 글자 수', value: `${boundaries.reduce((s, b) => s + b.charCount, 0).toLocaleString()}자` },
-                          { label: '분리 방식', value: separationCriteria === 'AUTO' ? '자동 감지' : '제목·회차 번호 기준' },
-                        ]}
-                        badge={(
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 10, color: C.success, background: C.success + '1A',
-                            border: `1px solid ${C.success}33`, fontSize: 11, fontWeight: 700,
-                          }}>
-                            총 {boundaries.length}회차 감지됨
-                          </span>
-                        )}
+                      <FieldLabel>파일별 회차 정보 확인</FieldLabel>
+                      <EpisodeConfirmationRows
+                        episodeConfirmations={episodeConfirmations}
+                        onChange={setEpisodeConfirmations}
+                        disabled={submitting}
                       />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-                        {boundaries.map((b) => (
-                          <div key={b.tempId} style={{
-                            display: 'flex', justifyContent: 'space-between', padding: '8px 12px',
-                            borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 12,
-                          }}>
-                            <span style={{ color: C.t1, fontWeight: 600 }}>EP{b.episodeNumber}. {b.title}</span>
-                            <span style={{ color: C.t3 }}>{b.charCount.toLocaleString()}자</span>
-                          </div>
-                        ))}
-                      </div>
                     </>
                   )}
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
-                    <div style={{ flex: 1 }}>
-                      <BtnP
-                        label="다음 — 회차 분리 확인"
-                        onClick={() => {
-                          if (!bulkFile) {
-                            suggestDemoMode(() => {
-                              const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
-                              setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
-                              setStep('boundary-preview');
-                            });
-                            return;
-                          }
-                          setStep('boundary-preview');
-                        }}
-                      />
-                    </div>
-                  </div>
+                  {episodeConfirmationValidationError && (
+                    <ErrorBanner message={episodeConfirmationValidationError} />
+                  )}
                 </div>
               )}
 
-              {uploadMode === 'bulk-multi-file' && (
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                    <div style={{ flex: 1 }}>
-                      <FieldLabel>시작 회차 번호</FieldLabel>
-                      <TextInput value={multiStartEpisodeNumber} onChange={setMultiStartEpisodeNumber} placeholder="예: 161" type="number" />
+              {uploadType && (
+                <>
+                  <AnalysisJobTypeSelector
+                    value={analysisJobType}
+                    onChange={setAnalysisJobType}
+                    disabled={submitting}
+                  />
+                  <SettingsFileInput
+                    include={includeSettings}
+                    setInclude={include => {
+                      setIncludeSettings(include);
+                      if (!include) {
+                        setSettingSaveStatus('idle');
+                        setSettingUploadError(null);
+                      }
+                    }}
+                    file={settingsFile}
+                    error={settingsModeError}
+                    setFile={(file, error) => {
+                      setSettingsFile(file);
+                      setSettingsFileError(error);
+                      setSettingSaveStatus('idle');
+                      setSettingUploadError(null);
+                    }}
+                    disabled={submitting}
+                    txtOnly={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
+                  />
+                  {includeSettings
+                    && settingSaveStatus !== 'success'
+                    && settingBooksQuery.isPending && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      color: C.t2, fontSize: 12, margin: '-4px 0 14px',
+                    }}>
+                      <Spinner size={13} /> 기존 설정집 이름을 확인하고 있습니다.
                     </div>
+                  )}
+                  {includeSettings
+                    && settingSaveStatus !== 'success'
+                    && settingBooksQuery.isError && (
+                    <ErrorBanner
+                      message="기존 설정집 이름을 확인하지 못했습니다."
+                      onRetry={() => void settingBooksQuery.refetch()}
+                    />
+                  )}
+                  {settingSaveStatus === 'success' && (
+                    <div style={{ color: C.success, fontSize: 12, margin: '-4px 0 14px' }}>
+                      설정집 원본은 저장되었습니다. 회차를 다시 시도해도 중복 저장하지 않습니다.
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <SecondaryButton onClick={() => selectUploadType(null)} disabled={submitting}>← 뒤로</SecondaryButton>
                     <div style={{ flex: 1 }}>
-                      <FieldLabel>파일 개수</FieldLabel>
-                      <TextInput value={multiFileCount} onChange={setMultiFileCount} placeholder="예: 3" type="number" />
+                      {uploadType === 'MULTI_EPISODE_SINGLE_FILE' ? (
+                        <PrimaryButton
+                          disabled={!canSubmit}
+                          onClick={() => {
+                            setSelectedDetectionOrder(
+                              episodeConfirmations[0]?.detectionOrder ?? null,
+                            );
+                            setStep('boundary-preview');
+                          }}
+                        >
+                          다음 — 회차 분리 확인
+                        </PrimaryButton>
+                      ) : (
+                        <PrimaryButton disabled={!canSubmit} onClick={() => void submitEpisodeUpload()}>
+                          {submitting ? '저장 중...' : '다음 — 분석 시작'}
+                        </PrimaryButton>
+                      )}
                     </div>
                   </div>
-
-                  <FieldLabel>회차 파일 (여러 개 선택)</FieldLabel>
-                  <MultiFileDropArea
-                    files={multiFiles} error={multiFilesError}
-                    onFilesChange={(files, err) => { setMultiFiles(files); setMultiFilesError(err); }}
-                    fileLabel={`${multiFileCount || 0}개 파일`}
-                  />
-
-                  <UploadPurposeSelector uploadPurpose={uploadPurpose} setUploadPurpose={setUploadPurpose} />
-
-                  <SettingsDocToggle
-                    includeSettings={includeSettings} setIncludeSettings={setIncludeSettings}
-                    settingsFile={settingsFile} settingsFileError={settingsFileError}
-                    onSettingsFileChange={(f, err) => { setSettingsFile(f); setSettingsFileError(err); }}
-                  />
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <BtnG label="← 뒤로" onClick={() => setUploadMode(null)} />
-                    <div style={{ flex: 1 }}>
-                      <BtnP
-                        label="다음 — 분석 시작"
-                        onClick={() => {
-                          const startNum = parseInt(multiStartEpisodeNumber, 10) || 0;
-                          const count = Math.max(1, parseInt(multiFileCount, 10) || 1);
-                          const episodes = mockCreateMultiFileEpisodes(selectedWork, startNum, count, uploadPurpose);
-                          if (multiFiles.length === 0) {
-                            suggestDemoMode(() => proceedFromInput(episodes));
-                            return;
-                          }
-                          proceedFromInput(episodes);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                </>
               )}
             </>
           )}
 
-          {step === 'boundary-preview' && (() => {
-            const selected = boundaries.find((b) => b.tempId === selectedBoundaryId) ?? boundaries[0];
-            const totalChars = boundaries.reduce((s, b) => s + b.charCount, 0);
-            return (
-              <>
-                <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 분리 확인</div>
-                <div style={{ color: C.t2, fontSize: 13, marginBottom: 16 }}>
-                  AI가 감지한 회차 경계를 확인하고 필요하면 회차 번호·제목을 수정하거나 합치기/나누기로 조정하세요
-                </div>
-
-                <InfoBar
-                  items={[
-                    { label: '파일 이름', value: bulkFile?.name ?? '-' },
-                    { label: '총 글자 수', value: `${totalChars.toLocaleString()}자` },
-                    { label: '감지된 회차', value: `${boundaries.length}개` },
-                    { label: '분리 방식', value: separationCriteria === 'AUTO' ? '자동 감지' : '제목·회차 번호 기준' },
-                    { label: '설정집', value: includeSettings ? '함께 업로드' : '미사용' },
-                  ]}
-                  badge={(
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 10, color: C.success, background: C.success + '1A',
-                      border: `1px solid ${C.success}33`, fontSize: 11, fontWeight: 700,
-                    }}>
-                      총 {boundaries.length}회차 감지됨
-                    </span>
-                  )}
-                />
-
-                <SplitPane
-                  left={boundaries.map((b) => (
-                    <ListItemCard
-                      key={b.tempId}
-                      selected={b.tempId === selected?.tempId}
-                      onClick={() => setSelectedBoundaryId(b.tempId)}
-                      title={`EP${b.episodeNumber}. ${b.title}`}
-                      subtitle={`${b.startParagraph}~${b.endParagraph}문단 · ${b.charCount.toLocaleString()}자`}
-                      badge={b.confirmed ? '정상' : '확인 필요'}
-                      badgeColor={b.confirmed ? C.success : C.warning}
-                    />
-                  ))}
-                  right={selected ? (
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, background: C.surface }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                        <input
-                          type="checkbox" checked={selected.confirmed}
-                          onChange={(e) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, confirmed: e.target.checked } : x))}
-                          style={{ accentColor: C.primary, width: 14, height: 14, cursor: 'pointer' }}
-                        />
-                        <label style={{ color: C.t2, fontSize: 12 }}>이 회차 포함</label>
+          {step === 'boundary-preview' && (
+            <>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>회차 분리 확인</div>
+              <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>
+                감지 경계는 고정됩니다. 번호와 제목만 확인·수정할 수 있습니다.
+              </div>
+              {requestError && <ErrorBanner message={requestError} />}
+              <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {episodeConfirmations.map(confirmation => (
+                    <button
+                      key={confirmation.detectionOrder}
+                      type="button"
+                      onClick={() => setSelectedDetectionOrder(confirmation.detectionOrder)}
+                      style={{
+                        padding: '11px 12px', textAlign: 'left', borderRadius: 7,
+                        border: `1px solid ${selectedDetectionOrder === confirmation.detectionOrder ? C.primary : C.border}`,
+                        background: selectedDetectionOrder === confirmation.detectionOrder ? `${C.primary}12` : C.surface,
+                        color: C.t1, cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
+                        {confirmation.episodeNo}화 {confirmation.title || '제목을 찾지 못했어요'}
                       </div>
-
-                      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                        <div style={{ width: 100 }}>
+                      <div style={{ color: C.t3, fontSize: 11 }}>
+                        {confirmation.charCount.toLocaleString()}자
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const selectedConfirmation = episodeConfirmations.find(
+                    confirmation => confirmation.detectionOrder === selectedDetectionOrder,
+                  ) ?? episodeConfirmations[0];
+                  if (!selectedConfirmation) return null;
+                  return (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, padding: 16 }}>
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                        <div style={{ width: 110 }}>
                           <FieldLabel>회차 번호</FieldLabel>
                           <TextInput
-                            value={String(selected.episodeNumber)}
-                            onChange={(v) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, episodeNumber: parseInt(v, 10) || 0 } : x))}
                             type="number"
+                            value={String(selectedConfirmation.episodeNo)}
+                            onChange={value => setEpisodeConfirmations(items => items.map(item =>
+                              item.detectionOrder === selectedConfirmation.detectionOrder
+                              ? { ...item, episodeNo: Number.parseInt(value, 10) || 0 }
+                              : item))}
                           />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <FieldLabel>회차 제목</FieldLabel>
+                          <FieldLabel>회차 제목 (선택)</FieldLabel>
                           <TextInput
-                            value={selected.title}
-                            onChange={(v) => setBoundaries((prev) => prev.map((x) => x.tempId === selected.tempId ? { ...x, title: v } : x))}
+                            value={selectedConfirmation.title}
+                            placeholder="제목을 찾지 못했어요"
+                            onChange={value => setEpisodeConfirmations(items => items.map(item =>
+                              item.detectionOrder === selectedConfirmation.detectionOrder
+                              ? { ...item, title: value }
+                              : item))}
                           />
                         </div>
                       </div>
-
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-                        <BtnG small icon={<GitMerge size={13} />} label="이전 회차와 합치기" onClick={() => mergeWithPrevious(selected.tempId)} />
-                        <BtnG small icon={<Scissors size={13} />} label="여기서 회차 나누기" onClick={() => splitBoundary(selected.tempId)} />
-                        <div style={{ flex: 1 }} />
-                        <button
-                          onClick={() => setBoundaries((prev) => prev.filter((x) => x.tempId !== selected.tempId))}
-                          style={{ background: 'transparent', border: 'none', color: C.t3, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-
-                      <FieldLabel>원문 미리보기</FieldLabel>
-                      <div style={{ color: C.t3, fontSize: 11, marginBottom: 6 }}>
-                        {splitAtParagraph !== null
-                          ? `${splitAtParagraph}문단부터 새 회차로 분리됩니다`
-                          : '분리할 줄을 클릭하면 그 줄부터 새 회차로 나눌 수 있어요'}
-                      </div>
-                      <ManuscriptPreview
-                        paragraphs={manuscriptParagraphs}
-                        boundaries={boundaries}
-                        selectedBoundaryId={selected.tempId}
-                        splitAtParagraph={splitAtParagraph}
-                        onSelectSplitParagraph={setSplitAtParagraph}
-                        onMergeWithPrevious={mergeWithPrevious}
-                      />
-                    </div>
-                  ) : (
-                    <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '40px 0' }}>회차를 선택하세요</div>
-                  )}
-                />
-
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <BtnG label="← 이전" onClick={() => { setUploadMode(null); setStep('select-mode'); }} />
-                  <BtnG
-                    label="다시 분리"
-                    onClick={() => {
-                      const lastChapters = work.title === WORK_INFO.detective!.title ? 158 : 42;
-                      setBoundaries(mockDetectBoundaries(1, lastChapters + 1));
-                      setSelectedBoundaryId(null);
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <BtnP
-                      label={`회차 분리 확정 (${boundaries.filter((b) => b.confirmed).length}개) →`}
-                      onClick={() => {
-                        const selectedBoundaries = boundaries.filter((b) => b.confirmed);
-                        const episodes = selectedBoundaries.map((b) => mockCreateEpisode(selectedWork, b.episodeNumber, b.title, uploadPurpose));
-                        proceedFromInput(episodes);
-                      }}
-                    />
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-
-          {step === 'settings-review' && (
-            <>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>설정집 분석 결과 확인</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>AI가 설정집에서 추출한 항목을 확인하고 필요시 수정하세요</div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-                {MOCK_SETTINGS_EXTRACTION.map((cat) => {
-                  const style = SETTINGS_CATEGORY_STYLE[cat.type] || { color: C.t2, icon: null };
-                  return (
-                    <div key={cat.type} style={{
-                      background: C.surface, borderRadius: 6, border: `1px solid ${C.border}`,
-                      overflow: 'hidden',
-                    }}>
+                      <FieldLabel>고정 경계 원문 미리보기</FieldLabel>
                       <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '9px 14px', borderBottom: `1px solid ${C.border}`,
+                        maxHeight: 390, overflowY: 'auto', whiteSpace: 'pre-wrap', padding: 14,
+                        borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg,
+                        color: C.t2, fontSize: 12, lineHeight: 1.8,
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ color: style.color }}>{style.icon}</span>
-                          <span style={{ color: style.color, fontSize: 13, fontWeight: 600 }}>{cat.type}</span>
-                        </div>
-                        <span style={{ color: C.t3, fontSize: 12 }}>{cat.count}개 추출됨</span>
-                      </div>
-                      <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {cat.items.map((item) => (
-                          <span key={item} style={{ color: C.t2, fontSize: 12 }}>· {item}</span>
-                        ))}
-                        {cat.count > cat.items.length && (
-                          <span style={{ color: C.t3, fontSize: 11 }}>+ {cat.count - cat.items.length}개 더...</span>
+                        {selectedConfirmation.sourceHeading && (
+                          <div style={{
+                            color: C.t1, fontSize: 14, fontWeight: 700,
+                            paddingBottom: 10, marginBottom: 10,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}>
+                            {selectedConfirmation.sourceHeading}
+                          </div>
                         )}
+                        {selectedConfirmation.content}
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <BtnG label="나중에 수정" onClick={() => startProcessing(pendingEpisodes)} />
+              {episodeConfirmationValidationError && (
+                <div style={{ color: C.danger, fontSize: 12, marginTop: 12 }}>
+                  {episodeConfirmationValidationError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+                <SecondaryButton onClick={() => setStep('select-mode')} disabled={submitting}>← 이전</SecondaryButton>
                 <div style={{ flex: 1 }}>
-                  <BtnP label="설정 DB 확정 및 등록" onClick={() => startProcessing(pendingEpisodes)} />
+                  <PrimaryButton disabled={!canSubmit} onClick={() => void submitEpisodeUpload()}>
+                    {submitting
+                      ? '회차 묶음 저장 중...'
+                      : `회차 분리 확정 (${episodeConfirmations.length}개) →`}
+                  </PrimaryButton>
                 </div>
               </div>
             </>
           )}
 
           {step === 'processing' && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                <SpinningRing />
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 26 }}>
+                {analysisSucceeded
+                  ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
+                  : analysisFailed
+                    ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
+                    : analysisUnavailable
+                      ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
+                    : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
+                <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
+                  {analysisSucceeded ? '분석이 완료되었습니다'
+                    : analysisFailed ? '일부 회차 분석에 실패했습니다'
+                      : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
+                        : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
+                </div>
+                <div style={{ color: C.t2, fontSize: 13 }}>
+                  {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+                </div>
               </div>
-              <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 4 }}>회차 생성 및 분석 중</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 28 }}>청킹 → LLM 전처리 → AI 설정 추출 순으로 진행됩니다</div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
-                {jobProgress.map((item) => {
-                  const seqIndex = PROCESSING_SEQUENCE.indexOf(item.processingStatus);
-                  const done = item.processingStatus === 'ANALYZED' && item.job.status === 'SUCCEEDED';
+              {settingUploadError && (
+                <ErrorBanner message={settingUploadError} onRetry={() => void uploadSelectedSettingBook()} />
+              )}
+              {settingSaveStatus === 'success' && includeSettings && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px', marginBottom: 16,
+                  borderRadius: 6, border: `1px solid ${C.success}44`, background: `${C.success}10`,
+                  color: C.success, fontSize: 12,
+                }}>
+                  <CircleCheckBig size={14} /> 설정집 원본도 독립적으로 저장되었습니다.
+                </div>
+              )}
+              {analysisStartError && (
+                <ErrorBanner
+                  message={analysisStartError}
+                  onRetry={episodeUploadBatchId && currentAnalysisJobIds.length === 0
+                    ? () => void createBatchAnalysisJob(episodeUploadBatchId)
+                    : undefined}
+                />
+              )}
+              {analysisFailed && (
+                <ErrorBanner message="분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요." />
+              )}
+              {analysisUnavailable && (
+                <ErrorBanner message="삭제된 회차는 분석 결과를 열거나 다시 시도할 수 없습니다. 원고 목록에서 현재 회차를 확인해주세요." />
+              )}
+              {statusQueryFailed && (
+                <ErrorBanner
+                  message="상태를 갱신하지 못했습니다. 마지막으로 확인한 상태를 유지합니다."
+                  onRetry={() => jobQueries.forEach(query => void query.refetch())}
+                />
+              )}
+
+              {progressEpisodes.length === 0 && currentAnalysisJobIds.length > 0 && !statusQueryFailed && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {progressEpisodes.map(episode => {
+                  const status = toProcessingStatus(episode.status);
+                  const sequenceIndex = status === null || status === 'FAILED'
+                    ? -1
+                    : PROCESSING_SEQUENCE.indexOf(status);
                   return (
-                    <div key={item.episodeId} style={{
-                      border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{item.episodeLabel}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {done ? <CircleCheckBig size={14} color={C.success} /> : <SmallSpinner />}
-                          <span style={{ color: done ? C.success : C.t2, fontSize: 12, fontWeight: 600 }}>
-                            {JOB_STATUS_LABELS[item.job.status]}
-                          </span>
+                    <div key={episode.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>
+                          {episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}
                         </div>
+                        <span style={{
+                          color: status === null
+                            ? C.warning
+                            : status === 'FAILED'
+                              ? C.danger
+                              : status === 'ANALYZED' ? C.success : C.t2,
+                          fontSize: 12, fontWeight: 700,
+                        }}>
+                          {status === null
+                            ? '사용할 수 없음'
+                            : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status]}
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {PROCESSING_SEQUENCE.map((status, i) => (
-                          <div key={status} style={{
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            padding: '3px 8px', borderRadius: 12,
-                            background: i <= seqIndex ? C.primary + '18' : C.bg,
-                            border: `1px solid ${i <= seqIndex ? C.primary + '55' : C.border}`,
-                            color: i <= seqIndex ? C.primary : C.t3, fontSize: 10.5, fontWeight: 600,
-                          }}>
-                            {PROCESSING_STATUS_LABELS[status]}
-                          </div>
-                        ))}
-                      </div>
+                      {status === null ? (
+                        <div style={{ color: C.t3, fontSize: 12 }}>
+                          이 회차는 삭제되어 더 이상 분석 대상에 포함되지 않습니다.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {PROCESSING_SEQUENCE.map((item, index) => (
+                            <span key={item} style={{
+                              padding: '3px 8px', borderRadius: 12, fontSize: 10.5,
+                              background: index <= sequenceIndex ? `${C.primary}18` : C.bg,
+                              border: `1px solid ${index <= sequenceIndex ? `${C.primary}55` : C.border}`,
+                              color: index <= sequenceIndex ? C.primary : C.t3,
+                            }}>
+                              {PROCESSING_STATUS_LABELS[item]}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              <div style={{ marginTop: 28 }}>
-                {allDone
-                  ? (
-                    <BtnP
-                      label={createdEpisodes[0]?.uploadPurpose === 'EPISODE_VALIDATION' ? '검사 결과 보기' : '설정 후보 검토하기'}
-                      onClick={goToReview}
-                    />
-                  )
-                  : <BtnG label="분석 진행 중..." />}
+              <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
+                <SecondaryButton onClick={() => navigate(
+                  `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+                  'pop',
+                )}>원고 목록으로</SecondaryButton>
+                <div style={{ flex: 1 }}>
+                  {analysisSucceeded ? (
+                    <PrimaryButton onClick={() => {
+                      const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
+                      if (resolvedAnalysisJobType === 'EPISODE_VALIDATION') {
+                        navigate(
+                          `/episode-validation-report?workId=${encodeURIComponent(workId)}`,
+                          'dissolve',
+                          {
+                            workId,
+                            batchId: episodeUploadBatchId,
+                            analysisJobIds: currentAnalysisJobIds,
+                            episodeIds,
+                          },
+                        );
+                      } else {
+                        navigate(
+                          `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB`,
+                          'dissolve',
+                        );
+                      }
+                    }}>
+                      {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}
+                    </PrimaryButton>
+                  ) : analysisFailed ? (
+                    <PrimaryButton
+                      disabled={retryAnalysisJobMutation.isPending}
+                      onClick={() => void retryFailedAnalysisJobs()}
+                    >
+                      {retryAnalysisJobMutation.isPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                    </PrimaryButton>
+                  ) : analysisUnavailable ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      분석 결과를 열 수 없습니다
+                    </PrimaryButton>
+                  ) : (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      {currentAnalysisJobs[0]?.status
+                        ? JOB_STATUS_LABELS[currentAnalysisJobs[0].status]
+                        : '분석 진행 중...'}
+                    </PrimaryButton>
+                  )}
+                </div>
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

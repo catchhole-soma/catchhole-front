@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, ConflictData, ConflictResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, NotFoundData, NotFoundResponses, RefreshData, RefreshErrors, RefreshResponses, SignupData, SignupErrors, SignupResponses, SuccessData, SuccessResponses, UnknownErrorData, UnknownErrorResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodeData, UploadEpisodeErrors, UploadEpisodeResponses, ValidationData, ValidationResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SignupData, SignupErrors, SignupResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -18,11 +18,18 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
 
-export const validation = <ThrowOnError extends boolean = true>(options: Options<ValidationData, ThrowOnError>): RequestResult<ValidationResponses, unknown, ThrowOnError> => (options.client ?? client).post<ValidationResponses, unknown, ThrowOnError>({
-    url: '/test/validation',
+/**
+ * 회차 원문 파일 변경
+ *
+ * 회차 번호와 제목을 유지하고 새 TXT 또는 DOCX 원본으로 교체합니다. 자동 분석은 시작하지 않습니다.
+ */
+export const replaceEpisodeFile = <ThrowOnError extends boolean = true>(options: Options<ReplaceEpisodeFileData, ThrowOnError>): RequestResult<ReplaceEpisodeFileResponses, unknown, ThrowOnError> => (options.client ?? client).put<ReplaceEpisodeFileResponses, unknown, ThrowOnError>({
+    ...formDataBodySerializer,
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/episodes/{episodeId}/file',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': null,
         ...options.headers
     }
 });
@@ -41,7 +48,7 @@ export const getMyWorks = <ThrowOnError extends boolean = true>(options?: Option
 /**
  * 내 작품 생성
  *
- * 로그인한 사용자의 새 작품을 제목과 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
+ * 로그인한 사용자의 새 작품을 제목, 선택형 20자 한 줄 소개와 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
  */
 export const createWork = <ThrowOnError extends boolean = true>(options: Options<CreateWorkData, ThrowOnError>): RequestResult<CreateWorkResponses, CreateWorkErrors, ThrowOnError> => (options.client ?? client).post<CreateWorkResponses, CreateWorkErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -76,6 +83,29 @@ export const confirmSettingCandidate = <ThrowOnError extends boolean = true>(opt
 });
 
 /**
+ * 활성 설정집 원본 목록 조회
+ */
+export const getSettingBooks = <ThrowOnError extends boolean = true>(options: Options<GetSettingBooksData, ThrowOnError>): RequestResult<GetSettingBooksResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetSettingBooksResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-books',
+    ...options
+});
+
+/**
+ * 설정집 원본 단독 업로드
+ */
+export const uploadSettingBook = <ThrowOnError extends boolean = true>(options: Options<UploadSettingBookData, ThrowOnError>): RequestResult<UploadSettingBookResponses, unknown, ThrowOnError> => (options.client ?? client).post<UploadSettingBookResponses, unknown, ThrowOnError>({
+    ...formDataBodySerializer,
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-books',
+    ...options,
+    headers: {
+        'Content-Type': null,
+        ...options.headers
+    }
+});
+
+/**
  * 작품별 회차 목록 조회
  *
  * 로그인한 사용자가 본인 작품에 등록한 회차 목록을 회차 번호 내림차순으로 조회합니다.
@@ -91,10 +121,26 @@ export const getEpisodes = <ThrowOnError extends boolean = true>(options: Option
  *
  * 로그인한 사용자가 본인 작품에 단일 회차, 단일 파일 다회차, 여러 파일 다회차 방식으로 원고를 업로드합니다.
  */
-export const uploadEpisode = <ThrowOnError extends boolean = true>(options: Options<UploadEpisodeData, ThrowOnError>): RequestResult<UploadEpisodeResponses, UploadEpisodeErrors, ThrowOnError> => (options.client ?? client).post<UploadEpisodeResponses, UploadEpisodeErrors, ThrowOnError>({
+export const uploadEpisodes = <ThrowOnError extends boolean = true>(options: Options<UploadEpisodesData, ThrowOnError>): RequestResult<UploadEpisodesResponses, UploadEpisodesErrors, ThrowOnError> => (options.client ?? client).post<UploadEpisodesResponses, UploadEpisodesErrors, ThrowOnError>({
     ...formDataBodySerializer,
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/episodes',
+    ...options,
+    headers: {
+        'Content-Type': null,
+        ...options.headers
+    }
+});
+
+/**
+ * 회차 원고 사전 감지
+ *
+ * 영구 저장 없이 원고 파일의 명시적인 회차 제목 행과 회차 번호·제목·본문 경계를 감지합니다.
+ */
+export const detectEpisodes = <ThrowOnError extends boolean = true>(options: Options<DetectEpisodesData, ThrowOnError>): RequestResult<DetectEpisodesResponses, DetectEpisodesErrors, ThrowOnError> => (options.client ?? client).post<DetectEpisodesResponses, DetectEpisodesErrors, ThrowOnError>({
+    ...formDataBodySerializer,
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/episodes/detect',
     ...options,
     headers: {
         'Content-Type': null,
@@ -114,9 +160,9 @@ export const getAnalysisJobs = <ThrowOnError extends boolean = true>(options: Op
 });
 
 /**
- * 분석 작업 생성
+ * 회차별 분석 작업 생성
  *
- * 로그인한 사용자가 본인 작품의 업로드 배치를 대상으로 AI 분석 작업을 생성합니다.
+ * 로그인한 사용자가 본인 작품의 업로드 배치에 포함된 각 회차마다 AI 분석 작업을 생성합니다.
  */
 export const createAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<CreateAnalysisJobData, ThrowOnError>): RequestResult<CreateAnalysisJobResponses, CreateAnalysisJobErrors, ThrowOnError> => (options.client ?? client).post<CreateAnalysisJobResponses, CreateAnalysisJobErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -126,6 +172,17 @@ export const createAnalysisJob = <ThrowOnError extends boolean = true>(options: 
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * 실패 회차 분석 재시도
+ *
+ * 기존 실패 작업은 유지하고 서버가 확인한 FAILED 회차만 새 분석 작업으로 생성합니다.
+ */
+export const retryAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<RetryAnalysisJobData, ThrowOnError>): RequestResult<RetryAnalysisJobResponses, RetryAnalysisJobErrors, ThrowOnError> => (options.client ?? client).post<RetryAnalysisJobResponses, RetryAnalysisJobErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/analysis-jobs/{analysisJobId}/retry',
+    ...options
 });
 
 /**
@@ -288,9 +345,9 @@ export const updateSettingCandidateCharacterMatch = <ThrowOnError extends boolea
 });
 
 /**
- * 회차 삭제
+ * 회차 soft delete
  *
- * 로그인한 사용자가 본인 작품에 등록한 회차 원고를 삭제합니다.
+ * 로그인한 사용자가 본인 작품에 등록한 회차를 보관 상태로 전환해 활성 목록에서 숨깁니다.
  */
 export const deleteEpisode = <ThrowOnError extends boolean = true>(options: Options<DeleteEpisodeData, ThrowOnError>): RequestResult<DeleteEpisodeResponses, DeleteEpisodeErrors, ThrowOnError> => (options.client ?? client).delete<DeleteEpisodeResponses, DeleteEpisodeErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -325,6 +382,21 @@ export const updateEpisode = <ThrowOnError extends boolean = true>(options: Opti
 });
 
 /**
+ * 회차 제목 수정
+ *
+ * 원문과 분석 상태를 유지한 채 회차 제목만 수정합니다.
+ */
+export const updateEpisodeTitle = <ThrowOnError extends boolean = true>(options: Options<UpdateEpisodeTitleData, ThrowOnError>): RequestResult<UpdateEpisodeTitleResponses, UpdateEpisodeTitleErrors, ThrowOnError> => (options.client ?? client).patch<UpdateEpisodeTitleResponses, UpdateEpisodeTitleErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/episodes/{episodeId}/title',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * AI Worker 분석 작업 진행 단계 갱신
  */
 export const updateProgress = <ThrowOnError extends boolean = true>(options: Options<UpdateProgressData, ThrowOnError>): RequestResult<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError>({
@@ -337,14 +409,6 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
     }
 });
 
-export const unknownError = <ThrowOnError extends boolean = true>(options?: Options<UnknownErrorData, ThrowOnError>): RequestResult<UnknownErrorResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UnknownErrorResponses, unknown, ThrowOnError>({ url: '/test/unknown-error', ...options });
-
-export const success = <ThrowOnError extends boolean = true>(options?: Options<SuccessData, ThrowOnError>): RequestResult<SuccessResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SuccessResponses, unknown, ThrowOnError>({ url: '/test/success', ...options });
-
-export const notFound = <ThrowOnError extends boolean = true>(options?: Options<NotFoundData, ThrowOnError>): RequestResult<NotFoundResponses, unknown, ThrowOnError> => (options?.client ?? client).get<NotFoundResponses, unknown, ThrowOnError>({ url: '/test/not-found', ...options });
-
-export const conflict = <ThrowOnError extends boolean = true>(options?: Options<ConflictData, ThrowOnError>): RequestResult<ConflictResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ConflictResponses, unknown, ThrowOnError>({ url: '/test/conflict', ...options });
-
 /**
  * 작품별 설정 후보 목록 조회
  *
@@ -353,6 +417,24 @@ export const conflict = <ThrowOnError extends boolean = true>(options?: Options<
 export const getSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<GetSettingCandidatesData, ThrowOnError>): RequestResult<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError> => (options.client ?? client).get<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/setting-candidates',
+    ...options
+});
+
+/**
+ * 설정집 원본 soft delete
+ */
+export const deleteSettingBook = <ThrowOnError extends boolean = true>(options: Options<DeleteSettingBookData, ThrowOnError>): RequestResult<DeleteSettingBookResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteSettingBookResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-books/{settingBookId}',
+    ...options
+});
+
+/**
+ * 설정집 읽기 전용 원문 조회
+ */
+export const getSettingBook = <ThrowOnError extends boolean = true>(options: Options<GetSettingBookData, ThrowOnError>): RequestResult<GetSettingBookResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetSettingBookResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-books/{settingBookId}',
     ...options
 });
 

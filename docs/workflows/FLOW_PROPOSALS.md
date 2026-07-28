@@ -23,14 +23,10 @@
 
 | 화면 상태 | 표시 단계 |
 | --- | --- |
-| `select-mode` | 1 |
-| `boundary-preview` | 2 |
-| `settings-review` | 3 |
+| `select-mode`, 업로드 방식 미선택 | 1 |
+| `select-mode`, 업로드 방식 선택 후 입력 중 | 2 |
+| `boundary-preview` | 3 |
 | `processing` | `stepLabels.length` |
-
-추가 검토:
-
-- 2B 입력 화면에서 회차 분리 확인을 미리 활성화하지 않도록 `select-mode`는 업로드 모드 선택 여부와 무관하게 1로 유지하는 편이 자연스럽습니다.
 
 완료 조건:
 
