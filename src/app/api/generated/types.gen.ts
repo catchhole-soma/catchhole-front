@@ -515,6 +515,10 @@ export type DetectedEpisodeResponse = {
      */
     title: string | null;
     /**
+     * 원본에서 감지한 회차 제목 행
+     */
+    sourceHeading: string | null;
+    /**
      * 회차 본문 글자 수
      */
     charCount: number;
@@ -559,7 +563,7 @@ export type AnalysisJobCreateRequest = {
      */
     batchId: string;
     /**
-     * 배치 전체가 아닌 특정 회차만 재분석할 때 사용하는 회차 ID
+     * 분석 범위 회차 ID. 없으면 batch의 각 회차별 작업을 생성하고, 있으면 해당 회차 작업만 생성합니다.
      */
     episodeId?: string | null;
 };
@@ -712,32 +716,6 @@ export type AnalysisJobTargetResponse = {
      * 분석 대상 회차 수
      */
     episodeCount?: number;
-};
-
-/**
- * 공통 API 응답 Envelope
- */
-export type CommonResponseAnalysisJobResponse = {
-    /**
-     * 요청 처리 성공 여부
-     */
-    success?: boolean;
-    /**
-     * 응답 메시지
-     */
-    message?: string;
-    /**
-     * 성공 응답 데이터. 실패 응답에서는 null입니다.
-     */
-    data?: AnalysisJobResponse;
-    /**
-     * 에러 정보. 성공 응답에서는 null입니다.
-     */
-    error?: ErrorResponse;
-    /**
-     * 응답 생성 시각
-     */
-    timestamp?: string;
 };
 
 /**
@@ -1077,9 +1055,9 @@ export type WorkerAnalysisJobPayload = {
      */
     knownCharacters?: Array<WorkerAnalysisKnownCharacterPayload>;
     /**
-     * 분석 대상 회차 목록
+     * 분석 대상 단일 회차
      */
-    episodes?: Array<WorkerAnalysisEpisodePayload>;
+    episode?: WorkerAnalysisEpisodePayload;
 };
 
 /**
@@ -1398,6 +1376,10 @@ export type WorkerAnalysisJobProgressRequest = {
      * 현재 처리 단계
      */
     currentStep: string;
+    /**
+     * 대상 회차에 명시적으로 적용할 처리 상태
+     */
+    episodeStatus: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
 };
 
 /**
@@ -1550,6 +1532,32 @@ export type CommonResponseListEpisodeSummaryResponse = {
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
     data?: Array<EpisodeSummaryResponse>;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseAnalysisJobResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: AnalysisJobResponse;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -2011,15 +2019,15 @@ export type CreateAnalysisJobErrors = {
     /**
      * 요청 값 검증 실패
      */
-    400: CommonResponseAnalysisJobResponse;
+    400: CommonResponseListAnalysisJobResponse;
     /**
      * 액세스 토큰 없음, 만료 또는 검증 실패
      */
-    401: CommonResponseAnalysisJobResponse;
+    401: CommonResponseListAnalysisJobResponse;
     /**
      * 작품 또는 분석 대상 리소스를 찾을 수 없음
      */
-    404: CommonResponseAnalysisJobResponse;
+    404: CommonResponseListAnalysisJobResponse;
 };
 
 export type CreateAnalysisJobError = CreateAnalysisJobErrors[keyof CreateAnalysisJobErrors];
@@ -2028,7 +2036,7 @@ export type CreateAnalysisJobResponses = {
     /**
      * 분석 작업 생성 성공
      */
-    200: CommonResponseAnalysisJobResponse;
+    200: CommonResponseListAnalysisJobResponse;
 };
 
 export type CreateAnalysisJobResponse = CreateAnalysisJobResponses[keyof CreateAnalysisJobResponses];
@@ -2053,7 +2061,7 @@ export type RetryAnalysisJobErrors = {
      */
     404: CommonResponseListAnalysisJobResponse;
     /**
-     * 실패 상태가 아닌 작업
+     * 실패 상태가 아니거나 같은 batch의 전체 작업이 진행 중
      */
     409: CommonResponseListAnalysisJobResponse;
 };

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
+import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -163,6 +164,10 @@ export function FileDropArea({ file, onFileChange, error, fileLabel, allowedExte
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (!file && inputRef.current) inputRef.current.value = '';
+  }, [file]);
 
   const handleFile = (f: File | null | undefined) => {
     if (!f) { onFileChange(null, null); return; }
@@ -3009,6 +3014,9 @@ export default function S1Dashboard() {
   const [replaceEpisodeTarget, setReplaceEpisodeTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [replacementFileError, setReplacementFileError] = useState<string | null>(null);
+  const [episodeDeleteTarget, setEpisodeDeleteTarget] = useState<EpisodeSummaryResponse | null>(null);
+  const [episodeDeleteSubmitting, setEpisodeDeleteSubmitting] = useState(false);
+  const [episodeDeleteFailed, setEpisodeDeleteFailed] = useState(false);
 
   const handleCharSave = (s: CharacterSetting) => {
     let isNew = false;
@@ -3081,16 +3089,21 @@ export default function S1Dashboard() {
     }
   };
 
-  const removeEpisode = async (episode: EpisodeSummaryResponse) => {
-    if (!episode.id || episode.analysisStatus === 'IN_PROGRESS') return;
-    const confirmed = window.confirm('이 회차를 삭제할까요? 삭제한 회차는 원고 목록에서 사라지며 현재 서비스에서는 직접 복구할 수 없습니다.');
-    if (!confirmed) return;
+  const removeEpisode = async () => {
+    if (!episodeDeleteTarget?.id || episodeDeleteSubmitting) return;
+    setEpisodeDeleteSubmitting(true);
+    setEpisodeDeleteFailed(false);
     setEpisodeActionError(null);
     try {
-      await deleteEpisodeRequest.mutateAsync({ path: { workId: effectiveWorkId, episodeId: episode.id } });
+      await deleteEpisodeRequest.mutateAsync({
+        path: { workId: effectiveWorkId, episodeId: episodeDeleteTarget.id },
+      });
       await refreshEpisodeList();
-    } catch (error) {
-      setEpisodeActionError(toApiError(error)?.message ?? '회차를 삭제하지 못했습니다.');
+      setEpisodeDeleteTarget(null);
+    } catch {
+      setEpisodeDeleteFailed(true);
+    } finally {
+      setEpisodeDeleteSubmitting(false);
     }
   };
 
@@ -3144,28 +3157,38 @@ export default function S1Dashboard() {
   };
 
   const openEpisodeAnalysis = async (episode: EpisodeSummaryResponse) => {
-    if (episode.analysisStatus === 'IN_PROGRESS' || createEpisodeAnalysisRequest.isPending) return;
+    if (createEpisodeAnalysisRequest.isPending) return;
+    setEpisodeActionError(null);
     if (!episode.batchId) {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
-    if (episode.analysisStatus === 'FAILED' && episode.latestAnalysisJobId) {
+    if (
+      (episode.analysisStatus === 'IN_PROGRESS' || episode.analysisStatus === 'FAILED')
+      && episode.latestAnalysisJobId
+    ) {
       navigate(
         `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
       return;
     }
-    setEpisodeActionError(null);
+    if (episode.analysisStatus === 'IN_PROGRESS') {
+      setEpisodeActionError('진행 중인 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
         path: { workId: effectiveWorkId },
         body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
       });
-      const analysisJobId = response.data?.id;
-      if (!analysisJobId) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      const analysisJobIds = [...new Set(
+        (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+      )];
+      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      const analysisJobIdParam = analysisJobIds.join(',');
       navigate(
-        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
     } catch (error) {
@@ -3694,10 +3717,10 @@ export default function S1Dashboard() {
                                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
                                     <BtnG
                                       small
-                                      disabled={isAnalyzing || createEpisodeAnalysisRequest.isPending}
+                                      disabled={createEpisodeAnalysisRequest.isPending}
                                       label={episode.analysisStatus === 'FAILED' ? '다시 시도'
                                         : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
-                                          : episode.analysisStatus === 'IN_PROGRESS' ? '분석 중' : '재분석'}
+                                          : episode.analysisStatus === 'IN_PROGRESS' ? '진행 보기' : '재분석'}
                                       onClick={episode.analysisStatus === 'COMPLETED'
                                         ? () => navigate(
                                             `/episode-validation-report?workId=${encodeURIComponent(effectiveWorkId)}`,
@@ -3719,7 +3742,12 @@ export default function S1Dashboard() {
                                       setEpisodeActionError(null);
                                       setReplaceEpisodeTarget(episode);
                                     }} />
-                                    <BtnG small label="삭제" disabled={isAnalyzing} onClick={() => void removeEpisode(episode)} />
+                                    <BtnG small label="삭제" disabled={isAnalyzing || !episode.id} onClick={() => {
+                                      if (!episode.id) return;
+                                      setEpisodeActionError(null);
+                                      setEpisodeDeleteFailed(false);
+                                      setEpisodeDeleteTarget(episode);
+                                    }} />
                                   </div>
                                 </div>
                               );
@@ -3791,6 +3819,19 @@ export default function S1Dashboard() {
             setEpisodeActionError(null);
           }}
           onSubmit={() => void replaceEpisodeFile()}
+        />
+      )}
+      {episodeDeleteTarget && (
+        <EpisodeDeleteModal
+          episode={episodeDeleteTarget}
+          submitting={episodeDeleteSubmitting}
+          failed={episodeDeleteFailed}
+          onClose={() => {
+            if (episodeDeleteSubmitting) return;
+            setEpisodeDeleteTarget(null);
+            setEpisodeDeleteFailed(false);
+          }}
+          onDelete={() => void removeEpisode()}
         />
       )}
         {editTarget && (

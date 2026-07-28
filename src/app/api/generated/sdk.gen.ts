@@ -160,9 +160,9 @@ export const getAnalysisJobs = <ThrowOnError extends boolean = true>(options: Op
 });
 
 /**
- * 분석 작업 생성
+ * 회차별 분석 작업 생성
  *
- * 로그인한 사용자가 본인 작품의 업로드 배치를 대상으로 AI 분석 작업을 생성합니다.
+ * 로그인한 사용자가 본인 작품의 업로드 배치에 포함된 각 회차마다 AI 분석 작업을 생성합니다.
  */
 export const createAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<CreateAnalysisJobData, ThrowOnError>): RequestResult<CreateAnalysisJobResponses, CreateAnalysisJobErrors, ThrowOnError> => (options.client ?? client).post<CreateAnalysisJobResponses, CreateAnalysisJobErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

@@ -51,6 +51,7 @@ type EpisodeConfirmationDraft = {
   sourceFileIndex: number;
   episodeNo: number;
   title: string;
+  sourceHeading: string | null;
   content: string;
   charCount: number;
 };
@@ -59,6 +60,15 @@ type EpisodeMultipartBody = {
   metadata: EpisodeDetectionRequest | EpisodeUploadRequest;
   episodeFiles: Array<Blob | File>;
 };
+
+type EpisodeDetectionResult = {
+  episodeConfirmationDrafts: EpisodeConfirmationDraft[];
+  error: unknown | null;
+};
+
+type EpisodeConfirmationDraftUpdate =
+  | EpisodeConfirmationDraft[]
+  | ((current: EpisodeConfirmationDraft[]) => EpisodeConfirmationDraft[]);
 
 const PROCESSING_SEQUENCE: EpisodeProcessingStatus[] = [
   'UPLOADED',
@@ -88,6 +98,7 @@ function toEpisodeConfirmationDrafts(
     sourceFileIndex: detectedEpisode.sourceFileIndex,
     episodeNo: detectedEpisode.episodeNo,
     title: detectedEpisode.title ?? '',
+    sourceHeading: detectedEpisode.sourceHeading,
     content: detectedEpisode.content,
     charCount: detectedEpisode.charCount,
   }));
@@ -115,6 +126,19 @@ function errorMessage(error: unknown, fallback: string): string {
       return apiError.message;
     default:
       return apiError?.message || fallback;
+  }
+}
+
+function requiresBulkFileReselection(error: unknown): boolean {
+  switch (toApiError(error)?.code) {
+    case 'UPLOAD_EPISODE_NO_DETECTION_FAILED':
+    case 'UPLOAD_EPISODE_NO_INVALID':
+    case 'UPLOAD_EPISODE_COUNT_INVALID':
+    case 'UPLOAD_EPISODE_ORDER_INVALID':
+    case 'UPLOAD_FILE_PARSE_FAILED':
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -409,20 +433,36 @@ function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
   );
 }
 
-function areEpisodeConfirmationsValid(
+function getEpisodeConfirmationValidationError(
   episodeConfirmations: EpisodeConfirmationDraft[],
   existingEpisodeNos: Set<number>,
-): boolean {
-  if (episodeConfirmations.length === 0) return false;
+): string | null {
+  if (episodeConfirmations.length === 0) return null;
   let previousEpisodeNo = 0;
   for (const confirmation of episodeConfirmations) {
-    if (confirmation.episodeNo < 1
-      || confirmation.episodeNo <= previousEpisodeNo
-      || confirmation.title.trim().length > 100) return false;
-    if (existingEpisodeNos.has(confirmation.episodeNo)) return false;
+    if (confirmation.episodeNo < 1) return '회차 번호는 1 이상의 정수여야 합니다.';
+    if (confirmation.episodeNo <= previousEpisodeNo) {
+      return '회차 번호는 원문 순서대로 중복 없이 오름차순이어야 합니다.';
+    }
+    if (confirmation.title.trim().length > 100) {
+      return `${confirmation.episodeNo}화 제목은 100자 이하여야 합니다.`;
+    }
     previousEpisodeNo = confirmation.episodeNo;
   }
-  return true;
+
+  const duplicatedEpisodeNos = episodeConfirmations
+    .filter(confirmation => existingEpisodeNos.has(confirmation.episodeNo))
+    .map(confirmation => confirmation.episodeNo);
+  if (duplicatedEpisodeNos.length === 0) return null;
+
+  const visibleEpisodeNos = duplicatedEpisodeNos
+    .slice(0, 5)
+    .map(episodeNo => `${episodeNo}화`)
+    .join(', ');
+  const remainingCount = duplicatedEpisodeNos.length - 5;
+  return `이미 등록된 회차 번호가 포함되어 있습니다: ${visibleEpisodeNos}${
+    remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
+  }.`;
 }
 
 function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodeProcessingStatus {
@@ -449,16 +489,36 @@ export default function SEpisodeUpload() {
   );
   const [uploadType, setUploadType] = useState<EpisodeUploadType | null>(null);
   const [episodeNo, setEpisodeNo] = useState('');
-  const [episodeNoTouched, setEpisodeNoTouched] = useState(false);
   const [episodeTitle, setEpisodeTitle] = useState('');
-  const [episodeTitleTouched, setEpisodeTitleTouched] = useState(false);
   const [singleFile, setSingleFile] = useState<File | null>(null);
   const [singleFileError, setSingleFileError] = useState<string | null>(null);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkFileError, setBulkFileError] = useState<string | null>(null);
   const [multiFiles, setMultiFiles] = useState<File[]>([]);
   const [multiFilesError, setMultiFilesError] = useState<string | null>(null);
-  const [episodeConfirmationDrafts, setEpisodeConfirmationDrafts] = useState<EpisodeConfirmationDraft[]>([]);
+  const [episodeConfirmationDraftsByUploadType, setEpisodeConfirmationDraftsByUploadType] = useState<
+    Partial<Record<EpisodeUploadType, EpisodeConfirmationDraft[]>>
+  >({});
+  const episodeConfirmationDrafts = uploadType
+    ? episodeConfirmationDraftsByUploadType[uploadType] ?? []
+    : [];
+  const replaceEpisodeConfirmationDrafts = (
+    targetUploadType: EpisodeUploadType,
+    drafts: EpisodeConfirmationDraft[],
+  ) => {
+    setEpisodeConfirmationDraftsByUploadType(current => ({
+      ...current,
+      [targetUploadType]: drafts,
+    }));
+  };
+  const setEpisodeConfirmationDrafts = (update: EpisodeConfirmationDraftUpdate) => {
+    if (!uploadType) return;
+    setEpisodeConfirmationDraftsByUploadType(current => {
+      const currentDrafts = current[uploadType] ?? [];
+      const nextDrafts = typeof update === 'function' ? update(currentDrafts) : update;
+      return { ...current, [uploadType]: nextDrafts };
+    });
+  };
   const [selectedDetectionOrder, setSelectedDetectionOrder] = useState<number | null>(null);
   const initialAnalysisJobType: AnalysisJobType = searchParams.get('jobType') === 'SETTING_EXTRACTION'
     ? 'SETTING_EXTRACTION'
@@ -479,6 +539,7 @@ export default function SEpisodeUpload() {
   const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
   const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
+  const detectionRequestSequence = useRef(0);
 
   const goBackToEntry = () => {
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
@@ -540,12 +601,11 @@ export default function SEpisodeUpload() {
     () => new Set(existingEpisodes.flatMap(episode => episode.episodeNo === undefined ? [] : [episode.episodeNo])),
     [existingEpisodes],
   );
-
-  useEffect(() => {
-    if (episodeNoTouched || episodesQuery.isPending || episodesQuery.isError) return;
+  const suggestedEpisodeNo = useMemo(() => {
+    if (episodesQuery.isPending || episodesQuery.isError) return null;
     const latest = existingEpisodes.reduce((max, episode) => Math.max(max, episode.episodeNo ?? 0), 0);
-    setEpisodeNo(String(latest + 1));
-  }, [episodeNoTouched, episodesQuery.isError, episodesQuery.isPending, existingEpisodes]);
+    return latest + 1;
+  }, [episodesQuery.isError, episodesQuery.isPending, existingEpisodes]);
 
   const detectEpisodesMutation = useMutation(detectEpisodesMutationOptions());
   const uploadEpisodesMutation = useMutation(uploadEpisodesMutationOptions());
@@ -596,15 +656,16 @@ export default function SEpisodeUpload() {
 
   const currentAnalysisJobsLoaded = currentAnalysisJobIds.length > 0
     && currentAnalysisJobs.length === currentAnalysisJobIds.length;
+  const analysisRunning = currentAnalysisJobs.some(
+    job => job.status === 'PENDING' || job.status === 'RUNNING',
+  );
   const analysisFailed = currentAnalysisJobsLoaded
+    && !analysisRunning
     && currentAnalysisJobs.some(job => job.status === 'FAILED');
   const analysisSucceeded = currentAnalysisJobsLoaded
     && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED')
     && progressEpisodes.length > 0
     && progressEpisodes.every(episode => episode.status === 'ANALYZED');
-  const analysisRunning = currentAnalysisJobs.some(
-    job => job.status === 'PENDING' || job.status === 'RUNNING',
-  );
   const failedJobMessages = [...new Set(currentAnalysisJobs.flatMap(job =>
     job.status === 'FAILED' && job.errorMessage ? [job.errorMessage] : []))];
   const statusQueryFailed = jobQueries.some(query => query.isError);
@@ -642,7 +703,8 @@ export default function SEpisodeUpload() {
       EpisodeDetectionRequest,
       'singleEpisodeNo' | 'singleEpisodeTitle'
     > = {},
-  ) => {
+  ): Promise<EpisodeDetectionResult> => {
+    const requestSequence = ++detectionRequestSequence.current;
     setRequestError(null);
     try {
       const response = await detectEpisodesMutation.mutateAsync({
@@ -653,50 +715,103 @@ export default function SEpisodeUpload() {
         },
         bodySerializer: episodeMultipartSerializer,
       });
+      if (requestSequence !== detectionRequestSequence.current) {
+        return { episodeConfirmationDrafts: [], error: null };
+      }
       const nextEpisodeConfirmationDrafts = toEpisodeConfirmationDrafts(
         response.data?.detectedEpisodes,
       );
-      setEpisodeConfirmationDrafts(nextEpisodeConfirmationDrafts);
-      setSelectedDetectionOrder(nextEpisodeConfirmationDrafts[0]?.detectionOrder ?? null);
-      return nextEpisodeConfirmationDrafts;
+      replaceEpisodeConfirmationDrafts(nextUploadType, nextEpisodeConfirmationDrafts);
+      if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
+        setSelectedDetectionOrder(nextEpisodeConfirmationDrafts[0]?.detectionOrder ?? null);
+      }
+      return { episodeConfirmationDrafts: nextEpisodeConfirmationDrafts, error: null };
     } catch (error) {
-      setEpisodeConfirmationDrafts([]);
+      if (requestSequence !== detectionRequestSequence.current) {
+        return { episodeConfirmationDrafts: [], error: null };
+      }
+      replaceEpisodeConfirmationDrafts(nextUploadType, []);
+      if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
+        setSelectedDetectionOrder(null);
+      }
       setRequestError(errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.'));
-      return [];
+      return { episodeConfirmationDrafts: [], error };
     }
   };
 
   const handleSingleFile = async (file: File | null, error: string | null) => {
+    const replacingFile = singleFile !== null;
     setSingleFile(file);
     setSingleFileError(error);
     setRequestError(null);
-    if (!file || error) return;
-    const detectedEpisodes = await detectEpisodesFromFiles('SINGLE_EPISODE', [file], {
-      singleEpisodeNo: episodeNo.trim() ? Number.parseInt(episodeNo, 10) : null,
-      singleEpisodeTitle: episodeTitle.trim() || null,
-    });
+    if (replacingFile) {
+      setEpisodeNo('');
+      setEpisodeTitle('');
+    }
+    if (!file || error) {
+      detectionRequestSequence.current += 1;
+      replaceEpisodeConfirmationDrafts('SINGLE_EPISODE', []);
+      return;
+    }
+    const { episodeConfirmationDrafts: detectedEpisodes } = await detectEpisodesFromFiles(
+      'SINGLE_EPISODE',
+      [file],
+      {
+        singleEpisodeNo: replacingFile
+          ? null
+          : episodeNo.trim() ? Number.parseInt(episodeNo, 10) : null,
+        singleEpisodeTitle: replacingFile ? null : episodeTitle.trim() || null,
+      },
+    );
     const firstDetectedEpisode = detectedEpisodes[0];
     if (!firstDetectedEpisode) return;
-    if (!episodeNo.trim()) setEpisodeNo(String(firstDetectedEpisode.episodeNo));
-    if (!episodeTitleTouched && firstDetectedEpisode.title) setEpisodeTitle(firstDetectedEpisode.title);
+    if (replacingFile) {
+      setEpisodeNo(String(firstDetectedEpisode.episodeNo));
+      setEpisodeTitle(firstDetectedEpisode.title ?? '');
+      return;
+    }
+    setEpisodeNo(currentEpisodeNo =>
+      currentEpisodeNo.trim() ? currentEpisodeNo : String(firstDetectedEpisode.episodeNo));
+    if (firstDetectedEpisode.title) {
+      setEpisodeTitle(currentTitle => currentTitle.trim() ? currentTitle : firstDetectedEpisode.title ?? '');
+    }
   };
 
   const handleBulkFile = async (file: File | null, error: string | null) => {
     setBulkFile(file);
     setBulkFileError(error);
-    setEpisodeConfirmationDrafts([]);
+    replaceEpisodeConfirmationDrafts('MULTI_EPISODE_SINGLE_FILE', []);
+    setSelectedDetectionOrder(null);
     setRequestError(null);
     if (!file || error) return;
-    await detectEpisodesFromFiles('MULTI_EPISODE_SINGLE_FILE', [file]);
+    const detectionResult = await detectEpisodesFromFiles('MULTI_EPISODE_SINGLE_FILE', [file]);
+    if (requiresBulkFileReselection(detectionResult.error)) {
+      setBulkFile(null);
+      setBulkFileError(errorMessage(
+        detectionResult.error,
+        '파일의 회차 표기를 수정한 뒤 다시 선택해주세요.',
+      ));
+      setRequestError(null);
+    }
   };
 
   const handleMultiFiles = async (files: File[], error: string | null) => {
     setMultiFiles(files);
     setMultiFilesError(error);
-    setEpisodeConfirmationDrafts([]);
+    replaceEpisodeConfirmationDrafts('MULTI_EPISODE_MULTI_FILE', []);
     setRequestError(null);
     if (files.length < 2 || error) return;
     await detectEpisodesFromFiles('MULTI_EPISODE_MULTI_FILE', files);
+  };
+
+  const selectUploadType = (nextUploadType: EpisodeUploadType | null) => {
+    if (submitting) return;
+    detectionRequestSequence.current += 1;
+    setUploadType(nextUploadType);
+    setRequestError(null);
+    if (!singleFile) setSingleFileError(null);
+    if (!bulkFile) setBulkFileError(null);
+    if (multiFiles.length === 0) setMultiFilesError(null);
   };
 
   const createBatchAnalysisJob = async (batchId: string) => {
@@ -706,11 +821,13 @@ export default function SEpisodeUpload() {
         path: { workId },
         body: { jobType: analysisJobType, batchId },
       });
-      const analysisJobId = response.data?.id;
-      if (!analysisJobId) throw new Error('분석 작업 ID가 응답에 없습니다.');
-      setTrackedAnalysisJobIds([analysisJobId]);
-      setCurrentAnalysisJobIds([analysisJobId]);
-      persistAnalysisRoute(batchId, [analysisJobId], [analysisJobId]);
+      const analysisJobIds = [...new Set(
+        (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
+      )];
+      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      setTrackedAnalysisJobIds(analysisJobIds);
+      setCurrentAnalysisJobIds(analysisJobIds);
+      persistAnalysisRoute(batchId, analysisJobIds, analysisJobIds);
     } catch (error) {
       setAnalysisStartError(errorMessage(error, '회차는 저장했지만 분석을 시작하지 못했습니다.'));
     }
@@ -825,10 +942,12 @@ export default function SEpisodeUpload() {
     && singleNo >= 1
     && !existingEpisodeNos.has(singleNo)
     && episodeTitle.trim().length <= 100;
-  const episodeConfirmationsValid = areEpisodeConfirmationsValid(
+  const episodeConfirmationValidationError = getEpisodeConfirmationValidationError(
     episodeConfirmationDrafts,
     existingEpisodeNos,
   );
+  const episodeConfirmationsValid = episodeConfirmationDrafts.length > 0
+    && !episodeConfirmationValidationError;
   const settingsModeError = uploadType === 'MULTI_EPISODE_MULTI_FILE'
     && settingsFile
     && !settingsFile.name.toLowerCase().endsWith('.txt')
@@ -887,13 +1006,7 @@ export default function SEpisodeUpload() {
                   desc="새 회차 파일 한 개를 등록합니다"
                   color={C.primary}
                   selected={uploadType === 'SINGLE_EPISODE'}
-                  onSelect={() => {
-                    if (!submitting) {
-                      setUploadType('SINGLE_EPISODE');
-                      setEpisodeConfirmationDrafts([]);
-                      setRequestError(null);
-                    }
-                  }}
+                  onSelect={() => selectUploadType('SINGLE_EPISODE')}
                 />
                 <ModeCard
                   icon={<BookMarked size={22} />}
@@ -901,13 +1014,7 @@ export default function SEpisodeUpload() {
                   desc="명시적인 회차 제목 행을 기준으로 분리합니다"
                   color={C.success}
                   selected={uploadType === 'MULTI_EPISODE_SINGLE_FILE'}
-                  onSelect={() => {
-                    if (!submitting) {
-                      setUploadType('MULTI_EPISODE_SINGLE_FILE');
-                      setEpisodeConfirmationDrafts([]);
-                      setRequestError(null);
-                    }
-                  }}
+                  onSelect={() => selectUploadType('MULTI_EPISODE_SINGLE_FILE')}
                 />
                 <ModeCard
                   icon={<Files size={22} />}
@@ -915,13 +1022,7 @@ export default function SEpisodeUpload() {
                   desc="TXT 파일마다 한 회차로 등록합니다"
                   color={C.warning}
                   selected={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
-                  onSelect={() => {
-                    if (!submitting) {
-                      setUploadType('MULTI_EPISODE_MULTI_FILE');
-                      setEpisodeConfirmationDrafts([]);
-                      setRequestError(null);
-                    }
-                  }}
+                  onSelect={() => selectUploadType('MULTI_EPISODE_MULTI_FILE')}
                 />
               </div>
 
@@ -933,18 +1034,25 @@ export default function SEpisodeUpload() {
                       <TextInput
                         value={episodeNo}
                         type="number"
-                        disabled={submitting}
+                        disabled={submitting || detectEpisodesMutation.isPending}
                         placeholder="비우면 파일에서 감지"
-                        onChange={value => { setEpisodeNoTouched(true); setEpisodeNo(value); }}
+                        onChange={setEpisodeNo}
                       />
+                      <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.45, marginTop: 6 }}>
+                        {episodesQuery.isPending
+                          ? '추천 회차를 확인하고 있습니다.'
+                          : suggestedEpisodeNo
+                            ? `추천 다음 회차: ${suggestedEpisodeNo}화`
+                            : '번호를 직접 입력하거나 파일에서 감지하세요.'}
+                      </div>
                     </div>
                     <div style={{ flex: 1 }}>
                       <FieldLabel>회차 제목 (선택)</FieldLabel>
                       <TextInput
                         value={episodeTitle}
-                        disabled={submitting}
+                        disabled={submitting || detectEpisodesMutation.isPending}
                         placeholder="비우면 원문 제목 행에서 감지"
-                        onChange={value => { setEpisodeTitleTouched(true); setEpisodeTitle(value); }}
+                        onChange={setEpisodeTitle}
                       />
                     </div>
                   </div>
@@ -994,6 +1102,9 @@ export default function SEpisodeUpload() {
                       </span>
                     </div>
                   )}
+                  {episodeConfirmationValidationError && (
+                    <ErrorBanner message={episodeConfirmationValidationError} />
+                  )}
                 </div>
               )}
 
@@ -1020,6 +1131,9 @@ export default function SEpisodeUpload() {
                         disabled={submitting}
                       />
                     </>
+                  )}
+                  {episodeConfirmationValidationError && (
+                    <ErrorBanner message={episodeConfirmationValidationError} />
                   )}
                 </div>
               )}
@@ -1057,7 +1171,7 @@ export default function SEpisodeUpload() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <SecondaryButton onClick={() => setUploadType(null)} disabled={submitting}>← 뒤로</SecondaryButton>
+                    <SecondaryButton onClick={() => selectUploadType(null)} disabled={submitting}>← 뒤로</SecondaryButton>
                     <div style={{ flex: 1 }}>
                       {uploadType === 'MULTI_EPISODE_SINGLE_FILE' ? (
                         <PrimaryButton
@@ -1149,15 +1263,24 @@ export default function SEpisodeUpload() {
                         borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg,
                         color: C.t2, fontSize: 12, lineHeight: 1.8,
                       }}>
+                        {selectedConfirmation.sourceHeading && (
+                          <div style={{
+                            color: C.t1, fontSize: 14, fontWeight: 700,
+                            paddingBottom: 10, marginBottom: 10,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}>
+                            {selectedConfirmation.sourceHeading}
+                          </div>
+                        )}
                         {selectedConfirmation.content}
                       </div>
                     </div>
                   );
                 })()}
               </div>
-              {!episodeConfirmationsValid && (
+              {episodeConfirmationValidationError && (
                 <div style={{ color: C.danger, fontSize: 12, marginTop: 12 }}>
-                  번호는 1 이상의 정수이며 원문 순서대로 중복 없이 오름차순이어야 하고, 기존 회차와 중복될 수 없습니다.
+                  {episodeConfirmationValidationError}
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>

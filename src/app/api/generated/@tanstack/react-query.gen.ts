@@ -301,9 +301,9 @@ export const getAnalysisJobsOptions = (options: Options<GetAnalysisJobsData>) =>
 export const createAnalysisJobMutationKey = (options?: Partial<Options<CreateAnalysisJobData>>) => createMutationKey('createAnalysisJob', options);
 
 /**
- * 분석 작업 생성
+ * 회차별 분석 작업 생성
  *
- * 로그인한 사용자가 본인 작품의 업로드 배치를 대상으로 AI 분석 작업을 생성합니다.
+ * 로그인한 사용자가 본인 작품의 업로드 배치에 포함된 각 회차마다 AI 분석 작업을 생성합니다.
  */
 export const createAnalysisJobMutation = (options?: Partial<Options<CreateAnalysisJobData>>): UseMutationOptions<CreateAnalysisJobResponse, CreateAnalysisJobError, Options<CreateAnalysisJobData>> => {
     const mutationOptions: UseMutationOptions<CreateAnalysisJobResponse, CreateAnalysisJobError, Options<CreateAnalysisJobData>> = {
