@@ -818,6 +818,18 @@ export function CharacterDatabase({
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [restoringCharacterId, setRestoringCharacterId] = useState<string | null>(null);
   const draftCharacterIdRef = useRef<string | null>(null);
+  const currentViewRef = useRef({
+    workId,
+    selectedCharacterId,
+    archiveOpen,
+    restoringCharacterId,
+  });
+  currentViewRef.current = {
+    workId,
+    selectedCharacterId,
+    archiveOpen,
+    restoringCharacterId,
+  };
   const {
     containerRef,
     contentStartRef,
@@ -884,22 +896,38 @@ export function CharacterDatabase({
   const deleteMutation = useMutation({
     ...deleteCharacterMutation(),
     onSuccess: async (_, variables) => {
+      const targetWorkId = variables.path.workId;
+      const targetCharacterId = variables.path.characterId;
       // ACTIVE 전용 상세 캐시가 뒤로가기로 보관 캐릭터를 다시 노출하지 않게 제거한다.
       queryClient.removeQueries({
         queryKey: getCharacterQueryKey({
-          path: { workId, characterId: variables.path.characterId },
+          path: { workId: targetWorkId, characterId: targetCharacterId },
         }),
         exact: true,
       });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
-        queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+        queryClient.invalidateQueries({
+          queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getArchivedCharactersQueryKey({ path: { workId: targetWorkId } }),
+        }),
       ]);
+      const currentView = currentViewRef.current;
+      if (
+        currentView.workId !== targetWorkId
+        || currentView.selectedCharacterId !== targetCharacterId
+      ) return;
       setConfirming(null);
       setFeedback('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.');
       onClose();
     },
-    onError: error => {
+    onError: (error, variables) => {
+      const currentView = currentViewRef.current;
+      if (
+        currentView.workId !== variables.path.workId
+        || currentView.selectedCharacterId !== variables.path.characterId
+      ) return;
       setConfirming(null);
       setActionError(errorMessage(error, '캐릭터를 보관하지 못했습니다.'));
     },
@@ -907,18 +935,41 @@ export function CharacterDatabase({
 
   const restoreMutation = useMutation({
     ...restoreCharacterMutation(),
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
+      const targetWorkId = variables.path.workId;
+      const targetCharacterId = variables.path.characterId;
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
-        queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+        queryClient.invalidateQueries({
+          queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getArchivedCharactersQueryKey({ path: { workId: targetWorkId } }),
+        }),
       ]);
+      const currentView = currentViewRef.current;
+      if (
+        currentView.workId !== targetWorkId
+        || !currentView.archiveOpen
+        || currentView.restoringCharacterId !== targetCharacterId
+      ) return;
       setArchiveError(null);
       setFeedback('캐릭터를 복구했습니다.');
     },
-    onError: error => {
+    onError: (error, variables) => {
+      const currentView = currentViewRef.current;
+      if (
+        currentView.workId !== variables.path.workId
+        || !currentView.archiveOpen
+        || currentView.restoringCharacterId !== variables.path.characterId
+      ) return;
       setArchiveError(errorMessage(error, '캐릭터를 복구하지 못했습니다.'));
     },
-    onSettled: () => {
+    onSettled: (_, __, variables) => {
+      const currentView = currentViewRef.current;
+      if (
+        currentView.workId !== variables.path.workId
+        || currentView.restoringCharacterId !== variables.path.characterId
+      ) return;
       setRestoringCharacterId(null);
     },
   });
@@ -955,6 +1006,8 @@ export function CharacterDatabase({
 
   useEffect(() => {
     setFirstVisibleIndex(0);
+    setRestoringCharacterId(null);
+    setArchiveError(null);
   }, [demoMode, workId]);
 
   useEffect(() => {
@@ -1400,8 +1453,11 @@ export function CharacterDatabase({
                     )}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 0.9fr) minmax(420px, 1.35fr)', gap: 18, alignItems: 'start' }}>
-                    <div>
+                  <div
+                    data-testid="character-detail-sections"
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}
+                  >
+                    <div data-testid="character-profile-section" style={{ flex: '0.9 1 280px', minWidth: 0 }}>
                       <SectionTitle>프로필</SectionTitle>
                       <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                         {isEditing && draft
@@ -1410,7 +1466,7 @@ export function CharacterDatabase({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div data-testid="character-setting-sections" style={{ display: 'flex', flex: '1.35 1 420px', minWidth: 0, flexDirection: 'column', gap: 14 }}>
                       <div>
                         <SectionTitle>스탯</SectionTitle>
                         <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
@@ -1420,8 +1476,11 @@ export function CharacterDatabase({
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                        <div>
+                      <div
+                        data-testid="character-skill-item-sections"
+                        style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}
+                      >
+                        <div data-testid="character-skill-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <SectionTitle>스킬</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
@@ -1429,7 +1488,7 @@ export function CharacterDatabase({
                               : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={setSelectedEvidenceFactId} />}
                           </div>
                         </div>
-                        <div>
+                        <div data-testid="character-item-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <SectionTitle>아이템</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft

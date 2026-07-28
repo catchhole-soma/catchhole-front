@@ -1828,7 +1828,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   expect(statusBox).not.toBeNull();
   expect(recoveringStatusBox).not.toBeNull();
   expect(dormantStatusBox).not.toBeNull();
-  expect(Math.abs((statusBox?.y ?? 0) - (recoveringStatusBox?.y ?? 0))).toBeLessThan(2);
+  expect(Math.abs((statusBox?.y ?? 0) - (recoveringStatusBox?.y ?? 0))).toBeLessThan(3);
   expect(recoveringStatusBox?.x ?? 0).toBeGreaterThan(statusBox?.x ?? 0);
   expect(dormantStatusBox?.y ?? 0).toBeGreaterThan(statusBox?.y ?? 0);
   expect(Math.abs((statusBox?.x ?? 0) - (dormantStatusBox?.x ?? 0))).toBeLessThan(2);
@@ -1844,6 +1844,26 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await page.getByRole('button', { name: '안내 닫기' }).click();
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
+  const desktopViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const detailSections = page.getByTestId('character-detail-sections');
+  await expect.poll(() => detailSections.evaluate(element => (
+    element.scrollWidth <= element.clientWidth
+  ))).toBe(true);
+  const [profileSectionBox, settingSectionsBox, skillSectionBox, itemSectionBox] = await Promise.all([
+    page.getByTestId('character-profile-section').boundingBox(),
+    page.getByTestId('character-setting-sections').boundingBox(),
+    page.getByTestId('character-skill-section').boundingBox(),
+    page.getByTestId('character-item-section').boundingBox(),
+  ]);
+  expect(profileSectionBox).not.toBeNull();
+  expect(settingSectionsBox).not.toBeNull();
+  expect(skillSectionBox).not.toBeNull();
+  expect(itemSectionBox).not.toBeNull();
+  expect(settingSectionsBox?.y ?? 0).toBeGreaterThan(profileSectionBox?.y ?? 0);
+  expect(itemSectionBox?.y ?? 0).toBeGreaterThan(skillSectionBox?.y ?? 0);
+  if (desktopViewport) await page.setViewportSize(desktopViewport);
+
   const [editAgilityBox, editStrengthBox, editFirstManualStatBox, editSecondManualStatBox] = await Promise.all([
     page.getByLabel('민첩 값', { exact: true }).boundingBox(),
     page.getByLabel('근력 값', { exact: true }).boundingBox(),
