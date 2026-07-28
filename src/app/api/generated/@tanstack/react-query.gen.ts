@@ -3,8 +3,59 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteWork, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, restoreCharacter, signup, updateCharacter, updateEpisode, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisode } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodeData, UploadEpisodeError, UploadEpisodeResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, restoreCharacter, retryAnalysisJob, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookResponse } from '../types.gen';
+
+export type MutationKey<TOptions extends Partial<Options>> = [
+    Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
+        _id: string;
+        tags?: ReadonlyArray<string>;
+    }
+];
+
+const createMutationKey = <TOptions extends Partial<Options>>(id: string, options?: TOptions, tags?: ReadonlyArray<string>): [
+    MutationKey<TOptions>[0]
+] => {
+    const params: MutationKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl };
+    if (tags) {
+        params.tags = tags;
+    }
+    if (options?.body) {
+        params.body = options.body;
+    }
+    if (options?.headers) {
+        params.headers = options.headers;
+    }
+    if (options?.path) {
+        params.path = options.path;
+    }
+    if (options?.query) {
+        params.query = options.query;
+    }
+    return [params];
+};
+
+export const replaceEpisodeFileMutationKey = (options?: Partial<Options<ReplaceEpisodeFileData>>) => createMutationKey('replaceEpisodeFile', options);
+
+/**
+ * 회차 원문 파일 변경
+ *
+ * 회차 번호와 제목을 유지하고 새 TXT 또는 DOCX 원본으로 교체합니다. 자동 분석은 시작하지 않습니다.
+ */
+export const replaceEpisodeFileMutation = (options?: Partial<Options<ReplaceEpisodeFileData>>): UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> => {
+    const mutationOptions: UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await replaceEpisodeFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: replaceEpisodeFileMutationKey(options)
+    };
+    return mutationOptions;
+};
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -58,35 +109,6 @@ export const getMyWorksOptions = (options?: Options<GetMyWorksData>) => queryOpt
     },
     queryKey: getMyWorksQueryKey(options)
 });
-
-export type MutationKey<TOptions extends Partial<Options>> = [
-    Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
-        _id: string;
-        tags?: ReadonlyArray<string>;
-    }
-];
-
-const createMutationKey = <TOptions extends Partial<Options>>(id: string, options?: TOptions, tags?: ReadonlyArray<string>): [
-    MutationKey<TOptions>[0]
-] => {
-    const params: MutationKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl };
-    if (tags) {
-        params.tags = tags;
-    }
-    if (options?.body) {
-        params.body = options.body;
-    }
-    if (options?.headers) {
-        params.headers = options.headers;
-    }
-    if (options?.path) {
-        params.path = options.path;
-    }
-    if (options?.query) {
-        params.query = options.query;
-    }
-    return [params];
-};
 
 export const createWorkMutationKey = (options?: Partial<Options<CreateWorkData>>) => createMutationKey('createWork', options);
 
@@ -154,6 +176,44 @@ export const confirmSettingCandidateMutation = (options?: Partial<Options<Confir
     return mutationOptions;
 };
 
+export const getSettingBooksQueryKey = (options: Options<GetSettingBooksData>) => createQueryKey('getSettingBooks', options);
+
+/**
+ * 활성 설정집 원본 목록 조회
+ */
+export const getSettingBooksOptions = (options: Options<GetSettingBooksData>) => queryOptions<GetSettingBooksResponse, DefaultError, GetSettingBooksResponse, ReturnType<typeof getSettingBooksQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSettingBooks({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSettingBooksQueryKey(options)
+});
+
+export const uploadSettingBookMutationKey = (options?: Partial<Options<UploadSettingBookData>>) => createMutationKey('uploadSettingBook', options);
+
+/**
+ * 설정집 원본 단독 업로드
+ */
+export const uploadSettingBookMutation = (options?: Partial<Options<UploadSettingBookData>>): UseMutationOptions<UploadSettingBookResponse, DefaultError, Options<UploadSettingBookData>> => {
+    const mutationOptions: UseMutationOptions<UploadSettingBookResponse, DefaultError, Options<UploadSettingBookData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await uploadSettingBook({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: uploadSettingBookMutationKey(options)
+    };
+    return mutationOptions;
+};
+
 export const getEpisodesQueryKey = (options: Options<GetEpisodesData>) => createQueryKey('getEpisodes', options);
 
 /**
@@ -174,24 +234,46 @@ export const getEpisodesOptions = (options: Options<GetEpisodesData>) => queryOp
     queryKey: getEpisodesQueryKey(options)
 });
 
-export const uploadEpisodeMutationKey = (options?: Partial<Options<UploadEpisodeData>>) => createMutationKey('uploadEpisode', options);
+export const uploadEpisodesMutationKey = (options?: Partial<Options<UploadEpisodesData>>) => createMutationKey('uploadEpisodes', options);
 
 /**
  * 회차 원고 업로드
  *
  * 로그인한 사용자가 본인 작품에 단일 회차, 단일 파일 다회차, 여러 파일 다회차 방식으로 원고를 업로드합니다.
  */
-export const uploadEpisodeMutation = (options?: Partial<Options<UploadEpisodeData>>): UseMutationOptions<UploadEpisodeResponse, UploadEpisodeError, Options<UploadEpisodeData>> => {
-    const mutationOptions: UseMutationOptions<UploadEpisodeResponse, UploadEpisodeError, Options<UploadEpisodeData>> = {
+export const uploadEpisodesMutation = (options?: Partial<Options<UploadEpisodesData>>): UseMutationOptions<UploadEpisodesResponse, UploadEpisodesError, Options<UploadEpisodesData>> => {
+    const mutationOptions: UseMutationOptions<UploadEpisodesResponse, UploadEpisodesError, Options<UploadEpisodesData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await uploadEpisode({
+            const { data } = await uploadEpisodes({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
             });
             return data;
         },
-        mutationKey: uploadEpisodeMutationKey(options)
+        mutationKey: uploadEpisodesMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const detectEpisodesMutationKey = (options?: Partial<Options<DetectEpisodesData>>) => createMutationKey('detectEpisodes', options);
+
+/**
+ * 회차 원고 사전 감지
+ *
+ * 영구 저장 없이 원고 파일의 명시적인 회차 제목 행과 회차 번호·제목·본문 경계를 감지합니다.
+ */
+export const detectEpisodesMutation = (options?: Partial<Options<DetectEpisodesData>>): UseMutationOptions<DetectEpisodesResponse, DetectEpisodesError, Options<DetectEpisodesData>> => {
+    const mutationOptions: UseMutationOptions<DetectEpisodesResponse, DetectEpisodesError, Options<DetectEpisodesData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await detectEpisodes({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: detectEpisodesMutationKey(options)
     };
     return mutationOptions;
 };
@@ -219,9 +301,9 @@ export const getAnalysisJobsOptions = (options: Options<GetAnalysisJobsData>) =>
 export const createAnalysisJobMutationKey = (options?: Partial<Options<CreateAnalysisJobData>>) => createMutationKey('createAnalysisJob', options);
 
 /**
- * 분석 작업 생성
+ * 회차별 분석 작업 생성
  *
- * 로그인한 사용자가 본인 작품의 업로드 배치를 대상으로 AI 분석 작업을 생성합니다.
+ * 로그인한 사용자가 본인 작품의 업로드 배치에 포함된 각 회차마다 AI 분석 작업을 생성합니다.
  */
 export const createAnalysisJobMutation = (options?: Partial<Options<CreateAnalysisJobData>>): UseMutationOptions<CreateAnalysisJobResponse, CreateAnalysisJobError, Options<CreateAnalysisJobData>> => {
     const mutationOptions: UseMutationOptions<CreateAnalysisJobResponse, CreateAnalysisJobError, Options<CreateAnalysisJobData>> = {
@@ -234,6 +316,28 @@ export const createAnalysisJobMutation = (options?: Partial<Options<CreateAnalys
             return data;
         },
         mutationKey: createAnalysisJobMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const retryAnalysisJobMutationKey = (options?: Partial<Options<RetryAnalysisJobData>>) => createMutationKey('retryAnalysisJob', options);
+
+/**
+ * 실패 회차 분석 재시도
+ *
+ * 기존 실패 작업은 유지하고 서버가 확인한 FAILED 회차만 새 분석 작업으로 생성합니다.
+ */
+export const retryAnalysisJobMutation = (options?: Partial<Options<RetryAnalysisJobData>>): UseMutationOptions<RetryAnalysisJobResponse, RetryAnalysisJobError, Options<RetryAnalysisJobData>> => {
+    const mutationOptions: UseMutationOptions<RetryAnalysisJobResponse, RetryAnalysisJobError, Options<RetryAnalysisJobData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await retryAnalysisJob({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: retryAnalysisJobMutationKey(options)
     };
     return mutationOptions;
 };
@@ -517,9 +621,9 @@ export const updateSettingCandidateCharacterMatchMutation = (options?: Partial<O
 export const deleteEpisodeMutationKey = (options?: Partial<Options<DeleteEpisodeData>>) => createMutationKey('deleteEpisode', options);
 
 /**
- * 회차 삭제
+ * 회차 soft delete
  *
- * 로그인한 사용자가 본인 작품에 등록한 회차 원고를 삭제합니다.
+ * 로그인한 사용자가 본인 작품에 등록한 회차를 보관 상태로 전환해 활성 목록에서 숨깁니다.
  */
 export const deleteEpisodeMutation = (options?: Partial<Options<DeleteEpisodeData>>): UseMutationOptions<DeleteEpisodeResponse, DeleteEpisodeError, Options<DeleteEpisodeData>> => {
     const mutationOptions: UseMutationOptions<DeleteEpisodeResponse, DeleteEpisodeError, Options<DeleteEpisodeData>> = {
@@ -574,6 +678,28 @@ export const updateEpisodeMutation = (options?: Partial<Options<UpdateEpisodeDat
             return data;
         },
         mutationKey: updateEpisodeMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const updateEpisodeTitleMutationKey = (options?: Partial<Options<UpdateEpisodeTitleData>>) => createMutationKey('updateEpisodeTitle', options);
+
+/**
+ * 회차 제목 수정
+ *
+ * 원문과 분석 상태를 유지한 채 회차 제목만 수정합니다.
+ */
+export const updateEpisodeTitleMutation = (options?: Partial<Options<UpdateEpisodeTitleData>>): UseMutationOptions<UpdateEpisodeTitleResponse, UpdateEpisodeTitleError, Options<UpdateEpisodeTitleData>> => {
+    const mutationOptions: UseMutationOptions<UpdateEpisodeTitleResponse, UpdateEpisodeTitleError, Options<UpdateEpisodeTitleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateEpisodeTitle({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateEpisodeTitleMutationKey(options)
     };
     return mutationOptions;
 };
@@ -702,6 +828,44 @@ export const getSettingCandidatesOptions = (options: Options<GetSettingCandidate
         return data;
     },
     queryKey: getSettingCandidatesQueryKey(options)
+});
+
+export const deleteSettingBookMutationKey = (options?: Partial<Options<DeleteSettingBookData>>) => createMutationKey('deleteSettingBook', options);
+
+/**
+ * 설정집 원본 soft delete
+ */
+export const deleteSettingBookMutation = (options?: Partial<Options<DeleteSettingBookData>>): UseMutationOptions<DeleteSettingBookResponse, DefaultError, Options<DeleteSettingBookData>> => {
+    const mutationOptions: UseMutationOptions<DeleteSettingBookResponse, DefaultError, Options<DeleteSettingBookData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteSettingBook({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: deleteSettingBookMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getSettingBookQueryKey = (options: Options<GetSettingBookData>) => createQueryKey('getSettingBook', options);
+
+/**
+ * 설정집 읽기 전용 원문 조회
+ */
+export const getSettingBookOptions = (options: Options<GetSettingBookData>) => queryOptions<GetSettingBookResponse, DefaultError, GetSettingBookResponse, ReturnType<typeof getSettingBookQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSettingBook({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSettingBookQueryKey(options)
 });
 
 export const getCharactersQueryKey = (options: Options<GetCharactersData>) => createQueryKey('getCharacters', options);
