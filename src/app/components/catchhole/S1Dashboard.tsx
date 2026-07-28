@@ -19,6 +19,7 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
+import { SettingBookDeleteModal } from './SettingBookDeleteModal';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -156,12 +157,20 @@ export function TypeCard({ icon, label, desc, color, onSelect }: {
   );
 }
 
-export function FileDropArea({ file, onFileChange, error, fileLabel, allowedExtensions = ALLOWED_EXTENSIONS }: {
+export function FileDropArea({
+  file,
+  onFileChange,
+  error,
+  fileLabel,
+  allowedExtensions = ALLOWED_EXTENSIONS,
+  disabled = false,
+}: {
   file: File | null;
   onFileChange: (file: File | null, error: string | null) => void;
   error?: string | null;
   fileLabel: string;
   allowedExtensions?: readonly string[];
+  disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -170,7 +179,12 @@ export function FileDropArea({ file, onFileChange, error, fileLabel, allowedExte
     if (!file && inputRef.current) inputRef.current.value = '';
   }, [file]);
 
+  useEffect(() => {
+    if (disabled) setDragging(false);
+  }, [disabled]);
+
   const handleFile = (f: File | null | undefined) => {
+    if (disabled) return;
     if (!f) { onFileChange(null, null); return; }
     const validationError = validateManuscriptFile(f, allowedExtensions);
     if (validationError) { onFileChange(null, validationError); return; }
@@ -180,19 +194,30 @@ export function FileDropArea({ file, onFileChange, error, fileLabel, allowedExte
   return (
     <div style={{ marginBottom: error ? 4 : 12 }}>
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        aria-disabled={disabled}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
-        onClick={() => inputRef.current?.click()}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!disabled) handleFile(e.dataTransfer.files?.[0]);
+        }}
+        onClick={() => {
+          if (!disabled) inputRef.current?.click();
+        }}
         style={{
           border: `2px dashed ${error ? C.danger : dragging ? C.primary : file ? C.success : C.border}`,
           borderRadius: 8, padding: '24px', textAlign: 'center',
           background: error ? C.danger + '08' : dragging ? C.primary + '08' : file ? C.success + '08' : 'transparent',
-          cursor: 'pointer', transition: 'all 0.15s',
+          cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+          opacity: disabled ? 0.55 : 1,
         }}
       >
         <input
-          ref={inputRef} type="file" accept={allowedExtensions.join(',')} style={{ display: 'none' }}
+          ref={inputRef} type="file" accept={allowedExtensions.join(',')} disabled={disabled} style={{ display: 'none' }}
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
         {file ? (
@@ -254,7 +279,13 @@ function SourceFileModal({
         </div>
         <div style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>{description}</div>
         {currentFilename && <div style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>현재 원본: {currentFilename}</div>}
-        <FileDropArea file={file} error={fileError} onFileChange={onFileChange} fileLabel="TXT 또는 DOCX · 최대 10MB" />
+        <FileDropArea
+          file={file}
+          error={fileError}
+          onFileChange={onFileChange}
+          fileLabel="TXT 또는 DOCX · 최대 10MB"
+          disabled={pending}
+        />
         {warning && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.warning}12`, color: C.warning, fontSize: 12 }}>{warning}</div>}
         {requestError && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.danger}12`, color: C.danger, fontSize: 12 }}>{requestError}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
@@ -3013,6 +3044,8 @@ export default function S1Dashboard() {
   const [showSettingBookUpload, setShowSettingBookUpload] = useState(false);
   const [settingBookFile, setSettingBookFile] = useState<File | null>(null);
   const [settingBookFileError, setSettingBookFileError] = useState<string | null>(null);
+  const [settingBookDeleteTarget, setSettingBookDeleteTarget] = useState<SettingBookSummaryResponse | null>(null);
+  const [settingBookDeleteFailed, setSettingBookDeleteFailed] = useState(false);
   const [replaceEpisodeTarget, setReplaceEpisodeTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [replacementFileError, setReplacementFileError] = useState<string | null>(null);
@@ -3126,18 +3159,17 @@ export default function S1Dashboard() {
     }
   };
 
-  const removeSettingBook = async (settingBook: SettingBookSummaryResponse) => {
-    if (!settingBook.id) return;
-    const confirmed = window.confirm('이 설정집을 삭제할까요? 삭제한 설정집은 원고 목록에서 사라지며 현재 서비스에서는 직접 복구할 수 없습니다.');
-    if (!confirmed) return;
-    setSettingBookActionError(null);
+  const removeSettingBook = async () => {
+    if (!settingBookDeleteTarget?.id || deleteSettingBookRequest.isPending) return;
+    setSettingBookDeleteFailed(false);
     try {
       await deleteSettingBookRequest.mutateAsync({
-        path: { workId: effectiveWorkId, settingBookId: settingBook.id },
+        path: { workId: effectiveWorkId, settingBookId: settingBookDeleteTarget.id },
       });
       await refreshSettingBookList();
-    } catch (error) {
-      setSettingBookActionError(toApiError(error)?.message ?? '설정집 원본을 삭제하지 못했습니다.');
+      setSettingBookDeleteTarget(null);
+    } catch {
+      setSettingBookDeleteFailed(true);
     }
   };
 
@@ -3643,8 +3675,16 @@ export default function S1Dashboard() {
                               </button>
                               <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(settingBook.uploadedAt)}</span>
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
-                                <BtnG small label="원문" onClick={() => navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`, 'push-right')} />
-                                <BtnG small label="삭제" disabled={deleteSettingBookRequest.isPending} onClick={() => void removeSettingBook(settingBook)} />
+                                <BtnG small label="원문" onClick={() => navigate(
+                                  `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
+                                  'push-right',
+                                  { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                                )} />
+                                <BtnG small label="삭제" disabled={deleteSettingBookRequest.isPending} onClick={() => {
+                                  setSettingBookActionError(null);
+                                  setSettingBookDeleteFailed(false);
+                                  setSettingBookDeleteTarget(settingBook);
+                                }} />
                               </div>
                             </div>
                           ))}
@@ -3858,6 +3898,19 @@ export default function S1Dashboard() {
             setEpisodeDeleteFailed(false);
           }}
           onDelete={() => void removeEpisode()}
+        />
+      )}
+      {settingBookDeleteTarget && (
+        <SettingBookDeleteModal
+          settingBook={settingBookDeleteTarget}
+          submitting={deleteSettingBookRequest.isPending}
+          failed={settingBookDeleteFailed}
+          onClose={() => {
+            if (deleteSettingBookRequest.isPending) return;
+            setSettingBookDeleteTarget(null);
+            setSettingBookDeleteFailed(false);
+          }}
+          onDelete={() => void removeSettingBook()}
         />
       )}
         {editTarget && (
