@@ -1454,15 +1454,6 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     }],
     stats: [
       {
-        characterFactId: 'fact-stat-1',
-        key: 'stats.strength',
-        displayName: '근력',
-        value: '42',
-        valueType: 'NUMBER',
-        properties: [],
-        hasEvidence: false,
-      },
-      {
         characterFactId: 'fact-stat-2',
         key: 'stats.agility',
         displayName: '민첩',
@@ -1470,6 +1461,37 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         valueType: 'NUMBER',
         properties: [],
         hasEvidence: true,
+      },
+      {
+        characterFactId: 'fact-stat-manual-old',
+        key: 'stats.manual_1700000000000_old',
+        displayName: '먼저 추가한 스탯',
+        value: '11',
+        valueType: 'NUMBER',
+        properties: [
+          { key: 'name', displayName: '이름', value: '먼저 추가한 스탯', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-stat-manual-new',
+        key: 'stats.manual_1800000000000_new',
+        displayName: '나중에 추가한 스탯',
+        value: '22',
+        valueType: 'NUMBER',
+        properties: [
+          { key: 'name', displayName: '이름', value: '나중에 추가한 스탯', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-stat-1',
+        key: 'stats.strength',
+        displayName: '근력',
+        value: '42',
+        valueType: 'NUMBER',
+        properties: [],
+        hasEvidence: false,
       },
     ],
     skills: [{
@@ -1734,14 +1756,23 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
   const strengthRow = page.getByText('근력', { exact: true }).locator('..');
   const agilityRow = page.getByText('민첩', { exact: true }).locator('..');
-  const [strengthBox, agilityBox] = await Promise.all([
+  const firstManualStatRow = page.getByText('먼저 추가한 스탯', { exact: true }).locator('..');
+  const secondManualStatRow = page.getByText('나중에 추가한 스탯', { exact: true }).locator('..');
+  const [strengthBox, agilityBox, firstManualStatBox, secondManualStatBox] = await Promise.all([
     strengthRow.boundingBox(),
     agilityRow.boundingBox(),
+    firstManualStatRow.boundingBox(),
+    secondManualStatRow.boundingBox(),
   ]);
   expect(strengthBox).not.toBeNull();
   expect(agilityBox).not.toBeNull();
+  expect(firstManualStatBox).not.toBeNull();
+  expect(secondManualStatBox).not.toBeNull();
   expect(Math.abs((strengthBox?.y ?? 0) - (agilityBox?.y ?? 0))).toBeLessThan(2);
-  expect(agilityBox?.x ?? 0).toBeGreaterThan(strengthBox?.x ?? 0);
+  expect(strengthBox?.x ?? 0).toBeGreaterThan(agilityBox?.x ?? 0);
+  expect(firstManualStatBox?.y ?? 0).toBeGreaterThan(strengthBox?.y ?? 0);
+  expect(Math.abs((firstManualStatBox?.y ?? 0) - (secondManualStatBox?.y ?? 0))).toBeLessThan(2);
+  expect(secondManualStatBox?.x ?? 0).toBeGreaterThan(firstManualStatBox?.x ?? 0);
 
   const statusPanel = page.getByTestId('character-status-settings');
   await expect(statusPanel).toHaveCSS('border-color', 'rgb(42, 42, 54)');
@@ -1772,6 +1803,21 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await page.getByRole('button', { name: '안내 닫기' }).click();
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
+  const [editAgilityBox, editStrengthBox, editFirstManualStatBox, editSecondManualStatBox] = await Promise.all([
+    page.getByLabel('민첩 값', { exact: true }).boundingBox(),
+    page.getByLabel('근력 값', { exact: true }).boundingBox(),
+    page.getByLabel('먼저 추가한 스탯 값', { exact: true }).boundingBox(),
+    page.getByLabel('나중에 추가한 스탯 값', { exact: true }).boundingBox(),
+  ]);
+  expect(editAgilityBox).not.toBeNull();
+  expect(editStrengthBox).not.toBeNull();
+  expect(editFirstManualStatBox).not.toBeNull();
+  expect(editSecondManualStatBox).not.toBeNull();
+  expect(Math.abs((editAgilityBox?.y ?? 0) - (editStrengthBox?.y ?? 0))).toBeLessThan(2);
+  expect(editStrengthBox?.x ?? 0).toBeGreaterThan(editAgilityBox?.x ?? 0);
+  expect(editFirstManualStatBox?.y ?? 0).toBeGreaterThan(editStrengthBox?.y ?? 0);
+  expect(Math.abs((editFirstManualStatBox?.y ?? 0) - (editSecondManualStatBox?.y ?? 0))).toBeLessThan(2);
+  expect(editSecondManualStatBox?.x ?? 0).toBeGreaterThan(editFirstManualStatBox?.x ?? 0);
   await expect(page.getByLabel('생존 감각 레벨', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
@@ -1824,7 +1870,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
   await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
   await page.getByRole('button', { name: '스탯 추가', exact: true }).click();
-  await page.getByLabel('스탯 이름', { exact: true }).fill('행운');
+  await page.getByLabel('스탯 이름', { exact: true }).last().fill('행운');
   await page.getByLabel('행운 값', { exact: true }).fill('7');
   await page.getByRole('button', { name: '상태 추가', exact: true }).click();
   await page.getByLabel('상태 이름', { exact: true }).last().fill('부상');

@@ -139,6 +139,25 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
   };
 }
 
+function orderManualSettingsLast<T extends { key?: string | null }>(settings: readonly T[]): T[] {
+  return settings
+    .map((setting, index) => ({ setting, index }))
+    .sort((left, right) => {
+      const leftKey = left.setting.key ?? '';
+      const rightKey = right.setting.key ?? '';
+      const leftManual = leftKey.includes('.manual_');
+      const rightManual = rightKey.includes('.manual_');
+
+      if (leftManual !== rightManual) return leftManual ? 1 : -1;
+      if (leftManual && rightManual) {
+        const keyComparison = leftKey.localeCompare(rightKey);
+        if (keyComparison !== 0) return keyComparison;
+      }
+      return left.index - right.index;
+    })
+    .map(({ setting }) => setting);
+}
+
 function toDraft(detail: CharacterDetailResponse): CharacterDraft {
   return {
     name: detail.name ?? '',
@@ -148,11 +167,11 @@ function toDraft(detail: CharacterDetailResponse): CharacterDraft {
     firstAppearanceEpisodeNo: detail.firstAppearanceEpisode?.episodeNo == null
       ? ''
       : String(detail.firstAppearanceEpisode.episodeNo),
-    profile: (detail.profile ?? []).map(toDraftSetting),
-    stats: (detail.stats ?? []).map(toDraftSetting),
-    skills: (detail.skills ?? []).map(toDraftSetting),
-    items: (detail.items ?? []).map(toDraftSetting),
-    statuses: (detail.statuses ?? []).map(toDraftSetting),
+    profile: orderManualSettingsLast(detail.profile ?? []).map(toDraftSetting),
+    stats: orderManualSettingsLast(detail.stats ?? []).map(toDraftSetting),
+    skills: orderManualSettingsLast(detail.skills ?? []).map(toDraftSetting),
+    items: orderManualSettingsLast(detail.items ?? []).map(toDraftSetting),
+    statuses: orderManualSettingsLast(detail.statuses ?? []).map(toDraftSetting),
   };
 }
 
@@ -400,15 +419,16 @@ function SimpleSettingList({
   onEvidence: (characterFactId: string) => void;
 }) {
   if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
+  const orderedSettings = orderManualSettingsLast(settings);
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-      {settings.map((item, index) => (
+      {orderedSettings.map((item, index) => (
         <div key={item.characterFactId ?? item.key ?? index} style={{
           minHeight: 40, padding: '8px 14px', display: 'grid',
           gridTemplateColumns: columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
           alignItems: 'center', gap: 10,
           borderRight: columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : 'none',
-          borderBottom: Math.floor(index / columns) < Math.ceil(settings.length / columns) - 1
+          borderBottom: Math.floor(index / columns) < Math.ceil(orderedSettings.length / columns) - 1
             ? `1px solid ${C.border}`
             : 'none',
         }}>
