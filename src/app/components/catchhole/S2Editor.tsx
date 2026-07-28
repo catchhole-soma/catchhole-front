@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
+import { useLocation, useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { C, EditorMode } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -479,9 +479,15 @@ function OriginalLines({ content }: { content: string }) {
 function useOriginalBack(workId: string) {
   const routerNavigate = useRouterNavigate();
   const navigate = useAppNavigate();
+  const location = useLocation();
+  const routeState = location.state as {
+    source?: string;
+    sourceWorkId?: string;
+  } | null;
   return () => {
-    const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
-    if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
+    if (routeState?.source === 'manuscripts' && routeState.sourceWorkId === workId) {
+      routerNavigate(-1);
+    }
     else navigate(
       `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
       'pop',

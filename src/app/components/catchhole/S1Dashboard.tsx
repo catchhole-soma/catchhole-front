@@ -3667,7 +3667,11 @@ export default function S1Dashboard() {
                               display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) 140px 150px', alignItems: 'center',
                               padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
                             }}>
-                              <button type="button" onClick={() => navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`, 'push-right')} style={{
+                              <button type="button" onClick={() => navigate(
+                                `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
+                                'push-right',
+                                { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                              )} style={{
                                 border: 0, background: 'transparent', color: C.t1, fontFamily: 'inherit', fontSize: 13,
                                 textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                               }}>
@@ -3800,7 +3804,11 @@ export default function S1Dashboard() {
                                     />
                                     <BtnG small label="원문" onClick={() => {
                                       setEditorMode('view');
-                                      navigate(`/editor?workId=${encodeURIComponent(effectiveWorkId)}&episodeId=${episode.id}`, 'push-right');
+                                      navigate(
+                                        `/editor?workId=${encodeURIComponent(effectiveWorkId)}&episodeId=${episode.id}`,
+                                        'push-right',
+                                        { source: 'manuscripts', sourceWorkId: effectiveWorkId },
+                                      );
                                     }} />
                                     <BtnG small label="파일 변경" disabled={isAnalyzing} onClick={() => {
                                       setReplacementFile(null);
