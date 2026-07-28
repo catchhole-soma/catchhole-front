@@ -324,7 +324,7 @@ flowchart TD
   retryAnalysis --> proc
 
   proc --> state{"회차별 Job·Episode 상태"}:::decision
-  state -- "활성 Job 종료 후<br/>일부·전체 FAILED" --> retry["실패 회차만 새 Job으로 재시도"]:::modal --> proc
+  state -- "활성 Job 종료 후<br/>일부·전체 FAILED" --> retry["사용자용 실패 안내<br/>실패 회차만 새 Job으로 재시도"]:::modal --> proc
   state -- "조회 실패" --> reload["마지막 성공 데이터 유지<br/>다시 불러오기"]:::modal --> proc
   state -- "모든 회차 ANALYZED" --> success["SUCCEEDED<br/>결과 준비 상태 확인"]
 
