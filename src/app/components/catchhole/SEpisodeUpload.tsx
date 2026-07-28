@@ -46,7 +46,7 @@ type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
 type EpisodeUploadType = EpisodeDetectionRequest['uploadType'];
 
-type EpisodeConfirmationDraft = {
+type EpisodeConfirmation = {
   detectionOrder: number;
   sourceFileIndex: number;
   episodeNo: number;
@@ -62,13 +62,13 @@ type EpisodeMultipartBody = {
 };
 
 type EpisodeDetectionResult = {
-  episodeConfirmationDrafts: EpisodeConfirmationDraft[];
+  episodeConfirmations: EpisodeConfirmation[];
   error: unknown | null;
 };
 
-type EpisodeConfirmationDraftUpdate =
-  | EpisodeConfirmationDraft[]
-  | ((current: EpisodeConfirmationDraft[]) => EpisodeConfirmationDraft[]);
+type EpisodeConfirmationUpdate =
+  | EpisodeConfirmation[]
+  | ((current: EpisodeConfirmation[]) => EpisodeConfirmation[]);
 
 const PROCESSING_SEQUENCE: EpisodeProcessingStatus[] = [
   'UPLOADED',
@@ -90,9 +90,9 @@ function episodeMultipartSerializer(body: unknown): FormData {
   return formData;
 }
 
-function toEpisodeConfirmationDrafts(
+function toEpisodeConfirmations(
   detectedEpisodes: DetectedEpisodeResponse[] | undefined,
-): EpisodeConfirmationDraft[] {
+): EpisodeConfirmation[] {
   return (detectedEpisodes ?? []).map(detectedEpisode => ({
     detectionOrder: detectedEpisode.detectionOrder,
     sourceFileIndex: detectedEpisode.sourceFileIndex,
@@ -395,8 +395,8 @@ function SettingsFileInput({ include, setInclude, file, error, setFile, disabled
 }
 
 function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
-  episodeConfirmations: EpisodeConfirmationDraft[];
-  onChange: (episodeConfirmations: EpisodeConfirmationDraft[]) => void;
+  episodeConfirmations: EpisodeConfirmation[];
+  onChange: (episodeConfirmations: EpisodeConfirmation[]) => void;
   disabled: boolean;
 }) {
   return (
@@ -434,7 +434,7 @@ function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
 }
 
 function getEpisodeConfirmationValidationError(
-  episodeConfirmations: EpisodeConfirmationDraft[],
+  episodeConfirmations: EpisodeConfirmation[],
   existingEpisodeNos: Set<number>,
 ): string | null {
   if (episodeConfirmations.length === 0) return null;
@@ -496,27 +496,27 @@ export default function SEpisodeUpload() {
   const [bulkFileError, setBulkFileError] = useState<string | null>(null);
   const [multiFiles, setMultiFiles] = useState<File[]>([]);
   const [multiFilesError, setMultiFilesError] = useState<string | null>(null);
-  const [episodeConfirmationDraftsByUploadType, setEpisodeConfirmationDraftsByUploadType] = useState<
-    Partial<Record<EpisodeUploadType, EpisodeConfirmationDraft[]>>
+  const [episodeConfirmationsByUploadType, setEpisodeConfirmationsByUploadType] = useState<
+    Partial<Record<EpisodeUploadType, EpisodeConfirmation[]>>
   >({});
-  const episodeConfirmationDrafts = uploadType
-    ? episodeConfirmationDraftsByUploadType[uploadType] ?? []
+  const episodeConfirmations = uploadType
+    ? episodeConfirmationsByUploadType[uploadType] ?? []
     : [];
-  const replaceEpisodeConfirmationDrafts = (
+  const replaceEpisodeConfirmations = (
     targetUploadType: EpisodeUploadType,
-    drafts: EpisodeConfirmationDraft[],
+    confirmations: EpisodeConfirmation[],
   ) => {
-    setEpisodeConfirmationDraftsByUploadType(current => ({
+    setEpisodeConfirmationsByUploadType(current => ({
       ...current,
-      [targetUploadType]: drafts,
+      [targetUploadType]: confirmations,
     }));
   };
-  const setEpisodeConfirmationDrafts = (update: EpisodeConfirmationDraftUpdate) => {
+  const setEpisodeConfirmations = (update: EpisodeConfirmationUpdate) => {
     if (!uploadType) return;
-    setEpisodeConfirmationDraftsByUploadType(current => {
-      const currentDrafts = current[uploadType] ?? [];
-      const nextDrafts = typeof update === 'function' ? update(currentDrafts) : update;
-      return { ...current, [uploadType]: nextDrafts };
+    setEpisodeConfirmationsByUploadType(current => {
+      const currentConfirmations = current[uploadType] ?? [];
+      const nextConfirmations = typeof update === 'function' ? update(currentConfirmations) : update;
+      return { ...current, [uploadType]: nextConfirmations };
     });
   };
   const [selectedDetectionOrder, setSelectedDetectionOrder] = useState<number | null>(null);
@@ -716,26 +716,26 @@ export default function SEpisodeUpload() {
         bodySerializer: episodeMultipartSerializer,
       });
       if (requestSequence !== detectionRequestSequence.current) {
-        return { episodeConfirmationDrafts: [], error: null };
+        return { episodeConfirmations: [], error: null };
       }
-      const nextEpisodeConfirmationDrafts = toEpisodeConfirmationDrafts(
+      const nextEpisodeConfirmations = toEpisodeConfirmations(
         response.data?.detectedEpisodes,
       );
-      replaceEpisodeConfirmationDrafts(nextUploadType, nextEpisodeConfirmationDrafts);
+      replaceEpisodeConfirmations(nextUploadType, nextEpisodeConfirmations);
       if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
-        setSelectedDetectionOrder(nextEpisodeConfirmationDrafts[0]?.detectionOrder ?? null);
+        setSelectedDetectionOrder(nextEpisodeConfirmations[0]?.detectionOrder ?? null);
       }
-      return { episodeConfirmationDrafts: nextEpisodeConfirmationDrafts, error: null };
+      return { episodeConfirmations: nextEpisodeConfirmations, error: null };
     } catch (error) {
       if (requestSequence !== detectionRequestSequence.current) {
-        return { episodeConfirmationDrafts: [], error: null };
+        return { episodeConfirmations: [], error: null };
       }
-      replaceEpisodeConfirmationDrafts(nextUploadType, []);
+      replaceEpisodeConfirmations(nextUploadType, []);
       if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
         setSelectedDetectionOrder(null);
       }
       setRequestError(errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.'));
-      return { episodeConfirmationDrafts: [], error };
+      return { episodeConfirmations: [], error };
     }
   };
 
@@ -750,10 +750,10 @@ export default function SEpisodeUpload() {
     }
     if (!file || error) {
       detectionRequestSequence.current += 1;
-      replaceEpisodeConfirmationDrafts('SINGLE_EPISODE', []);
+      replaceEpisodeConfirmations('SINGLE_EPISODE', []);
       return;
     }
-    const { episodeConfirmationDrafts: detectedEpisodes } = await detectEpisodesFromFiles(
+    const { episodeConfirmations } = await detectEpisodesFromFiles(
       'SINGLE_EPISODE',
       [file],
       {
@@ -763,7 +763,7 @@ export default function SEpisodeUpload() {
         singleEpisodeTitle: replacingFile ? null : episodeTitle.trim() || null,
       },
     );
-    const firstDetectedEpisode = detectedEpisodes[0];
+    const firstDetectedEpisode = episodeConfirmations[0];
     if (!firstDetectedEpisode) return;
     if (replacingFile) {
       setEpisodeNo(String(firstDetectedEpisode.episodeNo));
@@ -780,7 +780,7 @@ export default function SEpisodeUpload() {
   const handleBulkFile = async (file: File | null, error: string | null) => {
     setBulkFile(file);
     setBulkFileError(error);
-    replaceEpisodeConfirmationDrafts('MULTI_EPISODE_SINGLE_FILE', []);
+    replaceEpisodeConfirmations('MULTI_EPISODE_SINGLE_FILE', []);
     setSelectedDetectionOrder(null);
     setRequestError(null);
     if (!file || error) return;
@@ -798,7 +798,7 @@ export default function SEpisodeUpload() {
   const handleMultiFiles = async (files: File[], error: string | null) => {
     setMultiFiles(files);
     setMultiFilesError(error);
-    replaceEpisodeConfirmationDrafts('MULTI_EPISODE_MULTI_FILE', []);
+    replaceEpisodeConfirmations('MULTI_EPISODE_MULTI_FILE', []);
     setRequestError(null);
     if (files.length < 2 || error) return;
     await detectEpisodesFromFiles('MULTI_EPISODE_MULTI_FILE', files);
@@ -865,7 +865,7 @@ export default function SEpisodeUpload() {
         }
       : {
           uploadType,
-          episodeConfirmations: episodeConfirmationDrafts.map(confirmation => ({
+          episodeConfirmations: episodeConfirmations.map(confirmation => ({
             detectionOrder: confirmation.detectionOrder,
             episodeNo: confirmation.episodeNo,
             title: confirmation.title.trim() || null,
@@ -943,10 +943,10 @@ export default function SEpisodeUpload() {
     && !existingEpisodeNos.has(singleNo)
     && episodeTitle.trim().length <= 100;
   const episodeConfirmationValidationError = getEpisodeConfirmationValidationError(
-    episodeConfirmationDrafts,
+    episodeConfirmations,
     existingEpisodeNos,
   );
-  const episodeConfirmationsValid = episodeConfirmationDrafts.length > 0
+  const episodeConfirmationsValid = episodeConfirmations.length > 0
     && !episodeConfirmationValidationError;
   const settingsModeError = uploadType === 'MULTI_EPISODE_MULTI_FILE'
     && settingsFile
@@ -960,7 +960,7 @@ export default function SEpisodeUpload() {
     && !submitting
     && (uploadType === 'SINGLE_EPISODE' ? singleValid
       : uploadType === 'MULTI_EPISODE_SINGLE_FILE'
-        ? Boolean(bulkFile) && episodeConfirmationDrafts.length >= 2 && episodeConfirmationsValid
+        ? Boolean(bulkFile) && episodeConfirmations.length >= 2 && episodeConfirmationsValid
         : multiFiles.length >= 2 && episodeConfirmationsValid);
 
   if (!UUID_PATTERN.test(workId)) {
@@ -1088,15 +1088,15 @@ export default function SEpisodeUpload() {
                       <Spinner size={13} /> 회차 표기를 확인하고 있습니다.
                     </div>
                   )}
-                  {episodeConfirmationDrafts.length > 0 && (
+                  {episodeConfirmations.length > 0 && (
                     <div style={{
                       display: 'flex', justifyContent: 'space-between', padding: '10px 12px', marginBottom: 16,
                       borderRadius: 6, background: `${C.success}10`, border: `1px solid ${C.success}44`,
                       color: C.success, fontSize: 12,
                     }}>
-                      <span>{episodeConfirmationDrafts.length}개 회차 감지됨</span>
+                      <span>{episodeConfirmations.length}개 회차 감지됨</span>
                       <span>
-                        {episodeConfirmationDrafts
+                        {episodeConfirmations
                           .reduce((sum, confirmation) => sum + confirmation.charCount, 0)
                           .toLocaleString()}자
                       </span>
@@ -1122,12 +1122,12 @@ export default function SEpisodeUpload() {
                       <Spinner size={13} /> 파일별 회차 번호와 제목을 확인하고 있습니다.
                     </div>
                   )}
-                  {episodeConfirmationDrafts.length > 0 && (
+                  {episodeConfirmations.length > 0 && (
                     <>
                       <FieldLabel>파일별 회차 정보 확인</FieldLabel>
                       <EpisodeConfirmationRows
-                        episodeConfirmations={episodeConfirmationDrafts}
-                        onChange={setEpisodeConfirmationDrafts}
+                        episodeConfirmations={episodeConfirmations}
+                        onChange={setEpisodeConfirmations}
                         disabled={submitting}
                       />
                     </>
@@ -1178,7 +1178,7 @@ export default function SEpisodeUpload() {
                           disabled={!canSubmit}
                           onClick={() => {
                             setSelectedDetectionOrder(
-                              episodeConfirmationDrafts[0]?.detectionOrder ?? null,
+                              episodeConfirmations[0]?.detectionOrder ?? null,
                             );
                             setStep('boundary-preview');
                           }}
@@ -1206,7 +1206,7 @@ export default function SEpisodeUpload() {
               {requestError && <ErrorBanner message={requestError} />}
               <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {episodeConfirmationDrafts.map(confirmation => (
+                  {episodeConfirmations.map(confirmation => (
                     <button
                       key={confirmation.detectionOrder}
                       type="button"
@@ -1227,9 +1227,9 @@ export default function SEpisodeUpload() {
                   ))}
                 </div>
                 {(() => {
-                  const selectedConfirmation = episodeConfirmationDrafts.find(
+                  const selectedConfirmation = episodeConfirmations.find(
                     confirmation => confirmation.detectionOrder === selectedDetectionOrder,
-                  ) ?? episodeConfirmationDrafts[0];
+                  ) ?? episodeConfirmations[0];
                   if (!selectedConfirmation) return null;
                   return (
                     <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, padding: 16 }}>
@@ -1239,7 +1239,7 @@ export default function SEpisodeUpload() {
                           <TextInput
                             type="number"
                             value={String(selectedConfirmation.episodeNo)}
-                            onChange={value => setEpisodeConfirmationDrafts(items => items.map(item =>
+                            onChange={value => setEpisodeConfirmations(items => items.map(item =>
                               item.detectionOrder === selectedConfirmation.detectionOrder
                               ? { ...item, episodeNo: Number.parseInt(value, 10) || 0 }
                               : item))}
@@ -1250,7 +1250,7 @@ export default function SEpisodeUpload() {
                           <TextInput
                             value={selectedConfirmation.title}
                             placeholder="제목을 찾지 못했어요"
-                            onChange={value => setEpisodeConfirmationDrafts(items => items.map(item =>
+                            onChange={value => setEpisodeConfirmations(items => items.map(item =>
                               item.detectionOrder === selectedConfirmation.detectionOrder
                               ? { ...item, title: value }
                               : item))}
@@ -1289,7 +1289,7 @@ export default function SEpisodeUpload() {
                   <PrimaryButton disabled={!canSubmit} onClick={() => void submitEpisodeUpload()}>
                     {submitting
                       ? '회차 묶음 저장 중...'
-                      : `회차 분리 확정 (${episodeConfirmationDrafts.length}개) →`}
+                      : `회차 분리 확정 (${episodeConfirmations.length}개) →`}
                   </PrimaryButton>
                 </div>
               </div>
