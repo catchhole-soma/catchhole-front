@@ -242,33 +242,40 @@ flowchart TD
     t_char["캐릭터"]
     t_rel["관계도"]
     t_time["타임라인"]
-    t_world["세계관 규칙"]
+    t_world["설정집 목록"]
     t_search["검색"]
   end
   nav_settingDB --> t_char & t_rel & t_time & t_world & t_search
 
   t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>(→ 삭제 확인)"]:::modal
   t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
-  t_world -. "세계관 만들기" .-> m_world["세계관 설정 빌더"]:::modal
+
+  subgraph SETTING_BOOKS["설정집 파일 관리"]
+    direction TB
+    setting_source["설정집 파일 목록<br/>최근 업로드 순"]
+    setting_viewer["전체 원문<br/>조회·수정"]
+    setting_upload["설정집 업로드 모달<br/>원본·편집용 텍스트 저장"]:::modal
+    setting_delete["설정집 삭제 확인<br/>soft delete"]:::modal
+  end
+
+  t_world --> setting_source
+  setting_source -- "파일 선택" --> setting_viewer
+  t_world -. "설정집 업로드" .-> setting_upload
+  setting_viewer -. "삭제" .-> setting_delete
 
   subgraph MANUSCRIPTS["원고 목록 상태·관리"]
     direction TB
-    setting_source["설정집 원본 목록<br/>최근 업로드 순"]
     episode_list["회차 목록<br/>번호 내림차순·페이지"]
-    list_state["원고/설정집별 빈 상태<br/>영역별 조회 실패·상태 갱신 실패"]:::modal
-    source_viewer["공통 원문 보기<br/>읽기 전용"]:::private
+    list_state["원고 빈 상태<br/>조회 실패·상태 갱신 실패"]:::modal
+    source_viewer["회차 원문 보기<br/>읽기 전용"]:::private
     title_edit["회차 제목 인라인 수정"]:::modal
     episode_menu["회차 관리 메뉴"]:::modal
-    setting_upload["설정집 업로드 모달<br/>원본만 저장"]:::modal
     file_replace["회차 파일 변경 모달<br/>성공 전 기존 원문·분석 유지"]:::modal
-    delete_confirm["회차/설정집 삭제 확인<br/>soft delete"]:::modal
+    delete_confirm["회차 삭제 확인<br/>soft delete"]:::modal
   end
 
-  nav_manuscripts --> setting_source & episode_list
-  nav_manuscripts -. "독립적인 빈·실패 상태" .-> list_state
-  setting_source -- "파일명" --> source_viewer
-  setting_source -. "설정집 업로드" .-> setting_upload
-  setting_source -. "삭제" .-> delete_confirm
+  nav_manuscripts --> episode_list
+  nav_manuscripts -. "빈·실패 상태" .-> list_state
   episode_list -- "원문 보기" --> source_viewer
   episode_list -. "제목 입력·수정" .-> title_edit
   episode_list -. "⋯" .-> episode_menu
@@ -281,13 +288,13 @@ flowchart TD
   classDef modal fill:#0F0F13,stroke:#9090A8,stroke-dasharray:4 3,color:#F0F0F5;
 ```
 
-대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 설정집 영역의 `설정집 업로드`는 목록 안의 별도 모달을 열며, MVP에서는 TXT·DOCX 원본만 저장하고 분석·추출하지 않습니다.
+대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
 
 > 분석 중인 회차는 기존 작업의 `진행 보기`, 원문 보기와 제목 수정만 허용하고 파일 변경·삭제·중복 분석 요청을 비활성화합니다. 회차 파일 변경은 새 파일 저장과 분석 시작이 모두 성공하기 전까지 기존 원문과 유효 분석 결과를 유지합니다.
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
-> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [세계관 규칙](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
+> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
 > - 관계도 샘플 — [triangle](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=triangle) · [prosecution](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=prosecution) · [court](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=court)
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`, 그래프 노드 `?nav=graph&node=<id>`
 
