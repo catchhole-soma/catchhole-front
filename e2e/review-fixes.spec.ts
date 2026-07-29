@@ -388,6 +388,7 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
   let settingBooks = [{
     id: settingBookId,
     originalFilename: '세계관_최종본.txt',
+    mimeType: 'text/plain; charset=UTF-8',
     fileSize: 1200,
     uploadedAt: '2026-07-28T12:00:00',
   }];
@@ -429,6 +430,12 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
 
     const data = pathname.endsWith('/auth/me')
       ? member
+      : pathname.endsWith(`/${workId}/setting-books/${settingBookId}`)
+        ? {
+            ...settingBooks[0],
+            workId,
+            content: '세계관 설정집 전체 원문',
+          }
       : pathname.endsWith(`/${workId}/setting-books`)
         ? settingBooks
         : pathname.endsWith(`/${workId}/episodes`)
@@ -443,8 +450,9 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
   });
 
   await authenticate(page, 'setting-book-delete-token');
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldrules`);
 
+  await page.getByTestId(`setting-book-row-${settingBookId}`).click();
   await page.getByRole('button', { name: '삭제', exact: true }).click();
   const modal = page.getByRole('dialog', { name: '이 설정집을 삭제할까요?' });
   await expect(modal).toBeVisible();
@@ -456,12 +464,12 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
   await expect(modal.getByRole('alert')).toHaveText(
     '삭제에 실패했습니다. 설정집은 목록에 그대로 유지됩니다.',
   );
-  await expect(page.getByRole('button', { name: '세계관_최종본.txt' })).toBeVisible();
+  await expect(page.getByTestId(`setting-book-row-${settingBookId}`)).toBeVisible();
 
   await modal.getByRole('button', { name: '다시 시도' }).click();
   await expect.poll(() => deleteRequestCount).toBe(2);
   await expect(modal).not.toBeVisible();
-  await expect(page.getByRole('button', { name: '세계관_최종본.txt' })).not.toBeVisible();
+  await expect(page.getByTestId(`setting-book-row-${settingBookId}`)).not.toBeVisible();
 });
 
 test('직접 연 원문 화면의 원고 목록 버튼은 이전 페이지가 아닌 현재 작품 목록으로 간다', async ({ page }) => {
@@ -540,17 +548,20 @@ test('설정집 업로드 요청 중에는 선택 파일과 드롭 영역을 변
   });
 
   await authenticate(page, 'pending-file-token');
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldrules`);
   await page.getByRole('button', { name: '설정집 업로드', exact: true }).click();
 
-  const fileInput = page.locator('input[type="file"]');
-  const dropArea = fileInput.locator('..');
+  const uploadDialog = page.getByRole('dialog', { name: '설정집 업로드' });
+  const fileInput = page.getByTestId('setting-book-file-input');
+  const dropArea = uploadDialog.getByRole('button', {
+    name: /파일을 드래그하거나 클릭하여 선택/,
+  });
   await fileInput.setInputFiles({
     name: 'setting-a.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from('첫 번째 설정집'),
   });
-  await page.getByRole('button', { name: '업로드', exact: true }).click();
+  await uploadDialog.getByRole('button', { name: '설정집 업로드', exact: true }).click();
 
   await expect.poll(() => uploadRequestCount).toBe(1);
   await expect(fileInput).toBeDisabled();
@@ -569,5 +580,5 @@ test('설정집 업로드 요청 중에는 선택 파일과 드롭 영역을 변
   expect(uploadBody).not.toContain('setting-b.txt');
 
   releaseUploadRequest();
-  await expect(page.getByText('설정집 업로드', { exact: true })).toHaveCount(1);
+  await expect(uploadDialog).toHaveCount(0);
 });

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, retryAnalysisJob, signup, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, retryAnalysisJob, signup, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -180,8 +180,10 @@ export const getSettingBooksQueryKey = (options: Options<GetSettingBooksData>) =
 
 /**
  * 활성 설정집 원본 목록 조회
+ *
+ * 본인 작품의 삭제되지 않은 설정집 원본을 최근 업로드 순으로 조회합니다.
  */
-export const getSettingBooksOptions = (options: Options<GetSettingBooksData>) => queryOptions<GetSettingBooksResponse, DefaultError, GetSettingBooksResponse, ReturnType<typeof getSettingBooksQueryKey>>({
+export const getSettingBooksOptions = (options: Options<GetSettingBooksData>) => queryOptions<GetSettingBooksResponse, GetSettingBooksError, GetSettingBooksResponse, ReturnType<typeof getSettingBooksQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getSettingBooks({
             ...options,
@@ -198,9 +200,11 @@ export const uploadSettingBookMutationKey = (options?: Partial<Options<UploadSet
 
 /**
  * 설정집 원본 단독 업로드
+ *
+ * TXT 또는 DOCX 원본 한 개를 새 설정집으로 추가합니다. 같은 파일명도 새 항목으로 누적합니다.
  */
-export const uploadSettingBookMutation = (options?: Partial<Options<UploadSettingBookData>>): UseMutationOptions<UploadSettingBookResponse, DefaultError, Options<UploadSettingBookData>> => {
-    const mutationOptions: UseMutationOptions<UploadSettingBookResponse, DefaultError, Options<UploadSettingBookData>> = {
+export const uploadSettingBookMutation = (options?: Partial<Options<UploadSettingBookData>>): UseMutationOptions<UploadSettingBookResponse, UploadSettingBookError, Options<UploadSettingBookData>> => {
+    const mutationOptions: UseMutationOptions<UploadSettingBookResponse, UploadSettingBookError, Options<UploadSettingBookData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await uploadSettingBook({
                 ...options,
@@ -618,6 +622,70 @@ export const updateSettingCandidateCharacterMatchMutation = (options?: Partial<O
     return mutationOptions;
 };
 
+export const deleteSettingBookMutationKey = (options?: Partial<Options<DeleteSettingBookData>>) => createMutationKey('deleteSettingBook', options);
+
+/**
+ * 설정집 원본 soft delete
+ *
+ * 설정집 DB 행과 저장 객체는 보존하고 활성 목록에서 숨깁니다.
+ */
+export const deleteSettingBookMutation = (options?: Partial<Options<DeleteSettingBookData>>): UseMutationOptions<DeleteSettingBookResponse, DeleteSettingBookError, Options<DeleteSettingBookData>> => {
+    const mutationOptions: UseMutationOptions<DeleteSettingBookResponse, DeleteSettingBookError, Options<DeleteSettingBookData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteSettingBook({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: deleteSettingBookMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getSettingBookQueryKey = (options: Options<GetSettingBookData>) => createQueryKey('getSettingBook', options);
+
+/**
+ * 설정집 전체 원문 조회
+ *
+ * 선택한 설정집의 현재 편집용 텍스트와 업로드 원본 메타데이터를 반환합니다.
+ */
+export const getSettingBookOptions = (options: Options<GetSettingBookData>) => queryOptions<GetSettingBookResponse, GetSettingBookError, GetSettingBookResponse, ReturnType<typeof getSettingBookQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSettingBook({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSettingBookQueryKey(options)
+});
+
+export const updateSettingBookMutationKey = (options?: Partial<Options<UpdateSettingBookData>>) => createMutationKey('updateSettingBook', options);
+
+/**
+ * 설정집 전체 원문 수정
+ *
+ * 업로드 원본은 보존하고 작품/설정집/원본 파일명 기반의 고정 key에 현재 원문을 덮어씁니다.
+ */
+export const updateSettingBookMutation = (options?: Partial<Options<UpdateSettingBookData>>): UseMutationOptions<UpdateSettingBookResponse, UpdateSettingBookError, Options<UpdateSettingBookData>> => {
+    const mutationOptions: UseMutationOptions<UpdateSettingBookResponse, UpdateSettingBookError, Options<UpdateSettingBookData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateSettingBook({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateSettingBookMutationKey(options)
+    };
+    return mutationOptions;
+};
+
 export const deleteEpisodeMutationKey = (options?: Partial<Options<DeleteEpisodeData>>) => createMutationKey('deleteEpisode', options);
 
 /**
@@ -742,44 +810,6 @@ export const getSettingCandidatesOptions = (options: Options<GetSettingCandidate
         return data;
     },
     queryKey: getSettingCandidatesQueryKey(options)
-});
-
-export const deleteSettingBookMutationKey = (options?: Partial<Options<DeleteSettingBookData>>) => createMutationKey('deleteSettingBook', options);
-
-/**
- * 설정집 원본 soft delete
- */
-export const deleteSettingBookMutation = (options?: Partial<Options<DeleteSettingBookData>>): UseMutationOptions<DeleteSettingBookResponse, DefaultError, Options<DeleteSettingBookData>> => {
-    const mutationOptions: UseMutationOptions<DeleteSettingBookResponse, DefaultError, Options<DeleteSettingBookData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await deleteSettingBook({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        },
-        mutationKey: deleteSettingBookMutationKey(options)
-    };
-    return mutationOptions;
-};
-
-export const getSettingBookQueryKey = (options: Options<GetSettingBookData>) => createQueryKey('getSettingBook', options);
-
-/**
- * 설정집 읽기 전용 원문 조회
- */
-export const getSettingBookOptions = (options: Options<GetSettingBookData>) => queryOptions<GetSettingBookResponse, DefaultError, GetSettingBookResponse, ReturnType<typeof getSettingBookQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getSettingBook({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getSettingBookQueryKey(options)
 });
 
 export const getAnalysisJobQueryKey = (options: Options<GetAnalysisJobData>) => createQueryKey('getAnalysisJob', options);
