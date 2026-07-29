@@ -19,7 +19,7 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
-import { SettingBookDeleteModal } from './SettingBookDeleteModal';
+import { SettingBookWorkspace } from './SettingBookWorkspace';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -27,17 +27,13 @@ import { ALLOWED_EXTENSIONS, validateManuscriptFile, formatFileSize } from '../.
 import {
   createAnalysisJobMutation,
   deleteEpisodeMutation,
-  deleteSettingBookMutation,
   getEpisodesOptions,
   getEpisodesQueryKey,
-  getSettingBooksOptions,
-  getSettingBooksQueryKey,
   replaceEpisodeFileMutation,
   retryAnalysisJobMutation,
   updateEpisodeTitleMutation,
-  uploadSettingBookMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
-import type { EpisodeSummaryResponse, SettingBookSummaryResponse } from '../../api/generated/types.gen';
+import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
 import { WORK_GENRES } from '../../lib/work-contract';
 
@@ -2181,60 +2177,6 @@ function CharDetailModal({ charId, chars, onClose, onEdit, onDelete }: {
   );
 }
 
-// ── WorldCardDynamic ───────────────────────────────
-function WorldCardDynamic({ ws, onEdit }: { ws: WorldSetting; onEdit: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  const meta = WORLD_CATEGORY_META[ws.category];
-  const preview = ws.entries.slice(0, 3);
-
-  return (
-    <div
-      onClick={onEdit}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: C.bg, borderRadius: 8,
-        border: `1px solid ${hovered ? meta.color + '88' : C.border}`,
-        padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
-        cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative',
-      }}
-    >
-      {hovered && (
-        <div style={{
-          position: 'absolute', top: 10, right: 10, background: C.surface,
-          border: `1px solid ${C.border}`, borderRadius: 4,
-          padding: '2px 8px', fontSize: 11, color: C.t3,
-        }}>수정</div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
-          background: meta.color + '1A', color: meta.color, border: `1px solid ${meta.color}33`,
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          {meta.icon}{meta.label}
-        </div>
-      </div>
-      <div style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{ws.title}</div>
-      {preview.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {preview.map(entry => (
-            <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: C.t3, fontSize: 12 }}>{entry.label}</span>
-              <span style={{
-                color: entry.content ? C.t2 : C.t3 + '66', fontSize: 12,
-                maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {entry.content || '미입력'}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function CharCard({ name, role, age, eyes, job, chapter, eyeConflict, colorKey }: {
   name: string; role: string; age: number; eyes: string; job: string;
   chapter: number; eyeConflict?: boolean; colorKey: string;
@@ -2877,31 +2819,6 @@ function SearchView() {
   );
 }
 
-function WorldRulesView({ worldSettings, onAdd, onEdit }: {
-  worldSettings: WorldSetting[];
-  onAdd: () => void;
-  onEdit: (ws: WorldSetting) => void;
-}) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
-      {worldSettings.map(ws => (
-        <WorldCardDynamic key={ws.id} ws={ws} onEdit={() => onEdit(ws)} />
-      ))}
-      <div onClick={onAdd} style={{
-        background: C.bg, borderRadius: 8, border: `2px dashed ${C.border}`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 8, cursor: 'pointer', minHeight: 160, transition: 'border-color 0.15s',
-      }}
-        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.success; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.border; }}>
-        <Globe size={20} color={C.success} />
-        <span style={{ color: C.t3, fontSize: 13 }}>세계관 설정 만들기</span>
-      </div>
-    </div>
-  );
-}
-
-
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
@@ -2946,11 +2863,25 @@ export default function S1Dashboard() {
 
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
-  const setActiveNav = (id: NavId) => setSearchParams(prev => { prev.set('nav', id); return prev; });
+  const setActiveNav = (id: NavId) => setSearchParams(prev => {
+    prev.set('nav', id);
+    if (id !== 'settingDB') {
+      prev.delete('settingBookFileId');
+      if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
+    }
+    return prev;
+  });
 
   const tabParam = searchParams.get('tab');
   const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
-  const setSettingTab = (id: SettingTabId) => setSearchParams(prev => { prev.set('tab', id); return prev; });
+  const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
+    prev.set('tab', id);
+    if (id !== 'worldrules') {
+      prev.delete('settingBookFileId');
+      if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
+    }
+    return prev;
+  });
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
   const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
@@ -2990,15 +2921,8 @@ export default function S1Dashboard() {
       return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
     },
   });
-  const settingBooksQuery = useQuery({
-    ...getSettingBooksOptions({ path: { workId: effectiveWorkId } }),
-    enabled: episodeApiEnabled,
-    retry: false,
-  });
   const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
-  const deleteSettingBookRequest = useMutation(deleteSettingBookMutation());
   const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
-  const uploadSettingBookRequest = useMutation(uploadSettingBookMutation());
   const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
   const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
   const retryEpisodeAnalysisRequest = useMutation(retryAnalysisJobMutation());
@@ -3033,19 +2957,13 @@ export default function S1Dashboard() {
   const [editTarget, setEditTarget] = useState<CharacterSetting | null>(null);
   const [charEditMode, setCharEditMode] = useState(false);
   const [charActivityLog, setCharActivityLog] = useState<{ id: string; desc: string; type: 'danger' | 'success' | 'info'; at: number }[]>([]);
-  const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
+  const [, setWorldSettings] = useState<WorldSetting[]>(INIT_WORLD_SETTINGS);
   const [showWorldBuilder, setShowWorldBuilder] = useState(false);
   const [editWorldTarget, setEditWorldTarget] = useState<WorldSetting | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
   const [editingEpisodeTitle, setEditingEpisodeTitle] = useState('');
   const [episodeActionError, setEpisodeActionError] = useState<string | null>(null);
-  const [settingBookActionError, setSettingBookActionError] = useState<string | null>(null);
-  const [showSettingBookUpload, setShowSettingBookUpload] = useState(false);
-  const [settingBookFile, setSettingBookFile] = useState<File | null>(null);
-  const [settingBookFileError, setSettingBookFileError] = useState<string | null>(null);
-  const [settingBookDeleteTarget, setSettingBookDeleteTarget] = useState<SettingBookSummaryResponse | null>(null);
-  const [settingBookDeleteFailed, setSettingBookDeleteFailed] = useState(false);
   const [replaceEpisodeTarget, setReplaceEpisodeTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [replacementFileError, setReplacementFileError] = useState<string | null>(null);
@@ -3096,10 +3014,6 @@ export default function S1Dashboard() {
     queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
   });
 
-  const refreshSettingBookList = () => queryClient.invalidateQueries({
-    queryKey: getSettingBooksQueryKey({ path: { workId: effectiveWorkId } }),
-  });
-
   const changeManuscriptPage = (nextPage: number) => {
     setMsPage(nextPage);
     setSearchParams(params => {
@@ -3139,37 +3053,6 @@ export default function S1Dashboard() {
       setEpisodeDeleteFailed(true);
     } finally {
       setEpisodeDeleteSubmitting(false);
-    }
-  };
-
-  const uploadSettingBook = async () => {
-    if (!settingBookFile || settingBookFileError) return;
-    setSettingBookActionError(null);
-    try {
-      await uploadSettingBookRequest.mutateAsync({
-        path: { workId: effectiveWorkId },
-        body: { file: settingBookFile },
-      });
-      await refreshSettingBookList();
-      setShowSettingBookUpload(false);
-      setSettingBookFile(null);
-      setSettingBookFileError(null);
-    } catch (error) {
-      setSettingBookActionError(toApiError(error)?.message ?? '설정집 원본을 업로드하지 못했습니다.');
-    }
-  };
-
-  const removeSettingBook = async () => {
-    if (!settingBookDeleteTarget?.id || deleteSettingBookRequest.isPending) return;
-    setSettingBookDeleteFailed(false);
-    try {
-      await deleteSettingBookRequest.mutateAsync({
-        path: { workId: effectiveWorkId, settingBookId: settingBookDeleteTarget.id },
-      });
-      await refreshSettingBookList();
-      setSettingBookDeleteTarget(null);
-    } catch {
-      setSettingBookDeleteFailed(true);
     }
   };
 
@@ -3261,8 +3144,6 @@ export default function S1Dashboard() {
     currentEpisodePage * MS_PAGE_SIZE,
     (currentEpisodePage + 1) * MS_PAGE_SIZE,
   );
-  const settingBookRows = settingBooksQuery.data?.data ?? [];
-
   return (
     <div style={{
       background: C.bg, width: '100%', height: '100%',
@@ -3333,7 +3214,7 @@ export default function S1Dashboard() {
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} /> },
                     { id: 'timeline', label: '타임라인', icon: <Clock size={13} /> },
-                    { id: 'worldrules', label: '세계관 규칙', icon: <Globe size={13} /> },
+                    { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                   ] as { id: SettingTabId; label: string; icon: React.ReactNode }[]).map((tab) => (
                     <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
@@ -3483,14 +3364,10 @@ export default function S1Dashboard() {
                     )}
 
                     {settingTab === 'worldrules' && (
-                      <motion.div key="wr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
-                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>작품 고유의 세계관·환경 설정입니다. 설정집이나 회차에서 AI가 자동 추출하거나 직접 입력할 수 있습니다.</div>
-                        <WorldRulesView
-                          worldSettings={worldSettings}
-                          onAdd={() => setShowWorldBuilder(true)}
-                          onEdit={ws => setEditWorldTarget(ws)}
-                        />
-                      </motion.div>
+                      <SettingBookWorkspace
+                        workId={effectiveWorkId}
+                        enabled={episodeApiEnabled}
+                      />
                     )}
 
                     {settingTab === 'search' && (
@@ -3635,66 +3512,6 @@ export default function S1Dashboard() {
                         <AlertCircle size={13} /> {episodeActionError}
                       </div>
                     )}
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          업로드된 설정집 ({settingBookRows.length}개)
-                        </div>
-                        <BtnG small label="설정집 업로드" icon={<Upload size={11} />} onClick={() => {
-                          setSettingBookActionError(null);
-                          setShowSettingBookUpload(true);
-                        }} />
-                      </div>
-                      {settingBookActionError && (
-                        <div style={{ color: C.danger, fontSize: 12, marginBottom: 8 }}>{settingBookActionError}</div>
-                      )}
-                      {settingBooksQuery.isPending ? (
-                        <div style={{ padding: 22, color: C.t3, textAlign: 'center' }}><Loader2 size={16} className="spin" /> 설정집을 불러오는 중...</div>
-                      ) : settingBooksQuery.isError ? (
-                        <div style={{ padding: 18, border: `1px solid ${C.danger}44`, borderRadius: 8, color: C.t2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>설정집 목록을 불러오지 못했습니다.</span>
-                          <BtnG small label="다시 시도" icon={<RefreshCw size={11} />} onClick={() => void settingBooksQuery.refetch()} />
-                        </div>
-                      ) : settingBookRows.length === 0 ? (
-                        <div style={{ padding: '24px 16px', color: C.t3, background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, textAlign: 'center' }}>
-                          아직 업로드된 설정집이 없습니다.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {settingBookRows.map(settingBook => (
-                            <div key={settingBook.id} style={{
-                              display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) 140px 150px', alignItems: 'center',
-                              padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
-                            }}>
-                              <button type="button" onClick={() => navigate(
-                                `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
-                                'push-right',
-                                { source: 'manuscripts', sourceWorkId: effectiveWorkId },
-                              )} style={{
-                                border: 0, background: 'transparent', color: C.t1, fontFamily: 'inherit', fontSize: 13,
-                                textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              }}>
-                                {settingBook.originalFilename}
-                              </button>
-                              <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(settingBook.uploadedAt)}</span>
-                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
-                                <BtnG small label="원문" onClick={() => navigate(
-                                  `/editor?workId=${encodeURIComponent(effectiveWorkId)}&settingBookId=${settingBook.id}`,
-                                  'push-right',
-                                  { source: 'manuscripts', sourceWorkId: effectiveWorkId },
-                                )} />
-                                <BtnG small label="삭제" disabled={deleteSettingBookRequest.isPending} onClick={() => {
-                                  setSettingBookActionError(null);
-                                  setSettingBookDeleteFailed(false);
-                                  setSettingBookDeleteTarget(settingBook);
-                                }} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
                     <div>
                       <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
@@ -3845,30 +3662,6 @@ export default function S1Dashboard() {
       </div>
 
       <AnimatePresence>
-      {showSettingBookUpload && (
-        <SourceFileModal
-          title="설정집 업로드"
-          description="현재 작품에 설정집 원본만 저장합니다. 분석이나 설정 추출은 실행하지 않습니다."
-          file={settingBookFile}
-          fileError={settingBookFileError}
-          requestError={settingBookActionError}
-          pending={uploadSettingBookRequest.isPending}
-          submitLabel="업로드"
-          onFileChange={(file, error) => {
-            setSettingBookFile(file);
-            setSettingBookFileError(error);
-            setSettingBookActionError(null);
-          }}
-          onClose={() => {
-            if (uploadSettingBookRequest.isPending) return;
-            setShowSettingBookUpload(false);
-            setSettingBookFile(null);
-            setSettingBookFileError(null);
-            setSettingBookActionError(null);
-          }}
-          onSubmit={() => void uploadSettingBook()}
-        />
-      )}
       {replaceEpisodeTarget && (
         <SourceFileModal
           title="회차 파일 변경"
@@ -3906,19 +3699,6 @@ export default function S1Dashboard() {
             setEpisodeDeleteFailed(false);
           }}
           onDelete={() => void removeEpisode()}
-        />
-      )}
-      {settingBookDeleteTarget && (
-        <SettingBookDeleteModal
-          settingBook={settingBookDeleteTarget}
-          submitting={deleteSettingBookRequest.isPending}
-          failed={settingBookDeleteFailed}
-          onClose={() => {
-            if (deleteSettingBookRequest.isPending) return;
-            setSettingBookDeleteTarget(null);
-            setSettingBookDeleteFailed(false);
-          }}
-          onDelete={() => void removeSettingBook()}
         />
       )}
         {editTarget && (
