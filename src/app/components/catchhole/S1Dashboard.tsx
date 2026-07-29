@@ -3135,9 +3135,26 @@ export default function S1Dashboard() {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
-    if (episode.analysisStatus === 'IN_PROGRESS' && episode.latestAnalysisJobId) {
+    const batchAnalysisJobIds = [...new Set(
+      (episodesQuery.data?.data ?? [])
+        .filter(candidate => candidate.batchId === episode.batchId)
+        .flatMap(candidate => candidate.latestAnalysisJobId ? [candidate.latestAnalysisJobId] : []),
+    )];
+    const batchAnalysisJobIdParam = batchAnalysisJobIds.join(',');
+    if (episode.analysisStatus === 'COMPLETED') {
+      if (!batchAnalysisJobIdParam) {
+        setEpisodeActionError('완료된 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
       navigate(
-        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${batchAnalysisJobIdParam}&currentAnalysisJobIds=${batchAnalysisJobIdParam}`,
+        'push-right',
+      );
+      return;
+    }
+    if (episode.analysisStatus === 'IN_PROGRESS' && batchAnalysisJobIdParam) {
+      navigate(
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${batchAnalysisJobIdParam}&currentAnalysisJobIds=${batchAnalysisJobIdParam}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
       return;
@@ -3602,16 +3619,7 @@ export default function S1Dashboard() {
                                       label={episode.analysisStatus === 'FAILED' ? '다시 시도'
                                         : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
                                           : episode.analysisStatus === 'IN_PROGRESS' ? '진행 보기' : '재분석'}
-                                      onClick={episode.analysisStatus === 'COMPLETED'
-                                        ? () => navigate(
-                                            `/episode-validation-report?workId=${encodeURIComponent(effectiveWorkId)}`,
-                                            'push-right',
-                                            {
-                                              workId: effectiveWorkId,
-                                              episodeIds: episode.id ? [episode.id] : [],
-                                            },
-                                          )
-                                        : () => void openEpisodeAnalysis(episode)}
+                                      onClick={() => void openEpisodeAnalysis(episode)}
                                     />
                                     <BtnG small label="원문" onClick={() => {
                                       setEditorMode('view');

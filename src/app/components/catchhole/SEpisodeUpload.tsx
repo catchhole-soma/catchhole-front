@@ -1451,28 +1451,16 @@ export default function SEpisodeUpload() {
                 )}>원고 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
-                    <PrimaryButton onClick={() => {
-                      if (resolvedAnalysisJobType === 'EPISODE_VALIDATION') {
-                        const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
-                        navigate(
-                          `/episode-validation-report?workId=${encodeURIComponent(workId)}`,
-                          'dissolve',
-                          {
-                            workId,
-                            batchId: episodeUploadBatchId,
-                            analysisJobIds: currentAnalysisJobIds,
-                            episodeIds,
-                          },
-                        );
-                      } else if (episodeUploadBatchId) {
-                        navigate(
-                          `/setting-review?workId=${encodeURIComponent(workId)}`
-                          + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`,
-                          'dissolve',
-                        );
-                      }
+                    <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
+                      if (!episodeUploadBatchId) return;
+                      navigate(
+                        `/setting-review?workId=${encodeURIComponent(workId)}`
+                        + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
+                        + `&jobType=${resolvedAnalysisJobType}`,
+                        'dissolve',
+                      );
                     }}>
-                      {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 후보 검토'}
+                      설정 후보 검토
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton

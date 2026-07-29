@@ -126,7 +126,10 @@ test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버
   });
 
   await authenticate(page);
-  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&size=1`);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}`
+    + '&jobType=EPISODE_VALIDATION&size=1',
+  );
 
   await expect(page.getByText('1–5화 · 5개 회차')).toBeVisible();
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
@@ -136,11 +139,13 @@ test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버
 
   await page.getByRole('button', { name: '다음 페이지' }).click();
   await expect(page).toHaveURL(/page=2/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('EPISODE_VALIDATION');
   await expect(page.getByRole('heading', { name: '강민준' })).toBeVisible();
   await expect.poll(() => listRequests.some(request => request.page === '1')).toBe(true);
 
   await page.getByRole('button', { name: '확정', exact: true }).first().click();
   await expect(page).toHaveURL(/reviewStatus=CONFIRMED/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('EPISODE_VALIDATION');
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('1');
   await expect.poll(() => listRequests.some(request => (
     request.page === '0' && request.reviewStatus === 'CONFIRMED'

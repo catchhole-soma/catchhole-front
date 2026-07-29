@@ -903,15 +903,16 @@
 **3. 화면 전환 식별자**
 - 현재 작품: `workId`
 - 검토 대상 업로드 묶음: `batchId`
+- 검토 후 다음 단계를 결정할 분석 목적: `jobType={EPISODE_VALIDATION|SETTING_EXTRACTION}`
 - 선택 후보: `candidate={candidateId}`
 - 검토 상태: `reviewStatus={ALL|PENDING_REVIEW|CONFIRMED|DISMISSED}`
 - 연결 상태: `matchStatus={ALL|MATCHED|UNRESOLVED|AMBIGUOUS}`
 - 설정 유형: `settingType={ALL|PROFILE|AGE_LEVEL|STAT|SKILL|ITEM|STATUS|TIME}`
 - 페이지 번호: `page={1 이상의 정수}`
 - 페이지 크기: `size=20`
-- URL 예시: `/setting-review?workId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d444&batchId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&candidate=01970c2e-7e6d-7000-8e5d-2a9bc4b6d333&reviewStatus=PENDING_REVIEW&matchStatus=ALL&settingType=ALL&page=1&size=20`
-- 검토 완료 후 오류 탐지 작업: `/loading?workId={workId}&analysisJobIds={commaSeparatedValidationJobIds}`
-- 최초 원고 분석 검토 완료: `/dashboard?workId={workId}&nav=settingDB&tab=characters`
+- URL 예시: `/setting-review?workId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d444&batchId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&jobType=EPISODE_VALIDATION&candidate=01970c2e-7e6d-7000-8e5d-2a9bc4b6d333&reviewStatus=PENDING_REVIEW&matchStatus=ALL&settingType=ALL&page=1&size=20`
+- `EPISODE_VALIDATION` 검토 완료: 오류 탐지 작업을 생성하고 `/loading?workId={workId}&analysisJobIds={commaSeparatedValidationJobIds}`로 이동한 뒤 성공 시 회차 오류 리포트로 이동
+- `SETTING_EXTRACTION` 검토 완료: `/dashboard?workId={workId}&nav=settingDB&tab=characters`로 이동하며 오류 리포트는 표시하지 않음
 
 **4. 데이터 없음 / 실패 표시**
 - 목록·집계 조회 중 로딩
