@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,7 +13,11 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import {
+  confirmSettingCandidateMutation,
+  getCharactersQueryKey,
+  getSettingCandidateQueryKey,
   getSettingCandidateOptions,
+  getSettingCandidatesQueryKey,
   getSettingCandidatesOptions,
 } from '../../api/generated/@tanstack/react-query.gen';
 import type { SettingCandidateResponse } from '../../api/generated/types.gen';
@@ -327,11 +331,13 @@ function CandidateCard({
 function ActionButton({
   children,
   disabled = false,
+  disabledTitle,
   tone = C.t2,
   onClick,
 }: {
   children: ReactNode;
   disabled?: boolean;
+  disabledTitle?: string;
   tone?: string;
   onClick?: () => void;
 }) {
@@ -340,7 +346,7 @@ function ActionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      title={disabled ? '다음 작업 단위에서 연결됩니다.' : undefined}
+      title={disabled ? disabledTitle ?? '다음 작업 단위에서 연결됩니다.' : undefined}
       style={{
         minHeight: 38, padding: '0 18px', borderRadius: 7,
         border: `1px solid ${disabled ? C.border : tone}`,
@@ -355,7 +361,17 @@ function ActionButton({
   );
 }
 
-function CandidateDetail({ candidate }: { candidate: SettingCandidateResponse }) {
+function CandidateDetail({
+  candidate,
+  confirmError,
+  confirming,
+  onConfirm,
+}: {
+  candidate: SettingCandidateResponse;
+  confirmError: string | null;
+  confirming: boolean;
+  onConfirm?: () => void;
+}) {
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
@@ -501,8 +517,28 @@ function CandidateDetail({ candidate }: { candidate: SettingCandidateResponse })
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
             <ActionButton disabled>무시</ActionButton>
             <ActionButton disabled tone={C.warning}>수정</ActionButton>
-            <ActionButton disabled tone={C.success}>확정</ActionButton>
+            <ActionButton
+              disabled={matchStatus === 'AMBIGUOUS' || !onConfirm || confirming}
+              disabledTitle={matchStatus === 'AMBIGUOUS'
+                ? '캐릭터 연결을 먼저 확인해 주세요.'
+                : confirming
+                  ? '설정 후보를 확정하고 있습니다.'
+                  : undefined}
+              tone={C.success}
+              onClick={onConfirm}
+            >
+              {confirming ? '확정 중…' : '확정'}
+            </ActionButton>
           </div>
+          {confirmError && (
+            <div role="alert" style={{
+              marginTop: 10, padding: '10px 13px', borderRadius: 7,
+              border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
+              color: C.danger, fontSize: 12, lineHeight: 1.55,
+            }}>
+              {confirmError}
+            </div>
+          )}
         </>
       )}
     </article>
@@ -537,6 +573,7 @@ function QueryState({
 
 export default function SSettingReview() {
   const navigate = useAppNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const workId = searchParams.get('workId') ?? '';
   const batchId = searchParams.get('batchId') ?? '';
@@ -585,8 +622,45 @@ export default function SSettingReview() {
     retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 2,
   });
   const selectedCandidate = detailQuery.data?.data;
+  const confirmMutation = useMutation({
+    ...confirmSettingCandidateMutation(),
+    onSuccess: async (_, variables) => {
+      const targetWorkId = variables.path.workId;
+      const targetCandidateId = variables.path.candidateId;
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getSettingCandidatesQueryKey({
+            path: { workId: targetWorkId },
+            query: { batchId },
+          }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getSettingCandidateQueryKey({
+            path: { workId: targetWorkId, candidateId: targetCandidateId },
+            query: { batchId },
+          }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
+        }),
+      ]);
+      if (reviewFilter !== 'PENDING_REVIEW' || selectedCandidateId !== targetCandidateId) return;
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        next.delete('candidate');
+        return next;
+      }, { replace: true });
+    },
+  });
+  const confirmingSelectedCandidate = confirmMutation.isPending
+    && confirmMutation.variables.path.candidateId === selectedCandidateId;
+  const selectedCandidateConfirmError = confirmMutation.isError
+    && confirmMutation.variables?.path.candidateId === selectedCandidateId
+    ? errorMessage(confirmMutation.error, '설정 후보를 확정하지 못했습니다. 다시 시도해 주세요.')
+    : null;
 
   const updateFilters = (nextReview: ReviewFilter, nextMatch: MatchFilter) => {
+    confirmMutation.reset();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       if (nextReview === 'ALL') next.delete('reviewStatus');
@@ -599,6 +673,7 @@ export default function SSettingReview() {
     }, { replace: true });
   };
   const selectCandidate = (candidateId: string) => {
+    confirmMutation.reset();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('candidate', candidateId);
@@ -606,12 +681,19 @@ export default function SSettingReview() {
     }, { replace: true });
   };
   const changePage = (page: number) => {
+    confirmMutation.reset();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('page', String(page + 1));
       next.delete('candidate');
       return next;
     }, { replace: true });
+  };
+  const confirmSelectedCandidate = () => {
+    if (!selectedCandidateId || confirmingSelectedCandidate) return;
+    confirmMutation.mutate({
+      path: { workId, candidateId: selectedCandidateId },
+    });
   };
   const backToManuscripts = () => navigate(
     workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts` : '/works',
@@ -803,7 +885,14 @@ export default function SSettingReview() {
                         )}
                       />
                     ) : (
-                      <CandidateDetail candidate={selectedCandidate} />
+                      <CandidateDetail
+                        candidate={selectedCandidate}
+                        confirmError={selectedCandidateConfirmError}
+                        confirming={confirmingSelectedCandidate}
+                        onConfirm={selectedCandidate.matchStatus === 'AMBIGUOUS'
+                          ? undefined
+                          : confirmSelectedCandidate}
+                      />
                     )}
                   </section>
                 </div>

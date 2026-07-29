@@ -58,6 +58,19 @@ function fulfill(route: Route, data: unknown) {
   });
 }
 
+function fulfillError(route: Route, status: number, message: string) {
+  return route.fulfill({
+    status,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: false,
+      message,
+      data: null,
+      error: { code: 'SETTING_CANDIDATE_CONFIRM_FAILED', status, details: [] },
+    }),
+  });
+}
+
 async function authenticate(page: Page) {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'setting-review-token'));
@@ -135,7 +148,7 @@ test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
   await expect(page.getByText('수아의 눈동자는 햇살 아래 짙은 갈색으로 빛났다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '확정', exact: true }).last()).toBeDisabled();
+  await expect(page.getByRole('button', { name: '확정', exact: true }).last()).toBeEnabled();
 
   await page.getByRole('button', { name: '다음 페이지' }).click();
   await expect(page).toHaveURL(/page=2/);
@@ -206,4 +219,78 @@ test('범위를 벗어난 페이지를 보정하고 무시한 미연결 후보�
   await expect.poll(() => requestedPages.includes('1')).toBe(true);
   await expect(page.getByText('연결하지 않고 무시한 후보')).toBeVisible();
   await expect(page.getByText('새 캐릭터 등록 예정')).toHaveCount(0);
+});
+
+test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과 상세를 갱신한다', async ({ page }) => {
+  let confirmRequestCount = 0;
+  let reviewStatus: 'PENDING_REVIEW' | 'CONFIRMED' = 'PENDING_REVIEW';
+  let matchStatus: 'UNRESOLVED' | 'MATCHED' = 'UNRESOLVED';
+  let matchedCharacterId: string | null = null;
+  const candidate = {
+    ...candidates[0],
+    matchedCharacterId,
+    matchStatus,
+    reviewStatus,
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: reviewStatus === 'CONFIRMED' ? 1 : 0,
+        pendingCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [{ ...candidate, matchedCharacterId, matchStatus, reviewStatus }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/confirm`) {
+      confirmRequestCount += 1;
+      if (confirmRequestCount === 1) {
+        return fulfillError(route, 409, '캐릭터 연결 상태를 확인해 주세요.');
+      }
+      reviewStatus = 'CONFIRMED';
+      matchStatus = 'MATCHED';
+      matchedCharacterId = '77777777-7777-4777-8777-777777777777';
+      return fulfill(route, { id: firstCandidateId, reviewStatus });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) {
+      return fulfill(route, { ...candidate, matchedCharacterId, matchStatus, reviewStatus });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`);
+
+  const confirmButton = page.getByRole('button', { name: '확정', exact: true }).last();
+  await expect(page.getByText('새 캐릭터 후보').last()).toBeVisible();
+  await expect(confirmButton).toBeEnabled();
+  await confirmButton.click();
+
+  await expect(page.getByRole('alert')).toHaveText('캐릭터 연결 상태를 확인해 주세요.');
+  await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
+  await expect(confirmButton).toBeEnabled();
+
+  await confirmButton.click();
+
+  await expect(page.getByText('확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.')).toBeVisible();
+  await expect(page.getByText('기존 캐릭터 연결됨').last()).toBeVisible();
+  await expect(page.getByText('1/1 검토 완료')).toBeVisible();
+  await expect.poll(() => confirmRequestCount).toBe(2);
 });
