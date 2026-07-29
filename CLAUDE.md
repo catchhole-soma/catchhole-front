@@ -42,7 +42,7 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 | `/loading` | `S4Loading` | 분석 진행률 |
 | `/report` | `S5Report` | 충돌/모순 리포트. `?mode=prePublish`로 발행 전 전체 검수 화면 딥링크(없으면 단일 회차 모드) |
 | `/episode-upload` | `SEpisodeUpload` | 회차 업로드 (모드 선택 → 파일 업로드 → 회차 분리 확인 → 설정집 분석) |
-| `/setting-review` | `SSettingReview` | 추출된 설정 후보 검토. `?candidate=<id>`로 선택된 후보 딥링크 |
+| `/setting-review` | `SSettingReview` | 업로드 묶음에서 추출된 설정 후보 검토. `?workId=<id>&batchId=<id>&candidate=<id>`로 검토 문맥과 선택 후보 딥링크 |
 | `/episode-validation-report` | `SEpisodeValidationReport` | 회차 검사(충돌/모순) 결과. `?issue=<id>`로 선택된 이슈 딥링크 |
 
 화면 전환에는 `TransitionType`(`push-right`/`push-left`/`cover-up`/`pop`/`dissolve`, `constants.ts`)을 사용합니다.

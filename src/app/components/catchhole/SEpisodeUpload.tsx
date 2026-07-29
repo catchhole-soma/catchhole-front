@@ -1452,8 +1452,8 @@ export default function SEpisodeUpload() {
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
                     <PrimaryButton onClick={() => {
-                      const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
                       if (resolvedAnalysisJobType === 'EPISODE_VALIDATION') {
+                        const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
                         navigate(
                           `/episode-validation-report?workId=${encodeURIComponent(workId)}`,
                           'dissolve',
@@ -1464,14 +1464,15 @@ export default function SEpisodeUpload() {
                             episodeIds,
                           },
                         );
-                      } else {
+                      } else if (episodeUploadBatchId) {
                         navigate(
-                          `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB`,
+                          `/setting-review?workId=${encodeURIComponent(workId)}`
+                          + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`,
                           'dissolve',
                         );
                       }
                     }}>
-                      {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}
+                      {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 후보 검토'}
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton

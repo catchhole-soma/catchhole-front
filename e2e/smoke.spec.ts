@@ -724,7 +724,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   );
 });
 
-test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', async ({ page }) => {
+test('설정 구축 완료 후 현재 업로드 묶음의 설정 후보 검토로 이동한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
@@ -756,11 +756,30 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
               status: 'ANALYZED',
             }],
           }
-        : pathname.endsWith(`/works/${workId}`)
-          ? { id: workId, title: '현재 작품', genre: '판타지' }
-          : pathname.endsWith('/works')
-            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
-            : [];
+        : pathname.endsWith(`/works/${workId}/setting-candidates`)
+          ? {
+              batchId,
+              episodeStartNo: 1,
+              episodeEndNo: 1,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              matchRequiredCandidateCount: 0,
+              candidates: {
+                content: [],
+                page: 0,
+                size: 20,
+                totalElements: 0,
+                totalPages: 0,
+                hasNext: false,
+              },
+            }
+          : pathname.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '현재 작품', genre: '판타지' }
+            : pathname.endsWith('/works')
+              ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+              : [];
 
     return route.fulfill({
       status: 200,
@@ -777,12 +796,12 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
     + '&jobType=SETTING_EXTRACTION',
   );
 
-  await page.getByRole('button', { name: '설정 DB 보기' }).click();
+  await page.getByRole('button', { name: '설정 후보 검토' }).click();
 
-  await expect(page).toHaveURL(
-    new RegExp(`/dashboard\\?workId=${workId}&nav=settingDB$`),
-  );
-  await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/setting-review\?/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('workId')).toBe(workId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
+  await expect(page.getByText('검토할 설정 후보가 없습니다.')).toBeVisible();
 });
 
 test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변경·삭제·중복 요청을 막는다', async ({ page }) => {

@@ -183,6 +183,7 @@ flowchart TD
   loading["기존 작업 분석 진행<br/>/loading"]:::private
   report["충돌·모순 리포트<br/>/report"]:::private
   valreport["회차 검사 결과<br/>/episode-validation-report"]:::private
+  review["설정 후보 검토<br/>/setting-review"]:::private
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
 
   works -- "작품 선택" --> dashboard
@@ -195,7 +196,7 @@ flowchart TD
   upload -- "회차 저장·분석 시작" --> uploadProgress
   manuscripts -- "진행 보기 (기존 작업)" --> uploadProgress
   uploadProgress -- "신규 회차 검수 완료 후<br/>오류 리포트 확인" --> valreport
-  uploadProgress -- "기존 설정 구축 완료 후<br/>설정 DB 보기" --> settingDB
+  uploadProgress -- "기존 설정 구축 완료 후<br/>설정 후보 검토" --> review
 
   manuscripts -- "재분석 / 실패 다시 시도" --> loading
   loading -- "완료 후 결과 확인" --> report
@@ -335,7 +336,7 @@ flowchart TD
 
   success --> qPur{"분석 목적은?"}:::decision
   qPur -- "신규 회차 검수<br/>오류 리포트 확인" --> valreport["회차 검사 결과<br/>/episode-validation-report"]:::private
-  qPur -- "기존 설정 구축<br/>설정 DB 보기" --> settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
+  qPur -- "기존 설정 구축<br/>설정 후보 검토" --> review["설정 후보 검토<br/>/setting-review?workId&batchId"]:::private
 
   postMvp["Post-MVP<br/>설정집 분석 결과 확인"]:::modal
   persist -. "MVP에서는 경유하지 않음" .-> postMvp
@@ -349,20 +350,21 @@ flowchart TD
 
 > 회차 처리 상태: `UPLOADED` → `CHUNKING` → `CHUNKED` → `PREPROCESSING` → `PREPROCESSED` → `ANALYZING` → `ANALYZED`. 실제 진행률을 계산할 수 없으므로 숫자 퍼센트를 표시하지 않습니다.
 
-> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 목적별 결과가 준비됐을 때만 `오류 리포트 확인` 또는 `설정 DB 보기`가 활성화됩니다.
+> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 목적별 결과가 준비됐을 때만 `오류 리포트 확인` 또는 `설정 후보 검토`가 활성화됩니다.
 
 ---
 
 ## 6. 검토 · 리포트 흐름
 
-분석이 끝난 뒤 사용자가 명시적으로 이동하는 결과 화면들입니다. 업로드의 `기존 설정 구축`은 설정 후보 검토를 강제하지 않고 설정 DB로 이동합니다.
+분석이 끝난 뒤 사용자가 명시적으로 이동하는 결과 화면들입니다. 업로드의 `기존 설정 구축`은 같은 `batchId`의 설정 후보 검토로 이동하고, 모든 후보의 확정·무시가 끝난 뒤에만 다음 단계로 진행합니다.
 
 ```mermaid
 flowchart TD
   review["설정 후보 검토<br/>/setting-review<br/>(AI가 뽑은 설정을 작가가 확정)"]:::private
-  review -- "이전 / 회차 검사 시작" --> dashboard["대시보드<br/>/dashboard"]:::private
+  review -- "이전" --> dashboard["대시보드<br/>/dashboard"]:::private
 
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
+  review -. "검토 완료 후 다음 단계<br/>후속 구현" .-> settingDB
   settingDB -- "원고 목록" --> manuscripts["원고 목록<br/>/dashboard?nav=manuscripts"]:::private
 
   valreport["회차 검사 결과<br/>/episode-validation-report<br/>(신규 회차 ↔ 기존 설정 충돌 검사)"]:::private
@@ -379,4 +381,4 @@ flowchart TD
 ```
 
 > 딥링크 (클릭 시 이동): 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
-> ID 필요(형식만): 설정 후보 검토 `?candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
+> ID 필요(형식만): 설정 후보 검토 `?workId=<id>&batchId=<id>&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
