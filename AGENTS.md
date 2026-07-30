@@ -47,6 +47,15 @@ npm run test:e2e
 - 민감한 토큰, 쿠키, 비밀번호를 테스트 출력·문서·커밋에 남기지 않습니다.
 - 커밋과 push는 실제 연동 검증이 끝나고 사용자가 명시적으로 요청한 뒤에만 수행합니다.
 
+## 설정 후보 검토
+
+- 기본 검토 상태 필터는 `PENDING_REVIEW`로 유지한다. 이 기본 검토 흐름에서 확정·무시 후에는 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하고, `ALL`은 URL에 명시해 기본값과 구분한다.
+- 후보 수정 폼은 사용자용 설정명과 표시값만 전송한다. `valueType`, `valueJson`, 원문 근거와 raw AI payload를 클라이언트에서 재조립하거나 수정 요청에 포함하지 않는다.
+- 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 기존 prefix를 잠근 채 suffix만 수정한다. 편집 가능 여부와 prefix는 Backend 응답의 `attributeNameEditable`, `attributeNamePrefix`만 사용하며 FE key 목록으로 추측하지 않는다. 최종 key 검증과 `valueJson.name` 동기화도 Backend 계약을 따른다.
+- 내용 미수정 후보의 rich JSON은 Backend가 유지한다. `SettingValueType.JSON` 복합 후보의 이름 또는 값이 실제로 바뀌면 현재 JSON을 name-only로 축소하는 MVP 정책이며, 숨은 level·effect·quantity를 FE가 추측해 보존하지 않는다.
+- 비어 있는 표시값은 빈 문자열이 아니라 `null`로 전송해 원래 `null`인 후보를 실제 수정으로 오인하지 않게 한다.
+- 캐릭터 연결 변경은 후보 내용 수정과 별도 mutation으로 처리한다. 기존 캐릭터 연결과 신규 등록 예정 지정은 모두 `PENDING_REVIEW`를 유지하며, 실패하면 사용자의 모달 입력과 선택을 유지한다.
+
 ## GitHub 협업
 
 - PR 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 개요·작업 내용·Jira 이슈·PR 유형·확인 사항·참고 사항 구조를 유지하고 실제 변경과 검증 결과로 채웁니다.
