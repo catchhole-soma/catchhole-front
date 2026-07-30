@@ -1443,6 +1443,300 @@ export type EpisodeTitleUpdateRequest = {
 };
 
 /**
+ * 캐릭터 복합 설정의 세부 속성 수정 요청
+ */
+export type CharacterSettingPropertyRequest = {
+    /**
+     * 세부 속성 key
+     */
+    key: string;
+    /**
+     * 사용자용 세부 속성 값
+     */
+    value?: string | null;
+    /**
+     * 세부 속성 값 타입
+     */
+    valueType: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON' | 'UNKNOWN';
+};
+
+/**
+ * 캐릭터 현재 설정 항목 수정 요청
+ */
+export type CharacterSettingUpdateRequest = {
+    /**
+     * 현재 설정의 canonical key
+     */
+    key: string;
+    /**
+     * 화면과 검색에서 사용하는 설정 표시값
+     */
+    value?: string | null;
+    /**
+     * 설정 표시값 타입
+     */
+    valueType: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON' | 'UNKNOWN';
+    /**
+     * 스킬, 아이템, 상태 등 복합 설정의 세부 속성
+     */
+    properties: Array<CharacterSettingPropertyRequest>;
+};
+
+/**
+ * 캐릭터 기본 정보와 현재 설정 전체 수정 요청
+ */
+export type CharacterUpdateRequest = {
+    /**
+     * 캐릭터 이름
+     */
+    name: string;
+    /**
+     * 작품 안에서의 역할
+     */
+    roleLabel?: string | null;
+    /**
+     * 현재 나이
+     */
+    currentAge?: number | null;
+    /**
+     * 현재 레벨
+     */
+    currentLevel?: number | null;
+    /**
+     * 첫 등장 회차 번호
+     */
+    firstAppearanceEpisodeNo?: number | null;
+    /**
+     * 프로필 현재 설정 전체
+     */
+    profile: Array<CharacterSettingUpdateRequest>;
+    /**
+     * 스탯 현재 설정 전체
+     */
+    stats: Array<CharacterSettingUpdateRequest>;
+    /**
+     * 스킬 현재 설정 전체
+     */
+    skills: Array<CharacterSettingUpdateRequest>;
+    /**
+     * 아이템 현재 설정 전체
+     */
+    items: Array<CharacterSettingUpdateRequest>;
+    /**
+     * 상태 현재 설정 전체
+     */
+    statuses: Array<CharacterSettingUpdateRequest>;
+};
+
+/**
+ * 캐릭터 기본 정보와 현재 설정 전체 응답
+ */
+export type CharacterDetailResponse = {
+    /**
+     * 캐릭터 ID
+     */
+    id?: string;
+    /**
+     * 캐릭터 이름
+     */
+    name?: string;
+    /**
+     * 작품 안에서의 역할
+     */
+    roleLabel?: string | null;
+    /**
+     * 현재 나이
+     */
+    currentAge?: number | null;
+    /**
+     * 현재 나이에 대응하는 Fact와 원문 근거 정보
+     */
+    currentAgeFact?: CharacterFactReferenceResponse;
+    /**
+     * 현재 레벨
+     */
+    currentLevel?: number | null;
+    /**
+     * 현재 레벨에 대응하는 Fact와 원문 근거 정보
+     */
+    currentLevelFact?: CharacterFactReferenceResponse;
+    /**
+     * 첫 등장 회차
+     */
+    firstAppearanceEpisode?: CharacterEpisodeResponse;
+    /**
+     * 프로필 현재 설정
+     */
+    profile?: Array<CharacterSettingResponse>;
+    /**
+     * 스탯 현재 설정
+     */
+    stats?: Array<CharacterSettingResponse>;
+    /**
+     * 스킬 현재 설정
+     */
+    skills?: Array<CharacterSettingResponse>;
+    /**
+     * 아이템 현재 설정
+     */
+    items?: Array<CharacterSettingResponse>;
+    /**
+     * 상태 현재 설정
+     */
+    statuses?: Array<CharacterSettingResponse>;
+};
+
+/**
+ * 캐릭터와 연결된 회차 요약 응답
+ */
+export type CharacterEpisodeResponse = {
+    /**
+     * 회차 ID
+     */
+    id?: string;
+    /**
+     * 회차 번호
+     */
+    episodeNo?: number;
+};
+
+/**
+ * 캐릭터 기본 정보 값에 대응하는 현재 Fact 참조
+ */
+export type CharacterFactReferenceResponse = {
+    /**
+     * 현재 CharacterFact ID. MVP 후속 PR의 CharacterFact 상세·원문 근거 조회 식별자로 사용합니다.
+     */
+    characterFactId: string;
+    /**
+     * 후속 원문 근거 패널에서 선택 가능한 근거 존재 여부
+     */
+    hasEvidence: boolean;
+};
+
+/**
+ * 캐릭터 복합 설정의 사용자용 세부 속성
+ */
+export type CharacterSettingPropertyResponse = {
+    /**
+     * 세부 속성 key
+     */
+    key?: string;
+    /**
+     * 세부 속성 표시명
+     */
+    displayName?: string;
+    /**
+     * 세부 속성 표시값
+     */
+    value?: string | null;
+    /**
+     * 세부 속성 값 타입
+     */
+    valueType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON' | 'UNKNOWN';
+};
+
+/**
+ * 캐릭터 현재 설정의 사용자용 응답
+ */
+export type CharacterSettingResponse = {
+    /**
+     * 현재 설정 CharacterFact ID. MVP 후속 PR의 상세·원문 근거 조회 식별자
+     */
+    characterFactId?: string;
+    /**
+     * 현재 설정 canonical key
+     */
+    key?: string;
+    /**
+     * 화면 표시명
+     */
+    displayName?: string;
+    /**
+     * 사용자용 설정 표시값
+     */
+    value?: string | null;
+    /**
+     * 설정 표시값 타입
+     */
+    valueType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON' | 'UNKNOWN';
+    /**
+     * 복합 설정의 사용자용 세부 속성
+     */
+    properties?: Array<CharacterSettingPropertyResponse>;
+    /**
+     * 후속 원문 근거 패널에서 선택 가능한 근거 존재 여부
+     */
+    hasEvidence?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterDetailResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterDetailResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 보관 캐릭터 복구 응답
+ */
+export type CharacterRestoreResponse = {
+    /**
+     * 복구된 캐릭터 ID
+     */
+    id?: string;
+    /**
+     * 복구된 캐릭터 상태
+     */
+    status?: 'ACTIVE' | 'ARCHIVED';
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterRestoreResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterRestoreResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * AI Worker 분석 작업 진행 단계 갱신 요청
  */
 export type WorkerAnalysisJobProgressRequest = {
@@ -1561,6 +1855,92 @@ export type CommonResponseListEpisodeSummaryResponse = {
 };
 
 /**
+ * 설정DB 캐릭터 카드 요약 응답
+ */
+export type CharacterSummaryResponse = {
+    /**
+     * 캐릭터 ID
+     */
+    id?: string;
+    /**
+     * 캐릭터 이름
+     */
+    name?: string;
+    /**
+     * 현재 나이
+     */
+    currentAge?: number | null;
+    /**
+     * 대표 속성 표시명
+     */
+    representativeAttributeLabel?: string | null;
+    /**
+     * 대표 속성 표시값
+     */
+    representativeAttributeValue?: string | null;
+    /**
+     * 첫 등장 회차 번호
+     */
+    firstAppearanceEpisodeNo?: number | null;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponsePageResponseCharacterSummaryResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PageResponseCharacterSummaryResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponseCharacterSummaryResponse = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<CharacterSummaryResponse>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
+};
+
+/**
  * 공통 API 응답 Envelope
  */
 export type CommonResponseAnalysisJobResponse = {
@@ -1648,6 +2028,46 @@ export type MemberResponse = {
      * 회원 권한
      */
     role?: 'AUTHOR' | 'ADMIN';
+};
+
+/**
+ * 캐릭터 삭제 버튼 처리 결과. 데이터는 유지하고 보관 상태로 전환합니다.
+ */
+export type CharacterArchiveResponse = {
+    /**
+     * 캐릭터 ID
+     */
+    id?: string;
+    /**
+     * 변경된 캐릭터 상태
+     */
+    status?: 'ACTIVE' | 'ARCHIVED';
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterArchiveResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterArchiveResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
 };
 
 /**
@@ -1815,7 +2235,7 @@ export type ConfirmSettingCandidateData = {
 
 export type ConfirmSettingCandidateErrors = {
     /**
-     * 활성 schema 미매칭 또는 후보와 schema의 값 타입 불일치
+     * 활성 schema 미매칭, 값 타입 불일치 또는 구조화 값의 공개 속성 계약 위반
      */
     400: CommonResponseSettingCandidateReviewStatusResponse;
     /**
@@ -1827,7 +2247,7 @@ export type ConfirmSettingCandidateErrors = {
      */
     404: CommonResponseSettingCandidateReviewStatusResponse;
     /**
-     * 검토/캐릭터 매칭 상태 충돌, 유효하지 않은 연결, 비활성 동일 이름 충돌, schema 복수 매칭 또는 미지원 merge policy
+     * 검토/캐릭터 매칭 상태 충돌, 유효하지 않은 연결, schema 복수 매칭 또는 미지원 merge policy
      */
     409: CommonResponseSettingCandidateReviewStatusResponse;
 };
@@ -2790,6 +3210,158 @@ export type UpdateEpisodeTitleResponses = {
 
 export type UpdateEpisodeTitleResponse = UpdateEpisodeTitleResponses[keyof UpdateEpisodeTitleResponses];
 
+export type DeleteCharacterData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}';
+};
+
+export type DeleteCharacterErrors = {
+    /**
+     * 경로 UUID 형식 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 활성 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type DeleteCharacterError = DeleteCharacterErrors[keyof DeleteCharacterErrors];
+
+export type DeleteCharacterResponses = {
+    /**
+     * 캐릭터 보관 전환 성공
+     */
+    200: CommonResponseCharacterArchiveResponse;
+};
+
+export type DeleteCharacterResponse = DeleteCharacterResponses[keyof DeleteCharacterResponses];
+
+export type GetCharacterData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}';
+};
+
+export type GetCharacterErrors = {
+    /**
+     * 경로 UUID 형식 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 활성 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetCharacterError = GetCharacterErrors[keyof GetCharacterErrors];
+
+export type GetCharacterResponses = {
+    /**
+     * 캐릭터 상세 조회 성공
+     */
+    200: CommonResponseCharacterDetailResponse;
+};
+
+export type GetCharacterResponse = GetCharacterResponses[keyof GetCharacterResponses];
+
+export type UpdateCharacterData = {
+    body: CharacterUpdateRequest;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}';
+};
+
+export type UpdateCharacterErrors = {
+    /**
+     * 요청 값 또는 설정 key 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품, 활성 캐릭터 또는 첫 등장 회차를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 같은 작품 안의 다른 활성 캐릭터와 이름 중복
+     */
+    409: CommonErrorResponse;
+};
+
+export type UpdateCharacterError = UpdateCharacterErrors[keyof UpdateCharacterErrors];
+
+export type UpdateCharacterResponses = {
+    /**
+     * 캐릭터 수정 성공
+     */
+    200: CommonResponseCharacterDetailResponse;
+};
+
+export type UpdateCharacterResponse = UpdateCharacterResponses[keyof UpdateCharacterResponses];
+
+export type RestoreCharacterData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}/restore';
+};
+
+export type RestoreCharacterErrors = {
+    /**
+     * 경로 UUID 형식 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 보관 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 같은 작품 안의 다른 활성 캐릭터와 이름 중복
+     */
+    409: CommonErrorResponse;
+};
+
+export type RestoreCharacterError = RestoreCharacterErrors[keyof RestoreCharacterErrors];
+
+export type RestoreCharacterResponses = {
+    /**
+     * 캐릭터 복구 성공
+     */
+    200: CommonResponseCharacterRestoreResponse;
+};
+
+export type RestoreCharacterResponse = RestoreCharacterResponses[keyof RestoreCharacterResponses];
+
 export type UpdateProgressData = {
     body: WorkerAnalysisJobProgressRequest;
     path: {
@@ -2867,6 +3439,94 @@ export type GetSettingCandidatesResponses = {
 };
 
 export type GetSettingCandidatesResponse = GetSettingCandidatesResponses[keyof GetSettingCandidatesResponses];
+
+export type GetCharactersData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        /**
+         * 0부터 시작하는 페이지 번호
+         */
+        page?: number;
+        /**
+         * 페이지 크기. 화면 배치에 맞춰 1~24 사이로 요청합니다.
+         */
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/characters';
+};
+
+export type GetCharactersErrors = {
+    /**
+     * 페이지 번호 또는 크기 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetCharactersError = GetCharactersErrors[keyof GetCharactersErrors];
+
+export type GetCharactersResponses = {
+    /**
+     * 캐릭터 목록 조회 성공
+     */
+    200: CommonResponsePageResponseCharacterSummaryResponse;
+};
+
+export type GetCharactersResponse = GetCharactersResponses[keyof GetCharactersResponses];
+
+export type GetArchivedCharactersData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        /**
+         * 0부터 시작하는 페이지 번호
+         */
+        page?: number;
+        /**
+         * 페이지 크기. 보관함은 기본 9개이며 1~24 사이로 요청합니다.
+         */
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/characters/archived';
+};
+
+export type GetArchivedCharactersErrors = {
+    /**
+     * 페이지 번호 또는 크기 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetArchivedCharactersError = GetArchivedCharactersErrors[keyof GetArchivedCharactersErrors];
+
+export type GetArchivedCharactersResponses = {
+    /**
+     * 보관 캐릭터 목록 조회 성공
+     */
+    200: CommonResponsePageResponseCharacterSummaryResponse;
+};
+
+export type GetArchivedCharactersResponse = GetArchivedCharactersResponses[keyof GetArchivedCharactersResponses];
 
 export type GetAnalysisJobData = {
     body?: never;

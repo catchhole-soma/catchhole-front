@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
+
 // 실제 로그인/작품선택(백엔드 연동)은 검증하지 않음 — accessToken을 직접 주입해
 // "이미 인증된 상태"만 흉내 내고, 그 상태에서 /dashboard 렌더링이 깨지지 않는지만 확인한다.
 test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ page }) => {
@@ -28,20 +30,96 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mock'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
-test('데모 모드는 access token 없이 /dashboard를 열 수 있다', async ({ page }) => {
+test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
+  let characterRequestCount = 0;
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.includes('/characters')) characterRequestCount += 1;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'work-required@example.com',
+          displayName: '작품 선택 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : [];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'work-required-token'));
+
+  await page.goto('/dashboard');
+
+  await expect(page).toHaveURL(/\/works$/);
+  expect(characterRequestCount).toBe(0);
+
+  await page.goto('/dashboard?workId=detective');
+
+  await expect(page).toHaveURL(/\/works$/);
+  expect(characterRequestCount).toBe(0);
+});
+
+test('데모 모드는 access token 없이 열리고 이름만 수정해도 설정 근거를 유지한다', async ({ page }) => {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
 
-  await page.goto('/dashboard');
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /수아/ }).click();
+  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toBeVisible();
+  await page.getByTestId('character-modal-backdrop').click({ position: { x: 5, y: 5 } });
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /수아/ }).click();
+  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const confirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await confirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '관계도', exact: true }).click();
+  await page.getByRole('button', { name: '캐릭터 DB', exact: true }).click();
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0);
+
+  await page.goto('/works');
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /수아 이름 수정/ }).click();
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
+  await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.goto('/works');
+  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('수아 이름 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await archiveDialog.getByRole('button', { name: '보관함 닫기' }).click();
+  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -1092,7 +1170,7 @@ test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mock'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('백엔드 서버에 연결할 수 없습니다', { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('mock');
@@ -1100,7 +1178,7 @@ test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용
   await page.getByRole('button', { name: '데모 버전으로 전환' }).click();
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
 test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async ({ page }) => {
@@ -1141,16 +1219,16 @@ test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async (
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'valid-token'));
 
-  await page.goto('/dashboard');
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('인증 정보를 확인하지 못했습니다.', { exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${TEST_WORK_ID}$`));
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
 
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByText('캐릭터 DB', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
 });
 
@@ -1268,6 +1346,7 @@ test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인�
   await page.evaluate(() => {
     localStorage.setItem('catchhole_demo_mode', 'true');
     localStorage.setItem('catchhole_demo_works', '[]');
+    localStorage.setItem('catchhole_demo_character_state', '{}');
   });
   await page.getByPlaceholder('이메일').fill('enter@example.com');
   await page.getByPlaceholder('비밀번호').fill('Password1');
@@ -1281,6 +1360,7 @@ test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인�
   await expect(page).toHaveURL(/\/works$/);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_mode'))).toBeNull();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_works'))).toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_character_state'))).toBeNull();
 });
 
 test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
@@ -1341,7 +1421,829 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
   releaseRefresh?.();
 
   await expect(protectedRequest).resolves.toBe(401);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+  await expect.poll(() => page
+    .evaluate(() => localStorage.getItem('accessToken'))
+    .catch(() => 'navigation-in-progress'))
+    .toBeNull();
+});
+
+test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보관함에서 복구한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
+  let characterName = '수아';
+  let roleLabel = '주인공';
+  let archived = false;
+  let restoreAttempt = 0;
+  let updateAttempt = 0;
+  let updateBody: Record<string, unknown> | undefined;
+  let detailRequestCount = 0;
+  let failCharacterListRefetch = false;
+  let releaseUpdate!: () => void;
+  const updateGate = new Promise<void>(resolve => {
+    releaseUpdate = resolve;
+  });
+  const characterAuthorizationHeaders: string[] = [];
+  const characterRequestPaths: string[] = [];
+
+  const detailResponse = () => ({
+    id: 'char-1',
+    name: characterName,
+    roleLabel,
+    currentAge: 23,
+    currentAgeFact: {
+      characterFactId: 'fact-age-1',
+      hasEvidence: true,
+    },
+    currentLevel: 15,
+    currentLevelFact: {
+      characterFactId: 'fact-level-1',
+      hasEvidence: true,
+    },
+    firstAppearanceEpisode: null,
+    profile: [{
+      characterFactId: 'fact-profile-1',
+      key: 'profile.occupation',
+      displayName: '직업',
+      value: '검사 지망생',
+      valueType: 'STRING',
+      properties: [],
+      hasEvidence: true,
+    }],
+    stats: [
+      {
+        characterFactId: 'fact-stat-2',
+        key: 'stats.agility',
+        displayName: '민첩',
+        value: '58',
+        valueType: 'NUMBER',
+        properties: [],
+        hasEvidence: true,
+      },
+      {
+        characterFactId: 'fact-stat-manual-old',
+        key: 'stats.manual_1700000000000_old',
+        displayName: '먼저 추가한 스탯',
+        value: '11',
+        valueType: 'NUMBER',
+        properties: [
+          { key: 'name', displayName: '이름', value: '먼저 추가한 스탯', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-stat-manual-new',
+        key: 'stats.manual_1800000000000_new',
+        displayName: '나중에 추가한 스탯',
+        value: '22',
+        valueType: 'NUMBER',
+        properties: [
+          { key: 'name', displayName: '이름', value: '나중에 추가한 스탯', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-stat-1',
+        key: 'stats.strength',
+        displayName: '근력',
+        value: '42',
+        valueType: 'NUMBER',
+        properties: [],
+        hasEvidence: false,
+      },
+    ],
+    skills: [{
+      characterFactId: 'fact-skill-1',
+      key: 'skill.생존_감각',
+      displayName: '생존 감각',
+      value: 'Lv.6',
+      valueType: 'JSON',
+      properties: [
+        { key: 'name', displayName: '이름', value: '생존 감각', valueType: 'STRING' },
+        { key: 'level', displayName: '레벨', value: '6', valueType: 'NUMBER' },
+      ],
+      hasEvidence: false,
+    }],
+    items: [{
+      characterFactId: 'fact-item-1',
+      key: 'item.치유_물약',
+      displayName: '치유 물약',
+      value: '1개',
+      valueType: 'JSON',
+      properties: [
+        { key: 'name', displayName: '이름', value: '치유 물약', valueType: 'STRING' },
+        { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
+      ],
+      hasEvidence: false,
+    }],
+    statuses: [
+      {
+        characterFactId: 'fact-status-1',
+        key: 'status.경상',
+        displayName: '경상',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', displayName: '이름', value: '경상', valueType: 'STRING' },
+          { key: 'severity', displayName: '심각도', value: '낮음', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-status-2',
+        key: 'status.회복_중',
+        displayName: '회복 중',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'severity', displayName: '심각도', value: '보통', valueType: 'STRING' },
+        ],
+        hasEvidence: false,
+      },
+      {
+        characterFactId: 'fact-status-3',
+        key: 'status.잠복',
+        displayName: '잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+        hasEvidence: false,
+      },
+    ],
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const method = request.method();
+    if (pathname.includes('/characters')) characterRequestPaths.push(pathname);
+
+    if (pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'character@example.com',
+            displayName: '캐릭터 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters`) && method === 'GET') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      if (failCharacterListRefetch) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 목록 재조회에 실패했습니다.',
+            data: null,
+            error: { code: 'INTERNAL_SERVER_ERROR', status: 503, details: [] },
+          }),
+        });
+      }
+      const content = archived ? [] : [{
+        id: 'char-1',
+        name: characterName,
+        currentAge: 23,
+        representativeAttributeLabel: '레벨',
+        representativeAttributeValue: '15',
+        firstAppearanceEpisodeNo: null,
+      }];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: 0,
+            size: 24,
+            totalElements: content.length,
+            totalPages: content.length === 0 ? 0 : 1,
+            hasNext: false,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/archived`) && method === 'GET') {
+      const content = archived ? [{
+        id: 'char-1',
+        name: characterName,
+        currentAge: 23,
+        representativeAttributeLabel: '레벨',
+        representativeAttributeValue: '15',
+        firstAppearanceEpisodeNo: null,
+      }] : [];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: 0,
+            size: 9,
+            totalElements: content.length,
+            totalPages: content.length === 0 ? 0 : 1,
+            hasNext: false,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'GET') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      detailRequestCount += 1;
+      if (archived) {
+        return route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 정보를 찾을 수 없습니다.',
+            data: null,
+            error: { code: 'CHARACTER_NOT_FOUND', status: 404, details: [] },
+          }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: detailResponse(), error: null }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/char-1/restore`) && method === 'PATCH') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      if (restoreAttempt++ === 0) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '같은 이름의 캐릭터가 이미 존재합니다.',
+            data: null,
+            error: { code: 'CHARACTER_NAME_DUPLICATED', status: 409, details: [] },
+          }),
+        });
+      }
+      archived = false;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'char-1', status: 'ACTIVE' },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'PATCH') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      updateBody = request.postDataJSON() as Record<string, unknown>;
+      if (updateAttempt++ === 0) {
+        await updateGate;
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '캐릭터 설정을 저장하지 못했습니다.',
+            data: null,
+            error: { code: 'INTERNAL_SERVER_ERROR', status: 500, details: [] },
+          }),
+        });
+      }
+      characterName = String(updateBody.name);
+      roleLabel = String(updateBody.roleLabel);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: detailResponse(), error: null }),
+      });
+    }
+
+    if (pathname.endsWith(`/works/${workId}/characters/char-1`) && method === 'DELETE') {
+      characterAuthorizationHeaders.push(request.headers().authorization ?? '');
+      archived = true;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'char-1', status: 'ARCHIVED' },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'character-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
+
+  const characterCard = page.getByRole('button', { name: /수아/ });
+  await expect(characterCard).toContainText('첫 등장');
+  await expect(characterCard).toContainText('—');
+
+  failCharacterListRefetch = true;
+  await page.evaluate(async () => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    await queryClient.invalidateQueries();
+  });
+  const listRefetchAlert = page.getByRole('alert').filter({ hasText: '캐릭터 목록 재조회에 실패했습니다.' });
+  await expect(listRefetchAlert).toBeVisible();
+  await expect(characterCard).toBeVisible();
+  failCharacterListRefetch = false;
+  await listRefetchAlert.getByRole('button', { name: '다시 시도' }).click();
+  await expect(listRefetchAlert).toHaveCount(0);
+
+  await characterCard.click();
+  await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
+  await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
+  await expect(page.getByText('생존 감각', { exact: true })).toBeVisible();
+  await expect(page.getByText('Lv.6', { exact: true })).toBeVisible();
+  await expect(page.getByText('치유 물약', { exact: true })).toBeVisible();
+  await expect(page.getByText('1개', { exact: true })).toBeVisible();
+  await expect(page.getByText('경상', { exact: true })).toBeVisible();
+  await expect(page.getByText('회복 중', { exact: true })).toBeVisible();
+  await expect(page.getByText('잠복', { exact: true })).toBeVisible();
+  await expect(page.getByText('관찰 중', { exact: true })).toBeVisible();
+  await expect(page.getByText('활성', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('레벨 6', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('수량 1', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('심각도 낮음', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '현재 나이 원문 근거 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '현재 레벨 원문 근거 보기' })).toBeVisible();
+
+  const strengthRow = page.getByText('근력', { exact: true }).locator('..');
+  const agilityRow = page.getByText('민첩', { exact: true }).locator('..');
+  const firstManualStatRow = page.getByText('먼저 추가한 스탯', { exact: true }).locator('..');
+  const secondManualStatRow = page.getByText('나중에 추가한 스탯', { exact: true }).locator('..');
+  const [strengthBox, agilityBox, firstManualStatBox, secondManualStatBox] = await Promise.all([
+    strengthRow.boundingBox(),
+    agilityRow.boundingBox(),
+    firstManualStatRow.boundingBox(),
+    secondManualStatRow.boundingBox(),
+  ]);
+  expect(strengthBox).not.toBeNull();
+  expect(agilityBox).not.toBeNull();
+  expect(firstManualStatBox).not.toBeNull();
+  expect(secondManualStatBox).not.toBeNull();
+  expect(Math.abs((strengthBox?.y ?? 0) - (agilityBox?.y ?? 0))).toBeLessThan(2);
+  expect(strengthBox?.x ?? 0).toBeGreaterThan(agilityBox?.x ?? 0);
+  expect(firstManualStatBox?.y ?? 0).toBeGreaterThan(strengthBox?.y ?? 0);
+  expect(Math.abs((firstManualStatBox?.y ?? 0) - (secondManualStatBox?.y ?? 0))).toBeLessThan(2);
+  expect(secondManualStatBox?.x ?? 0).toBeGreaterThan(firstManualStatBox?.x ?? 0);
+
+  const statusPanel = page.getByTestId('character-status-settings');
+  await expect(statusPanel).toHaveCSS('border-color', 'rgb(42, 42, 54)');
+  const statusRow = page.getByText('경상', { exact: true }).locator('..');
+  const recoveringStatusRow = page.getByText('회복 중', { exact: true }).locator('..');
+  const dormantStatusRow = page.getByText('잠복', { exact: true }).locator('..');
+  const [statusBox, recoveringStatusBox, dormantStatusBox] = await Promise.all([
+    statusRow.boundingBox(),
+    recoveringStatusRow.boundingBox(),
+    dormantStatusRow.boundingBox(),
+  ]);
+  expect(statusBox).not.toBeNull();
+  expect(recoveringStatusBox).not.toBeNull();
+  expect(dormantStatusBox).not.toBeNull();
+  expect(Math.abs((statusBox?.y ?? 0) - (recoveringStatusBox?.y ?? 0))).toBeLessThan(3);
+  expect(recoveringStatusBox?.x ?? 0).toBeGreaterThan(statusBox?.x ?? 0);
+  expect(dormantStatusBox?.y ?? 0).toBeGreaterThan(statusBox?.y ?? 0);
+  expect(Math.abs((statusBox?.x ?? 0) - (dormantStatusBox?.x ?? 0))).toBeLessThan(2);
+  await expect(statusRow).toHaveCSS('border-bottom-width', '1px');
+  await expect(recoveringStatusRow).toHaveCSS('border-bottom-width', '1px');
+  await expect(dormantStatusRow).toHaveCSS('border-bottom-width', '0px');
+
+  await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
+  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '안내 닫기' }).click();
+  await page.getByRole('button', { name: '현재 레벨 원문 근거 보기' }).click();
+  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '안내 닫기' }).click();
+
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  const desktopViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const detailSections = page.getByTestId('character-detail-sections');
+  await expect.poll(() => detailSections.evaluate(element => (
+    element.scrollWidth <= element.clientWidth
+  ))).toBe(true);
+  const [profileSectionBox, settingSectionsBox, skillSectionBox, itemSectionBox] = await Promise.all([
+    page.getByTestId('character-profile-section').boundingBox(),
+    page.getByTestId('character-setting-sections').boundingBox(),
+    page.getByTestId('character-skill-section').boundingBox(),
+    page.getByTestId('character-item-section').boundingBox(),
+  ]);
+  expect(profileSectionBox).not.toBeNull();
+  expect(settingSectionsBox).not.toBeNull();
+  expect(skillSectionBox).not.toBeNull();
+  expect(itemSectionBox).not.toBeNull();
+  expect(settingSectionsBox?.y ?? 0).toBeGreaterThan(profileSectionBox?.y ?? 0);
+  expect(itemSectionBox?.y ?? 0).toBeGreaterThan(skillSectionBox?.y ?? 0);
+  if (desktopViewport) await page.setViewportSize(desktopViewport);
+
+  const [editAgilityBox, editStrengthBox, editFirstManualStatBox, editSecondManualStatBox] = await Promise.all([
+    page.getByLabel('민첩 값', { exact: true }).boundingBox(),
+    page.getByLabel('근력 값', { exact: true }).boundingBox(),
+    page.getByLabel('먼저 추가한 스탯 값', { exact: true }).boundingBox(),
+    page.getByLabel('나중에 추가한 스탯 값', { exact: true }).boundingBox(),
+  ]);
+  expect(editAgilityBox).not.toBeNull();
+  expect(editStrengthBox).not.toBeNull();
+  expect(editFirstManualStatBox).not.toBeNull();
+  expect(editSecondManualStatBox).not.toBeNull();
+  expect(Math.abs((editAgilityBox?.y ?? 0) - (editStrengthBox?.y ?? 0))).toBeLessThan(2);
+  expect(editStrengthBox?.x ?? 0).toBeGreaterThan(editAgilityBox?.x ?? 0);
+  expect(editFirstManualStatBox?.y ?? 0).toBeGreaterThan(editStrengthBox?.y ?? 0);
+  expect(Math.abs((editFirstManualStatBox?.y ?? 0) - (editSecondManualStatBox?.y ?? 0))).toBeLessThan(2);
+  expect(editSecondManualStatBox?.x ?? 0).toBeGreaterThan(editFirstManualStatBox?.x ?? 0);
+  await expect(page.getByLabel('생존 감각 레벨', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
+  await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
+  const detailRequestsBeforeRefetch = detailRequestCount;
+  await page.evaluate(async () => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    await queryClient.invalidateQueries();
+  });
+  await expect.poll(() => detailRequestCount).toBeGreaterThan(detailRequestsBeforeRefetch);
+  await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const saveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  const confirmSaveButton = saveConfirm.getByRole('button', { name: '저장', exact: true });
+  await confirmSaveButton.click();
+  await expect(confirmSaveButton).toBeDisabled();
+  await page.getByTestId('character-modal-backdrop').click({ position: { x: 5, y: 5 } });
+  await expect(page.getByText('수정 내용을 저장하시겠습니까?', { exact: true })).toBeVisible();
+  releaseUpdate();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
+
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const retryConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await retryConfirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  let saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  await expect(saveFeedback.locator('..')).toHaveCSS('position', 'fixed');
+  await expect(page.getByText('수아 이름만 수정', { exact: true }).first()).toBeVisible();
+  expect(updateBody).toMatchObject({
+    name: '수아 이름만 수정',
+    roleLabel: '주인공',
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+      },
+    ]),
+  });
+
+  await page.getByRole('button', { name: '알림 닫기' }).click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('상태 이름', { exact: true }).nth(1).fill('안정');
+  await page.getByLabel('이름', { exact: true }).fill('수아 수정');
+  await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
+  await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
+  await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
+  await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
+  await page.getByRole('button', { name: '스탯 추가', exact: true }).click();
+  await page.getByLabel('스탯 이름', { exact: true }).last().fill('행운');
+  await page.getByLabel('행운 값', { exact: true }).fill('7');
+  await page.getByRole('button', { name: '상태 추가', exact: true }).click();
+  await page.getByLabel('상태 이름', { exact: true }).last().fill('부상');
+  await page.getByLabel('부상 값', { exact: true }).fill('경상');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const secondSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await secondSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+
+  saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  await expect(page.getByText('핵심 주인공', { exact: true }).first()).toBeVisible();
+  expect(updateBody).toMatchObject({
+    name: '수아 수정',
+    roleLabel: '핵심 주인공',
+    currentAge: 23,
+    currentLevel: 15,
+    firstAppearanceEpisodeNo: null,
+    profile: expect.arrayContaining([
+      { key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] },
+      expect.objectContaining({
+        value: '끝까지 포기하지 않는다',
+        valueType: 'STRING',
+        properties: [{ key: 'name', value: '좌우명', valueType: 'STRING' }],
+      }),
+    ]),
+    stats: expect.arrayContaining([
+      { key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] },
+      { key: 'stats.agility', value: '58', valueType: 'NUMBER', properties: [] },
+      expect.objectContaining({
+        value: '7',
+        valueType: 'NUMBER',
+        properties: [{ key: 'name', value: '행운', valueType: 'STRING' }],
+      }),
+    ]),
+    skills: [
+      {
+        key: 'skill.생존_감각',
+        value: 'Lv.6',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '생존 감각', valueType: 'STRING' },
+          { key: 'level', value: '6', valueType: 'NUMBER' },
+        ],
+      },
+    ],
+    items: [
+      {
+        key: 'item.치유_물약',
+        value: '1개',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '치유 물약', valueType: 'STRING' },
+          { key: 'quantity', value: '1', valueType: 'NUMBER' },
+        ],
+      },
+    ],
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.경상',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'name', value: '경상', valueType: 'STRING' },
+          { key: 'severity', value: '낮음', valueType: 'STRING' },
+        ],
+      },
+      {
+        key: 'status.회복_중',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'severity', value: '보통', valueType: 'STRING' },
+          { key: 'name', value: '안정', valueType: 'STRING' },
+        ],
+      },
+      {
+        key: 'status.잠복',
+        value: '관찰 중',
+        valueType: 'JSON',
+        properties: [],
+      },
+      expect.objectContaining({
+        value: '경상',
+        valueType: 'JSON',
+        properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],
+      }),
+    ]),
+  });
+
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
+  await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
+
+  await expect(page.getByText('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('등록된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/charId=char-1/);
+  await expect(page.getByText('캐릭터 정보를 찾을 수 없습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '수정', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '삭제', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+  await expect(page).toHaveURL(/modal=character-archive/);
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await expect(archiveDialog.getByRole('alert')).toContainText('같은 이름의 캐릭터가 이미 존재합니다.');
+  await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
+  await expect(page.getByText('캐릭터를 복구했습니다.', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByText('보관된 캐릭터가 없습니다', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '보관함 닫기' }).click();
+  await expect(page.getByRole('button', { name: /수아 수정/ })).toBeVisible();
+  expect(characterAuthorizationHeaders).not.toHaveLength(0);
+  expect(characterAuthorizationHeaders.every(value => value === 'Bearer character-token')).toBe(true);
+  expect(characterRequestPaths).not.toHaveLength(0);
+  expect(characterRequestPaths.every(path => path.includes(`/works/${workId}/characters`))).toBe(true);
+
+});
+
+test('보관함은 9개씩 조회하고 로딩 중에도 다음 페이지를 유지한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
+  const archivedCharacters = Array.from({ length: 10 }, (_, index) => ({
+    id: `archived-${index + 1}`,
+    name: `보관 캐릭터 ${String(index + 1).padStart(2, '0')}`,
+    currentAge: 20 + index,
+    representativeAttributeLabel: '레벨',
+    representativeAttributeValue: String(index + 1),
+    firstAppearanceEpisodeNo: null,
+  }));
+  const archiveRequests: Array<{ page: number; size: number }> = [];
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'archive-pagination@example.com',
+            displayName: '보관함 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (requestUrl.pathname.endsWith(`/works/${workId}/characters/archived`)) {
+      const requestedPage = Number(requestUrl.searchParams.get('page') ?? 0);
+      const requestedSize = Number(requestUrl.searchParams.get('size') ?? 0);
+      archiveRequests.push({ page: requestedPage, size: requestedSize });
+      if (requestedPage === 1) {
+        await new Promise(resolve => setTimeout(resolve, 80));
+      }
+      const content = archivedCharacters.slice(
+        requestedPage * requestedSize,
+        (requestedPage + 1) * requestedSize,
+      );
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: requestedPage,
+            size: requestedSize,
+            totalElements: archivedCharacters.length,
+            totalPages: Math.ceil(archivedCharacters.length / requestedSize),
+            hasNext: requestedPage < 1,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (requestUrl.pathname.endsWith(`/works/${workId}/characters`)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content: [],
+            page: 0,
+            size: 24,
+            totalElements: 0,
+            totalPages: 0,
+            hasNext: false,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'archive-pagination-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
+  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
+
+  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
+  await expect(archiveDialog.getByText('보관 캐릭터 01', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByRole('button', { name: '복구', exact: true })).toHaveCount(9);
+  await expect(archiveDialog.getByText('1 / 2', { exact: true })).toBeVisible();
+  await archiveDialog.getByRole('button', { name: '다음 페이지' }).click();
+
+  await expect(archiveDialog.getByText('보관 캐릭터 10', { exact: true })).toBeVisible();
+  await expect(archiveDialog.getByText('2 / 2', { exact: true })).toBeVisible();
+  expect(archiveRequests).toContainEqual({ page: 0, size: 9 });
+  expect(archiveRequests).toContainEqual({ page: 1, size: 9 });
+});
+
+test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조정한다', async ({ page }) => {
+  const workId = TEST_WORK_ID;
+  const characters = Array.from({ length: 48 }, (_, index) => ({
+    id: `character-${index + 1}`,
+    name: `캐릭터 ${String(index + 1).padStart(2, '0')}`,
+    currentAge: 20 + index,
+    representativeAttributeLabel: '레벨',
+    representativeAttributeValue: String(index + 1),
+    firstAppearanceEpisodeNo: null,
+  }));
+  const requests: Array<{ page: number; size: number }> = [];
+
+  await page.setViewportSize({ width: 1280, height: 850 });
+  await page.route('**/api/v1/**', route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/auth/me')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 1,
+            email: 'pagination@example.com',
+            displayName: '페이지 테스트',
+            phoneNumber: '01012345678',
+            phoneVerified: false,
+            role: 'AUTHOR',
+            status: 'ACTIVE',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (url.pathname.endsWith(`/works/${workId}/characters`)) {
+      const requestedPage = Number(url.searchParams.get('page') ?? 0);
+      const requestedSize = Number(url.searchParams.get('size') ?? 24);
+      requests.push({ page: requestedPage, size: requestedSize });
+      const start = requestedPage * requestedSize;
+      const content = characters.slice(start, start + requestedSize);
+      const totalPages = Math.ceil(characters.length / requestedSize);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            content,
+            page: requestedPage,
+            size: requestedSize,
+            totalElements: characters.length,
+            totalPages,
+            hasNext: requestedPage + 1 < totalPages,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [], error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'pagination-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
+
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  const laptopSize = requests.at(-1)?.size ?? 0;
+  expect(laptopSize).toBeGreaterThan(0);
+  expect(laptopSize).toBeLessThanOrEqual(24);
+  await expect(page.getByRole('button', { name: '다음 페이지' })).toBeEnabled();
+
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect.poll(() => requests.at(-1)?.page).toBe(1);
+  await expect(page.getByRole('button', {
+    name: `캐릭터 ${String(laptopSize + 1).padStart(2, '0')}`,
+  })).toBeVisible();
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect.poll(() => requests.at(-1)?.size).toBeGreaterThan(laptopSize);
+  expect(requests.at(-1)?.size).toBeLessThanOrEqual(24);
 });
 
 test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {

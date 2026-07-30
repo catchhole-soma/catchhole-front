@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SignupData, SignupErrors, SignupResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -48,7 +48,7 @@ export const getMyWorks = <ThrowOnError extends boolean = true>(options?: Option
 /**
  * 내 작품 생성
  *
- * 로그인한 사용자의 새 작품을 제목, 선택형 20자 한 줄 소개와 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
+ * 로그인한 사용자의 새 작품을 제목, 선택형 50자 한 줄 소개와 MVP 고정 장르로 등록합니다. 회차 업로드와 독립된 요청이며 최신 회차 번호는 0으로 초기화합니다.
  */
 export const createWork = <ThrowOnError extends boolean = true>(options: Options<CreateWorkData, ThrowOnError>): RequestResult<CreateWorkResponses, CreateWorkErrors, ThrowOnError> => (options.client ?? client).post<CreateWorkResponses, CreateWorkErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -438,6 +438,54 @@ export const updateEpisodeTitle = <ThrowOnError extends boolean = true>(options:
 });
 
 /**
+ * 캐릭터 삭제 버튼 처리
+ *
+ * 캐릭터와 설정 이력은 삭제하지 않고 상태를 ACTIVE에서 ARCHIVED로 변경합니다.
+ */
+export const deleteCharacter = <ThrowOnError extends boolean = true>(options: Options<DeleteCharacterData, ThrowOnError>): RequestResult<DeleteCharacterResponses, DeleteCharacterErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCharacterResponses, DeleteCharacterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/{characterId}',
+    ...options
+});
+
+/**
+ * 캐릭터 현재 상세 조회
+ *
+ * ACTIVE 캐릭터의 기본 정보와 PROFILE, STAT, SKILL, ITEM, STATUS 현재 설정을 조회합니다.
+ */
+export const getCharacter = <ThrowOnError extends boolean = true>(options: Options<GetCharacterData, ThrowOnError>): RequestResult<GetCharacterResponses, GetCharacterErrors, ThrowOnError> => (options.client ?? client).get<GetCharacterResponses, GetCharacterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/{characterId}',
+    ...options
+});
+
+/**
+ * 캐릭터 현재 설정 전체 수정
+ *
+ * 기본 정보와 현재 설정 전체를 한 트랜잭션에서 수정합니다. 변경된 설정은 새 수동 정정 Fact로 기록합니다.
+ */
+export const updateCharacter = <ThrowOnError extends boolean = true>(options: Options<UpdateCharacterData, ThrowOnError>): RequestResult<UpdateCharacterResponses, UpdateCharacterErrors, ThrowOnError> => (options.client ?? client).patch<UpdateCharacterResponses, UpdateCharacterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/{characterId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 보관 캐릭터 복구
+ *
+ * 보관된 캐릭터의 설정 이력과 원문 근거는 유지한 채 상태를 ARCHIVED에서 ACTIVE로 변경합니다.
+ */
+export const restoreCharacter = <ThrowOnError extends boolean = true>(options: Options<RestoreCharacterData, ThrowOnError>): RequestResult<RestoreCharacterResponses, RestoreCharacterErrors, ThrowOnError> => (options.client ?? client).patch<RestoreCharacterResponses, RestoreCharacterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/{characterId}/restore',
+    ...options
+});
+
+/**
  * AI Worker 분석 작업 진행 단계 갱신
  */
 export const updateProgress = <ThrowOnError extends boolean = true>(options: Options<UpdateProgressData, ThrowOnError>): RequestResult<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProgressResponses, UpdateProgressErrors, ThrowOnError>({
@@ -458,6 +506,28 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
 export const getSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<GetSettingCandidatesData, ThrowOnError>): RequestResult<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError> => (options.client ?? client).get<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/setting-candidates',
+    ...options
+});
+
+/**
+ * 캐릭터 목록 조회
+ *
+ * 본인 작품의 ACTIVE 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
+ */
+export const getCharacters = <ThrowOnError extends boolean = true>(options: Options<GetCharactersData, ThrowOnError>): RequestResult<GetCharactersResponses, GetCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetCharactersResponses, GetCharactersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters',
+    ...options
+});
+
+/**
+ * 보관 캐릭터 목록 조회
+ *
+ * 본인 작품의 ARCHIVED 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다.
+ */
+export const getArchivedCharacters = <ThrowOnError extends boolean = true>(options: Options<GetArchivedCharactersData, ThrowOnError>): RequestResult<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/characters/archived',
     ...options
 });
 

@@ -88,7 +88,7 @@ Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 �
 - `CharDetailModal / 수정 (MVP)` (`r1XIT`) ✅ — 현재 대표 정보와 현재 설정을 일괄 편집
 - `CharDetailModal / 삭제 확인 (MVP)` (`ZDc0T`) ✅ — hard delete가 아니라 `ARCHIVED` 전환을 확인
 - `CharDetailModal / 원문 근거 (MVP)` (`dHtfw`) ✅ — 전체 회차 원문과 quote 하이라이트를 우선 표시
-- `CharDetailModal / 원문 청크 Fallback (참고용)` (`OZzxl`) ✅ — 전체 원문 위치를 확정할 수 없을 때 청크 안에서 근거를 표시
+- `CharDetailModal / 원문 청크 Fallback (mvp 이후)` (`OZzxl`) ✅ — 전체 원문 위치를 확정할 수 없을 때 청크 안에서 근거를 표시하는 후속 상태
 - `S1Dashboard / 관계도 그래프뷰` ✅ — `GraphView.tsx` 기반: 좌측 필터 패널(통계 + 태그 유형 필터 5종 + 관계 유형 필터 7종 + 확대/축소/초기화 컨트롤), 중앙 그래프 캔버스(샘플 노드 8개 + 충돌 회차 강조 + 범례), 우측 패널(사용 방법 가이드 + 가장 연결된 태그 Top5)
 - `UploadModal / 회차·설정집 업로드 모달` ✅ — 500px 모달(제목 "회차 올리기" + 2단계 Step Row + 작품 선택/회차 번호 입력 + 파일 드롭 + 설정집 동시 업로드 체크박스 + 뒤로/다음 버튼)
 - `SettingsBuilderModal / 캐릭터 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음

@@ -15,6 +15,7 @@ export interface Work {
 
 const DEMO_MODE_KEY = 'catchhole_demo_mode';
 const DEMO_WORKS_KEY = 'catchhole_demo_works';
+export const DEMO_CHARACTER_STATE_KEY = 'catchhole_demo_character_state';
 const DEMO_DELAY_MS = 600;
 
 export const DEMO_WORKS_QUERY_KEY = ['works', 'demo'] as const;
@@ -34,6 +35,7 @@ export function setDemoMode(enabled: boolean): void {
   } else {
     localStorage.removeItem(DEMO_MODE_KEY);
     localStorage.removeItem(DEMO_WORKS_KEY);
+    localStorage.removeItem(DEMO_CHARACTER_STATE_KEY);
   }
 }
 
