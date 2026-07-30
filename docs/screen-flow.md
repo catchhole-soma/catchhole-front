@@ -37,7 +37,8 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 전 서비스 소개 페이지 |
 | 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | 랜딩 위 라우트 모달로 제공하는 이메일·비밀번호 인증과 약관 동의 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | 작업할 작품을 고르는 진입점 |
-| 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·그래프·원고 허브 |
+| 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·분석 목록·그래프·원고 허브 |
+| **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인 |
 | 회차 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 선택한 회차 원본을 읽기 전용으로 확인 |
 | AI 챗봇 | [`/chat`](https://catch-hole.vercel.app/chat) | 설정 관련 질의응답 챗봇 |
 | 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | 작업·회차 상태 추적(완료 후 사용자가 결과로 이동) |
@@ -170,13 +171,14 @@ flowchart TD
 
 ## 3. 메인 작업 흐름 (Main Workflow)
 
-작품 선택 → 대시보드 원고 목록 → 읽기 전용 원문 확인 또는 회차 업로드 → 분석 결과의 핵심 동선입니다.
+작품 선택 → 대시보드 원고 목록 → 회차 업로드 → 업로드 묶음별 분석 목록 → 설정 후보 검토·결과 확인의 핵심 동선입니다.
 
 ```mermaid
 flowchart TD
   works["작품 선택<br/>/works"]:::private
   dashboard["대시보드<br/>/dashboard"]:::private
   manuscripts["원고 목록<br/>/dashboard?nav=manuscripts"]:::private
+  analyses["분석 목록<br/>/dashboard?workId&nav=analyses"]:::private
   source["회차 원문 보기<br/>/editor · 읽기 전용"]:::private
   upload["회차 업로드<br/>/episode-upload"]:::private
   uploadProgress["업로드 분석 진행<br/>/episode-upload 내부 단계"]:::private
@@ -192,11 +194,14 @@ flowchart TD
   source -- "뒤로" --> manuscripts
   manuscripts -- "회차 올리기" --> upload
   upload -- "회차 저장·분석 시작" --> uploadProgress
-  manuscripts -- "진행/결과 보기 (기존 작업)" --> uploadProgress
+  manuscripts -- "진행·실패·검토 필요 배너" --> analyses
+  analyses -- "진행 보기 / 실패 확인 / 결과 보기" --> uploadProgress
   uploadProgress -- "신규 회차 검수 완료 후<br/>설정 후보 검토" --> review
   uploadProgress -- "기존 설정 구축 완료 후<br/>설정 후보 검토" --> review
+  uploadProgress -- "뒤로" --> analyses
+  review -- "뒤로" --> analyses
 
-  manuscripts -- "재분석 / 실패 다시 시도" --> loading
+  analyses -- "검수 결과 진행 보기" --> loading
   loading -- "완료 후 결과 확인" --> report
   dashboard -- "발행 전 검수" --> report
 
@@ -224,6 +229,7 @@ flowchart TD
     direction TB
     nav_settingDB["설정 DB"]
     nav_reports["분석 리포트"]
+    nav_analyses["분석 목록"]
     nav_graph["그래프 뷰"]
     nav_manuscripts["원고 목록"]
     nav_chat["AI 챗봇<br/>/chat"]:::private
@@ -231,6 +237,7 @@ flowchart TD
 
   dashboard --> nav_settingDB
   dashboard --> nav_reports
+  dashboard --> nav_analyses
   dashboard --> nav_graph
   dashboard --> nav_manuscripts
   dashboard --> nav_chat
@@ -244,6 +251,14 @@ flowchart TD
     t_search["검색"]
   end
   nav_settingDB --> t_char & t_rel & t_time & t_world & t_search
+
+  subgraph ANALYSES["분석 목록"]
+    direction TB
+    analysis_batches["UploadBatch별 분석 카드<br/>최근 분석 요청순·서버 페이지 10개"]
+    analysis_actions["진행 보기 · 실패 확인 · 결과 보기<br/>설정 후보 검토"]
+  end
+  nav_analyses --> analysis_batches
+  analysis_batches --> analysis_actions
 
   t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>(→ 삭제 확인)"]:::modal
   t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
@@ -264,6 +279,7 @@ flowchart TD
   subgraph MANUSCRIPTS["원고 목록 상태·관리"]
     direction TB
     episode_list["회차 목록<br/>번호 내림차순·20개 페이지"]
+    analysis_notice["진행·실패·검토 필요 배너<br/>분석 목록으로 이동"]:::modal
     list_state["목록 로딩·원고 빈 상태<br/>조회 실패·액션 실패"]:::modal
     source_viewer["회차 원문 보기<br/>읽기 전용"]:::private
     title_edit["회차 제목 인라인 수정"]:::modal
@@ -272,6 +288,8 @@ flowchart TD
   end
 
   nav_manuscripts --> episode_list
+  nav_manuscripts -. "현재 분석 배치 안내" .-> analysis_notice
+  analysis_notice --> nav_analyses
   nav_manuscripts -. "빈·실패 상태" .-> list_state
   episode_list -- "원문 보기" --> source_viewer
   episode_list -. "제목 입력·수정" .-> title_edit
@@ -286,10 +304,12 @@ flowchart TD
 
 대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 원고 목록에는 설정집 영역을 표시하지 않습니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
 
-> 분석 중인 회차는 기존 작업의 `진행 보기`, 원문 보기와 제목 수정만 허용하고 파일 변경·삭제·중복 분석 요청을 비활성화합니다. 회차 파일 변경은 새 파일 저장과 분석 시작이 모두 성공하기 전까지 기존 원문과 유효 분석 결과를 유지합니다.
+> 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분하고, 상태에 맞게 `진행 보기`·`실패 확인`·`결과 보기`·`설정 후보 검토`를 제공합니다.
+
+> 원고 목록 행에는 분석 `진행 보기`·`결과 보기`·`다시 시도`와 `미처리` 열을 두지 않습니다. 진행·부분 실패·실패·설정 후보 검토 필요 상태는 목록 위 배너에서 알리고, 실제 후속 액션은 업로드 묶음별 분석 목록에서 제공합니다. 원문 변경으로 `재분석 필요`가 된 회차의 `재분석` 액션은 유지하며, 분석 중인 회차의 파일 변경·삭제·중복 분석 요청은 비활성화합니다.
 
 > 딥링크 (클릭 시 이동):
-> - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
+> - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
 > - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
 > - 관계도 샘플 — [triangle](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=triangle) · [prosecution](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=prosecution) · [court](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=court)
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`, 그래프 노드 `?nav=graph&node=<id>`
@@ -332,6 +352,8 @@ flowchart TD
   state -- "모든 회차 ANALYZED" --> success["SUCCEEDED<br/>결과 준비 상태 확인"]
 
   success --> review["설정 후보 검토<br/>/setting-review?workId&batchId&jobType"]:::private
+  proc -- "뒤로<br/>서버 작업은 계속" --> analyses["분석 목록<br/>/dashboard?workId&nav=analyses"]:::private
+  review -- "뒤로" --> analyses
 
   postMvp["Post-MVP<br/>설정집 분석 결과 확인"]:::modal
   persist -. "MVP에서는 경유하지 않음" .-> postMvp
@@ -345,7 +367,7 @@ flowchart TD
 
 > 회차 처리 상태: `UPLOADED` → `CHUNKING` → `CHUNKED` → `PREPROCESSING` → `PREPROCESSED` → `ANALYZING` → `ANALYZED`. 실제 진행률을 계산할 수 없으므로 숫자 퍼센트를 표시하지 않습니다.
 
-> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 후보 조회 결과가 준비됐을 때(후보 0건 포함) `설정 후보 검토`가 활성화됩니다.
+> 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 분석 진행 단계와 설정 후보 검토의 뒤로가기는 현재 작품의 `nav=analyses`로 돌아갑니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 후보 조회 결과가 준비됐을 때(후보 0건 포함) `설정 후보 검토`가 활성화됩니다.
 
 ---
 
@@ -356,7 +378,9 @@ flowchart TD
 ```mermaid
 flowchart TD
   review["설정 후보 검토<br/>/setting-review<br/>(AI가 뽑은 설정을 작가가 확정)"]:::private
-  review -- "이전" --> manuscripts["원고 목록<br/>/dashboard?workId&nav=manuscripts"]:::private
+  review -- "이전" --> analyses["분석 목록<br/>/dashboard?workId&nav=analyses"]:::private
+
+  manuscripts["원고 목록<br/>/dashboard?workId&nav=manuscripts"]:::private
 
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
   purpose{"업로드 분석 목적"}:::decision
@@ -381,5 +405,5 @@ flowchart TD
   classDef decision fill:#0F0F13,stroke:#F4A261,color:#F0F0F5;
 ```
 
-> 딥링크 (클릭 시 이동): 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
+> 딥링크 (클릭 시 이동): [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
 > ID 필요(형식만): 설정 후보 검토 `?workId=<id>&batchId=<id>&jobType=<EPISODE_VALIDATION|SETTING_EXTRACTION>&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).

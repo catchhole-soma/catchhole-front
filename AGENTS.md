@@ -27,6 +27,8 @@ npm run test:e2e
 - 분석 작업 생성 응답은 회차별 `AnalysisJobResponse[]`입니다. `UploadBatch`를 대표 Job 하나로 축약하지 말고 반환된 모든 Job ID를 저장·URL 복원·polling 대상으로 사용합니다.
 - 신규 `AnalysisJob` 하나는 단일 회차 상태만 나타냅니다. 업로드 진행 화면의 전체 성공·일부 실패·진행 중 표시는 같은 batch의 현재 Job 목록을 집계해 계산하고, 다른 Job이 아직 진행 중이면 실패 재시도를 먼저 열지 않습니다.
 - 실패 재시도 응답도 새 회차별 Job 목록입니다. 기존 실패·성공 Job ID는 추적 이력으로 유지하고 새 ID만 현재 polling 대상으로 전환합니다.
+- 분석 목록은 생성 SDK의 배치 조회를 사용해 `UploadBatch` 단위로 10개씩 서버 페이지네이션하고, URL의 1-based `analysisPage`를 API의 0-based `page`로 변환합니다. 진행·실패·결과 재진입에는 목적별 `currentAnalysisJobIds`를 그대로 사용합니다.
+- 원고 목록은 행별 진행·결과·실패 재시도 대신 최근 배치 상태 배너에서 분석 목록으로 안내합니다. 원문 변경으로 `REANALYSIS_REQUIRED`가 된 회차의 새 분석 시작 액션은 별도로 유지합니다.
 
 ## 인증과 세션
 
