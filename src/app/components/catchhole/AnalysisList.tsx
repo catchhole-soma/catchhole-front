@@ -165,7 +165,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       `/setting-review?workId=${encodeURIComponent(workId)}`
       + `&batchId=${encodeURIComponent(batch.batchId)}`
       + `&jobType=${jobType}`,
-      'push-right',
+      'dissolve',
     );
   };
 
