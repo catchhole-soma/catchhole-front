@@ -7,6 +7,26 @@ import { DEMO_CHARACTER_STATE_KEY } from '../../../lib/worksApi';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 
+interface SettingEditMetadata {
+  attributeNameEditable: boolean;
+  attributeNamePrefix: string | null;
+  displayNameEditable: boolean;
+}
+
+const LOCKED_SETTING_EDIT: SettingEditMetadata = {
+  attributeNameEditable: false,
+  attributeNamePrefix: null,
+  displayNameEditable: false,
+};
+
+function dynamicSettingEdit(attributeNamePrefix: string): SettingEditMetadata {
+  return {
+    attributeNameEditable: true,
+    attributeNamePrefix,
+    displayNameEditable: true,
+  };
+}
+
 function setting(
   id: string,
   key: string,
@@ -19,6 +39,7 @@ function setting(
     value: string;
     valueType?: SettingValueType;
   }> = [],
+  editMetadata: SettingEditMetadata = LOCKED_SETTING_EDIT,
 ): CharacterSettingResponse {
   return {
     characterFactId: id,
@@ -33,6 +54,7 @@ function setting(
       valueType: property.valueType ?? 'STRING',
     })),
     hasEvidence: true,
+    ...editMetadata,
   };
 }
 
@@ -63,26 +85,26 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
       setting('sua-skill-1', 'skill.basic_sword', '기본 검술', 'Lv.3', 'JSON', [
         { key: 'name', displayName: '이름', value: '기본 검술' },
         { key: 'level', displayName: '레벨', value: '3', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('skill.')),
       setting('sua-skill-2', 'skill.magic_sense', '마력 감지', 'Lv.1', 'JSON', [
         { key: 'name', displayName: '이름', value: '마력 감지' },
         { key: 'level', displayName: '레벨', value: '1', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('skill.')),
     ],
     items: [
       setting('sua-item-1', 'item.training_sword', '훈련용 검', '1개', 'JSON', [
         { key: 'name', displayName: '이름', value: '훈련용 검' },
         { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('item.')),
       setting('sua-item-2', 'item.student_id', '학생증', '보유', 'JSON', [
         { key: 'name', displayName: '이름', value: '학생증' },
         { key: 'state', displayName: '상태', value: '보유' },
-      ]),
+      ], dynamicSettingEdit('item.')),
     ],
     statuses: [
       setting('sua-status', 'status.normal', '정상', '정상', 'JSON', [
         { key: 'name', displayName: '이름', value: '정상' },
-      ]),
+      ], dynamicSettingEdit('status.')),
     ],
   },
   {

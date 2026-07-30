@@ -1653,6 +1653,18 @@ export type CharacterSettingResponse = {
      */
     displayName?: string;
     /**
+     * canonical key의 동적 suffix 수정 가능 여부
+     */
+    attributeNameEditable: boolean;
+    /**
+     * 동적 key 수정 시 서버가 허용하는 고정 prefix
+     */
+    attributeNamePrefix?: string | null;
+    /**
+     * 화면 표시명 수정 가능 여부
+     */
+    displayNameEditable: boolean;
+    /**
      * 사용자용 설정 표시값
      */
     value?: string | null;

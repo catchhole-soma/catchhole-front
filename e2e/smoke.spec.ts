@@ -72,7 +72,7 @@ test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 
   expect(characterRequestCount).toBe(0);
 });
 
-test('데모 모드는 access token 없이 열리고 이름만 수정해도 설정 근거를 유지한다', async ({ page }) => {
+test('데모 모드는 설정 편집 메타데이터와 수동 설정을 저장 후에도 유지한다', async ({ page }) => {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
 
@@ -91,13 +91,20 @@ test('데모 모드는 access token 없이 열리고 이름만 수정해도 설�
   await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByLabel('스킬 이름', { exact: true }).first()).toHaveValue('기본 검술');
   await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
+  await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
+  await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
+  await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const confirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
   await confirm.getByRole('button', { name: '저장', exact: true }).click();
 
   await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveValue('좌우명');
+  await page.getByRole('button', { name: '취소', exact: true }).click();
   await page.getByRole('button', { name: '닫기', exact: true }).click();
   await page.getByRole('button', { name: '관계도', exact: true }).click();
   await page.getByRole('button', { name: '캐릭터 DB', exact: true }).click();
@@ -1669,6 +1676,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
       valueType: 'STRING',
       properties: [],
       hasEvidence: true,
+      attributeNameEditable: false,
+      attributeNamePrefix: null,
+      displayNameEditable: false,
     }],
     stats: [
       {
@@ -1690,6 +1700,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'name', displayName: '이름', value: '먼저 추가한 스탯', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-stat-manual-new',
@@ -1701,6 +1714,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'name', displayName: '이름', value: '나중에 추가한 스탯', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-stat-1',
@@ -1723,6 +1739,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         { key: 'level', displayName: '레벨', value: '6', valueType: 'NUMBER' },
       ],
       hasEvidence: false,
+      attributeNameEditable: true,
+      attributeNamePrefix: 'skill.',
+      displayNameEditable: true,
     }],
     items: [{
       characterFactId: 'fact-item-1',
@@ -1735,6 +1754,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
       ],
       hasEvidence: false,
+      attributeNameEditable: true,
+      attributeNamePrefix: 'item.',
+      displayNameEditable: true,
     }],
     statuses: [
       {
@@ -1748,17 +1770,23 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'severity', displayName: '심각도', value: '낮음', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-status-2',
-        key: 'status.회복_중',
+        key: 'status.recovering',
         displayName: '회복 중',
         value: '활성',
         valueType: 'JSON',
         properties: [
-          { key: 'severity', displayName: '심각도', value: '보통', valueType: 'STRING' },
+          { key: 'description', displayName: '설명', value: '간헐적 의식 소실', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-status-3',
@@ -1768,6 +1796,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         valueType: 'JSON',
         properties: [],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
     ],
   });
@@ -2084,6 +2115,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(page.getByLabel('생존 감각 레벨', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveCount(0);
   await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
   const detailRequestsBeforeRefetch = detailRequestCount;
   await page.evaluate(async () => {
@@ -2116,6 +2148,14 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     roleLabel: '주인공',
     statuses: expect.arrayContaining([
       {
+        key: 'status.recovering',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'description', value: '간헐적 의식 소실', valueType: 'STRING' },
+        ],
+      },
+      {
         key: 'status.잠복',
         value: '관찰 중',
         valueType: 'JSON',
@@ -2126,7 +2166,44 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
   await page.getByRole('button', { name: '알림 닫기' }).click();
   await page.getByRole('button', { name: '수정', exact: true }).click();
-  await page.getByLabel('상태 이름', { exact: true }).nth(1).fill('안정');
+  let editableStatusName = page.getByLabel('상태 이름', { exact: true }).nth(1);
+  await editableStatusName.fill('임시 상태');
+  await editableStatusName.fill('회복 중');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const revertedSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await revertedSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  expect(updateBody).toMatchObject({
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.recovering',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'description', value: '간헐적 의식 소실', valueType: 'STRING' },
+        ],
+      },
+    ]),
+  });
+
+  await page.getByRole('button', { name: '알림 닫기' }).click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  editableStatusName = page.getByLabel('상태 이름', { exact: true }).nth(1);
+  await editableStatusName.fill('');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  let invalidSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await invalidSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('상태 설정명 뒷부분을 입력해 주세요.');
+
+  await editableStatusName.fill('경상');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  invalidSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await invalidSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('상태에 같은 설정명이 두 개 있습니다.');
+
+  await editableStatusName.fill('안정');
+  await page.getByLabel('생존 감각 값', { exact: true }).fill('Lv.7');
   await page.getByLabel('이름', { exact: true }).fill('수아 수정');
   await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
   await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
@@ -2171,11 +2248,10 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     skills: [
       {
         key: 'skill.생존_감각',
-        value: 'Lv.6',
+        value: 'Lv.7',
         valueType: 'JSON',
         properties: [
           { key: 'name', value: '생존 감각', valueType: 'STRING' },
-          { key: 'level', value: '6', valueType: 'NUMBER' },
         ],
       },
     ],
@@ -2201,11 +2277,10 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         ],
       },
       {
-        key: 'status.회복_중',
+        key: 'status.안정',
         value: '활성',
         valueType: 'JSON',
         properties: [
-          { key: 'severity', value: '보통', valueType: 'STRING' },
           { key: 'name', value: '안정', valueType: 'STRING' },
         ],
       },
@@ -2216,6 +2291,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         properties: [],
       },
       expect.objectContaining({
+        key: expect.stringMatching(/^status\.manual_/),
         value: '경상',
         valueType: 'JSON',
         properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],
