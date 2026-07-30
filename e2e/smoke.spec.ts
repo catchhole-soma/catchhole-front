@@ -1207,7 +1207,7 @@ test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다'
   await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
 });
 
-test('기존 설정 구축 결과 보기는 분석 완료 화면에서 후보 검토로 이어진다', async ({ page }) => {
+test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이동한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
   const batchId = '22222222-2222-4222-8222-222222222222';
@@ -1320,12 +1320,6 @@ test('기존 설정 구축 결과 보기는 분석 완료 화면에서 후보 �
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
   await page.getByRole('button', { name: '결과 보기' }).click();
-  await expect(page).toHaveURL(/\/episode-upload\?/);
-  await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
-  await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds')).toBe(analysisJobId);
-  await expect(page.getByRole('button', { name: '설정 후보 검토' })).toBeVisible();
-
-  await page.getByRole('button', { name: '설정 후보 검토' }).click();
   await expect(page).toHaveURL(/\/setting-review\?/);
   await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
   await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('SETTING_EXTRACTION');

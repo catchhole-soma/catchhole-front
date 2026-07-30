@@ -150,6 +150,8 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
   await expect.poll(() => requestedReviewStatuses.at(-1)).toBe('PENDING_REVIEW');
   await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBeNull();
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: '설정 후보 검토 진행률' })).toHaveCount(0);
+  await expect(page.getByText('1/2 검토 완료', { exact: true })).toHaveCount(0);
 
   await page.getByRole('button', { name: '전체', exact: true }).first().click();
 
@@ -616,7 +618,9 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
 
   await expect(page.getByText('확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.')).toBeVisible();
   await expect(page.getByText('기존 캐릭터 연결됨').last()).toBeVisible();
-  await expect(page.getByText('1/1 검토 완료')).toBeVisible();
+  const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
+  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+    .toContainText('1개');
   await expect.poll(() => confirmRequestCount).toBe(2);
 });
 
@@ -694,7 +698,9 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
   await expect(page.getByText('무시한 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.')).toBeVisible();
   await expect(page.getByText('어떤 캐릭터의 설정인지 확인이 필요합니다.')).toHaveCount(0);
   await expect(page.getByText('수아의 눈동자는 햇살 아래 짙은 갈색으로 빛났다.')).toBeVisible();
-  await expect(page.getByText('1/1 검토 완료')).toBeVisible();
+  const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
+  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+    .toContainText('1개');
   await expect(page.getByRole('button', { name: '무시', exact: true })).toHaveCount(1);
   await expect.poll(() => dismissRequestCount).toBe(2);
 });
@@ -791,7 +797,9 @@ test('검토 대기 후보를 무시하는 동안 이동을 잠그고 완료 후
     requestAnimationFrame(waitForStableScroll);
   }));
   expect(Math.abs(scrollTopAfterAutoSelect - scrollTopBeforeAutoSelect)).toBeLessThanOrEqual(1);
-  await expect(page.getByText('1/2 검토 완료')).toBeVisible();
+  const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
+  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+    .toContainText('1개');
   await expect(page.getByRole('button', { name: /강민준/ })).toBeEnabled();
 });
 

@@ -195,7 +195,8 @@ flowchart TD
   manuscripts -- "회차 올리기" --> upload
   upload -- "회차 저장·분석 시작" --> uploadProgress
   manuscripts -- "진행·실패·검토 필요 배너" --> analyses
-  analyses -- "진행 보기 / 실패 확인 / 결과 보기" --> uploadProgress
+  analyses -- "진행 보기 / 실패 확인" --> uploadProgress
+  analyses -- "결과 보기" --> review
   uploadProgress -- "신규 회차 검수 완료 후<br/>설정 후보 검토" --> review
   uploadProgress -- "기존 설정 구축 완료 후<br/>설정 후보 검토" --> review
   uploadProgress -- "뒤로" --> analyses
@@ -255,7 +256,7 @@ flowchart TD
   subgraph ANALYSES["분석 목록"]
     direction TB
     analysis_batches["UploadBatch별 분석 카드<br/>최근 분석 요청순·서버 페이지 10개"]
-    analysis_actions["진행 보기 · 실패 확인 · 결과 보기<br/>설정 후보 검토"]
+    analysis_actions["배치 상태별 단일 액션<br/>진행 보기 · 실패 확인 · 결과 보기"]
   end
   nav_analyses --> analysis_batches
   analysis_batches --> analysis_actions
@@ -304,7 +305,7 @@ flowchart TD
 
 대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 원고 목록에는 설정집 영역을 표시하지 않습니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
 
-> 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분하고, 상태에 맞게 `진행 보기`·`실패 확인`·`결과 보기`·`설정 후보 검토`를 제공합니다.
+> 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분하고, 상태에 맞는 `진행 보기`·`실패 확인`·`결과 보기` 중 하나만 제공합니다. 분석이 끝난 배치의 `결과 보기`는 설정 후보 검토로 바로 이동합니다.
 
 > 원고 목록 행에는 분석 `진행 보기`·`결과 보기`·`다시 시도`와 `미처리` 열을 두지 않습니다. 진행·부분 실패·실패·설정 후보 검토 필요 상태는 목록 위 배너에서 알리고, 실제 후속 액션은 업로드 묶음별 분석 목록에서 제공합니다. 원문 변경으로 `재분석 필요`가 된 회차의 `재분석` 액션은 유지하며, 분석 중인 회차의 파일 변경·삭제·중복 분석 요청은 비활성화합니다.
 

@@ -287,16 +287,7 @@ function FilterGroup<T extends string>({
   );
 }
 
-function ReviewHeader({
-  total,
-  reviewed,
-  onBack,
-}: {
-  total: number;
-  reviewed: number;
-  onBack: () => void;
-}) {
-  const percentage = total === 0 ? 0 : Math.round((reviewed / total) * 100);
+function ReviewHeader({ onBack }: { onBack: () => void }) {
   return (
     <header style={{
       height: 62, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 14,
@@ -316,20 +307,6 @@ function ReviewHeader({
       </button>
       <strong style={{ color: C.t1, fontSize: 17 }}>설정 후보 검토</strong>
       <div style={{ flex: 1 }} />
-      <span style={{ color: C.t2, fontSize: 12 }}>{reviewed}/{total} 검토 완료</span>
-      <div
-        role="progressbar"
-        aria-label="설정 후보 검토 진행률"
-        aria-valuemin={0}
-        aria-valuemax={total}
-        aria-valuenow={reviewed}
-        style={{ width: 120, height: 6, borderRadius: 4, background: C.border, overflow: 'hidden' }}
-      >
-        <div style={{
-          width: `${percentage}%`, height: '100%', borderRadius: 4,
-          background: C.primary, transition: 'width 0.2s ease',
-        }} />
-      </div>
       <UserMenu />
     </header>
   );
@@ -356,7 +333,7 @@ function ReviewSummary({
     ['연결 필요', `${matchRequired}개`, matchRequired > 0 ? C.warning : C.t1],
   ];
   return (
-    <section style={{
+    <section aria-label="설정 후보 검토 요약" style={{
       padding: '18px 22px', borderRadius: 10, border: `1px solid ${C.border}`,
       background: C.surface, display: 'flex', alignItems: 'center', gap: 38, flexWrap: 'wrap',
     }}>
@@ -1534,7 +1511,7 @@ export default function SSettingReview() {
   if (!hasContext) {
     return (
       <div style={{ width: '100%', height: '100%', background: C.bg }}>
-        <ReviewHeader total={0} reviewed={0} onBack={backToAnalysisList} />
+        <ReviewHeader onBack={backToAnalysisList} />
         <main style={{ maxWidth: 920, margin: '0 auto', padding: '60px 24px' }}>
           <QueryState
             icon={<AlertCircle size={28} color={C.warning} />}
@@ -1552,7 +1529,7 @@ export default function SSettingReview() {
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <ReviewHeader total={total} reviewed={reviewed} onBack={backToAnalysisList} />
+      <ReviewHeader onBack={backToAnalysisList} />
       <main style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           {listQuery.isPending && !listQuery.data ? (

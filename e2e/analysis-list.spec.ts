@@ -32,7 +32,6 @@ function batch(index: number) {
 test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이동한다', async ({ page }) => {
   const requestedPages: string[] = [];
   const eleventhBatch = batch(11);
-  const eleventhAnalysisJobId = eleventhBatch.jobGroups[0].currentAnalysisJobIds[0];
 
   await page.route('**/api/v1/**', route => {
     const url = new URL(route.request().url());
@@ -61,21 +60,6 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
         totalElements: 11,
         totalPages: 2,
         hasNext: apiPage === '0',
-      };
-    } else if (pathname.endsWith(`/${workId}/analysis-jobs/${eleventhAnalysisJobId}`)) {
-      data = {
-        id: eleventhAnalysisJobId,
-        workId,
-        workTitle: '페이지 작품',
-        batchId: eleventhBatch.batchId,
-        jobType: 'EPISODE_VALIDATION',
-        status: 'SUCCEEDED',
-        episodes: [{
-          id: '44444444-4444-4444-8444-000000000011',
-          episodeNo: 11,
-          title: '11화',
-          status: 'ANALYZED',
-        }],
       };
     } else if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
       data = {
@@ -118,7 +102,15 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
   });
   await expect(firstEpisodeCard).toHaveCount(1);
   await expect(firstEpisodeCard.getByRole('button', { name: '결과 보기' })).toBeVisible();
+  await expect(firstEpisodeCard.getByRole('button')).toHaveCount(1);
   await expect(page.getByText('1 / 2', { exact: true })).toBeVisible();
+
+  await firstEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
+  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('ALL');
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+
   await page.getByRole('button', { name: '다음 페이지' }).click();
 
   await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
@@ -127,34 +119,20 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
   });
   await expect(eleventhEpisodeCard).toHaveCount(1);
   await expect(eleventhEpisodeCard.getByRole('button', { name: '결과 보기' })).toBeVisible();
+  await expect(eleventhEpisodeCard.getByRole('button')).toHaveCount(1);
   await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
   expect(requestedPages).toContain('0:10');
   expect(requestedPages).toContain('1:10');
 
-  await eleventhEpisodeCard.getByRole('button', { name: '설정 후보 검토' }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
-  await page.getByRole('button', { name: '이전 화면' }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
-  await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
-
   await eleventhEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/episode-upload');
-  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
-  await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
-
-  await eleventhEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/episode-upload');
-  await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toBeVisible();
-  await expect(eleventhEpisodeCard).toHaveCount(0);
-  await page.getByRole('button', { name: '설정 후보 검토' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
+  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBeNull();
   await page.getByRole('button', { name: '이전 화면' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
 });
 
-test('분석 목록에서 설정 후보 검토 화면으로 바로 진입한다', async ({ page }) => {
+test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 진입한다', async ({ page }) => {
   const requestedReviewContexts: Array<{
     batchId: string | null;
     reviewStatus: string | null;
@@ -263,7 +241,9 @@ test('분석 목록에서 설정 후보 검토 화면으로 바로 진입한다'
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-review-token'));
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
-  await page.getByRole('button', { name: '설정 후보 검토' }).click();
+  const analysisCard = page.getByRole('article');
+  await expect(analysisCard.getByRole('button')).toHaveCount(1);
+  await analysisCard.getByRole('button', { name: '결과 보기' }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
   await expect.poll(() => new URL(page.url()).searchParams.get('workId')).toBe(workId);
@@ -282,4 +262,68 @@ test('분석 목록에서 설정 후보 검토 화면으로 바로 진입한다'
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await page.goBack();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
+});
+
+test('원고 목록 배너는 과거 실패보다 최신 분석 배치 상태를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    let data: unknown = [];
+
+    if (pathname.endsWith('/auth/me')) {
+      data = {
+        id: 1,
+        email: 'analysis-banner@example.com',
+        displayName: '분석 배너 테스트',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      };
+    } else if (pathname.endsWith(`/${workId}/analysis-jobs/batches`)) {
+      data = {
+        content: [
+          {
+            ...batch(12),
+            status: 'REVIEW_REQUIRED',
+            pendingCandidateCount: 1,
+            reviewedCandidateCount: 0,
+          },
+          {
+            ...batch(11),
+            status: 'FAILED',
+            jobGroups: [{
+              ...batch(11).jobGroups[0],
+              status: 'FAILED',
+              succeededJobCount: 0,
+              failedJobCount: 1,
+            }],
+          },
+        ],
+        page: 0,
+        size: 10,
+        totalElements: 2,
+        totalPages: 1,
+        hasNext: false,
+      };
+    } else if (pathname.endsWith(`/${workId}/episodes`)) {
+      data = [];
+    } else if (pathname.endsWith(`/works/${workId}`)) {
+      data = { id: workId, title: '배너 작품', genre: '판타지', latestEpisodeNo: 12 };
+    } else if (pathname.endsWith('/works')) {
+      data = [{ id: workId, title: '배너 작품', genre: '판타지', episodeCount: 12 }];
+    }
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-banner-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+
+  await expect(page.getByText('검토할 설정 후보가 있습니다.')).toBeVisible();
+  await expect(page.getByText('일부 분석에 실패했습니다.')).toHaveCount(0);
 });

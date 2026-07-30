@@ -278,7 +278,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 **URL**: `/dashboard?workId={workId}&nav=analyses&analysisPage={1 이상의 정수}`
 
-사이드 메뉴의 `분석 목록`에서 같은 작품의 분석을 `UploadBatch` 단위로 조회하는 화면이다. 한 번에 함께 올린 회차들의 Job과 설정 후보 검토 상태를 한 카드로 집계하며, `SETTING_EXTRACTION`과 `EPISODE_VALIDATION`이 같은 배치에 있으면 목적별 하위 요약과 액션을 각각 표시한다.
+사이드 메뉴의 `분석 목록`에서 같은 작품의 분석을 `UploadBatch` 단위로 조회하는 화면이다. 한 번에 함께 올린 회차들의 Job과 설정 후보 검토 상태를 한 카드로 집계하며, `SETTING_EXTRACTION`과 `EPISODE_VALIDATION`이 같은 배치에 있으면 목적별 하위 요약은 유지하되 카드 액션은 배치 상태에 맞는 버튼 하나만 표시한다.
 
 > **목록·보존 정책**
 > - 서버 페이지네이션은 한 페이지 10개이며, 배치의 최근 분석 요청 시각 내림차순과 배치 ID 내림차순을 사용한다.
@@ -300,10 +300,11 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 **2. 사용자 액션**
 
-- `IN_PROGRESS` 목적의 `진행 보기` → 해당 `currentAnalysisJobIds`로 업로드 분석 진행 화면을 열고 폴링 재개
-- `PARTIALLY_FAILED` 또는 `FAILED` 목적의 `실패 확인` → 같은 화면의 실패 상태에서 실패 회차 확인·재시도
-- 완료된 목적의 `결과 보기` → 같은 화면의 완료 결과 상태 확인
-- 배치가 `REVIEW_REQUIRED`이면 `설정 후보 검토` → `workId`, `batchId`, `jobType` 문맥으로 [설정 검토](./character.md#설정-검토-ssettingreview) 이동
+- 각 배치 카드는 현재 상태에 맞는 액션 버튼 하나만 표시
+- `IN_PROGRESS` 배치의 `진행 보기` → 진행 중인 목적의 `currentAnalysisJobIds`로 업로드 분석 진행 화면을 열고 폴링 재개
+- `PARTIALLY_FAILED` 또는 `FAILED` 배치의 `실패 확인` → 실패한 목적의 현재 작업으로 같은 화면을 열어 실패 회차 확인·재시도
+- `REVIEW_REQUIRED` 배치의 `결과 보기` → `PENDING_REVIEW` 기본 필터로 [설정 검토](./character.md#설정-검토-ssettingreview)에 바로 이동
+- `COMPLETED` 배치의 `결과 보기` → `ALL` 필터로 설정 검토 결과를 읽기 전용 조회
 - `IN_PROGRESS` 배치가 있으면 화면 활성 상태에서 10초 간격으로 목록을 갱신하고, 모두 종료되면 자동 갱신 중단
 - 이전·다음 페이지 이동
 
@@ -319,8 +320,9 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 - 현재 작품: `workId`
 - 현재 목록 페이지: `analysisPage={1 이상의 정수}`. 값이 없으면 첫 페이지
 - API 페이지: `page={0 이상의 정수}&size=10`
-- 진행·실패·결과 화면: `/episode-upload?workId={workId}&batchId={batchId}&analysisJobIds={currentAnalysisJobIds}&currentAnalysisJobIds={currentAnalysisJobIds}&jobType={jobType}`
-- 설정 후보 검토: `/setting-review?workId={workId}&batchId={batchId}&jobType={jobType}`
+- 진행·실패 화면: `/episode-upload?workId={workId}&batchId={batchId}&analysisJobIds={currentAnalysisJobIds}&currentAnalysisJobIds={currentAnalysisJobIds}&jobType={jobType}`
+- 검토 필요 결과: `/setting-review?workId={workId}&batchId={batchId}&jobType={jobType}`
+- 검토 완료 결과: `/setting-review?workId={workId}&batchId={batchId}&jobType={jobType}&reviewStatus=ALL`
 
 **4. 데이터 없음 / 실패 표시**
 
@@ -346,7 +348,7 @@ GET /api/v1/works/{workId}/analysis-jobs/batches?page={page}&size=10
 | 배치 집계 상태 | `status` | 진행·부분 실패·실패·검토 필요·완료 표시 |
 | 대상 회차 범위·수 | `episodeStartNo`, `episodeEndNo`, `episodeCount` | 카드 대상 요약 |
 | 후보 검토 집계 | `totalCandidateCount`, `reviewedCandidateCount`, `pendingCandidateCount` | 검토 진행과 `REVIEW_REQUIRED` 액션 |
-| 분석 목적별 집계 | `jobGroups[]` | 목적별 상태·개수·액션 분리 |
+| 분석 목적별 집계 | `jobGroups[]` | 목적별 상태·개수 요약과 진행·실패 시 이동 대상 선택 |
 | 분석 요청·활동 시각 | `firstRequestedAt`, `lastRequestedAt`, `lastActivityAt` | 최근 활동 표시와 최근 분석 요청 기준 서버 정렬 |
 
 `jobGroups[]`는 `jobType`, 목적별 집계 `status`, `totalJobCount`, `pendingJobCount`, `runningJobCount`, `succeededJobCount`, `failedJobCount`, `currentAnalysisJobIds`, `lastActivityAt`을 제공한다.
@@ -358,8 +360,8 @@ GET /api/v1/works/{workId}/analysis-jobs/batches?page={page}&size=10
 **5-3. FE → BE 전달 데이터 요구사항**
 
 - 배치 목록 조회: `workId`, 0부터 시작하는 `page`, `size=10`
-- 진행·실패·결과 재진입: 응답의 `batchId`, 목적별 `jobType`, `currentAnalysisJobIds`
-- 설정 후보 검토: 응답의 `batchId`와 해당 `jobType`
+- 진행·실패 재진입: 응답의 `batchId`, 선택한 목적의 `jobType`, `currentAnalysisJobIds`
+- 설정 후보 결과: 응답의 `batchId`와 해당 `jobType`, 완료 결과이면 `reviewStatus=ALL`
 - FE는 과거 실패 Job을 현재 Job으로 되살리거나 상태·후보 집계를 다시 계산하지 않는다.
 
 **6. BE와 협의할 범위·상태값**

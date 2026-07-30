@@ -3195,20 +3195,22 @@ export default function S1Dashboard() {
     (currentEpisodePage + 1) * MS_PAGE_SIZE,
   );
   const overviewBatches = analysisOverviewQuery.data?.data?.content ?? [];
-  const analysisNotice = overviewBatches.some(batch =>
-    batch.status === 'FAILED' || batch.status === 'PARTIALLY_FAILED')
+  // 서버가 최근 분석 요청순으로 정렬하므로 원고 배너는 가장 최신 배치만 반영한다.
+  const latestAnalysisBatch = overviewBatches[0];
+  const analysisNotice = latestAnalysisBatch?.status === 'FAILED'
+    || latestAnalysisBatch?.status === 'PARTIALLY_FAILED'
     ? {
         label: '일부 분석에 실패했습니다.',
         description: '분석 목록에서 실패한 회차를 확인하고 다시 시도할 수 있습니다.',
         color: C.danger,
       }
-    : overviewBatches.some(batch => batch.status === 'IN_PROGRESS')
+    : latestAnalysisBatch?.status === 'IN_PROGRESS'
       ? {
           label: '진행 중인 분석이 있습니다.',
           description: '분석 목록에서 함께 올린 회차의 진행 상황을 확인할 수 있습니다.',
           color: C.primary,
         }
-      : overviewBatches.some(batch => batch.status === 'REVIEW_REQUIRED')
+      : latestAnalysisBatch?.status === 'REVIEW_REQUIRED'
         ? {
             label: '검토할 설정 후보가 있습니다.',
             description: '분석 목록에서 업로드 묶음을 선택해 후보 검토를 이어가세요.',

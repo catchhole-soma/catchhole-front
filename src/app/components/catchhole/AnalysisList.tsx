@@ -92,10 +92,32 @@ function jobTypeLabel(jobType?: AnalysisBatchJobGroupResponse['jobType']): strin
   return jobType === 'SETTING_EXTRACTION' ? '기존 설정 구축' : '신규 회차 검수';
 }
 
-function actionLabel(group: AnalysisBatchJobGroupResponse): string {
-  if (group.status === 'IN_PROGRESS') return '진행 보기';
-  if (group.status === 'FAILED' || group.status === 'PARTIALLY_FAILED') return '실패 확인';
+function actionLabel(status: AnalysisBatchStatus): string {
+  if (status === 'IN_PROGRESS') return '진행 보기';
+  if (status === 'FAILED' || status === 'PARTIALLY_FAILED') return '실패 확인';
   return '결과 보기';
+}
+
+function findActionJobGroup(
+  batch: AnalysisBatchSummaryResponse,
+  status: AnalysisBatchStatus,
+): AnalysisBatchJobGroupResponse | undefined {
+  const groups = batch.jobGroups ?? [];
+  const preferredStatuses = status === 'IN_PROGRESS'
+    ? ['IN_PROGRESS']
+    : status === 'PARTIALLY_FAILED'
+      ? ['PARTIALLY_FAILED', 'FAILED']
+      : status === 'FAILED'
+        ? ['FAILED', 'PARTIALLY_FAILED']
+        : [];
+
+  return preferredStatuses
+    .map(preferredStatus => groups.find(group => (
+      group.status === preferredStatus
+      && (group.currentAnalysisJobIds?.length ?? 0) > 0
+    )))
+    .find(group => group !== undefined)
+    ?? groups.find(group => (group.currentAnalysisJobIds?.length ?? 0) > 0);
 }
 
 export function AnalysisList({ workId }: { workId: string }) {
@@ -163,10 +185,12 @@ export function AnalysisList({ workId }: { workId: string }) {
     const jobType = batch.jobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.jobType
       ?? batch.jobGroups?.[0]?.jobType
       ?? 'SETTING_EXTRACTION';
+    const reviewStatus = batch.status === 'COMPLETED' ? '&reviewStatus=ALL' : '';
     navigate(
       `/setting-review?workId=${encodeURIComponent(workId)}`
       + `&batchId=${encodeURIComponent(batch.batchId)}`
-      + `&jobType=${jobType}`,
+      + `&jobType=${jobType}`
+      + reviewStatus,
       'dissolve',
       { returnToAnalysisList: `${location.pathname}${location.search}` },
     );
@@ -273,6 +297,12 @@ export function AnalysisList({ workId }: { workId: string }) {
             const pendingCount = batch.pendingCandidateCount ?? 0;
             const reviewedCount = batch.reviewedCandidateCount ?? 0;
             const totalCount = batch.totalCandidateCount ?? 0;
+            const opensReview = status === 'REVIEW_REQUIRED' || status === 'COMPLETED';
+            const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
+            const actionEnabled = opensReview
+              ? Boolean(batch.batchId)
+              : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0;
+            const actionColor = opensReview ? C.primary : view.color;
             return (
               <article key={batch.batchId} style={{
                 padding: '18px 20px',
@@ -368,45 +398,29 @@ export function AnalysisList({ workId }: { workId: string }) {
                     최근 활동 {formatDateTime(batch.lastActivityAt ?? batch.lastRequestedAt)}
                   </span>
                   <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {status === 'REVIEW_REQUIRED' && (
-                      <button type="button" onClick={() => openReview(batch)} style={{
+                    <button
+                      type="button"
+                      disabled={!actionEnabled}
+                      onClick={() => {
+                        if (opensReview) openReview(batch);
+                        else if (actionGroup) openProgress(batch, actionGroup);
+                      }}
+                      style={{
                         height: 34,
                         padding: '0 14px',
                         borderRadius: 6,
-                        border: `1px solid ${C.primary}`,
-                        background: `${C.primary}18`,
-                        color: C.primary,
+                        border: `1px solid ${actionColor}`,
+                        background: opensReview ? `${C.primary}18` : 'transparent',
+                        color: actionColor,
                         fontFamily: 'inherit',
                         fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}>
-                        설정 후보 검토
-                      </button>
-                    )}
-                    {(batch.jobGroups ?? []).map(group => (
-                      <button
-                        key={`${group.jobType}-action`}
-                        type="button"
-                        disabled={(group.currentAnalysisJobIds?.length ?? 0) === 0}
-                        onClick={() => openProgress(batch, group)}
-                        style={{
-                          height: 34,
-                          padding: '0 14px',
-                          borderRadius: 6,
-                          border: `1px solid ${C.border}`,
-                          background: 'transparent',
-                          color: C.t2,
-                          fontFamily: 'inherit',
-                          fontSize: 12,
-                          cursor: (group.currentAnalysisJobIds?.length ?? 0) > 0 ? 'pointer' : 'default',
-                          opacity: (group.currentAnalysisJobIds?.length ?? 0) > 0 ? 1 : 0.45,
-                        }}
-                      >
-                        {(batch.jobGroups?.length ?? 0) > 1 ? `${jobTypeLabel(group.jobType)} ` : ''}
-                        {actionLabel(group)}
-                      </button>
-                    ))}
+                        fontWeight: opensReview ? 700 : 400,
+                        cursor: actionEnabled ? 'pointer' : 'default',
+                        opacity: actionEnabled ? 1 : 0.45,
+                      }}
+                    >
+                      {actionLabel(status)}
+                    </button>
                   </div>
                 </div>
               </article>
