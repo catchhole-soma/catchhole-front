@@ -318,7 +318,11 @@ test('마지막 검토 대기 후보를 확정하면 완료 상태를 표시한�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  await page.getByRole('button', { name: '확정', exact: true }).last().click();
+  const confirmButton = page
+    .getByRole('article')
+    .getByRole('button', { name: '확정', exact: true });
+  await expect(confirmButton).toBeEnabled();
+  await confirmButton.click();
 
   await expect.poll(() => confirmed, { timeout: 10_000 }).toBe(true);
   await expect.poll(
@@ -384,7 +388,11 @@ test('확정 후 목록 재조회가 실패하면 이전 후보를 다시 자동
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  await page.getByRole('button', { name: '확정', exact: true }).last().click();
+  const confirmButton = page
+    .getByRole('article')
+    .getByRole('button', { name: '확정', exact: true });
+  await expect(confirmButton).toBeEnabled();
+  await confirmButton.click();
 
   await expect.poll(() => confirmed, { timeout: 10_000 }).toBe(true);
   await expect(page.getByRole('alert')).toContainText(
