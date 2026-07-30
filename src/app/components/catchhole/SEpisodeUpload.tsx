@@ -957,26 +957,40 @@ export default function SEpisodeUpload() {
   const retryFailedAnalysisJobs = async () => {
     if (retryableFailedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
     setAnalysisStartError(null);
-    try {
-      const responses = await Promise.all(
-        retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
-          path: { workId, analysisJobId },
-        })),
-      );
-      const retryAnalysisJobs = responses.flatMap((response, index) => {
-        const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
-        const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
-        const responseJobs = response.data ?? [];
-        if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
-          throw new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
-        }
-        return responseJobs;
-      });
-      const retryAnalysisJobIds = retryAnalysisJobs.flatMap(job => job.id ? [job.id] : []);
-      if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
-      const retriedJobIdSet = new Set(retryableFailedAnalysisJobIds);
+    const responses = await Promise.allSettled(
+      retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
+        path: { workId, analysisJobId },
+      })),
+    );
+    const successfullyRetriedJobIds = new Set<string>();
+    const retryAnalysisJobIds: string[] = [];
+    let retryError: unknown = null;
+
+    responses.forEach((response, index) => {
+      const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
+      if (response.status === 'rejected') {
+        retryError ??= response.reason;
+        return;
+      }
+
+      const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
+      const responseJobs = response.value.data ?? [];
+      if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
+        retryError ??= new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
+        return;
+      }
+      const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
+      if (responseJobIds.length === 0) {
+        retryError ??= new Error('재시도 작업 ID가 응답에 없습니다.');
+        return;
+      }
+      successfullyRetriedJobIds.add(failedAnalysisJobId);
+      retryAnalysisJobIds.push(...responseJobIds);
+    });
+
+    if (retryAnalysisJobIds.length > 0) {
       const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
-        analysisJobId => !retriedJobIdSet.has(analysisJobId),
+        analysisJobId => !successfullyRetriedJobIds.has(analysisJobId),
       );
       const nextTrackedAnalysisJobIds = [...new Set([
         ...trackedAnalysisJobIds,
@@ -993,11 +1007,18 @@ export default function SEpisodeUpload() {
         nextTrackedAnalysisJobIds,
         nextCurrentAnalysisJobIds,
       );
-    } catch (error) {
+    }
+
+    if (retryError) {
       setAnalysisStartError(
-        error instanceof Error && error.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
+        retryError instanceof Error && retryError.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
           ? RETRY_JOB_TYPE_MISMATCH_MESSAGE
-          : errorMessage(error, '실패 회차 분석을 다시 요청하지 못했습니다.'),
+          : errorMessage(
+              retryError,
+              retryAnalysisJobIds.length > 0
+                ? '일부 실패 회차만 다시 요청했습니다. 남은 실패 회차를 다시 시도해주세요.'
+                : '실패 회차 분석을 다시 요청하지 못했습니다.',
+            ),
       );
     }
   };

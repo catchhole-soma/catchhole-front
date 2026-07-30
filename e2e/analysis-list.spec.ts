@@ -264,6 +264,110 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
   await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
 });
 
+test('진행 화면을 거쳐 후보 검토 후 돌아가면 중간 진행 이력을 남기지 않는다', async ({ page }) => {
+  const analysisJobId = '44444444-4444-4444-8444-444444444444';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'analysis-history@example.com',
+          displayName: '분석 이력 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId: reviewBatchId,
+              status: 'IN_PROGRESS',
+              episodeStartNo: 5,
+              episodeEndNo: 5,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              jobGroups: [{
+                jobType: 'SETTING_EXTRACTION',
+                status: 'IN_PROGRESS',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 1,
+                succeededJobCount: 0,
+                failedJobCount: 0,
+                currentAnalysisJobIds: [analysisJobId],
+              }],
+              lastActivityAt: '2026-07-30T10:26:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
+        : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+          ? {
+              id: analysisJobId,
+              workId,
+              workTitle: '검토 작품',
+              batchId: reviewBatchId,
+              jobType: 'SETTING_EXTRACTION',
+              status: 'SUCCEEDED',
+              episodes: [{
+                id: '55555555-5555-4555-8555-555555555555',
+                episodeNo: 5,
+                title: '완료 회차',
+                status: 'ANALYZED',
+              }],
+            }
+          : pathname === `/api/v1/works/${workId}/setting-candidates`
+            ? {
+                batchId: reviewBatchId,
+                episodeStartNo: 5,
+                episodeEndNo: 5,
+                episodeCount: 1,
+                totalCandidateCount: 0,
+                reviewedCandidateCount: 0,
+                pendingCandidateCount: 0,
+                matchRequiredCandidateCount: 0,
+                candidates: {
+                  content: [],
+                  page: 0,
+                  size: 20,
+                  totalElements: 0,
+                  totalPages: 0,
+                  hasNext: false,
+                },
+              }
+            : pathname.endsWith(`/works/${workId}`)
+              ? { id: workId, title: '검토 작품', genre: '판타지', latestEpisodeNo: 5 }
+              : pathname.endsWith('/works')
+                ? [{ id: workId, title: '검토 작품', genre: '판타지', episodeCount: 5 }]
+                : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-history-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.getByRole('button', { name: '진행 보기' }).click();
+  await page.getByRole('button', { name: '설정 후보 검토' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
+
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
+});
+
 test('원고 목록 배너는 과거 실패보다 최신 분석 배치 상태를 표시한다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;

@@ -136,6 +136,11 @@ function toSettingDisplay(attributeName?: string): SettingDisplay {
   };
 }
 
+function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolean {
+  const status = toApiError(error)?.status;
+  return status !== 401 && status !== 404 && failureCount < 2;
+}
+
 function splitDynamicSettingName(attributeName: string, dynamicPrefix?: string | null): {
   prefix: string;
   suffix: string;
@@ -1232,7 +1237,7 @@ export default function SSettingReview() {
       },
     }),
     enabled: hasContext,
-    retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 2,
+    retry: shouldRetryCandidateQuery,
   });
   const listData = listQuery.data?.data;
   const candidatePage = listData?.candidates;
@@ -1264,7 +1269,7 @@ export default function SSettingReview() {
       query: { batchId },
     }),
     enabled: hasContext && Boolean(selectedCandidateId),
-    retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 2,
+    retry: shouldRetryCandidateQuery,
   });
   const selectedCandidate = detailQuery.data?.data;
   const confirmMutation = useMutation({
@@ -1493,7 +1498,7 @@ export default function SSettingReview() {
   const backToAnalysisList = () => {
     if (typeof returnToAnalysisList === 'string' && returnToAnalysisList) {
       if (reviewNavigationState?.returnToAnalysisListByUrl === true) {
-        navigate(returnToAnalysisList, 'pop', undefined, { replace: true });
+        routerNavigate(-2);
         return;
       }
       routerNavigate(-1);

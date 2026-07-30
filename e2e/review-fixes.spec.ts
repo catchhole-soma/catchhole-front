@@ -303,6 +303,98 @@ test('삭제 회차와 실패 회차가 섞여도 살아 있는 실패 회차만
   ]);
 });
 
+test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를 추적한다', async ({ page }) => {
+  const firstFailedJobId = '33333333-3333-4333-8333-333333333333';
+  const secondFailedJobId = '55555555-5555-4555-8555-555555555555';
+  const retriedJobId = '66666666-6666-4666-8666-666666666666';
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (
+      request.method() === 'POST'
+      && pathname.endsWith(`/${workId}/analysis-jobs/${firstFailedJobId}/retry`)
+    ) {
+      return fulfill(route, [{ id: retriedJobId, jobType: 'EPISODE_VALIDATION' }]);
+    }
+    if (
+      request.method() === 'POST'
+      && pathname.endsWith(`/${workId}/analysis-jobs/${secondFailedJobId}/retry`)
+    ) {
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '재시도 요청 실패',
+          data: null,
+          error: { code: 'INTERNAL_SERVER_ERROR', status: 500, details: [] },
+        }),
+      });
+    }
+
+    const jobId = pathname.split('/').at(-1);
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : jobId === firstFailedJobId || jobId === secondFailedJobId
+        ? {
+            id: jobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: jobId === firstFailedJobId ? 20 : 21,
+              title: '재시도 대상 회차',
+              status: 'FAILED',
+            }],
+          }
+        : jobId === retriedJobId
+          ? {
+              id: retriedJobId,
+              workId,
+              workTitle: '현재 작품',
+              batchId,
+              jobType: 'EPISODE_VALIDATION',
+              status: 'PENDING',
+              episodes: [{
+                id: episodeId,
+                episodeNo: 20,
+                title: '재시도 성공 회차',
+                status: 'FAILED',
+              }],
+            }
+          : pathname.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '현재 작품', genre: '판타지' }
+            : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'partial-retry-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${firstFailedJobId},${secondFailedJobId}`
+    + `&currentAnalysisJobIds=${firstFailedJobId},${secondFailedJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  await page.getByRole('button', { name: '실패 회차 다시 시도' }).click();
+
+  await expect.poll(() => {
+    const params = new URL(page.url()).searchParams;
+    return [
+      params.get('analysisJobIds'),
+      params.get('currentAnalysisJobIds'),
+    ];
+  }).toEqual([
+    `${firstFailedJobId},${secondFailedJobId},${retriedJobId}`,
+    `${secondFailedJobId},${retriedJobId}`,
+  ]);
+  await expect(page.getByText('재시도 요청 실패', { exact: true })).toBeVisible();
+});
+
 test('재시도 응답의 jobType이 실패 작업과 다르면 새 ID를 채택하지 않는다', async ({ page }) => {
   const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
   const mismatchedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
