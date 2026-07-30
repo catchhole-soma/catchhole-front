@@ -31,6 +31,8 @@ function batch(index: number) {
 
 test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이동한다', async ({ page }) => {
   const requestedPages: string[] = [];
+  const eleventhBatch = batch(11);
+  const eleventhAnalysisJobId = eleventhBatch.jobGroups[0].currentAnalysisJobIds[0];
 
   await page.route('**/api/v1/**', route => {
     const url = new URL(route.request().url());
@@ -59,6 +61,40 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
         totalElements: 11,
         totalPages: 2,
         hasNext: apiPage === '0',
+      };
+    } else if (pathname.endsWith(`/${workId}/analysis-jobs/${eleventhAnalysisJobId}`)) {
+      data = {
+        id: eleventhAnalysisJobId,
+        workId,
+        workTitle: '페이지 작품',
+        batchId: eleventhBatch.batchId,
+        jobType: 'EPISODE_VALIDATION',
+        status: 'SUCCEEDED',
+        episodes: [{
+          id: '44444444-4444-4444-8444-000000000011',
+          episodeNo: 11,
+          title: '11화',
+          status: 'ANALYZED',
+        }],
+      };
+    } else if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      data = {
+        batchId: eleventhBatch.batchId,
+        episodeStartNo: 11,
+        episodeEndNo: 11,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [],
+          page: 0,
+          size: 20,
+          totalElements: 0,
+          totalPages: 0,
+          hasNext: false,
+        },
       };
     } else if (pathname.endsWith(`/works/${workId}`)) {
       data = { id: workId, title: '페이지 작품', genre: '판타지', latestEpisodeNo: 11 };
@@ -104,6 +140,16 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
   await eleventhEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/episode-upload');
   await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
+
+  await eleventhEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/episode-upload');
+  await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toBeVisible();
+  await expect(eleventhEpisodeCard).toHaveCount(0);
+  await page.getByRole('button', { name: '설정 후보 검토' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
+  await page.getByRole('button', { name: '이전 화면' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
 });

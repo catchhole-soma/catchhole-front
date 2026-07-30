@@ -1512,6 +1512,10 @@ export default function SEpisodeUpload() {
                         + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
                         + `&jobType=${resolvedAnalysisJobType}`,
                         'dissolve',
+                        {
+                          returnToAnalysisList,
+                          returnToAnalysisListByUrl: true,
+                        },
                       );
                     }}>
                       설정 후보 검토

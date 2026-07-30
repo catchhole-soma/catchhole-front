@@ -1203,9 +1203,11 @@ export default function SSettingReview() {
   const [editOpen, setEditOpen] = useState(false);
   const [matchResolution, setMatchResolution] = useState<MatchResolution | null>(null);
   const mountedRef = useRef(false);
-  const returnToAnalysisList = (
-    location.state as { returnToAnalysisList?: unknown } | null
-  )?.returnToAnalysisList;
+  const reviewNavigationState = location.state as {
+    returnToAnalysisList?: unknown;
+    returnToAnalysisListByUrl?: unknown;
+  } | null;
+  const returnToAnalysisList = reviewNavigationState?.returnToAnalysisList;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -1244,13 +1246,21 @@ export default function SSettingReview() {
   )?.id ?? candidates[0]?.id;
 
   useEffect(() => {
-    if (selectedCandidateId || !firstCandidateId) return;
+    // 실패한 refetch가 보존한 이전 목록에서는 이미 처리한 후보를 다시 자동 선택하지 않는다.
+    if (!listQuery.isSuccess || listQuery.isFetching || selectedCandidateId || !firstCandidateId) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('candidate', firstCandidateId);
       return next;
     }, { replace: true, state: location.state });
-  }, [firstCandidateId, location.state, selectedCandidateId, setSearchParams]);
+  }, [
+    firstCandidateId,
+    listQuery.isFetching,
+    listQuery.isSuccess,
+    location.state,
+    selectedCandidateId,
+    setSearchParams,
+  ]);
 
   const detailQuery = useQuery({
     ...getSettingCandidateOptions({
@@ -1487,6 +1497,10 @@ export default function SSettingReview() {
   };
   const backToAnalysisList = () => {
     if (typeof returnToAnalysisList === 'string' && returnToAnalysisList) {
+      if (reviewNavigationState?.returnToAnalysisListByUrl === true) {
+        navigate(returnToAnalysisList, 'pop', undefined, { replace: true });
+        return;
+      }
       routerNavigate(-1);
       return;
     }

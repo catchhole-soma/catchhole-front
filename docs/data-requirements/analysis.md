@@ -307,6 +307,13 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 - `IN_PROGRESS` 배치가 있으면 화면 활성 상태에서 10초 간격으로 목록을 갱신하고, 모두 종료되면 자동 갱신 중단
 - 이전·다음 페이지 이동
 
+> **후속 계약**
+> 현재 `REVIEW_REQUIRED`는 배치 전체의 `pendingCandidateCount`로만 결정되고,
+> `jobGroups[].status`에는 후보 검토 상태가 포함되지 않는다. 따라서 두 분석 목적이
+> 같은 배치에 함께 있으면 프론트만으로 검토 후 이어갈 정확한 `jobType`을 식별할 수 없다.
+> Backend가 `reviewJobType` 또는 목적별 미검토 후보 수를 제공하도록 계약을 보강한 뒤,
+> 분석 목록의 고정 우선순위를 해당 값 기반 선택으로 교체한다.
+
 **3. 화면 전환 식별자**
 
 - 현재 작품: `workId`

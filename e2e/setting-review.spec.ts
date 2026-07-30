@@ -320,10 +320,79 @@ test('마지막 검토 대기 후보를 확정하면 완료 상태를 표시한�
 
   await page.getByRole('button', { name: '확정', exact: true }).last().click();
 
-  await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
-  await expect(page.getByText('모든 설정 후보 검토를 완료했습니다.')).toHaveCount(2);
+  await expect.poll(() => confirmed, { timeout: 10_000 }).toBe(true);
+  await expect.poll(
+    () => new URL(page.url()).searchParams.get('candidate'),
+    { timeout: 10_000 },
+  ).toBeNull();
+  await expect(page.getByText('모든 설정 후보 검토를 완료했습니다.'))
+    .toHaveCount(2, { timeout: 10_000 });
   await expect(page.getByText('확정하거나 무시한 후보는 검토 상태 필터에서 다시 확인할 수 있습니다.'))
     .toBeVisible();
+});
+
+test('확정 후 목록 재조회가 실패하면 이전 후보를 다시 자동 선택하지 않는다', async ({ page }) => {
+  let confirmed = false;
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      if (confirmed) {
+        return fulfillError(
+          route,
+          404,
+          '최신 설정 후보 목록을 불러오지 못했습니다.',
+          'SETTING_CANDIDATE_LIST_FAILED',
+        );
+      }
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [candidates[0]],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/confirm`) {
+      confirmed = true;
+      return fulfill(route, { id: firstCandidateId, reviewStatus: 'CONFIRMED' });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) {
+      return fulfill(route, {
+        ...candidates[0],
+        reviewStatus: confirmed ? 'CONFIRMED' : 'PENDING_REVIEW',
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await page.getByRole('button', { name: '확정', exact: true }).last().click();
+
+  await expect.poll(() => confirmed, { timeout: 10_000 }).toBe(true);
+  await expect(page.getByRole('alert')).toContainText(
+    '최신 후보를 불러오지 못해 마지막으로 확인한 목록을 표시합니다.',
+    { timeout: 10_000 },
+  );
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
+  await expect(page.getByText('설정 후보를 선택해 주세요.')).toBeVisible();
 });
 
 test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버 요청에 동기화한다', async ({ page }) => {
