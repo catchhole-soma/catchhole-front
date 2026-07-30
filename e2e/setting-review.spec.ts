@@ -508,6 +508,7 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
 });
 
 test('검토 대기 후보를 무시하는 동안 이동을 잠그고 완료 후 다음 후보를 선택한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 420 });
   let firstDismissed = false;
   let releaseDismiss: (() => void) | undefined;
   const nextCandidate = {
@@ -571,11 +572,33 @@ test('검토 대기 후보를 무시하는 동안 이동을 잠그고 완료 후
   await expect.poll(() => Boolean(releaseDismiss)).toBe(true);
   await expect(page.getByRole('button', { name: /강민준/ })).toBeDisabled();
   await expect(page.getByRole('button', { name: '확정', exact: true }).first()).toBeDisabled();
+  const main = page.locator('main');
+  const scrollTopBeforeAutoSelect = await main.evaluate(element => {
+    element.scrollTop = Math.min(80, element.scrollHeight - element.clientHeight);
+    return element.scrollTop;
+  });
+  expect(scrollTopBeforeAutoSelect).toBeGreaterThan(0);
 
   releaseDismiss?.();
 
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBe(secondCandidateId);
   await expect(page.getByRole('heading', { name: '강민준' })).toBeVisible();
+  const scrollTopAfterAutoSelect = await main.evaluate(element => new Promise<number>(resolve => {
+    let previous = element.scrollTop;
+    let stableFrameCount = 0;
+    const waitForStableScroll = () => {
+      const current = element.scrollTop;
+      stableFrameCount = current === previous ? stableFrameCount + 1 : 0;
+      previous = current;
+      if (stableFrameCount >= 5) {
+        resolve(current);
+        return;
+      }
+      requestAnimationFrame(waitForStableScroll);
+    };
+    requestAnimationFrame(waitForStableScroll);
+  }));
+  expect(Math.abs(scrollTopAfterAutoSelect - scrollTopBeforeAutoSelect)).toBeLessThanOrEqual(1);
   await expect(page.getByText('1/2 검토 완료')).toBeVisible();
   await expect(page.getByRole('button', { name: /강민준/ })).toBeEnabled();
 });

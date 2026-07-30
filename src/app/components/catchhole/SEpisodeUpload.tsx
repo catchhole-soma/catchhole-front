@@ -143,13 +143,16 @@ function requiresBulkFileReselection(error: unknown): boolean {
   }
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
+  onBack: () => void;
+  backLabel?: string;
+}) {
   return (
     <div style={{
       height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 20px', borderBottom: `1px solid ${C.border}`,
     }}>
-      <button type="button" aria-label="원고 목록으로 돌아가기" onClick={onBack} style={{
+      <button type="button" aria-label={backLabel} onClick={onBack} style={{
         width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
         background: 'transparent', color: C.t2, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -543,6 +546,15 @@ export default function SEpisodeUpload() {
   const detectionRequestSequence = useRef(0);
 
   const goBackToEntry = () => {
+    if (step === 'processing') {
+      navigate(
+        `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`,
+        'pop',
+        undefined,
+        { replace: true },
+      );
+      return;
+    }
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
     if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
     else navigate(
@@ -1010,7 +1022,10 @@ export default function SEpisodeUpload() {
       background: C.bg, color: C.t1,
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
     }}>
-      <Header onBack={goBackToEntry} />
+      <Header
+        onBack={goBackToEntry}
+        backLabel={step === 'processing' ? '분석 목록으로 돌아가기' : undefined}
+      />
       <Stepper labels={labels} current={currentStep} />
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
@@ -1446,9 +1461,9 @@ export default function SEpisodeUpload() {
 
               <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={() => navigate(
-                  `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
+                  `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`,
                   'pop',
-                )}>원고 목록으로</SecondaryButton>
+                )}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
                     <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {

@@ -1196,8 +1196,6 @@ export default function SSettingReview() {
   const hasContext = Boolean(workId && batchId);
   const [editOpen, setEditOpen] = useState(false);
   const [matchResolution, setMatchResolution] = useState<MatchResolution | null>(null);
-  const selectedCandidateCardRef = useRef<HTMLDivElement>(null);
-  const autoAdvanceFromCandidateIdRef = useRef<string | null>(null);
 
   const listQuery = useQuery({
     ...getSettingCandidatesOptions({
@@ -1228,20 +1226,6 @@ export default function SSettingReview() {
       return next;
     }, { replace: true });
   }, [firstCandidateId, selectedCandidateId, setSearchParams]);
-
-  useEffect(() => {
-    const previousCandidateId = autoAdvanceFromCandidateIdRef.current;
-    if (!previousCandidateId
-      || !selectedCandidateId
-      || selectedCandidateId === previousCandidateId) {
-      return;
-    }
-    autoAdvanceFromCandidateIdRef.current = null;
-    selectedCandidateCardRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, [selectedCandidateId]);
 
   const detailQuery = useQuery({
     ...getSettingCandidateOptions({
@@ -1274,7 +1258,6 @@ export default function SSettingReview() {
           queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
         }),
       ]);
-      autoAdvanceFromCandidateIdRef.current = targetCandidateId;
       setSearchParams(previous => {
         if (previous.get('candidate') !== targetCandidateId) {
           return previous;
@@ -1304,7 +1287,6 @@ export default function SSettingReview() {
           }),
         }),
       ]);
-      autoAdvanceFromCandidateIdRef.current = targetCandidateId;
       setSearchParams(previous => {
         if (previous.get('candidate') !== targetCandidateId) {
           return previous;
@@ -1403,7 +1385,6 @@ export default function SSettingReview() {
 
   const updateFilters = (nextReview: ReviewFilter, nextMatch: MatchFilter) => {
     if (actionPending) return;
-    autoAdvanceFromCandidateIdRef.current = null;
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1421,7 +1402,6 @@ export default function SSettingReview() {
   };
   const selectCandidate = (candidateId: string) => {
     if (actionPending) return;
-    autoAdvanceFromCandidateIdRef.current = null;
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1434,7 +1414,6 @@ export default function SSettingReview() {
   };
   const changePage = (page: number) => {
     if (actionPending) return;
-    autoAdvanceFromCandidateIdRef.current = null;
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1476,8 +1455,8 @@ export default function SSettingReview() {
         : { resolutionType: resolution, entityName: value },
     });
   };
-  const backToManuscripts = () => navigate(
-    workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts` : '/works',
+  const backToAnalysisList = () => navigate(
+    workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
     'pop',
   );
 
@@ -1503,13 +1482,13 @@ export default function SSettingReview() {
   if (!hasContext) {
     return (
       <div style={{ width: '100%', height: '100%', background: C.bg }}>
-        <ReviewHeader total={0} reviewed={0} onBack={backToManuscripts} />
+        <ReviewHeader total={0} reviewed={0} onBack={backToAnalysisList} />
         <main style={{ maxWidth: 920, margin: '0 auto', padding: '60px 24px' }}>
           <QueryState
             icon={<AlertCircle size={28} color={C.warning} />}
             title="검토할 분석 정보를 찾을 수 없습니다."
             description="작품과 업로드 묶음 정보가 모두 필요합니다. 분석 완료 화면에서 다시 들어와 주세요."
-            action={<ActionButton tone={C.primary} onClick={backToManuscripts}>이전 화면으로</ActionButton>}
+            action={<ActionButton tone={C.primary} onClick={backToAnalysisList}>분석 목록으로</ActionButton>}
           />
         </main>
       </div>
@@ -1521,7 +1500,7 @@ export default function SSettingReview() {
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <ReviewHeader total={total} reviewed={reviewed} onBack={backToManuscripts} />
+      <ReviewHeader total={total} reviewed={reviewed} onBack={backToAnalysisList} />
       <main style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           {listQuery.isPending && !listQuery.data ? (
@@ -1611,10 +1590,6 @@ export default function SSettingReview() {
                         {candidates.map(candidate => candidate.id && (
                           <div
                             key={candidate.id}
-                            ref={candidate.id === selectedCandidateId
-                              ? selectedCandidateCardRef
-                              : undefined}
-                            style={{ scrollMarginTop: 14 }}
                           >
                             <CandidateCard
                               candidate={candidate}

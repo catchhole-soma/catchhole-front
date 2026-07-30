@@ -718,9 +718,9 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
 
-  await page.getByRole('button', { name: '원고 목록으로', exact: true }).click();
+  await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
+    new RegExp(`/dashboard\\?workId=${workId}&nav=analyses$`),
   );
 });
 
@@ -830,6 +830,35 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'IN_PROGRESS',
+              episodeStartNo: 1,
+              episodeEndNo: 2,
+              episodeCount: 2,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              jobGroups: [{
+                jobType: 'EPISODE_VALIDATION',
+                status: 'IN_PROGRESS',
+                totalJobCount: 2,
+                pendingJobCount: 0,
+                runningJobCount: 2,
+                succeededJobCount: 0,
+                failedJobCount: 0,
+                currentAnalysisJobIds: [analysisJobId, secondAnalysisJobId],
+              }],
+              lastActivityAt: '2026-07-23T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
       : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
         ? {
             id: analysisJobId,
@@ -905,9 +934,7 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
 
   const titleButton = page.getByRole('button', { name: '분석 중 회차' });
-  const progressButton = page.getByRole('button', { name: '진행 보기' }).first();
   await expect(titleButton).toBeEnabled();
-  await expect(progressButton).toBeEnabled();
   await expect(page.getByRole('button', { name: '파일 변경' }).first()).toBeDisabled();
   await expect(page.getByRole('button', { name: '삭제' }).first()).toBeDisabled();
 
@@ -915,6 +942,9 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
   await page.keyboard.press('Escape');
 
+  await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
+  const progressButton = page.getByRole('button', { name: '진행 보기' }).first();
+  await expect(progressButton).toBeEnabled();
   await progressButton.click();
 
   await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
@@ -1184,6 +1214,35 @@ test('기존 설정 구축 결과 보기는 분석 완료 화면에서 후보 �
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'REVIEW_REQUIRED',
+              episodeStartNo: 3,
+              episodeEndNo: 3,
+              episodeCount: 1,
+              totalCandidateCount: 1,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 1,
+              jobGroups: [{
+                jobType: 'SETTING_EXTRACTION',
+                status: 'COMPLETED',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 0,
+                succeededJobCount: 1,
+                failedJobCount: 0,
+                currentAnalysisJobIds: [analysisJobId],
+              }],
+              lastActivityAt: '2026-07-29T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
       : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
         ? {
             id: analysisJobId,
@@ -1247,7 +1306,7 @@ test('기존 설정 구축 결과 보기는 분석 완료 화면에서 후보 �
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'setting-result-token'));
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
   await page.getByRole('button', { name: '결과 보기' }).click();
   await expect(page).toHaveURL(/\/episode-upload\?/);

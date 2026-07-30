@@ -298,7 +298,7 @@ test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 
   expect(settingBookUploadRequestCount).toBe(0);
 });
 
-test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling 대상으로 연다', async ({ page }) => {
+test('분석 목록의 실패 확인은 새 Job을 현재 polling 대상으로 다시 연다', async ({ page }) => {
   const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
   const retryAnalysisJobId = '55555555-5555-4555-8555-555555555555';
   let retryRequestCount = 0;
@@ -322,6 +322,35 @@ test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling �
 
     const data = pathname.endsWith('/auth/me')
       ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'FAILED',
+              episodeStartNo: 20,
+              episodeEndNo: 20,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              jobGroups: [{
+                jobType: 'EPISODE_VALIDATION',
+                status: 'FAILED',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 0,
+                succeededJobCount: 0,
+                failedJobCount: 1,
+                currentAnalysisJobIds: [failedAnalysisJobId],
+              }],
+              lastActivityAt: '2026-07-28T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
       : pathname.endsWith(`/${workId}/episodes`)
         ? [{
             id: episodeId,
@@ -365,9 +394,10 @@ test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling �
   });
 
   await authenticate(page, 'dashboard-retry-token');
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
-  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+  await page.getByRole('button', { name: '실패 확인', exact: true }).click();
+  await page.getByRole('button', { name: '실패 회차 다시 시도', exact: true }).click();
 
   await expect.poll(() => retryRequestCount).toBe(1);
   expect(createRequestCount).toBe(0);

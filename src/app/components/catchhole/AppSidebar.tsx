@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  BookOpen, BarChart3, Network, FileText, MessageSquare, Settings,
+  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare, Settings,
 } from 'lucide-react';
 import { C, WorkId, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -103,6 +103,9 @@ export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
       <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" badge="3"
         active={activePage === 'dashboard' && activeNav === 'reports'}
         onClick={() => nav('reports')} />
+      <NavItem icon={<ListChecks size={14} />} label="분석 목록"
+        active={activePage === 'dashboard' && activeNav === 'analyses'}
+        onClick={() => nav('analyses')} />
       <NavItem icon={<Network size={14} />} label="그래프 뷰"
         active={activePage === 'dashboard' && activeNav === 'graph'}
         onClick={() => nav('graph')} />

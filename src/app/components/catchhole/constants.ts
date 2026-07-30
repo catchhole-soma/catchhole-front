@@ -15,5 +15,5 @@ export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test
 
 export type WorkId = string;
 export type EditorMode = 'edit' | 'view';
-export type NavId = 'settingDB' | 'reports' | 'graph' | 'manuscripts';
+export type NavId = 'settingDB' | 'reports' | 'analyses' | 'graph' | 'manuscripts';
 export type TransitionType = 'push-right' | 'push-left' | 'cover-up' | 'pop' | 'dissolve';
