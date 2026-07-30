@@ -547,9 +547,11 @@ export default function SEpisodeUpload() {
       : initialTrackedAnalysisJobIds,
   );
   const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
+  const [batchRetryPending, setBatchRetryPending] = useState(false);
   const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
   const detectionRequestSequence = useRef(0);
+  const batchRetryInFlight = useRef(false);
   const returnToAnalysisList = (
     location.state as { returnToAnalysisList?: unknown } | null
   )?.returnToAnalysisList;
@@ -955,71 +957,82 @@ export default function SEpisodeUpload() {
   };
 
   const retryFailedAnalysisJobs = async () => {
-    if (retryableFailedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
+    if (
+      retryableFailedAnalysisJobIds.length === 0
+      || !episodeUploadBatchId
+      || batchRetryInFlight.current
+    ) return;
+    batchRetryInFlight.current = true;
+    setBatchRetryPending(true);
     setAnalysisStartError(null);
-    const responses = await Promise.allSettled(
-      retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
-        path: { workId, analysisJobId },
-      })),
-    );
-    const successfullyRetriedJobIds = new Set<string>();
-    const retryAnalysisJobIds: string[] = [];
-    let retryError: unknown = null;
+    try {
+      const responses = await Promise.allSettled(
+        retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
+          path: { workId, analysisJobId },
+        })),
+      );
+      const successfullyRetriedJobIds = new Set<string>();
+      const retryAnalysisJobIds: string[] = [];
+      let retryError: unknown = null;
 
-    responses.forEach((response, index) => {
-      const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
-      if (response.status === 'rejected') {
-        retryError ??= response.reason;
-        return;
+      responses.forEach((response, index) => {
+        const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
+        if (response.status === 'rejected') {
+          retryError ??= response.reason;
+          return;
+        }
+
+        const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
+        const responseJobs = response.value.data ?? [];
+        if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
+          retryError ??= new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
+          return;
+        }
+        const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
+        if (responseJobIds.length === 0) {
+          retryError ??= new Error('재시도 작업 ID가 응답에 없습니다.');
+          return;
+        }
+        successfullyRetriedJobIds.add(failedAnalysisJobId);
+        retryAnalysisJobIds.push(...responseJobIds);
+      });
+
+      if (retryAnalysisJobIds.length > 0) {
+        const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
+          analysisJobId => !successfullyRetriedJobIds.has(analysisJobId),
+        );
+        const nextTrackedAnalysisJobIds = [...new Set([
+          ...trackedAnalysisJobIds,
+          ...retryAnalysisJobIds,
+        ])];
+        const nextCurrentAnalysisJobIds = [...new Set([
+          ...retainedCurrentAnalysisJobIds,
+          ...retryAnalysisJobIds,
+        ])];
+        setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
+        setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
+        persistAnalysisRoute(
+          episodeUploadBatchId,
+          nextTrackedAnalysisJobIds,
+          nextCurrentAnalysisJobIds,
+        );
       }
 
-      const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
-      const responseJobs = response.value.data ?? [];
-      if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
-        retryError ??= new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
-        return;
+      if (retryError) {
+        setAnalysisStartError(
+          retryError instanceof Error && retryError.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
+            ? RETRY_JOB_TYPE_MISMATCH_MESSAGE
+            : errorMessage(
+                retryError,
+                retryAnalysisJobIds.length > 0
+                  ? '일부 실패 회차만 다시 요청했습니다. 남은 실패 회차를 다시 시도해주세요.'
+                  : '실패 회차 분석을 다시 요청하지 못했습니다.',
+              ),
+        );
       }
-      const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
-      if (responseJobIds.length === 0) {
-        retryError ??= new Error('재시도 작업 ID가 응답에 없습니다.');
-        return;
-      }
-      successfullyRetriedJobIds.add(failedAnalysisJobId);
-      retryAnalysisJobIds.push(...responseJobIds);
-    });
-
-    if (retryAnalysisJobIds.length > 0) {
-      const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
-        analysisJobId => !successfullyRetriedJobIds.has(analysisJobId),
-      );
-      const nextTrackedAnalysisJobIds = [...new Set([
-        ...trackedAnalysisJobIds,
-        ...retryAnalysisJobIds,
-      ])];
-      const nextCurrentAnalysisJobIds = [...new Set([
-        ...retainedCurrentAnalysisJobIds,
-        ...retryAnalysisJobIds,
-      ])];
-      setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
-      setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
-      persistAnalysisRoute(
-        episodeUploadBatchId,
-        nextTrackedAnalysisJobIds,
-        nextCurrentAnalysisJobIds,
-      );
-    }
-
-    if (retryError) {
-      setAnalysisStartError(
-        retryError instanceof Error && retryError.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
-          ? RETRY_JOB_TYPE_MISMATCH_MESSAGE
-          : errorMessage(
-              retryError,
-              retryAnalysisJobIds.length > 0
-                ? '일부 실패 회차만 다시 요청했습니다. 남은 실패 회차를 다시 시도해주세요.'
-                : '실패 회차 분석을 다시 요청하지 못했습니다.',
-            ),
-      );
+    } finally {
+      batchRetryInFlight.current = false;
+      setBatchRetryPending(false);
     }
   };
 
@@ -1543,10 +1556,10 @@ export default function SEpisodeUpload() {
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton
-                      disabled={retryAnalysisJobMutation.isPending}
+                      disabled={batchRetryPending}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
-                      {retryAnalysisJobMutation.isPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                      {batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>

@@ -307,20 +307,27 @@ test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를
   const firstFailedJobId = '33333333-3333-4333-8333-333333333333';
   const secondFailedJobId = '55555555-5555-4555-8555-555555555555';
   const retriedJobId = '66666666-6666-4666-8666-666666666666';
+  let releaseFirstRetry: () => void = () => undefined;
+  let secondRetrySettled = false;
+  const firstRetryGate = new Promise<void>(resolve => {
+    releaseFirstRetry = resolve;
+  });
 
-  await page.route('**/api/v1/**', route => {
+  await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (
       request.method() === 'POST'
       && pathname.endsWith(`/${workId}/analysis-jobs/${firstFailedJobId}/retry`)
     ) {
+      await firstRetryGate;
       return fulfill(route, [{ id: retriedJobId, jobType: 'EPISODE_VALIDATION' }]);
     }
     if (
       request.method() === 'POST'
       && pathname.endsWith(`/${workId}/analysis-jobs/${secondFailedJobId}/retry`)
     ) {
+      secondRetrySettled = true;
       return route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -380,7 +387,11 @@ test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를
     + '&jobType=EPISODE_VALIDATION',
   );
 
-  await page.getByRole('button', { name: '실패 회차 다시 시도' }).click();
+  const retryButton = page.getByRole('button', { name: '실패 회차 다시 시도' });
+  await retryButton.click();
+  await expect.poll(() => secondRetrySettled).toBe(true);
+  await expect(page.getByRole('button', { name: '재시도 요청 중...' })).toBeDisabled();
+  releaseFirstRetry();
 
   await expect.poll(() => {
     const params = new URL(page.url()).searchParams;
