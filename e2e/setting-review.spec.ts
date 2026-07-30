@@ -82,6 +82,10 @@ function fulfillError(
   });
 }
 
+function queryValues(url: URL, name: string): string[] {
+  return url.searchParams.getAll(name).flatMap(value => value.split(',')).filter(Boolean);
+}
+
 async function authenticate(page: Page) {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'setting-review-token'));
@@ -163,6 +167,64 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   await page.goBack();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
+});
+
+test('연결됨 필터는 기존 연결과 같은 이름 자동 연결을 함께 조회해 구분한다', async ({ page }) => {
+  const autoMatchedCandidate = {
+    ...candidates[0],
+    id: secondCandidateId,
+    entityName: '신규 수아',
+    matchStatus: 'AUTO_MATCHED_BY_NAME' as const,
+  };
+  const connectedCandidates = [candidates[0], autoMatchedCandidate];
+  let requestedMatchStatuses: string[] = [];
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      requestedMatchStatuses = queryValues(requestUrl, 'matchStatuses');
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 2,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 2,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: connectedCandidates,
+          page: 0,
+          size: 20,
+          totalElements: 2,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    const candidateId = pathname.startsWith(`${listPath}/`)
+      ? pathname.slice(`${listPath}/`.length)
+      : null;
+    if (candidateId) {
+      return fulfill(route, connectedCandidates.find(candidate => candidate.id === candidateId));
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+  await page.getByRole('button', { name: '연결됨', exact: true }).click();
+
+  await expect.poll(() => new URL(page.url()).searchParams.get('matchStatus')).toBe('CONNECTED');
+  await expect.poll(() => requestedMatchStatuses.sort()).toEqual(
+    ['AUTO_MATCHED_BY_NAME', 'MATCHED'].sort(),
+  );
+  await expect(page.getByText('기존 캐릭터 연결됨').first()).toBeVisible();
+  await expect(page.getByText('신규 이름으로 자동 연결됨').first()).toBeVisible();
 });
 
 test('후보 처리 응답 전에 이탈하면 늦은 성공 응답이 검토 화면을 다시 열지 않는다', async ({ page }) => {
@@ -1041,8 +1103,8 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
 
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
-      const requestedMatchStatus = requestUrl.searchParams.get('matchStatus');
-      const content = requestedMatchStatus && requestedMatchStatus !== matchStatus
+      const requestedMatchStatuses = queryValues(requestUrl, 'matchStatuses');
+      const content = requestedMatchStatuses.length > 0 && !requestedMatchStatuses.includes(matchStatus)
         ? []
         : [{ ...candidate, matchStatus, matchedCharacterId }];
       return fulfill(route, {

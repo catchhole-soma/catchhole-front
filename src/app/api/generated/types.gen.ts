@@ -1177,13 +1177,13 @@ export type SettingCandidateResponse = {
      */
     rawEntityMention?: string | null;
     /**
-     * 기존 캐릭터와 확실히 매칭된 경우 characters.id
+     * 직접 또는 같은 이름으로 연결 완료한 characters.id
      */
     matchedCharacterId?: string | null;
     /**
-     * 기존 캐릭터 매칭 상태
+     * 캐릭터 연결 상태. 같은 이름 후보의 자동 연결 여부를 포함
      */
-    matchStatus?: 'MATCHED' | 'UNRESOLVED' | 'AMBIGUOUS';
+    matchStatus?: 'MATCHED' | 'AUTO_MATCHED_BY_NAME' | 'UNRESOLVED' | 'AMBIGUOUS';
     /**
      * 설정 속성명
      */
@@ -3668,9 +3668,9 @@ export type GetSettingCandidatesData = {
          */
         reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
         /**
-         * 후보 캐릭터 연결 상태 필터
+         * 후보 캐릭터 연결 상태 필터 목록. 생략하거나 비우면 전체 상태를 조회합니다.
          */
-        matchStatus?: 'MATCHED' | 'UNRESOLVED' | 'AMBIGUOUS';
+        matchStatuses?: Array<'MATCHED' | 'AUTO_MATCHED_BY_NAME' | 'UNRESOLVED' | 'AMBIGUOUS'>;
         /**
          * 0부터 시작하는 페이지 번호
          */

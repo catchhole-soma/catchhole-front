@@ -804,7 +804,7 @@
 > - 검토 완료 개수는 본문의 분석·검토 요약에서 확인하므로 헤더에는 중복된 완료 개수와 진행 바를 표시하지 않는다.
 > - 검토 화면은 `PENDING_REVIEW`를 기본 필터로 사용한다. 이 기본 검토 흐름에서 확정·무시 후 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하되, 좌측 목록과 화면의 현재 스크롤 위치는 유지한다. 선택 변경을 이유로 카드나 상세 패널까지 자동 스크롤하지 않으며, 남은 대기 후보가 없으면 검토 완료 상태를 표시한다.
 > - 저장용 `attributeName`과 `valueType`을 그대로 노출하지 않고 설정 유형·설정명을 사용자용 문구로 변환한다. 후보에서는 `attributeValue`를 표시하며, 확정 후 이 값이 `CharacterFact.factValue`로 사용된다.
-> - `PENDING_REVIEW`이면서 `MATCHED` 또는 `UNRESOLVED`인 단일 후보를 확정할 수 있다. 성공 후 목록·상세·집계와 캐릭터 목록을 서버 기준으로 다시 조회한다.
+> - `PENDING_REVIEW`이면서 `MATCHED`, `AUTO_MATCHED_BY_NAME` 또는 `UNRESOLVED`인 단일 후보를 확정할 수 있다. 성공 후 목록·상세·집계와 캐릭터 목록을 서버 기준으로 다시 조회한다.
 > - `AMBIGUOUS` 후보는 캐릭터 연결을 먼저 해소해야 하므로 확정 버튼을 비활성화하고 서버 요청을 보내지 않는다.
 > - 연결 상태와 관계없이 `PENDING_REVIEW` 후보를 무시할 수 있다. 성공 후 목록·상세·집계를 서버 기준으로 다시 조회하고, `DISMISSED` 상세는 읽기 전용으로 표시한다. 무시 실패 시 현재 후보와 선택 상태를 유지해 같은 화면에서 재시도한다.
 > - 설정 유형 서버 필터, 상태별 세부 집계, 사용자 수정 여부, 목록·상세 DTO 분리는 후속 조회 단위에서 보강한다.
@@ -831,11 +831,13 @@
 > | 검토 상태 | `CONFIRMED` | 확정 |
 > | 검토 상태 | `DISMISSED` | 무시 |
 > | 연결 상태 | `MATCHED` | 기존 캐릭터 연결됨 |
+> | 연결 상태 | `AUTO_MATCHED_BY_NAME` | 신규 이름으로 자동 연결됨 |
 > | 연결 상태 | `UNRESOLVED` | 새 캐릭터 후보 |
 > | 연결 상태 | `AMBIGUOUS` | 캐릭터 연결 확인 필요 |
 >
 > - `수정됨`은 검토 상태가 아니므로 상태 필터에서 제외한다.
 > - 설정 내용이 사용자에 의해 수정된 후보에는 상태와 별도로 `사용자 수정` 보조 배지를 표시한다.
+> - 연결 상태 필터의 `연결됨`은 `MATCHED`와 `AUTO_MATCHED_BY_NAME`을 함께 서버에 전달한다. 직접 연결과 같은 이름 자동 연결은 배지에서만 구분한다.
 
 > **후보 목록 정렬 정책**
 > - 1차 조회 계약은 `episodeNo ASC` → 생성 시각 ASC → 후보 ID ASC 순으로 정렬한다.
@@ -866,7 +868,7 @@
   - 사용자 수정 배지
 - 목록 필터
   - 검토 상태: 전체·검토 대기·확정·무시
-  - 연결 상태: 전체·기존 캐릭터 연결됨·새 캐릭터 후보·캐릭터 연결 확인 필요
+  - 연결 상태: 전체·연결됨·새 캐릭터 후보·캐릭터 연결 확인 필요
   - 설정 유형: 전체·프로필·나이/레벨·스탯·스킬·아이템·상태·시간/사건
 - 우측 선택 후보 상세 영역
   - 캐릭터 후보명과 원문 표현
@@ -890,7 +892,7 @@
   - `새 캐릭터로 등록` 선택 → 새 캐릭터 이름 입력
   - 연결 해소 전에도 설정 후보 내용은 수정할 수 있지만 확정은 비활성
   - 연결 완료 후 `MATCHED` 또는 `UNRESOLVED` 상태로 전환하고 수정·확정 가능
-- `PENDING_REVIEW + MATCHED`
+- `PENDING_REVIEW + MATCHED/AUTO_MATCHED_BY_NAME`
   - 설정값 수정·수정 저장·확정·무시
   - `연결 변경` → 다른 기존 캐릭터 또는 새 캐릭터로 변경
 - `PENDING_REVIEW + UNRESOLVED`
@@ -906,7 +908,8 @@
 
 > **캐릭터 연결 UI 정책**
 > - `AMBIGUOUS` 상세에는 `기존 캐릭터에 연결`, `새 캐릭터로 등록` 버튼을 나란히 제공하고 무시 버튼은 연결 전에도 사용할 수 있게 한다.
-> - `MATCHED`, `UNRESOLVED` 상세에는 현재 연결 결과와 `연결 변경` 보조 버튼을 표시한다.
+> - `MATCHED`, `AUTO_MATCHED_BY_NAME`, `UNRESOLVED` 상세에는 현재 연결 결과와 `연결 변경` 보조 버튼을 표시한다.
+> - 첫 신규 후보 확정으로 같은 이름의 나머지 후보가 연결되면 `AUTO_MATCHED_BY_NAME`으로 표시한다. 사용자가 기존 캐릭터를 다시 직접 선택하면 `MATCHED`, 새 캐릭터 등록 예정으로 바꾸면 `UNRESOLVED`로 전환한다.
 > - 새 캐릭터 이름이 기존 캐릭터와 중복되면 `이미 같은 이름의 캐릭터가 있습니다. 기존 캐릭터에 연결해 주세요.`라고 안내한다.
 > - 기존 캐릭터 연결은 같은 작품의 `ACTIVE` 캐릭터만 대상으로 하며 페이지를 이동해 선택할 수 있다. 연결 요청 실패 시 현재 페이지와 선택을 유지한다.
 > - `CREATE_NEW`는 즉시 캐릭터를 생성하지 않고 후보를 신규 등록 예정인 `UNRESOLVED` 상태로 바꾼다. 실제 캐릭터 생성은 후보 확정 시 처리한다.
@@ -932,7 +935,7 @@
 - 검토 후 다음 단계를 결정할 분석 목적: `jobType={EPISODE_VALIDATION|SETTING_EXTRACTION}`
 - 선택 후보: `candidate={candidateId}`
 - 검토 상태: `reviewStatus={ALL|PENDING_REVIEW|CONFIRMED|DISMISSED}`
-- 연결 상태: `matchStatus={ALL|MATCHED|UNRESOLVED|AMBIGUOUS}`
+- 연결 상태 URL: `matchStatus={ALL|CONNECTED|UNRESOLVED|AMBIGUOUS}`. `CONNECTED`는 API의 `matchStatuses=MATCHED,AUTO_MATCHED_BY_NAME`으로 변환한다.
 - 설정 유형: `settingType={ALL|PROFILE|AGE_LEVEL|STAT|SKILL|ITEM|STATUS|TIME}`
 - 페이지 번호: `page={1 이상의 정수}`
 - 페이지 크기: `size=20`
@@ -994,7 +997,7 @@
 | 값 유형 | 목록 항목별 단일 값·필수 | 없음 |
 | AI 근거 명확도 | 목록 항목별 0~1 값·선택 | 없으면 `null` |
 | 검토 상태 | 목록 항목별 enum·필수 | `PENDING_REVIEW`/`CONFIRMED`/`DISMISSED` |
-| 캐릭터 연결 상태 | 목록 항목별 enum·필수 | `MATCHED`/`UNRESOLVED`/`AMBIGUOUS` |
+| 캐릭터 연결 상태 | 목록 항목별 enum·필수 | `MATCHED`/`AUTO_MATCHED_BY_NAME`/`UNRESOLVED`/`AMBIGUOUS` |
 | 사용자 설정 내용 수정 여부 | 목록 항목별 boolean·후속 | 수정 추적 계약 추가 전에는 표시하지 않음 |
 
 - 목록은 `batchId` 범위로 제한하고, 서버 필터·페이지네이션 결과를 제공한다.
@@ -1008,7 +1011,7 @@
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
 | 목록 요약 정보 전체 | 단일 객체·필수 | 없음 |
-| 기존 캐릭터 식별자·이름 | 단일 값·선택 | `MATCHED`가 아니면 `null` |
+| 기존 캐릭터 식별자·이름 | 단일 값·선택 | `MATCHED`/`AUTO_MATCHED_BY_NAME`가 아니면 `null` |
 | 새 캐릭터 등록 예정 이름 | 문자열·선택 | `UNRESOLVED`가 아니면 `null` |
 | 구조화된 설정 세부 값 | 객체·선택 | 화면에는 표시하지 않음. 내용 미수정이면 유지하고 JSON 복합 후보의 이름·값 수정 시 name-only로 축소 |
 | 출처 청크 식별자 | 단일 값·선택 | 없으면 `null` |
@@ -1033,7 +1036,7 @@
 - 후보 목록·집계 조회
   - 작품의 `workId`
   - 현재 검토 대상 `batchId`
-  - 1차 조회는 검토 상태, 연결 상태, 0부터 시작하는 API 페이지 번호, 페이지 크기
+  - 1차 조회는 검토 상태, 복수 연결 상태, 0부터 시작하는 API 페이지 번호, 페이지 크기
   - 설정 유형 필터는 후속 조회 단위에서 추가
 - 후보 상세 조회
   - `workId`, `batchId`, `candidateId`

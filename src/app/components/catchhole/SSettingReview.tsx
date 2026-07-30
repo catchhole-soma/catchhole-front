@@ -43,7 +43,7 @@ import { UserMenu } from './UserMenu';
 type ReviewStatus = NonNullable<SettingCandidateResponse['reviewStatus']>;
 type MatchStatus = NonNullable<SettingCandidateResponse['matchStatus']>;
 type ReviewFilter = ReviewStatus | 'ALL';
-type MatchFilter = MatchStatus | 'ALL';
+type MatchFilter = 'ALL' | 'CONNECTED' | 'UNRESOLVED' | 'AMBIGUOUS';
 
 const DEFAULT_PAGE_SIZE = 20;
 const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
@@ -54,7 +54,7 @@ const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
 ];
 const MATCH_FILTERS: Array<{ value: MatchFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
-  { value: 'MATCHED', label: '기존 캐릭터 연결됨' },
+  { value: 'CONNECTED', label: '연결됨' },
   { value: 'UNRESOLVED', label: '새 캐릭터 후보' },
   { value: 'AMBIGUOUS', label: '캐릭터 연결 확인 필요' },
 ];
@@ -66,6 +66,7 @@ const REVIEW_LABELS: Record<ReviewStatus, string> = {
 };
 const MATCH_LABELS: Record<MatchStatus, string> = {
   MATCHED: '기존 캐릭터 연결됨',
+  AUTO_MATCHED_BY_NAME: '신규 이름으로 자동 연결됨',
   UNRESOLVED: '새 캐릭터 후보',
   AMBIGUOUS: '캐릭터 연결 확인 필요',
 };
@@ -167,9 +168,27 @@ function parseReviewFilter(value: string | null): ReviewFilter {
 }
 
 function parseMatchFilter(value: string | null): MatchFilter {
+  // 기존 공유 URL의 MATCHED 필터도 새 통합 연결 필터로 이어지게 한다.
+  if (value === 'MATCHED' || value === 'AUTO_MATCHED_BY_NAME') return 'CONNECTED';
   return MATCH_FILTERS.some(filter => filter.value === value)
     ? value as MatchFilter
     : 'ALL';
+}
+
+function isConnectedMatch(status: MatchStatus | undefined): boolean {
+  return status === 'MATCHED' || status === 'AUTO_MATCHED_BY_NAME';
+}
+
+function matchStatusesForFilter(filter: MatchFilter): MatchStatus[] | undefined {
+  if (filter === 'ALL') return undefined;
+  if (filter === 'CONNECTED') return ['MATCHED', 'AUTO_MATCHED_BY_NAME'];
+  return [filter];
+}
+
+function matchesMatchFilter(status: MatchStatus | undefined, filter: MatchFilter): boolean {
+  if (filter === 'ALL') return true;
+  if (filter === 'CONNECTED') return isConnectedMatch(status);
+  return status === filter;
 }
 
 function reviewColor(status: ReviewStatus | undefined): string {
@@ -180,7 +199,7 @@ function reviewColor(status: ReviewStatus | undefined): string {
 
 function matchColor(status: MatchStatus | undefined): string {
   if (status === 'AMBIGUOUS') return C.warning;
-  if (status === 'MATCHED') return C.primary;
+  if (isConnectedMatch(status)) return C.primary;
   return C.t2;
 }
 
@@ -998,7 +1017,7 @@ function CandidateDetail({
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ color: C.t3, fontSize: 11 }}>
-            {matchStatus === 'MATCHED'
+            {isConnectedMatch(matchStatus)
               ? '연결된 캐릭터'
               : reviewStatus === 'DISMISSED'
                 ? '연결하지 않고 무시한 후보'
@@ -1076,7 +1095,7 @@ function CandidateDetail({
               onClick={() => onMatch?.('MATCH_EXISTING')}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Link2 size={13} /> {matchStatus === 'MATCHED' ? '기존 캐릭터 변경' : '기존 캐릭터에 연결'}
+                <Link2 size={13} /> {isConnectedMatch(matchStatus) ? '기존 캐릭터 변경' : '기존 캐릭터에 연결'}
               </span>
             </ActionButton>
             <ActionButton
@@ -1207,7 +1226,7 @@ export default function SSettingReview() {
       query: {
         batchId,
         reviewStatus: reviewFilter === 'ALL' ? undefined : reviewFilter,
-        matchStatus: matchFilter === 'ALL' ? undefined : matchFilter,
+        matchStatuses: matchStatusesForFilter(matchFilter),
         page: apiPage,
         size,
       },
@@ -1365,8 +1384,7 @@ export default function SSettingReview() {
         const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
         const nextMatchStatus = response.data?.matchStatus;
         if (previous.get('candidate') !== variables.path.candidateId
-          || activeMatchFilter === 'ALL'
-          || activeMatchFilter === nextMatchStatus) {
+          || matchesMatchFilter(nextMatchStatus, activeMatchFilter)) {
           return previous;
         }
         const next = new URLSearchParams(previous);

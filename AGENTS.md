@@ -57,6 +57,7 @@ npm run test:e2e
 - 내용 미수정 후보의 rich JSON은 Backend가 유지한다. `SettingValueType.JSON` 복합 후보의 이름 또는 값이 실제로 바뀌면 현재 JSON을 name-only로 축소하는 MVP 정책이며, 숨은 level·effect·quantity를 FE가 추측해 보존하지 않는다.
 - 비어 있는 표시값은 빈 문자열이 아니라 `null`로 전송해 원래 `null`인 후보를 실제 수정으로 오인하지 않게 한다.
 - 캐릭터 연결 변경은 후보 내용 수정과 별도 mutation으로 처리한다. 기존 캐릭터 연결과 신규 등록 예정 지정은 모두 `PENDING_REVIEW`를 유지하며, 실패하면 사용자의 모달 입력과 선택을 유지한다.
+- `MATCHED`와 `AUTO_MATCHED_BY_NAME`은 모두 연결 완료로 조회하되 배지에서는 사용자가 직접 정한 기존 연결과 같은 이름의 신규 캐릭터에 자동 연결된 상태를 구분한다.
 
 ## 캐릭터 상세 설정 편집
 
