@@ -92,7 +92,7 @@ export function SettingBookDeleteModal({
 
         <div style={{ padding: '22px' }}>
           <div style={{ color: C.t2, fontSize: 13, marginBottom: 14 }}>
-            삭제한 설정집은 원고 목록에서 사라집니다.
+            삭제한 설정집은 설정집 파일 목록에서 사라집니다.
           </div>
 
           <div style={{
