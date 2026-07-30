@@ -2950,6 +2950,9 @@ export default function S1Dashboard() {
           episodeCount: 0,
         };
   const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(effectiveWorkId);
+  const dashboardMountedRef = useRef(false);
+  const dashboardContextRef = useRef({ workId: effectiveWorkId, activeNav });
+  dashboardContextRef.current = { workId: effectiveWorkId, activeNav };
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
     enabled: episodeApiEnabled,
@@ -2976,6 +2979,13 @@ export default function S1Dashboard() {
   const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
   const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
   const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
+
+  useEffect(() => {
+    dashboardMountedRef.current = true;
+    return () => {
+      dashboardMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -3148,22 +3158,32 @@ export default function S1Dashboard() {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
+    const requestWorkId = effectiveWorkId;
+    const isCurrentRequestContext = () => (
+      dashboardMountedRef.current
+      && window.location.pathname === '/dashboard'
+      && dashboardContextRef.current.workId === requestWorkId
+      && dashboardContextRef.current.activeNav === 'manuscripts'
+    );
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
-        path: { workId: effectiveWorkId },
+        path: { workId: requestWorkId },
         body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
+      if (!isCurrentRequestContext()) return;
       if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
       const analysisJobIdParam = analysisJobIds.join(',');
       navigate(
-        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(requestWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
     } catch (error) {
-      setEpisodeActionError(toApiError(error)?.message ?? '분석 작업을 시작하지 못했습니다.');
+      if (isCurrentRequestContext()) {
+        setEpisodeActionError(toApiError(error)?.message ?? '분석 작업을 시작하지 못했습니다.');
+      }
     }
   };
 

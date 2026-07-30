@@ -155,6 +155,121 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
 
   await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('ALL');
   await expect.poll(() => requestedReviewStatuses.at(-1)).toBeNull();
+
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
+});
+
+test('후보 처리 응답 전에 이탈하면 늦은 성공 응답이 검토 화면을 다시 열지 않는다', async ({ page }) => {
+  let releaseConfirm: (() => void) | undefined;
+  let confirmRequestCount = 0;
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [candidates[0]],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/confirm`) {
+      confirmRequestCount += 1;
+      await new Promise<void>(resolve => {
+        releaseConfirm = resolve;
+      });
+      return fulfill(route, { id: firstCandidateId, reviewStatus: 'CONFIRMED' });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) return fulfill(route, candidates[0]);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
+  );
+
+  await page.getByRole('button', { name: '확정', exact: true }).last().click();
+  await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+
+  releaseConfirm?.();
+  await expect.poll(() => confirmRequestCount).toBe(1);
+  await page.waitForTimeout(500);
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+});
+
+test('모바일에서는 후보 목록과 상세를 한 열로 배치한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [candidates[0]],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) return fulfill(route, candidates[0]);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
+  );
+
+  const layout = page.locator('.setting-review-layout');
+  const [asideBox, detailBox] = await Promise.all([
+    layout.locator('aside').boundingBox(),
+    layout.locator('section').boundingBox(),
+  ]);
+  expect(asideBox).not.toBeNull();
+  expect(detailBox).not.toBeNull();
+  expect(Math.abs((detailBox?.x ?? 0) - (asideBox?.x ?? 0))).toBeLessThanOrEqual(1);
+  expect(detailBox?.y ?? 0).toBeGreaterThan(asideBox?.y ?? 0);
+  await expect.poll(() => layout.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 
 test('마지막 검토 대기 후보를 확정하면 완료 상태를 표시한다', async ({ page }) => {

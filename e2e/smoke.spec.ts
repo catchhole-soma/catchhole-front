@@ -1071,7 +1071,7 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(page.getByRole('button', { name: '파일 교체 후 제목' })).not.toBeVisible();
 });
 
-test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ page }) => {
+test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 늦은 응답으로 이동하지 않는다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
   const batchId = '22222222-2222-4222-8222-222222222222';
@@ -1146,8 +1146,12 @@ test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ 
   await expect(reanalysisButton).toBeDisabled();
   await reanalysisButton.click({ force: true });
 
+  await page.getByText('분석 목록', { exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   releaseAnalysisRequest();
-  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
+  await page.waitForTimeout(500);
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   expect(analysisRequestCount).toBe(1);
 });
 

@@ -8,7 +8,7 @@ function batch(index: number) {
   const suffix = String(index).padStart(12, '0');
   return {
     batchId: `22222222-2222-4222-8222-${suffix}`,
-    status: 'COMPLETED',
+    status: index === 11 ? 'REVIEW_REQUIRED' : 'COMPLETED',
     episodeStartNo: index,
     episodeEndNo: index,
     episodeCount: 1,
@@ -94,6 +94,18 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
   await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
   expect(requestedPages).toContain('0:10');
   expect(requestedPages).toContain('1:10');
+
+  await eleventhEpisodeCard.getByRole('button', { name: '설정 후보 검토' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
+
+  await eleventhEpisodeCard.getByRole('button', { name: '결과 보기' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/episode-upload');
+  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisPage')).toBe('2');
 });
 
 test('분석 목록에서 설정 후보 검토 화면으로 바로 진입한다', async ({ page }) => {
@@ -216,4 +228,12 @@ test('분석 목록에서 설정 후보 검토 화면으로 바로 진입한다'
     batchId: reviewBatchId,
     reviewStatus: 'PENDING_REVIEW',
   });
+  await expect.poll(() => page.evaluate(() => (
+    window.history.state?.usr?.returnToAnalysisList
+  ))).toBe(`/dashboard?workId=${workId}&nav=analyses`);
+
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
 });

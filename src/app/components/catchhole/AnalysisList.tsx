@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import {
   AlertCircle,
   CheckCircle2,
@@ -100,6 +100,7 @@ function actionLabel(group: AnalysisBatchJobGroupResponse): string {
 
 export function AnalysisList({ workId }: { workId: string }) {
   const navigate = useAppNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePage(searchParams.get('analysisPage'));
   const apiEnabled = UUID_PATTERN.test(workId);
@@ -153,6 +154,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       + `&currentAnalysisJobIds=${encodedIds}`
       + `&jobType=${group.jobType}`,
       'push-right',
+      { returnToAnalysisList: `${location.pathname}${location.search}` },
     );
   };
 
@@ -166,6 +168,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       + `&batchId=${encodeURIComponent(batch.batchId)}`
       + `&jobType=${jobType}`,
       'dissolve',
+      { returnToAnalysisList: `${location.pathname}${location.search}` },
     );
   };
 

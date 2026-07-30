@@ -349,7 +349,7 @@ flowchart TD
   proc --> state{"회차별 Job·Episode 상태"}:::decision
   state -- "활성 Job 종료 후<br/>일부·전체 FAILED" --> retry["사용자용 실패 안내<br/>실패 회차만 새 Job으로 재시도"]:::modal --> proc
   state -- "조회 실패" --> reload["마지막 성공 데이터 유지<br/>다시 불러오기"]:::modal --> proc
-  state -- "모든 회차 ANALYZED" --> success["SUCCEEDED<br/>결과 준비 상태 확인"]
+  state -- "모든 현재 Job SUCCEEDED" --> success["분석 완료<br/>현재 회차 상태 불일치 시 재분석 안내"]
 
   success --> review["설정 후보 검토<br/>/setting-review?workId&batchId&jobType"]:::private
   proc -- "뒤로<br/>서버 작업은 계속" --> analyses["분석 목록<br/>/dashboard?workId&nav=analyses"]:::private

@@ -13,7 +13,11 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router';
+import {
+  useLocation,
+  useNavigate as useRouterNavigate,
+  useSearchParams,
+} from 'react-router';
 import {
   confirmSettingCandidateMutation,
   dismissSettingCandidateMutation,
@@ -1183,6 +1187,8 @@ function QueryState({
 
 export default function SSettingReview() {
   const navigate = useAppNavigate();
+  const routerNavigate = useRouterNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const workId = searchParams.get('workId') ?? '';
@@ -1196,6 +1202,25 @@ export default function SSettingReview() {
   const hasContext = Boolean(workId && batchId);
   const [editOpen, setEditOpen] = useState(false);
   const [matchResolution, setMatchResolution] = useState<MatchResolution | null>(null);
+  const mountedRef = useRef(false);
+  const returnToAnalysisList = (
+    location.state as { returnToAnalysisList?: unknown } | null
+  )?.returnToAnalysisList;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const isCurrentReviewContext = (targetWorkId: string, targetCandidateId: string) => {
+    if (!mountedRef.current || window.location.pathname !== '/setting-review') return false;
+    const currentParams = new URLSearchParams(window.location.search);
+    return currentParams.get('workId') === targetWorkId
+      && currentParams.get('batchId') === batchId
+      && currentParams.get('candidate') === targetCandidateId;
+  };
 
   const listQuery = useQuery({
     ...getSettingCandidatesOptions({
@@ -1224,8 +1249,8 @@ export default function SSettingReview() {
       const next = new URLSearchParams(previous);
       next.set('candidate', firstCandidateId);
       return next;
-    }, { replace: true });
-  }, [firstCandidateId, selectedCandidateId, setSearchParams]);
+    }, { replace: true, state: location.state });
+  }, [firstCandidateId, location.state, selectedCandidateId, setSearchParams]);
 
   const detailQuery = useQuery({
     ...getSettingCandidateOptions({
@@ -1258,6 +1283,7 @@ export default function SSettingReview() {
           queryKey: getCharactersQueryKey({ path: { workId: targetWorkId } }),
         }),
       ]);
+      if (!isCurrentReviewContext(targetWorkId, targetCandidateId)) return;
       setSearchParams(previous => {
         if (previous.get('candidate') !== targetCandidateId) {
           return previous;
@@ -1265,7 +1291,7 @@ export default function SSettingReview() {
         const next = new URLSearchParams(previous);
         next.delete('candidate');
         return next;
-      }, { replace: true });
+      }, { replace: true, state: location.state });
     },
   });
   const dismissMutation = useMutation({
@@ -1287,6 +1313,7 @@ export default function SSettingReview() {
           }),
         }),
       ]);
+      if (!isCurrentReviewContext(targetWorkId, targetCandidateId)) return;
       setSearchParams(previous => {
         if (previous.get('candidate') !== targetCandidateId) {
           return previous;
@@ -1294,7 +1321,7 @@ export default function SSettingReview() {
         const next = new URLSearchParams(previous);
         next.delete('candidate');
         return next;
-      }, { replace: true });
+      }, { replace: true, state: location.state });
     },
   });
   const updateMutation = useMutation({
@@ -1317,7 +1344,9 @@ export default function SSettingReview() {
           }),
         }),
       ]);
-      setEditOpen(false);
+      if (isCurrentReviewContext(variables.path.workId, variables.path.candidateId)) {
+        setEditOpen(false);
+      }
     },
   });
   const matchMutation = useMutation({
@@ -1343,6 +1372,7 @@ export default function SSettingReview() {
           queryKey: getCharactersQueryKey({ path: { workId: variables.path.workId } }),
         }),
       ]);
+      if (!isCurrentReviewContext(variables.path.workId, variables.path.candidateId)) return;
       setMatchResolution(null);
       setSearchParams(previous => {
         const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
@@ -1355,7 +1385,7 @@ export default function SSettingReview() {
         const next = new URLSearchParams(previous);
         next.delete('candidate');
         return next;
-      }, { replace: true });
+      }, { replace: true, state: location.state });
     },
   });
   const confirmingSelectedCandidate = confirmMutation.isPending
@@ -1398,7 +1428,7 @@ export default function SSettingReview() {
       next.set('page', '1');
       next.delete('candidate');
       return next;
-    }, { replace: true });
+    }, { replace: true, state: location.state });
   };
   const selectCandidate = (candidateId: string) => {
     if (actionPending) return;
@@ -1410,7 +1440,7 @@ export default function SSettingReview() {
       const next = new URLSearchParams(previous);
       next.set('candidate', candidateId);
       return next;
-    }, { replace: true });
+    }, { replace: true, state: location.state });
   };
   const changePage = (page: number) => {
     if (actionPending) return;
@@ -1423,7 +1453,7 @@ export default function SSettingReview() {
       next.set('page', String(page + 1));
       next.delete('candidate');
       return next;
-    }, { replace: true });
+    }, { replace: true, state: location.state });
   };
   const confirmSelectedCandidate = () => {
     if (!selectedCandidateId || actionPending) return;
@@ -1455,10 +1485,18 @@ export default function SSettingReview() {
         : { resolutionType: resolution, entityName: value },
     });
   };
-  const backToAnalysisList = () => navigate(
-    workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
-    'pop',
-  );
+  const backToAnalysisList = () => {
+    if (typeof returnToAnalysisList === 'string' && returnToAnalysisList) {
+      routerNavigate(-1);
+      return;
+    }
+    navigate(
+      workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
+      'pop',
+      undefined,
+      { replace: true },
+    );
+  };
 
   const total = listData?.totalCandidateCount ?? 0;
   const reviewed = listData?.reviewedCandidateCount ?? 0;
@@ -1476,8 +1514,8 @@ export default function SSettingReview() {
       next.set('page', String(Math.max(serverTotalPages, 1)));
       next.delete('candidate');
       return next;
-    }, { replace: true });
-  }, [apiPage, candidatePage?.totalPages, setSearchParams]);
+    }, { replace: true, state: location.state });
+  }, [apiPage, candidatePage?.totalPages, location.state, setSearchParams]);
 
   if (!hasContext) {
     return (
@@ -1563,7 +1601,7 @@ export default function SSettingReview() {
                   />
                 </div>
               ) : (
-                <div style={{
+                <div className="setting-review-layout" style={{
                   marginTop: 18, display: 'grid',
                   gridTemplateColumns: 'minmax(310px, 390px) minmax(0, 1fr)',
                   gap: 18, alignItems: 'start',
@@ -1721,6 +1759,13 @@ export default function SSettingReview() {
           onSubmit={matchSelectedCandidate}
         />
       )}
+      <style>{`
+        @media (max-width: 760px) {
+          .setting-review-layout {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

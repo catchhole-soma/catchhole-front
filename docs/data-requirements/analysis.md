@@ -101,11 +101,12 @@
 - 화면 이탈 → 분석은 계속 진행
 - `분석 목록` 선택 → [분석 목록](#분석-목록-analysislist)으로 이동
 - 같은 `analysisJobIds`로 다시 진입 → 최신 진행 상태 복원
-- 모든 Job이 `SUCCEEDED`이고 결과가 준비되면 폴링을 중단하고, URL 이동 없이 같은 화면에 [분석 완료](#분석-완료-s4loadingcompleted) 상태를 표시한다.
+- 모든 현재 Job이 `SUCCEEDED`이면 폴링을 중단하고, URL 이동 없이 같은 화면에 [분석 완료](#분석-완료-s4loadingcompleted) 상태를 표시한다. 현재 Episode 상태가 분석 완료 당시와 다르면 완료 상태를 되돌리지 않고 원고 변경 여부 확인과 필요 시 재분석 안내를 함께 표시한다.
 - 활성 Job이 없고 하나 이상 `FAILED`이면 `분석 다시 시도` 선택
   - 기존 실패 작업은 실패 이력으로 유지
   - 각 실패 Job의 재시도 API로 서버가 확인한 실패 회차 Job만 생성
-  - 새로 반환된 `analysisJobIds`를 현재 polling 대상으로 교체
+  - 추적 이력의 전체 `analysisJobIds`는 유지
+  - 현재 polling 목록에서는 재시도 대상 실패 ID만 새 ID로 교체하고 기존 성공·복구 불가 `currentAnalysisJobIds`는 유지
 
 **3. 화면 전환 식별자**
 

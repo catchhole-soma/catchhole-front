@@ -132,6 +132,52 @@ interface DemoCharacterState {
 
 type DemoCharacterStateByWork = Record<string, DemoCharacterState>;
 
+type DemoSettingGroup = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
+
+function migrateDemoSetting(
+  value: CharacterSettingResponse,
+  group: DemoSettingGroup,
+): CharacterSettingResponse {
+  const key = value.key ?? '';
+  const manual = key.includes('.manual_');
+  const dynamicPrefix = group === 'skills'
+    ? 'skill.'
+    : group === 'items'
+      ? 'item.'
+      : group === 'statuses'
+        ? 'status.'
+        : null;
+  const defaults = manual
+    ? {
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
+      }
+    : dynamicPrefix
+      ? dynamicSettingEdit(dynamicPrefix)
+      : LOCKED_SETTING_EDIT;
+
+  return {
+    ...value,
+    attributeNameEditable: value.attributeNameEditable ?? defaults.attributeNameEditable,
+    attributeNamePrefix: value.attributeNamePrefix === undefined
+      ? defaults.attributeNamePrefix
+      : value.attributeNamePrefix,
+    displayNameEditable: value.displayNameEditable ?? defaults.displayNameEditable,
+  };
+}
+
+function migrateDemoCharacter(value: CharacterDetailResponse): CharacterDetailResponse {
+  return {
+    ...value,
+    profile: value.profile?.map(settingValue => migrateDemoSetting(settingValue, 'profile')),
+    stats: value.stats?.map(settingValue => migrateDemoSetting(settingValue, 'stats')),
+    skills: value.skills?.map(settingValue => migrateDemoSetting(settingValue, 'skills')),
+    items: value.items?.map(settingValue => migrateDemoSetting(settingValue, 'items')),
+    statuses: value.statuses?.map(settingValue => migrateDemoSetting(settingValue, 'statuses')),
+  };
+}
+
 function loadDemoCharacterStateByWork(): DemoCharacterStateByWork {
   const raw = localStorage.getItem(DEMO_CHARACTER_STATE_KEY);
   if (!raw) return {};
@@ -147,7 +193,10 @@ export function loadDemoCharacterState(workId: string): DemoCharacterState {
   if (!saved || !Array.isArray(saved.characters) || !Array.isArray(saved.archivedCharacters)) {
     return { characters: createInitialDemoCharacters(), archivedCharacters: [] };
   }
-  return structuredClone(saved);
+  return {
+    characters: saved.characters.map(migrateDemoCharacter),
+    archivedCharacters: saved.archivedCharacters.map(migrateDemoCharacter),
+  };
 }
 
 export function saveDemoCharacterState(
