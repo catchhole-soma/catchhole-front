@@ -712,7 +712,7 @@
 - 수정된 설정별 새 `characterFactId`
 - 이름·역할·첫 등장 회차 수정은 캐릭터의 현재 대표 필드에 반영
 - 프로필·나이·레벨·스탯·스킬·아이템·상태 수정은 새로운 수동 정정 `CharacterFact`를 생성한 뒤 캐릭터의 현재 대표값과 JSON snapshot에 반영
-- 사용자가 새로 추가한 프로필·스탯의 표시명은 `properties.name`, 대표값은 설정 자체의 `value`로 전달한다. 새 상태는 `status.*` key와 `properties.name`을 포함한 복합 설정으로 전달한다.
+- 사용자가 새로 추가한 설정은 `manual_*` 식별자 대신 유형 prefix와 설정명을 합친 의미 있는 pattern key로 전달한다. 예를 들어 좌우명·행운·부상은 각각 `profile.좌우명`, `stats.행운`, `status.부상`이며, 표시명은 `properties.name`, 대표값은 설정 자체의 `value`로 함께 전달한다. Backend는 exact → alias → pattern 순으로 해석해 alias가 있으면 canonical key로 저장하고 canonicalize 후 중복을 거절한다.
 - 이름 수정 후에도 기존 `CharacterFact`는 동일한 `characterId`를 참조하므로 상세와 이력의 캐릭터명은 갱신된 이름으로 표시
 - 과거 원고, `EpisodeChunk.chunkText`와 임베딩, 기존 `SettingCandidate.entityName`·`rawEntityMention`·`evidenceSpans`, 과거 `CharacterFact`는 수정하지 않고 분석 당시 기록으로 유지
 - 직접 수정한 설정은 원문에서 추출한 기존 fact를 덮어쓰지 않고 새로운 수동 정정 `CharacterFact`로 생성하며, 같은 `factType + factKey`의 이전 current fact는 과거 이력으로 전환

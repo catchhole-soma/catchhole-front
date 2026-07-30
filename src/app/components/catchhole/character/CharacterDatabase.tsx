@@ -49,6 +49,7 @@ interface DraftProperty extends CharacterSettingPropertyRequest {
 }
 
 interface DraftSetting {
+  draftId: string;
   characterFactId?: string;
   key: string;
   displayName: string;
@@ -106,6 +107,19 @@ const SETTING_GROUP_LABELS: Record<SettingGroupKey, string> = {
   items: '아이템',
   statuses: '상태',
 };
+const SETTING_GROUP_PREFIXES: Record<SettingGroupKey, string> = {
+  profile: 'profile.',
+  stats: 'stats.',
+  skills: 'skill.',
+  items: 'item.',
+  statuses: 'status.',
+};
+let nextDraftSettingId = 0;
+
+function createDraftSettingId(): string {
+  nextDraftSettingId += 1;
+  return `character-setting-${nextDraftSettingId}`;
+}
 
 function colorFor(id: string): string {
   const hash = Array.from(id).reduce((value, char) => value + char.charCodeAt(0), 0);
@@ -134,6 +148,7 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
   const displayName = value.displayName ?? value.key ?? '설정';
   const settingValue = value.value ?? '';
   return {
+    draftId: value.characterFactId ?? createDraftSettingId(),
     characterFactId: value.characterFactId,
     key,
     displayName,
@@ -273,9 +288,9 @@ function toRequestSettings(
       validateTypedValue(item.value, item.valueType, item.displayName);
     }
     const contentChanged = hasSettingContentChanged(item);
-    const patternJsonEdited = item.attributeNameEditable && item.valueType === 'JSON';
+    const patternEdited = item.attributeNameEditable;
     const manualOrCustomEdited = !item.attributeNameEditable && item.displayNameEditable;
-    const properties = (patternJsonEdited || manualOrCustomEdited) && contentChanged
+    const properties = (patternEdited || manualOrCustomEdited) && contentChanged
       ? toNameOnlyProperties(item)
       : item.properties;
     properties.forEach(property => validateTypedValue(
@@ -338,9 +353,9 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
       candidate.characterFactId === item.characterFactId
     ));
     const contentChanged = hasSettingContentChanged(item);
-    const patternJsonEdited = item.attributeNameEditable && item.valueType === 'JSON';
+    const patternEdited = item.attributeNameEditable;
     const manualOrCustomEdited = !item.attributeNameEditable && item.displayNameEditable;
-    const properties = (patternJsonEdited || manualOrCustomEdited) && contentChanged
+    const properties = (patternEdited || manualOrCustomEdited) && contentChanged
       ? toNameOnlyProperties(item)
       : item.properties;
     return {
@@ -557,7 +572,7 @@ function EditSettingList({
         const dynamicNameEditable = item.attributeNameEditable && Boolean(item.attributeNamePrefix);
         const editableName = dynamicNameEditable || item.displayNameEditable;
         return (
-          <div key={item.characterFactId ?? item.key} style={{
+          <div key={item.draftId} style={{
             display: 'grid',
             gridTemplateColumns: complex
               ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
@@ -1200,19 +1215,20 @@ export function CharacterDatabase({
   };
 
   const addSimpleSetting = (group: 'profile' | 'stats') => {
-    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const label = group === 'profile' ? '새 프로필' : '새 스탯';
+    const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
       [group]: [...current[group], {
-        key: `${group}.manual_${suffix}`,
+        draftId: createDraftSettingId(),
+        key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: '',
         valueType: group === 'stats' ? 'NUMBER' : 'STRING',
         properties: [{ key: 'name', displayName: '이름', value: label, valueType: 'STRING' }],
         hasEvidence: false,
-        attributeNameEditable: false,
-        attributeNamePrefix: null,
+        attributeNameEditable: true,
+        attributeNamePrefix: prefix,
         displayNameEditable: true,
         initialKey: null,
         initialDisplayName: null,
@@ -1222,20 +1238,20 @@ export function CharacterDatabase({
   };
 
   const addComplexSetting = (group: 'skills' | 'items' | 'statuses') => {
-    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const singular = group === 'skills' ? 'skill' : group === 'items' ? 'item' : 'status';
     const label = group === 'skills' ? '새 스킬' : group === 'items' ? '새 아이템' : '새 상태';
+    const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
       [group]: [...current[group], {
-        key: `${singular}.manual_${suffix}`,
+        draftId: createDraftSettingId(),
+        key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: label,
         valueType: 'JSON',
         properties: [{ key: 'name', displayName: '이름', value: label, valueType: 'STRING' }],
         hasEvidence: false,
-        attributeNameEditable: false,
-        attributeNamePrefix: null,
+        attributeNameEditable: true,
+        attributeNamePrefix: prefix,
         displayNameEditable: true,
         initialKey: null,
         initialDisplayName: null,

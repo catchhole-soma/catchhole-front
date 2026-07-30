@@ -58,6 +58,12 @@ npm run test:e2e
 - 비어 있는 표시값은 빈 문자열이 아니라 `null`로 전송해 원래 `null`인 후보를 실제 수정으로 오인하지 않게 한다.
 - 캐릭터 연결 변경은 후보 내용 수정과 별도 mutation으로 처리한다. 기존 캐릭터 연결과 신규 등록 예정 지정은 모두 `PENDING_REVIEW`를 유지하며, 실패하면 사용자의 모달 입력과 선택을 유지한다.
 
+## 캐릭터 상세 설정 편집
+
+- 사용자가 새 설정을 추가하면 `manual_*` 임시 key를 만들지 않는다. 설정 유형의 고정 prefix와 화면 설정명을 조합한 의미 있는 pattern key를 사용하고, Backend가 exact → alias → pattern 순서로 최종 canonical key를 결정하게 한다.
+- 새 설정 입력 행은 key와 별개의 화면 전용 ID를 React key로 사용한다. 설정명을 입력할 때 suffix가 계속 바뀌어도 input이 remount되어 포커스가 끊기지 않게 하기 위함이다.
+- 서버에서 이미 내려온 레거시 `manual_*` 설정은 삭제하거나 임의 변환하지 않고 응답의 편집 메타데이터에 따라 계속 표시·수정한다.
+
 ## GitHub 협업
 
 - PR 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 개요·작업 내용·Jira 이슈·PR 유형·확인 사항·참고 사항 구조를 유지하고 실제 변경과 검증 결과로 채웁니다.

@@ -2235,6 +2235,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     profile: expect.arrayContaining([
       { key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] },
       expect.objectContaining({
+        key: 'profile.좌우명',
         value: '끝까지 포기하지 않는다',
         valueType: 'STRING',
         properties: [{ key: 'name', value: '좌우명', valueType: 'STRING' }],
@@ -2244,6 +2245,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
       { key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] },
       { key: 'stats.agility', value: '58', valueType: 'NUMBER', properties: [] },
       expect.objectContaining({
+        key: 'stats.행운',
         value: '7',
         valueType: 'NUMBER',
         properties: [{ key: 'name', value: '행운', valueType: 'STRING' }],
@@ -2295,7 +2297,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         properties: [],
       },
       expect.objectContaining({
-        key: expect.stringMatching(/^status\.manual_/),
+        key: 'status.부상',
         value: '경상',
         valueType: 'JSON',
         properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],
