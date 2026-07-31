@@ -584,9 +584,14 @@ function EditSettingList({
             display: 'grid',
             gridTemplateColumns: complex
               ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
-              : columns === 2
-                ? '80px minmax(0, 1fr) auto'
-                : '110px minmax(0, 1fr) auto',
+              : dynamicNameEditable
+                ? columns === 2
+                  ? '135px minmax(0, 1fr) auto'
+                  : '160px minmax(0, 1fr) auto'
+                : columns === 2
+                  ? '80px minmax(0, 1fr) auto'
+                  : '110px minmax(0, 1fr) auto',
+            minWidth: 0,
             gap: 8, alignItems: 'center', padding: complex ? 8 : '7px 12px',
             border: complex ? `1px solid ${C.border}` : 'none',
             borderRight: !complex && columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : undefined,
