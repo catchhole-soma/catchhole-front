@@ -19,6 +19,7 @@ import { PageNavigation } from '../PageNavigation';
 type SearchQuery = NonNullable<SearchCharacterFactsData['query']>;
 type FactTypeFilter = NonNullable<SearchQuery['factType']>;
 type ScopeFilter = NonNullable<SearchQuery['scope']>;
+type ResultFactType = NonNullable<CharacterFactSearchResponse['factType']>;
 
 interface Props {
   workId: string;
@@ -42,6 +43,14 @@ const SCOPE_OPTIONS: ReadonlyArray<{ value: ScopeFilter; label: string }> = [
 ];
 const FACT_TYPES = new Set<FactTypeFilter>(FACT_TYPE_OPTIONS.map(option => option.value));
 const SCOPES = new Set<ScopeFilter>(SCOPE_OPTIONS.map(option => option.value));
+const FACT_TYPE_COLORS: Record<ResultFactType, string> = {
+  AGE: '#FB923C',
+  LEVEL: '#F472B6',
+  STAT: '#38BDF8',
+  SKILL: '#A78BFA',
+  ITEM: '#FBBF24',
+  STATUS: '#FB7185',
+};
 
 function isFactType(value: string | null): value is FactTypeFilter {
   return value !== null && FACT_TYPES.has(value as FactTypeFilter);
@@ -61,6 +70,10 @@ function sourceLabel(result: CharacterFactSearchResponse): string {
   return result.sourceEpisodeNo == null
     ? `${characterName} · 출처 회차 없음`
     : `${characterName} · ${result.sourceEpisodeNo}화에서 확인`;
+}
+
+function factTypeColor(factType: CharacterFactSearchResponse['factType']): string {
+  return factType ? FACT_TYPE_COLORS[factType] : C.primary;
 }
 
 function queryErrorMessage(error: unknown, fallback: string): string {
@@ -469,9 +482,9 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                   <span style={{
                     padding: '3px 8px',
                     borderRadius: 5,
-                    border: `1px solid ${C.primary}`,
-                    background: C.primary + '16',
-                    color: C.primary,
+                    border: `1px solid ${factTypeColor(result.factType)}`,
+                    background: factTypeColor(result.factType) + '16',
+                    color: factTypeColor(result.factType),
                     fontSize: 11,
                     fontWeight: 650,
                   }}>
