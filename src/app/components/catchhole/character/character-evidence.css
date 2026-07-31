@@ -1,0 +1,43 @@
+.character-detail-modal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.character-detail-modal--with-evidence {
+  grid-template-columns: minmax(380px, 0.82fr) minmax(620px, 1.18fr);
+}
+
+.character-detail-modal--with-evidence.character-detail-modal--editing .character-skill-item-sections {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.character-evidence-panel {
+  min-width: 0;
+  max-height: calc(100vh - 72px);
+  border-right: 1px solid #2a2a36;
+  background: #121218;
+  overflow: hidden;
+}
+
+.character-evidence-panel__body {
+  max-height: calc(100vh - 160px);
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .character-detail-modal--with-evidence {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .character-evidence-panel {
+    max-height: min(46vh, 480px);
+    border-right: none;
+    border-bottom: 1px solid #2a2a36;
+  }
+
+  .character-evidence-panel__body {
+    max-height: calc(min(46vh, 480px) - 88px);
+  }
+}

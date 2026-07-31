@@ -1,5 +1,6 @@
 import type {
   CharacterDetailResponse,
+  CharacterFactEvidenceResponse,
   CharacterSettingResponse,
   CharacterSettingUpdateRequest,
 } from '../../../api/generated/types.gen';
@@ -123,6 +124,40 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
 
 export function createInitialDemoCharacters(): CharacterDetailResponse[] {
   return structuredClone(INITIAL_DEMO_CHARACTERS);
+}
+
+const DEMO_EVIDENCE_SOURCE = `수아는 왕립 검술학교의 연무장에 홀로 남아 있었다.
+
+스물세 살이 된 수아는 기본 검술을 다시 점검했다.
+교관은 수아가 현재 15레벨에 도달했다고 기록했다.
+
+수아는 훈련용 검을 들어 올리고 마력 감지에 집중했다.`;
+
+export function getDemoCharacterEvidence(
+  characterFactId: string,
+): CharacterFactEvidenceResponse {
+  const quote = characterFactId === 'sua-age'
+    ? '스물세 살이 된 수아는 기본 검술을 다시 점검했다.'
+    : characterFactId === 'sua-level'
+      ? '교관은 수아가 현재 15레벨에 도달했다고 기록했다.'
+      : '수아는 훈련용 검을 들어 올리고 마력 감지에 집중했다.';
+  const startOffset = DEMO_EVIDENCE_SOURCE.indexOf(quote);
+
+  return {
+    characterFactId,
+    sourceCandidateId: `demo-candidate-${characterFactId}`,
+    episode: {
+      episodeId: 'demo-episode-1',
+      episodeNo: 1,
+      title: '입학식',
+    },
+    content: DEMO_EVIDENCE_SOURCE,
+    evidenceSpans: [{
+      quote,
+      startOffset,
+      endOffset: startOffset + quote.length,
+    }],
+  };
 }
 
 interface DemoCharacterState {

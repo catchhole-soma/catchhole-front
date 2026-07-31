@@ -1650,6 +1650,24 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   });
   const characterAuthorizationHeaders: string[] = [];
   const characterRequestPaths: string[] = [];
+  const evidencePrelude = Array.from(
+    { length: 24 },
+    (_, index) => `연무장 기록 ${index + 1}번째 줄에는 오래된 훈련 내용이 적혀 있었다.`,
+  ).join('\n\n');
+  const evidenceEpilogue = Array.from(
+    { length: 24 },
+    (_, index) => `후속 기록 ${index + 1}번째 줄에는 새로운 훈련 계획이 적혀 있었다.`,
+  ).join('\n\n');
+  const evidenceSource = `⚔️ 수아는 왕립 검술학교의 연무장에 홀로 남아 있었다.
+
+${evidencePrelude}
+
+스물세 살이 된 수아는 기본 검술을 다시 점검했다.
+교관은 수아가 현재 15레벨에 도달했다고 기록했다.
+
+수아는 훈련용 검을 들어 올리고 마력 감지에 집중했다.
+
+${evidenceEpilogue}`;
 
   const detailResponse = () => ({
     id: 'char-1',
@@ -1916,6 +1934,42 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
       });
     }
 
+    const evidenceMatch = pathname.match(new RegExp(
+      `/works/${workId}/character-facts/(fact-(?:age|level)-1)/evidence$`,
+    ));
+    if (evidenceMatch && method === 'GET') {
+      const factId = evidenceMatch[1];
+      const quote = factId === 'fact-age-1'
+        ? '스물세 살이 된 수아는 기본 검술을 다시 점검했다.'
+        : '교관은 수아가 현재 15레벨에 도달했다고 기록했다.';
+      const quoteCodeUnitOffset = evidenceSource.indexOf(quote);
+      const startOffset = Array.from(evidenceSource.slice(0, quoteCodeUnitOffset)).length;
+      const endOffset = startOffset + Array.from(quote).length;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            characterFactId: factId,
+            sourceCandidateId: `candidate-${factId}`,
+            episode: {
+              episodeId: 'episode-1',
+              episodeNo: 1,
+              title: '입학식',
+            },
+            content: evidenceSource,
+            evidenceSpans: [{
+              quote,
+              startOffset,
+              endOffset,
+            }],
+          },
+          error: null,
+        }),
+      });
+    }
+
     if (pathname.endsWith(`/works/${workId}/characters/char-1/restore`) && method === 'PATCH') {
       characterAuthorizationHeaders.push(request.headers().authorization ?? '');
       if (restoreAttempt++ === 0) {
@@ -2068,11 +2122,38 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(dormantStatusRow).toHaveCSS('border-bottom-width', '0px');
 
   await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
-  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '안내 닫기' }).click();
+  await expect(page).toHaveURL(/factId=fact-age-1/);
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
+  await expect(page.getByText('1화 · 입학식', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('character-evidence-source')).toContainText(evidenceSource);
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveText(
+    '스물세 살이 된 수아는 기본 검술을 다시 점검했다.',
+  );
+  await expect.poll(async () => {
+    const [bodyBox, highlightBox] = await Promise.all([
+      page.locator('.character-evidence-panel__body').boundingBox(),
+      page.getByTestId('character-evidence-highlight').boundingBox(),
+    ]);
+    if (!bodyBox || !highlightBox) return false;
+    const bodyCenter = bodyBox.y + bodyBox.height / 2;
+    const highlightCenter = highlightBox.y + highlightBox.height / 2;
+    return Math.abs(bodyCenter - highlightCenter) < bodyBox.height / 4;
+  }).toBe(true);
+  await page.goBack();
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toHaveCount(0);
+  await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveText(
+    '스물세 살이 된 수아는 기본 검술을 다시 점검했다.',
+  );
   await page.getByRole('button', { name: '현재 레벨 원문 근거 보기' }).click();
-  await expect(page.getByText('원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '안내 닫기' }).click();
+  await expect(page).toHaveURL(/factId=fact-level-1/);
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveText(
+    '교관은 수아가 현재 15레벨에 도달했다고 기록했다.',
+  );
+  await page.getByRole('button', { name: '원문 근거 닫기' }).click();
+  await expect(page).not.toHaveURL(/factId=/);
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toHaveCount(0);
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
   const desktopViewport = page.viewportSize();
@@ -2114,6 +2195,20 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
+  await expect(page).toHaveURL(/factId=fact-age-1/);
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
+  const [evidenceEditSkillBox, evidenceEditItemBox] = await Promise.all([
+    page.getByTestId('character-skill-section').boundingBox(),
+    page.getByTestId('character-item-section').boundingBox(),
+  ]);
+  expect(evidenceEditSkillBox).not.toBeNull();
+  expect(evidenceEditItemBox).not.toBeNull();
+  expect(evidenceEditItemBox?.y ?? 0).toBeGreaterThan(evidenceEditSkillBox?.y ?? 0);
+  expect(
+    (evidenceEditItemBox?.y ?? 0)
+      - ((evidenceEditSkillBox?.y ?? 0) + (evidenceEditSkillBox?.height ?? 0)),
+  ).toBeLessThan(20);
   await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
   const detailRequestsBeforeRefetch = detailRequestCount;
   await page.evaluate(() => {
@@ -2132,6 +2227,8 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   releaseUpdate();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
+  await expect(page).toHaveURL(/factId=fact-age-1/);
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
 
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const retryConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
@@ -2140,6 +2237,8 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   let saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
   await expect(saveFeedback).toBeVisible();
   await expect(saveFeedback.locator('..')).toHaveCSS('position', 'fixed');
+  await expect(page).not.toHaveURL(/factId=/);
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toHaveCount(0);
   await expect(page.getByText('수아 이름만 수정', { exact: true }).first()).toBeVisible();
   expect(updateBody).toMatchObject({
     name: '수아 이름만 수정',
