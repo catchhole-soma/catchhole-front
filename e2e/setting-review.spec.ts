@@ -169,7 +169,7 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
   await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
 });
 
-test('연결됨 필터는 기존 연결과 같은 이름 자동 연결을 함께 조회해 구분한다', async ({ page }) => {
+test('연결됨 필터는 기존 캐릭터와 이번 확정의 신규 캐릭터 연결을 함께 조회해 구분한다', async ({ page }) => {
   const autoMatchedCandidate = {
     ...candidates[0],
     id: secondCandidateId,
@@ -224,7 +224,7 @@ test('연결됨 필터는 기존 연결과 같은 이름 자동 연결을 함께
     ['AUTO_MATCHED_BY_NAME', 'MATCHED'].sort(),
   );
   await expect(page.getByText('기존 캐릭터 연결됨').first()).toBeVisible();
-  await expect(page.getByText('신규 이름으로 자동 연결됨').first()).toBeVisible();
+  await expect(page.getByText('신규 캐릭터에 연결됨').first()).toBeVisible();
 });
 
 test('후보 처리 응답 전에 이탈하면 늦은 성공 응답이 검토 화면을 다시 열지 않는다', async ({ page }) => {
@@ -651,7 +651,7 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
         return fulfillError(route, 409, '캐릭터 연결 상태를 확인해 주세요.');
       }
       reviewStatus = 'CONFIRMED';
-      matchStatus = 'MATCHED';
+      matchStatus = 'AUTO_MATCHED_BY_NAME';
       matchedCharacterId = '77777777-7777-4777-8777-777777777777';
       return fulfill(route, { id: firstCandidateId, reviewStatus });
     }
@@ -679,7 +679,7 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
   await confirmButton.click();
 
   await expect(page.getByText('확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.')).toBeVisible();
-  await expect(page.getByText('기존 캐릭터 연결됨').last()).toBeVisible();
+  await expect(page.getByText('신규 캐릭터에 연결됨').last()).toBeVisible();
   const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
   await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
     .toContainText('1개');

@@ -67,7 +67,7 @@ const REVIEW_LABELS: Record<ReviewStatus, string> = {
 };
 const MATCH_LABELS: Record<MatchStatus, string> = {
   MATCHED: '기존 캐릭터 연결됨',
-  AUTO_MATCHED_BY_NAME: '신규 이름으로 자동 연결됨',
+  AUTO_MATCHED_BY_NAME: '신규 캐릭터에 연결됨',
   UNRESOLVED: '새 캐릭터 후보',
   AMBIGUOUS: '캐릭터 연결 확인 필요',
 };
