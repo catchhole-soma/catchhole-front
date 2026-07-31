@@ -1997,9 +1997,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(characterCard).toContainText('—');
 
   failCharacterListRefetch = true;
-  await page.evaluate(async () => {
-    const { queryClient } = await import('/src/app/lib/query-client.ts');
-    await queryClient.invalidateQueries();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
   });
   const listRefetchAlert = page.getByRole('alert').filter({ hasText: '캐릭터 목록 재조회에 실패했습니다.' });
   await expect(listRefetchAlert).toBeVisible();
@@ -2116,9 +2116,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveCount(0);
   await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
   const detailRequestsBeforeRefetch = detailRequestCount;
-  await page.evaluate(async () => {
-    const { queryClient } = await import('/src/app/lib/query-client.ts');
-    await queryClient.invalidateQueries();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
   });
   await expect.poll(() => detailRequestCount).toBeGreaterThan(detailRequestsBeforeRefetch);
   await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');

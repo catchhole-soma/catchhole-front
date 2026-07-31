@@ -37,6 +37,7 @@ import type {
 } from '../../../api/generated/types.gen';
 import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPagination';
 import { toApiError } from '../../../lib/api-errors';
+import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { saveDemoCharacterState } from './demoCharacters';
@@ -977,7 +978,10 @@ export function CharacterDatabase({
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
     enabled: !demoMode && Boolean(workId) && Boolean(selectedCharacterId),
-    retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 3,
+    retry: (failureCount, error) => (
+      toApiError(error)?.status !== 404
+      && shouldRetryQuery(failureCount, error, 3)
+    ),
   });
   const archivedCharactersQuery = useQuery({
     ...getArchivedCharactersOptions({
@@ -1324,8 +1328,8 @@ export function CharacterDatabase({
   };
 
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
-  const listError = !demoMode && charactersQuery.isError && !hasCharacterPage;
-  const listRefetchError = !demoMode && charactersQuery.isError && hasCharacterPage;
+  const listError = !demoMode && charactersQuery.isLoadingError;
+  const listRefetchError = !demoMode && charactersQuery.isRefetchError && hasCharacterPage;
   const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending;
   const closeDetail = () => {
     if (mutationPending) return;

@@ -4,6 +4,29 @@ const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
 const episodeId = '44444444-4444-4444-8444-444444444444';
 
+test('공통 Query 재시도 정책은 최종 401을 다시 요청하지 않는다', async ({ page }) => {
+  await page.goto('/landing');
+
+  const decisions = await page.evaluate(async () => {
+    const { ApiError } = await import('/src/app/lib/api-errors.ts');
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    const retry = queryClient.getDefaultOptions().queries?.retry;
+    if (typeof retry !== 'function') throw new Error('Query retry 함수가 설정되지 않았습니다.');
+
+    return {
+      unauthorized: retry(0, new ApiError('인증 실패', 'AUTH_FAILED', 401)),
+      firstServerFailure: retry(0, new ApiError('서버 오류', 'SERVER_ERROR', 500)),
+      exhaustedServerFailure: retry(1, new ApiError('서버 오류', 'SERVER_ERROR', 500)),
+    };
+  });
+
+  expect(decisions).toEqual({
+    unauthorized: false,
+    firstServerFailure: true,
+    exhaustedServerFailure: false,
+  });
+});
+
 test('구버전 데모 캐릭터 저장값의 설정명 편집 메타데이터를 보정한다', async ({ page }) => {
   await page.goto('/landing');
 

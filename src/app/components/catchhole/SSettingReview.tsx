@@ -36,6 +36,7 @@ import type {
 } from '../../api/generated/types.gen';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { toApiError } from '../../lib/api-errors';
+import { shouldRetryQuery } from '../../lib/query-client';
 import { C } from './constants';
 import { PageNavigation } from './PageNavigation';
 import { UserMenu } from './UserMenu';
@@ -137,8 +138,8 @@ function toSettingDisplay(attributeName?: string): SettingDisplay {
 }
 
 function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolean {
-  const status = toApiError(error)?.status;
-  return status !== 401 && status !== 404 && failureCount < 2;
+  return toApiError(error)?.status !== 404
+    && shouldRetryQuery(failureCount, error, 2);
 }
 
 function splitDynamicSettingName(attributeName: string, dynamicPrefix?: string | null): {
