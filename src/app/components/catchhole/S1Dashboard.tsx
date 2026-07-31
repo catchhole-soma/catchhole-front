@@ -2663,6 +2663,7 @@ export default function S1Dashboard() {
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
   const selectedCharEditing = selectedCharDetail !== null && searchParams.get('mode') === 'edit';
+  const selectedCharacterFactId = selectedCharDetail !== null ? searchParams.get('factId') : null;
   const characterArchiveOpen = searchParams.get('modal') === 'character-archive';
   const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
     if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
@@ -2687,6 +2688,19 @@ export default function S1Dashboard() {
     else prev.delete('mode');
     return prev;
   });
+  const completeCharacterEditing = () => setSearchParams(prev => {
+    prev.delete('mode');
+    prev.delete('factId');
+    return prev;
+  }, { replace: true });
+  const openCharacterEvidence = (characterFactId: string) => setSearchParams(prev => {
+    prev.set('factId', characterFactId);
+    return prev;
+  }, { replace: selectedCharacterFactId !== null });
+  const closeCharacterEvidence = () => setSearchParams(prev => {
+    prev.delete('factId');
+    return prev;
+  }, { replace: true });
   const setCharacterArchiveOpen = (open: boolean) => setSearchParams(prev => {
     if (open) prev.set('modal', 'character-archive');
     else prev.delete('modal');
@@ -3084,6 +3098,7 @@ export default function S1Dashboard() {
                         <CharacterDatabase
                           workId={effectiveWorkId}
                           selectedCharacterId={selectedCharDetail}
+                          selectedEvidenceFactId={selectedCharacterFactId}
                           isEditing={selectedCharEditing}
                           demoMode={demoMode}
                           archiveOpen={characterArchiveOpen}
@@ -3093,9 +3108,12 @@ export default function S1Dashboard() {
                           setDemoArchivedCharacters={setDemoArchivedCharacters}
                           onOpen={openCharDetail}
                           onClose={() => setSelectedCharDetail(null)}
+                          onEvidenceOpen={openCharacterEvidence}
+                          onEvidenceClose={closeCharacterEvidence}
                           onArchiveOpen={() => setCharacterArchiveOpen(true)}
                           onArchiveClose={() => setCharacterArchiveOpen(false)}
                           onEditChange={setSelectedCharEditing}
+                          onEditComplete={completeCharacterEditing}
                           onAnalyze={() => navigate(
                             `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
                             'push-right',

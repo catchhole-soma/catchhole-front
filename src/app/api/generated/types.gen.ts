@@ -1605,11 +1605,11 @@ export type CharacterEpisodeResponse = {
  */
 export type CharacterFactReferenceResponse = {
     /**
-     * 현재 CharacterFact ID. 현재 상세 API와 후속 통합 설정 검색의 캐릭터 설정 식별자로 사용합니다.
+     * 현재 CharacterFact ID. 설정 상세·검색과 원문 근거 조회 식별자로 사용합니다.
      */
     characterFactId: string;
     /**
-     * 현재 상세 API에서 조회 가능한 저장 원문 근거 존재 여부
+     * 설정 상세와 원문 근거 패널에서 조회 가능한 저장 근거 존재 여부
      */
     hasEvidence: boolean;
 };
@@ -1641,7 +1641,7 @@ export type CharacterSettingPropertyResponse = {
  */
 export type CharacterSettingResponse = {
     /**
-     * 현재 설정 CharacterFact ID. 현재 상세 API와 후속 통합 설정 검색의 캐릭터 설정 식별자
+     * 현재 설정 CharacterFact ID. 설정 상세·검색과 원문 근거 조회 식별자로 사용합니다.
      */
     characterFactId?: string;
     /**
@@ -1677,7 +1677,7 @@ export type CharacterSettingResponse = {
      */
     properties?: Array<CharacterSettingPropertyResponse>;
     /**
-     * 현재 상세 API에서 조회 가능한 저장 원문 근거 존재 여부
+     * 설정 상세와 원문 근거 패널에서 조회 가능한 저장 근거 존재 여부
      */
     hasEvidence?: boolean;
 };
@@ -2098,6 +2098,94 @@ export type CommonResponseCharacterFactDetailResponse = {
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
     data?: CharacterFactDetailResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 캐릭터 설정 원문 근거의 출처 회차
+ */
+export type CharacterFactEvidenceEpisodeResponse = {
+    /**
+     * 회차 ID
+     */
+    episodeId: string;
+    /**
+     * 회차 번호
+     */
+    episodeNo: number;
+    /**
+     * 회차 제목
+     */
+    title?: string | null;
+};
+
+/**
+ * 캐릭터 현재·과거 Fact의 분석 당시 원문 근거
+ */
+export type CharacterFactEvidenceResponse = {
+    /**
+     * 캐릭터 Fact ID
+     */
+    characterFactId: string;
+    /**
+     * Fact를 만든 설정 후보 ID
+     */
+    sourceCandidateId?: string | null;
+    /**
+     * 근거 출처 회차
+     */
+    episode?: CharacterFactEvidenceEpisodeResponse;
+    /**
+     * 분석 당시 회차 전체 원문. 저장소 조회 실패 또는 출처가 없으면 null
+     */
+    content?: string | null;
+    /**
+     * 원문 근거 범위 목록
+     */
+    evidenceSpans: Array<CharacterFactEvidenceSpanResponse>;
+};
+
+/**
+ * 회차 전체 원문 기준 캐릭터 설정 근거 범위
+ */
+export type CharacterFactEvidenceSpanResponse = {
+    /**
+     * AI가 원문에서 복사한 근거 문장
+     */
+    quote: string;
+    /**
+     * 회차 전체 원문 기준 Unicode code point 시작 offset
+     */
+    startOffset?: number | null;
+    /**
+     * 회차 전체 원문 기준 Unicode code point 끝 offset(exclusive)
+     */
+    endOffset?: number | null;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterFactEvidenceResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterFactEvidenceResponse;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -4018,6 +4106,42 @@ export type GetCharacterFactResponses = {
 };
 
 export type GetCharacterFactResponse = GetCharacterFactResponses[keyof GetCharacterFactResponses];
+
+export type GetCharacterFactEvidenceData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterFactId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/character-facts/{characterFactId}/evidence';
+};
+
+export type GetCharacterFactEvidenceErrors = {
+    /**
+     * 경로 UUID 형식 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 캐릭터 설정을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetCharacterFactEvidenceError = GetCharacterFactEvidenceErrors[keyof GetCharacterFactEvidenceErrors];
+
+export type GetCharacterFactEvidenceResponses = {
+    /**
+     * 캐릭터 설정 원문 근거 조회 성공
+     */
+    200: CommonResponseCharacterFactEvidenceResponse;
+};
+
+export type GetCharacterFactEvidenceResponse = GetCharacterFactEvidenceResponses[keyof GetCharacterFactEvidenceResponses];
 
 export type SearchCharacterFactsData = {
     body?: never;

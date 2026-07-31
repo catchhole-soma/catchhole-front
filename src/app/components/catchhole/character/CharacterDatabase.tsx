@@ -21,6 +21,7 @@ import {
   getArchivedCharactersOptions,
   getArchivedCharactersQueryKey,
   getCharacterOptions,
+  getCharacterFactEvidenceOptions,
   getCharacterQueryKey,
   getCharactersOptions,
   getCharactersQueryKey,
@@ -40,7 +41,9 @@ import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
-import { saveDemoCharacterState } from './demoCharacters';
+import { CharacterEvidencePanel } from './CharacterEvidencePanel';
+import { getDemoCharacterEvidence, saveDemoCharacterState } from './demoCharacters';
+import './character-evidence.css';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 type SettingGroupKey = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
@@ -82,6 +85,7 @@ interface CharacterDraft {
 interface Props {
   workId: string;
   selectedCharacterId: string | null;
+  selectedEvidenceFactId: string | null;
   isEditing: boolean;
   demoMode: boolean;
   archiveOpen: boolean;
@@ -91,9 +95,12 @@ interface Props {
   setDemoArchivedCharacters: Dispatch<SetStateAction<CharacterDetailResponse[]>>;
   onOpen: (characterId: string, edit: boolean) => void;
   onClose: () => void;
+  onEvidenceOpen: (characterFactId: string) => void;
+  onEvidenceClose: () => void;
   onArchiveOpen: () => void;
   onArchiveClose: () => void;
   onEditChange: (editing: boolean) => void;
+  onEditComplete: () => void;
   onAnalyze: () => void;
 }
 
@@ -577,9 +584,14 @@ function EditSettingList({
             display: 'grid',
             gridTemplateColumns: complex
               ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
-              : columns === 2
-                ? '80px minmax(0, 1fr) auto'
-                : '110px minmax(0, 1fr) auto',
+              : dynamicNameEditable
+                ? columns === 2
+                  ? '135px minmax(0, 1fr) auto'
+                  : '160px minmax(0, 1fr) auto'
+                : columns === 2
+                  ? '80px minmax(0, 1fr) auto'
+                  : '110px minmax(0, 1fr) auto',
+            minWidth: 0,
             gap: 8, alignItems: 'center', padding: complex ? 8 : '7px 12px',
             border: complex ? `1px solid ${C.border}` : 'none',
             borderRight: !complex && columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : undefined,
@@ -918,6 +930,7 @@ function ArchivedCharactersLayer({
 export function CharacterDatabase({
   workId,
   selectedCharacterId,
+  selectedEvidenceFactId,
   isEditing,
   demoMode,
   archiveOpen,
@@ -927,9 +940,12 @@ export function CharacterDatabase({
   setDemoArchivedCharacters,
   onOpen,
   onClose,
+  onEvidenceOpen,
+  onEvidenceClose,
   onArchiveOpen,
   onArchiveClose,
   onEditChange,
+  onEditComplete,
   onAnalyze,
 }: Props) {
   const queryClient = useQueryClient();
@@ -937,7 +953,6 @@ export function CharacterDatabase({
   const [confirming, setConfirming] = useState<'delete' | 'save' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [selectedEvidenceFactId, setSelectedEvidenceFactId] = useState<string | null>(null);
   const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
   const [archivePage, setArchivePage] = useState(0);
   const [archiveError, setArchiveError] = useState<string | null>(null);
@@ -983,6 +998,19 @@ export function CharacterDatabase({
       && shouldRetryQuery(failureCount, error, 3)
     ),
   });
+  const evidenceQuery = useQuery({
+    ...getCharacterFactEvidenceOptions({
+      path: {
+        workId,
+        characterFactId: selectedEvidenceFactId ?? '',
+      },
+    }),
+    enabled: !demoMode && Boolean(workId) && Boolean(selectedEvidenceFactId),
+    retry: (failureCount, error) => (
+      toApiError(error)?.status !== 404
+      && shouldRetryQuery(failureCount, error, 3)
+    ),
+  });
   const archivedCharactersQuery = useQuery({
     ...getArchivedCharactersOptions({
       path: { workId },
@@ -1009,7 +1037,7 @@ export function CharacterDatabase({
       setConfirming(null);
       setActionError(null);
       setFeedback('캐릭터 설정을 저장했습니다.');
-      onEditChange(false);
+      onEditComplete();
     },
     onError: (error, variables) => {
       if (
@@ -1104,6 +1132,11 @@ export function CharacterDatabase({
 
   const demoDetail = demoCharacters.find(character => character.id === selectedCharacterId);
   const detail = demoMode ? demoDetail : detailQuery.data?.data;
+  const evidence = selectedEvidenceFactId
+    ? demoMode
+      ? getDemoCharacterEvidence(selectedEvidenceFactId)
+      : evidenceQuery.data?.data ?? null
+    : null;
   const demoSummaries = useMemo(() => demoCharacters.map(toSummary), [demoCharacters]);
   const characterPage = charactersQuery.data?.data;
   const hasCharacterPage = characterPage !== undefined;
@@ -1164,7 +1197,6 @@ export function CharacterDatabase({
       setDraft(null);
       draftCharacterIdRef.current = null;
       setActionError(null);
-      setSelectedEvidenceFactId(null);
       return;
     }
     if (!detail || !selectedCharacterId || draftCharacterIdRef.current === selectedCharacterId) {
@@ -1173,7 +1205,6 @@ export function CharacterDatabase({
     setDraft(toDraft(detail));
     draftCharacterIdRef.current = selectedCharacterId;
     setActionError(null);
-    setSelectedEvidenceFactId(null);
   }, [detail, isEditing, selectedCharacterId]);
 
   useEffect(() => {
@@ -1277,7 +1308,7 @@ export function CharacterDatabase({
         setConfirming(null);
         setActionError(null);
         setFeedback('캐릭터 설정을 저장했습니다.');
-        onEditChange(false);
+        onEditComplete();
         return;
       }
       updateMutation.mutate({ path: { workId, characterId: selectedCharacterId }, body });
@@ -1474,7 +1505,8 @@ export function CharacterDatabase({
           <motion.div
             initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
             onClick={event => event.stopPropagation()}
-            style={{ width: 1000, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}
+            className={`character-detail-modal${selectedEvidenceFactId ? ' character-detail-modal--with-evidence' : ''}${isEditing ? ' character-detail-modal--editing' : ''}`}
+            style={{ width: selectedEvidenceFactId ? 1640 : 1000, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}
           >
             {confirming && (
               <ConfirmLayer
@@ -1485,6 +1517,21 @@ export function CharacterDatabase({
               />
             )}
 
+            {selectedEvidenceFactId && (
+              <CharacterEvidencePanel
+                evidence={evidence}
+                loading={!demoMode && evidenceQuery.isPending}
+                error={!demoMode && evidenceQuery.isError
+                  ? errorMessage(evidenceQuery.error, '원문 근거를 불러오지 못했습니다.')
+                  : null}
+                onRetry={() => {
+                  if (!demoMode) void evidenceQuery.refetch();
+                }}
+                onClose={onEvidenceClose}
+              />
+            )}
+
+            <div style={{ minWidth: 0 }}>
             {!demoMode && detailQuery.isPending && (
               <div style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
                 <Loader2 size={18} className="spin" /> 캐릭터 정보를 불러오는 중입니다.
@@ -1529,12 +1576,6 @@ export function CharacterDatabase({
                       {actionError}
                     </div>
                   )}
-                  {selectedEvidenceFactId && (
-                    <div role="status" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.primary + '12', border: `1px solid ${C.primary}44`, color: C.t2, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <FileText size={14} color={C.primary} /> 원문 근거 패널은 후속 character-fact API 작업에서 연결됩니다.
-                      <button type="button" aria-label="안내 닫기" onClick={() => setSelectedEvidenceFactId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: C.t3, cursor: 'pointer', lineHeight: 0 }}><X size={13} /></button>
-                    </div>
-                  )}
 
                   <SectionTitle>기본 정보</SectionTitle>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.bg, marginBottom: 20 }}>
@@ -1558,7 +1599,7 @@ export function CharacterDatabase({
                             <EvidenceButton
                               enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
                               label={label}
-                              onClick={() => factReference?.characterFactId && setSelectedEvidenceFactId(factReference.characterFactId)}
+                              onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
                             />
                           </div>
                           <input
@@ -1585,7 +1626,7 @@ export function CharacterDatabase({
                             <EvidenceButton
                               enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
                               label={label}
-                              onClick={() => factReference?.characterFactId && setSelectedEvidenceFactId(factReference.characterFactId)}
+                              onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
                             />
                           </div>
                           <div style={{ color: C.t1, fontSize: 13, fontWeight: 600 }}>{value}</div>
@@ -1602,8 +1643,8 @@ export function CharacterDatabase({
                       <SectionTitle>프로필</SectionTitle>
                       <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                         {isEditing && draft
-                          ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} onAdd={() => addSimpleSetting('profile')} onEvidence={setSelectedEvidenceFactId} />
-                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={setSelectedEvidenceFactId} />}
+                          ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} onAdd={() => addSimpleSetting('profile')} onEvidence={onEvidenceOpen} />
+                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={onEvidenceOpen} />}
                       </div>
                     </div>
 
@@ -1612,12 +1653,13 @@ export function CharacterDatabase({
                         <SectionTitle>스탯</SectionTitle>
                         <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={setSelectedEvidenceFactId} />
-                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={setSelectedEvidenceFactId} />}
+                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={onEvidenceOpen} />
+                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={onEvidenceOpen} />}
                         </div>
                       </div>
 
                       <div
+                        className="character-skill-item-sections"
                         data-testid="character-skill-item-sections"
                         style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}
                       >
@@ -1625,16 +1667,16 @@ export function CharacterDatabase({
                           <SectionTitle>스킬</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
-                              ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={setSelectedEvidenceFactId} />
-                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={setSelectedEvidenceFactId} />}
+                              ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={onEvidenceOpen} />
+                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={onEvidenceOpen} />}
                           </div>
                         </div>
                         <div data-testid="character-item-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <SectionTitle>아이템</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
-                              ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={setSelectedEvidenceFactId} />
-                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={setSelectedEvidenceFactId} />}
+                              ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={onEvidenceOpen} />
+                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={onEvidenceOpen} />}
                           </div>
                         </div>
                       </div>
@@ -1646,8 +1688,8 @@ export function CharacterDatabase({
                           style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}
                         >
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex columns={2} onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={setSelectedEvidenceFactId} />
-                            : <SimpleSettingList settings={detail.statuses ?? []} emptyLabel="상태" columns={2} onEvidence={setSelectedEvidenceFactId} />}
+                            ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex columns={2} onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={onEvidenceOpen} />
+                            : <SimpleSettingList settings={detail.statuses ?? []} emptyLabel="상태" columns={2} onEvidence={onEvidenceOpen} />}
                         </div>
                       </div>
                     </div>
@@ -1667,6 +1709,7 @@ export function CharacterDatabase({
                 </div>
               </>
             )}
+            </div>
           </motion.div>
         </motion.div>
       )}
