@@ -712,7 +712,7 @@
 - 수정된 설정별 새 `characterFactId`
 - 이름·역할·첫 등장 회차 수정은 캐릭터의 현재 대표 필드에 반영
 - 프로필·나이·레벨·스탯·스킬·아이템·상태 수정은 새로운 수동 정정 `CharacterFact`를 생성한 뒤 캐릭터의 현재 대표값과 JSON snapshot에 반영
-- 사용자가 새로 추가한 프로필·스탯의 표시명은 `properties.name`, 대표값은 설정 자체의 `value`로 전달한다. 새 상태는 `status.*` key와 `properties.name`을 포함한 복합 설정으로 전달한다.
+- 사용자가 새로 추가한 설정은 `manual_*` 식별자 대신 유형 prefix와 설정명을 합친 의미 있는 pattern key로 전달한다. 예를 들어 좌우명·행운·부상은 각각 `profile.좌우명`, `stats.행운`, `status.부상`이며, 표시명은 `properties.name`, 대표값은 설정 자체의 `value`로 함께 전달한다. Backend는 exact → alias → pattern 순으로 해석해 alias가 있으면 canonical key로 저장하고 canonicalize 후 중복을 거절한다.
 - 이름 수정 후에도 기존 `CharacterFact`는 동일한 `characterId`를 참조하므로 상세와 이력의 캐릭터명은 갱신된 이름으로 표시
 - 과거 원고, `EpisodeChunk.chunkText`와 임베딩, 기존 `SettingCandidate.entityName`·`rawEntityMention`·`evidenceSpans`, 과거 `CharacterFact`는 수정하지 않고 분석 당시 기록으로 유지
 - 직접 수정한 설정은 원문에서 추출한 기존 fact를 덮어쓰지 않고 새로운 수동 정정 `CharacterFact`로 생성하며, 같은 `factType + factKey`의 이전 current fact는 과거 이력으로 전환
@@ -789,14 +789,37 @@
 
 ![설정 후보 검토 완료](../screens/VkfXH.png)
 
-회차 업로드 후 하나의 분석 작업에서 AI가 추출한 설정 후보를 원문 근거와 함께 검토하고, 캐릭터 연결과 설정값을 보정한 뒤 확정하거나 무시하는 화면.
+회차 업로드 후 하나의 업로드 묶음에 속한 회차별 설정 추출 Job들이 만든 후보를 원문 근거와 함께 검토하고, 캐릭터 연결과 설정값을 보정한 뒤 확정하거나 무시하는 화면.
 
 > **MVP 범위 메모**
-> - 검토 범위는 작품 전체 후보가 아니라 현재 `analysisJobId`에서 생성된 후보로 제한한다.
+> - 검토 범위는 작품 전체 후보가 아니라 현재 업로드의 `batchId`에 속한 회차별 설정 추출 Job이 생성한 후보로 제한한다.
+> - `AnalysisJob`은 회차마다 하나씩 생성되므로 여러 회차 후보를 한 화면에서 검토할 때 단일 `analysisJobId`를 대표 식별자로 사용하지 않는다.
 > - 좌측 후보 목록은 요약 응답, 우측 선택 후보는 상세 응답으로 분리한다. 조회한 상세 응답은 FE에서 캐싱할 수 있다.
 > - 후보 수정 저장과 확정은 별도 액션으로 제공하며, 사용자는 `PENDING_REVIEW` 상태에서 여러 번 수정할 수 있다.
 > - `CONFIRMED`, `DISMISSED` 후보는 읽기 전용으로 표시하고 되돌리기는 지원하지 않는다.
 > - 설정집 다시 분석, 일괄 확정·무시, 근거 문장 직접 수정, 문단 번호 표시는 MVP에서 제외한다.
+
+> **현재 구현 계약**
+> - `batchId` 회차 범위, 전체·완료·대기·연결 필요 집계, 검토·연결 상태 필터, 서버 페이지네이션과 후보 목록·상세 조회를 연결한다.
+> - 검토 완료 개수는 본문의 분석·검토 요약에서 확인하므로 헤더에는 중복된 완료 개수와 진행 바를 표시하지 않는다.
+> - 검토 화면은 `PENDING_REVIEW`를 기본 필터로 사용한다. 이 기본 검토 흐름에서 확정·무시 후 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하되, 좌측 목록과 화면의 현재 스크롤 위치는 유지한다. 선택 변경을 이유로 카드나 상세 패널까지 자동 스크롤하지 않으며, 남은 대기 후보가 없으면 검토 완료 상태를 표시한다.
+> - 저장용 `attributeName`과 `valueType`을 그대로 노출하지 않고 설정 유형·설정명을 사용자용 문구로 변환한다. 후보에서는 `attributeValue`를 표시하며, 확정 후 이 값이 `CharacterFact.factValue`로 사용된다.
+> - `PENDING_REVIEW`이면서 `MATCHED`, `AUTO_MATCHED_BY_NAME` 또는 `UNRESOLVED`인 단일 후보를 확정할 수 있다. 성공 후 목록·상세·집계와 캐릭터 목록을 서버 기준으로 다시 조회한다.
+> - `AMBIGUOUS` 후보는 캐릭터 연결을 먼저 해소해야 하므로 확정 버튼을 비활성화하고 서버 요청을 보내지 않는다.
+> - 연결 상태와 관계없이 `PENDING_REVIEW` 후보를 무시할 수 있다. 성공 후 목록·상세·집계를 서버 기준으로 다시 조회하고, `DISMISSED` 상세는 읽기 전용으로 표시한다. 무시 실패 시 현재 후보와 선택 상태를 유지해 같은 화면에서 재시도한다.
+> - 설정 유형 서버 필터, 상태별 세부 집계, 사용자 수정 여부, 목록·상세 DTO 분리는 후속 조회 단위에서 보강한다.
+> - 모든 `PENDING_REVIEW` 후보는 설정명·표시값 수정 모달을 열 수 있다. Backend가 응답한 `attributeNameEditable`과 `attributeNamePrefix`를 기준으로 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 prefix를 잠근 채 suffix만 수정한다. FE의 key 목록이나 접두어 추측으로 편집 가능 여부를 결정하지 않는다.
+> - 모든 `PENDING_REVIEW` 후보는 기존 활성 캐릭터 연결 또는 새 캐릭터 등록 예정 상태로 연결을 바꿀 수 있다. `AMBIGUOUS` 후보는 연결을 해소한 뒤 확정한다.
+> - 후보 수정과 캐릭터 연결 성공 후 목록·상세를 다시 조회한다. 실패하면 모달 입력과 선택을 유지해 같은 화면에서 재시도한다.
+> - 검토 완료 후 다음 단계 분기는 후속 변경 단위에서 연결한다.
+
+> **사용자용 설정 문구 표시 정책**
+> - 조회 화면의 문구 변환만으로는 저장된 `attributeName`을 변경하지 않는다. 사용자가 동적 후보의 설정명을 편집해 저장할 때만 기존 prefix를 고정하고 suffix를 새 이름에 맞게 변경한다.
+> - `age`, `level`은 `나이/레벨` 유형으로 묶고, `profile`, `stats`, `skill`, `item`, `status`, `time` 접두어는 각각 `프로필`, `스탯`, `스킬`, `아이템`, `상태`, `시간/사건`으로 표시한다. 알 수 없는 접두어는 `기타`로 표시한다.
+> - `profile.gender`처럼 고정 표시명이 있는 key는 `성별`처럼 FE에 정의한 한글 표시명을 사용한다. 동적 key는 첫 번째 `.` 뒤의 문자열에서 `_`를 공백으로 바꿔 표시한다.
+> - 사용자용 설정값은 `attributeValue`만 표시하고 `valueType`, `valueJson`, `rawAiResultJson`은 노출하지 않는다.
+> - 이 변환은 표시 전용이며 후보 분류나 key 유효성을 보정하지 않는다. exact/alias/pattern 판정과 편집 가능한 prefix는 Backend 응답을 따르고, 활성 schema와 맞지 않는 접두어·key·type은 Backend가 거절한다.
+> - `status.이름_확정`처럼 허용 pattern 안에서 의미만 잘못 분류된 후보는 Backend schema만으로 판별할 수 없으므로 Worker prompt·결정적 후처리·추출 테스트에서 방지한다.
 
 > **상태 표시 정책**
 >
@@ -808,15 +831,17 @@
 > | 검토 상태 | `CONFIRMED` | 확정 |
 > | 검토 상태 | `DISMISSED` | 무시 |
 > | 연결 상태 | `MATCHED` | 기존 캐릭터 연결됨 |
+> | 연결 상태 | `AUTO_MATCHED_BY_NAME` | 신규 캐릭터에 연결됨 |
 > | 연결 상태 | `UNRESOLVED` | 새 캐릭터 후보 |
 > | 연결 상태 | `AMBIGUOUS` | 캐릭터 연결 확인 필요 |
 >
 > - `수정됨`은 검토 상태가 아니므로 상태 필터에서 제외한다.
 > - 설정 내용이 사용자에 의해 수정된 후보에는 상태와 별도로 `사용자 수정` 보조 배지를 표시한다.
+> - 연결 상태 필터의 `연결됨`은 `MATCHED`와 `AUTO_MATCHED_BY_NAME`을 함께 서버에 전달한다. 분석 시점부터 존재한 기존 캐릭터 연결과 이번 확정에서 생성된 신규 캐릭터 연결은 배지에서만 구분한다.
 
 > **후보 목록 정렬 정책**
-> - `episodeNo ASC` → 회차 안의 첫 근거 `startOffset ASC` → 생성 시각 ASC 순으로 정렬한다.
-> - 근거 offset이 없으면 같은 회차의 근거 있는 후보 뒤에 표시하고, 출처 회차가 없으면 전체 목록의 마지막에 표시한다.
+> - 1차 조회 계약은 `episodeNo ASC` → 생성 시각 ASC → 후보 ID ASC 순으로 정렬한다.
+> - 근거 `startOffset` 정렬과 근거가 없는 후보의 세부 배치는 구조화 근거 DTO를 분리하는 후속 조회 단위에서 보강한다.
 > - 필터가 바뀌면 첫 페이지로 이동한다.
 
 > **AI 근거 명확도 표시 정책**
@@ -832,8 +857,7 @@
   - 전체 후보 수
   - 검토 완료 수: `CONFIRMED + DISMISSED`
   - 검토 대기 수
-  - 캐릭터 연결 필요 수: `PENDING_REVIEW + AMBIGUOUS`
-  - `검토 완료 수 / 전체 후보 수` 진행 표시
+  - 캐릭터 연결 필요 수: `PENDING_REVIEW`이면서 `AMBIGUOUS`
 - 좌측 후보 목록 영역
   - 캐릭터명
   - 설정 유형과 설정명
@@ -844,13 +868,13 @@
   - 사용자 수정 배지
 - 목록 필터
   - 검토 상태: 전체·검토 대기·확정·무시
-  - 연결 상태: 전체·기존 캐릭터 연결됨·새 캐릭터 후보·캐릭터 연결 확인 필요
+  - 연결 상태: 전체·연결됨·새 캐릭터 후보·캐릭터 연결 확인 필요
   - 설정 유형: 전체·프로필·나이/레벨·스탯·스킬·아이템·상태·시간/사건
 - 우측 선택 후보 상세 영역
   - 캐릭터 후보명과 원문 표현
   - 검토 상태와 캐릭터 연결 상태
   - 현재 연결된 기존 캐릭터 또는 새 캐릭터 등록 예정 이름
-  - 설정 유형·설정명·표시값·구조화된 세부 값
+  - 사용자용 설정 유형·설정명·표시값
   - AI 근거 명확도와 구간별 안내 문구
   - `{episodeNo}화에서 확인` 출처 정보
   - `AI가 추출할 때 참고한 원문` quote 목록
@@ -859,15 +883,16 @@
 - 검토 완료 후 다음 단계 이동 버튼
 
 **2. 사용자 액션**
+- 헤더 `뒤로`·`분석 목록으로` → `/dashboard?workId={workId}&nav=analyses`의 현재 작품 분석 목록으로 이동
 - 후보 선택 → 우측에 상세 조회
 - 검토 상태·연결 상태·설정 유형 필터 선택·페이지 이동
 - `PENDING_REVIEW + AMBIGUOUS`
   - 무시
-  - `기존 캐릭터에 연결` 선택 → 검색 가능한 기존 캐릭터 선택 모달 열기
+  - `기존 캐릭터에 연결` 선택 → 페이지 조회한 기존 활성 캐릭터 선택 모달 열기
   - `새 캐릭터로 등록` 선택 → 새 캐릭터 이름 입력
-  - 연결 해소 전에는 설정값 수정과 확정 비활성
+  - 연결 해소 전에도 설정 후보 내용은 수정할 수 있지만 확정은 비활성
   - 연결 완료 후 `MATCHED` 또는 `UNRESOLVED` 상태로 전환하고 수정·확정 가능
-- `PENDING_REVIEW + MATCHED`
+- `PENDING_REVIEW + MATCHED/AUTO_MATCHED_BY_NAME`
   - 설정값 수정·수정 저장·확정·무시
   - `연결 변경` → 다른 기존 캐릭터 또는 새 캐릭터로 변경
 - `PENDING_REVIEW + UNRESOLVED`
@@ -883,32 +908,45 @@
 
 > **캐릭터 연결 UI 정책**
 > - `AMBIGUOUS` 상세에는 `기존 캐릭터에 연결`, `새 캐릭터로 등록` 버튼을 나란히 제공하고 무시 버튼은 연결 전에도 사용할 수 있게 한다.
-> - `MATCHED`, `UNRESOLVED` 상세에는 현재 연결 결과와 `연결 변경` 보조 버튼을 표시한다.
+> - `MATCHED`, `AUTO_MATCHED_BY_NAME`, `UNRESOLVED` 상세에는 현재 연결 결과와 `연결 변경` 보조 버튼을 표시한다.
+> - 첫 신규 후보 확정으로 캐릭터가 생성되면 최초 확정 후보와 같은 이름의 나머지 후보를 모두 `AUTO_MATCHED_BY_NAME`으로 표시한다. 확정 시 기존 활성 캐릭터를 재사용하면 최초 후보와 나머지 후보 모두 `MATCHED`다. 사용자가 기존 캐릭터를 다시 직접 선택하면 `MATCHED`, 새 캐릭터 등록 예정으로 바꾸면 `UNRESOLVED`로 전환한다.
 > - 새 캐릭터 이름이 기존 캐릭터와 중복되면 `이미 같은 이름의 캐릭터가 있습니다. 기존 캐릭터에 연결해 주세요.`라고 안내한다.
+> - 기존 캐릭터 연결은 같은 작품의 `ACTIVE` 캐릭터만 대상으로 하며 페이지를 이동해 선택할 수 있다. 연결 요청 실패 시 현재 페이지와 선택을 유지한다.
+> - `CREATE_NEW`는 즉시 캐릭터를 생성하지 않고 후보를 신규 등록 예정인 `UNRESOLVED` 상태로 바꾼다. 실제 캐릭터 생성은 후보 확정 시 처리한다.
 
 > **설정 수정·원문 근거 보존 정책**
-> - 설정 수정 화면에는 사용자용 설정명·표시값·구조화된 세부 값을 폼으로 표시하고 raw JSON은 노출하지 않는다.
-> - 캐릭터 연결, 설정명, 설정값, 구조화 값이 수정되어도 분석 당시의 출처 회차·원문 표현·청크·quote·offset은 변경하거나 삭제하지 않는다.
+> - 설정 수정 화면과 요청에는 사용자용 설정명과 표시값만 포함한다. `valueType`, raw JSON, 중첩 속성, 원문 근거는 노출하거나 직접 수정하지 않는다.
+> - 고정 exact/alias schema 설정명은 수정할 수 없다. 동적 `.*` pattern 설정명은 기존 prefix를 유지하고 suffix만 수정하며, Backend가 정규화한 suffix와 `valueJson.name`을 같은 의미로 동기화한다. 편집 가능 여부와 prefix는 응답의 `attributeNameEditable`, `attributeNamePrefix`를 단일 기준으로 사용한다.
+> - 이름과 표시값이 의미상 그대로이거나 캐릭터 연결만 바뀐 후보는 기존 rich `valueJson`을 유지한다. 이때 key의 suffix 공백은 `_`로, 표시값 앞뒤 공백은 제거해 저장 표현만 정규화할 수 있다.
+> - `SettingValueType.JSON` 복합 후보의 설정명 또는 표시값이 실제로 바뀌면 Backend는 현재 후보의 `valueJson`을 name-only JSON으로 축소한다. 숨은 `level`, `effect`, `quantity` 등을 유지하거나 표시값에서 추측하지 않는다.
+> - scalar 후보는 기존 `valueType`을 유지하고 수정한 표시값을 해당 타입으로 검증한다. 중첩 속성별 타입·필수값을 제공하는 구조화 편집 폼은 후속 범위다.
+> - 표시값 입력을 비우면 빈 문자열이 아니라 `null`을 전송한다. 따라서 원래 표시값이 `null`인 후보를 그대로 저장해도 실제 수정으로 오인하지 않으며, 내용 미수정 JSON은 축소되지 않는다.
+> - 캐릭터 연결·설정명·설정값을 수정해도 분석 당시의 출처 회차·원문 표현·청크·quote·offset은 변경하거나 삭제하지 않는다.
 > - quote와 offset은 `AI가 추출할 때 참고한 원문`으로 읽기 전용 표시하며 일반 설정 수정 요청에 포함하지 않는다.
-> - 사용자가 설정 내용을 수정한 후보에는 다음 문구를 표시한다.
+> - `rawAiResultJson`은 최초 AI payload를 감사·디버깅하기 위한 값이며 수정된 현재 JSON을 복원하거나 confirm에 다시 병합하는 값으로 사용하지 않는다.
+> - 사용자 수정 여부를 제공하는 API 계약이 추가되면 다음 문구와 보조 배지를 표시한다.
 >
 > `이 설정은 사용자가 수정했습니다. 아래 원문은 AI가 최초 추출할 때 참고한 내용으로, 수정된 값과 다를 수 있습니다.`
 
 **3. 화면 전환 식별자**
 - 현재 작품: `workId`
-- 검토 대상 분석 작업: `analysisJobId`
+- 검토 대상 업로드 묶음: `batchId`
+- 이전 화면: `/dashboard?workId={workId}&nav=analyses`
+- 검토 후 다음 단계를 결정할 분석 목적: `jobType={EPISODE_VALIDATION|SETTING_EXTRACTION}`
 - 선택 후보: `candidate={candidateId}`
 - 검토 상태: `reviewStatus={ALL|PENDING_REVIEW|CONFIRMED|DISMISSED}`
-- 연결 상태: `matchStatus={ALL|MATCHED|UNRESOLVED|AMBIGUOUS}`
+- 연결 상태 URL: `matchStatus={ALL|CONNECTED|UNRESOLVED|AMBIGUOUS}`. `CONNECTED`는 API의 `matchStatuses=MATCHED,AUTO_MATCHED_BY_NAME`으로 변환한다.
 - 설정 유형: `settingType={ALL|PROFILE|AGE_LEVEL|STAT|SKILL|ITEM|STATUS|TIME}`
 - 페이지 번호: `page={1 이상의 정수}`
 - 페이지 크기: `size=20`
-- URL 예시: `/setting-review?analysisJobId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&candidate=01970c2e-7e6d-7000-8e5d-2a9bc4b6d333&reviewStatus=PENDING_REVIEW&matchStatus=ALL&settingType=ALL&page=1&size=20`
-- 검토 완료 후 오류 탐지 작업: `/loading?analysisJobId={validationAnalysisJobId}&next=report`
-- 최초 원고 분석 검토 완료: `/dashboard?nav=settingDB&tab=characters`
+- URL 예시: `/setting-review?workId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d444&batchId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&jobType=EPISODE_VALIDATION&candidate=01970c2e-7e6d-7000-8e5d-2a9bc4b6d333&reviewStatus=PENDING_REVIEW&matchStatus=ALL&settingType=ALL&page=1&size=20`
+- `EPISODE_VALIDATION` 검토 완료: 오류 탐지 작업을 생성하고 `/loading?workId={workId}&analysisJobIds={commaSeparatedValidationJobIds}`로 이동한 뒤 성공 시 회차 오류 리포트로 이동
+- `SETTING_EXTRACTION` 검토 완료: `/dashboard?workId={workId}&nav=settingDB&tab=characters`로 이동하며 오류 리포트는 표시하지 않음
 
 **4. 데이터 없음 / 실패 표시**
 - 목록·집계 조회 중 로딩
+- `workId` 또는 `batchId`가 없으면 API를 호출하지 않고 검토 문맥 오류와 분석 목록 이동을 표시
+- 존재하지 않거나 다른 작품의 `batchId`이면 목록 대신 검토 묶음을 찾을 수 없다는 오류와 다시 시도를 표시
 - 분석 결과 후보가 0개이면 빈 상태 표시 ([빈 상태](../screens/DhkMk.png))
   - 안내 문구: `검토할 설정 후보가 없습니다.`
   - 설명 문구: `이번 분석에서는 원문 근거가 명확한 설정을 찾지 못했습니다.`
@@ -930,20 +968,20 @@
 **검토 범위와 집계 데이터**
 
 - 검토 범위·집계 데이터와 좌측 후보 목록은 하나의 목록 요약 응답으로 함께 제공한다. 우측에서 선택한 후보 상세만 별도 응답으로 조회한다.
-- 상단 집계는 현재 필터와 관계없이 해당 `analysisJobId`의 전체 후보를 기준으로 유지하고, 페이지의 `totalElements`는 현재 필터가 적용된 결과 개수를 의미한다.
+- 상단 집계는 현재 필터와 관계없이 해당 `batchId`의 전체 후보를 기준으로 유지하고, 페이지의 `totalElements`는 현재 필터가 적용된 결과 개수를 의미한다.
 
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
-| 검토 대상 분석 작업 식별자 | 단일 값·필수 | 없음 |
-| 분석 대상 회차 시작·종료 번호와 회차 수 | 정수·필수 | 회차가 없으면 모두 `0` |
+| 검토 대상 업로드 묶음 식별자 | 단일 값·필수 | 없음 |
+| 분석 대상 회차 시작·종료 번호와 회차 수 | 정수·필수 | 회차가 없으면 시작·종료 번호는 `null`, 회차 수는 `0` |
 | 전체 후보 수 | 0 이상의 정수·필수 | 후보가 없으면 `0` |
 | 검토 완료 수 | 0 이상의 정수·필수 | `CONFIRMED + DISMISSED` 개수 |
 | 검토 대기 수 | 0 이상의 정수·필수 | `PENDING_REVIEW` 개수 |
-| 캐릭터 연결 필요 수 | 0 이상의 정수·필수 | `PENDING_REVIEW + AMBIGUOUS` 개수 |
-| 검토 상태별 개수 | 상태별 집계·필수 | 없는 상태는 `0` |
-| 연결 상태별 개수 | 상태별 집계·필수 | 없는 상태는 `0` |
-| 설정 유형별 개수 | 유형별 집계·필수 | 없는 유형은 `0` |
-| 오류 탐지 가능 여부 | boolean·필수 | 현재 분석 작업 시작 전에 확정 설정이 이미 있었으면 `true` |
+| 캐릭터 연결 필요 수 | 0 이상의 정수·필수 | `PENDING_REVIEW`이면서 `AMBIGUOUS`인 후보 개수 |
+| 검토 상태별 개수 | 상태별 집계·후속 | 없는 상태는 `0` |
+| 연결 상태별 개수 | 상태별 집계·후속 | 없는 상태는 `0` |
+| 설정 유형별 개수 | 유형별 집계·후속 | 없는 유형은 `0` |
+| 오류 탐지 가능 여부 | boolean·후속 | 검토 완료 단위에서 다음 단계 분기와 함께 제공 |
 
 **좌측 후보 목록 요약 데이터**
 
@@ -953,38 +991,40 @@
 | 출처 회차 식별자·번호 | 목록 항목별 단일 값·선택 | 출처 회차가 없으면 `null` |
 | 캐릭터 후보명 | 목록 항목별 문자열·필수 | 없음 |
 | 원문 캐릭터 표현 | 목록 항목별 문자열·선택 | 없으면 `null` |
-| 설정 유형·한글 표시명 | 목록 항목별 단일 값·필수 | 없음 |
+| 저장용 설정 key (`attributeName`) | 목록 항목별 문자열·필수 | FE가 표시용 유형·설정명을 계산하며 별도 서버 유형·표시명과 필터는 후속 |
 | 설정명 | 목록 항목별 문자열·필수 | 없음 |
 | 표시용 설정값 | 목록 항목별 문자열·선택 | 없으면 `null` |
 | 값 유형 | 목록 항목별 단일 값·필수 | 없음 |
 | AI 근거 명확도 | 목록 항목별 0~1 값·선택 | 없으면 `null` |
 | 검토 상태 | 목록 항목별 enum·필수 | `PENDING_REVIEW`/`CONFIRMED`/`DISMISSED` |
-| 캐릭터 연결 상태 | 목록 항목별 enum·필수 | `MATCHED`/`UNRESOLVED`/`AMBIGUOUS` |
-| 사용자 설정 내용 수정 여부 | 목록 항목별 boolean·필수 | 수정하지 않았으면 `false` |
+| 캐릭터 연결 상태 | 목록 항목별 enum·필수 | `MATCHED`/`AUTO_MATCHED_BY_NAME`/`UNRESOLVED`/`AMBIGUOUS` |
+| 사용자 설정 내용 수정 여부 | 목록 항목별 boolean·후속 | 수정 추적 계약 추가 전에는 표시하지 않음 |
 
-- 목록은 `analysisJobId` 범위로 제한하고, 서버 필터·페이지네이션 결과를 제공한다.
+- 목록은 `batchId` 범위로 제한하고, 서버 필터·페이지네이션 결과를 제공한다.
+- MVP 첫 조회 계약은 `episodeNo ASC` → 생성 시각 ASC → 후보 ID ASC로 안정적인 순서를 보장한다. 근거 `startOffset` 정렬은 구조화 근거 DTO와 함께 후속 조회 계약에서 보강한다.
 - 페이지 메타데이터로 `page`, `size`, `totalElements`, `totalPages`, `hasNext`를 제공한다.
-- 목록 요약에는 구조화 값, 근거 quote·offset, AI 원본 응답을 포함하지 않는다.
+- 화면 URL의 `page`는 1부터 시작하고 API 요청·응답의 `page`는 0부터 시작하므로 FE에서 변환한다.
+- 1차 조회는 기존 후보 응답 DTO를 목록에도 재사용한다. 목록 요약 DTO 분리와 구조화 값·근거·AI 원본 응답 제외는 후속 조회 단위에서 적용한다.
 
 **우측 선택 후보 상세 데이터**
 
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
 | 목록 요약 정보 전체 | 단일 객체·필수 | 없음 |
-| 기존 캐릭터 식별자·이름 | 단일 값·선택 | `MATCHED`가 아니면 `null` |
+| 연결된 캐릭터 식별자·이름 | 단일 값·선택 | `MATCHED`/`AUTO_MATCHED_BY_NAME`가 아니면 `null` |
 | 새 캐릭터 등록 예정 이름 | 문자열·선택 | `UNRESOLVED`가 아니면 `null` |
-| 구조화된 설정 세부 값 | 객체·선택 | 단순 값이거나 없으면 `null` |
+| 구조화된 설정 세부 값 | 객체·선택 | 화면에는 표시하지 않음. 내용 미수정이면 유지하고 JSON 복합 후보의 이름·값 수정 시 name-only로 축소 |
 | 출처 청크 식별자 | 단일 값·선택 | 없으면 `null` |
 | 원문 근거 | `quote`, 회차 전체 기준 `startOffset`, `endOffset` 목록·필수 | 근거가 없으면 빈 목록 |
-| 사용자 설정 내용 수정 여부 | boolean·필수 | 수정하지 않았으면 `false` |
+| 사용자 설정 내용 수정 여부 | boolean·후속 | 수정 추적 계약 추가 전에는 표시하지 않음 |
 
 - 원문 근거에는 회차 번호를 반드시 제공하고 문단 번호는 제공하지 않는다.
-- `rawAiResultJson`은 디버깅용 데이터이므로 사용자 화면 응답에 포함하지 않는다.
+- `rawAiResultJson`은 디버깅용 데이터이므로 화면에는 표시하지 않으며, 상세 응답에서 제거하는 계약 분리는 후속 조회 단위에서 적용한다.
 - 설정 내용이나 캐릭터 연결을 수정해도 출처 회차·원문 표현·청크·근거 quote·offset은 최초 추출값으로 유지한다.
 
 **사용자 액션 완료 후 최신 데이터**
 
-- 설정 수정 저장 후: 갱신된 후보 상세, `contentEdited=true`, 검토 상태 `PENDING_REVIEW`
+- 설정 수정 저장 후: 갱신된 후보 상세, 검토 상태 `PENDING_REVIEW`. 후속 응답 계약이 추가되면 `contentEdited=true` 포함
 - 캐릭터 연결 후: 갱신된 캐릭터명·연결 대상·연결 상태, 검토 상태 `PENDING_REVIEW`
 - 확정·무시 후: 갱신된 검토 상태와 목록·집계에 반영할 최신 개수
 - 전체 검토 완료 후:
@@ -995,14 +1035,18 @@
 
 - 후보 목록·집계 조회
   - 작품의 `workId`
-  - 현재 검토 대상 `analysisJobId`
-  - 검토 상태, 연결 상태, 설정 유형, 페이지 번호, 페이지 크기
+  - 현재 검토 대상 `batchId`
+  - 1차 조회는 검토 상태, 복수 연결 상태, 0부터 시작하는 API 페이지 번호, 페이지 크기
+  - 설정 유형 필터는 후속 조회 단위에서 추가
 - 후보 상세 조회
-  - `workId`, `analysisJobId`, `candidateId`
+  - `workId`, `batchId`, `candidateId`
 - 설정 내용 수정 저장
   - `workId`, `candidateId`
-  - 사용자에게 표시한 설정명·설정값·값 유형·구조화된 세부 값
+  - 사용자 폼의 설정명과 설정값
+  - 값 유형, 구조화된 세부 값, 원문 근거는 수정 요청에 포함하지 않는다.
+  - 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 기존 prefix를 유지한 전체 `attributeName`으로 전송한다.
   - 원문 근거와 AI 근거 명확도는 수정 요청에 포함하지 않는다.
+  - Backend는 내용이 같은 후보의 `valueJson`과 모든 최초 근거를 유지하고, 실제로 수정한 JSON 복합 후보는 현재 `valueJson`을 name-only로 축소한다.
 - 기존 캐릭터 연결
   - `workId`, `candidateId`, 사용자가 선택한 기존 `characterId`
 - 새 캐릭터 지정 또는 이름 재수정
@@ -1010,11 +1054,15 @@
 - 후보 확정·무시
   - `workId`, `candidateId`, 사용자가 선택한 확정 또는 무시 액션
 - 검토 완료
-  - `workId`, 현재 검토 대상 `analysisJobId`
+  - `workId`, 현재 검토 대상 `batchId`
   - 검토 대기 수가 0일 때만 요청할 수 있다.
 
 **6. BE와 협의할 범위·상태값**
-- 없음
+- 후보 내용 수정의 MVP 축소 계약은 확정되었다. 중첩 속성별 타입 정의와 편집 UI, 수정 전후 구조화 값 자체의 별도 이력은 후속 범위다.
+- `attributeValue`는 사용자용 대표값, `valueJson`은 병합·snapshot 조립용 구조화 값으로 역할을 고정한다. 두 값이 의미상 다르거나 `attributeValue`가 부실한 후보는 UI에서 JSON을 대신 노출하지 않고 Worker 추출·Backend 검증 단계에서 정합성을 보장한다.
+- FE의 한글 문구 변환은 후보 유효성 검사가 아니다. 활성 schema와 맞지 않는 접두어·key·type은 Backend가 확정 전에 거절한다. 허용 pattern 안에서 의미만 잘못 분류된 후보는 Worker prompt·결정적 후처리·추출 테스트를 보강한다.
+- 사용자 수정 배지를 표시하려면 목록·상세 응답에 `contentEdited` 또는 동등한 boolean 계약이 필요하다.
+- `profile.*` 고정 추출 대상·허용 key·예시가 Worker prompt에 빠진 문제는 위 **5-4. 프로필 설정 계약**의 후속 작업으로 추적한다.
 
 ---
 

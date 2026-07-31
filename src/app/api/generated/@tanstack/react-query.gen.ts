@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, restoreCharacter, retryAnalysisJob, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, restoreCharacter, retryAnalysisJob, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -563,7 +563,7 @@ export const getSettingCandidateQueryKey = (options: Options<GetSettingCandidate
 /**
  * 설정 후보 상세 조회
  *
- * 로그인한 사용자가 본인 작품의 특정 AI 설정 후보를 조회합니다.
+ * 로그인한 사용자가 본인 작품의 현재 검토 업로드 묶음에 속한 특정 AI 설정 후보를 조회합니다.
  */
 export const getSettingCandidateOptions = (options: Options<GetSettingCandidateData>) => queryOptions<GetSettingCandidateResponse, GetSettingCandidateError, GetSettingCandidateResponse, ReturnType<typeof getSettingCandidateQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -583,7 +583,7 @@ export const updateSettingCandidateMutationKey = (options?: Partial<Options<Upda
 /**
  * 설정 후보 수정
  *
- * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보에서 검토용 필드만 보정합니다. CONFIRMED 또는 DISMISSED 후보는 수정할 수 없습니다.
+ * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보에서 설정명과 표시값만 보정합니다. 고정 schema key는 이름을 바꿀 수 없고 동적 key는 같은 pattern 안에서만 바꿀 수 있습니다. 값 타입과 AI 근거는 유지하며 CONFIRMED 또는 DISMISSED 후보는 수정할 수 없습니다.
  */
 export const updateSettingCandidateMutation = (options?: Partial<Options<UpdateSettingCandidateData>>): UseMutationOptions<UpdateSettingCandidateResponse, UpdateSettingCandidateError, Options<UpdateSettingCandidateData>> => {
     const mutationOptions: UseMutationOptions<UpdateSettingCandidateResponse, UpdateSettingCandidateError, Options<UpdateSettingCandidateData>> = {
@@ -605,7 +605,7 @@ export const updateSettingCandidateCharacterMatchMutationKey = (options?: Partia
 /**
  * 설정 후보 캐릭터 연결 해소
  *
- * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보를 기존 캐릭터에 연결하거나 새 캐릭터로 확정합니다. 검토 상태는 PENDING_REVIEW로 유지합니다.
+ * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보를 기존 캐릭터에 연결하거나, confirm 전 새 캐릭터 등록 예정인 UNRESOLVED 상태로 지정합니다. CREATE_NEW는 캐릭터를 즉시 생성하거나 후보를 확정하지 않으며, 실제 캐릭터 생성은 후보 confirm 때 수행합니다. 검토 상태는 PENDING_REVIEW로 유지합니다.
  */
 export const updateSettingCandidateCharacterMatchMutation = (options?: Partial<Options<UpdateSettingCandidateCharacterMatchData>>): UseMutationOptions<UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateCharacterMatchError, Options<UpdateSettingCandidateCharacterMatchData>> => {
     const mutationOptions: UseMutationOptions<UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateCharacterMatchError, Options<UpdateSettingCandidateCharacterMatchData>> = {
@@ -883,7 +883,7 @@ export const getSettingCandidatesQueryKey = (options: Options<GetSettingCandidat
 /**
  * 작품별 설정 후보 목록 조회
  *
- * 로그인한 사용자가 본인 작품의 AI 설정 후보 목록을 최신 생성순으로 조회합니다.
+ * 로그인한 사용자가 본인 작품의 한 업로드 묶음에 속한 AI 설정 후보를 페이지 조회합니다. 회차 번호, 생성 시각, 후보 ID 오름차순으로 정렬하며 집계와 회차 범위는 필터와 무관한 묶음 전체 기준입니다.
  */
 export const getSettingCandidatesOptions = (options: Options<GetSettingCandidatesData>) => queryOptions<GetSettingCandidatesResponse, GetSettingCandidatesError, GetSettingCandidatesResponse, ReturnType<typeof getSettingCandidatesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -896,26 +896,6 @@ export const getSettingCandidatesOptions = (options: Options<GetSettingCandidate
         return data;
     },
     queryKey: getSettingCandidatesQueryKey(options)
-});
-
-export const getCharactersQueryKey = (options: Options<GetCharactersData>) => createQueryKey('getCharacters', options);
-
-/**
- * 캐릭터 목록 조회
- *
- * 본인 작품의 ACTIVE 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
- */
-export const getCharactersOptions = (options: Options<GetCharactersData>) => queryOptions<GetCharactersResponse, GetCharactersError, GetCharactersResponse, ReturnType<typeof getCharactersQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getCharacters({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getCharactersQueryKey(options)
 });
 
 const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
@@ -946,6 +926,58 @@ const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'hea
     }
     return params as unknown as typeof page;
 };
+
+export const getSettingCandidatesInfiniteQueryKey = (options: Options<GetSettingCandidatesData>): QueryKey<Options<GetSettingCandidatesData>> => createQueryKey('getSettingCandidates', options, true);
+
+/**
+ * 작품별 설정 후보 목록 조회
+ *
+ * 로그인한 사용자가 본인 작품의 한 업로드 묶음에 속한 AI 설정 후보를 페이지 조회합니다. 회차 번호, 생성 시각, 후보 ID 오름차순으로 정렬하며 집계와 회차 범위는 필터와 무관한 묶음 전체 기준입니다.
+ */
+export const getSettingCandidatesInfiniteOptions = (options: Options<GetSettingCandidatesData>) => {
+    const opts = infiniteQueryOptions<GetSettingCandidatesResponse, GetSettingCandidatesError, InfiniteData<GetSettingCandidatesResponse>, QueryKey<Options<GetSettingCandidatesData>>, number | Pick<QueryKey<Options<GetSettingCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetSettingCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getSettingCandidates({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getSettingCandidatesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getCharactersQueryKey = (options: Options<GetCharactersData>) => createQueryKey('getCharacters', options);
+
+/**
+ * 캐릭터 목록 조회
+ *
+ * 본인 작품의 ACTIVE 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
+ */
+export const getCharactersOptions = (options: Options<GetCharactersData>) => queryOptions<GetCharactersResponse, GetCharactersError, GetCharactersResponse, ReturnType<typeof getCharactersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCharacters({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCharactersQueryKey(options)
+});
 
 export const getCharactersInfiniteQueryKey = (options: Options<GetCharactersData>): QueryKey<Options<GetCharactersData>> => createQueryKey('getCharacters', options, true);
 
@@ -1050,6 +1082,58 @@ export const getAnalysisJobOptions = (options: Options<GetAnalysisJobData>) => q
     },
     queryKey: getAnalysisJobQueryKey(options)
 });
+
+export const getAnalysisBatchesQueryKey = (options: Options<GetAnalysisBatchesData>) => createQueryKey('getAnalysisBatches', options);
+
+/**
+ * 분석 배치 목록 조회
+ *
+ * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다.
+ */
+export const getAnalysisBatchesOptions = (options: Options<GetAnalysisBatchesData>) => queryOptions<GetAnalysisBatchesResponse, GetAnalysisBatchesError, GetAnalysisBatchesResponse, ReturnType<typeof getAnalysisBatchesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAnalysisBatches({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAnalysisBatchesQueryKey(options)
+});
+
+export const getAnalysisBatchesInfiniteQueryKey = (options: Options<GetAnalysisBatchesData>): QueryKey<Options<GetAnalysisBatchesData>> => createQueryKey('getAnalysisBatches', options, true);
+
+/**
+ * 분석 배치 목록 조회
+ *
+ * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다.
+ */
+export const getAnalysisBatchesInfiniteOptions = (options: Options<GetAnalysisBatchesData>) => {
+    const opts = infiniteQueryOptions<GetAnalysisBatchesResponse, GetAnalysisBatchesError, InfiniteData<GetAnalysisBatchesResponse>, QueryKey<Options<GetAnalysisBatchesData>>, number | Pick<QueryKey<Options<GetAnalysisBatchesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetAnalysisBatchesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getAnalysisBatches({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getAnalysisBatchesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const getMeQueryKey = (options?: Options<GetMeData>) => createQueryKey('getMe', options);
 

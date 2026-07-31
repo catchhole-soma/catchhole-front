@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
+import {
+  useLocation,
+  useNavigate as useRouterNavigate,
+  useSearchParams,
+} from 'react-router';
 import { motion } from 'motion/react';
 import {
   AlertCircle,
@@ -82,6 +86,7 @@ const PROCESSING_SEQUENCE: EpisodeProcessingStatus[] = [
 ];
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const RETRY_JOB_TYPE_MISMATCH_MESSAGE = '재시도 응답의 분석 유형이 기존 실패 작업과 일치하지 않습니다.';
 
 function episodeMultipartSerializer(body: unknown): FormData {
   const multipartBody = body as EpisodeMultipartBody;
@@ -143,13 +148,16 @@ function requiresBulkFileReselection(error: unknown): boolean {
   }
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
+  onBack: () => void;
+  backLabel?: string;
+}) {
   return (
     <div style={{
       height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 20px', borderBottom: `1px solid ${C.border}`,
     }}>
-      <button type="button" aria-label="원고 목록으로 돌아가기" onClick={onBack} style={{
+      <button type="button" aria-label={backLabel} onClick={onBack} style={{
         width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
         background: 'transparent', color: C.t2, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -473,6 +481,7 @@ function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodePr
 export default function SEpisodeUpload() {
   const navigate = useAppNavigate();
   const routerNavigate = useRouterNavigate();
+  const location = useLocation();
   const {
     selectedWork,
     setSelectedWork,
@@ -538,11 +547,29 @@ export default function SEpisodeUpload() {
       : initialTrackedAnalysisJobIds,
   );
   const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
+  const [batchRetryPending, setBatchRetryPending] = useState(false);
   const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
   const detectionRequestSequence = useRef(0);
+  const batchRetryInFlight = useRef(false);
+  const returnToAnalysisList = (
+    location.state as { returnToAnalysisList?: unknown } | null
+  )?.returnToAnalysisList;
 
   const goBackToEntry = () => {
+    if (step === 'processing') {
+      if (typeof returnToAnalysisList === 'string' && returnToAnalysisList) {
+        routerNavigate(-1);
+        return;
+      }
+      navigate(
+        `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`,
+        'pop',
+        undefined,
+        { replace: true },
+      );
+      return;
+    }
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
     if (typeof historyIndex === 'number' && historyIndex > 0) routerNavigate(-1);
     else navigate(
@@ -655,7 +682,7 @@ export default function SEpisodeUpload() {
   const progressEpisodes = useMemo(() => {
     const byId = new Map<string, EpisodeSummaryResponse>();
     uploadedEpisodes.forEach(episode => { if (episode.id) byId.set(episode.id, episode); });
-    jobs.forEach(job => job.episodes?.forEach(episode => {
+    currentAnalysisJobs.forEach(job => job.episodes?.forEach(episode => {
       if (!episode.id) return;
       byId.set(episode.id, {
         ...byId.get(episode.id),
@@ -667,7 +694,7 @@ export default function SEpisodeUpload() {
       });
     }));
     return [...byId.values()].sort((a, b) => (a.episodeNo ?? 0) - (b.episodeNo ?? 0));
-  }, [jobs, uploadedEpisodes]);
+  }, [currentAnalysisJobs, uploadedEpisodes]);
 
   const currentAnalysisJobsLoaded = currentAnalysisJobIds.length > 0
     && currentAnalysisJobs.length === currentAnalysisJobIds.length;
@@ -686,9 +713,10 @@ export default function SEpisodeUpload() {
   const analysisUnavailable = currentAnalysisJobsLoaded
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisSucceeded = currentAnalysisJobsLoaded
-    && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED')
-    && progressEpisodes.length > 0
-    && progressEpisodes.every(episode => episode.status === 'ANALYZED');
+    && !analysisUnavailable
+    && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED');
+  const analysisEpisodeStateChanged = analysisSucceeded
+    && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
   const statusQueryFailed = jobQueries.some(query => query.isError);
 
   const labels = uploadType === 'MULTI_EPISODE_SINGLE_FILE'
@@ -714,7 +742,7 @@ export default function SEpisodeUpload() {
       params.set('currentAnalysisJobIds', nextCurrentAnalysisJobIds.join(','));
       params.set('jobType', analysisJobType);
       return params;
-    }, { replace: true });
+    }, { replace: true, state: location.state });
   };
 
   const detectEpisodesFromFiles = async (
@@ -929,28 +957,82 @@ export default function SEpisodeUpload() {
   };
 
   const retryFailedAnalysisJobs = async () => {
-    if (retryableFailedAnalysisJobIds.length === 0 || !episodeUploadBatchId) return;
+    if (
+      retryableFailedAnalysisJobIds.length === 0
+      || !episodeUploadBatchId
+      || batchRetryInFlight.current
+    ) return;
+    batchRetryInFlight.current = true;
+    setBatchRetryPending(true);
     setAnalysisStartError(null);
     try {
-      const responses = await Promise.all(
+      const responses = await Promise.allSettled(
         retryableFailedAnalysisJobIds.map(analysisJobId => retryAnalysisJobMutation.mutateAsync({
           path: { workId, analysisJobId },
         })),
       );
-      const retryAnalysisJobIds = responses
-        .flatMap(response => response.data ?? [])
-        .flatMap(job => job.id ? [job.id] : []);
-      if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
-      const nextTrackedAnalysisJobIds = [...trackedAnalysisJobIds, ...retryAnalysisJobIds];
-      setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
-      setCurrentAnalysisJobIds(retryAnalysisJobIds);
-      persistAnalysisRoute(
-        episodeUploadBatchId,
-        nextTrackedAnalysisJobIds,
-        retryAnalysisJobIds,
-      );
-    } catch (error) {
-      setAnalysisStartError(errorMessage(error, '실패 회차 분석을 다시 요청하지 못했습니다.'));
+      const successfullyRetriedJobIds = new Set<string>();
+      const retryAnalysisJobIds: string[] = [];
+      let retryError: unknown = null;
+
+      responses.forEach((response, index) => {
+        const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
+        if (response.status === 'rejected') {
+          retryError ??= response.reason;
+          return;
+        }
+
+        const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
+        const responseJobs = response.value.data ?? [];
+        if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
+          retryError ??= new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
+          return;
+        }
+        const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
+        if (responseJobIds.length === 0) {
+          retryError ??= new Error('재시도 작업 ID가 응답에 없습니다.');
+          return;
+        }
+        successfullyRetriedJobIds.add(failedAnalysisJobId);
+        retryAnalysisJobIds.push(...responseJobIds);
+      });
+
+      if (retryAnalysisJobIds.length > 0) {
+        const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
+          analysisJobId => !successfullyRetriedJobIds.has(analysisJobId),
+        );
+        const nextTrackedAnalysisJobIds = [...new Set([
+          ...trackedAnalysisJobIds,
+          ...retryAnalysisJobIds,
+        ])];
+        const nextCurrentAnalysisJobIds = [...new Set([
+          ...retainedCurrentAnalysisJobIds,
+          ...retryAnalysisJobIds,
+        ])];
+        setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
+        setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
+        persistAnalysisRoute(
+          episodeUploadBatchId,
+          nextTrackedAnalysisJobIds,
+          nextCurrentAnalysisJobIds,
+        );
+      }
+
+      if (retryError) {
+        setAnalysisStartError(
+          retryError instanceof Error && retryError.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
+            ? RETRY_JOB_TYPE_MISMATCH_MESSAGE
+            : errorMessage(
+                retryError,
+                retryAnalysisJobIds.length > 0
+                  ? '일부 실패 회차만 다시 요청했습니다. 남은 실패 회차를 다시 시도해주세요.'
+                  : '실패 회차 분석을 다시 요청하지 못했습니다.',
+              ),
+        );
+      }
+    } finally {
+      batchRetryInFlight.current = false;
+      setBatchRetryPending(false);
     }
   };
 
@@ -1010,7 +1092,10 @@ export default function SEpisodeUpload() {
       background: C.bg, color: C.t1,
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
     }}>
-      <Header onBack={goBackToEntry} />
+      <Header
+        onBack={goBackToEntry}
+        backLabel={step === 'processing' ? '분석 목록으로 돌아가기' : undefined}
+      />
       <Stepper labels={labels} current={currentStep} />
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
@@ -1386,6 +1471,9 @@ export default function SEpisodeUpload() {
               {analysisUnavailable && (
                 <ErrorBanner message="삭제된 회차는 분석 결과를 열거나 다시 시도할 수 없습니다. 원고 목록에서 현재 회차를 확인해주세요." />
               )}
+              {analysisEpisodeStateChanged && (
+                <ErrorBanner message="분석 작업은 완료되었지만 현재 회차 상태가 분석 당시와 다릅니다. 원고 변경 여부를 확인하고 필요하면 다시 분석해주세요." />
+              )}
               {statusQueryFailed && (
                 <ErrorBanner
                   message="상태를 갱신하지 못했습니다. 마지막으로 확인한 상태를 유지합니다."
@@ -1393,7 +1481,10 @@ export default function SEpisodeUpload() {
                 />
               )}
 
-              {progressEpisodes.length === 0 && currentAnalysisJobIds.length > 0 && !statusQueryFailed && (
+              {progressEpisodes.length === 0
+                && currentAnalysisJobIds.length > 0
+                && !statusQueryFailed
+                && !analysisSucceeded && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1445,40 +1536,30 @@ export default function SEpisodeUpload() {
               </div>
 
               <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-                <SecondaryButton onClick={() => navigate(
-                  `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`,
-                  'pop',
-                )}>원고 목록으로</SecondaryButton>
+                <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
-                    <PrimaryButton onClick={() => {
-                      const episodeIds = progressEpisodes.flatMap(episode => episode.id ? [episode.id] : []);
-                      if (resolvedAnalysisJobType === 'EPISODE_VALIDATION') {
-                        navigate(
-                          `/episode-validation-report?workId=${encodeURIComponent(workId)}`,
-                          'dissolve',
-                          {
-                            workId,
-                            batchId: episodeUploadBatchId,
-                            analysisJobIds: currentAnalysisJobIds,
-                            episodeIds,
-                          },
-                        );
-                      } else {
-                        navigate(
-                          `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB`,
-                          'dissolve',
-                        );
-                      }
+                    <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
+                      if (!episodeUploadBatchId) return;
+                      navigate(
+                        `/setting-review?workId=${encodeURIComponent(workId)}`
+                        + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
+                        + `&jobType=${resolvedAnalysisJobType}`,
+                        'dissolve',
+                        {
+                          returnToAnalysisList,
+                          returnToAnalysisListByUrl: true,
+                        },
+                      );
                     }}>
-                      {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '오류 리포트 확인' : '설정 DB 보기'}
+                      설정 후보 검토
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton
-                      disabled={retryAnalysisJobMutation.isPending}
+                      disabled={batchRetryPending}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
-                      {retryAnalysisJobMutation.isPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                      {batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>

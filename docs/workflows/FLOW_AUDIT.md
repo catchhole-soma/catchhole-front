@@ -27,7 +27,7 @@
 | --- | --- | --- | --- | --- |
 | F-01 | 높음 | 챗봇에서 사이드바의 분석 리포트·그래프·원고 목록을 누르면 선택한 섹션이 보존되지 않습니다. | [`AppSidebar.tsx#L57`](../../src/app/components/catchhole/AppSidebar.tsx#L57)는 대시보드 밖에서 `/dashboard`로 이동한 뒤 `onNavChange`를 호출하지만, [`S3Chat.tsx#L277`](../../src/app/components/catchhole/S3Chat.tsx#L277)은 해당 콜백을 전달하지 않습니다. | 어떤 항목을 눌러도 대시보드 기본값인 설정 DB로 도착할 수 있습니다. |
 | F-02 | 높음 | 회차 업로드 Stepper의 현재 단계 계산이 실제 화면보다 한 단계 뒤처집니다. | [`SEpisodeUpload.tsx#L447`](../../src/app/components/catchhole/SEpisodeUpload.tsx#L447)에서 `processing`이 `2 + (includeSettings ? 1 : 0)`을 반환합니다. | 분석 중인데 회차 정보 또는 설정집 결과 단계가 활성화되어 현재 위치를 잘못 안내합니다. |
-| F-03 | 높음 | 설정 후보 검토 완료 CTA의 문구와 목적지가 다릅니다. | [`SSettingReview.tsx#L350`](../../src/app/components/catchhole/SSettingReview.tsx#L350)의 `회차 검사 시작 →` 버튼은 `/dashboard`로 이동합니다. | 사용자는 새 검사가 시작된다고 기대하지만 실제로는 대시보드로 돌아갑니다. |
+| F-03 | 해결 | 설정 후보 검토의 기존 `회차 검사 시작 →` CTA를 제거했습니다. | [`SSettingReview.tsx`](../../src/app/components/catchhole/SSettingReview.tsx)는 업로드 묶음의 후보 조회·필터·페이지 이동만 제공하고, 완료 후 분기는 후속 작업 전까지 비활성 상태로 명시합니다. | 버튼 문구와 실제 이동이 어긋나던 경로가 더 이상 노출되지 않습니다. |
 | F-04 | 중간 | 발행 전 전체 검수의 0건 성공 UI는 코드에 없습니다. | [`S5Report.tsx#L620`](../../src/app/components/catchhole/S5Report.tsx#L620) 이후는 고정 `ERROR_DATA`를 집계·렌더링하며 0건 전용 분기가 없습니다. | Pencil의 성공 상태를 구현 완료 화면으로 오해할 수 있습니다. WF-05에서는 코드 미구현으로 정정했습니다. |
 | F-05 | 중간 | 발행 전 검수의 주요 버튼 세 개가 동작하지 않습니다. | [`S5Report.tsx#L698`](../../src/app/components/catchhole/S5Report.tsx#L698)의 `범위 변경`, [`S5Report.tsx#L763`](../../src/app/components/catchhole/S5Report.tsx#L763)의 `전체 펼치기`, `리포트 복사`에 핸들러가 없습니다. | 흐름상 다음 행동처럼 보이지만 실제로는 막힌 경로입니다. |
 | F-06 | 중간 | “대시보드 내부 상태는 모두 쿼리 파라미터로 딥링크된다”는 문서 설명이 실제보다 넓습니다. | [`screen-flow.md#L188`](../screen-flow.md#L188)과 달리 [`S1Dashboard.tsx#L2826`](../../src/app/components/catchhole/S1Dashboard.tsx#L2826)의 업로드·설정 빌더·세계관 빌더·공유 모달은 로컬 상태입니다. | 새로고침·공유 링크로 같은 모달 상태를 복원할 수 없습니다. |
@@ -48,5 +48,5 @@
 
 - 라우트 목록과 핵심 성공 경로는 대체로 코드와 일치합니다.
 - WF-04의 완료 후 이동과 WF-05의 미구현 성공 상태는 보드에서 바로잡았습니다.
-- F-01~F-07은 애플리케이션 코드 또는 제품 정책 결정이 필요한 항목이므로 이번 작업에서는 수정하지 않았습니다.
+- F-03은 설정 후보 조회 첫 작업에서 해소했습니다. F-01, F-02, F-04~F-07은 애플리케이션 코드 또는 제품 정책 결정이 필요합니다.
 - B-01~B-06은 보드 범위를 넓힐지 팀 검토 후 반영하는 것이 안전합니다.

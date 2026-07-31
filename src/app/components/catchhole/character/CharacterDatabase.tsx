@@ -37,6 +37,7 @@ import type {
 } from '../../../api/generated/types.gen';
 import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPagination';
 import { toApiError } from '../../../lib/api-errors';
+import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { saveDemoCharacterState } from './demoCharacters';
@@ -49,6 +50,7 @@ interface DraftProperty extends CharacterSettingPropertyRequest {
 }
 
 interface DraftSetting {
+  draftId: string;
   characterFactId?: string;
   key: string;
   displayName: string;
@@ -56,6 +58,12 @@ interface DraftSetting {
   valueType: SettingValueType;
   properties: DraftProperty[];
   hasEvidence: boolean;
+  attributeNameEditable: boolean;
+  attributeNamePrefix: string | null;
+  displayNameEditable: boolean;
+  initialKey: string | null;
+  initialDisplayName: string | null;
+  initialValue: string | null;
 }
 
 interface CharacterDraft {
@@ -100,6 +108,19 @@ const SETTING_GROUP_LABELS: Record<SettingGroupKey, string> = {
   items: '아이템',
   statuses: '상태',
 };
+const SETTING_GROUP_PREFIXES: Record<SettingGroupKey, string> = {
+  profile: 'profile.',
+  stats: 'stats.',
+  skills: 'skill.',
+  items: 'item.',
+  statuses: 'status.',
+};
+let nextDraftSettingId = 0;
+
+function createDraftSettingId(): string {
+  nextDraftSettingId += 1;
+  return `character-setting-${nextDraftSettingId}`;
+}
 
 function colorFor(id: string): string {
   const hash = Array.from(id).reduce((value, char) => value + char.charCodeAt(0), 0);
@@ -124,11 +145,15 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
+  const key = value.key ?? '';
+  const displayName = value.displayName ?? value.key ?? '설정';
+  const settingValue = value.value ?? '';
   return {
+    draftId: value.characterFactId ?? createDraftSettingId(),
     characterFactId: value.characterFactId,
-    key: value.key ?? '',
-    displayName: value.displayName ?? value.key ?? '설정',
-    value: value.value ?? '',
+    key,
+    displayName,
+    value: settingValue,
     valueType: value.valueType ?? 'STRING',
     properties: (value.properties ?? []).map(property => ({
       key: property.key ?? '',
@@ -137,6 +162,12 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
       valueType: property.valueType ?? 'STRING',
     })),
     hasEvidence: value.hasEvidence ?? false,
+    attributeNameEditable: value.attributeNameEditable ?? false,
+    attributeNamePrefix: value.attributeNamePrefix ?? null,
+    displayNameEditable: value.displayNameEditable ?? false,
+    initialKey: key,
+    initialDisplayName: displayName,
+    initialValue: settingValue,
   };
 }
 
@@ -207,23 +238,72 @@ function validateTypedValue(value: string | null | undefined, valueType: Setting
   }
 }
 
-function toRequestSettings(settings: DraftSetting[], complex: boolean): CharacterSettingUpdateRequest[] {
+function normalizeDynamicSuffix(value: string): string {
+  return value.trim().replace(/\s+/g, '_');
+}
+
+function toNameOnlyProperties(item: DraftSetting): DraftProperty[] {
+  const nameProperty = item.properties.find(property => property.key === 'name');
+  return [{
+    key: 'name',
+    displayName: nameProperty?.displayName ?? '이름',
+    value: item.displayName.trim(),
+    valueType: 'STRING',
+  }];
+}
+
+function hasSettingContentChanged(item: DraftSetting): boolean {
+  if (!item.characterFactId) return true;
+  return item.key !== item.initialKey
+    || item.displayName.trim() !== item.initialDisplayName?.trim()
+    || nullable(item.value) !== nullable(item.initialValue ?? '');
+}
+
+function toRequestSettings(
+  settings: DraftSetting[],
+  complex: boolean,
+  groupLabel: string,
+): CharacterSettingUpdateRequest[] {
+  const keys = new Set<string>();
   return settings.map(item => {
+    const key = item.key.trim();
+    if (!key) throw new Error(`${groupLabel} 설정명을 입력해 주세요.`);
+    if (item.attributeNameEditable) {
+      const prefix = item.attributeNamePrefix;
+      const suffix = prefix && key.startsWith(prefix) ? key.slice(prefix.length) : '';
+      if (!prefix || !suffix.replace(/_/g, ' ').trim()) {
+        throw new Error(`${groupLabel} 설정명 뒷부분을 입력해 주세요.`);
+      }
+    }
+    if (item.displayNameEditable && !item.displayName.trim()) {
+      throw new Error(`${groupLabel} 설정명을 입력해 주세요.`);
+    }
+    if (keys.has(key)) {
+      throw new Error(`${groupLabel}에 같은 설정명이 두 개 있습니다.`);
+    }
+    keys.add(key);
+
     // 복합 설정의 valueType은 valueJson 전체 타입이다. 화면용 factValue(Lv.3, 보유 등)는
     // 일반 문자열일 수 있으므로 대표값은 검증하지 않고, 세부 properties만 각 타입대로 검증한다.
     if (!complex) {
       validateTypedValue(item.value, item.valueType, item.displayName);
     }
-    item.properties.forEach(property => validateTypedValue(
+    const contentChanged = hasSettingContentChanged(item);
+    const patternEdited = item.attributeNameEditable;
+    const manualOrCustomEdited = !item.attributeNameEditable && item.displayNameEditable;
+    const properties = (patternEdited || manualOrCustomEdited) && contentChanged
+      ? toNameOnlyProperties(item)
+      : item.properties;
+    properties.forEach(property => validateTypedValue(
       property.value,
       property.valueType,
       `${item.displayName} ${property.displayName}`,
     ));
     return {
-      key: item.key,
+      key,
       value: nullable(item.value),
       valueType: item.valueType,
-      properties: item.properties.map(property => ({
+      properties: properties.map(property => ({
         key: property.key,
         value: nullable(property.value ?? ''),
         valueType: property.valueType,
@@ -240,11 +320,11 @@ function toRequest(draft: CharacterDraft): CharacterUpdateRequest {
     currentAge: optionalInteger(draft.currentAge, 0, '현재 나이'),
     currentLevel: optionalInteger(draft.currentLevel, 0, '현재 레벨'),
     firstAppearanceEpisodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차'),
-    profile: toRequestSettings(draft.profile, false),
-    stats: toRequestSettings(draft.stats, false),
-    skills: toRequestSettings(draft.skills, true),
-    items: toRequestSettings(draft.items, true),
-    statuses: toRequestSettings(draft.statuses, true),
+    profile: toRequestSettings(draft.profile, false, '프로필'),
+    stats: toRequestSettings(draft.stats, false, '스탯'),
+    skills: toRequestSettings(draft.skills, true, '스킬'),
+    items: toRequestSettings(draft.items, true, '아이템'),
+    statuses: toRequestSettings(draft.statuses, true, '상태'),
   };
 }
 
@@ -252,6 +332,7 @@ function isUnchangedSetting(previous: CharacterSettingResponse | undefined, draf
   if (!previous || previous.key !== draft.key || (previous.valueType ?? 'STRING') !== draft.valueType) {
     return false;
   }
+  if ((previous.displayName ?? previous.key ?? '설정').trim() !== draft.displayName.trim()) return false;
   if ((previous.value ?? null) !== nullable(draft.value)) return false;
 
   const previousProperties = previous.properties ?? [];
@@ -272,17 +353,25 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     const previousItem = previousItems?.find(candidate => (
       candidate.characterFactId === item.characterFactId
     ));
+    const contentChanged = hasSettingContentChanged(item);
+    const patternEdited = item.attributeNameEditable;
+    const manualOrCustomEdited = !item.attributeNameEditable && item.displayNameEditable;
+    const properties = (patternEdited || manualOrCustomEdited) && contentChanged
+      ? toNameOnlyProperties(item)
+      : item.properties;
     return {
       characterFactId: item.characterFactId ?? `demo-fact-${item.key}`,
       key: item.key,
-      displayName: item.properties.find(property => property.key === 'name')?.value
-        ?? item.displayName,
+      displayName: item.displayName,
       value: nullable(item.value),
       valueType: item.valueType,
-      properties: item.properties,
+      properties,
       hasEvidence: isUnchangedSetting(previousItem, item)
         ? previousItem?.hasEvidence ?? false
         : false,
+      attributeNameEditable: item.attributeNameEditable,
+      attributeNamePrefix: item.attributeNamePrefix,
+      displayNameEditable: item.displayNameEditable,
     };
   });
   const currentAge = optionalInteger(draft.currentAge, 0, '현재 나이');
@@ -481,10 +570,10 @@ function EditSettingList({
     }}>
       {settings.length === 0 && <div style={{ gridColumn: '1 / -1' }}><EmptyArea label={emptyLabel} /></div>}
       {settings.map((item, index) => {
-        const namePropertyIndex = item.properties.findIndex(property => property.key === 'name');
-        const editableName = namePropertyIndex >= 0;
+        const dynamicNameEditable = item.attributeNameEditable && Boolean(item.attributeNamePrefix);
+        const editableName = dynamicNameEditable || item.displayNameEditable;
         return (
-          <div key={item.characterFactId ?? item.key} style={{
+          <div key={item.draftId} style={{
             display: 'grid',
             gridTemplateColumns: complex
               ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
@@ -500,23 +589,59 @@ function EditSettingList({
               : undefined,
             borderRadius: complex ? 7 : 0,
           }}>
-            {complex || editableName ? (
+            {dynamicNameEditable ? (
+              <div style={{ display: 'flex', minWidth: 0 }}>
+                <span
+                  title={item.attributeNamePrefix ?? undefined}
+                  style={{
+                    minHeight: 36,
+                    padding: '0 9px',
+                    borderRadius: '6px 0 0 6px',
+                    border: `1px solid ${C.border}`,
+                    borderRight: 'none',
+                    background: C.bg,
+                    color: C.t3,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    fontSize: 11,
+                  }}
+                >
+                  {SETTING_GROUP_LABELS[group]}
+                </span>
+                <input
+                  aria-label={`${emptyLabel} 이름`}
+                  value={item.displayName}
+                  onChange={event => {
+                    const displayName = event.target.value;
+                    const prefix = item.attributeNamePrefix ?? '';
+                    const revertedToInitialName = displayName.trim() === item.initialDisplayName?.trim();
+                    onChange(index, {
+                      ...item,
+                      key: revertedToInitialName && item.initialKey
+                        ? item.initialKey
+                        : `${prefix}${normalizeDynamicSuffix(displayName)}`,
+                      displayName,
+                    });
+                  }}
+                  style={{
+                    ...inputStyle,
+                    minWidth: 0,
+                    borderRadius: '0 6px 6px 0',
+                  }}
+                />
+              </div>
+            ) : editableName ? (
               <input
                 aria-label={`${emptyLabel} 이름`}
-                value={namePropertyIndex >= 0 ? item.properties[namePropertyIndex].value ?? '' : item.displayName}
+                value={item.displayName}
                 onChange={event => {
-                  const properties = [...item.properties];
-                  if (namePropertyIndex >= 0) {
-                    properties[namePropertyIndex] = { ...properties[namePropertyIndex], value: event.target.value };
-                  } else if (complex) {
-                    properties.push({
-                      key: 'name',
-                      displayName: '이름',
-                      value: event.target.value,
-                      valueType: 'STRING',
-                    });
-                  }
-                  onChange(index, { ...item, displayName: event.target.value, properties });
+                  const displayName = event.target.value;
+                  onChange(index, {
+                    ...item,
+                    displayName,
+                  });
                 }}
                 style={inputStyle}
               />
@@ -853,7 +978,10 @@ export function CharacterDatabase({
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
     enabled: !demoMode && Boolean(workId) && Boolean(selectedCharacterId),
-    retry: (failureCount, error) => toApiError(error)?.status !== 404 && failureCount < 3,
+    retry: (failureCount, error) => (
+      toApiError(error)?.status !== 404
+      && shouldRetryQuery(failureCount, error, 3)
+    ),
   });
   const archivedCharactersQuery = useQuery({
     ...getArchivedCharactersOptions({
@@ -1091,34 +1219,47 @@ export function CharacterDatabase({
   };
 
   const addSimpleSetting = (group: 'profile' | 'stats') => {
-    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const label = group === 'profile' ? '새 프로필' : '새 스탯';
+    const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
       [group]: [...current[group], {
-        key: `${group}.manual_${suffix}`,
+        draftId: createDraftSettingId(),
+        key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: '',
         valueType: group === 'stats' ? 'NUMBER' : 'STRING',
         properties: [{ key: 'name', displayName: '이름', value: label, valueType: 'STRING' }],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: prefix,
+        displayNameEditable: true,
+        initialKey: null,
+        initialDisplayName: null,
+        initialValue: null,
       }],
     } : current);
   };
 
   const addComplexSetting = (group: 'skills' | 'items' | 'statuses') => {
-    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const singular = group === 'skills' ? 'skill' : group === 'items' ? 'item' : 'status';
     const label = group === 'skills' ? '새 스킬' : group === 'items' ? '새 아이템' : '새 상태';
+    const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
       [group]: [...current[group], {
-        key: `${singular}.manual_${suffix}`,
+        draftId: createDraftSettingId(),
+        key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: label,
         valueType: 'JSON',
         properties: [{ key: 'name', displayName: '이름', value: label, valueType: 'STRING' }],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: prefix,
+        displayNameEditable: true,
+        initialKey: null,
+        initialDisplayName: null,
+        initialValue: null,
       }],
     } : current);
   };
@@ -1187,8 +1328,8 @@ export function CharacterDatabase({
   };
 
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
-  const listError = !demoMode && charactersQuery.isError && !hasCharacterPage;
-  const listRefetchError = !demoMode && charactersQuery.isError && hasCharacterPage;
+  const listError = !demoMode && charactersQuery.isLoadingError;
+  const listRefetchError = !demoMode && charactersQuery.isRefetchError && hasCharacterPage;
   const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending;
   const closeDetail = () => {
     if (mutationPending) return;

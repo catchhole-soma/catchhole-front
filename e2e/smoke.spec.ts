@@ -72,7 +72,7 @@ test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 
   expect(characterRequestCount).toBe(0);
 });
 
-test('데모 모드는 access token 없이 열리고 이름만 수정해도 설정 근거를 유지한다', async ({ page }) => {
+test('데모 모드는 설정 편집 메타데이터와 수동 설정을 저장 후에도 유지한다', async ({ page }) => {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
 
@@ -91,13 +91,20 @@ test('데모 모드는 access token 없이 열리고 이름만 수정해도 설�
   await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
 
   await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByLabel('스킬 이름', { exact: true }).first()).toHaveValue('기본 검술');
   await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
+  await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
+  await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
+  await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const confirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
   await confirm.getByRole('button', { name: '저장', exact: true }).click();
 
   await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveValue('좌우명');
+  await page.getByRole('button', { name: '취소', exact: true }).click();
   await page.getByRole('button', { name: '닫기', exact: true }).click();
   await page.getByRole('button', { name: '관계도', exact: true }).click();
   await page.getByRole('button', { name: '캐릭터 DB', exact: true }).click();
@@ -718,13 +725,13 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
 
-  await page.getByRole('button', { name: '원고 목록으로', exact: true }).click();
+  await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
+    new RegExp(`/dashboard\\?workId=${workId}&nav=analyses$`),
   );
 });
 
-test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', async ({ page }) => {
+test('신규 회차 검수 완료 후 현재 업로드 묶음의 설정 후보 검토로 이동한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
@@ -734,8 +741,8 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
     const data = pathname.endsWith('/auth/me')
       ? {
           id: 1,
-          email: 'setting-complete@example.com',
-          displayName: '설정 구축 테스트',
+          email: 'validation-complete@example.com',
+          displayName: '신규 회차 검수 테스트',
           phoneNumber: '01012345678',
           phoneVerified: false,
           role: 'AUTHOR',
@@ -747,7 +754,7 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
             workId,
             workTitle: '현재 작품',
             batchId,
-            jobType: 'SETTING_EXTRACTION',
+            jobType: 'EPISODE_VALIDATION',
             status: 'SUCCEEDED',
             episodes: [{
               id: '44444444-4444-4444-8444-444444444444',
@@ -756,11 +763,30 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
               status: 'ANALYZED',
             }],
           }
-        : pathname.endsWith(`/works/${workId}`)
-          ? { id: workId, title: '현재 작품', genre: '판타지' }
-          : pathname.endsWith('/works')
-            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
-            : [];
+        : pathname.endsWith(`/works/${workId}/setting-candidates`)
+          ? {
+              batchId,
+              episodeStartNo: 1,
+              episodeEndNo: 1,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              matchRequiredCandidateCount: 0,
+              candidates: {
+                content: [],
+                page: 0,
+                size: 20,
+                totalElements: 0,
+                totalPages: 0,
+                hasNext: false,
+              },
+            }
+          : pathname.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '현재 작품', genre: '판타지' }
+            : pathname.endsWith('/works')
+              ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+              : [];
 
     return route.fulfill({
       status: 200,
@@ -774,22 +800,25 @@ test('설정 구축 완료 후 현재 작품의 설정 DB로 이동한다', asyn
   await page.goto(
     `/episode-upload?workId=${workId}&batchId=${batchId}`
     + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
-    + '&jobType=SETTING_EXTRACTION',
+    + '&jobType=EPISODE_VALIDATION',
   );
 
-  await page.getByRole('button', { name: '설정 DB 보기' }).click();
+  await page.getByRole('button', { name: '설정 후보 검토' }).click();
 
-  await expect(page).toHaveURL(
-    new RegExp(`/dashboard\\?workId=${workId}&nav=settingDB$`),
-  );
-  await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/setting-review\?/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('workId')).toBe(workId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('EPISODE_VALIDATION');
+  await expect(page.getByText('검토할 설정 후보가 없습니다.')).toBeVisible();
 });
 
 test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변경·삭제·중복 요청을 막는다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
+  const secondEpisodeId = '55555555-5555-4555-8555-555555555555';
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  const secondAnalysisJobId = '66666666-6666-4666-8666-666666666666';
   let analysisCreateRequestCount = 0;
 
   await page.route('**/api/v1/**', route => {
@@ -808,6 +837,35 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'IN_PROGRESS',
+              episodeStartNo: 1,
+              episodeEndNo: 2,
+              episodeCount: 2,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              jobGroups: [{
+                jobType: 'EPISODE_VALIDATION',
+                status: 'IN_PROGRESS',
+                totalJobCount: 2,
+                pendingJobCount: 0,
+                runningJobCount: 2,
+                succeededJobCount: 0,
+                failedJobCount: 0,
+                currentAnalysisJobIds: [analysisJobId, secondAnalysisJobId],
+              }],
+              lastActivityAt: '2026-07-23T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
       : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
         ? {
             id: analysisJobId,
@@ -823,23 +881,52 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
               status: 'ANALYZING',
             }],
           }
-      : pathname.endsWith(`/${workId}/episodes`)
-        ? [{
-            id: episodeId,
+      : pathname.endsWith(`/${workId}/analysis-jobs/${secondAnalysisJobId}`)
+        ? {
+            id: secondAnalysisJobId,
+            workId,
+            workTitle: '현재 작품',
             batchId,
-            episodeNo: 1,
-            title: '분석 중 회차',
-            originalFilename: 'episode-1.txt',
-            contentUpdatedAt: '2026-07-23T12:00:00',
-            charCount: 100,
-            analysisStatus: 'IN_PROGRESS',
-            latestAnalysisJobId: analysisJobId,
-            unresolvedFindingCount: null,
-          }]
+            jobType: 'EPISODE_VALIDATION',
+            status: 'RUNNING',
+            episodes: [{
+              id: secondEpisodeId,
+              episodeNo: 2,
+              title: '함께 분석 중인 회차',
+              status: 'ANALYZING',
+            }],
+          }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [
+            {
+              id: episodeId,
+              batchId,
+              episodeNo: 1,
+              title: '분석 중 회차',
+              originalFilename: 'episode-1.txt',
+              contentUpdatedAt: '2026-07-23T12:00:00',
+              charCount: 100,
+              analysisStatus: 'IN_PROGRESS',
+              latestAnalysisJobId: analysisJobId,
+              unresolvedFindingCount: null,
+            },
+            {
+              id: secondEpisodeId,
+              batchId,
+              episodeNo: 2,
+              title: '함께 분석 중인 회차',
+              originalFilename: 'episode-2.txt',
+              contentUpdatedAt: '2026-07-23T12:00:00',
+              charCount: 120,
+              analysisStatus: 'IN_PROGRESS',
+              latestAnalysisJobId: secondAnalysisJobId,
+              unresolvedFindingCount: null,
+            },
+          ]
         : pathname.endsWith(`/works/${workId}`)
           ? { id: workId, title: '현재 작품', genre: '판타지' }
           : pathname.endsWith('/works')
-            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 2 }]
             : [];
 
     return route.fulfill({
@@ -854,21 +941,23 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
 
   const titleButton = page.getByRole('button', { name: '분석 중 회차' });
-  const progressButton = page.getByRole('button', { name: '진행 보기' });
   await expect(titleButton).toBeEnabled();
-  await expect(progressButton).toBeEnabled();
-  await expect(page.getByRole('button', { name: '파일 변경' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '삭제' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '파일 변경' }).first()).toBeDisabled();
+  await expect(page.getByRole('button', { name: '삭제' }).first()).toBeDisabled();
 
   await titleButton.click();
   await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
   await page.keyboard.press('Escape');
 
+  await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
+  const progressButton = page.getByRole('button', { name: '진행 보기' }).first();
+  await expect(progressButton).toBeEnabled();
   await progressButton.click();
 
   await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
   await expect(page).toHaveURL(new RegExp(`batchId=${batchId}`));
-  await expect(page).toHaveURL(new RegExp(`analysisJobIds=${analysisJobId}`));
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds'))
+    .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page.getByText('회차를 분석하고 있습니다')).toBeVisible();
   expect(analysisCreateRequestCount).toBe(0);
 });
@@ -982,7 +1071,7 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(page.getByRole('button', { name: '파일 교체 후 제목' })).not.toBeVisible();
 });
 
-test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ page }) => {
+test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 늦은 응답으로 이동하지 않는다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
   const batchId = '22222222-2222-4222-8222-222222222222';
@@ -1057,8 +1146,12 @@ test('재분석 요청 중에는 분석 버튼을 비활성화한다', async ({ 
   await expect(reanalysisButton).toBeDisabled();
   await reanalysisButton.click({ force: true });
 
+  await page.getByText('분석 목록', { exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   releaseAnalysisRequest();
-  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
+  await page.waitForTimeout(500);
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   expect(analysisRequestCount).toBe(1);
 });
 
@@ -1104,12 +1197,7 @@ test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다'
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'episode-report-token'));
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
-
-  await page.getByRole('button', { name: '결과 보기' }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/episode-validation-report\\?workId=${workId}$`),
-  );
+  await page.goto(`/episode-validation-report?workId=${workId}`);
   await page.reload();
 
   await page.getByRole('button', { name: '← 이전' }).click();
@@ -1117,6 +1205,125 @@ test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다'
     new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
   );
   await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
+});
+
+test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이동한다', async ({ page }) => {
+  const workId = '11111111-1111-4111-8111-111111111111';
+  const episodeId = '44444444-4444-4444-8444-444444444444';
+  const batchId = '22222222-2222-4222-8222-222222222222';
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'setting-result@example.com',
+          displayName: '설정 결과 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'REVIEW_REQUIRED',
+              episodeStartNo: 3,
+              episodeEndNo: 3,
+              episodeCount: 1,
+              totalCandidateCount: 1,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 1,
+              jobGroups: [{
+                jobType: 'SETTING_EXTRACTION',
+                status: 'COMPLETED',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 0,
+                succeededJobCount: 1,
+                failedJobCount: 0,
+                currentAnalysisJobIds: [analysisJobId],
+              }],
+              lastActivityAt: '2026-07-29T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
+      : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'SETTING_EXTRACTION',
+            status: 'SUCCEEDED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 3,
+              title: '설정 구축 회차',
+              status: 'ANALYZED',
+            }],
+          }
+        : pathname.endsWith(`/${workId}/setting-candidates`)
+          ? {
+              batchId,
+              episodeStartNo: 3,
+              episodeEndNo: 3,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              matchRequiredCandidateCount: 0,
+              candidates: {
+                content: [],
+                page: 0,
+                size: 20,
+                totalElements: 0,
+                totalPages: 0,
+                hasNext: false,
+              },
+            }
+          : pathname.endsWith(`/${workId}/episodes`)
+            ? [{
+                id: episodeId,
+                batchId,
+                episodeNo: 3,
+                title: '설정 구축 회차',
+                originalFilename: 'episode-3.txt',
+                contentUpdatedAt: '2026-07-29T12:00:00',
+                charCount: 100,
+                status: 'ANALYZED',
+                analysisStatus: 'COMPLETED',
+                latestAnalysisJobId: analysisJobId,
+                unresolvedFindingCount: 0,
+              }]
+            : pathname.endsWith(`/works/${workId}`)
+              ? { id: workId, title: '현재 작품', genre: '판타지' }
+              : pathname.endsWith('/works')
+                ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 3 }]
+                : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'setting-result-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+
+  await page.getByRole('button', { name: '결과 보기' }).click();
+  await expect(page).toHaveURL(/\/setting-review\?/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('SETTING_EXTRACTION');
+  await expect(page.getByText('검토할 설정 후보가 없습니다.')).toBeVisible();
 });
 
 test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한다', async ({ page }) => {
@@ -1467,6 +1674,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
       valueType: 'STRING',
       properties: [],
       hasEvidence: true,
+      attributeNameEditable: false,
+      attributeNamePrefix: null,
+      displayNameEditable: false,
     }],
     stats: [
       {
@@ -1488,6 +1698,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'name', displayName: '이름', value: '먼저 추가한 스탯', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-stat-manual-new',
@@ -1499,6 +1712,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'name', displayName: '이름', value: '나중에 추가한 스탯', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-stat-1',
@@ -1521,6 +1737,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         { key: 'level', displayName: '레벨', value: '6', valueType: 'NUMBER' },
       ],
       hasEvidence: false,
+      attributeNameEditable: true,
+      attributeNamePrefix: 'skill.',
+      displayNameEditable: true,
     }],
     items: [{
       characterFactId: 'fact-item-1',
@@ -1533,6 +1752,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
       ],
       hasEvidence: false,
+      attributeNameEditable: true,
+      attributeNamePrefix: 'item.',
+      displayNameEditable: true,
     }],
     statuses: [
       {
@@ -1546,17 +1768,23 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
           { key: 'severity', displayName: '심각도', value: '낮음', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-status-2',
-        key: 'status.회복_중',
+        key: 'status.recovering',
         displayName: '회복 중',
         value: '활성',
         valueType: 'JSON',
         properties: [
-          { key: 'severity', displayName: '심각도', value: '보통', valueType: 'STRING' },
+          { key: 'description', displayName: '설명', value: '간헐적 의식 소실', valueType: 'STRING' },
         ],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
       {
         characterFactId: 'fact-status-3',
@@ -1566,6 +1794,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         valueType: 'JSON',
         properties: [],
         hasEvidence: false,
+        attributeNameEditable: true,
+        attributeNamePrefix: 'status.',
+        displayNameEditable: true,
       },
     ],
   });
@@ -1766,9 +1997,9 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(characterCard).toContainText('—');
 
   failCharacterListRefetch = true;
-  await page.evaluate(async () => {
-    const { queryClient } = await import('/src/app/lib/query-client.ts');
-    await queryClient.invalidateQueries();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
   });
   const listRefetchAlert = page.getByRole('alert').filter({ hasText: '캐릭터 목록 재조회에 실패했습니다.' });
   await expect(listRefetchAlert).toBeVisible();
@@ -1882,11 +2113,12 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   await expect(page.getByLabel('생존 감각 레벨', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('치유 물약 수량', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('경상 심각도', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveCount(0);
   await page.getByLabel('이름', { exact: true }).fill('수아 이름만 수정');
   const detailRequestsBeforeRefetch = detailRequestCount;
-  await page.evaluate(async () => {
-    const { queryClient } = await import('/src/app/lib/query-client.ts');
-    await queryClient.invalidateQueries();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
   });
   await expect.poll(() => detailRequestCount).toBeGreaterThan(detailRequestsBeforeRefetch);
   await expect(page.getByLabel('이름', { exact: true })).toHaveValue('수아 이름만 수정');
@@ -1914,6 +2146,14 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     roleLabel: '주인공',
     statuses: expect.arrayContaining([
       {
+        key: 'status.recovering',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'description', value: '간헐적 의식 소실', valueType: 'STRING' },
+        ],
+      },
+      {
         key: 'status.잠복',
         value: '관찰 중',
         valueType: 'JSON',
@@ -1924,7 +2164,44 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
 
   await page.getByRole('button', { name: '알림 닫기' }).click();
   await page.getByRole('button', { name: '수정', exact: true }).click();
-  await page.getByLabel('상태 이름', { exact: true }).nth(1).fill('안정');
+  let editableStatusName = page.getByLabel('상태 이름', { exact: true }).nth(1);
+  await editableStatusName.fill('임시 상태');
+  await editableStatusName.fill('회복 중');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  const revertedSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await revertedSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  saveFeedback = page.getByText('캐릭터 설정을 저장했습니다.', { exact: true });
+  await expect(saveFeedback).toBeVisible();
+  expect(updateBody).toMatchObject({
+    statuses: expect.arrayContaining([
+      {
+        key: 'status.recovering',
+        value: '활성',
+        valueType: 'JSON',
+        properties: [
+          { key: 'description', value: '간헐적 의식 소실', valueType: 'STRING' },
+        ],
+      },
+    ]),
+  });
+
+  await page.getByRole('button', { name: '알림 닫기' }).click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  editableStatusName = page.getByLabel('상태 이름', { exact: true }).nth(1);
+  await editableStatusName.fill('');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  let invalidSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await invalidSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('상태 설정명 뒷부분을 입력해 주세요.');
+
+  await editableStatusName.fill('경상');
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  invalidSaveConfirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
+  await invalidSaveConfirm.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('상태에 같은 설정명이 두 개 있습니다.');
+
+  await editableStatusName.fill('안정');
+  await page.getByLabel('생존 감각 값', { exact: true }).fill('Lv.7');
   await page.getByLabel('이름', { exact: true }).fill('수아 수정');
   await page.getByLabel('역할', { exact: true }).fill('핵심 주인공');
   await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
@@ -1952,6 +2229,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     profile: expect.arrayContaining([
       { key: 'profile.occupation', value: '검사 지망생', valueType: 'STRING', properties: [] },
       expect.objectContaining({
+        key: 'profile.좌우명',
         value: '끝까지 포기하지 않는다',
         valueType: 'STRING',
         properties: [{ key: 'name', value: '좌우명', valueType: 'STRING' }],
@@ -1961,6 +2239,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
       { key: 'stats.strength', value: '42', valueType: 'NUMBER', properties: [] },
       { key: 'stats.agility', value: '58', valueType: 'NUMBER', properties: [] },
       expect.objectContaining({
+        key: 'stats.행운',
         value: '7',
         valueType: 'NUMBER',
         properties: [{ key: 'name', value: '행운', valueType: 'STRING' }],
@@ -1969,11 +2248,10 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
     skills: [
       {
         key: 'skill.생존_감각',
-        value: 'Lv.6',
+        value: 'Lv.7',
         valueType: 'JSON',
         properties: [
           { key: 'name', value: '생존 감각', valueType: 'STRING' },
-          { key: 'level', value: '6', valueType: 'NUMBER' },
         ],
       },
     ],
@@ -1999,11 +2277,10 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         ],
       },
       {
-        key: 'status.회복_중',
+        key: 'status.안정',
         value: '활성',
         valueType: 'JSON',
         properties: [
-          { key: 'severity', value: '보통', valueType: 'STRING' },
           { key: 'name', value: '안정', valueType: 'STRING' },
         ],
       },
@@ -2014,6 +2291,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
         properties: [],
       },
       expect.objectContaining({
+        key: 'status.부상',
         value: '경상',
         valueType: 'JSON',
         properties: [{ key: 'name', value: '부상', valueType: 'STRING' }],

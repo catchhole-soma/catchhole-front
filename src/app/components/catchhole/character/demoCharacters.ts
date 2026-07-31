@@ -7,6 +7,26 @@ import { DEMO_CHARACTER_STATE_KEY } from '../../../lib/worksApi';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 
+interface SettingEditMetadata {
+  attributeNameEditable: boolean;
+  attributeNamePrefix: string | null;
+  displayNameEditable: boolean;
+}
+
+const LOCKED_SETTING_EDIT: SettingEditMetadata = {
+  attributeNameEditable: false,
+  attributeNamePrefix: null,
+  displayNameEditable: false,
+};
+
+function dynamicSettingEdit(attributeNamePrefix: string): SettingEditMetadata {
+  return {
+    attributeNameEditable: true,
+    attributeNamePrefix,
+    displayNameEditable: true,
+  };
+}
+
 function setting(
   id: string,
   key: string,
@@ -19,6 +39,7 @@ function setting(
     value: string;
     valueType?: SettingValueType;
   }> = [],
+  editMetadata: SettingEditMetadata = LOCKED_SETTING_EDIT,
 ): CharacterSettingResponse {
   return {
     characterFactId: id,
@@ -33,6 +54,7 @@ function setting(
       valueType: property.valueType ?? 'STRING',
     })),
     hasEvidence: true,
+    ...editMetadata,
   };
 }
 
@@ -63,26 +85,26 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
       setting('sua-skill-1', 'skill.basic_sword', '기본 검술', 'Lv.3', 'JSON', [
         { key: 'name', displayName: '이름', value: '기본 검술' },
         { key: 'level', displayName: '레벨', value: '3', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('skill.')),
       setting('sua-skill-2', 'skill.magic_sense', '마력 감지', 'Lv.1', 'JSON', [
         { key: 'name', displayName: '이름', value: '마력 감지' },
         { key: 'level', displayName: '레벨', value: '1', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('skill.')),
     ],
     items: [
       setting('sua-item-1', 'item.training_sword', '훈련용 검', '1개', 'JSON', [
         { key: 'name', displayName: '이름', value: '훈련용 검' },
         { key: 'quantity', displayName: '수량', value: '1', valueType: 'NUMBER' },
-      ]),
+      ], dynamicSettingEdit('item.')),
       setting('sua-item-2', 'item.student_id', '학생증', '보유', 'JSON', [
         { key: 'name', displayName: '이름', value: '학생증' },
         { key: 'state', displayName: '상태', value: '보유' },
-      ]),
+      ], dynamicSettingEdit('item.')),
     ],
     statuses: [
       setting('sua-status', 'status.normal', '정상', '정상', 'JSON', [
         { key: 'name', displayName: '이름', value: '정상' },
-      ]),
+      ], dynamicSettingEdit('status.')),
     ],
   },
   {
@@ -110,6 +132,52 @@ interface DemoCharacterState {
 
 type DemoCharacterStateByWork = Record<string, DemoCharacterState>;
 
+type DemoSettingGroup = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
+
+function migrateDemoSetting(
+  value: CharacterSettingResponse,
+  group: DemoSettingGroup,
+): CharacterSettingResponse {
+  const key = value.key ?? '';
+  const manual = key.includes('.manual_');
+  const dynamicPrefix = group === 'skills'
+    ? 'skill.'
+    : group === 'items'
+      ? 'item.'
+      : group === 'statuses'
+        ? 'status.'
+        : null;
+  const defaults = manual
+    ? {
+        attributeNameEditable: false,
+        attributeNamePrefix: null,
+        displayNameEditable: true,
+      }
+    : dynamicPrefix
+      ? dynamicSettingEdit(dynamicPrefix)
+      : LOCKED_SETTING_EDIT;
+
+  return {
+    ...value,
+    attributeNameEditable: value.attributeNameEditable ?? defaults.attributeNameEditable,
+    attributeNamePrefix: value.attributeNamePrefix === undefined
+      ? defaults.attributeNamePrefix
+      : value.attributeNamePrefix,
+    displayNameEditable: value.displayNameEditable ?? defaults.displayNameEditable,
+  };
+}
+
+function migrateDemoCharacter(value: CharacterDetailResponse): CharacterDetailResponse {
+  return {
+    ...value,
+    profile: value.profile?.map(settingValue => migrateDemoSetting(settingValue, 'profile')),
+    stats: value.stats?.map(settingValue => migrateDemoSetting(settingValue, 'stats')),
+    skills: value.skills?.map(settingValue => migrateDemoSetting(settingValue, 'skills')),
+    items: value.items?.map(settingValue => migrateDemoSetting(settingValue, 'items')),
+    statuses: value.statuses?.map(settingValue => migrateDemoSetting(settingValue, 'statuses')),
+  };
+}
+
 function loadDemoCharacterStateByWork(): DemoCharacterStateByWork {
   const raw = localStorage.getItem(DEMO_CHARACTER_STATE_KEY);
   if (!raw) return {};
@@ -125,7 +193,10 @@ export function loadDemoCharacterState(workId: string): DemoCharacterState {
   if (!saved || !Array.isArray(saved.characters) || !Array.isArray(saved.archivedCharacters)) {
     return { characters: createInitialDemoCharacters(), archivedCharacters: [] };
   }
-  return structuredClone(saved);
+  return {
+    characters: saved.characters.map(migrateDemoCharacter),
+    archivedCharacters: saved.archivedCharacters.map(migrateDemoCharacter),
+  };
 }
 
 export function saveDemoCharacterState(

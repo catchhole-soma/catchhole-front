@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -310,7 +310,7 @@ export const updateWork = <ThrowOnError extends boolean = true>(options: Options
 /**
  * 설정 후보 상세 조회
  *
- * 로그인한 사용자가 본인 작품의 특정 AI 설정 후보를 조회합니다.
+ * 로그인한 사용자가 본인 작품의 현재 검토 업로드 묶음에 속한 특정 AI 설정 후보를 조회합니다.
  */
 export const getSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<GetSettingCandidateData, ThrowOnError>): RequestResult<GetSettingCandidateResponses, GetSettingCandidateErrors, ThrowOnError> => (options.client ?? client).get<GetSettingCandidateResponses, GetSettingCandidateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -321,7 +321,7 @@ export const getSettingCandidate = <ThrowOnError extends boolean = true>(options
 /**
  * 설정 후보 수정
  *
- * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보에서 검토용 필드만 보정합니다. CONFIRMED 또는 DISMISSED 후보는 수정할 수 없습니다.
+ * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보에서 설정명과 표시값만 보정합니다. 고정 schema key는 이름을 바꿀 수 없고 동적 key는 같은 pattern 안에서만 바꿀 수 있습니다. 값 타입과 AI 근거는 유지하며 CONFIRMED 또는 DISMISSED 후보는 수정할 수 없습니다.
  */
 export const updateSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<UpdateSettingCandidateData, ThrowOnError>): RequestResult<UpdateSettingCandidateResponses, UpdateSettingCandidateErrors, ThrowOnError> => (options.client ?? client).patch<UpdateSettingCandidateResponses, UpdateSettingCandidateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -336,7 +336,7 @@ export const updateSettingCandidate = <ThrowOnError extends boolean = true>(opti
 /**
  * 설정 후보 캐릭터 연결 해소
  *
- * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보를 기존 캐릭터에 연결하거나 새 캐릭터로 확정합니다. 검토 상태는 PENDING_REVIEW로 유지합니다.
+ * 로그인한 사용자가 본인 작품의 PENDING_REVIEW 설정 후보를 기존 캐릭터에 연결하거나, confirm 전 새 캐릭터 등록 예정인 UNRESOLVED 상태로 지정합니다. CREATE_NEW는 캐릭터를 즉시 생성하거나 후보를 확정하지 않으며, 실제 캐릭터 생성은 후보 confirm 때 수행합니다. 검토 상태는 PENDING_REVIEW로 유지합니다.
  */
 export const updateSettingCandidateCharacterMatch = <ThrowOnError extends boolean = true>(options: Options<UpdateSettingCandidateCharacterMatchData, ThrowOnError>): RequestResult<UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateCharacterMatchErrors, ThrowOnError> => (options.client ?? client).patch<UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateCharacterMatchErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -501,7 +501,7 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
 /**
  * 작품별 설정 후보 목록 조회
  *
- * 로그인한 사용자가 본인 작품의 AI 설정 후보 목록을 최신 생성순으로 조회합니다.
+ * 로그인한 사용자가 본인 작품의 한 업로드 묶음에 속한 AI 설정 후보를 페이지 조회합니다. 회차 번호, 생성 시각, 후보 ID 오름차순으로 정렬하며 집계와 회차 범위는 필터와 무관한 묶음 전체 기준입니다.
  */
 export const getSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<GetSettingCandidatesData, ThrowOnError>): RequestResult<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError> => (options.client ?? client).get<GetSettingCandidatesResponses, GetSettingCandidatesErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -539,6 +539,17 @@ export const getArchivedCharacters = <ThrowOnError extends boolean = true>(optio
 export const getAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<GetAnalysisJobData, ThrowOnError>): RequestResult<GetAnalysisJobResponses, GetAnalysisJobErrors, ThrowOnError> => (options.client ?? client).get<GetAnalysisJobResponses, GetAnalysisJobErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/analysis-jobs/{analysisJobId}',
+    ...options
+});
+
+/**
+ * 분석 배치 목록 조회
+ *
+ * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다.
+ */
+export const getAnalysisBatches = <ThrowOnError extends boolean = true>(options: Options<GetAnalysisBatchesData, ThrowOnError>): RequestResult<GetAnalysisBatchesResponses, GetAnalysisBatchesErrors, ThrowOnError> => (options.client ?? client).get<GetAnalysisBatchesResponses, GetAnalysisBatchesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/analysis-jobs/batches',
     ...options
 });
 

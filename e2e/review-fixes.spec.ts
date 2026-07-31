@@ -4,6 +4,113 @@ const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
 const episodeId = '44444444-4444-4444-8444-444444444444';
 
+test('공통 Query 재시도 정책은 최종 401을 다시 요청하지 않는다', async ({ page }) => {
+  await page.goto('/landing');
+
+  const decisions = await page.evaluate(async () => {
+    const { ApiError } = await import('/src/app/lib/api-errors.ts');
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    const retry = queryClient.getDefaultOptions().queries?.retry;
+    if (typeof retry !== 'function') throw new Error('Query retry 함수가 설정되지 않았습니다.');
+
+    return {
+      unauthorized: retry(0, new ApiError('인증 실패', 'AUTH_FAILED', 401)),
+      firstServerFailure: retry(0, new ApiError('서버 오류', 'SERVER_ERROR', 500)),
+      exhaustedServerFailure: retry(1, new ApiError('서버 오류', 'SERVER_ERROR', 500)),
+    };
+  });
+
+  expect(decisions).toEqual({
+    unauthorized: false,
+    firstServerFailure: true,
+    exhaustedServerFailure: false,
+  });
+});
+
+test('구버전 데모 캐릭터 저장값의 설정명 편집 메타데이터를 보정한다', async ({ page }) => {
+  await page.goto('/landing');
+
+  const metadata = await page.evaluate(async () => {
+    localStorage.setItem('catchhole_demo_character_state', JSON.stringify({
+      detective: {
+        characters: [{
+          id: 'legacy-character',
+          name: '구버전 캐릭터',
+          profile: [{
+            key: 'profile.manual_legacy',
+            displayName: '수동 프로필',
+            value: '값',
+            valueType: 'STRING',
+            properties: [{ key: 'name', displayName: '이름', value: '수동 프로필', valueType: 'STRING' }],
+          }, {
+            key: 'profile.gender',
+            displayName: '성별',
+            value: '여성',
+            valueType: 'STRING',
+            properties: [],
+          }],
+          stats: [],
+          skills: [{
+            key: 'skill.legacy_skill',
+            displayName: '구버전 스킬',
+            value: 'Lv.1',
+            valueType: 'JSON',
+            properties: [{ key: 'name', displayName: '이름', value: '구버전 스킬', valueType: 'STRING' }],
+          }],
+          items: [],
+          statuses: [],
+        }],
+        archivedCharacters: [{
+          id: 'legacy-archived-character',
+          name: '보관 캐릭터',
+          profile: [],
+          stats: [],
+          skills: [],
+          items: [{
+            key: 'item.legacy_item',
+            displayName: '구버전 아이템',
+            value: '1개',
+            valueType: 'JSON',
+            properties: [{ key: 'name', displayName: '이름', value: '구버전 아이템', valueType: 'STRING' }],
+          }],
+          statuses: [],
+        }],
+      },
+    }));
+    const { loadDemoCharacterState } = await import(
+      '/src/app/components/catchhole/character/demoCharacters.ts'
+    );
+    const state = loadDemoCharacterState('detective');
+    return {
+      manualProfile: state.characters[0]?.profile?.[0],
+      fixedProfile: state.characters[0]?.profile?.[1],
+      dynamicSkill: state.characters[0]?.skills?.[0],
+      archivedItem: state.archivedCharacters[0]?.items?.[0],
+    };
+  });
+
+  expect(metadata.manualProfile).toEqual(expect.objectContaining({
+    attributeNameEditable: false,
+    attributeNamePrefix: null,
+    displayNameEditable: true,
+  }));
+  expect(metadata.fixedProfile).toEqual(expect.objectContaining({
+    attributeNameEditable: false,
+    attributeNamePrefix: null,
+    displayNameEditable: false,
+  }));
+  expect(metadata.dynamicSkill).toEqual(expect.objectContaining({
+    attributeNameEditable: true,
+    attributeNamePrefix: 'skill.',
+    displayNameEditable: true,
+  }));
+  expect(metadata.archivedItem).toEqual(expect.objectContaining({
+    attributeNameEditable: true,
+    attributeNamePrefix: 'item.',
+    displayNameEditable: true,
+  }));
+});
+
 const member = {
   id: 1,
   email: 'review-fixes@example.com',
@@ -134,7 +241,7 @@ test('삭제 회차와 실패 회차가 섞여도 살아 있는 실패 회차만
       : null;
     if (retryMatch) {
       retriedAnalysisJobIds.push(retryMatch[1]);
-      return fulfill(route, [{ id: retryAnalysisJobId }]);
+      return fulfill(route, [{ id: retryAnalysisJobId, jobType: 'EPISODE_VALIDATION' }]);
     }
 
     const data = pathname.endsWith('/auth/me')
@@ -215,8 +322,240 @@ test('삭제 회차와 실패 회차가 섞여도 살아 있는 실패 회차만
     ];
   }).toEqual([
     `${archivedAnalysisJobId},${failedAnalysisJobId},${retryAnalysisJobId}`,
-    retryAnalysisJobId,
+    `${archivedAnalysisJobId},${retryAnalysisJobId}`,
   ]);
+});
+
+test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를 추적한다', async ({ page }) => {
+  const firstFailedJobId = '33333333-3333-4333-8333-333333333333';
+  const secondFailedJobId = '55555555-5555-4555-8555-555555555555';
+  const retriedJobId = '66666666-6666-4666-8666-666666666666';
+  let releaseFirstRetry: () => void = () => undefined;
+  let secondRetrySettled = false;
+  const firstRetryGate = new Promise<void>(resolve => {
+    releaseFirstRetry = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (
+      request.method() === 'POST'
+      && pathname.endsWith(`/${workId}/analysis-jobs/${firstFailedJobId}/retry`)
+    ) {
+      await firstRetryGate;
+      return fulfill(route, [{ id: retriedJobId, jobType: 'EPISODE_VALIDATION' }]);
+    }
+    if (
+      request.method() === 'POST'
+      && pathname.endsWith(`/${workId}/analysis-jobs/${secondFailedJobId}/retry`)
+    ) {
+      secondRetrySettled = true;
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '재시도 요청 실패',
+          data: null,
+          error: { code: 'INTERNAL_SERVER_ERROR', status: 500, details: [] },
+        }),
+      });
+    }
+
+    const jobId = pathname.split('/').at(-1);
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : jobId === firstFailedJobId || jobId === secondFailedJobId
+        ? {
+            id: jobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: jobId === firstFailedJobId ? 20 : 21,
+              title: '재시도 대상 회차',
+              status: 'FAILED',
+            }],
+          }
+        : jobId === retriedJobId
+          ? {
+              id: retriedJobId,
+              workId,
+              workTitle: '현재 작품',
+              batchId,
+              jobType: 'EPISODE_VALIDATION',
+              status: 'PENDING',
+              episodes: [{
+                id: episodeId,
+                episodeNo: 20,
+                title: '재시도 성공 회차',
+                status: 'FAILED',
+              }],
+            }
+          : pathname.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '현재 작품', genre: '판타지' }
+            : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'partial-retry-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${firstFailedJobId},${secondFailedJobId}`
+    + `&currentAnalysisJobIds=${firstFailedJobId},${secondFailedJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  const retryButton = page.getByRole('button', { name: '실패 회차 다시 시도' });
+  await retryButton.click();
+  await expect.poll(() => secondRetrySettled).toBe(true);
+  await expect(page.getByRole('button', { name: '재시도 요청 중...' })).toBeDisabled();
+  releaseFirstRetry();
+
+  await expect.poll(() => {
+    const params = new URL(page.url()).searchParams;
+    return [
+      params.get('analysisJobIds'),
+      params.get('currentAnalysisJobIds'),
+    ];
+  }).toEqual([
+    `${firstFailedJobId},${secondFailedJobId},${retriedJobId}`,
+    `${secondFailedJobId},${retriedJobId}`,
+  ]);
+  await expect(page.getByText('재시도 요청 실패', { exact: true })).toBeVisible();
+});
+
+test('재시도 응답의 jobType이 실패 작업과 다르면 새 ID를 채택하지 않는다', async ({ page }) => {
+  const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
+  const mismatchedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (
+      request.method() === 'POST'
+      && pathname.endsWith(`/${workId}/analysis-jobs/${failedAnalysisJobId}/retry`)
+    ) {
+      return fulfill(route, [{
+        id: mismatchedAnalysisJobId,
+        jobType: 'SETTING_EXTRACTION',
+      }]);
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/${failedAnalysisJobId}`)
+        ? {
+            id: failedAnalysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 20,
+              title: '재시도 대상 회차',
+              status: 'FAILED',
+            }],
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'retry-job-type-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${failedAnalysisJobId}&currentAnalysisJobIds=${failedAnalysisJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  await page.getByRole('button', { name: '실패 회차 다시 시도' }).click();
+
+  await expect(page.getByText(
+    '재시도 응답의 분석 유형이 기존 실패 작업과 일치하지 않습니다.',
+    { exact: true },
+  )).toBeVisible();
+  await expect.poll(() => {
+    const params = new URL(page.url()).searchParams;
+    return [
+      params.get('analysisJobIds'),
+      params.get('currentAnalysisJobIds'),
+    ];
+  }).toEqual([failedAnalysisJobId, failedAnalysisJobId]);
+});
+
+test('현재 Job이 완료되면 원문 상태가 바뀌어도 완료와 변경 경고를 표시한다', async ({ page }) => {
+  const historicalAnalysisJobId = '33333333-3333-4333-8333-333333333333';
+  const currentAnalysisJobId = '55555555-5555-4555-8555-555555555555';
+  const currentEpisodeId = '77777777-7777-4777-8777-777777777777';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/${historicalAnalysisJobId}`)
+        ? {
+            id: historicalAnalysisJobId,
+            workId,
+            workTitle: '현재 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 19,
+              title: '과거 삭제 회차',
+              status: 'ARCHIVED',
+            }],
+          }
+        : pathname.endsWith(`/${workId}/analysis-jobs/${currentAnalysisJobId}`)
+          ? {
+              id: currentAnalysisJobId,
+              workId,
+              workTitle: '현재 작품',
+              batchId,
+              jobType: 'EPISODE_VALIDATION',
+              status: 'SUCCEEDED',
+              episodes: [{
+                id: currentEpisodeId,
+                episodeNo: 20,
+                title: '완료 후 원문 변경 회차',
+                status: 'UPLOADED',
+              }],
+            }
+          : pathname.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '현재 작품', genre: '판타지' }
+            : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'completed-stale-source-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${historicalAnalysisJobId},${currentAnalysisJobId}`
+    + `&currentAnalysisJobIds=${currentAnalysisJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toBeVisible();
+  await expect(page.getByText(
+    '분석 작업은 완료되었지만 현재 회차 상태가 분석 당시와 다릅니다. 원고 변경 여부를 확인하고 필요하면 다시 분석해주세요.',
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByText(/완료 후 원문 변경 회차/)).toBeVisible();
+  await expect(page.getByText('과거 삭제 회차', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(
+    '삭제된 회차는 분석 결과를 열거나 다시 시도할 수 없습니다. 원고 목록에서 현재 회차를 확인해주세요.',
+    { exact: true },
+  )).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '설정 후보 검토' })).toBeEnabled();
 });
 
 test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 차단한다', async ({ page }) => {
@@ -298,7 +637,7 @@ test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 
   expect(settingBookUploadRequestCount).toBe(0);
 });
 
-test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling 대상으로 연다', async ({ page }) => {
+test('분석 목록의 실패 확인은 새 Job을 현재 polling 대상으로 다시 연다', async ({ page }) => {
   const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
   const retryAnalysisJobId = '55555555-5555-4555-8555-555555555555';
   let retryRequestCount = 0;
@@ -322,6 +661,35 @@ test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling �
 
     const data = pathname.endsWith('/auth/me')
       ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/batches`)
+        ? {
+            content: [{
+              batchId,
+              status: 'FAILED',
+              episodeStartNo: 20,
+              episodeEndNo: 20,
+              episodeCount: 1,
+              totalCandidateCount: 0,
+              reviewedCandidateCount: 0,
+              pendingCandidateCount: 0,
+              jobGroups: [{
+                jobType: 'EPISODE_VALIDATION',
+                status: 'FAILED',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 0,
+                succeededJobCount: 0,
+                failedJobCount: 1,
+                currentAnalysisJobIds: [failedAnalysisJobId],
+              }],
+              lastActivityAt: '2026-07-28T12:00:00',
+            }],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }
       : pathname.endsWith(`/${workId}/episodes`)
         ? [{
             id: episodeId,
@@ -365,9 +733,10 @@ test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling �
   });
 
   await authenticate(page, 'dashboard-retry-token');
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
-  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+  await page.getByRole('button', { name: '실패 확인', exact: true }).click();
+  await page.getByRole('button', { name: '실패 회차 다시 시도', exact: true }).click();
 
   await expect.poll(() => retryRequestCount).toBe(1);
   expect(createRequestCount).toBe(0);
@@ -381,6 +750,9 @@ test('대시보드의 실패 회차 다시 시도는 새 Job을 현재 polling �
     `${failedAnalysisJobId},${retryAnalysisJobId}`,
     retryAnalysisJobId,
   ]);
+  await expect.poll(() => page.evaluate(() => (
+    window.history.state?.usr?.returnToAnalysisList
+  ))).toBe(`/dashboard?workId=${workId}&nav=analyses`);
 });
 
 test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 시도한다', async ({ page }) => {

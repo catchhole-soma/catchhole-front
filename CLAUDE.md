@@ -18,7 +18,7 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 
 - `src/app/components/catchhole/` — 화면 컴포넌트
   - `S0WorkPicker`, `S1Dashboard` ~ `S5Report`: 메인 작업 흐름 화면
-  - `SEpisodeUpload`, `SEpisodeValidationReport`, `SSettingReview`: 회차 업로드/검사/설정 검토 플로우
+  - `AnalysisList`, `SEpisodeUpload`, `SEpisodeValidationReport`, `SSettingReview`: 업로드 묶음별 분석 목록/회차 업로드/검사/설정 검토 플로우
   - `SLogin`, `SSignup`, `AppSidebar`, `GraphView`, `ReviewLayout` 등 공용 UI
   - `constants.ts` — 디자인 토큰(`C` 객체)과 공용 타입(`types.ts`)·목 데이터(`mockEpisodeData.ts`)
 - `src/app/context/` — `AppContext`(전역 상태), `BackendStatusContext`(백엔드 연결 상태 감지 → 데모 모드 판단)
@@ -36,13 +36,13 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 | `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/` | `S0WorkPicker` | 작품 선택 (진입점) |
-| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|graph\|manuscripts`로 좌측 섹션, `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?modal=character-archive`로 보관된 캐릭터 목록, `?nav=settingDB&tab=relations`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
+| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|analyses\|graph\|manuscripts`로 좌측 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?modal=character-archive`로 보관된 캐릭터 목록, `?nav=settingDB&tab=relations`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
 | `/editor` | `S2Editor` | 원고 에디터. `?modal=analysis-request`로 분석 요청 모달 딥링크 |
 | `/chat` | `S3Chat` | 챗봇 |
 | `/loading` | `S4Loading` | 분석 진행률 |
 | `/report` | `S5Report` | 충돌/모순 리포트. `?mode=prePublish`로 발행 전 전체 검수 화면 딥링크(없으면 단일 회차 모드) |
 | `/episode-upload` | `SEpisodeUpload` | 회차 업로드 (모드 선택 → 파일 업로드 → 회차 분리 확인 → 설정집 분석) |
-| `/setting-review` | `SSettingReview` | 추출된 설정 후보 검토. `?candidate=<id>`로 선택된 후보 딥링크 |
+| `/setting-review` | `SSettingReview` | 업로드 묶음에서 추출된 설정 후보 검토. `?workId=<id>&batchId=<id>&jobType=<EPISODE_VALIDATION\|SETTING_EXTRACTION>&candidate=<id>`로 검토 문맥·완료 후 목적지·선택 후보를 딥링크하며, 뒤로가기는 해당 작품의 `nav=analyses`로 돌아간다. |
 | `/episode-validation-report` | `SEpisodeValidationReport` | 회차 검사(충돌/모순) 결과. `?issue=<id>`로 선택된 이슈 딥링크 |
 
 화면 전환에는 `TransitionType`(`push-right`/`push-left`/`cover-up`/`pop`/`dissolve`, `constants.ts`)을 사용합니다.

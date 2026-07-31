@@ -34,31 +34,6 @@ export interface AnalysisJob {
   retryCount: number;
 }
 
-// ===== SettingCandidate =====
-export type SettingCandidateType = 'CHARACTER_BASIC' | 'NUMERIC_STATE' | 'POSSESSION' | 'TIME_STATUS' | 'EXTENDED';
-// 'CONFIRMED'/'DISMISSED'는 백엔드 CharacterReviewStatus와 이름을 맞춤(catchhole-backend-java/docs/character.md).
-// 'EDITED'는 FE 전용 상태로, 저장 시 'CONFIRMED'로 매핑된다.
-export type SettingCandidateReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED' | 'EDITED' | 'DISMISSED';
-
-export interface EvidenceChunk {
-  episodeNumber: number;
-  paragraph: number;
-  quote: string;
-}
-
-export interface SettingCandidate {
-  id: string;
-  episodeId: string;
-  characterName?: string;
-  settingType: SettingCandidateType;
-  settingKey: string;
-  settingValue: string;
-  editedValue?: string;
-  confidence: number; // 0~1
-  evidenceChunk: EvidenceChunk;
-  reviewStatus: SettingCandidateReviewStatus;
-}
-
 // ===== 화면 전용 보조 타입 =====
 export interface SingleUploadForm {
   episodeNumber: string;
@@ -78,24 +53,6 @@ export interface JobProgressItem {
   job: AnalysisJob;
   processingStatus: EpisodeProcessingStatus;
 }
-
-export type SettingGroupBy = 'character' | 'type' | 'none';
-export type SettingReviewFilter = 'ALL' | SettingCandidateReviewStatus;
-
-export const SETTING_TYPE_LABELS: Record<SettingCandidateType, string> = {
-  CHARACTER_BASIC: '캐릭터 기본정보',
-  NUMERIC_STATE: '수치형 상태',
-  POSSESSION: '보유정보',
-  TIME_STATUS: '시간·상태정보',
-  EXTENDED: '확장 후보',
-};
-
-export const REVIEW_STATUS_LABELS: Record<SettingCandidateReviewStatus, string> = {
-  PENDING_REVIEW: '검토 대기',
-  CONFIRMED: '확정',
-  EDITED: '수정 후 확정',
-  DISMISSED: '무시',
-};
 
 export const PROCESSING_STATUS_LABELS: Record<EpisodeProcessingStatus, string> = {
   UPLOADED: '원문 저장 완료',

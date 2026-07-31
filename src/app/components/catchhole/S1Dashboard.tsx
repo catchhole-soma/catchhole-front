@@ -20,6 +20,7 @@ import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
+import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
 import { useWorks } from '../../hooks/useWorks';
@@ -29,10 +30,10 @@ import { ALLOWED_EXTENSIONS, validateManuscriptFile, formatFileSize } from '../.
 import {
   createAnalysisJobMutation,
   deleteEpisodeMutation,
+  getAnalysisBatchesOptions,
   getEpisodesOptions,
   getEpisodesQueryKey,
   replaceEpisodeFileMutation,
-  retryAnalysisJobMutation,
   updateEpisodeTitleMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
 import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
@@ -2828,7 +2829,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
   murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
-const NAV_IDS: NavId[] = ['settingDB', 'reports', 'graph', 'manuscripts'];
+const NAV_IDS: NavId[] = ['settingDB', 'reports', 'analyses', 'graph', 'manuscripts'];
 const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
@@ -2949,6 +2950,9 @@ export default function S1Dashboard() {
           episodeCount: 0,
         };
   const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(effectiveWorkId);
+  const dashboardMountedRef = useRef(false);
+  const dashboardContextRef = useRef({ workId: effectiveWorkId, activeNav });
+  dashboardContextRef.current = { workId: effectiveWorkId, activeNav };
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
     enabled: episodeApiEnabled,
@@ -2958,11 +2962,30 @@ export default function S1Dashboard() {
       return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
     },
   });
+  const analysisOverviewQuery = useQuery({
+    ...getAnalysisBatchesOptions({
+      path: { workId: effectiveWorkId },
+      query: { page: 0, size: 10 },
+    }),
+    enabled: episodeApiEnabled && activeNav === 'manuscripts',
+    retry: false,
+    refetchInterval: query => (
+      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS')
+        ? 10_000
+        : false
+    ),
+  });
   const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
   const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
   const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
   const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
-  const retryEpisodeAnalysisRequest = useMutation(retryAnalysisJobMutation());
+
+  useEffect(() => {
+    dashboardMountedRef.current = true;
+    return () => {
+      dashboardMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -3128,67 +3151,39 @@ export default function S1Dashboard() {
     }
   };
 
-  const openEpisodeAnalysis = async (episode: EpisodeSummaryResponse) => {
-    if (createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending) return;
+  const startEpisodeReanalysis = async (episode: EpisodeSummaryResponse) => {
+    if (createEpisodeAnalysisRequest.isPending) return;
     setEpisodeActionError(null);
-    if (!episode.batchId) {
+    if (!episode.batchId || !episode.id) {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
-    if (episode.analysisStatus === 'IN_PROGRESS' && episode.latestAnalysisJobId) {
-      navigate(
-        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${episode.latestAnalysisJobId}&currentAnalysisJobIds=${episode.latestAnalysisJobId}&jobType=EPISODE_VALIDATION`,
-        'push-right',
-      );
-      return;
-    }
-    if (episode.analysisStatus === 'IN_PROGRESS') {
-      setEpisodeActionError('진행 중인 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-    if (episode.analysisStatus === 'FAILED') {
-      if (!episode.latestAnalysisJobId) {
-        setEpisodeActionError('실패한 분석 작업 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.');
-        return;
-      }
-      try {
-        const response = await retryEpisodeAnalysisRequest.mutateAsync({
-          path: { workId: effectiveWorkId, analysisJobId: episode.latestAnalysisJobId },
-        });
-        const retryAnalysisJobIds = [...new Set(
-          (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
-        )];
-        if (retryAnalysisJobIds.length === 0) throw new Error('재시도 작업 ID가 응답에 없습니다.');
-        const trackedAnalysisJobIds = [
-          episode.latestAnalysisJobId,
-          ...retryAnalysisJobIds,
-        ].join(',');
-        const currentAnalysisJobIds = retryAnalysisJobIds.join(',');
-        navigate(
-          `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${trackedAnalysisJobIds}&currentAnalysisJobIds=${currentAnalysisJobIds}&jobType=EPISODE_VALIDATION`,
-          'push-right',
-        );
-      } catch (error) {
-        setEpisodeActionError(toApiError(error)?.message ?? '실패한 회차 분석을 다시 요청하지 못했습니다.');
-      }
-      return;
-    }
+    const requestWorkId = effectiveWorkId;
+    const isCurrentRequestContext = () => (
+      dashboardMountedRef.current
+      && window.location.pathname === '/dashboard'
+      && dashboardContextRef.current.workId === requestWorkId
+      && dashboardContextRef.current.activeNav === 'manuscripts'
+    );
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
-        path: { workId: effectiveWorkId },
+        path: { workId: requestWorkId },
         body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
+      if (!isCurrentRequestContext()) return;
       if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
       const analysisJobIdParam = analysisJobIds.join(',');
       navigate(
-        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(requestWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
         'push-right',
       );
     } catch (error) {
-      setEpisodeActionError(toApiError(error)?.message ?? '분석 작업을 시작하지 못했습니다.');
+      if (isCurrentRequestContext()) {
+        setEpisodeActionError(toApiError(error)?.message ?? '분석 작업을 시작하지 못했습니다.');
+      }
     }
   };
 
@@ -3199,6 +3194,29 @@ export default function S1Dashboard() {
     currentEpisodePage * MS_PAGE_SIZE,
     (currentEpisodePage + 1) * MS_PAGE_SIZE,
   );
+  const overviewBatches = analysisOverviewQuery.data?.data?.content ?? [];
+  // 서버가 최근 분석 요청순으로 정렬하므로 원고 배너는 가장 최신 배치만 반영한다.
+  const latestAnalysisBatch = overviewBatches[0];
+  const analysisNotice = latestAnalysisBatch?.status === 'FAILED'
+    || latestAnalysisBatch?.status === 'PARTIALLY_FAILED'
+    ? {
+        label: '일부 분석에 실패했습니다.',
+        description: '분석 목록에서 실패한 회차를 확인하고 다시 시도할 수 있습니다.',
+        color: C.danger,
+      }
+    : latestAnalysisBatch?.status === 'IN_PROGRESS'
+      ? {
+          label: '진행 중인 분석이 있습니다.',
+          description: '분석 목록에서 함께 올린 회차의 진행 상황을 확인할 수 있습니다.',
+          color: C.primary,
+        }
+      : latestAnalysisBatch?.status === 'REVIEW_REQUIRED'
+        ? {
+            label: '검토할 설정 후보가 있습니다.',
+            description: '분석 목록에서 업로드 묶음을 선택해 후보 검토를 이어가세요.',
+            color: C.warning,
+          }
+        : null;
   return (
     <div style={{
       background: C.bg, width: '100%', height: '100%',
@@ -3472,6 +3490,13 @@ export default function S1Dashboard() {
               </motion.div>
             )}
 
+            {activeNav === 'analyses' && (
+              <motion.div key="analyses" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <AnalysisList workId={effectiveWorkId} />
+              </motion.div>
+            )}
+
             {activeNav === 'manuscripts' && (
               <motion.div key="manuscripts" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
@@ -3497,6 +3522,27 @@ export default function S1Dashboard() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
+                    {analysisNotice && (
+                      <div role="status" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                        padding: '12px 14px',
+                        color: C.t2,
+                        background: `${analysisNotice.color}0D`,
+                        border: `1px solid ${analysisNotice.color}44`,
+                        borderRadius: 8,
+                      }}>
+                        <div>
+                          <div style={{ color: analysisNotice.color, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
+                            {analysisNotice.label}
+                          </div>
+                          <div style={{ color: C.t3, fontSize: 11 }}>{analysisNotice.description}</div>
+                        </div>
+                        <BtnG small label="분석 목록으로" onClick={() => setActiveNav('analyses')} />
+                      </div>
+                    )}
                     {episodeActionError && (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px',
@@ -3534,10 +3580,10 @@ export default function S1Dashboard() {
                         <>
                           <div style={{ overflowX: 'auto' }}>
                           <div style={{
-                            minWidth: 1160, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 76px 330px',
+                            minWidth: 1060, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 270px',
                             padding: '8px 14px', color: C.t3, fontSize: 11, fontWeight: 600,
                           }}>
-                            <span>회차</span><span>제목</span><span>원본 파일</span><span>변경일</span><span>글자수</span><span>분석 상태</span><span>미처리</span><span />
+                            <span>회차</span><span>제목</span><span>원본 파일</span><span>변경일</span><span>글자수</span><span>분석 상태</span><span />
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             {pagedEpisodeRows.map(episode => {
@@ -3546,7 +3592,7 @@ export default function S1Dashboard() {
                               const editing = editingEpisodeId === episode.id;
                               return (
                                 <div key={episode.id} style={{
-                                  minWidth: 1160, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 76px 330px',
+                                  minWidth: 1060, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 270px',
                                   alignItems: 'center', padding: '11px 14px', background: C.surface,
                                   borderRadius: 8, border: `1px solid ${C.border}`,
                                 }}>
@@ -3589,30 +3635,15 @@ export default function S1Dashboard() {
                                   <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
                                   <span style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
                                   <span style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
-                                  <span style={{ color: C.t3, fontSize: 11 }}>
-                                    {episode.analysisStatus === 'COMPLETED'
-                                      ? episode.unresolvedFindingCount === null || episode.unresolvedFindingCount === undefined
-                                        ? '—' : episode.unresolvedFindingCount === 0 ? '없음' : `${episode.unresolvedFindingCount}건`
-                                      : '—'}
-                                  </span>
                                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
-                                    <BtnG
-                                      small
-                                      disabled={createEpisodeAnalysisRequest.isPending || retryEpisodeAnalysisRequest.isPending}
-                                      label={episode.analysisStatus === 'FAILED' ? '다시 시도'
-                                        : episode.analysisStatus === 'COMPLETED' ? '결과 보기'
-                                          : episode.analysisStatus === 'IN_PROGRESS' ? '진행 보기' : '재분석'}
-                                      onClick={episode.analysisStatus === 'COMPLETED'
-                                        ? () => navigate(
-                                            `/episode-validation-report?workId=${encodeURIComponent(effectiveWorkId)}`,
-                                            'push-right',
-                                            {
-                                              workId: effectiveWorkId,
-                                              episodeIds: episode.id ? [episode.id] : [],
-                                            },
-                                          )
-                                        : () => void openEpisodeAnalysis(episode)}
-                                    />
+                                    {episode.analysisStatus === 'REANALYSIS_REQUIRED' && (
+                                      <BtnG
+                                        small
+                                        disabled={createEpisodeAnalysisRequest.isPending}
+                                        label="재분석"
+                                        onClick={() => void startEpisodeReanalysis(episode)}
+                                      />
+                                    )}
                                     <BtnG small label="원문" onClick={() => {
                                       setEditorMode('view');
                                       navigate(
