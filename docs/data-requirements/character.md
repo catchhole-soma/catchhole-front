@@ -315,7 +315,8 @@
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
 > **MVP 범위 메모**
-> - 서버는 `CharacterFact.factKey`와 `CharacterFact.factValue`에 대소문자 무시 `LIKE` 부분 일치를 적용하고 페이지네이션한다.
+> - 서버는 사용자용 `displayName`, 내부 `factKey`, `factValue`를 검색하고 페이지네이션한다. exact 표시명은 schema key로 역매핑하고 동적 설정명의 공백은 key의 underscore와 같은 구분자로 처리한다.
+> - 레거시 `manual_*` Fact의 `valueJson.name` 검색은 MVP 범위에서 제외하고 해당 Fact의 `factKey`, `factValue` 검색은 유지한다.
 > - `인물` 유형과 캐릭터 자체 검색 결과는 제공하지 않는다. 캐릭터명은 각 설정의 소유주를 알려주는 표시 정보로만 사용한다.
 > - `valueJson`과 `normalizedValue`는 내부 병합·비교용 데이터이므로 목록과 사용자용 설정값에 노출하지 않는다. 사용자용 설정값은 `factValue`만 사용한다.
 > - `TIME`은 시간·사건의 구조화 방향이 다른 설정 유형과 다르므로 설정 검색에서 제외하고 타임라인 기능에서 별도로 다룬다.
@@ -400,7 +401,7 @@
 - 조회 API: `GET /api/v1/works/{workId}/character-facts/search`
 - 쿼리 파라미터: `q`, `factType`, `scope`, `page`, `size`
 - 현재 작품의 `CharacterFact`를 검색 조건에 맞게 조회한 페이지 응답
-- 검색어는 `factKey`, `factValue`를 대상으로 대소문자 구분 없이 부분 일치 검색
+- 검색어는 `displayName`, `factKey`, `factValue`를 대상으로 대소문자 구분 없이 부분 일치 검색
 - 목록의 각 결과는 아래 필드만 제공
   - `characterFactId`: `CharacterFact.id`
   - `factType`: `AGE` / `LEVEL` / `STAT` / `SKILL` / `ITEM` / `STATUS`

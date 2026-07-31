@@ -345,7 +345,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
           onChange={event => setDraftQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="설정 검색"
+          placeholder="설정명 또는 값 검색"
           style={{
             flex: 1,
             border: 'none',

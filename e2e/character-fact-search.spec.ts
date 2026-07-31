@@ -185,6 +185,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await expect(page.getByText('2 / 2 페이지', { exact: true })).toBeVisible();
 
   const input = page.getByRole('textbox', { name: '설정 검색' });
+  await expect(input).toHaveAttribute('placeholder', '설정명 또는 값 검색');
   const requestCountBeforeTyping = requests.length;
   await input.fill('회복');
   await page.waitForTimeout(150);
