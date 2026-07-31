@@ -57,7 +57,8 @@ function searchResult(id = factId) {
     characterFactId: id,
     factType: 'SKILL',
     factTypeLabel: '스킬',
-    factValue: id === missingFactId ? '사라진 기술' : '월광 검술',
+    displayName: id === missingFactId ? '사라진 기술' : '월광 검술',
+    factValue: id === missingFactId ? 'Lv.0' : 'Lv.3',
     isCurrent: id !== retryFactId,
     characterId,
     characterName: '아르켄',
@@ -73,7 +74,8 @@ function detail(id = factId, evidenceQuotes: string[] = []) {
     factKey: 'skill.moonlight_sword',
     factType: 'SKILL',
     factTypeLabel: '스킬',
-    factValue: '월광 검술',
+    displayName: '월광 검술',
+    factValue: 'Lv.3',
     isCurrent: true,
     effectiveFromEpisodeNo: 10,
     characterId,
@@ -175,6 +177,9 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   );
 
   await expect(page.getByTestId('character-fact-results')).toBeVisible();
+  const firstResult = page.getByTestId('character-fact-results').getByRole('button').first();
+  await expect(firstResult.getByText('월광 검술', { exact: true })).toBeVisible();
+  await expect(firstResult.getByText('Lv.3', { exact: true })).toBeVisible();
   await expect.poll(() => requests.some(request => request.q === '검술' && request.page === '1'))
     .toBe(true);
   await expect(page.getByText('2 / 2 페이지', { exact: true })).toBeVisible();
@@ -216,6 +221,11 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await page.getByTestId('character-fact-results').getByRole('button').first().click();
   const dialog = page.getByRole('dialog', { name: '설정 상세' });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('설정명', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('월광 검술', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Lv.3', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('설정 키', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText('skill.moonlight_sword', { exact: true })).toHaveCount(0);
   await expect(dialog.getByText('저장된 원문 근거가 없습니다.', { exact: true })).toBeVisible();
   expect(new URL(page.url()).searchParams.get('modal')).toBe('fact-detail');
   expect(new URL(page.url()).searchParams.get('factId')).toBe(factId);

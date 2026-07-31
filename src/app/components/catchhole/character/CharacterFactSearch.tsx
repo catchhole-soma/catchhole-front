@@ -442,7 +442,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                 type="button"
                 onClick={() => openDetail(result.characterFactId)}
                 style={{
-                  minHeight: 108,
+                  minHeight: 132,
                   padding: '16px 18px',
                   borderRadius: 9,
                   border: `1px solid ${C.border}`,
@@ -489,9 +489,27 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                   </span>
                   <ChevronRight size={16} color={C.t3} style={{ marginLeft: 'auto' }} />
                 </span>
-                <strong style={{ fontSize: 15, lineHeight: 1.35 }}>
-                  {result.factValue ?? '—'}
+                <strong style={{
+                  fontSize: 15,
+                  lineHeight: 1.35,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  width: '100%',
+                }}>
+                  {result.displayName ?? '설정명 없음'}
                 </strong>
+                <span style={{
+                  color: C.t2,
+                  fontSize: 13,
+                  lineHeight: 1.35,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  width: '100%',
+                }}>
+                  {result.factValue ?? '—'}
+                </span>
                 <span style={{ color: C.t2, fontSize: 12 }}>{sourceLabel(result)}</span>
               </button>
             ))}
@@ -645,47 +663,53 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
 
             {detail && !detailQuery.isPending && !detailQuery.isError && (
               <div style={{ padding: '24px 28px 28px', display: 'grid', gap: 18 }}>
-                <section>
-                  <div style={{ color: C.t2, fontSize: 12, fontWeight: 650, marginBottom: 8 }}>설정값</div>
-                  <div style={{
-                    padding: '16px 18px',
-                    borderRadius: 8,
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.t1,
-                    fontSize: 17,
-                    fontWeight: 700,
-                  }}>
-                    {detail.factValue ?? '—'}
+                <section style={{ display: 'grid', gap: 14 }}>
+                  <div>
+                    <div style={{ color: C.t2, fontSize: 12, fontWeight: 650, marginBottom: 8 }}>설정명</div>
+                    <div style={{
+                      padding: '14px 18px',
+                      borderRadius: 8,
+                      border: `1px solid ${C.border}`,
+                      background: C.bg,
+                      color: C.t1,
+                      fontSize: 15,
+                      fontWeight: 700,
+                    }}>
+                      {detail.displayName ?? '설정명 없음'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: C.t2, fontSize: 12, fontWeight: 650, marginBottom: 8 }}>설정값</div>
+                    <div style={{
+                      padding: '16px 18px',
+                      borderRadius: 8,
+                      border: `1px solid ${C.border}`,
+                      background: C.bg,
+                      color: C.t1,
+                      fontSize: 17,
+                      fontWeight: 700,
+                    }}>
+                      {detail.factValue ?? '—'}
+                    </div>
                   </div>
                 </section>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', background: C.bg }}>
-                  {[
-                    ['설정 키', detail.factKey ?? '—'],
-                    [
-                      '적용 시작 회차',
-                      detail.effectiveFromEpisodeNo == null
+                  <div style={{
+                    minHeight: 52,
+                    padding: '0 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 16,
+                  }}>
+                    <span style={{ color: C.t2, fontSize: 12 }}>적용 시작 회차</span>
+                    <strong style={{ color: C.t1, fontSize: 13, textAlign: 'right' }}>
+                      {detail.effectiveFromEpisodeNo == null
                         ? '적용 회차 정보 없음'
-                        : `${detail.effectiveFromEpisodeNo}화부터 적용`,
-                    ],
-                  ].map(([label, value], index) => (
-                    <div
-                      key={label}
-                      style={{
-                        minHeight: 52,
-                        padding: '0 16px',
-                        borderBottom: index === 0 ? `1px solid ${C.border}` : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                      }}
-                    >
-                      <span style={{ color: C.t2, fontSize: 12 }}>{label}</span>
-                      <strong style={{ color: C.t1, fontSize: 13, textAlign: 'right' }}>{value}</strong>
-                    </div>
-                  ))}
+                        : `${detail.effectiveFromEpisodeNo}화부터 적용`}
+                    </strong>
+                  </div>
                 </div>
 
                 <div style={{

@@ -2045,6 +2045,10 @@ export type CharacterFactDetailResponse = {
      */
     factKey?: string;
     /**
+     * 사용자용 설정명
+     */
+    displayName?: string;
+    /**
      * 사용자용 설정 표시값
      */
     factValue?: string | null;
@@ -2212,6 +2216,10 @@ export type CharacterFactSearchResponse = {
      * 설정 유형 한글 표시명
      */
     factTypeLabel?: string;
+    /**
+     * 사용자용 설정명
+     */
+    displayName?: string;
     /**
      * 사용자용 설정 표시값
      */
