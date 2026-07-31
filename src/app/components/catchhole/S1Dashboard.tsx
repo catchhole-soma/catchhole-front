@@ -20,6 +20,7 @@ import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
+import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
@@ -2596,232 +2597,6 @@ function TimelineView() {
   );
 }
 
-const SEARCH_DATA = [
-  // 캐릭터
-  { cat: '캐릭터', title: '수아',        sub: '눈 색깔 · 갈색',                          src: '1화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '강민준',      sub: '직업 · 수석검사',                         src: '3화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '이레나',      sub: '역할 · 라이벌/화해',                      src: '12화',  catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '하윤',        sub: '역할 · 절친',                             src: '2화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '최 검사',     sub: '직위 · 검사장',                           src: '5화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '수아 아버지', sub: '역할 · 핵심 범인 [스포일러]',             src: '—',     catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '이진혁 변호사', sub: '역할 · 이레나 측 변호인',               src: '67화',  catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '박 수사관',   sub: '역할 · 수사팀 베테랑 형사',               src: '20화',  catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '강민준',      sub: '약점 · 10년 전 사건 트라우마 [스포일러]', src: '—',     catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '수아',        sub: '자기기만 · "나는 감정에 흔들리지 않는다"',src: '—',     catColor: '#7C5CFC' },
-  // 아이템
-  { cat: '아이템', title: '증거 봉투',         sub: '소유 · 강민준',                       src: '47화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '법원 영장',          sub: '종류 · 서류',                         src: '89화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '검사 배지',          sub: '소유 · 수아',                         src: '1화',   catColor: '#F4A261' },
-  { cat: '아이템', title: '수사 노트',          sub: '소유 · 강민준',                       src: '15화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '핵심 USB',           sub: '등장 · 159화 충돌 감지',              src: '159화', catColor: '#F4A261' },
-  { cat: '아이템', title: '결정적 문자',        sub: '종류 · 디지털 메시지, 핵심 증거',     src: '159화', catColor: '#F4A261' },
-  { cat: '아이템', title: '빨간 볼펜',          sub: '소유 · 수아, 긴장 시 돌리는 습관',   src: '1화',   catColor: '#F4A261' },
-  { cat: '아이템', title: '공판 기록 파일',     sub: '내용 · 47화 증거 목록 전체',          src: '47화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '수아 아버지 유품',   sub: '의미 · 결말 복선 [스포일러]',         src: '—',     catColor: '#F4A261' },
-  { cat: '아이템', title: '포렌식 분석 보고서', sub: '내용 · 디지털 포렌식 결과물',         src: '55화',  catColor: '#F4A261' },
-  // 세계 규칙 — 수사 기법
-  { cat: '세계 규칙', title: '반대심문',      sub: '수사 기법 · 피의자 논리 파훼, 공판 핵심',  src: '89화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '증거 제출',     sub: '수사 기법 · 공판 개시 후 가능, 기한 엄수', src: '47화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '증인 심문',     sub: '수사 기법 · 수아 특기, 목격자 확보',       src: '47화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '현장 감식',     sub: '수사 기법 · 수사팀 현장 출동 필수',        src: '31화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '심리 압박 심문',sub: '수사 기법 · 강민준 전용, 위험 충돌',       src: '89화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '공판 개시',     sub: '수사 기법 · 검사 특권, 강민준',            src: '3화',   catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '알리바이 검증', sub: '수사 기법 · CCTV·포렌식 연계 파훼',        src: '89화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '탐문 수사',     sub: '수사 기법 · 현장 출동, 관계자 진술 확보',  src: '31화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '기각 신청',     sub: '수사 기법 · 이레나 변호사 특기, 절차 공략',src: '67화',  catColor: '#FF4D4D' },
-  // 세계 규칙 — 법규
-  { cat: '세계 규칙', title: '검사 사적 접촉 금지',  sub: '법규 · 위반 시 충돌 감지',               src: '3화',   catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '증거 제출 기한',        sub: '법규 · 공판 3일 전',                     src: '15화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '임용 전 검사 제한',     sub: '법규 · 독립 수사 권한 없음',             src: '123화', catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '수사 기밀 유지',        sub: '법규 · 위반 시 직무유기 해당',           src: '15화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '피의자 심문 녹취',      sub: '법규 · 전 과정 필수 녹음',               src: '31화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '공판 기일 변경 불가',   sub: '법규 · 천재지변 외 변경 불허',           src: '47화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '검사 겸직 금지',        sub: '법규 · 공직 외 영리활동 불가',           src: '—',     catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '검사장 특별 명령권',    sub: '법규 · 최 검사 권한, 예외 수사 승인',    src: '20화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '위법 수집 증거 배제',   sub: '법규 · 영장 없는 증거 전면 무효',        src: '123화', catColor: '#FF4D4D' },
-  // 마법/기술
-  { cat: '마법/기술', title: '디지털 포렌식',         sub: '기술 · 영장 필요, 48시간 소요',          src: '47화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: 'DNA 감식',              sub: '기술 · 국과수 의뢰, 14일 소요',          src: '55화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: 'CCTV 추적',             sub: '기술 · 30일 보존, 사각지대',             src: '31화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '해시값 무결성',         sub: '기술 · 포렌식 증거 위·변조 방지',        src: '55화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '포렌식 법적 약점',      sub: '기술 · 절차 위반 시 증거 전면 배제',     src: '159화', catColor: '#B48BFF' },
-  { cat: '마법/기술', title: 'DNA 루미놀 오탐',       sub: '기술 · 염소계 세제에도 반응, 오탐 주의', src: '55화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: 'CCTV 사각지대',         sub: '기술 · 지하 2층 복도 미설치 구간',       src: '—',     catColor: '#B48BFF' },
-  { cat: '마법/기술', title: 'DNA 오염 위험',         sub: '기술 · 이송 중 오염 시 결과 무효',       src: '55화',  catColor: '#B48BFF' },
-  // 장소
-  { cat: '장소', title: '3호 법정',              sub: '냉백색 조명, 서늘한 분위기',     src: '3화',   catColor: '#4BB8D9' },
-  { cat: '장소', title: '수사팀 회의실',         sub: '지하 2층, 출입카드 보안구역',    src: '20화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '을지로 오피스텔',       sub: '수아 거주지, 14층',              src: '7화',   catColor: '#4BB8D9' },
-  { cat: '마법/기술', title: '능력 거리/매체 제한 (설정오류 주의)', sub: '룰 · CCTV, 영상통화, 녹음본으로는 절대 색이 보이지 않음. 오직 육안 직시 반경 15m 이내', src: '설정집', catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '투명 매개체 반사 설정', sub: '룰 · 유리창이나 거울에 반사된 모습에서도 아우라가 보임 (37화 취조실 거울 트릭 활용)', src: '37화', catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '이종 언어(외국어) 거짓말 판정', sub: '룰 · 범인이 영어로 거짓말을 해도, 속마음과 발화 내용이 다르면 언어 무관하게 발동', src: '82화', catColor: '#B48BFF' },
-  { cat: '타임라인', title: '시력 저하 누적 데미지 타임라인', sub: '오류 방지 · 12화, 45화, 88화, 112화에서 한계치 이상 사용. 130화부터 안경 착용 시작', src: '130화', catColor: '#8E9196' },
-  { cat: '타임라인', title: '과거 7세 화재 사건 생존자 모순점', sub: '오류 방지 · 당시 3층에 있었다는 A의 증언과 구조대 기록이 안 맞음. 추후 최종보스 단서', src: '기획 노트', catColor: '#8E9196' },
-  { cat: '캐릭터', title: '강민준 (트라우마 및 총기 사용)', sub: '설정 · 과거 오발 사고로 인해 실탄 장전 및 총기 사용을 극도로 꺼림 (위기 상황 복선)', src: '설정집', catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '이레나 (눈치챈 시점 오류 주의)', sub: '오류 방지 · 이레나가 수아의 능력을 확신하는 건 142화. 그 전엔 단순 직감으로만 서술할 것', src: '142화', catColor: '#7C5CFC' },
-  { cat: '세계 규칙', title: '거짓말 탐지기 vs 수아의 능력', sub: '룰 · 탐지기는 자율신경계를, 수아는 의지를 읽음. 사이코패스는 탐지기를 통과해도 수아에겐 걸림', src: '22화', catColor: '#FF4D4D' },
-  { cat: '사회/문화', title: '수아의 자금출처/생활고', sub: '현실성 · 공판과 사적 수사를 병행하느라 만성 적자. 하윤의 카페 건물 옥탑방 세입자로 서술됨', src: '초반부', catColor: '#2D9CDB' },
-  { cat: '아이템', title: '선글라스/색안경의 효과', sub: '설정 · 물리적으로 붉은색을 차단해도 시각 신경에 맺히는 현상이라 눈을 감지 않는 한 보임', src: '설정집', catColor: '#F4A261' },
-  { cat: '마법/기술', title: '과장과 허풍에 대한 판정', sub: '룰 · 농담이나 명백한 허풍("나 방금 100그릇 먹음")에는 아우라가 연하게 나타남 (농도 차이 존재)', src: '설정집', catColor: '#B48BFF' },
-  { cat: '세계 규칙', title: '법정 내 특수 결계 (차단 장치)', sub: '오류 방지 · 이 세계관엔 마법 차단 장치가 없음. 현대 한국과 100% 동일한 물리법칙', src: '설정집', catColor: '#FF4D4D' },
-  { cat: '캐릭터', title: '최 검사장 (최종 보스 의혹)', sub: '떡밥 · 5화 회의 중 유일하게 수아의 시선을 피함. 그 이후 단 한 번도 수아와 1:1 대면을 안 함', src: '5화', catColor: '#7C5CFC' },
-  { cat: '역사', title: '구(舊) 중앙지검 폭발사건', sub: '배경 · 수아 부모님 화재 사건과 동일한 날짜(15년 전)에 발생한 미제 사건. 두 사건의 배후가 같음', src: '기획 노트', catColor: '#E67E22' },
-  { cat: '아이템', title: '강민준의 만년필', sub: '아이템 · 거짓말을 한 용의자 취조 시 책상을 딱딱 치는 습관이 있는데 항상 이 만년필을 씀', src: '공통', catColor: '#F4A261' },
-  { cat: '마법/기술', title: '능력 이식/탈취 가능성 (떡밥)', sub: '떡밥 · 신흥 사이비 종교 에피소드에서 "보는 눈"을 뽑아 이식하려는 광신도 등장 예정', src: '시즌2', catColor: '#B48BFF' },
-  { cat: '타임라인', title: '하윤 카페 아르바이트생 변동', sub: '오류 방지 · 40화에서 알바생 교체됨. 45화에서 전 알바생 이름 부르지 않도록 주의', src: '40화', catColor: '#8E9196' },
-  { cat: '사회/문화', title: '수사팀 내 커피 취향', sub: '설정 · 수아: 얼죽아 / 민준: 에스프레소(설탕 2개) / 이레나: 라떼 (사소한 대화 디테일용)', src: '설정집', catColor: '#2D9CDB' },
-  { cat: '세계 규칙', title: '침묵에 대한 판정', sub: '룰 · 거짓말을 하지 않고 완전히 입을 다물고 있으면 아우라가 발생하지 않음 (능력의 최고 맹점)', src: '99화', catColor: '#FF4D4D' },
-  { cat: '캐릭터', title: '수사팀 막내(김형사)', sub: '떡밥 · 어리버리한 성격이나, 77화에서 범인의 도주로를 실수인 척 열어줌 (내통자 의혹)', src: '77화', catColor: '#7C5CFC' },
-  { cat: '장소', title: '검찰청 12층',           sub: '강민준 사무실, 한강 조망',       src: '12화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '을지로 카페',           sub: '수아·강민준 단골 스페셜티',      src: '22화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '서울 구치소',           sub: '피의자 면담 장소',               src: '89화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '서울대병원 응급실',     sub: '주요 목격자 이송',               src: '55화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '서울대 법전원',         sub: '수아 모교, 회상 장면',           src: '—',     catColor: '#4BB8D9' },
-  // 판타지 — 캐릭터
-  { cat: '캐릭터', title: '아르켄',    sub: '역할 · 주인공, 실낙원 출신 마법사',              src: '1화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '세리아',    sub: '역할 · 조력자, 치유 성녀',                       src: '3화',   catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '카드론',    sub: '역할 · 라이벌, 흑마법 계승자',                   src: '12화',  catColor: '#7C5CFC' },
-  { cat: '캐릭터', title: '나이아',    sub: '역할 · 흑막, 고대 마신 빙의 [스포일러]',         src: '—',     catColor: '#7C5CFC' },
-  // 판타지 — 아이템
-  { cat: '아이템', title: '혼돈의 서',    sub: '소유 · 아르켄, 금지 마법 전부 기록',          src: '1화',   catColor: '#F4A261' },
-  { cat: '아이템', title: '마나 결정체',  sub: '효과 · 마나 200 즉시 회복, 1회용',            src: '15화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '봉인 반지',    sub: '효과 · 대상 마법력 90% 봉쇄',                 src: '47화',  catColor: '#F4A261' },
-  { cat: '아이템', title: '공허의 파편',  sub: '등장 · 마신 강화 핵심 아이템 [스포일러]',     src: '—',     catColor: '#F4A261' },
-  // 판타지 — 마법/기술 (스킬)
-  { cat: '마법/기술', title: '섬광연환',  sub: '광역 광속 타격 · 마나 120 · 암속성 면역 유닛 무효',     src: '5화',   catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '흑염폭',    sub: '단일 폭발 · 마나 85 · 화염+암흑 복합 속성',            src: '15화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '빙결진',    sub: '광역 이동 불가 5초 · 마나 150 · 불 속성에 해제',        src: '22화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '공간 균열', sub: '차원 슬래시 · 마나 200 · 결계 내 사용 불가',            src: '31화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '정령 소환', sub: '계약 정령 최대 3체 · 마나 175 · 계약자 사망 시 해제',   src: '35화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '신성 방패', sub: '피해 흡수 500 · 마나 100/초 유지 · 암속성 2배 흡수',    src: '42화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '암흑 침식', sub: '마력 지속 감소 · 마나 60 · 신성계 유닛 면역',           src: '55화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '마력 압축', sub: '다음 마법 위력 3배 · 마나 50 · 연속 사용 불가',         src: '67화',  catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '시간 역류', sub: '10초 전 상태 복구 · 마나 500 · [스포일러]',             src: '—',     catColor: '#B48BFF' },
-  { cat: '마법/기술', title: '혼돈 해방', sub: '봉인 마법 전체 해제 · 마나 전량 소모 · [스포일러]',     src: '—',     catColor: '#B48BFF' },
-  // 판타지 — 세계 규칙 (마법 법칙)
-  { cat: '세계 규칙', title: '마나 고갈 시 행동 불가', sub: '법규 · 회복 전 마법 사용 불가, 10분 휴식 필요',     src: '3화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '속성 상쇄 원칙',         sub: '법규 · 반대 속성 마법 충돌 시 상쇄',               src: '5화',  catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '계약 마법 해제 조건',    sub: '법규 · 계약자 사망 시 정령·소환수 자동 해제',      src: '22화', catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '금지 마법 목록',         sub: '법규 · 시간·차원·부활 계열 사용 시 처형',          src: '31화', catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '마법 등록제',            sub: '법규 · S등급 이상 마법 국가 신고 필수',            src: '—',    catColor: '#FF4D4D' },
-  { cat: '세계 규칙', title: '봉인된 마신의 저주',     sub: '법규 · 마신 마법 사용 시 부작용 [스포일러]',        src: '—',    catColor: '#FF4D4D' },
-  // 판타지 — 장소
-  { cat: '장소', title: '마법사 탑',    sub: '7층 구조, 아르켄 소속 마법사 길드',             src: '1화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '금단의 숲',    sub: '고레벨 마수 서식, 출입 금지 구역',              src: '22화', catColor: '#4BB8D9' },
-  { cat: '장소', title: '왕도 카엘론',  sub: '대륙 중심 도시, 마법 의회 소재지',              src: '5화',  catColor: '#4BB8D9' },
-  { cat: '장소', title: '공허의 균열',  sub: '마신 봉인 장소, 진입 시 즉사 위험 [스포일러]',  src: '—',    catColor: '#4BB8D9' },
-  // 타임라인
-  { cat: '타임라인', title: '수아 법전원 시절',    sub: '과거 — 강민준과 첫 인지 (회상)',     src: '—',     catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '강민준 첫 등장',      sub: '3화 냉혹한 수석검사 도입',           src: '3화',   catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '수아 첫 법정 출석',   sub: '3화 검사 자격 정지 위기',            src: '3화',   catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '이레나 첫 등장',      sub: '12화 라이벌 등장, 긴장 고조',        src: '12화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '첫 법정 대결',        sub: '15화 수아 vs 강민준 격돌',           src: '15화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '핵심 증거 발견',      sub: '47화 USB 단서 최초 등장',            src: '47화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '강민준 과거 폭로',    sub: '89화 10년 전 사건 드러남',           src: '89화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '이레나 갈등 심화',    sub: '89화 대립 극한',                     src: '89화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '이레나 화해',         sub: '142화 화해 완료',                    src: '142화', catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '159화 클라이맥스',    sub: '증거 충돌 최고조, 오류 5건 동시 감지', src: '159화', catColor: '#FF4D4D' },
-  // 판타지 — 타임라인
-  { cat: '타임라인', title: '마신 봉인 해제 사건', sub: '1화 세계관 위기 발단',                    src: '1화',   catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '아르켄 정체 폭로',    sub: '47화 실낙원 출신 밝혀짐',                 src: '47화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '세리아 각성',          sub: '89화 신성력 최대 개방, 마나 한계 돌파',   src: '89화',  catColor: '#FF4D4D' },
-  { cat: '타임라인', title: '나이아 흑막 드러남',   sub: '142화 마신 빙의 사실 폭로 [스포일러]',    src: '142화', catColor: '#FF4D4D' },
-];
-
-const SEARCH_CATS = ['전체', '캐릭터', '아이템', '마법/기술', '장소', '세계 규칙', '사회/문화', '역사', '타임라인'] as const;
-
-function SearchView() {
-  const [query, setQuery] = useState('');
-  const [cat, setCat] = useState<string>('전체');
-  const [focused, setFocused] = useState(false);
-
-  const results = SEARCH_DATA.filter(d => {
-    const matchCat = cat === '전체' || d.cat === cat;
-    const matchQ = !query.trim() || d.title.includes(query) || d.sub.includes(query);
-    return matchCat && matchQ;
-  });
-
-  return (
-    <div>
-      {/* 검색창 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        background: C.bg, border: `1px solid ${focused ? C.primary : C.border}`,
-        borderRadius: 8, padding: '0 14px', height: 44, marginBottom: 12,
-        transition: 'border-color 0.15s',
-      }}>
-        <Search size={15} color={C.t3} style={{ flexShrink: 0 }} />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder="캐릭터, 아이템, 스킬, 설정 항목 검색..."
-          style={{
-            flex: 1, background: 'none', border: 'none', outline: 'none',
-            color: C.t1, fontSize: 14, fontFamily: 'inherit',
-          }}
-        />
-        {query && (
-          <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 2 }}>
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* 카테고리 필터 */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {SEARCH_CATS.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{
-            height: 28, padding: '0 12px', borderRadius: 14, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12, transition: 'all 0.13s',
-            background: cat === c ? C.primary + '22' : 'transparent',
-            border: `1px solid ${cat === c ? C.primary : C.border}`,
-            color: cat === c ? C.primary : C.t2,
-            fontWeight: cat === c ? 600 : 400,
-          }}>{c}</button>
-        ))}
-      </div>
-
-      {/* 결과 수 */}
-      <div style={{ color: C.t3, fontSize: 12, marginBottom: 10 }}>
-        검색 결과 {results.length}개
-      </div>
-
-      {/* 결과 카드 그리드 */}
-      {results.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {results.map((r, i) => (
-            <div key={i} style={{
-              background: C.surface, borderRadius: 6, border: `1px solid ${C.border}`,
-              padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
-              cursor: 'pointer', transition: 'border-color 0.13s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = '#3A3A4A')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
-            >
-              {/* 카테고리 뱃지 */}
-              <span style={{
-                flexShrink: 0, padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 600,
-                background: r.catColor + '22', border: `1px solid ${r.catColor}55`, color: r.catColor,
-              }}>{r.cat}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: C.t1, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{r.title}</div>
-                <div style={{ color: C.t3, fontSize: 11 }}>{r.sub}</div>
-              </div>
-              <span style={{ color: C.t3, fontSize: 11, flexShrink: 0 }}>{r.src}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: C.t3, fontSize: 14 }}>
-          검색 결과가 없습니다
-        </div>
-      )}
-    </div>
-  );
-}
-
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
@@ -3402,7 +3177,10 @@ export default function S1Dashboard() {
                     {settingTab === 'search' && (
                       <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
                         <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>AI가 추출한 전체 설정 DB에서 키워드로 빠르게 검색합니다. 설정 오류를 방지하거나 떡밥을 확인할 때 유용합니다.</div>
-                        <SearchView />
+                        <CharacterFactSearch
+                          workId={effectiveWorkId}
+                          enabled={episodeApiEnabled}
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>

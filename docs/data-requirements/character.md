@@ -315,12 +315,11 @@
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
 > **MVP 범위 메모**
-> - 서버 키워드 부분 일치 검색과 페이지네이션을 지원한다.
-> - 검색 대상은 확정 과정에서 생성된 `CharacterFact.factKey`와 `CharacterFact.factValue`이다.
+> - 서버는 `CharacterFact.factKey`와 `CharacterFact.factValue`에 대소문자 무시 `LIKE` 부분 일치를 적용하고 페이지네이션한다.
 > - `인물` 유형과 캐릭터 자체 검색 결과는 제공하지 않는다. 캐릭터명은 각 설정의 소유주를 알려주는 표시 정보로만 사용한다.
 > - `valueJson`과 `normalizedValue`는 내부 병합·비교용 데이터이므로 목록과 사용자용 설정값에 노출하지 않는다. 사용자용 설정값은 `factValue`만 사용한다.
 > - `TIME`은 시간·사건의 구조화 방향이 다른 설정 유형과 다르므로 설정 검색에서 제외하고 타임라인 기능에서 별도로 다룬다.
-> - 장소·세계관·타임라인·관계·기타 검색은 관련 데이터 구조화 기능과 함께 MVP 이후 지원한다.
+> - 현재 엔드포인트는 CharacterFact 전용 MVP 검색이다. 장소·세계관·타임라인·관계·기타 모델이 준비되면 결과 유형과 식별자를 구분하는 통합 설정 검색으로 확장한다.
 > - 같은 이름이나 값을 가진 설정도 합치지 않고 `characterFactId`별로 각각 표시한다.
 
 > **필터·정렬 정책**
@@ -396,7 +395,7 @@
 **5. 화면 데이터 요구사항**
 
 **5-1. BE → FE 제공 데이터 요구사항 — 목록 요약 응답**
-- 신설 조회 API 제안: `GET /api/v1/works/{workId}/character-facts/search`
+- 조회 API: `GET /api/v1/works/{workId}/character-facts/search`
 - 쿼리 파라미터: `q`, `factType`, `scope`, `page`, `size`
 - 현재 작품의 `CharacterFact`를 검색 조건에 맞게 조회한 페이지 응답
 - 검색어는 `factKey`, `factValue`를 대상으로 대소문자 구분 없이 부분 일치 검색
@@ -412,7 +411,7 @@
   - `sourceEpisodeNo`: 설정이 추출된 출처 회차 번호, nullable
   - `effectiveFromEpisodeNo`: 설정 적용 시작 회차 번호, nullable
 - 목록 응답에는 `valueJson`, `normalizedValue`, `evidenceSpans`, `rawAiResultJson`, 원문 인용문을 포함하지 않는다.
-- 페이지 메타데이터로 `page`(1부터 시작), `size`, `totalElements`, `totalPages`, `hasNext`를 제공한다.
+- 페이지 메타데이터로 `page`(0부터 시작), `size`, `totalElements`, `totalPages`, `hasNext`를 제공한다. 화면 URL의 1-based `page`는 API 요청 시 1을 빼고, 응답 페이지를 URL에 반영할 때는 1을 더한다.
 - 동일한 `factValue`라도 `characterFactId`가 다르면 별도 결과로 반환한다.
 
 **5-2. FE → BE 전달 데이터 요구사항**
@@ -420,7 +419,7 @@
 - `q`: 검색어. 빈 문자열이면 선택한 필터 범위 전체 조회
 - `factType`: `ALL` / `AGE` / `LEVEL` / `STAT` / `SKILL` / `ITEM` / `STATUS`
 - `scope`: `ALL` / `CURRENT` / `HISTORICAL`
-- `page`: 1부터 시작하는 페이지 번호
+- `page`: API에서는 0부터 시작하는 페이지 번호. 화면 URL의 1-based `page`를 변환하여 전달
 - `size`: MVP 고정값 `20`
 - 검색 결과 상세 조회 시 선택한 `characterFactId`
 
@@ -442,8 +441,8 @@
 > **MVP 표시 정책**
 > - 현재 설정과 이전 설정 모두 같은 상세 컴포넌트를 사용하고 `isCurrent` 배지만 다르게 표시한다.
 > - 설정값은 `factValue`만 표시한다. `valueJson`, `normalizedValue`, `rawAiResultJson`은 사용자에게 노출하지 않는다.
-> - `CharacterFact`에서 원본 `SettingCandidate`로 이동할 수 있도록 `character_facts.source_candidate_id` nullable 외래키를 추가한다.
-> - AI 설정 후보를 확정하여 `CharacterFact`를 생성할 때 `source_candidate_id`에 해당 `SettingCandidate.id`를 저장한다. 기존 데이터 또는 이후 수동 생성된 설정은 `null`을 허용한다.
+> - `CharacterFact`에서 원본 `SettingCandidate`로 이동할 때 기존 `character_facts.setting_candidate_id` nullable 외래키를 사용한다.
+> - AI 설정 후보를 확정하여 `CharacterFact`를 생성할 때 `setting_candidate_id`에 해당 `SettingCandidate.id`를 저장한다. 기존 데이터 또는 이후 수동 생성된 설정은 `null`을 허용한다.
 > - 상세 응답은 `SettingCandidate.evidenceSpans` 전체 JSON을 그대로 전달하지 않고, 화면에 필요한 `quote`만 `evidenceQuotes` 문자열 목록으로 변환하여 제공한다.
 > - MVP에서는 원문 위치 하이라이트와 청크 원문 전체 조회를 지원하지 않는다.
 
@@ -492,7 +491,7 @@
 **5. 화면 데이터 요구사항**
 
 **5-1. BE → FE 제공 데이터 요구사항 — 상세 응답**
-- 신설 조회 API: `GET /api/v1/works/{workId}/character-facts/{characterFactId}`
+- 조회 API: `GET /api/v1/works/{workId}/character-facts/{characterFactId}`
 - 작품 소유권과 해당 `CharacterFact`의 작품 소속을 확인한 뒤 아래 필드 제공
   - `characterFactId`
   - `factType`, `factTypeLabel`
@@ -513,10 +512,10 @@
 - 조회 대상 설정의 `characterFactId`
 
 **5-3. BE 저장 구조 요구사항**
-- `character_facts.source_candidate_id UUID NULL` 컬럼과 `setting_candidates.id` 외래키 추가
-- 설정 후보 확정 후 `CharacterFact` 생성 시 `source_candidate_id` 저장
-- 설정 후보가 삭제되더라도 확정 설정 이력이 함께 삭제되지 않도록 외래키 삭제 정책은 `ON DELETE SET NULL`
-- 기존 `CharacterFact`는 마이그레이션 시 `source_candidate_id=null`로 유지
+- 기존 V3 마이그레이션의 `character_facts.setting_candidate_id UUID NULL` 컬럼과 `setting_candidates.id` 외래키를 사용하며 신규 마이그레이션은 만들지 않는다.
+- 설정 후보 확정 후 `CharacterFact` 생성 시 `setting_candidate_id` 저장
+- `SettingCandidate`와 근거는 hard delete하지 않으며 기존 외래키에는 cascade 삭제를 적용하지 않는다.
+- 출처 후보가 없는 기존 `CharacterFact`는 `setting_candidate_id=null`로 유지
 
 **6. BE와 협의할 범위·상태값**
 - 없음
@@ -564,7 +563,7 @@
 > - 과거 설정 이력은 이 모달에 표시하지 않고 [설정DB 검색 탭](#설정db-검색-탭)과 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)에서 조회한다.
 > - 수정은 현재 설정 전체를 한 번에 편집하고 저장하는 방식으로 제공한다.
 > - 화면의 `삭제`는 DB 행과 관련 이력을 제거하는 hard delete가 아니라 캐릭터 상태를 `ARCHIVED`로 바꾸는 soft delete이다.
-> - 일반 원문 근거 패널은 MVP 전체 범위에 포함하지만 현재 캐릭터 조회·수정·보관 PR에서는 구현하지 않는다. 문서 아이콘은 후속 PR 안내만 표시하며, CharacterFact·원문 근거 조회 API와 패널은 다음 PR에서 연결한다.
+> - `CharacterFact` 검색·상세 API와 설정DB 검색 상세 모달은 구현되어 있다. 캐릭터 상세의 문서 아이콘에서 같은 상세 API를 여는 2열 원문 근거 패널은 아직 연결하지 않았으므로 해당 아이콘은 후속 안내만 표시한다.
 > - 현재 설정 항목 선택으로 `CharacterFact` 상세를 열고 해당 Fact만 수정하는 기능은 설정 후보 확정 흐름을 완료한 뒤 후속으로 구현한다.
 
 > **현재 설정 표시 정책**
@@ -735,7 +734,7 @@
 
 **5-2. FE → BE 전달 데이터 요구사항**
 - 상세 조회 대상 작품의 `workId`와 캐릭터의 `characterId`
-- 후속 원문 근거 조회 PR에서 선택한 현재 설정의 `characterFactId`
+- 캐릭터 상세의 후속 원문 근거 패널에서 선택할 현재 설정의 `characterFactId`
 - 수정 저장 시 다음 데이터를 하나의 요청으로 전달
   - 캐릭터의 `characterId`
   - 수정된 이름·역할·현재 나이·현재 레벨·첫 등장 회차
@@ -746,12 +745,12 @@
 - 보관함 조회 시 작품의 `workId`, 0부터 시작하는 `page`, 고정 `size=9`를 전달한다.
 - 복구 시 작품의 `workId`와 보관된 캐릭터의 `characterId`를 전달한다.
 
-**5-3. 후속 구현 요구사항 — CharacterFact 상세·단건 수정**
-- 설정 후보 확정·캐릭터 연결 흐름을 먼저 완료한 뒤 캐릭터 상세의 각 현재 설정 항목을 `characterFactId` 기반의 Fact 상세 진입점으로 확장한다.
-- 항목 선택 시 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)의 Fact 상세 표현을 재사용해 `factType`, `factKey`, `factValue`, 구조화된 세부 속성, 현재 여부, 출처 회차와 원문 근거를 조회한다.
+**5-3. 후속 구현 요구사항 — 캐릭터 상세의 CharacterFact 진입·단건 수정**
+- 구현된 CharacterFact 상세 조회를 재사용해 캐릭터 상세의 각 현재 설정 항목을 `characterFactId` 기반의 Fact 상세 진입점으로 확장한다.
+- 항목 선택 시 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)의 Fact 상세 표현을 재사용해 `factType`, `factKey`, `factValue`, 현재 여부, 출처 회차와 저장된 인용문을 조회한다. 구조화된 세부 속성과 원문 전체는 현재 상세 API 범위가 아니다.
 - Fact 단건 수정은 현재 캐릭터 전체 설정을 목표 상태로 보내는 API와 분리하여, 오래된 화면 데이터가 수정하지 않은 다른 설정을 덮어쓰지 않게 한다.
 - 수정 시 기존 `CharacterFact` 행의 값과 근거를 덮어쓰지 않는다. 기존 current Fact를 historical로 전환하고 출처 없는 새 manual Fact를 current로 생성한 뒤 캐릭터 snapshot을 전체 current Fact로 다시 조립한다.
-- Fact 상세·단건 수정이 구현되기 전에는 캐릭터 현재 설정 요약에서 `properties`를 펼치거나 항목 전체를 Fact 상세 링크처럼 표시하지 않는다.
+- 캐릭터 상세의 Fact 진입과 단건 수정이 구현되기 전에는 현재 설정 요약에서 `properties`를 펼치거나 항목 전체를 Fact 상세 링크처럼 표시하지 않는다.
 
 **5-4. 프로필 설정 계약**
 - Backend는 `CharacterFactType.PROFILE`과 전역 `profile.*` schema를 제공한다.

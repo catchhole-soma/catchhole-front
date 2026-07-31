@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, restoreCharacter, retryAnalysisJob, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
+import { claimAnalysisJob, completeAnalysisJob, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacters, getEpisode, getEpisodes, getMe, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, replaceEpisodeFile, restoreCharacter, retryAnalysisJob, searchCharacterFacts, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -159,7 +159,7 @@ export const confirmSettingCandidateMutationKey = (options?: Partial<Options<Con
 /**
  * 설정 후보 확정
  *
- * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입과 merge policy를 검증합니다. UNRESOLVED 캐릭터 후보는 같은 이름의 활성 캐릭터를 재사용하거나 새로 생성하고, 같은 이름의 검토 대기 미해소 후보도 해당 캐릭터에 연결합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
+ * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입과 merge policy를 검증합니다. UNRESOLVED 캐릭터 후보는 같은 이름의 활성 캐릭터를 재사용하거나 새로 생성하고, 확정 후보와 같은 이름의 검토 대기 미해소 후보를 기존 또는 신규 연결 상태로 함께 갱신합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
  */
 export const confirmSettingCandidateMutation = (options?: Partial<Options<ConfirmSettingCandidateData>>): UseMutationOptions<ConfirmSettingCandidateResponse, ConfirmSettingCandidateError, Options<ConfirmSettingCandidateData>> => {
     const mutationOptions: UseMutationOptions<ConfirmSettingCandidateResponse, ConfirmSettingCandidateError, Options<ConfirmSettingCandidateData>> = {
@@ -1059,6 +1059,78 @@ export const getArchivedCharactersInfiniteOptions = (options: Options<GetArchive
             return data;
         },
         queryKey: getArchivedCharactersInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getCharacterFactQueryKey = (options: Options<GetCharacterFactData>) => createQueryKey('getCharacterFact', options);
+
+/**
+ * 설정DB CharacterFact 상세 조회
+ *
+ * 본인 작품의 ACTIVE 캐릭터 Fact와 연결된 SettingCandidate의 저장된 근거 인용문을 조회합니다.
+ */
+export const getCharacterFactOptions = (options: Options<GetCharacterFactData>) => queryOptions<GetCharacterFactResponse, GetCharacterFactError, GetCharacterFactResponse, ReturnType<typeof getCharacterFactQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCharacterFact({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCharacterFactQueryKey(options)
+});
+
+export const searchCharacterFactsQueryKey = (options: Options<SearchCharacterFactsData>) => createQueryKey('searchCharacterFacts', options);
+
+/**
+ * 설정DB CharacterFact 검색
+ *
+ * MVP에서는 본인 작품의 ACTIVE 캐릭터 Fact를 키·표시값의 대소문자 무시 LIKE 부분 일치로 검색합니다. 현재 설정, 적용 회차, 생성 시각, Fact ID 순서로 고정 정렬합니다. 장소·세계관·타임라인·관계 등 다른 설정 범위를 포함하는 통합 검색은 후속 범위입니다.
+ */
+export const searchCharacterFactsOptions = (options: Options<SearchCharacterFactsData>) => queryOptions<SearchCharacterFactsResponse, SearchCharacterFactsError, SearchCharacterFactsResponse, ReturnType<typeof searchCharacterFactsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await searchCharacterFacts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: searchCharacterFactsQueryKey(options)
+});
+
+export const searchCharacterFactsInfiniteQueryKey = (options: Options<SearchCharacterFactsData>): QueryKey<Options<SearchCharacterFactsData>> => createQueryKey('searchCharacterFacts', options, true);
+
+/**
+ * 설정DB CharacterFact 검색
+ *
+ * MVP에서는 본인 작품의 ACTIVE 캐릭터 Fact를 키·표시값의 대소문자 무시 LIKE 부분 일치로 검색합니다. 현재 설정, 적용 회차, 생성 시각, Fact ID 순서로 고정 정렬합니다. 장소·세계관·타임라인·관계 등 다른 설정 범위를 포함하는 통합 검색은 후속 범위입니다.
+ */
+export const searchCharacterFactsInfiniteOptions = (options: Options<SearchCharacterFactsData>) => {
+    const opts = infiniteQueryOptions<SearchCharacterFactsResponse, SearchCharacterFactsError, InfiniteData<SearchCharacterFactsResponse>, QueryKey<Options<SearchCharacterFactsData>>, number | Pick<QueryKey<Options<SearchCharacterFactsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<SearchCharacterFactsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await searchCharacterFacts({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: searchCharacterFactsInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
