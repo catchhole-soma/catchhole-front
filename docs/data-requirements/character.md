@@ -315,7 +315,8 @@
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
 > **MVP 범위 메모**
-> - 서버는 `CharacterFact.factKey`와 `CharacterFact.factValue`에 대소문자 무시 `LIKE` 부분 일치를 적용하고 페이지네이션한다.
+> - 서버는 사용자용 `displayName`, 내부 `factKey`, `factValue`를 검색하고 페이지네이션한다. exact 표시명은 schema key로 역매핑하고 동적 설정명의 공백은 key의 underscore와 같은 구분자로 처리한다.
+> - 레거시 `manual_*` Fact의 `valueJson.name` 검색은 MVP 범위에서 제외하고 해당 Fact의 `factKey`, `factValue` 검색은 유지한다.
 > - `인물` 유형과 캐릭터 자체 검색 결과는 제공하지 않는다. 캐릭터명은 각 설정의 소유주를 알려주는 표시 정보로만 사용한다.
 > - `valueJson`과 `normalizedValue`는 내부 병합·비교용 데이터이므로 목록과 사용자용 설정값에 노출하지 않는다. 사용자용 설정값은 `factValue`만 사용한다.
 > - `TIME`은 시간·사건의 구조화 방향이 다른 설정 유형과 다르므로 설정 검색에서 제외하고 타임라인 기능에서 별도로 다룬다.
@@ -333,8 +334,9 @@
 
 > **검색 결과 카드 텍스트 정책**
 > - 1행: 설정 유형 한글 표시명 + `현재 설정` 또는 `이전 설정` 배지
-> - 2행: `factValue`. 값이 없으면 `—`
-> - 3행: `{characterName} · {sourceEpisodeNo}화에서 확인`. 출처 회차가 없으면 `{characterName} · 출처 회차 없음`
+> - 2행: 사용자용 설정명 `displayName`. 값이 없으면 `설정명 없음`
+> - 3행: `factValue`. 값이 없으면 `—`
+> - 4행: `{characterName} · {sourceEpisodeNo}화에서 확인`. 출처 회차가 없으면 `{characterName} · 출처 회차 없음`
 > - 기술 키인 `factKey`와 JSON 원문은 카드에 표시하지 않는다.
 
 **1. 화면에 표시할 데이터**
@@ -355,6 +357,7 @@
 - 페이지네이션된 검색 결과 카드
   - 설정 유형
   - 현재 설정·이전 설정 구분
+  - 사용자용 설정명(`displayName`)
   - 사용자용 설정값(`factValue`)
   - 해당 설정을 소유한 캐릭터명
   - 설정이 원문에서 확인된 출처 회차 번호
@@ -398,11 +401,12 @@
 - 조회 API: `GET /api/v1/works/{workId}/character-facts/search`
 - 쿼리 파라미터: `q`, `factType`, `scope`, `page`, `size`
 - 현재 작품의 `CharacterFact`를 검색 조건에 맞게 조회한 페이지 응답
-- 검색어는 `factKey`, `factValue`를 대상으로 대소문자 구분 없이 부분 일치 검색
+- 검색어는 `displayName`, `factKey`, `factValue`를 대상으로 대소문자 구분 없이 부분 일치 검색
 - 목록의 각 결과는 아래 필드만 제공
   - `characterFactId`: `CharacterFact.id`
   - `factType`: `AGE` / `LEVEL` / `STAT` / `SKILL` / `ITEM` / `STATUS`
   - `factTypeLabel`: `나이` / `레벨` / `스탯` / `스킬` / `아이템` / `상태`
+  - `displayName`: 사용자에게 표시할 설정명. exact schema는 registry 표시명, pattern은 정규화한 key suffix, custom은 `valueJson.name` 후 key suffix 순으로 결정
   - `factValue`: 사용자에게 표시할 설정값, nullable
   - `isCurrent`: 현재 설정 여부
   - `characterId`: 설정 소유 캐릭터 식별자
@@ -440,6 +444,8 @@
 
 > **MVP 표시 정책**
 > - 현재 설정과 이전 설정 모두 같은 상세 컴포넌트를 사용하고 `isCurrent` 배지만 다르게 표시한다.
+> - 설정 유형은 `factTypeLabel`, 설정명은 `displayName`, 설정값은 `factValue`로 구분한다.
+> - 내부 식별자인 `factKey`는 응답 계약에 유지하되 사용자 화면에는 표시하지 않는다.
 > - 설정값은 `factValue`만 표시한다. `valueJson`, `normalizedValue`, `rawAiResultJson`은 사용자에게 노출하지 않는다.
 > - `CharacterFact`에서 원본 `SettingCandidate`로 이동할 때 기존 `character_facts.setting_candidate_id` nullable 외래키를 사용한다.
 > - AI 설정 후보를 확정하여 `CharacterFact`를 생성할 때 `setting_candidate_id`에 해당 `SettingCandidate.id`를 저장한다. 기존 데이터 또는 이후 수동 생성된 설정은 `null`을 허용한다.
@@ -450,8 +456,8 @@
 - 모달 제목: 설정 유형 한글 표시명
 - 현재 상태 배지: `현재 설정` 또는 `이전 설정`
 - 설정 정보
+  - 사용자용 설정명(`displayName`)
   - 사용자용 설정값(`factValue`)
-  - 내부 설정 키(`factKey`)
   - 설정 적용 시작 회차(`effectiveFromEpisodeNo`)
 - 소유 캐릭터 정보
   - 캐릭터명
@@ -462,8 +468,8 @@
 - 닫기 버튼
 
 > **상세 화면 텍스트 정책**
+> - 설정명: `displayName`이 없으면 `설정명 없음`
 > - 설정값: `factValue`가 없으면 `—`
-> - 설정 키: `factKey`를 그대로 표시하되 `설정 키`라는 보조 라벨을 붙인다.
 > - 적용 시작 회차: 값이 있으면 `{effectiveFromEpisodeNo}화부터 적용`, 없으면 `적용 회차 정보 없음`
 > - 원문 근거 제목: 값이 있으면 `{sourceEpisodeNo}화에서 확인된 문장`, 출처 회차가 없으면 `출처 회차 없음`
 > - 인용문은 각각 따옴표가 포함된 별도 블록으로 표시한다.
@@ -495,7 +501,8 @@
 - 작품 소유권과 해당 `CharacterFact`의 작품 소속을 확인한 뒤 아래 필드 제공
   - `characterFactId`
   - `factType`, `factTypeLabel`
-  - `factKey`
+  - `factKey`: 내부 식별·호환용이며 화면에는 노출하지 않음
+  - `displayName`: 사용자용 설정명
   - `factValue`, nullable
   - `isCurrent`
   - `effectiveFromEpisodeNo`, nullable
