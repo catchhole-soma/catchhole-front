@@ -45,9 +45,11 @@ interface Props {
   activeNav?: NavId;
   onNavChange?: (nav: NavId) => void;
   onComingSoon?: (feature: string) => void;
+  onClose?: () => void;
+  className?: string;
 }
 
-export function AppSidebar({ activeNav, onNavChange, onComingSoon }: Props) {
+export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, className }: Props) {
   const navigate = useAppNavigate();
   const { selectedWork, selectedWorkInfo } = useAppContext();
   const workInfo = selectedWorkInfo?.id === selectedWork
@@ -56,10 +58,11 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon }: Props) {
 
   const nav = (id: NavId) => {
     onNavChange?.(id);
+    onClose?.();
   };
 
   return (
-    <div style={{
+    <div className={`app-sidebar ${className ?? ''}`.trim()} style={{
       width: 220, background: C.bg, borderRight: `1px solid ${C.border}`,
       padding: '16px 0', display: 'flex', flexDirection: 'column', flexShrink: 0,
     }}>
@@ -75,7 +78,7 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon }: Props) {
           </div>
           <div style={{ color: C.t3, fontSize: 11 }}>{workInfo.genre}</div>
         </div>
-        <button onClick={() => navigate('/works', 'push-left')} style={{
+        <button onClick={() => { onClose?.(); navigate('/works', 'push-left'); }} style={{
           width: '100%', padding: '5px 0', borderRadius: 5,
           border: `1px solid ${C.border}`, background: 'transparent',
           color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
@@ -101,11 +104,11 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon }: Props) {
         active={activeNav === 'analyses'}
         onClick={() => nav('analyses')} />
       <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" upcoming
-        onClick={() => onComingSoon?.('분석 리포트')} />
+        onClick={() => { onComingSoon?.('분석 리포트'); onClose?.(); }} />
       <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
-        onClick={() => onComingSoon?.('그래프 뷰')} />
+        onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />
       <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
-        onClick={() => onComingSoon?.('챗봇')} />
+        onClick={() => { onComingSoon?.('챗봇'); onClose?.(); }} />
     </div>
   );
 }

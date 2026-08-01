@@ -314,7 +314,7 @@ function FilterGroup<T extends string>({
 
 function ReviewHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header style={{
+    <header className="review-header app-topbar" style={{
       height: 62, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 14,
       padding: '0 28px', borderBottom: `1px solid ${C.border}`, background: C.bg,
     }}>
@@ -358,7 +358,7 @@ function ReviewSummary({
     ['연결 필요', `${matchRequired}개`, matchRequired > 0 ? C.warning : C.t1],
   ];
   return (
-    <section aria-label="설정 후보 검토 요약" style={{
+    <section className="setting-review-summary" aria-label="설정 후보 검토 요약" style={{
       padding: '18px 22px', borderRadius: 10, border: `1px solid ${C.border}`,
       background: C.surface, display: 'flex', alignItems: 'center', gap: 38, flexWrap: 'wrap',
     }}>
@@ -969,7 +969,7 @@ function CandidateDetail({
   const settingDisplay = toSettingDisplay(candidate.attributeName);
 
   return (
-    <article style={{
+    <article className="setting-candidate-detail" style={{
       border: `1px solid ${C.border}`, borderRadius: 10, padding: 22, background: C.surface,
       minHeight: 410,
     }}>
@@ -1034,7 +1034,7 @@ function CandidateDetail({
         </div>
       )}
 
-      <div style={{
+      <div className="setting-candidate-fields" style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
         gap: 22, marginTop: 20,
       }}>
@@ -1094,7 +1094,7 @@ function CandidateDetail({
 
       {!readOnly && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 18 }}>
+          <div className="setting-candidate-match-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 18 }}>
             <ActionButton
               disabled={!onMatch || actionPending}
               tone={C.primary}
@@ -1112,7 +1112,7 @@ function CandidateDetail({
               {matchStatus === 'UNRESOLVED' ? '새 캐릭터 이름 변경' : '새 캐릭터로 등록'}
             </ActionButton>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <div className="setting-candidate-review-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
             <ActionButton
               disabled={!onDismiss || actionPending}
               disabledTitle={dismissing
@@ -1173,7 +1173,7 @@ function QueryState({
   action?: ReactNode;
 }) {
   return (
-    <div style={{
+    <div className="setting-review-page" style={{
       minHeight: 320, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 10,
       border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface,
@@ -1204,6 +1204,9 @@ export default function SSettingReview() {
   const hasContext = Boolean(workId && batchId);
   const [editOpen, setEditOpen] = useState(false);
   const [matchResolution, setMatchResolution] = useState<MatchResolution | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(
+    () => Boolean(searchParams.get('candidate')),
+  );
   const mountedRef = useRef(false);
   const reviewNavigationState = location.state as {
     returnToAnalysisList?: unknown;
@@ -1426,6 +1429,7 @@ export default function SSettingReview() {
 
   const updateFilters = (nextReview: ReviewFilter, nextMatch: MatchFilter) => {
     if (actionPending) return;
+    setMobileDetailOpen(false);
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1443,6 +1447,7 @@ export default function SSettingReview() {
   };
   const selectCandidate = (candidateId: string) => {
     if (actionPending) return;
+    setMobileDetailOpen(true);
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1455,6 +1460,7 @@ export default function SSettingReview() {
   };
   const changePage = (page: number) => {
     if (actionPending) return;
+    setMobileDetailOpen(false);
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
@@ -1554,8 +1560,8 @@ export default function SSettingReview() {
       background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <ReviewHeader onBack={backToAnalysisList} />
-      <main style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
+      <main className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           {listQuery.isPending && !listQuery.data ? (
             <QueryState
               icon={<Loader2 size={27} color={C.primary} className="spin" />}
@@ -1616,12 +1622,12 @@ export default function SSettingReview() {
                   />
                 </div>
               ) : (
-                <div className="setting-review-layout" style={{
+                <div className={`setting-review-layout${mobileDetailOpen ? ' mobile-detail-open' : ''}`} style={{
                   marginTop: 18, display: 'grid',
                   gridTemplateColumns: 'minmax(310px, 390px) minmax(0, 1fr)',
                   gap: 18, alignItems: 'start',
                 }}>
-                  <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <aside className="setting-review-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <FilterGroup
                       label="검토 상태"
                       value={reviewFilter}
@@ -1672,7 +1678,14 @@ export default function SSettingReview() {
                     />
                   </aside>
 
-                  <section>
+                  <section className="setting-review-detail">
+                    <button
+                      type="button"
+                      className="setting-review-mobile-back"
+                      onClick={() => setMobileDetailOpen(false)}
+                    >
+                      <ChevronLeft size={15} /> 후보 목록으로
+                    </button>
                     {!selectedCandidateId ? (
                       <QueryState
                         icon={<Sparkles size={26} color={C.primary} />}
@@ -1775,9 +1788,13 @@ export default function SSettingReview() {
         />
       )}
       <style>{`
-        @media (max-width: 760px) {
+        @media (max-width: 768px) {
           .setting-review-layout {
             grid-template-columns: minmax(0, 1fr) !important;
+          }
+
+          .setting-review-content {
+            padding: 18px 16px calc(32px + env(safe-area-inset-bottom)) !important;
           }
         }
       `}</style>

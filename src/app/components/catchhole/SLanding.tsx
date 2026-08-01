@@ -5,7 +5,7 @@ import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div style={{
+    <div className="landing-feature-card" style={{
       flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
       padding: 24, display: 'flex', flexDirection: 'column', gap: 12,
     }}>
@@ -48,12 +48,12 @@ export default function SLanding() {
   const { openAuth, openTerms } = usePublicModalNavigation();
 
   return (
-    <div style={{
+    <div className="landing-page" style={{
       background: C.bg, width: '100%', height: '100%', overflow: 'auto',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       {/* Header */}
-      <div style={{
+      <div className="landing-header" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 64px', height: 64, borderBottom: `1px solid ${C.border}`,
       }}>
@@ -77,10 +77,10 @@ export default function SLanding() {
       </div>
 
       {/* Hero */}
-      <div style={{
+      <div className="landing-hero" style={{
         display: 'flex', alignItems: 'center', gap: 48, padding: '64px 64px', background: C.surface,
       }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="landing-hero-copy" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
             padding: '4px 10px', borderRadius: 999, background: '#22222C', border: `1px solid ${C.border}`,
@@ -88,14 +88,14 @@ export default function SLanding() {
             <Sparkles size={13} color={C.primary} />
             <span style={{ color: C.t2, fontSize: 11, fontWeight: 600 }}>New: AI Analysis v2.0</span>
           </div>
-          <div style={{ color: C.t1, fontSize: 36, fontWeight: 800, lineHeight: 1.3 }}>
+          <div className="landing-hero-title" style={{ color: C.t1, fontSize: 36, fontWeight: 800, lineHeight: 1.3 }}>
             당신의 이야기가 완벽해지는 순간, CatchHole
           </div>
           <div style={{ color: C.t2, fontSize: 15, lineHeight: 1.5 }}>
             AI가 원고 속 캐릭터 설정을 추출하고 원문 근거와 함께 정리합니다.
             작품의 설정을 찾고 관리하는 시간을 줄여보세요.
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="landing-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => openAuth('/signup')} style={{
               height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
               background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
@@ -111,7 +111,7 @@ export default function SLanding() {
               로그인
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div className="landing-trust" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {TRUST_ITEMS.map(item => (
               <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {item.icon}
@@ -120,7 +120,7 @@ export default function SLanding() {
             ))}
           </div>
         </div>
-        <div style={{
+        <div className="landing-chart" aria-hidden="true" style={{
           width: 440, height: 340, borderRadius: 10, background: '#22222C', border: `1px solid ${C.border}`,
           display: 'flex', alignItems: 'flex-end', gap: 8, padding: 24,
         }}>
@@ -134,7 +134,7 @@ export default function SLanding() {
       </div>
 
       {/* Features */}
-      <div id="features" style={{
+      <div id="features" className="landing-features" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, padding: '64px 64px',
       }}>
         <div style={{ color: C.t1, fontSize: 26, fontWeight: 800, textAlign: 'center' }}>
@@ -143,13 +143,13 @@ export default function SLanding() {
         <div style={{ color: C.t2, fontSize: 14, textAlign: 'center' }}>
           복잡한 설정과 수많은 인물들, 이제 AI가 당신의 가장 든든한 조력자가 되어드립니다.
         </div>
-        <div style={{ display: 'flex', gap: 20, width: '100%' }}>
+        <div className="landing-feature-grid" style={{ display: 'flex', gap: 20, width: '100%' }}>
           {FEATURES.map(f => <FeatureCard key={f.title} {...f} />)}
         </div>
       </div>
 
       {/* Bottom CTA */}
-      <div style={{
+      <div className="landing-bottom-cta" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
         padding: '56px 64px', background: '#22222C',
       }}>
@@ -159,7 +159,7 @@ export default function SLanding() {
         <div style={{ color: C.t2, fontSize: 14, textAlign: 'center' }}>
           더 이상 설정 오류에 시간을 낭비하지 마세요. AI가 완벽도를 책임지고, 작가님은 오직 창작의 즐거움에만 몰두하세요.
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="landing-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => openAuth('/signup')} style={{
             height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
@@ -178,7 +178,7 @@ export default function SLanding() {
       </div>
 
       {/* Footer */}
-      <div style={{
+      <div className="landing-footer" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '24px 64px', borderTop: `1px solid ${C.border}`,
       }}>
@@ -186,7 +186,7 @@ export default function SLanding() {
           <span style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>CatchHole</span>
           <span style={{ color: C.t3, fontSize: 12 }}>The future of creative storytelling.</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div className="landing-footer-links" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <button onClick={() => openTerms('privacy')} style={{
             color: C.t3, fontSize: 12, background: 'none', border: 'none', padding: 0,
             cursor: 'pointer', fontFamily: 'inherit',

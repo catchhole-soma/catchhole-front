@@ -340,6 +340,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
       >
         <Search size={17} color={focused ? C.primary : C.t3} />
         <input
+          className="character-fact-search-input"
           aria-label="설정 검색"
           value={draftQuery}
           onChange={event => setDraftQuery(event.target.value)}
@@ -442,6 +443,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
       {enabled && !searchQuery.isPending && !searchQuery.isError && results.length > 0 && (
         <>
           <div
+            className="character-fact-results"
             data-testid="character-fact-results"
             style={{
               display: 'grid',
@@ -540,6 +542,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
 
       {selectedFactId && (
         <motion.div
+          className="fact-detail-modal-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           data-testid="fact-detail-modal-backdrop"
@@ -557,6 +560,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
           }}
         >
           <motion.div
+            className="fact-detail-modal"
             role="dialog"
             aria-label="설정 상세"
             aria-modal="true"
@@ -574,7 +578,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
               overflow: 'hidden',
             }}
           >
-            <div style={{
+            <div className="fact-detail-header" style={{
               minHeight: 72,
               padding: '0 28px',
               borderBottom: `1px solid ${C.border}`,
@@ -675,7 +679,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
             )}
 
             {detail && !detailQuery.isPending && !detailQuery.isError && (
-              <div style={{ padding: '24px 28px 28px', display: 'grid', gap: 18 }}>
+              <div className="fact-detail-content" style={{ padding: '24px 28px 28px', display: 'grid', gap: 18 }}>
                 <section style={{ display: 'grid', gap: 14 }}>
                   <div>
                     <div style={{ color: C.t2, fontSize: 12, fontWeight: 650, marginBottom: 8 }}>설정명</div>
@@ -725,7 +729,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                   </div>
                 </div>
 
-                <div style={{
+                <div className="fact-detail-owner" style={{
                   minHeight: 66,
                   padding: '0 16px',
                   border: `1px solid ${C.border}`,

@@ -286,7 +286,7 @@ test('후보 처리 응답 전에 이탈하면 늦은 성공 응답이 검토 �
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
 });
 
-test('모바일에서는 후보 목록과 상세를 한 열로 배치한다', async ({ page }) => {
+test('모바일에서는 후보 목록과 상세를 한 화면씩 전환한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.route('**/api/v1/**', route => {
@@ -320,19 +320,23 @@ test('모바일에서는 후보 목록과 상세를 한 열로 배치한다', as
   });
 
   await authenticate(page);
-  await page.goto(
-    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
-  );
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
   const layout = page.locator('.setting-review-layout');
-  const [asideBox, detailBox] = await Promise.all([
-    layout.locator('aside').boundingBox(),
-    layout.locator('section').boundingBox(),
-  ]);
-  expect(asideBox).not.toBeNull();
-  expect(detailBox).not.toBeNull();
-  expect(Math.abs((detailBox?.x ?? 0) - (asideBox?.x ?? 0))).toBeLessThanOrEqual(1);
-  expect(detailBox?.y ?? 0).toBeGreaterThan(asideBox?.y ?? 0);
+  const candidateList = layout.locator('.setting-review-sidebar');
+  const candidateDetail = layout.locator('.setting-review-detail');
+
+  await expect(candidateList).toBeVisible();
+  await expect(candidateDetail).toBeHidden();
+
+  await candidateList.getByRole('button', { name: /수아/ }).click();
+  await expect(candidateList).toBeHidden();
+  await expect(candidateDetail).toBeVisible();
+  await expect(page.getByRole('button', { name: '후보 목록으로' })).toBeVisible();
+
+  await page.getByRole('button', { name: '후보 목록으로' }).click();
+  await expect(candidateList).toBeVisible();
+  await expect(candidateDetail).toBeHidden();
   await expect.poll(() => layout.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 

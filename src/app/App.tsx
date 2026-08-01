@@ -199,11 +199,12 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <div
+      className="app-root"
       style={{
         fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif",
         background: '#0F0F13',
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
         position: 'relative',
         WebkitFontSmoothing: 'antialiased',

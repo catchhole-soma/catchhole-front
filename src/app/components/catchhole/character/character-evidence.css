@@ -14,14 +14,14 @@
 
 .character-evidence-panel {
   min-width: 0;
-  max-height: calc(100vh - 72px);
+  max-height: calc(100dvh - 72px);
   border-right: 1px solid #2a2a36;
   background: #121218;
   overflow: hidden;
 }
 
 .character-evidence-panel__body {
-  max-height: calc(100vh - 160px);
+  max-height: calc(100dvh - 160px);
   padding: 20px 22px 24px;
   overflow-y: auto;
 }
@@ -39,5 +39,32 @@
 
   .character-evidence-panel__body {
     max-height: calc(min(46vh, 480px) - 88px);
+  }
+}
+
+@media (max-width: 768px) {
+  .character-detail-modal--with-evidence {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .character-evidence-panel {
+    flex: 0 0 min(42dvh, 360px);
+    max-height: min(42dvh, 360px);
+  }
+
+  .character-evidence-panel__body {
+    max-height: calc(min(42dvh, 360px) - 76px);
+    padding: 16px;
+  }
+
+  .character-detail-modal--with-evidence > div:last-child {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .character-detail-modal--with-evidence .character-detail-body {
+    max-height: calc(58dvh - 92px) !important;
   }
 }

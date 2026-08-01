@@ -463,7 +463,7 @@ function SettingBookUploadModal({
           )}
         </div>
 
-        <div style={{
+        <div className="setting-book-header" style={{
           display: 'flex',
           justifyContent: 'flex-end',
           gap: 8,
@@ -1140,7 +1140,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
           gap: 20,
           marginBottom: 18,
         }}>
-          <div>
+          <div className="setting-book-heading">
             <h2 style={{
               margin: 0,
               color: C.t1,
@@ -1154,13 +1154,15 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
               작품에 업로드한 설정집 파일과 전체 원문을 확인합니다.
             </p>
           </div>
-          <PrimaryButton
-            testId="open-setting-book-upload"
-            label="설정집 업로드"
-            icon={<Upload size={14} />}
-            disabled={!enabled}
-            onClick={openUploadModal}
-          />
+          <div className="setting-book-upload-action">
+            <PrimaryButton
+              testId="open-setting-book-upload"
+              label="설정집 업로드"
+              icon={<Upload size={14} />}
+              disabled={!enabled}
+              onClick={openUploadModal}
+            />
+          </div>
         </div>
 
         {!enabled ? (
@@ -1182,7 +1184,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
             <div style={{ fontSize: 12 }}>실제 계정의 작품을 선택하거나 새 작품을 등록하세요.</div>
           </div>
         ) : (
-          <div style={{
+          <div className="setting-book-layout" style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(280px, 340px) minmax(420px, 1fr)',
             gap: 14,

@@ -18,6 +18,7 @@ export function WorkGenreSelector({
 }: Props) {
   return (
     <div
+      className="work-genre-grid"
       role="radiogroup"
       aria-labelledby={labelId}
       aria-describedby={describedBy}

@@ -254,11 +254,11 @@ export default function S0WorkPicker() {
   };
 
   return (
-    <div style={{
+    <div className="work-picker-page" style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <header style={{
+      <header className="app-topbar work-picker-header" style={{
         height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex',
         alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', flexShrink: 0,
       }}>
@@ -282,7 +282,7 @@ export default function S0WorkPicker() {
         <UserMenu />
       </header>
 
-      <main style={{ flex: 1, overflowY: 'auto', padding: '48px 64px' }}>
+      <main className="work-picker-main" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <h1 style={{ color: C.t1, fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px', margin: '0 0 6px' }}>
             작품 선택
@@ -316,7 +316,7 @@ export default function S0WorkPicker() {
               {[0, 1, 2].map(index => <SkeletonCard key={index} />)}
             </div>
           ) : !error && works.length === 0 ? (
-            <div style={{
+            <div className="work-picker-grid" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               maxWidth: 480, margin: '40px auto', textAlign: 'center', gap: 16,
             }}>
@@ -333,7 +333,7 @@ export default function S0WorkPicker() {
               <NewWorkCard compact onClick={openCreateModal} />
             </div>
           ) : !error ? (
-            <div style={{
+            <div className="work-picker-grid" style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
             }}>
               {works.map(work => (

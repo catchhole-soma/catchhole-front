@@ -54,6 +54,7 @@ export function WorkDeleteModal({ work, onClose, onDeleted }: Props) {
 
   return (
     <motion.div
+      className="work-delete-backdrop"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -72,6 +73,7 @@ export function WorkDeleteModal({ work, onClose, onDeleted }: Props) {
       }}
     >
       <motion.div
+        className="work-delete-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-delete-title"

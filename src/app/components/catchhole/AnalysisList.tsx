@@ -197,7 +197,7 @@ export function AnalysisList({ workId }: { workId: string }) {
   };
 
   return (
-    <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
+    <div className="analysis-list-page" style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
       <div style={{ marginBottom: 24 }}>
         <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드 묶음별 분석 현황</div>
         <div style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
@@ -304,7 +304,7 @@ export function AnalysisList({ workId }: { workId: string }) {
               : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0;
             const actionColor = opensReview ? C.primary : view.color;
             return (
-              <article key={batch.batchId} style={{
+              <article className="analysis-batch-card" key={batch.batchId} style={{
                 padding: '18px 20px',
                 borderRadius: 10,
                 border: `1px solid ${C.border}`,
@@ -385,7 +385,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                   </div>
                 </div>
 
-                <div style={{
+                <div className="analysis-card-footer" style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
