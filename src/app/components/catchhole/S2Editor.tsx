@@ -463,7 +463,7 @@ function formatOriginalDate(value?: string | null) {
 
 function OriginalLines({ content }: { content: string }) {
   return (
-    <div style={{ fontSize: 15, lineHeight: 1.9, letterSpacing: '-0.1px' }}>
+    <div className="original-lines" style={{ fontSize: 15, lineHeight: 1.9, letterSpacing: '-0.1px' }}>
       {content.split('\n').map((line, index) => (
         <div key={index} style={{ display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)' }}>
           <span aria-hidden="true" style={{ color: C.t3, fontSize: 12, textAlign: 'right', paddingRight: 14, userSelect: 'none' }}>
@@ -508,11 +508,11 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
   const episode = episodeQuery.data?.data;
 
   return (
-    <div style={{
+    <div className="original-reader-page" style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       color: C.t1, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <header style={{
+      <header className="original-reader-header app-topbar" style={{
         height: 56, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 20px', flexShrink: 0,
       }}>
@@ -522,7 +522,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
         }}>
           <ChevronLeft size={16} /> 원고 목록
         </button>
-        <span style={{ color: C.t2, fontSize: 14 }}>
+        <span className="original-reader-title" style={{ color: C.t2, fontSize: 14 }}>
           {workTitle} · {episode?.originalFilename || (episode?.episodeNo ? `${episode.episodeNo}화 원문` : '회차 원문')}
         </span>
         <UserMenu />
@@ -553,7 +553,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
           </button>
         </div>
       ) : (
-        <main style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
+        <main className="original-reader-main" style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
           <article style={{ maxWidth: 820, margin: '0 auto' }}>
             <div style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
               <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>{episode.episodeNo ?? '—'}화</div>
@@ -585,11 +585,11 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
   const settingBook = settingBookQuery.data?.data;
 
   return (
-    <div style={{
+    <div className="original-reader-page" style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       color: C.t1, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <header style={{
+      <header className="original-reader-header app-topbar" style={{
         height: 56, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 20px', flexShrink: 0,
       }}>
@@ -597,7 +597,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
           color: C.t2, cursor: 'pointer', fontSize: 13, padding: '4px 8px', fontFamily: 'inherit',
         }}><ChevronLeft size={16} /> 원고 목록</button>
-        <span style={{ color: C.t2, fontSize: 14 }}>{workTitle} · {settingBook?.originalFilename || '설정집 원문'}</span>
+        <span className="original-reader-title" style={{ color: C.t2, fontSize: 14 }}>{workTitle} · {settingBook?.originalFilename || '설정집 원문'}</span>
         <UserMenu />
       </header>
       <div style={{
@@ -622,7 +622,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
           <button type="button" onClick={goBack} style={{ border: 0, background: 'transparent', color: C.primary, cursor: 'pointer' }}>원고 목록으로 돌아가기</button>
         </div>
       ) : (
-        <main style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
+        <main className="original-reader-main" style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
           <article style={{ maxWidth: 820, margin: '0 auto' }}>
             <div style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
               <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>설정집</div>

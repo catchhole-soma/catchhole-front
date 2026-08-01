@@ -7,6 +7,7 @@ interface ResponsiveGridPaginationOptions {
   maxColumns: number;
   maxPageSize: number;
   reservedBottomSpace: number;
+  mobilePageSize?: number;
 }
 
 interface ResponsiveGridLayout {
@@ -32,6 +33,7 @@ export function useResponsiveGridPagination({
   maxColumns,
   maxPageSize,
   reservedBottomSpace,
+  mobilePageSize,
 }: ResponsiveGridPaginationOptions) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentStartRef = useRef<HTMLDivElement>(null);
@@ -67,7 +69,11 @@ export function useResponsiveGridPagination({
         Math.floor((Math.max(itemHeight, availableHeight) + gap) / (itemHeight + gap)),
       );
       const maxRows = Math.max(1, Math.floor(maxPageSize / columns));
-      const pageSize = columns * Math.min(visibleRows, maxRows);
+      const responsivePageSize = columns * Math.min(visibleRows, maxRows);
+      const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+      const pageSize = mobilePageSize != null && isMobileViewport
+        ? Math.min(maxPageSize, Math.max(columns, mobilePageSize))
+        : responsivePageSize;
 
       setLayout(current => (
         current.columns === columns && current.pageSize === pageSize && current.ready
@@ -91,7 +97,7 @@ export function useResponsiveGridPagination({
       observer.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  }, [gap, itemHeight, maxColumns, maxPageSize, minItemWidth, reservedBottomSpace]);
+  }, [gap, itemHeight, maxColumns, maxPageSize, minItemWidth, mobilePageSize, reservedBottomSpace]);
 
   return {
     containerRef,

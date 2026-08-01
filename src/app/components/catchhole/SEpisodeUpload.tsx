@@ -153,7 +153,7 @@ function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
   backLabel?: string;
 }) {
   return (
-    <div style={{
+    <div className="episode-upload-header app-topbar" style={{
       height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 20px', borderBottom: `1px solid ${C.border}`,
     }}>
@@ -173,7 +173,7 @@ function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
 
 function Stepper({ labels, current }: { labels: string[]; current: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', maxWidth: 860, margin: '0 auto', padding: '24px 20px 0' }}>
+    <div className="episode-upload-stepper" style={{ display: 'flex', alignItems: 'center', maxWidth: 860, margin: '0 auto', padding: '24px 20px 0' }}>
       {labels.map((label, index) => (
         <React.Fragment key={label}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1108,7 +1108,7 @@ export default function SEpisodeUpload() {
   }
 
   return (
-    <div style={{
+    <div className="episode-upload-page" style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: C.bg, color: C.t1,
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
@@ -1119,7 +1119,7 @@ export default function SEpisodeUpload() {
       />
       <Stepper labels={labels} current={currentStep} />
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
+        <div className="episode-upload-content" style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
           {step === 'select-mode' && (
             <>
               <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
@@ -1130,7 +1130,7 @@ export default function SEpisodeUpload() {
               )}
               {requestError && <ErrorBanner message={requestError} />}
 
-              <div style={{ display: 'flex', gap: 12, marginBottom: uploadType ? 28 : 0 }}>
+              <div className="episode-upload-mode-grid" style={{ display: 'flex', gap: 12, marginBottom: uploadType ? 28 : 0 }}>
                 <ModeCard
                   icon={<FileText size={22} />}
                   title="단일 회차 업로드"
@@ -1159,8 +1159,8 @@ export default function SEpisodeUpload() {
 
               {uploadType === 'SINGLE_EPISODE' && (
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                    <div style={{ width: 160 }}>
+                  <div className="episode-upload-field-row" style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <div className="episode-upload-number-field" style={{ width: 160 }}>
                       <FieldLabel>회차 번호</FieldLabel>
                       <TextInput
                         value={episodeNo}
@@ -1319,7 +1319,7 @@ export default function SEpisodeUpload() {
                       설정집 원본은 저장되었습니다. 회차를 다시 시도해도 중복 저장하지 않습니다.
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="episode-upload-actions" style={{ display: 'flex', gap: 8 }}>
                     <SecondaryButton onClick={() => selectUploadType(null)} disabled={submitting}>← 뒤로</SecondaryButton>
                     <div style={{ flex: 1 }}>
                       {uploadType === 'MULTI_EPISODE_SINGLE_FILE' ? (
@@ -1353,7 +1353,7 @@ export default function SEpisodeUpload() {
                 감지 경계는 고정됩니다. 번호와 제목만 확인·수정할 수 있습니다.
               </div>
               {requestError && <ErrorBanner message={requestError} />}
-              <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
+              <div className="episode-boundary-layout" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {episodeConfirmations.map(confirmation => (
                     <button
@@ -1382,8 +1382,8 @@ export default function SEpisodeUpload() {
                   if (!selectedConfirmation) return null;
                   return (
                     <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, padding: 16 }}>
-                      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                        <div style={{ width: 110 }}>
+                      <div className="episode-upload-field-row" style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                        <div className="episode-upload-number-field" style={{ width: 110 }}>
                           <FieldLabel>회차 번호</FieldLabel>
                           <TextInput
                             type="number"

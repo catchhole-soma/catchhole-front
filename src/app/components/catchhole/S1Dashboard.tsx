@@ -14,7 +14,7 @@ import {
   BookMarked, FileText, Check, CircleCheckBig, Network,
   Eye, EyeOff, Trash2, X, Sparkles, Lock, LockOpen, Search, MessageSquare, MapPin,
   Share2, Copy, Mail, UserPlus, ExternalLink, CheckCheck, ChevronDown,
-  Loader2, AlertCircle, RefreshCw,
+  Loader2, AlertCircle, RefreshCw, Menu,
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
@@ -2640,6 +2640,7 @@ export default function S1Dashboard() {
   const workIdParam = searchParams.get('workId');
   const queryClient = useQueryClient();
   const [comingSoonFeature, setComingSoonFeature] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const closeComingSoon = useCallback(() => setComingSoonFeature(null), []);
 
   const navParam = searchParams.get('nav');
@@ -2778,6 +2779,15 @@ export default function S1Dashboard() {
       dashboardMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     if (workIdParam && workIdParam !== selectedWork) setSelectedWork(workIdParam);
@@ -3010,16 +3020,26 @@ export default function S1Dashboard() {
           }
         : null;
   return (
-    <div style={{
+    <div className="dashboard-page" style={{
       background: C.bg, width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <div style={{
+      <div className="app-topbar dashboard-topbar" style={{
         height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 24px', flexShrink: 0, zIndex: 10,
       }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <button
+            type="button"
+            className="mobile-nav-trigger"
+            aria-label="메뉴 열기"
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <Menu size={19} />
+          </button>
         <div
           onClick={() => navigate('/works', 'dissolve')}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
@@ -3039,22 +3059,24 @@ export default function S1Dashboard() {
             marginLeft: 2,
           }}>BETA</span>
         </div>
+        </div>
         <UserMenu />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className="dashboard-shell" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AppSidebar
+          className="desktop-app-sidebar"
           activeNav={activeNav}
           onNavChange={setActiveNav}
           onComingSoon={setComingSoonFeature}
         />
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="dashboard-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
             {activeNav === 'settingDB' && (
               <motion.div key="settingDB" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-                <div style={{
+                <div className="dashboard-section-header" style={{
                   padding: '20px 40px', borderBottom: `1px solid ${C.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
                 }}>
@@ -3070,7 +3092,7 @@ export default function S1Dashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+                <div className="dashboard-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
@@ -3100,7 +3122,7 @@ export default function S1Dashboard() {
                   ))}
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
+                <div className="dashboard-section-content" style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
                   <AnimatePresence mode="wait">
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
@@ -3304,8 +3326,9 @@ export default function S1Dashboard() {
 
             {activeNav === 'manuscripts' && (
               <motion.div key="manuscripts" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                className="dashboard-manuscripts"
                 style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <div className="dashboard-manuscript-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 24 }}>
                   <div>
                     <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
                     <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
@@ -3328,7 +3351,7 @@ export default function S1Dashboard() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
                     {analysisNotice && (
-                      <div role="status" style={{
+                      <div role="status" className="dashboard-analysis-notice" style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -3383,27 +3406,27 @@ export default function S1Dashboard() {
                         </div>
                       ) : (
                         <>
-                          <div style={{ overflowX: 'auto' }}>
-                          <div style={{
+                          <div className="manuscript-table" style={{ overflowX: 'auto' }}>
+                          <div className="manuscript-table-head" style={{
                             minWidth: 1060, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 270px',
                             padding: '8px 14px', color: C.t3, fontSize: 11, fontWeight: 600,
                           }}>
                             <span>회차</span><span>제목</span><span>원본 파일</span><span>변경일</span><span>글자수</span><span>분석 상태</span><span />
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <div className="manuscript-list" style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             {pagedEpisodeRows.map(episode => {
                               const status = episodeAnalysisLabel(episode);
                               const isAnalyzing = episode.analysisStatus === 'IN_PROGRESS';
                               const editing = editingEpisodeId === episode.id;
                               return (
-                                <div key={episode.id} style={{
+                                <div key={episode.id} className="manuscript-row" style={{
                                   minWidth: 1060, display: 'grid', gridTemplateColumns: '68px minmax(180px, 1fr) 150px 96px 80px 90px 270px',
                                   alignItems: 'center', padding: '11px 14px', background: C.surface,
                                   borderRadius: 8, border: `1px solid ${C.border}`,
                                 }}>
-                                  <span style={{ color: C.t2, fontSize: 13, fontWeight: 700 }}>{episode.episodeNo}화</span>
+                                  <span className="manuscript-episode-no" style={{ color: C.t2, fontSize: 13, fontWeight: 700 }}>{episode.episodeNo}화</span>
                                   {editing ? (
-                                    <div style={{ display: 'flex', gap: 5, paddingRight: 8 }}>
+                                    <div className="manuscript-title-edit" style={{ display: 'flex', gap: 5, paddingRight: 8 }}>
                                       <input
                                         autoFocus
                                         value={editingEpisodeTitle}
@@ -3423,7 +3446,7 @@ export default function S1Dashboard() {
                                       <BtnG small label="저장" onClick={() => void saveEpisodeTitle(episode)} />
                                     </div>
                                   ) : (
-                                    <button type="button" onClick={() => {
+                                    <button className="manuscript-title" type="button" onClick={() => {
                                       setEditingEpisodeId(episode.id ?? null);
                                       setEditingEpisodeTitle(episode.title ?? '');
                                     }} style={{
@@ -3434,13 +3457,18 @@ export default function S1Dashboard() {
                                       {episode.title || '제목을 찾지 못했어요 · 제목 입력'}
                                     </button>
                                   )}
-                                  <span style={{ color: C.t3, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }} title={episode.originalFilename ?? ''}>
+                                  <span className="manuscript-original-filename" style={{ color: C.t3, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }} title={episode.originalFilename ?? ''}>
                                     {episode.originalFilename ?? '—'}
                                   </span>
-                                  <span style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
-                                  <span style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
-                                  <span style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
-                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
+                                  <span className="manuscript-date" style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
+                                  <span className="manuscript-char-count" style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
+                                  <span className="manuscript-status" style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  <div className="manuscript-mobile-meta">
+                                    <span title={episode.originalFilename ?? ''}>{episode.originalFilename ?? '파일명 없음'}</span>
+                                    <span>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
+                                    <span>{(episode.charCount ?? 0).toLocaleString()}자</span>
+                                  </div>
+                                  <div className="manuscript-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 5 }}>
                                     {episode.analysisStatus === 'REANALYSIS_REQUIRED' && (
                                       <BtnG
                                         small
@@ -3490,6 +3518,23 @@ export default function S1Dashboard() {
           </AnimatePresence>
         </div>
       </div>
+      {mobileNavOpen && (
+        <div className="mobile-sidebar-layer" role="dialog" aria-modal="true" aria-label="워크스페이스 메뉴">
+          <button
+            type="button"
+            className="mobile-sidebar-backdrop"
+            aria-label="메뉴 닫기"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <AppSidebar
+            className="mobile-app-sidebar"
+            activeNav={activeNav}
+            onNavChange={setActiveNav}
+            onComingSoon={setComingSoonFeature}
+            onClose={() => setMobileNavOpen(false)}
+          />
+        </div>
+      )}
       <ComingSoonToast feature={comingSoonFeature} onClose={closeComingSoon} />
 
       <AnimatePresence>

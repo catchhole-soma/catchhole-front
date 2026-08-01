@@ -109,6 +109,7 @@ export function WorkCreateModal({ onClose, onCreated }: Props) {
       }}
     >
       <motion.form
+        className="work-form-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-create-title"

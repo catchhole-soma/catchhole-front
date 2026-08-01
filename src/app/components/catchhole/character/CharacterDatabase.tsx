@@ -518,9 +518,9 @@ function SimpleSettingList({
   if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
   const orderedSettings = orderManualSettingsLast(settings);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+    <div className={`character-simple-settings character-setting-columns-${columns}`} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {orderedSettings.map((item, index) => (
-        <div key={item.characterFactId ?? item.key ?? index} style={{
+        <div className="character-setting-row" key={item.characterFactId ?? item.key ?? index} style={{
           minHeight: 40, padding: '8px 14px', display: 'grid',
           gridTemplateColumns: columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
           alignItems: 'center', gap: 10,
@@ -570,7 +570,7 @@ function EditSettingList({
   onEvidence?: (characterFactId: string) => void;
 }) {
   return (
-    <div style={{
+    <div className={`character-edit-settings character-setting-columns-${columns}`} style={{
       display: 'grid',
       gridTemplateColumns: columns === 2 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
       gap: complex ? 8 : 0,
@@ -580,7 +580,7 @@ function EditSettingList({
         const dynamicNameEditable = item.attributeNameEditable && Boolean(item.attributeNamePrefix);
         const editableName = dynamicNameEditable || item.displayNameEditable;
         return (
-          <div key={item.draftId} style={{
+          <div className={`character-edit-setting-row${complex ? ' character-edit-setting-row--complex' : ''}`} key={item.draftId} style={{
             display: 'grid',
             gridTemplateColumns: complex
               ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
@@ -983,6 +983,7 @@ export function CharacterDatabase({
     maxColumns: 5,
     maxPageSize: 24,
     reservedBottomSpace: 72,
+    mobilePageSize: 6,
   });
   const page = Math.floor(firstVisibleIndex / pageSize);
 
@@ -1398,14 +1399,16 @@ export function CharacterDatabase({
       )}
 
       <div ref={containerRef} style={{ width: '100%', maxWidth: 1680 }}>
-        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-          <div>
+        <div className="character-database-header" style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div className="character-database-heading">
             <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 DB</h2>
             <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
               캐릭터 카드를 선택하면 현재 설정과 원문 근거를 확인할 수 있습니다.
             </p>
           </div>
-          <ModalButton onClick={onArchiveOpen}><Archive size={14} /> 보관된 캐릭터</ModalButton>
+          <div className="character-archive-action">
+            <ModalButton onClick={onArchiveOpen}><Archive size={14} /> 보관된 캐릭터</ModalButton>
+          </div>
         </div>
 
         <div ref={contentStartRef} />
@@ -1500,6 +1503,7 @@ export function CharacterDatabase({
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           data-testid="character-modal-backdrop"
           onClick={closeDetail}
+          className="character-detail-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
         >
           <motion.div
@@ -1553,7 +1557,7 @@ export function CharacterDatabase({
 
             {detail && (demoMode || (!detailQuery.isPending && !detailQuery.isError)) && (
               <>
-                <div style={{ padding: '22px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div className="character-detail-header" style={{ padding: '22px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
                   <Avatar id={detail.id ?? selectedCharacterId} name={isEditing ? draft?.name ?? detail.name ?? '' : detail.name ?? ''} size={54} />
                   <div style={{ flex: 1 }}>
                     <div style={{ color: C.t1, fontSize: 19, fontWeight: 700 }}>{isEditing ? draft?.name || detail.name : detail.name}</div>
@@ -1570,7 +1574,7 @@ export function CharacterDatabase({
                   </button>
                 </div>
 
-                <div style={{ padding: '22px 28px 26px', maxHeight: 'calc(100vh - 190px)', overflowY: 'auto' }}>
+                <div className="character-detail-body" style={{ padding: '22px 28px 26px', maxHeight: 'calc(100dvh - 190px)', overflowY: 'auto' }}>
                   {actionError && (
                     <div role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12 }}>
                       {actionError}
@@ -1578,7 +1582,7 @@ export function CharacterDatabase({
                   )}
 
                   <SectionTitle>기본 정보</SectionTitle>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.bg, marginBottom: 20 }}>
+                  <div className="character-basic-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.bg, marginBottom: 20 }}>
                     {isEditing && draft ? (
                       [
                         ['이름', 'name', draft.name],
@@ -1696,7 +1700,7 @@ export function CharacterDatabase({
                   </div>
 
                   {isEditing && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
+                    <div className="character-detail-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
                       <ModalButton onClick={() => onEditChange(false)}>취소</ModalButton>
                       <ModalButton primary onClick={() => { setActionError(null); setConfirming('save'); }}><Check size={14} /> 저장</ModalButton>
                     </div>
