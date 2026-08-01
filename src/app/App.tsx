@@ -19,6 +19,7 @@ import { getAccessToken } from './lib/api-config';
 import { NetworkError, toApiError } from './lib/api-errors';
 import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
+import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -214,6 +215,7 @@ export default function App() {
       <AppContextProvider>
         <BackendStatusProvider>
           <AnimatedRoutes />
+          <AiTokenQuotaModal />
         </BackendStatusProvider>
       </AppContextProvider>
     </div>

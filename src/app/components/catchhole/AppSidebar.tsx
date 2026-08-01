@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
-  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare,
+  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare, RefreshCw,
 } from 'lucide-react';
 import { C, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
+import { getMyAiTokenUsageOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { getAccessToken } from '../../lib/api-config';
 
 /** 작품 정보가 아직 로드되지 않았을 때 사용하는 기본 표시값 */
 export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
@@ -55,6 +58,16 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
   const workInfo = selectedWorkInfo?.id === selectedWork
     ? selectedWorkInfo
     : FALLBACK_WORK_INFO;
+  const usageQuery = useQuery({
+    ...getMyAiTokenUsageOptions(),
+    enabled: Boolean(getAccessToken()),
+    retry: false,
+    staleTime: 15_000,
+    refetchInterval: query => (query.state.data?.data?.reservedTokens ?? 0) > 0 ? 3_000 : 30_000,
+  });
+  const usage = usageQuery.data?.data;
+  const remainingPercent = Math.max(0, Math.min(100, usage?.remainingPercent ?? 0));
+  const formatTokens = (value?: number) => (value ?? 0).toLocaleString();
 
   const nav = (id: NavId) => {
     onNavChange?.(id);
@@ -109,6 +122,51 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
         onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />
       <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
         onClick={() => { onComingSoon?.('챗봇'); onClose?.(); }} />
+
+      <div style={{ marginTop: 'auto', padding: '14px 16px 0' }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 13 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 8, color: C.t3, fontSize: 10, fontWeight: 600,
+          }}>
+            <span>AI 토큰 사용량</span>
+            {usageQuery.isError && (
+              <button
+                type="button"
+                aria-label="AI 토큰 사용량 다시 불러오기"
+                onClick={() => void usageQuery.refetch()}
+                disabled={usageQuery.isFetching}
+                style={{ border: 0, padding: 1, background: 'transparent', color: C.t3, cursor: 'pointer' }}
+              >
+                <RefreshCw size={12} />
+              </button>
+            )}
+          </div>
+
+          {usageQuery.isPending ? (
+            <div style={{ color: C.t3, fontSize: 10 }}>사용량 확인 중...</div>
+          ) : usageQuery.isError ? (
+            <div style={{ color: C.warning, fontSize: 10 }}>사용량을 불러오지 못했습니다.</div>
+          ) : (
+            <>
+              <div style={{ height: 4, overflow: 'hidden', borderRadius: 3, background: C.border, marginBottom: 7 }}>
+                <div style={{
+                  width: `${remainingPercent}%`, height: '100%', borderRadius: 3,
+                  background: remainingPercent <= 10 ? C.danger : remainingPercent <= 30 ? C.warning : C.primary,
+                  transition: 'width 0.2s ease',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: C.t3, fontSize: 10 }}>
+                <span>남음 {remainingPercent.toFixed(1)}%</span>
+                <span>{formatTokens(usage?.remainingTokens)} 토큰</span>
+              </div>
+              <div style={{ marginTop: 4, color: C.t3, fontSize: 9 }}>
+                사용 {formatTokens(usage?.usedTokens)} · 처리 중 {formatTokens(usage?.reservedTokens)}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,11 +9,18 @@ import {
   notifyAuthError,
   notifyNetworkError,
 } from './api-errors';
+import { notifyAiTokenQuotaExhausted } from './ai-token-quota';
 
 interface AuthTokenEnvelope {
   success?: boolean;
   data?: {
     accessToken?: string;
+  };
+}
+
+interface ErrorEnvelope {
+  error?: {
+    code?: string;
   };
 }
 
@@ -44,6 +51,20 @@ async function fetchOrThrowNetworkError(input: RequestInfo | URL, init?: Request
 
 function canRefresh(url: string): boolean {
   return !NO_REFRESH_PATHS.some(path => url.includes(path));
+}
+
+async function inspectAiTokenQuota(response: Response): Promise<Response> {
+  if (response.status !== 409) return response;
+
+  try {
+    const body = await response.clone().json() as ErrorEnvelope;
+    if (body.error?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
+      notifyAiTokenQuotaExhausted();
+    }
+  } catch {
+    // 오류 응답이 JSON이 아니어도 원래 응답 처리는 그대로 이어갑니다.
+  }
+  return response;
 }
 
 async function requestAccessToken(
@@ -111,7 +132,7 @@ export async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit
   const response = await fetchOrThrowNetworkError(request);
 
   if (response.status !== 401 || !canRefresh(request.url) || !getAccessToken()) {
-    return response;
+    return inspectAiTokenQuota(response);
   }
 
   const accessToken = await refreshAccessToken();
@@ -126,5 +147,5 @@ export async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit
     notifyAuthError();
   }
 
-  return retriedResponse;
+  return inspectAiTokenQuota(retriedResponse);
 }
