@@ -24,18 +24,18 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 const FEATURES = [
   {
     icon: <Zap size={20} color={C.primary} />,
-    title: '초고속 AI 대조 분석',
-    description: '수만 자의 방대한 원고도 단 몇 초 만에 사전 등록된 설정집과 완벽하게 대조합니다. 오류 탐지 시간을 95% 단축하세요.',
+    title: 'AI 설정 추출',
+    description: '업로드한 원고에서 캐릭터의 프로필, 스탯, 스킬, 아이템과 상태 설정을 추출합니다.',
   },
   {
     icon: <ShieldCheck size={20} color={C.primary} />,
-    title: '일관성 체크',
-    description: '실시간으로 캐릭터의 설정과 세계관 충돌을 감지합니다.',
+    title: '설정 DB 관리',
+    description: '추출된 설정 후보를 검토하고 캐릭터별 현재 설정과 변경 이력을 관리합니다.',
   },
   {
     icon: <FileText size={20} color={C.primary} />,
-    title: '직관적인 리포트',
-    description: '수정이 필요한 부분을 하이라이트와 함께 상세 리포트로 제공합니다.',
+    title: '원문 근거 확인',
+    description: '설정이 추출된 원문 위치를 하이라이트와 함께 확인할 수 있습니다.',
   },
 ];
 
@@ -92,8 +92,8 @@ export default function SLanding() {
             당신의 이야기가 완벽해지는 순간, CatchHole
           </div>
           <div style={{ color: C.t2, fontSize: 15, lineHeight: 1.5 }}>
-            AI 기반 정밀 대조 분석으로 설정 오류부터 개연성까지 한눈에 확인하세요.
-            창작의 즐거움에만 집중할 수 있도록 CatchHole이 돕습니다.
+            AI가 원고 속 캐릭터 설정을 추출하고 원문 근거와 함께 정리합니다.
+            작품의 설정을 찾고 관리하는 시간을 줄여보세요.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => openAuth('/signup')} style={{

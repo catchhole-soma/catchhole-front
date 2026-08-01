@@ -9,9 +9,6 @@ import {
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import type { WorkGenre } from '../../lib/work-contract';
 import {
-  createDemoWork,
-  DEMO_WORKS_QUERY_KEY,
-  isDemoMode,
   toWork,
   type Work,
 } from '../../lib/worksApi';
@@ -46,8 +43,7 @@ export function WorkCreateModal({ onClose, onCreated }: Props) {
   const [genre, setGenre] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [demoSubmitting, setDemoSubmitting] = useState(false);
-  const submitting = createRequest.isPending || demoSubmitting;
+  const submitting = createRequest.isPending;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -67,26 +63,15 @@ export function WorkCreateModal({ onClose, onCreated }: Props) {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      let work: Work | null;
-      if (isDemoMode()) {
-        setDemoSubmitting(true);
-        work = await createDemoWork({
+      const response = await createRequest.mutateAsync({
+        body: {
           title: title.trim(),
-          genre,
+          genre: genre as WorkGenre,
           description: description.trim() || null,
-        });
-        await queryClient.invalidateQueries({ queryKey: DEMO_WORKS_QUERY_KEY });
-      } else {
-        const response = await createRequest.mutateAsync({
-          body: {
-            title: title.trim(),
-            genre: genre as WorkGenre,
-            description: description.trim() || null,
-          },
-        });
-        work = response.data ? toWork(response.data) : null;
-        await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
-      }
+        },
+      });
+      const work: Work | null = response.data ? toWork(response.data) : null;
+      await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
 
       if (!work) throw new Error('작품 생성 응답에 필수 정보가 없습니다.');
       onCreated(work);
@@ -106,8 +91,6 @@ export function WorkCreateModal({ onClose, onCreated }: Props) {
       } else {
         setSubmitError('작품을 등록하지 못했습니다. 잠시 후 다시 시도해주세요.');
       }
-    } finally {
-      setDemoSubmitting(false);
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
+import { Navigate, useLocation, useNavigate as useRouterNavigate, useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { C, EditorMode } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -1099,5 +1099,5 @@ export default function S2Editor() {
     return <SettingBookOriginalReader workId={workId} settingBookId={settingBookId} />;
   }
 
-  return <DemoEditor />;
+  return <Navigate to="/works" replace />;
 }

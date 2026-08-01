@@ -2,7 +2,6 @@ import type { CommonResponseAuthTokenResponse } from '../api/generated/types.gen
 import { clearAccessToken, setAccessToken } from './api-config';
 import { ApiError } from './api-errors';
 import { invalidateAuthRefresh } from './auth-fetch';
-import { setDemoMode } from './worksApi';
 
 export function saveAuthToken(response: CommonResponseAuthTokenResponse): void {
   const accessToken = response.data?.accessToken;
@@ -20,7 +19,6 @@ export function saveAuthToken(response: CommonResponseAuthTokenResponse): void {
     );
   }
 
-  setDemoMode(false);
   setAccessToken(accessToken);
 }
 

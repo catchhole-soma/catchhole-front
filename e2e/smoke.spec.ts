@@ -34,6 +34,20 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+
+  const sidebarLabels = ['원고 목록', '설정 DB', '분석 목록', '분석 리포트', '그래프 뷰', '챗봇'];
+  for (const label of sidebarLabels) {
+    await expect(page.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
+  }
+  await expect(page.getByText(/이번 달 14\/20회/)).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^분석 리포트/ }).click();
+  await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /^관계도/ }).click();
+  await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
 test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
@@ -72,61 +86,33 @@ test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 
   expect(characterRequestCount).toBe(0);
 });
 
-test('데모 모드는 설정 편집 메타데이터와 수동 설정을 저장 후에도 유지한다', async ({ page }) => {
+test('MVP에서 제외한 이전 목 화면 경로는 작품 선택으로 돌아간다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'mvp-routes@example.com',
+          displayName: 'MVP 경로 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : [];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
   await page.goto('/login');
-  await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
+  await page.evaluate(() => localStorage.setItem('accessToken', 'mvp-routes-token'));
 
-  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
-
-  await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /수아/ }).click();
-  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
-
-  await page.getByRole('button', { name: '삭제', exact: true }).click();
-  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toBeVisible();
-  await page.getByTestId('character-modal-backdrop').click({ position: { x: 5, y: 5 } });
-  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: /수아/ }).click();
-  await expect(page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true })).toHaveCount(0);
-
-  await page.getByRole('button', { name: '수정', exact: true }).click();
-  await expect(page.getByLabel('스킬 이름', { exact: true }).first()).toHaveValue('기본 검술');
-  await page.getByLabel('이름', { exact: true }).fill('수아 이름 수정');
-  await page.getByRole('button', { name: '프로필 추가', exact: true }).click();
-  await page.getByLabel('프로필 이름', { exact: true }).fill('좌우명');
-  await page.getByLabel('좌우명 값', { exact: true }).fill('끝까지 포기하지 않는다');
-  await page.getByRole('button', { name: '저장', exact: true }).click();
-  const confirm = page.getByText('수정 내용을 저장하시겠습니까?', { exact: true }).locator('..');
-  await confirm.getByRole('button', { name: '저장', exact: true }).click();
-
-  await expect(page.getByText('캐릭터 설정을 저장했습니다.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
-  await page.getByRole('button', { name: '수정', exact: true }).click();
-  await expect(page.getByLabel('프로필 이름', { exact: true })).toHaveValue('좌우명');
-  await page.getByRole('button', { name: '취소', exact: true }).click();
-  await page.getByRole('button', { name: '닫기', exact: true }).click();
-  await page.getByRole('button', { name: '관계도', exact: true }).click();
-  await page.getByRole('button', { name: '캐릭터 DB', exact: true }).click();
-  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0);
-
-  await page.goto('/works');
-  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
-  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
-
-  await page.getByRole('button', { name: /수아 이름 수정/ }).click();
-  await page.getByRole('button', { name: '삭제', exact: true }).click();
-  const deleteConfirm = page.getByText('캐릭터를 삭제하시겠습니까?', { exact: true }).locator('..');
-  await deleteConfirm.getByRole('button', { name: '삭제', exact: true }).click();
-  await page.goto('/works');
-  await page.goto('/dashboard?workId=detective&nav=settingDB&tab=characters');
-  await page.getByRole('button', { name: '보관된 캐릭터', exact: true }).click();
-  const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
-  await expect(archiveDialog.getByText('수아 이름 수정', { exact: true })).toBeVisible();
-  await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
-  await archiveDialog.getByRole('button', { name: '보관함 닫기' }).click();
-  await expect(page.getByRole('button', { name: /수아 이름 수정/ })).toBeVisible();
+  for (const path of ['/chat', '/loading', '/report', '/episode-validation-report']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/works$/);
+  }
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -194,6 +180,8 @@ test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 �
   await page.goto(`/episode-upload?workId=${workId}`);
 
   await page.getByText('단일 회차 업로드', { exact: true }).click();
+  await expect(page.getByRole('button', { name: '신규 회차 검수 업데이트 예정' })).toBeDisabled();
+  await expect(page.getByText('기존 설정 구축', { exact: true })).toBeVisible();
 
   const episodeNoInput = page.getByPlaceholder('비우면 파일에서 감지');
   const episodeTitleInput = page.getByPlaceholder('비우면 원문 제목 행에서 감지');
@@ -614,13 +602,13 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
             {
               id: analysisJobId,
               episodeId: '44444444-4444-4444-8444-444444444444',
-              jobType: 'EPISODE_VALIDATION',
+              jobType: 'SETTING_EXTRACTION',
               status: 'PENDING',
             },
             {
               id: secondAnalysisJobId,
               episodeId: '55555555-5555-4555-8555-555555555555',
-              jobType: 'EPISODE_VALIDATION',
+              jobType: 'SETTING_EXTRACTION',
               status: 'PENDING',
             },
           ],
@@ -646,7 +634,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
             id: firstJob ? analysisJobId : secondAnalysisJobId,
             workId,
             workTitle: '테스트 작품',
-            jobType: 'EPISODE_VALIDATION',
+            jobType: 'SETTING_EXTRACTION',
             status: 'PENDING',
             episodes: [{
               id: firstJob
@@ -723,7 +711,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect.poll(() => new URL(page.url()).searchParams.get('currentAnalysisJobIds'))
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
-  await expect(page).toHaveURL(/jobType=EPISODE_VALIDATION/);
+  await expect(page).toHaveURL(/jobType=SETTING_EXTRACTION/);
 
   await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
   await expect(page).toHaveURL(
@@ -1155,58 +1143,6 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   expect(analysisRequestCount).toBe(1);
 });
 
-test('회차 검사 결과에서 현재 작품 원고 목록으로 돌아간다', async ({ page }) => {
-  const workId = '11111111-1111-4111-8111-111111111111';
-  const episodeId = '44444444-4444-4444-8444-444444444444';
-
-  await page.route('**/api/v1/**', route => {
-    const pathname = new URL(route.request().url()).pathname;
-    const data = pathname.endsWith('/auth/me')
-      ? {
-          id: 1,
-          email: 'episode-report@example.com',
-          displayName: '회차 결과 테스트',
-          phoneNumber: '01012345678',
-          phoneVerified: false,
-          role: 'AUTHOR',
-          status: 'ACTIVE',
-        }
-      : pathname.endsWith(`/${workId}/episodes`)
-        ? [{
-            id: episodeId,
-            episodeNo: 1,
-            title: '분석 완료 회차',
-            originalFilename: 'episode-1.txt',
-            contentUpdatedAt: '2026-07-23T12:00:00',
-            charCount: 100,
-            analysisStatus: 'COMPLETED',
-            unresolvedFindingCount: 0,
-          }]
-        : pathname.endsWith(`/works/${workId}`)
-          ? { id: workId, title: '현재 작품', genre: '판타지' }
-          : pathname.endsWith('/works')
-            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
-            : [];
-
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data, error: null }),
-    });
-  });
-
-  await page.goto('/login');
-  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-report-token'));
-  await page.goto(`/episode-validation-report?workId=${workId}`);
-  await page.reload();
-
-  await page.getByRole('button', { name: '← 이전' }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/dashboard\\?workId=${workId}&nav=manuscripts$`),
-  );
-  await expect(page.getByText('현재 작품', { exact: true }).first()).toBeVisible();
-});
-
 test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이동한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
@@ -1372,22 +1308,6 @@ test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한�
   await expect(article).not.toContainText('2026. 7. 23.');
 });
 
-test('인증 서버 단절은 토큰을 지우지 않고 데모 전환을 허용한다', async ({ page }) => {
-  await page.route('**/api/v1/auth/me', route => route.abort('connectionfailed'));
-  await page.goto('/login');
-  await page.evaluate(() => localStorage.setItem('accessToken', 'mock'));
-
-  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
-
-  await expect(page.getByText('백엔드 서버에 연결할 수 없습니다', { exact: true })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('mock');
-
-  await page.getByRole('button', { name: '데모 버전으로 전환' }).click();
-
-  await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
-});
-
 test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async ({ page }) => {
   let getMeRequestCount = 0;
   await page.route('**/api/v1/**', route => {
@@ -1526,23 +1446,20 @@ test('모바일 Auth 모달은 뷰포트 전체를 사용한다', async ({ page 
   }).toEqual({ x: 0, y: 0, width: 390, height: 844 });
 });
 
-test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인증을 확인한다', async ({ page }) => {
+test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
-    const data = pathname.endsWith('/auth/login')
-      ? { accessToken: 'enter-login-token' }
-      : pathname.endsWith('/auth/me')
-        ? {
-            id: 1,
-            email: 'enter@example.com',
-            displayName: '엔터 테스트',
-            phoneNumber: '01012345678',
-            phoneVerified: false,
-            role: 'AUTHOR',
-            status: 'ACTIVE',
-          }
-        : [];
-
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'logout@example.com',
+          displayName: '로그아웃 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : [];
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -1550,34 +1467,7 @@ test('데모 모드에서 실제 로그인하면 데모 상태를 지우고 인�
     });
   });
   await page.goto('/login');
-  await page.evaluate(() => {
-    localStorage.setItem('catchhole_demo_mode', 'true');
-    localStorage.setItem('catchhole_demo_works', '[]');
-    localStorage.setItem('catchhole_demo_character_state', '{}');
-  });
-  await page.getByPlaceholder('이메일').fill('enter@example.com');
-  await page.getByPlaceholder('비밀번호').fill('Password1');
-
-  await Promise.all([
-    page.waitForRequest(request =>
-      request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/auth/login')),
-    page.getByPlaceholder('비밀번호').press('Enter'),
-  ]);
-
-  await expect(page).toHaveURL(/\/works$/);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_mode'))).toBeNull();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_works'))).toBeNull();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('catchhole_demo_character_state'))).toBeNull();
-});
-
-test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
-  await page.route('**/api/v1/auth/logout', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: null, error: null }),
-  }));
-  await page.goto('/login');
-  await page.evaluate(() => localStorage.setItem('catchhole_demo_mode', 'true'));
+  await page.evaluate(() => localStorage.setItem('accessToken', 'logout-token'));
   await page.goto('/works');
 
   await expect(page.getByText('작품 선택', { exact: true })).toBeVisible();
@@ -2688,39 +2578,6 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
   );
   await expect(page.getByText('새 작품', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('아직 업로드된 원고가 없습니다.', { exact: true })).toBeVisible();
-});
-
-test('데모 작품 수정 후 세션을 초기화하면 기본 작품 정보가 복원된다', async ({ page }) => {
-  await page.goto('/login');
-
-  const resetWork = await page.evaluate(async () => {
-    localStorage.clear();
-    const {
-      getDemoWorks,
-      setDemoMode,
-      updateDemoWork,
-    } = await import('/src/app/lib/worksApi.ts');
-
-    setDemoMode(true);
-    await updateDemoWork('detective', {
-      title: '변경된 데모 작품',
-      genre: '추리',
-      description: '변경된 설명',
-    });
-    setDemoMode(false);
-    setDemoMode(true);
-
-    const works = await getDemoWorks();
-    return works.find(work => work.id === 'detective');
-  });
-
-  expect(resetWork).toMatchObject({
-    id: 'detective',
-    title: '탐정 사무소의 비밀',
-    genre: '추리',
-    description: null,
-    episodeCount: 12,
-  });
 });
 
 test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 뒤 재시도한다', async ({ page }) => {

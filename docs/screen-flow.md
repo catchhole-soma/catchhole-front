@@ -18,6 +18,8 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 - 화면 간 전환 — 각 컴포넌트의 `navigate(...)` 호출
 - 사이드바 네비게이션 — `src/app/components/catchhole/AppSidebar.tsx`
 
+> **2026-08 MVP 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 설정 후보 검토입니다. 분석 리포트·그래프 뷰·챗봇·관계도·타임라인은 메뉴 이름과 `업데이트 예정` 안내만 제공하며 목 화면으로 이동하지 않습니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
+
 ## Pencil Workflow Boards
 
 Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍니다. 흐름이 달라질 때는 이 문서의 Mermaid를 먼저 갱신하고, 보드와 PNG를 동기화합니다.
@@ -164,7 +166,7 @@ flowchart TD
 
 > `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
 >
-> MVP에서는 카카오·Google 로그인 버튼을 보이되 비활성으로 표시하며, 인증 요청이나 mock token 저장을 실행하지 않습니다.
+> MVP에서는 이메일·비밀번호 인증만 화면에 표시합니다. 소셜 로그인은 OAuth 계약을 정한 뒤 별도 범위에서 추가합니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
 
 ---
