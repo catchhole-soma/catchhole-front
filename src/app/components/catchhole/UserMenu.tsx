@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import { LogOut, FlaskConical } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { logoutMutation } from '../../api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from '../../lib/auth';
-import { isDemoMode, setDemoMode } from '../../lib/worksApi';
 
 export function UserMenu() {
   const navigate = useAppNavigate();
   const queryClient = useQueryClient();
   const logoutRequest = useMutation(logoutMutation());
   const [menuOpen, setMenuOpen] = useState(false);
-  const [demoMode, setDemoModeState] = useState(isDemoMode());
 
   const handleLogout = async () => {
     setMenuOpen(false);
@@ -26,14 +24,6 @@ export function UserMenu() {
     } finally {
       navigate('/landing', 'dissolve', undefined, { replace: true });
     }
-  };
-
-  const handleToggleDemo = () => {
-    const next = !demoMode;
-    setDemoMode(next);
-    setDemoModeState(next);
-    setMenuOpen(false);
-    window.location.reload();
   };
 
   return (
@@ -63,30 +53,6 @@ export function UserMenu() {
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 160,
               }}
             >
-              <button
-                onClick={handleToggleDemo}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                  padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
-                  color: C.t1, fontSize: 13, fontFamily: 'inherit', textAlign: 'left',
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.border + '55'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FlaskConical size={14} /> 데모 모드
-                </span>
-                <span style={{
-                  width: 28, height: 16, borderRadius: 8, flexShrink: 0,
-                  background: demoMode ? C.primary : C.border, position: 'relative', transition: 'background 0.15s',
-                }}>
-                  <span style={{
-                    position: 'absolute', top: 2, left: demoMode ? 14 : 2, width: 12, height: 12,
-                    borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
-                  }} />
-                </span>
-              </button>
               <button
                 onClick={handleLogout}
                 disabled={logoutRequest.isPending}

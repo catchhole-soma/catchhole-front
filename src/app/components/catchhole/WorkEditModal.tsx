@@ -9,10 +9,7 @@ import {
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import { WORK_GENRES, type WorkGenre } from '../../lib/work-contract';
 import {
-  DEMO_WORKS_QUERY_KEY,
-  isDemoMode,
   toWork,
-  updateDemoWork,
   type Work,
 } from '../../lib/worksApi';
 import { C } from './constants';
@@ -49,8 +46,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
   );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [demoSubmitting, setDemoSubmitting] = useState(false);
-  const submitting = updateRequest.isPending || demoSubmitting;
+  const submitting = updateRequest.isPending;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -70,27 +66,16 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      let updatedWork: Work | null;
-      if (isDemoMode()) {
-        setDemoSubmitting(true);
-        updatedWork = await updateDemoWork(work.id, {
+      const response = await updateRequest.mutateAsync({
+        path: { workId: work.id },
+        body: {
           title: title.trim(),
-          genre,
+          genre: genre as WorkGenre,
           description: description.trim() || null,
-        });
-        await queryClient.invalidateQueries({ queryKey: DEMO_WORKS_QUERY_KEY });
-      } else {
-        const response = await updateRequest.mutateAsync({
-          path: { workId: work.id },
-          body: {
-            title: title.trim(),
-            genre: genre as WorkGenre,
-            description: description.trim() || null,
-          },
-        });
-        updatedWork = response.data ? toWork(response.data) : null;
-        await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
-      }
+        },
+      });
+      const updatedWork: Work | null = response.data ? toWork(response.data) : null;
+      await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
 
       if (!updatedWork) throw new Error('작품 수정 응답에 필수 정보가 없습니다.');
       onUpdated(updatedWork);
@@ -112,8 +97,6 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
       } else {
         setSubmitError('작품 정보를 수정하지 못했습니다. 잠시 후 다시 시도해주세요.');
       }
-    } finally {
-      setDemoSubmitting(false);
     }
   };
 

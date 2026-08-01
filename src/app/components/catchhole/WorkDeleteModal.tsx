@@ -8,9 +8,6 @@ import {
 } from '../../api/generated/@tanstack/react-query.gen';
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import {
-  deleteDemoWork,
-  DEMO_WORKS_QUERY_KEY,
-  isDemoMode,
   type Work,
 } from '../../lib/worksApi';
 import { C } from './constants';
@@ -24,9 +21,8 @@ interface Props {
 export function WorkDeleteModal({ work, onClose, onDeleted }: Props) {
   const queryClient = useQueryClient();
   const deleteRequest = useMutation(deleteWorkMutation());
-  const [demoSubmitting, setDemoSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const submitting = deleteRequest.isPending || demoSubmitting;
+  const submitting = deleteRequest.isPending;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -41,15 +37,8 @@ export function WorkDeleteModal({ work, onClose, onDeleted }: Props) {
     setSubmitError(null);
 
     try {
-      if (isDemoMode()) {
-        setDemoSubmitting(true);
-        const deleted = await deleteDemoWork(work.id);
-        if (!deleted) throw new Error('삭제할 데모 작품을 찾을 수 없습니다.');
-        await queryClient.invalidateQueries({ queryKey: DEMO_WORKS_QUERY_KEY });
-      } else {
-        await deleteRequest.mutateAsync({ path: { workId: work.id } });
-        await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
-      }
+      await deleteRequest.mutateAsync({ path: { workId: work.id } });
+      await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
       onDeleted(work.id);
     } catch (error) {
       const apiError = toApiError(error);
@@ -60,8 +49,6 @@ export function WorkDeleteModal({ work, onClose, onDeleted }: Props) {
       } else {
         setSubmitError('작품을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.');
       }
-    } finally {
-      setDemoSubmitting(false);
     }
   };
 

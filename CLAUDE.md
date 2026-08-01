@@ -4,7 +4,7 @@ CatchHole 프론트엔드(`catchhole-front`) 작업 시 참고할 공용 컨텍�
 
 ## 프로젝트 개요
 
-CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하면 기존 설정집(인물/아이템/스킬/타임라인 등)과의 충돌·모순을 AI로 검사해주는 툴입니다. 이 레포는 그 프론트엔드(React SPA)입니다.
+CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI가 캐릭터 설정을 추출하고, 설정 후보 검토·설정 DB·검색·원문 근거 확인 흐름을 제공하는 툴입니다. 이 레포는 그 프론트엔드(React SPA)입니다. 충돌 분석 리포트·관계도·타임라인·그래프 뷰·챗봇은 MVP 이후 범위입니다.
 
 ## 기술 스택 & 명령어
 
@@ -17,11 +17,11 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 ## 디렉토리 구조
 
 - `src/app/components/catchhole/` — 화면 컴포넌트
-  - `S0WorkPicker`, `S1Dashboard` ~ `S5Report`: 메인 작업 흐름 화면
-  - `AnalysisList`, `SEpisodeUpload`, `SEpisodeValidationReport`, `SSettingReview`: 업로드 묶음별 분석 목록/회차 업로드/검사/설정 검토 플로우
-  - `SLogin`, `SSignup`, `AppSidebar`, `GraphView`, `ReviewLayout` 등 공용 UI
-  - `constants.ts` — 디자인 토큰(`C` 객체)과 공용 타입(`types.ts`)·목 데이터(`mockEpisodeData.ts`)
-- `src/app/context/` — `AppContext`(전역 상태), `BackendStatusContext`(백엔드 연결 상태 감지 → 데모 모드 판단)
+  - `S0WorkPicker`, `S1Dashboard`: 작품 선택과 설정·원고 관리 화면
+  - `AnalysisList`, `SEpisodeUpload`, `SSettingReview`: 업로드 묶음별 분석 목록/회차 업로드/설정 검토 플로우
+  - `SLogin`, `SSignup`, `AppSidebar`, `ReviewLayout` 등 공용 UI
+  - `constants.ts` — 디자인 토큰(`C` 객체)과 공용 타입
+- `src/app/context/` — `AppContext`(전역 UI 상태), `BackendStatusContext`(인증 만료 전역 처리)
 - `src/app/api/generated/` — 백엔드 OpenAPI에서 Hey API로 생성한 타입·SDK·TanStack Query 옵션 (직접 수정 금지)
 - `src/app/api/client-config.ts` — 생성 클라이언트의 base URL, 인증, 공통 fetch 런타임 설정
 - `src/app/lib/` — `api.ts`, `auth.ts`, `auth-fetch.ts`, `query-client.ts`, `worksApi.ts`, `fileValidation.ts`
@@ -35,15 +35,12 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 | `/landing` | `SLanding` | 비로그인 서비스 소개 화면과 Auth 모달의 공통 배경 |
 | `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
-| `/` | `S0WorkPicker` | 작품 선택 (진입점) |
-| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=settingDB\|reports\|analyses\|graph\|manuscripts`로 좌측 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. `?tab=characters\|relations\|timeline\|worldrules\|search`로 설정DB 하위 탭을 구분하며, 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존한다. `?modal=fact-detail&factId=<id>`로 설정 상세 모달, `?modal=char-detail&charId=<id>`로 캐릭터 상세 모달, `?modal=character-archive`로 보관된 캐릭터 목록, `?nav=settingDB&tab=relations`일 때 `?relGraph=triangle\|prosecution\|court`로 관계도 샘플 선택, `?nav=graph&node=<id>`로 그래프뷰 선택 노드까지 딥링크 가능 |
-| `/editor` | `S2Editor` | 원고 에디터. `?modal=analysis-request`로 분석 요청 모달 딥링크 |
-| `/chat` | `S3Chat` | 챗봇 |
-| `/loading` | `S4Loading` | 분석 진행률 |
-| `/report` | `S5Report` | 충돌/모순 리포트. `?mode=prePublish`로 발행 전 전체 검수 화면 딥링크(없으면 단일 회차 모드) |
-| `/episode-upload` | `SEpisodeUpload` | 회차 업로드 (모드 선택 → 파일 업로드 → 회차 분리 확인 → 설정집 분석) |
+| `/works` | `S0WorkPicker` | 작품 선택 (보호 화면 진입점) |
+| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=manuscripts\|settingDB\|analyses`로 실제 제공 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. `?tab=characters\|worldrules\|search`로 제공 중인 설정DB 하위 탭을 구분하며, 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존한다. 관계도·타임라인·분석 리포트·그래프 뷰·챗봇은 내비게이션에서 업데이트 예정 안내만 표시하고 화면을 열지 않는다. |
+| `/episode-upload` | `SEpisodeUpload` | 회차 업로드와 기존 설정 구축. 신규 회차 검수는 업데이트 예정으로 비활성화한다. |
 | `/setting-review` | `SSettingReview` | 업로드 묶음에서 추출된 설정 후보 검토. `?workId=<id>&batchId=<id>&jobType=<EPISODE_VALIDATION\|SETTING_EXTRACTION>&candidate=<id>`로 검토 문맥·완료 후 목적지·선택 후보를 딥링크하며, 뒤로가기는 해당 작품의 `nav=analyses`로 돌아간다. |
-| `/episode-validation-report` | `SEpisodeValidationReport` | 회차 검사(충돌/모순) 결과. `?issue=<id>`로 선택된 이슈 딥링크 |
+| `/editor` | 회차·설정집 원문 보기 | `workId`와 원문 ID가 있는 경우 서버 원문을 읽기 전용으로 표시한다. |
+| `/chat`, `/loading`, `/report`, `/episode-validation-report` | 작품 선택으로 이동 | MVP에서 제공하지 않는 레거시 목 화면의 직접 진입을 차단한다. |
 
 화면 전환에는 `TransitionType`(`push-right`/`push-left`/`cover-up`/`pop`/`dissolve`, `constants.ts`)을 사용합니다.
 
@@ -54,18 +51,18 @@ CatchHole은 웹소설/웹툰 작가·편집자가 회차 원고를 업로드하
 - **목적**: 스크린샷 대신 URL로 화면을 정확히 지칭(PR·이슈·문서, AI에게 작업 전달 시 유용). 예: [`docs/api-requirements.md`](https://github.com/catchhole-soma/catchhole-front/blob/5b971dd383c5421da6134cd6cfcba81a4c1a9488/docs/api-requirements.md)처럼 화면명 옆에 URL을 적어두면 캡처 없이도 "이 화면" 하나로 지칭 가능. 단, 코드만 읽는 에이전트에게 URL은 "화면"이 아니라 `App.tsx` 라우트 표를 통해 찾아갈 파일 좌표일 뿐 — 브라우저 도구가 있어야 실제로 화면을 볼 수 있음.
 - **Figma는 대체 아님**: 시각 디자인 협업은 여전히 Figma/Pencil(`design/catchhole.pen`) 몫. 이 방침은 텍스트로 표현 가능한 정보(API 요청사항 등)에 한정.
 - **보안 예외**: URL을 인가 수단으로 쓰지 않음 — 권한/개인정보가 필요한 화면·데이터는 서버 측 검증 필수.
-- **배포 URL 주의**: `https://catch-hole.vercel.app/`은 백엔드 미연동([NVM-48](https://aiswmproject.atlassian.net/browse/NVM-48) 진행 중)이라 첫 접속 시 데모 모드 전환이 한 번 필요.
+- **배포 URL 주의**: 보호 화면은 실제 API 인증과 서버 데이터를 요구하며, 백엔드 연결 실패 시 목 데이터로 전환하지 않는다.
 
 ## 인증/세션
 
 API 호출은 `src/app/api/generated/`의 Hey API SDK와 TanStack Query 옵션을 사용합니다. 세션 저장은 `src/app/lib/auth.ts`, access token 자동 갱신은 `src/app/lib/auth-fetch.ts`에서 담당합니다.
 
-- 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다. 실제 토큰을 저장할 때는 데모 모드와 데모 작품 데이터를 제거합니다.
+- 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다.
 - Auth 모달 히스토리: 랜딩에서 열면 한 개의 히스토리 항목을 추가해 브라우저 뒤로가기로 닫습니다. 로그인↔회원가입 전환은 현재 항목을 교체하고, 직접 진입·보호 화면 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 항목을 교체합니다.
 - 인증 요청: `credentials: include`를 사용하며, 보호 API가 401을 반환하면 refresh를 한 번 수행한 뒤 원래 요청을 재시도합니다. 동시에 발생한 401은 하나의 refresh 요청을 공유합니다.
 - 인증 확인: `PrivateRoute`는 저장된 토큰 존재 여부뿐 아니라 `GET /api/v1/auth/me` 성공 여부를 TanStack Query로 확인합니다. 401에서만 세션을 제거하며, 5xx나 네트워크 오류는 토큰을 유지하고 화면 진입을 보류한 채 재시도를 제공합니다.
 - 로그아웃: 진행 중인 refresh와 localStorage 토큰·Query 캐시를 먼저 제거한 뒤 서버 refresh token 폐기를 요청하고 `/landing`으로 이동합니다.
-- 소셜 로그인(카카오/Google)은 OAuth 계약이 준비될 때까지 비활성 상태이며 mock token을 발급하지 않습니다.
+- 로그인·회원가입 화면에는 현재 제공하는 이메일·비밀번호 방식만 노출합니다.
 
 ## 백엔드 API 문서 (Swagger)
 
@@ -113,11 +110,11 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
    - 리뷰용 PNG는 `docs/workflows/WF-01.png`부터 `WF-05.png`까지 관리하며, 보드 변경 후 함께 다시 내보냅니다.
    - 파일럿 보드 `M7oaU`의 구성을 보드 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거했으며 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 사용합니다.
 
-## 상태 관리 & 데모 모드
+## 상태 관리 & 서버 데이터 원칙
 
-- **`AppContext`** — 화면 간 공유되는 UI 상태: `selectedWork`(작품 선택, `WorkId`: `detective`/`murim`), 레거시 `editorMode`(`edit`/`view`), `reportMode`(`single`/`prePublish`) 등. 인증/백엔드 연결과는 무관. MVP의 `/editor`는 읽기 전용이므로 새 화면·Workflow에는 편집 전환을 노출하지 않습니다.
-- **`BackendStatusContext`** — `.env`의 `VITE_API_BASE_URL`로 설정된 백엔드와의 연결 상태를 감지(`api.ts`의 네트워크 에러 리스너 경유). 연결이 끊기거나(`promptKind: 'network'`) 업로드할 파일이 없을 때(`promptKind: 'no-file'`) 데모 모드 전환을 프롬프트로 제안.
-- **데모 모드**: 사용자가 전환을 수락하면 `mockEpisodeData.ts` 등의 목 데이터로 화면을 그대로 시연 (mock-first 개발 방식 — 백엔드 없이도 FE 작업/리뷰 가능).
+- **`AppContext`** — 화면 간 공유되는 작품 선택과 전환 상태를 관리합니다. 인증·서버 연결 상태와는 분리합니다.
+- **`BackendStatusContext`** — 보호 API의 인증 실패 이벤트를 받아 토큰과 Query 캐시를 지우고 로그인으로 이동합니다.
+- **서버 데이터 원칙**: 작품·회차·분석·캐릭터 화면은 생성 SDK와 TanStack Query를 통해 실제 API 데이터만 사용합니다. 연결 실패나 파일 미선택을 목 데이터 전환 조건으로 사용하지 않습니다.
 
 ## 참고 문서
 
@@ -134,7 +131,7 @@ GitHub 이슈는 **항상 `catchhole-backend-java` 레포에 등록**합니다 (
 `<type>(<scope>): <한글 설명>` 형식을 사용합니다.
 
 ```
-feat(works): 작품 목록/업로드를 백엔드 API로 연동하고 데모 모드 추가
-fix(episode-upload): 데모 모드 전환 시 같은 화면에서 데모 데이터로 바로 진행
+feat(works): 작품 목록과 업로드를 백엔드 API로 연동
+fix(episode-upload): 분석 목적 선택과 실패 재시도 상태를 정리
 chore(design): Pencil 디자인 파일로 회차 업로드 플로우 와이어프레임 추가
 ```

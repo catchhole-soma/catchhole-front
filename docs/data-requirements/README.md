@@ -78,7 +78,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 
 모달 열림 여부, 포커스, 펼침 상태처럼 BE로 전달하지 않는 클라이언트 전용 상태는 5-2에서 제외합니다. 3번의 식별자는 화면 이동 문맥, 5-2의 식별자는 BE 작업 대상을 설명하므로 같은 값이 양쪽에 등장할 수 있습니다.
 
-- 배포: https://www.catchhole.com — 첫 접속 시 데모 모드 전환을 수락하면 mock 데이터로 화면 열람 가능 (백엔드 연동은 [NVM-218](https://aiswmproject.atlassian.net/browse/NVM-218))
+- 배포: https://www.catchhole.com — 로그인 후 실제 API 데이터로만 화면을 구성하며, 백엔드 연동 기준은 [NVM-218](https://aiswmproject.atlassian.net/browse/NVM-218)을 참고합니다.
 - 백엔드 API 계약: [공개 Swagger](https://api.catchhole.com/swagger-ui/index.html) · [BE 도메인 문서](https://github.com/catchhole-soma/catchhole-backend-java/tree/main/docs)
 
 ## 도메인별 문서

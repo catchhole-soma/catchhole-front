@@ -301,22 +301,41 @@ function AnalysisJobTypeSelector({ value, onChange, disabled }: {
     <>
       <FieldLabel>분석 유형</FieldLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['EPISODE_VALIDATION', 'SETTING_EXTRACTION'] as AnalysisJobType[]).map(jobType => (
-          <button key={jobType} type="button" disabled={disabled} onClick={() => onChange(jobType)} style={{
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange('SETTING_EXTRACTION')}
+          style={{
             flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
-            background: value === jobType ? `${C.primary}14` : C.surface,
-            border: `1px solid ${value === jobType ? C.primary : C.border}`,
-            color: value === jobType ? C.t1 : C.t2, cursor: disabled ? 'default' : 'pointer',
-            fontFamily: 'inherit', opacity: disabled ? 0.55 : 1,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-              {jobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
-            </div>
-            <div style={{ fontSize: 11, color: C.t3 }}>
-              {jobType === 'EPISODE_VALIDATION' ? '확정된 설정과의 충돌을 검사합니다' : '원고에서 설정 후보를 추출합니다'}
-            </div>
-          </button>
-        ))}
+            background: value === 'SETTING_EXTRACTION' ? `${C.primary}14` : C.surface,
+            border: `1px solid ${value === 'SETTING_EXTRACTION' ? C.primary : C.border}`,
+            color: value === 'SETTING_EXTRACTION' ? C.t1 : C.t2,
+            cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
+            opacity: disabled ? 0.55 : 1,
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>기존 설정 구축</div>
+          <div style={{ fontSize: 11, color: C.t3 }}>원고에서 설정 후보를 추출합니다</div>
+        </button>
+        <button
+          type="button"
+          disabled
+          aria-label="신규 회차 검수 업데이트 예정"
+          style={{
+            flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
+            background: C.surface, border: `1px solid ${C.border}`,
+            color: C.t3, cursor: 'not-allowed', fontFamily: 'inherit', opacity: 0.55,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>신규 회차 검수</span>
+            <span style={{
+              padding: '1px 6px', borderRadius: 8, border: `1px solid ${C.primary}44`,
+              color: C.t2, fontSize: 9, fontWeight: 600,
+            }}>업데이트 예정</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌 검사 기능을 준비하고 있습니다</div>
+        </button>
       </div>
     </>
   );
@@ -530,9 +549,11 @@ export default function SEpisodeUpload() {
     });
   };
   const [selectedDetectionOrder, setSelectedDetectionOrder] = useState<number | null>(null);
-  const initialAnalysisJobType: AnalysisJobType = searchParams.get('jobType') === 'SETTING_EXTRACTION'
-    ? 'SETTING_EXTRACTION'
-    : 'EPISODE_VALIDATION';
+  // 새 분석은 설정 추출만 허용하되, 과거 검수 작업의 진행 화면은 기존 타입을 유지한다.
+  const initialAnalysisJobType: AnalysisJobType = initialTrackedAnalysisJobIds.length > 0
+    && searchParams.get('jobType') === 'EPISODE_VALIDATION'
+    ? 'EPISODE_VALIDATION'
+    : 'SETTING_EXTRACTION';
   const [analysisJobType, setAnalysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
   const [includeSettings, setIncludeSettings] = useState(false);
   const [settingsFile, setSettingsFile] = useState<File | null>(null);
@@ -868,7 +889,7 @@ export default function SEpisodeUpload() {
     try {
       const response = await createAnalysisJobMutation.mutateAsync({
         path: { workId },
-        body: { jobType: analysisJobType, batchId },
+        body: { jobType: 'SETTING_EXTRACTION', batchId },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
@@ -1076,9 +1097,9 @@ export default function SEpisodeUpload() {
         <Header onBack={() => navigate('/works', 'pop')} />
         <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center' }}>
           <AlertCircle size={36} color={C.warning} style={{ marginBottom: 14 }} />
-          <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 8 }}>실제 API에 연결할 작품이 필요합니다</div>
+          <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 8 }}>작품 정보를 확인할 수 없습니다</div>
           <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
-            작품 선택 화면에서 <b>Episode API 테스트 작품</b>을 선택하면 실제 소유 UUID가 준비됩니다.
+            작품 선택 화면에서 다시 작품을 선택한 뒤 회차 업로드를 시작해주세요.
           </div>
           <PrimaryButton onClick={() => navigate('/works', 'pop')}>작품 선택으로 이동</PrimaryButton>
         </div>

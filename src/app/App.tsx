@@ -10,18 +10,13 @@ import SLanding from './components/catchhole/SLanding';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
-import S3Chat from './components/catchhole/S3Chat';
-import S4Loading from './components/catchhole/S4Loading';
-import S5Report from './components/catchhole/S5Report';
 import SEpisodeUpload from './components/catchhole/SEpisodeUpload';
 import SSettingReview from './components/catchhole/SSettingReview';
-import SEpisodeValidationReport from './components/catchhole/SEpisodeValidationReport';
 import { C, TransitionType } from './components/catchhole/constants';
 import { getMeOptions } from './api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from './lib/auth';
 import { getAccessToken } from './lib/api-config';
 import { NetworkError, toApiError } from './lib/api-errors';
-import { isDemoMode } from './lib/worksApi';
 import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 
@@ -66,11 +61,10 @@ const TRANSITIONS: Record<TransitionType, TransitionConfig> = {
 };
 
 function PrivateRoute() {
-  const demoMode = isDemoMode();
   const hasAccessToken = Boolean(getAccessToken());
   const session = useQuery({
     ...getMeOptions(),
-    enabled: hasAccessToken && !demoMode,
+    enabled: hasAccessToken,
     retry: false,
     staleTime: 60_000,
   });
@@ -78,12 +72,8 @@ function PrivateRoute() {
   const isAuthenticationFailure = session.isError && toApiError(session.error)?.status === 401;
 
   useEffect(() => {
-    if (isAuthenticationFailure && !demoMode) clearAuthSession();
-  }, [demoMode, isAuthenticationFailure]);
-
-  if (demoMode) {
-    return <Outlet />;
-  }
+    if (isAuthenticationFailure) clearAuthSession();
+  }, [isAuthenticationFailure]);
 
   if (!hasAccessToken || isAuthenticationFailure) {
     return <Navigate to="/login" replace />;
@@ -192,12 +182,12 @@ function AnimatedRoutes() {
             <Route path="/works" element={<S0WorkPicker />} />
             <Route path="/dashboard" element={<S1Dashboard />} />
             <Route path="/editor" element={<S2Editor />} />
-            <Route path="/chat" element={<S3Chat />} />
-            <Route path="/loading" element={<S4Loading />} />
-            <Route path="/report" element={<S5Report />} />
+            <Route path="/chat" element={<Navigate to="/works" replace />} />
+            <Route path="/loading" element={<Navigate to="/works" replace />} />
+            <Route path="/report" element={<Navigate to="/works" replace />} />
             <Route path="/episode-upload" element={<SEpisodeUpload />} />
             <Route path="/setting-review" element={<SSettingReview />} />
-            <Route path="/episode-validation-report" element={<SEpisodeValidationReport />} />
+            <Route path="/episode-validation-report" element={<Navigate to="/works" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/landing" replace />} />
         </Routes>

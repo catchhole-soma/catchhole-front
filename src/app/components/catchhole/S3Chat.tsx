@@ -274,9 +274,7 @@ export default function S3Chat() {
       </div>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <AppSidebar
-          activePage="chat"
-        />
+        <AppSidebar />
 
         {/* 메인 채팅 영역 */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

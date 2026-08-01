@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,6 +24,7 @@ import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
+import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
 import { ApiError } from '../../lib/api';
@@ -2604,8 +2605,8 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
   murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
-const NAV_IDS: NavId[] = ['settingDB', 'reports', 'analyses', 'graph', 'manuscripts'];
-const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'relations', 'timeline', 'worldrules', 'search'];
+const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 function formatEpisodeDate(value?: string): string {
@@ -2638,6 +2639,8 @@ export default function S1Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const workIdParam = searchParams.get('workId');
   const queryClient = useQueryClient();
+  const [comingSoonFeature, setComingSoonFeature] = useState<string | null>(null);
+  const closeComingSoon = useCallback(() => setComingSoonFeature(null), []);
 
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
@@ -3036,17 +3039,14 @@ export default function S1Dashboard() {
             marginLeft: 2,
           }}>BETA</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: C.t3, fontSize: 12 }}>구독제 · 이번 달 14/20회 사용</span>
-          <UserMenu />
-        </div>
+        <UserMenu />
       </div>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AppSidebar
           activeNav={activeNav}
           onNavChange={setActiveNav}
-          activePage="dashboard"
+          onComingSoon={setComingSoonFeature}
         />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -3073,20 +3073,29 @@ export default function S1Dashboard() {
                 <div style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
-                    { id: 'relations', label: '관계도', icon: <GitBranch size={13} /> },
-                    { id: 'timeline', label: '타임라인', icon: <Clock size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
-                  ] as { id: SettingTabId; label: string; icon: React.ReactNode }[]).map((tab) => (
-                    <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
+                    { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
+                    { id: 'timeline', label: '타임라인', icon: <Clock size={13} />, upcoming: true },
+                  ] as { id: SettingTabId; label: string; icon: React.ReactNode; upcoming?: boolean }[]).map((tab) => (
+                    <button key={tab.id} onClick={() => {
+                      if (tab.upcoming) setComingSoonFeature(tab.label);
+                      else setSettingTab(tab.id);
+                    }} style={{
                       height: 44, padding: '0 16px', background: 'none', border: 'none',
                       borderBottom: `2px solid ${settingTab === tab.id ? C.primary : 'transparent'}`,
-                      color: settingTab === tab.id ? C.primary : C.t2,
+                      color: settingTab === tab.id ? C.primary : tab.upcoming ? C.t3 : C.t2,
                       fontSize: 13, fontWeight: settingTab === tab.id ? 600 : 400,
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                       display: 'flex', alignItems: 'center', gap: 6, marginBottom: -1,
                     }}>
                       {tab.icon}{tab.label}
+                      {tab.upcoming && (
+                        <span style={{
+                          padding: '1px 5px', borderRadius: 7, border: `1px solid ${C.primary}33`,
+                          color: C.t3, fontSize: 9, fontWeight: 600, whiteSpace: 'nowrap',
+                        }}>업데이트 예정</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -3481,6 +3490,7 @@ export default function S1Dashboard() {
           </AnimatePresence>
         </div>
       </div>
+      <ComingSoonToast feature={comingSoonFeature} onClose={closeComingSoon} />
 
       <AnimatePresence>
       {replaceEpisodeTarget && (

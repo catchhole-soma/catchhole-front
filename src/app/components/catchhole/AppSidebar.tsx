@@ -1,26 +1,22 @@
 import React, { useState } from 'react';
 import {
-  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare, Settings,
+  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare,
 } from 'lucide-react';
-import { C, WorkId, NavId } from './constants';
+import { C, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 
-export const WORK_INFO: Partial<Record<WorkId, { title: string; genre: string }>> = {
-  detective: { title: '빛나는 검사 로맨스', genre: '로맨스' },
-  murim: { title: '무협지존', genre: '무협' },
-};
-
-/** WORK_INFO에 없는(데모 외) 실제 작품을 선택했을 때 사용하는 기본 표시값 */
+/** 작품 정보가 아직 로드되지 않았을 때 사용하는 기본 표시값 */
 export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
 
 function NavItem({
-  icon, label, active, badge, onClick,
-}: { icon: React.ReactNode; label: string; active?: boolean; badge?: string; onClick?: () => void }) {
+  icon, label, active, upcoming = false, onClick,
+}: { icon: React.ReactNode; label: string; active?: boolean; upcoming?: boolean; onClick?: () => void }) {
   const [h, setH] = useState(false);
   return (
-    <div onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+    <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
+        width: '100%', border: 0, fontFamily: 'inherit', textAlign: 'left',
         display: 'flex', alignItems: 'center', gap: 9,
         padding: '9px 16px 9px 20px', cursor: 'pointer',
         color: active ? C.primary : h ? C.t1 : C.t2,
@@ -34,33 +30,31 @@ function NavItem({
       }} />}
       <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>{icon}</span>
       <span style={{ flex: 1 }}>{label}</span>
-      {badge && (
+      {upcoming && (
         <span style={{
-          padding: '1px 6px', borderRadius: 8, background: C.danger + '22',
-          color: C.danger, fontSize: 11, fontWeight: 600, border: `1px solid ${C.danger}33`,
-        }}>{badge}</span>
+          padding: '1px 6px', borderRadius: 8, background: C.primary + '12',
+          color: C.t2, fontSize: 9, fontWeight: 600, border: `1px solid ${C.primary}33`,
+          whiteSpace: 'nowrap',
+        }}>업데이트 예정</span>
       )}
-    </div>
+    </button>
   );
 }
 
 interface Props {
   activeNav?: NavId;
   onNavChange?: (nav: NavId) => void;
-  activePage: 'dashboard' | 'chat';
+  onComingSoon?: (feature: string) => void;
 }
 
-export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
+export function AppSidebar({ activeNav, onNavChange, onComingSoon }: Props) {
   const navigate = useAppNavigate();
   const { selectedWork, selectedWorkInfo } = useAppContext();
   const workInfo = selectedWorkInfo?.id === selectedWork
     ? selectedWorkInfo
-    : WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO;
+    : FALLBACK_WORK_INFO;
 
   const nav = (id: NavId) => {
-    if (activePage !== 'dashboard') {
-      navigate(`/dashboard?workId=${encodeURIComponent(selectedWork)}&nav=${id}`, 'pop');
-    }
     onNavChange?.(id);
   };
 
@@ -97,36 +91,21 @@ export function AppSidebar({ activeNav, onNavChange, activePage }: Props) {
       <div style={{ margin: '0 16px 10px', borderTop: `1px solid ${C.border}` }} />
       <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>워크스페이스</div>
 
-      <NavItem icon={<BookOpen size={14} />} label="설정 DB"
-        active={activePage === 'dashboard' && activeNav === 'settingDB'}
-        onClick={() => nav('settingDB')} />
-      <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" badge="3"
-        active={activePage === 'dashboard' && activeNav === 'reports'}
-        onClick={() => nav('reports')} />
-      <NavItem icon={<ListChecks size={14} />} label="분석 목록"
-        active={activePage === 'dashboard' && activeNav === 'analyses'}
-        onClick={() => nav('analyses')} />
-      <NavItem icon={<Network size={14} />} label="그래프 뷰"
-        active={activePage === 'dashboard' && activeNav === 'graph'}
-        onClick={() => nav('graph')} />
       <NavItem icon={<FileText size={14} />} label="원고 목록"
-        active={activePage === 'dashboard' && activeNav === 'manuscripts'}
+        active={activeNav === 'manuscripts'}
         onClick={() => nav('manuscripts')} />
-      <NavItem icon={<MessageSquare size={14} />} label="챗봇"
-        active={activePage === 'chat'}
-        onClick={() => activePage !== 'chat' && navigate('/chat', 'push-right')} />
-
-      <div style={{ margin: '12px 16px', borderTop: `1px solid ${C.border}` }} />
-      <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>계정</div>
-      <NavItem icon={<Settings size={14} />} label="설정" />
-
-      <div style={{ marginTop: 'auto', padding: '16px 20px', borderTop: `1px solid ${C.border}` }}>
-        <div style={{ color: C.t3, fontSize: 11, marginBottom: 6 }}>이번 달 분석</div>
-        <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
-          <div style={{ width: '70%', height: '100%', background: C.primary, borderRadius: 2 }} />
-        </div>
-        <div style={{ color: C.t3, fontSize: 11 }}>14 / 20회</div>
-      </div>
+      <NavItem icon={<BookOpen size={14} />} label="설정 DB"
+        active={activeNav === 'settingDB'}
+        onClick={() => nav('settingDB')} />
+      <NavItem icon={<ListChecks size={14} />} label="분석 목록"
+        active={activeNav === 'analyses'}
+        onClick={() => nav('analyses')} />
+      <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" upcoming
+        onClick={() => onComingSoon?.('분석 리포트')} />
+      <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
+        onClick={() => onComingSoon?.('그래프 뷰')} />
+      <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
+        onClick={() => onComingSoon?.('챗봇')} />
     </div>
   );
 }
