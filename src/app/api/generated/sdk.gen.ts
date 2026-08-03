@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, ConflictData, ConflictResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, NotFoundData, NotFoundResponses, RateLimitedData, RateLimitedResponses, RefreshData, RefreshErrors, RefreshResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SignupData, SignupErrors, SignupResponses, SuccessData, SuccessResponses, UnknownErrorData, UnknownErrorResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses, UploadTooLargeData, UploadTooLargeResponses, ValidationData, ValidationResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -30,6 +30,15 @@ export const replaceEpisodeFile = <ThrowOnError extends boolean = true>(options:
     ...options,
     headers: {
         'Content-Type': null,
+        ...options.headers
+    }
+});
+
+export const validation = <ThrowOnError extends boolean = true>(options: Options<ValidationData, ThrowOnError>): RequestResult<ValidationResponses, unknown, ThrowOnError> => (options.client ?? client).post<ValidationResponses, unknown, ThrowOnError>({
+    url: '/test/validation',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
         ...options.headers
     }
 });
@@ -192,7 +201,7 @@ export const retryAnalysisJob = <ThrowOnError extends boolean = true>(options: O
 /**
  * 회원가입
  *
- * 이메일, 비밀번호, 휴대폰 번호, 표시 이름으로 신규 회원을 생성합니다. 이메일과 휴대폰 번호는 각각 중복 가입을 허용하지 않습니다. 가입 완료 후 액세스 토큰은 응답 body로, 리프레시 토큰은 HttpOnly 쿠키로 발급합니다.
+ * 이메일, 비밀번호, 표시 이름과 휴대폰 인증 완료 토큰으로 신규 회원을 생성합니다. 이메일과 휴대폰 번호는 각각 중복 가입을 허용하지 않습니다. 가입 완료 후 액세스 토큰은 응답 body로, 리프레시 토큰은 HttpOnly 쿠키로 발급합니다.
  */
 export const signup = <ThrowOnError extends boolean = true>(options: Options<SignupData, ThrowOnError>): RequestResult<SignupResponses, SignupErrors, ThrowOnError> => (options.client ?? client).post<SignupResponses, SignupErrors, ThrowOnError>({
     url: '/api/v1/auth/signup',
@@ -209,6 +218,34 @@ export const signup = <ThrowOnError extends boolean = true>(options: Options<Sig
  * HttpOnly 쿠키의 리프레시 토큰을 검증해 새 액세스 토큰을 발급합니다. 재발급 시 기존 리프레시 토큰은 폐기하고 새 리프레시 토큰 쿠키로 회전합니다.
  */
 export const refresh = <ThrowOnError extends boolean = true>(options?: Options<RefreshData, ThrowOnError>): RequestResult<RefreshResponses, RefreshErrors, ThrowOnError> => (options?.client ?? client).post<RefreshResponses, RefreshErrors, ThrowOnError>({ url: '/api/v1/auth/refresh', ...options });
+
+/**
+ * 휴대폰 인증번호 발송
+ *
+ * 가입되지 않은 휴대폰 번호로 6자리 인증번호를 발송합니다. 재전송은 60초 뒤 가능하며 가장 최근 인증번호만 유효합니다.
+ */
+export const requestPhoneVerification = <ThrowOnError extends boolean = true>(options: Options<RequestPhoneVerificationData, ThrowOnError>): RequestResult<RequestPhoneVerificationResponses, RequestPhoneVerificationErrors, ThrowOnError> => (options.client ?? client).post<RequestPhoneVerificationResponses, RequestPhoneVerificationErrors, ThrowOnError>({
+    url: '/api/v1/auth/phone-verifications',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 휴대폰 인증번호 확인
+ *
+ * 가장 최근에 발송된 인증번호를 확인하고 10분 동안 유효한 1회용 회원가입 토큰을 발급합니다.
+ */
+export const confirmPhoneVerification = <ThrowOnError extends boolean = true>(options: Options<ConfirmPhoneVerificationData, ThrowOnError>): RequestResult<ConfirmPhoneVerificationResponses, ConfirmPhoneVerificationErrors, ThrowOnError> => (options.client ?? client).post<ConfirmPhoneVerificationResponses, ConfirmPhoneVerificationErrors, ThrowOnError>({
+    url: '/api/v1/auth/phone-verifications/{verificationId}/confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * 로그아웃
@@ -497,6 +534,18 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
         ...options.headers
     }
 });
+
+export const uploadTooLarge = <ThrowOnError extends boolean = true>(options?: Options<UploadTooLargeData, ThrowOnError>): RequestResult<UploadTooLargeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UploadTooLargeResponses, unknown, ThrowOnError>({ url: '/test/upload-too-large', ...options });
+
+export const unknownError = <ThrowOnError extends boolean = true>(options?: Options<UnknownErrorData, ThrowOnError>): RequestResult<UnknownErrorResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UnknownErrorResponses, unknown, ThrowOnError>({ url: '/test/unknown-error', ...options });
+
+export const success = <ThrowOnError extends boolean = true>(options?: Options<SuccessData, ThrowOnError>): RequestResult<SuccessResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SuccessResponses, unknown, ThrowOnError>({ url: '/test/success', ...options });
+
+export const rateLimited = <ThrowOnError extends boolean = true>(options?: Options<RateLimitedData, ThrowOnError>): RequestResult<RateLimitedResponses, unknown, ThrowOnError> => (options?.client ?? client).get<RateLimitedResponses, unknown, ThrowOnError>({ url: '/test/rate-limited', ...options });
+
+export const notFound = <ThrowOnError extends boolean = true>(options?: Options<NotFoundData, ThrowOnError>): RequestResult<NotFoundResponses, unknown, ThrowOnError> => (options?.client ?? client).get<NotFoundResponses, unknown, ThrowOnError>({ url: '/test/not-found', ...options });
+
+export const conflict = <ThrowOnError extends boolean = true>(options?: Options<ConflictData, ThrowOnError>): RequestResult<ConflictResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ConflictResponses, unknown, ThrowOnError>({ url: '/test/conflict', ...options });
 
 /**
  * 작품별 설정 후보 목록 조회

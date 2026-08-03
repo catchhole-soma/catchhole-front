@@ -30,7 +30,7 @@
 }
 
 .auth-modal-dialog--signup {
-  min-height: min(720px, calc(100dvh - 48px));
+  min-height: min(820px, calc(100dvh - 48px));
 }
 
 .auth-modal-brand {
