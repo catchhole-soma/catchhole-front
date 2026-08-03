@@ -10425,7 +10425,7 @@
               "type": "text",
               "id": "Mcf22",
               "fill": "$text-3",
-              "content": "이번 달 분석",
+              "content": "남은 사용량",
               "fontFamily": "Inter",
               "fontSize": 11,
               "fontWeight": "normal"
@@ -10443,7 +10443,7 @@
                   "type": "frame",
                   "id": "wCFky",
                   "name": "Progress Fill",
-                  "width": 126,
+                  "width": 147,
                   "height": 4,
                   "fill": "$primary",
                   "cornerRadius": 2
@@ -10454,10 +10454,137 @@
               "type": "text",
               "id": "FEgTw",
               "fill": "$text-3",
-              "content": "14 / 20회",
+              "content": "81.6%",
               "fontFamily": "Inter",
               "fontSize": 11,
               "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "quota-modal-mvp",
+      "x": 3500,
+      "y": 10440,
+      "name": "AiTokenQuotaModal / 기본 사용량 소진",
+      "width": 500,
+      "height": 310,
+      "fill": "$surface",
+      "cornerRadius": 12,
+      "stroke": "$border",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "quota-modal-header",
+          "width": "fill_container",
+          "padding": [19, 22],
+          "gap": 12,
+          "alignItems": "center",
+          "stroke": "$border",
+          "strokeWidth": {"bottom": 1},
+          "children": [
+            {
+              "type": "icon",
+              "id": "quota-modal-icon",
+              "width": 24,
+              "height": 24,
+              "icon": "triangle-alert",
+              "library": "lucide",
+              "fill": "$warning"
+            },
+            {
+              "type": "text",
+              "id": "quota-modal-title",
+              "fill": "$text-1",
+              "content": "기본 사용량을 모두 소진했습니다",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "quota-modal-body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [22],
+          "children": [
+            {
+              "type": "text",
+              "id": "quota-modal-description",
+              "fill": "$text-2",
+              "content": "서비스를 적극 이용해 주셔서 감사합니다.\n간단한 피드백과 함께 연락해 주시면 추가 사용량 제공을 도와드리겠습니다.",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "lineHeight": 1.7
+            },
+            {
+              "type": "frame",
+              "id": "quota-modal-contact",
+              "width": "fill_container",
+              "fill": "#22222C",
+              "cornerRadius": 7,
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "padding": [11, 13],
+              "gap": 9,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "quota-modal-mail-icon",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "mail",
+                  "library": "lucide",
+                  "fill": "$primary"
+                },
+                {
+                  "type": "text",
+                  "id": "quota-modal-email",
+                  "fill": "$text-1",
+                  "content": "aicatchhole@gmail.com",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "quota-modal-footer",
+          "width": "fill_container",
+          "padding": [15, 22],
+          "justifyContent": "end",
+          "stroke": "$border",
+          "strokeWidth": {"top": 1},
+          "children": [
+            {
+              "type": "frame",
+              "id": "quota-modal-confirm",
+              "fill": "$primary",
+              "cornerRadius": 6,
+              "padding": [9, 20],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "quota-modal-confirm-text",
+                  "fill": "#FFFFFF",
+                  "content": "확인",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
             }
           ]
         }
