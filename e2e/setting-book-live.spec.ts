@@ -148,19 +148,30 @@ test.describe('설정집 실제 연동', () => {
       await expect(page.locator('[data-testid^="setting-book-row-"]')).toHaveCount(1);
       await expect(page.getByText(originalFilename, { exact: true })).toHaveCount(1);
     } finally {
-      const remainingResponse = await request.get(
-        `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books`,
-        { headers: { Authorization: session.authorization } },
-      );
-      if (remainingResponse.ok()) {
-        const remaining = await remainingResponse.json() as Envelope<Array<{ id?: string }>>;
-        await Promise.all((remaining.data ?? []).map(settingBook => {
-          if (!settingBook.id) return Promise.resolve();
-          return request.delete(
-            `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books/${settingBook.id}`,
-            { headers: { Authorization: session.authorization } },
-          );
-        }));
+      try {
+        const remainingResponse = await request.get(
+          `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books`,
+          { headers: { Authorization: session.authorization } },
+        );
+        if (remainingResponse.ok()) {
+          const remaining = await remainingResponse.json() as Envelope<Array<{ id?: string }>>;
+          await Promise.all((remaining.data ?? []).map(settingBook => {
+            if (!settingBook.id) return Promise.resolve();
+            return request.delete(
+              `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books/${settingBook.id}`,
+              { headers: { Authorization: session.authorization } },
+            );
+          }));
+        }
+      } finally {
+        const deleteWorkResponse = await request.delete(
+          `${apiBaseUrl}/api/v1/works/${session.workId}`,
+          { headers: { Authorization: session.authorization } },
+        );
+        expect(
+          deleteWorkResponse.ok(),
+          `E2E 작품 정리 실패: ${deleteWorkResponse.status()} ${await deleteWorkResponse.text()}`,
+        ).toBeTruthy();
       }
     }
   });
