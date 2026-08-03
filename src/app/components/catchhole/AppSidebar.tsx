@@ -67,7 +67,6 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
   });
   const usage = usageQuery.data?.data;
   const remainingPercent = Math.max(0, Math.min(100, usage?.remainingPercent ?? 0));
-  const formatTokens = (value?: number) => (value ?? 0).toLocaleString();
 
   const nav = (id: NavId) => {
     onNavChange?.(id);
@@ -129,11 +128,11 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 8, color: C.t3, fontSize: 10, fontWeight: 600,
           }}>
-            <span>AI 토큰 사용량</span>
+            <span>남은 사용량</span>
             {usageQuery.isError && (
               <button
                 type="button"
-                aria-label="AI 토큰 사용량 다시 불러오기"
+                aria-label="남은 사용량 다시 불러오기"
                 onClick={() => void usageQuery.refetch()}
                 disabled={usageQuery.isFetching}
                 style={{ border: 0, padding: 1, background: 'transparent', color: C.t3, cursor: 'pointer' }}
@@ -156,12 +155,8 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
                   transition: 'width 0.2s ease',
                 }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: C.t3, fontSize: 10 }}>
-                <span>남음 {remainingPercent.toFixed(1)}%</span>
-                <span>{formatTokens(usage?.remainingTokens)} 토큰</span>
-              </div>
-              <div style={{ marginTop: 4, color: C.t3, fontSize: 9 }}>
-                사용 {formatTokens(usage?.usedTokens)} · 처리 중 {formatTokens(usage?.reservedTokens)}
+              <div style={{ color: C.t3, fontSize: 10, textAlign: 'right' }}>
+                {remainingPercent.toFixed(1)}%
               </div>
             </>
           )}

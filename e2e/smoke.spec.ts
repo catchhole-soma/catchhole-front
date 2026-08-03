@@ -50,7 +50,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
-test('AI 토큰 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
+test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/quota-test')) {
@@ -98,8 +98,8 @@ test('AI 토큰 사용량과 한도 소진 안내를 공통 API 오류에서 표
   await page.evaluate(() => localStorage.setItem('accessToken', 'quota-token'));
   await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
-  await expect(page.getByText('AI 토큰 사용량', { exact: true })).toBeVisible();
-  await expect(page.getByText('남음 10.0%', { exact: true })).toBeVisible();
+  await expect(page.getByText('남은 사용량', { exact: true })).toBeVisible();
+  await expect(page.getByText('10.0%', { exact: true })).toBeVisible();
 
   await page.evaluate(async () => {
     const modulePath = '/src/app/lib/auth-fetch.ts';
@@ -109,7 +109,7 @@ test('AI 토큰 사용량과 한도 소진 안내를 공통 API 오류에서 표
     });
   });
 
-  await expect(page.getByRole('dialog', { name: '기본 사용 토큰을 모두 소진했습니다' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'feedback@catchhole.com' })).toBeVisible();
 });
 
@@ -2592,6 +2592,23 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
         phoneVerified: false,
         role: 'AUTHOR',
         status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/ai-token-usage/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        grantedTokens: 2_000_000,
+        usedTokens: 0,
+        reservedTokens: 0,
+        remainingTokens: 2_000_000,
+        remainingPercent: 100,
+        exhausted: false,
+        contactEmail: 'aicatchhole@gmail.com',
       },
       error: null,
     }),

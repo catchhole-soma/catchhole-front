@@ -33,7 +33,6 @@ export function AiTokenQuotaModal() {
   if (!open) return null;
 
   const contactEmail = usage?.contactEmail;
-  const remainingTokens = usage?.remainingTokens ?? 0;
 
   return (
     <div
@@ -71,11 +70,11 @@ export function AiTokenQuotaModal() {
             <AlertTriangle size={19} />
           </div>
           <div id="ai-token-quota-title" style={{ flex: 1, color: C.t1, fontSize: 16, fontWeight: 700 }}>
-            기본 사용 토큰을 모두 소진했습니다
+            기본 사용량을 모두 소진했습니다
           </div>
           <button
             type="button"
-            aria-label="AI 토큰 안내 닫기"
+            aria-label="사용량 안내 닫기"
             onClick={() => setOpen(false)}
             style={{ padding: 4, border: 0, background: 'transparent', color: C.t3, cursor: 'pointer' }}
           >
@@ -86,7 +85,7 @@ export function AiTokenQuotaModal() {
         <div style={{ padding: '22px', color: C.t2, fontSize: 13, lineHeight: 1.7 }}>
           <p style={{ margin: '0 0 14px' }}>
             서비스를 적극 이용해 주셔서 감사합니다. 간단한 피드백과 함께 연락해 주시면
-            추가 토큰 지급을 도와드리겠습니다.
+            추가 사용량 제공을 도와드리겠습니다.
           </p>
 
           <div style={{
@@ -114,11 +113,6 @@ export function AiTokenQuotaModal() {
             )}
           </div>
 
-          {!usageQuery.isPending && !usageQuery.isError && (
-            <div style={{ marginTop: 10, color: C.t3, fontSize: 11 }}>
-              현재 사용 가능한 토큰: {remainingTokens.toLocaleString()}개
-            </div>
-          )}
         </div>
 
         <div style={{
