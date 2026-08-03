@@ -205,7 +205,7 @@ test('중복 번호·발송 한도·인증 서비스 장애를 서로 다른 메
   }
 });
 
-test('인증번호 입력 횟수 초과 오류를 별도 안내한다', async ({ page }) => {
+test('인증번호 입력 횟수를 초과하면 잠긴 흐름을 폐기하고 재전송 대기를 유지한다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname === '/api/v1/auth/phone-verifications') {
@@ -228,6 +228,19 @@ test('인증번호 입력 횟수 초과 오류를 별도 안내한다', async ({
     '인증번호 입력 횟수를 초과했습니다. 새 인증번호를 받아주세요.',
     { exact: true },
   )).toBeVisible();
+  await expect(page.getByPlaceholder('인증번호 6자리')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: /\d+초 후 재전송/ })).toBeDisabled();
+
+  const persisted = await page.evaluate(() => (
+    JSON.parse(sessionStorage.getItem('catchhole_phone_verification') ?? '{}') as Record<string, unknown>
+  ));
+  expect(persisted.verificationId).toBeNull();
+
+  await page.reload();
+  await expect(page.getByPlaceholder('휴대폰 번호 (예: 01012345678)')).toHaveValue('01012345678');
+  await expect(page.getByPlaceholder('인증번호 6자리')).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: '회원가입' })
+    .getByRole('button', { name: /\d+초 후 재전송/ })).toBeDisabled();
 });
 
 test('Backend가 인증 흐름 만료를 반환하면 진행 상태를 폐기하고 새 발송을 안내한다', async ({ page }) => {

@@ -27,7 +27,7 @@ import { NetworkError, toApiError } from '../../lib/api-errors';
 const PHONE_VERIFICATION_STORAGE_KEY = 'catchhole_phone_verification';
 
 interface PersistedPhoneVerification {
-  verificationId: string;
+  verificationId: string | null;
   phoneNumber: string;
   expiresAt: number;
   resendAt: number;
@@ -48,7 +48,7 @@ function readPersistedPhoneVerification(): PersistedPhoneVerification | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<PersistedPhoneVerification>;
     if (
-      typeof value.verificationId !== 'string'
+      (typeof value.verificationId !== 'string' && value.verificationId !== null)
       || typeof value.phoneNumber !== 'string'
       || typeof value.expiresAt !== 'number'
       || typeof value.resendAt !== 'number'
@@ -179,24 +179,26 @@ export default function SSignup() {
     setVerificationId(persisted.verificationId);
     setVerificationExpiresAt(persisted.expiresAt);
     setResendAt(persisted.resendAt);
-    setVerificationMessage('발송된 인증번호를 입력해주세요.');
+    setVerificationMessage(persisted.verificationId
+      ? '발송된 인증번호를 입력해주세요.'
+      : '인증번호 입력 횟수를 초과했습니다. 새 인증번호를 받아주세요.');
   }, []);
 
   useEffect(() => {
-    if (!verificationId && !phoneVerificationToken) return undefined;
+    if (!verificationExpiresAt && !phoneVerificationToken) return undefined;
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
-  }, [phoneVerificationToken, verificationId]);
+  }, [phoneVerificationToken, verificationExpiresAt]);
 
   useEffect(() => {
-    if (!verificationId || !verificationExpiresAt || verificationExpiresAt > now || isPhoneVerified) return;
+    if (!verificationExpiresAt || verificationExpiresAt > now || isPhoneVerified) return;
     sessionStorage.removeItem(PHONE_VERIFICATION_STORAGE_KEY);
     setVerificationId(null);
     setVerificationExpiresAt(null);
     setResendAt(null);
     setVerificationCode('');
     setVerificationMessage('인증번호가 만료되었습니다. 새 인증번호를 받아주세요.');
-  }, [isPhoneVerified, now, verificationExpiresAt, verificationId]);
+  }, [isPhoneVerified, now, verificationExpiresAt]);
 
   useEffect(() => {
     if (!phoneVerificationToken || !tokenExpiresAt || tokenExpiresAt > now) return;
@@ -314,7 +316,15 @@ export default function SSignup() {
         resetPhoneVerification();
         setVerificationMessage('인증번호가 만료되었습니다. 새 인증번호를 받아주세요.');
       } else if (apiError?.code === 'AUTH_PHONE_VERIFICATION_ATTEMPTS_EXCEEDED') {
-        setErrors(current => ({ ...current, verificationCode: '인증번호 입력 횟수를 초과했습니다. 새 인증번호를 받아주세요.' }));
+        persistPhoneVerification({
+          verificationId: null,
+          phoneNumber,
+          expiresAt: verificationExpiresAt,
+          resendAt: resendAt ?? Date.now(),
+        });
+        setVerificationId(null);
+        setVerificationCode('');
+        setVerificationMessage('인증번호 입력 횟수를 초과했습니다. 새 인증번호를 받아주세요.');
       } else if (apiError?.code === 'AUTH_PHONE_VERIFICATION_RATE_LIMITED') {
         setErrors(current => ({ ...current, verificationCode: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }));
       } else if (apiError?.code === 'AUTH_PHONE_VERIFICATION_UNAVAILABLE') {
