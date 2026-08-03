@@ -120,40 +120,6 @@ export type FieldErrorResponse = {
     message?: string;
 };
 
-export type TestRequest = {
-    email?: string;
-};
-
-/**
- * 공통 API 응답 Envelope
- */
-export type CommonResponseTestResponse = {
-    /**
-     * 요청 처리 성공 여부
-     */
-    success?: boolean;
-    /**
-     * 응답 메시지
-     */
-    message?: string;
-    /**
-     * 성공 응답 데이터. 실패 응답에서는 null입니다.
-     */
-    data?: TestResponse;
-    /**
-     * 에러 정보. 성공 응답에서는 null입니다.
-     */
-    error?: ErrorResponse;
-    /**
-     * 응답 생성 시각
-     */
-    timestamp?: string;
-};
-
-export type TestResponse = {
-    name?: string;
-};
-
 /**
  * 작품 생성 요청
  */
@@ -851,7 +817,7 @@ export type CommonResponseAuthTokenResponse = {
 /**
  * 휴대폰 인증번호 발송 요청
  */
-export type PhoneVerificationRequest = {
+export type PhoneVerificationSendRequest = {
     /**
      * 하이픈 없이 010으로 시작하는 11자리 휴대폰 번호
      */
@@ -861,7 +827,7 @@ export type PhoneVerificationRequest = {
 /**
  * 공통 API 응답 Envelope
  */
-export type CommonResponsePhoneVerificationResponse = {
+export type CommonResponsePhoneVerificationSendResponse = {
     /**
      * 요청 처리 성공 여부
      */
@@ -873,7 +839,7 @@ export type CommonResponsePhoneVerificationResponse = {
     /**
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
-    data?: PhoneVerificationResponse;
+    data?: PhoneVerificationSendResponse;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -887,7 +853,7 @@ export type CommonResponsePhoneVerificationResponse = {
 /**
  * 휴대폰 인증번호 발송 응답
  */
-export type PhoneVerificationResponse = {
+export type PhoneVerificationSendResponse = {
     /**
      * 인증번호 확인에 사용할 흐름 식별자
      */
@@ -2777,22 +2743,6 @@ export type ReplaceEpisodeFileResponses = {
 
 export type ReplaceEpisodeFileResponse = ReplaceEpisodeFileResponses[keyof ReplaceEpisodeFileResponses];
 
-export type ValidationData = {
-    body: TestRequest;
-    path?: never;
-    query?: never;
-    url: '/test/validation';
-};
-
-export type ValidationResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseTestResponse;
-};
-
-export type ValidationResponse = ValidationResponses[keyof ValidationResponses];
-
 export type GetMyWorksData = {
     body?: never;
     path?: never;
@@ -3241,6 +3191,10 @@ export type SignupErrors = {
      * 이메일 또는 휴대폰 번호 중복
      */
     409: CommonErrorResponse;
+    /**
+     * Redis 휴대폰 인증 저장소 장애
+     */
+    503: CommonErrorResponse;
 };
 
 export type SignupError = SignupErrors[keyof SignupErrors];
@@ -3280,7 +3234,7 @@ export type RefreshResponses = {
 export type RefreshResponse = RefreshResponses[keyof RefreshResponses];
 
 export type RequestPhoneVerificationData = {
-    body: PhoneVerificationRequest;
+    body: PhoneVerificationSendRequest;
     path?: never;
     query?: never;
     url: '/api/v1/auth/phone-verifications';
@@ -3311,7 +3265,7 @@ export type RequestPhoneVerificationResponses = {
     /**
      * 인증번호 발송 요청 성공
      */
-    200: CommonResponsePhoneVerificationResponse;
+    200: CommonResponsePhoneVerificationSendResponse;
 };
 
 export type RequestPhoneVerificationResponse = RequestPhoneVerificationResponses[keyof RequestPhoneVerificationResponses];
@@ -4161,102 +4115,6 @@ export type UpdateProgressResponses = {
 };
 
 export type UpdateProgressResponse = UpdateProgressResponses[keyof UpdateProgressResponses];
-
-export type UploadTooLargeData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/upload-too-large';
-};
-
-export type UploadTooLargeResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseVoid;
-};
-
-export type UploadTooLargeResponse = UploadTooLargeResponses[keyof UploadTooLargeResponses];
-
-export type UnknownErrorData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/unknown-error';
-};
-
-export type UnknownErrorResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseVoid;
-};
-
-export type UnknownErrorResponse = UnknownErrorResponses[keyof UnknownErrorResponses];
-
-export type SuccessData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/success';
-};
-
-export type SuccessResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseTestResponse;
-};
-
-export type SuccessResponse = SuccessResponses[keyof SuccessResponses];
-
-export type RateLimitedData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/rate-limited';
-};
-
-export type RateLimitedResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseVoid;
-};
-
-export type RateLimitedResponse = RateLimitedResponses[keyof RateLimitedResponses];
-
-export type NotFoundData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/not-found';
-};
-
-export type NotFoundResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseVoid;
-};
-
-export type NotFoundResponse = NotFoundResponses[keyof NotFoundResponses];
-
-export type ConflictData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/test/conflict';
-};
-
-export type ConflictResponses = {
-    /**
-     * OK
-     */
-    200: CommonResponseVoid;
-};
-
-export type ConflictResponse = ConflictResponses[keyof ConflictResponses];
 
 export type GetSettingCandidatesData = {
     body?: never;
