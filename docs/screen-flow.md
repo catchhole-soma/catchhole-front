@@ -143,7 +143,16 @@ flowchart TD
   loginReq -- "입력·인증·네트워크 오류" --> login
   loginReq -. "제출 중: 입력·중복 요청 잠금" .-> login
 
-  signup --> agree{"필수 약관·개인정보<br/>모두 동의했나?"}:::decision
+  signup -- "휴대폰 번호 입력<br/>인증번호 받기" --> sendCode{"SMS 발송 결과"}:::decision
+  sendCode -- "중복 번호·한도·서비스 장애" --> signup
+  sendCode -- "성공: 5분 타이머·60초 재전송" --> otp["6자리 인증번호 입력"]:::public
+  otp -- "60초 뒤 재전송<br/>이전 번호 폐기" --> sendCode
+  otp -- "인증번호 확인" --> confirmCode{"인증 결과"}:::decision
+  confirmCode -- "오입력: 입력·타이머 유지" --> otp
+  confirmCode -- "5회 초과·만료: 새 발송 필요" --> signup
+  confirmCode -- "성공: 10분 가입 토큰<br/>메모리에만 보관" --> verified["휴대폰 인증 완료"]:::public
+  verified -- "인증된 번호 수정<br/>토큰·진행 상태 폐기" --> signup
+  verified --> agree{"필수 약관·개인정보<br/>모두 동의했나?"}:::decision
   agree -- "아니오: 가입 버튼 비활성" --> signup
   agree -- "예: 회원가입 제출" --> signupReq{"회원가입 결과"}:::decision
   signupReq -- "성공 = 자동 로그인" --> ok
@@ -166,7 +175,7 @@ flowchart TD
 
 > `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
 >
-> MVP에서는 이메일·비밀번호 인증만 화면에 표시합니다. 소셜 로그인은 OAuth 계약을 정한 뒤 별도 범위에서 추가합니다.
+> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
 
 ---

@@ -38,6 +38,15 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
 
 생성 결과는 `src/app/api/generated/`에 저장되며 직접 수정하지 않습니다.
 
+실제 Backend·DB를 사용하는 설정집 live E2E는 매 실행마다 새 회원을 만들지 않습니다. 휴대폰 인증이 완료된 전용 계정과 아래 환경변수를 사용합니다.
+
+```bash
+CATCHHOLE_E2E_API_BASE_URL=http://localhost:8080 \
+CATCHHOLE_E2E_EMAIL=e2e@example.com \
+CATCHHOLE_E2E_PASSWORD='<password>' \
+npx playwright test e2e/setting-book-live.spec.ts
+```
+
 백엔드 연결이 안 되거나 `.env`가 없어도, 앱이 **데모 모드**로 전환되어 목 데이터로 화면을 둘러볼 수 있습니다 (자세한 동작은 `CLAUDE.md`의 "상태 관리 & 데모 모드" 참고).
 
 ## 주요 라우트

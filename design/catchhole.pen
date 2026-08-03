@@ -7295,7 +7295,7 @@
           "name": "Card",
           "clip": true,
           "width": 840,
-          "height": 760,
+          "height": 820,
           "cornerRadius": 16,
           "stroke": "$border",
           "strokeWidth": 1,
@@ -7368,7 +7368,7 @@
                       "fill": "$text-1",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "지금 시작하면\n첫 분석이 무료입니다.",
+                      "content": "원고 속 설정을\n체계적으로 정리해보세요.",
                       "lineHeight": 1.4,
                       "fontFamily": "$font",
                       "fontSize": 22,
@@ -7381,7 +7381,7 @@
                       "fill": "$text-3",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "AI가 수백 화 분량의 원고를 분석해\n캐릭터·설정·타임라인 모순을 자동으로 감지합니다.\n무료 체험으로 첫 회차를 바로 검사해보세요.",
+                      "content": "회원가입 후 작품과 원고를 등록하고\nAI 설정 추출을 시작할 수 있습니다.",
                       "lineHeight": 1.7,
                       "fontFamily": "$font",
                       "fontSize": 13,
@@ -7409,9 +7409,9 @@
               "height": "fill_container",
               "fill": "$surface",
               "layout": "vertical",
-              "gap": 16,
+              "gap": 12,
               "padding": [
-                40,
+                36,
                 44
               ],
               "justifyContent": "center",
@@ -7439,7 +7439,7 @@
                       "id": "iW4mG",
                       "name": "Subtitle",
                       "fill": "$text-3",
-                      "content": "몇 가지 정보만 입력하면 바로 시작할 수 있어요.",
+                      "content": "휴대폰 인증 후 계정을 만들어 분석을 시작하세요.",
                       "fontFamily": "$font",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -7484,20 +7484,86 @@
                       }
                     },
                     {
-                      "id": "AayL8",
-                      "type": "ref",
-                      "ref": "G7NaEQ",
-                      "name": "Phone Field",
+                      "type": "frame",
+                      "id": "u6Ax4",
+                      "name": "Phone Verification Request Row",
                       "width": "fill_container",
-                      "descendants": {
-                        "UxNih": {
-                          "icon": "phone"
+                      "height": 44,
+                      "gap": 8,
+                      "children": [
+                        {
+                          "id": "vPwMg",
+                          "type": "ref",
+                          "ref": "G7NaEQ",
+                          "name": "Phone Number Field",
+                          "width": "fill_container",
+                          "descendants": {
+                            "UxNih": {
+                              "icon": "phone"
+                            },
+                            "SRRd4": {
+                              "content": "휴대폰 번호 (01012345678)",
+                              "fontFamily": "$font"
+                            }
+                          }
                         },
-                        "SRRd4": {
-                          "content": "휴대폰 번호 · 010 포함 11자리",
-                          "fontFamily": "$font"
+                        {
+                          "type": "frame",
+                          "id": "SaIaN",
+                          "name": "Request Verification Code Button",
+                          "width": 112,
+                          "height": 44,
+                          "fill": "$primary-soft",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$primary",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "U4KF1",
+                              "name": "Request Verification Code Label",
+                              "fill": "$primary",
+                              "content": "인증번호 받기",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
-                      }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "R1OYp",
+                      "name": "Phone Verification Status / 인증 전",
+                      "width": "fill_container",
+                      "height": 18,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "dUWc1",
+                          "name": "Phone Verification Status Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "clock-3",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        },
+                        {
+                          "type": "text",
+                          "id": "BMZCF",
+                          "name": "Phone Verification Status Text",
+                          "fill": "$text-3",
+                          "content": "가입 전 휴대폰 번호 인증이 필요합니다.",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
@@ -7702,7 +7768,7 @@
                   "id": "rsLfI",
                   "type": "ref",
                   "ref": "m035Yk",
-                  "name": "Signup Button / 약관 미동의 비활성",
+                  "name": "Signup Button / 휴대폰 미인증 비활성",
                   "width": "fill_container",
                   "height": 44,
                   "fill": "$surface-high",
@@ -7711,108 +7777,10 @@
                   "opacity": 0.65,
                   "descendants": {
                     "a5O4dJ": {
-                      "content": "약관 동의 후 회원가입",
+                      "content": "휴대폰 인증 후 회원가입",
                       "fill": "$text-2"
                     }
                   }
-                },
-                {
-                  "type": "frame",
-                  "id": "CfZyx",
-                  "name": "Divider Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "gqsXo",
-                      "name": "Line Left",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "$border"
-                    },
-                    {
-                      "type": "text",
-                      "id": "GozuR",
-                      "name": "Or",
-                      "fill": "$text-3",
-                      "content": "또는",
-                      "fontFamily": "$font",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "bU1DB",
-                      "name": "Line Right",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "$border"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "R5Lwsf",
-                  "name": "Social Group",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Z1Frux",
-                      "name": "Kakao Signup / MVP 비활성",
-                      "opacity": 0.6,
-                      "width": "fill_container",
-                      "height": 44,
-                      "fill": "$surface-high",
-                      "cornerRadius": "$radius-sm",
-                      "stroke": "$border",
-                      "strokeWidth": 1,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "xYEFn",
-                          "name": "Kakao Label",
-                          "fill": "$text-2",
-                          "content": "카카오 가입 · 준비 중",
-                          "fontFamily": "$font",
-                          "fontSize": 14,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "b0MaS",
-                      "name": "Google Signup / MVP 비활성",
-                      "opacity": 0.6,
-                      "width": "fill_container",
-                      "height": 44,
-                      "fill": "$surface-high",
-                      "cornerRadius": "$radius-sm",
-                      "stroke": "$border",
-                      "strokeWidth": 1,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "da8e4",
-                          "name": "Google Label",
-                          "fill": "$text-2",
-                          "content": "Google 가입 · 준비 중",
-                          "fontFamily": "$font",
-                          "fontSize": 14,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
                 },
                 {
                   "type": "frame",
@@ -259035,6 +259003,1201 @@
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
                       "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Nv6nG",
+      "x": 13542,
+      "y": 470,
+      "name": "SSignup / 인증번호 입력·재전송 대기",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "aq8ZY",
+          "name": "Card",
+          "clip": true,
+          "width": 840,
+          "height": 820,
+          "cornerRadius": 16,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "children": [
+            {
+              "type": "frame",
+              "id": "R0lxzD",
+              "name": "Branding Panel",
+              "width": 340,
+              "height": "fill_container",
+              "fill": "#1A1030",
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YvK6T",
+                  "name": "Top Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "cVU6Y",
+                      "name": "Logo Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "RvbM2",
+                          "name": "Logo Badge",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$primary",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "b7Pew",
+                              "name": "Shield Icon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "shield",
+                              "library": "lucide",
+                              "fill": "$white"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "X1EnBX",
+                          "name": "Logo Text",
+                          "fill": "$text-1",
+                          "content": "CatchHole",
+                          "fontFamily": "$font",
+                          "fontSize": 20,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "w6nAtr",
+                      "name": "Headline",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "원고 속 설정을\n체계적으로 정리해보세요.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Efhn4",
+                      "name": "Description",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "회원가입 후 작품과 원고를 등록하고\nAI 설정 추출을 시작할 수 있습니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "UIGfm",
+                  "name": "Copyright",
+                  "fill": "$text-3",
+                  "content": "© 2026 CatchHole",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LxdnM",
+              "name": "Form Panel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$surface",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": [
+                36,
+                44
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bt0tM",
+                  "name": "Header Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uZZn4",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "회원가입",
+                      "fontFamily": "$font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "luoKB",
+                      "name": "Subtitle",
+                      "fill": "$text-3",
+                      "content": "휴대폰 인증 후 계정을 만들어 분석을 시작하세요.",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "d3f7so",
+                  "name": "Inputs Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "id": "D2p6f",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Name Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "user"
+                        },
+                        "SRRd4": {
+                          "content": "이름 (필명) · 최대 20자",
+                          "fontFamily": "$font"
+                        }
+                      }
+                    },
+                    {
+                      "id": "pgmTP",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Email Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "SRRd4": {
+                          "content": "이메일 (필수)",
+                          "fontFamily": "$font"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kdeyO",
+                      "name": "Phone Verification Request Row",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 8,
+                      "children": [
+                        {
+                          "id": "DZIhw",
+                          "type": "ref",
+                          "ref": "G7NaEQ",
+                          "name": "Phone Number Field",
+                          "width": "fill_container",
+                          "descendants": {
+                            "UxNih": {
+                              "icon": "phone"
+                            },
+                            "SRRd4": {
+                              "content": "01012345678",
+                              "fontFamily": "$font",
+                              "fill": "$text-1"
+                            }
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SQYOw",
+                          "name": "Request Verification Code Button",
+                          "opacity": 0.65,
+                          "width": 112,
+                          "height": 44,
+                          "fill": "$surface-high",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "H5ceKR",
+                              "name": "Request Verification Code Label",
+                              "fill": "$text-2",
+                              "content": "47초 후 재전송",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lrVeI",
+                      "name": "OTP Verification Row / 5분 타이머",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$primary",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "LG6WT",
+                          "name": "OTP Input",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "V8XPF",
+                              "name": "OTP Shield Icon",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "shield",
+                              "library": "lucide",
+                              "fill": "$primary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "vUI1n",
+                              "name": "OTP Placeholder",
+                              "fill": "$text-2",
+                              "content": "인증번호 6자리",
+                              "fontFamily": "$font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h5Epo",
+                          "name": "OTP Actions",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ttO2D",
+                              "name": "OTP Expires Timer",
+                              "fill": "$text-2",
+                              "content": "04:47",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "BxNoY",
+                              "name": "Confirm OTP Button / 비활성",
+                              "opacity": 0.5,
+                              "width": 58,
+                              "height": 30,
+                              "fill": "$primary",
+                              "cornerRadius": "$radius-sm",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "o4gE3",
+                                  "name": "Confirm OTP Label",
+                                  "fill": "$white",
+                                  "content": "인증",
+                                  "fontFamily": "$font",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uIiC6",
+                      "name": "Phone Verification Status / 발송 완료",
+                      "width": "fill_container",
+                      "height": 18,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RLWMv",
+                          "name": "Phone Verification Status Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "clock-3",
+                          "library": "lucide",
+                          "fill": "$text-2"
+                        },
+                        {
+                          "type": "text",
+                          "id": "c7pI32",
+                          "name": "Phone Verification Status Text",
+                          "fill": "$text-2",
+                          "content": "인증번호를 발송했습니다. 가장 최근 번호만 유효합니다.",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pq6md",
+                      "name": "Password Field / 숨김",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TDIt9",
+                          "name": "Password Left",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "bGYAP",
+                              "name": "Lock Icon",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "lock",
+                              "library": "lucide",
+                              "fill": "$text-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "fcZdp",
+                              "name": "Password Placeholder",
+                              "fill": "$text-2",
+                              "content": "비밀번호 (필수)",
+                              "fontFamily": "$font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "Ut6Tp",
+                          "name": "Password Visibility",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "eye-off",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "V6LBa",
+                      "name": "Password Confirm Field / 숨김",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "f6pa0Q",
+                          "name": "Password Confirm Left",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "MQyNZ",
+                              "name": "Lock Icon",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "lock",
+                              "library": "lucide",
+                              "fill": "$text-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "ftuQe",
+                              "name": "Password Confirm Placeholder",
+                              "fill": "$text-2",
+                              "content": "비밀번호 확인 (필수)",
+                              "fontFamily": "$font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "T9JKNq",
+                          "name": "Password Confirm Visibility",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "eye-off",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "G7TzMf",
+                      "name": "Password Policy Hint",
+                      "fill": "$text-3",
+                      "content": "8~64자 · 영문과 숫자를 각각 1개 이상 포함",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xRhuN",
+                  "name": "Terms Agreement / 미동의",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "r0qUp6",
+                      "name": "Unchecked Box",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "$surface",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": "$border",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "CsIY6",
+                      "name": "Required Label",
+                      "fill": "$text-1",
+                      "content": "[필수]",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "b1mcit",
+                      "name": "Terms Link",
+                      "fill": "$primary",
+                      "content": "이용약관",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "E1JAD",
+                      "name": "Join Text",
+                      "fill": "$text-2",
+                      "content": "및",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wpQaf",
+                      "name": "Privacy Link",
+                      "fill": "$primary",
+                      "content": "개인정보 처리방침",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mQADK",
+                      "name": "Agreement Suffix",
+                      "fill": "$text-2",
+                      "content": "동의",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "JVOQ1",
+                  "type": "ref",
+                  "ref": "m035Yk",
+                  "name": "Signup Button / 휴대폰 미인증 비활성",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "$surface-high",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "opacity": 0.65,
+                  "descendants": {
+                    "a5O4dJ": {
+                      "content": "휴대폰 인증 후 회원가입",
+                      "fill": "$text-2"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "Oemzd",
+                  "name": "Login Link Row",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Rg47V",
+                      "name": "Login Prefix",
+                      "fill": "$text-3",
+                      "content": "이미 계정이 있으신가요?",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sl5Qq",
+                      "name": "Login Link",
+                      "fill": "$primary",
+                      "content": "로그인",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ySykQ",
+      "x": 14902,
+      "y": 470,
+      "name": "SSignup / 휴대폰 인증 완료",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "tVuaK",
+          "name": "Card",
+          "clip": true,
+          "width": 840,
+          "height": 820,
+          "cornerRadius": 16,
+          "stroke": "$border",
+          "strokeWidth": 1,
+          "children": [
+            {
+              "type": "frame",
+              "id": "lUqs2",
+              "name": "Branding Panel",
+              "width": 340,
+              "height": "fill_container",
+              "fill": "#1A1030",
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "a58jqt",
+                  "name": "Top Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "u0enjW",
+                      "name": "Logo Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "u7J2E",
+                          "name": "Logo Badge",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$primary",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "ayC5p",
+                              "name": "Shield Icon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "shield",
+                              "library": "lucide",
+                              "fill": "$white"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "Kkjze",
+                          "name": "Logo Text",
+                          "fill": "$text-1",
+                          "content": "CatchHole",
+                          "fontFamily": "$font",
+                          "fontSize": 20,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "HoPKI",
+                      "name": "Headline",
+                      "fill": "$text-1",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "원고 속 설정을\n체계적으로 정리해보세요.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aYoEG",
+                      "name": "Description",
+                      "fill": "$text-3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "회원가입 후 작품과 원고를 등록하고\nAI 설정 추출을 시작할 수 있습니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "d6idB",
+                  "name": "Copyright",
+                  "fill": "$text-3",
+                  "content": "© 2026 CatchHole",
+                  "fontFamily": "$font",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hyKt5",
+              "name": "Form Panel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$surface",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": [
+                36,
+                44
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "VaD0l",
+                  "name": "Header Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "C40jJ",
+                      "name": "Title",
+                      "fill": "$text-1",
+                      "content": "회원가입",
+                      "fontFamily": "$font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NPVif",
+                      "name": "Subtitle",
+                      "fill": "$text-3",
+                      "content": "휴대폰 인증 후 계정을 만들어 분석을 시작하세요.",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OYoEK",
+                  "name": "Inputs Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "id": "lTmHr",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Name Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "UxNih": {
+                          "icon": "user"
+                        },
+                        "SRRd4": {
+                          "content": "이름 (필명) · 최대 20자",
+                          "fontFamily": "$font"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Seupm",
+                      "type": "ref",
+                      "ref": "G7NaEQ",
+                      "name": "Email Field",
+                      "width": "fill_container",
+                      "descendants": {
+                        "SRRd4": {
+                          "content": "이메일 (필수)",
+                          "fontFamily": "$font"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "omZuG",
+                      "name": "Phone Verification Request Row",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 8,
+                      "children": [
+                        {
+                          "id": "kAAKs",
+                          "type": "ref",
+                          "ref": "G7NaEQ",
+                          "name": "Phone Number Field",
+                          "width": "fill_container",
+                          "stroke": "$success",
+                          "descendants": {
+                            "UxNih": {
+                              "icon": "phone"
+                            },
+                            "SRRd4": {
+                              "content": "01012345678",
+                              "fontFamily": "$font",
+                              "fill": "$text-1"
+                            }
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bOfl1",
+                          "name": "Phone Verification Complete Button",
+                          "width": 112,
+                          "height": 44,
+                          "fill": "$success-soft",
+                          "cornerRadius": "$radius-md",
+                          "stroke": "$success",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bedex",
+                              "name": "Phone Verification Complete Label",
+                              "fill": "$success",
+                              "content": "인증 완료",
+                              "fontFamily": "$font",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Iv534",
+                      "name": "Phone Verification Status / 인증 완료",
+                      "width": "fill_container",
+                      "height": 18,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "zX439",
+                          "name": "Phone Verification Status Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "circle-check",
+                          "library": "lucide",
+                          "fill": "$success"
+                        },
+                        {
+                          "type": "text",
+                          "id": "e52Iii",
+                          "name": "Phone Verification Status Text",
+                          "fill": "$success",
+                          "content": "휴대폰 인증이 완료되었습니다.",
+                          "fontFamily": "$font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yvjL8",
+                      "name": "Password Field / 숨김",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "yoFia",
+                          "name": "Password Left",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "ymtDP",
+                              "name": "Lock Icon",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "lock",
+                              "library": "lucide",
+                              "fill": "$text-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "y4J4c",
+                              "name": "Password Placeholder",
+                              "fill": "$text-2",
+                              "content": "비밀번호 (필수)",
+                              "fontFamily": "$font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "TBBLH",
+                          "name": "Password Visibility",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "eye-off",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Gyadm",
+                      "name": "Password Confirm Field / 숨김",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$bg",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZU3ez",
+                          "name": "Password Confirm Left",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "zWsQg",
+                              "name": "Lock Icon",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "lock",
+                              "library": "lucide",
+                              "fill": "$text-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "OT8Xe",
+                              "name": "Password Confirm Placeholder",
+                              "fill": "$text-2",
+                              "content": "비밀번호 확인 (필수)",
+                              "fontFamily": "$font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "iysWM",
+                          "name": "Password Confirm Visibility",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "eye-off",
+                          "library": "lucide",
+                          "fill": "$text-3"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "zQyNE",
+                      "name": "Password Policy Hint",
+                      "fill": "$text-3",
+                      "content": "8~64자 · 영문과 숫자를 각각 1개 이상 포함",
+                      "fontFamily": "$font",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WhpSy",
+                  "name": "Terms Agreement / 동의",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lSMXC",
+                      "name": "Checked Box",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "$primary",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": "$primary",
+                      "strokeWidth": 1,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "iD7r9",
+                          "name": "Terms Check Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$white"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "iDImF",
+                      "name": "Required Label",
+                      "fill": "$text-1",
+                      "content": "[필수]",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SOqyZ",
+                      "name": "Terms Link",
+                      "fill": "$primary",
+                      "content": "이용약관",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uAQuY",
+                      "name": "Join Text",
+                      "fill": "$text-2",
+                      "content": "및",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uCfyN",
+                      "name": "Privacy Link",
+                      "fill": "$primary",
+                      "content": "개인정보 처리방침",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "opRce",
+                      "name": "Agreement Suffix",
+                      "fill": "$text-2",
+                      "content": "동의",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "ZKYng",
+                  "type": "ref",
+                  "ref": "m035Yk",
+                  "name": "Signup Button / 활성",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "$primary",
+                  "stroke": "$primary",
+                  "strokeWidth": 1,
+                  "opacity": 1,
+                  "descendants": {
+                    "a5O4dJ": {
+                      "content": "회원가입",
+                      "fill": "$white"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "dBGZo",
+                  "name": "Login Link Row",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f9n3z5",
+                      "name": "Login Prefix",
+                      "fill": "$text-3",
+                      "content": "이미 계정이 있으신가요?",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "enM4y",
+                      "name": "Login Link",
+                      "fill": "$primary",
+                      "content": "로그인",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "600"
                     }
                   ]
                 }

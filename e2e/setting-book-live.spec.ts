@@ -1,6 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 const apiBaseUrl = process.env.CATCHHOLE_E2E_API_BASE_URL;
+const e2eEmail = process.env.CATCHHOLE_E2E_EMAIL;
+const e2ePassword = process.env.CATCHHOLE_E2E_PASSWORD;
 
 interface Envelope<T> {
   success: boolean;
@@ -16,24 +18,23 @@ interface Work {
 }
 
 async function createAuthenticatedWork(request: APIRequestContext) {
-  if (!apiBaseUrl) throw new Error('CATCHHOLE_E2E_API_BASE_URL is required.');
+  if (!apiBaseUrl || !e2eEmail || !e2ePassword) {
+    throw new Error('Live E2E API 주소와 사전 인증 계정 정보가 필요합니다.');
+  }
   const unique = `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
-  const phoneSuffix = String(Date.now()).slice(-8);
-  const signupResponse = await request.post(`${apiBaseUrl}/api/v1/auth/signup`, {
+  const loginResponse = await request.post(`${apiBaseUrl}/api/v1/auth/login`, {
     data: {
-      email: `setting-book-e2e-${unique}@example.com`,
-      password: 'Setting1234',
-      phoneNumber: `010${phoneSuffix}`,
-      displayName: '설정집 E2E',
+      email: e2eEmail,
+      password: e2ePassword,
     },
   });
-  if (!signupResponse.ok()) {
-    throw new Error(`회원가입 준비 실패: ${await signupResponse.text()}`);
+  if (!loginResponse.ok()) {
+    throw new Error(`사전 인증 E2E 계정 로그인 실패: ${await loginResponse.text()}`);
   }
-  const signup = await signupResponse.json() as Envelope<AuthToken>;
-  expect(signup.data.accessToken).toBeTruthy();
+  const login = await loginResponse.json() as Envelope<AuthToken>;
+  expect(login.data.accessToken).toBeTruthy();
 
-  const authorization = `Bearer ${signup.data.accessToken}`;
+  const authorization = `Bearer ${login.data.accessToken}`;
   const workResponse = await request.post(`${apiBaseUrl}/api/v1/works`, {
     headers: { Authorization: authorization },
     data: {
@@ -47,7 +48,7 @@ async function createAuthenticatedWork(request: APIRequestContext) {
   }
   const work = await workResponse.json() as Envelope<Work>;
   return {
-    token: signup.data.accessToken,
+    token: login.data.accessToken,
     authorization,
     workId: work.data.id,
   };
@@ -62,7 +63,10 @@ async function authenticateBrowser(page: Page, token: string) {
 }
 
 test.describe('설정집 실제 연동', () => {
-  test.skip(!apiBaseUrl, '실제 백엔드 주소를 CATCHHOLE_E2E_API_BASE_URL로 지정해야 실행됩니다.');
+  test.skip(
+    !apiBaseUrl || !e2eEmail || !e2ePassword,
+    'Live Backend 주소와 사전 휴대폰 인증된 E2E 계정 정보를 지정해야 실행됩니다.',
+  );
 
   test('동일명 누적, 원문 조회·수정·재조회, soft delete를 실제 저장소에서 검증한다', async ({
     page,
@@ -144,19 +148,30 @@ test.describe('설정집 실제 연동', () => {
       await expect(page.locator('[data-testid^="setting-book-row-"]')).toHaveCount(1);
       await expect(page.getByText(originalFilename, { exact: true })).toHaveCount(1);
     } finally {
-      const remainingResponse = await request.get(
-        `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books`,
-        { headers: { Authorization: session.authorization } },
-      );
-      if (remainingResponse.ok()) {
-        const remaining = await remainingResponse.json() as Envelope<Array<{ id?: string }>>;
-        await Promise.all((remaining.data ?? []).map(settingBook => {
-          if (!settingBook.id) return Promise.resolve();
-          return request.delete(
-            `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books/${settingBook.id}`,
-            { headers: { Authorization: session.authorization } },
-          );
-        }));
+      try {
+        const remainingResponse = await request.get(
+          `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books`,
+          { headers: { Authorization: session.authorization } },
+        );
+        if (remainingResponse.ok()) {
+          const remaining = await remainingResponse.json() as Envelope<Array<{ id?: string }>>;
+          await Promise.all((remaining.data ?? []).map(settingBook => {
+            if (!settingBook.id) return Promise.resolve();
+            return request.delete(
+              `${apiBaseUrl}/api/v1/works/${session.workId}/setting-books/${settingBook.id}`,
+              { headers: { Authorization: session.authorization } },
+            );
+          }));
+        }
+      } finally {
+        const deleteWorkResponse = await request.delete(
+          `${apiBaseUrl}/api/v1/works/${session.workId}`,
+          { headers: { Authorization: session.authorization } },
+        );
+        expect(
+          deleteWorkResponse.ok(),
+          `E2E 작품 정리 실패: ${deleteWorkResponse.status()} ${await deleteWorkResponse.text()}`,
+        ).toBeTruthy();
       }
     }
   });

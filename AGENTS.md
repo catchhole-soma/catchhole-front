@@ -36,8 +36,11 @@ npm run test:e2e
 - `/login`과 `/signup`은 랜딩 위에 표시하는 라우트 모달로 유지합니다. 랜딩에서 열 때만 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 연 경우 닫을 때 `/landing`으로 대체 이동합니다. 로그인↔회원가입 전환과 인증 성공에는 `replace`를 사용하며, 로그아웃은 `/landing`으로 대체 이동합니다.
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
-- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
+- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
 - 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
+- 회원가입 전 `phone-verifications` 발송·확인을 완료하고, 가입 요청에는 전화번호 대신 발급된 `phoneVerificationToken`을 보냅니다. 인증된 번호가 바뀌면 토큰과 진행 상태를 즉시 폐기합니다.
+- 휴대폰 인증 진행 복원에는 `verificationId`, 전화번호, 인증 만료 시각, 재전송 가능 시각만 sessionStorage에 보관합니다. `phoneVerificationToken`은 컴포넌트 메모리에만 두고 localStorage/sessionStorage/로그에 남기지 않습니다.
+- 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.
 - 실제 로그인·회원가입 성공으로 access token을 저장할 때는 데모 모드와 데모 작품 데이터를 함께 제거해 실제 API 모드로 전환합니다.
 - 인증 상태는 `GET /api/v1/auth/me`로 검증하며, localStorage 토큰 존재만으로 로그인 성공을 판단하지 않습니다.
@@ -45,7 +48,7 @@ npm run test:e2e
 
 ## 변경 원칙
 
-- `design/catchhole.pen`, `docs/auth.md`, 화면 흐름 문서를 함께 확인하고 기존 Obsidian Violet 토큰을 재사용합니다.
+- 회원가입을 포함한 화면 디자인·상태·흐름을 바꾸면 `design/catchhole.pen`, `docs/data-requirements/auth.md`, `docs/screen-flow.md`를 구현과 함께 갱신하고 기존 Obsidian Violet 토큰을 재사용합니다.
 - 사용자 입력 제약은 프론트 검증과 OpenAPI DTO 계약을 일치시킵니다.
 - 민감한 토큰, 쿠키, 비밀번호를 테스트 출력·문서·커밋에 남기지 않습니다.
 - 커밋과 push는 실제 연동 검증이 끝나고 사용자가 명시적으로 요청한 뒤에만 수행합니다.
