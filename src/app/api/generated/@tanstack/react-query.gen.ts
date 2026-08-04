@@ -4,7 +4,7 @@ import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOption
 
 import { client } from '../client.gen';
 import { claimAnalysisJob, completeAnalysisJob, confirmPhoneVerification, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getEpisode, getEpisodes, getMe, getMyAiTokenUsage, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, releaseAiTokens, replaceEpisodeFile, requestPhoneVerification, reserveAiTokens, restoreCharacter, retryAnalysisJob, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReleaseAiTokensData, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -542,9 +542,11 @@ export const settleAiTokensMutationKey = (options?: Partial<Options<SettleAiToke
 
 /**
  * AI 요청 실제 토큰 정산
+ *
+ * provider 응답의 실제 입력·캐시 입력·출력 토큰으로 예약을 확정 정산합니다.
  */
-export const settleAiTokensMutation = (options?: Partial<Options<SettleAiTokensData>>): UseMutationOptions<SettleAiTokensResponse, DefaultError, Options<SettleAiTokensData>> => {
-    const mutationOptions: UseMutationOptions<SettleAiTokensResponse, DefaultError, Options<SettleAiTokensData>> = {
+export const settleAiTokensMutation = (options?: Partial<Options<SettleAiTokensData>>): UseMutationOptions<SettleAiTokensResponse, SettleAiTokensError, Options<SettleAiTokensData>> => {
+    const mutationOptions: UseMutationOptions<SettleAiTokensResponse, SettleAiTokensError, Options<SettleAiTokensData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await settleAiTokens({
                 ...options,
@@ -562,9 +564,11 @@ export const releaseAiTokensMutationKey = (options?: Partial<Options<ReleaseAiTo
 
 /**
  * 사용되지 않은 AI 토큰 예약 해제
+ *
+ * provider 사용량을 얻지 못한 요청의 예약량을 사용자 계정으로 반환합니다.
  */
-export const releaseAiTokensMutation = (options?: Partial<Options<ReleaseAiTokensData>>): UseMutationOptions<ReleaseAiTokensResponse, DefaultError, Options<ReleaseAiTokensData>> => {
-    const mutationOptions: UseMutationOptions<ReleaseAiTokensResponse, DefaultError, Options<ReleaseAiTokensData>> = {
+export const releaseAiTokensMutation = (options?: Partial<Options<ReleaseAiTokensData>>): UseMutationOptions<ReleaseAiTokensResponse, ReleaseAiTokensError, Options<ReleaseAiTokensData>> => {
+    const mutationOptions: UseMutationOptions<ReleaseAiTokensResponse, ReleaseAiTokensError, Options<ReleaseAiTokensData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await releaseAiTokens({
                 ...options,
@@ -582,9 +586,11 @@ export const reserveAiTokensMutationKey = (options?: Partial<Options<ReserveAiTo
 
 /**
  * AI 요청 토큰 예약
+ *
+ * Worker가 provider 호출 전에 요청 단위 예상 토큰을 예약합니다. 같은 requestId 재호출은 기존 예약을 반환합니다.
  */
-export const reserveAiTokensMutation = (options?: Partial<Options<ReserveAiTokensData>>): UseMutationOptions<ReserveAiTokensResponse, DefaultError, Options<ReserveAiTokensData>> => {
-    const mutationOptions: UseMutationOptions<ReserveAiTokensResponse, DefaultError, Options<ReserveAiTokensData>> = {
+export const reserveAiTokensMutation = (options?: Partial<Options<ReserveAiTokensData>>): UseMutationOptions<ReserveAiTokensResponse, ReserveAiTokensError, Options<ReserveAiTokensData>> => {
+    const mutationOptions: UseMutationOptions<ReserveAiTokensResponse, ReserveAiTokensError, Options<ReserveAiTokensData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await reserveAiTokens({
                 ...options,
@@ -1355,6 +1361,8 @@ export const getMyAiTokenUsageQueryKey = (options?: Options<GetMyAiTokenUsageDat
 
 /**
  * 내 AI 토큰 사용량 조회
+ *
+ * 로그인한 사용자의 지급량, 확정 사용량, 처리 중 예약량과 남은 사용량을 조회합니다.
  */
 export const getMyAiTokenUsageOptions = (options?: Options<GetMyAiTokenUsageData>) => queryOptions<GetMyAiTokenUsageResponse, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, ReturnType<typeof getMyAiTokenUsageQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
+import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -300,8 +300,10 @@ export const claimAnalysisJob = <ThrowOnError extends boolean = true>(options?: 
 
 /**
  * AI 요청 실제 토큰 정산
+ *
+ * provider 응답의 실제 입력·캐시 입력·출력 토큰으로 예약을 확정 정산합니다.
  */
-export const settleAiTokens = <ThrowOnError extends boolean = true>(options: Options<SettleAiTokensData, ThrowOnError>): RequestResult<SettleAiTokensResponses, unknown, ThrowOnError> => (options.client ?? client).post<SettleAiTokensResponses, unknown, ThrowOnError>({
+export const settleAiTokens = <ThrowOnError extends boolean = true>(options: Options<SettleAiTokensData, ThrowOnError>): RequestResult<SettleAiTokensResponses, SettleAiTokensErrors, ThrowOnError> => (options.client ?? client).post<SettleAiTokensResponses, SettleAiTokensErrors, ThrowOnError>({
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/ai-token-usages/{requestId}/settle',
     ...options,
@@ -313,8 +315,10 @@ export const settleAiTokens = <ThrowOnError extends boolean = true>(options: Opt
 
 /**
  * 사용되지 않은 AI 토큰 예약 해제
+ *
+ * provider 사용량을 얻지 못한 요청의 예약량을 사용자 계정으로 반환합니다.
  */
-export const releaseAiTokens = <ThrowOnError extends boolean = true>(options: Options<ReleaseAiTokensData, ThrowOnError>): RequestResult<ReleaseAiTokensResponses, unknown, ThrowOnError> => (options.client ?? client).post<ReleaseAiTokensResponses, unknown, ThrowOnError>({
+export const releaseAiTokens = <ThrowOnError extends boolean = true>(options: Options<ReleaseAiTokensData, ThrowOnError>): RequestResult<ReleaseAiTokensResponses, ReleaseAiTokensErrors, ThrowOnError> => (options.client ?? client).post<ReleaseAiTokensResponses, ReleaseAiTokensErrors, ThrowOnError>({
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/ai-token-usages/{requestId}/release',
     ...options,
@@ -326,8 +330,10 @@ export const releaseAiTokens = <ThrowOnError extends boolean = true>(options: Op
 
 /**
  * AI 요청 토큰 예약
+ *
+ * Worker가 provider 호출 전에 요청 단위 예상 토큰을 예약합니다. 같은 requestId 재호출은 기존 예약을 반환합니다.
  */
-export const reserveAiTokens = <ThrowOnError extends boolean = true>(options: Options<ReserveAiTokensData, ThrowOnError>): RequestResult<ReserveAiTokensResponses, unknown, ThrowOnError> => (options.client ?? client).post<ReserveAiTokensResponses, unknown, ThrowOnError>({
+export const reserveAiTokens = <ThrowOnError extends boolean = true>(options: Options<ReserveAiTokensData, ThrowOnError>): RequestResult<ReserveAiTokensResponses, ReserveAiTokensErrors, ThrowOnError> => (options.client ?? client).post<ReserveAiTokensResponses, ReserveAiTokensErrors, ThrowOnError>({
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/ai-token-usages/reserve',
     ...options,
@@ -666,9 +672,11 @@ export const getMe = <ThrowOnError extends boolean = true>(options?: Options<Get
 
 /**
  * 내 AI 토큰 사용량 조회
+ *
+ * 로그인한 사용자의 지급량, 확정 사용량, 처리 중 예약량과 남은 사용량을 조회합니다.
  */
 export const getMyAiTokenUsage = <ThrowOnError extends boolean = true>(options?: Options<GetMyAiTokenUsageData, ThrowOnError>): RequestResult<GetMyAiTokenUsageResponses, GetMyAiTokenUsageErrors, ThrowOnError> => (options?.client ?? client).get<GetMyAiTokenUsageResponses, GetMyAiTokenUsageErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/v1/ai-token-usage/me',
+    url: '/api/v1/ai-token-usages/me',
     ...options
 });

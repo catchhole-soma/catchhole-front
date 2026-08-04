@@ -75,7 +75,7 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
-      : pathname.endsWith('/ai-token-usage/me')
+      : pathname.endsWith('/ai-token-usages/me')
         ? {
             grantedTokens: 1000,
             usedTokens: 900,
@@ -2596,7 +2596,7 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
       error: null,
     }),
   }));
-  await page.route('**/api/v1/ai-token-usage/me', route => route.fulfill({
+  await page.route('**/api/v1/ai-token-usages/me', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({

@@ -19,7 +19,7 @@
 
 ### 인증 사용자 AI 사용량
 
-- 보호 화면의 사이드바는 `GET /api/v1/ai-tokens/usage`를 조회해 `remainingPercent`만 `남은 사용량`으로 표시한다.
+- 보호 화면의 사이드바는 `GET /api/v1/ai-token-usages/me`를 조회해 `remainingPercent`만 `남은 사용량`으로 표시한다.
 - API가 제공하는 `grantedTokens`, `usedTokens`, `reservedTokens`, `remainingTokens`는 운영·정산용 값이며 사용자 화면에는 노출하지 않는다.
 - 처리 중 예약량이 있으면 3초, 없으면 30초 간격으로 다시 조회해 분석 진행에 따른 남은 비율을 갱신한다.
 - 최초 조회 중에는 `사용량 확인 중...`, 실패 시에는 재조회 버튼과 `사용량을 불러오지 못했습니다.`를 표시한다.
