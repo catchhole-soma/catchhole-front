@@ -50,6 +50,69 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 
+test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/quota-test')) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '기본 AI 토큰을 모두 사용했습니다.',
+          error: { code: 'AI_TOKEN_QUOTA_EXHAUSTED', status: 409, details: [] },
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 1,
+          email: 'quota@example.com',
+          displayName: '한도 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith('/ai-token-usages/me')
+        ? {
+            grantedTokens: 1000,
+            usedTokens: 900,
+            reservedTokens: 0,
+            remainingTokens: 100,
+            remainingPercent: 10,
+            exhausted: false,
+            contactEmail: 'feedback@catchhole.com',
+          }
+        : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'quota-token'));
+  await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
+
+  await expect(page.getByText('남은 사용량', { exact: true })).toBeVisible();
+  await expect(page.getByText('10.0%', { exact: true })).toBeVisible();
+
+  await page.evaluate(async () => {
+    const modulePath = '/src/app/lib/auth-fetch.ts';
+    const { fetchWithAuth } = await import(modulePath);
+    await fetchWithAuth('/api/v1/quota-test', {
+      headers: { Authorization: 'Bearer quota-token' },
+    });
+  });
+
+  await expect(page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'feedback@catchhole.com' })).toBeVisible();
+});
+
 test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
   let characterRequestCount = 0;
   await page.route('**/api/v1/**', route => {
@@ -2529,6 +2592,23 @@ test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 
         phoneVerified: false,
         role: 'AUTHOR',
         status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/ai-token-usages/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        grantedTokens: 2_000_000,
+        usedTokens: 0,
+        reservedTokens: 0,
+        remainingTokens: 2_000_000,
+        remainingPercent: 100,
+        exhausted: false,
+        contactEmail: 'aicatchhole@gmail.com',
       },
       error: null,
     }),
