@@ -261645,7 +261645,7 @@
                   "id": "jNbOv",
                   "name": "Label",
                   "fill": "$text-2",
-                  "content": "3/5 검토 완료",
+                  "content": "3/7 검토 완료",
                   "fontFamily": "$font",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -261663,7 +261663,7 @@
                       "type": "frame",
                       "id": "H7oZzy",
                       "name": "Progress Fill",
-                      "width": 60,
+                      "width": 43,
                       "height": 6,
                       "fill": "$primary",
                       "cornerRadius": "$radius-pill"
@@ -261777,7 +261777,7 @@
                       "id": "DHKhQ",
                       "name": "전체 후보 Value",
                       "fill": "#F0F0F5",
-                      "content": "4개",
+                      "content": "7개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -261806,7 +261806,7 @@
                       "id": "F4FUTL",
                       "name": "검토 완료 Value",
                       "fill": "#F0F0F5",
-                      "content": "0개",
+                      "content": "3개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -261898,7 +261898,7 @@
                       "id": "u7qhqO",
                       "name": "Summary Progress Badge Label",
                       "fill": "#7C5CFC",
-                      "content": "0/4 검토",
+                      "content": "3/7 검토",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 9,
                       "fontWeight": "700"
@@ -263839,7 +263839,7 @@
                       "id": "v6G1vC",
                       "name": "Review Complete Disabled Label",
                       "fill": "#55556A",
-                      "content": "검토 완료 · 2개 후보 남음",
+                      "content": "검토 완료 · 4개 후보 남음",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -263934,7 +263934,7 @@
                   "id": "ZHsYG",
                   "name": "Label",
                   "fill": "$text-2",
-                  "content": "3/5 검토 완료",
+                  "content": "3/7 검토 완료",
                   "fontFamily": "$font",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -263952,7 +263952,7 @@
                       "type": "frame",
                       "id": "VxrES",
                       "name": "Progress Fill",
-                      "width": 60,
+                      "width": 43,
                       "height": 6,
                       "fill": "$primary",
                       "cornerRadius": "$radius-pill"
@@ -264066,7 +264066,7 @@
                       "id": "jMUnS",
                       "name": "전체 후보 Value",
                       "fill": "#F0F0F5",
-                      "content": "4개",
+                      "content": "7개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -264095,7 +264095,7 @@
                       "id": "DdTS5",
                       "name": "검토 완료 Value",
                       "fill": "#F0F0F5",
-                      "content": "0개",
+                      "content": "3개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -264187,7 +264187,7 @@
                       "id": "pURl6",
                       "name": "Summary Progress Badge Label",
                       "fill": "#7C5CFC",
-                      "content": "0/4 검토",
+                      "content": "3/7 검토",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 9,
                       "fontWeight": "700"
@@ -266126,7 +266126,7 @@
                       "id": "mWGYU",
                       "name": "Review Complete Disabled Label",
                       "fill": "#55556A",
-                      "content": "검토 완료 · 2개 후보 남음",
+                      "content": "검토 완료 · 4개 후보 남음",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
                       "fontWeight": "600"
