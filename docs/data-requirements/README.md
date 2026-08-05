@@ -88,6 +88,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 - [upload](./upload.md) — 회차 업로드 (SEpisodeUpload)
 - [episode](./episode.md) — 원고 목록
 - [character](./character.md) — 설정DB · 설정 검토 · 캐릭터
+- [world-setting](./world-setting.md) — NVM-260 세계관 후보 검토 · 세계관 DB 구현 계획
 - [analysis](./analysis.md) — 분석 진행 · 오류 리포트 · 회차 검사
 
 ## 화면 ↔ 도메인 매핑
@@ -104,7 +105,8 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 | 회차 업로드 | [`/episode-upload`](https://www.catchhole.com/episode-upload) | [upload](./upload.md#회차-업로드-sepisodeupload) |
 | 원고 목록 | [`/dashboard?nav=manuscripts`](https://www.catchhole.com/dashboard?nav=manuscripts) | [episode](./episode.md#원고-목록-대시보드-원고-탭) |
 | 설정DB | [`/dashboard?nav=settingDB`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters) | [character](./character.md#설정db-캐릭터-탭) |
-| 설정 검토 | [`/setting-review`](https://www.catchhole.com/setting-review) | [character](./character.md#설정-검토-ssettingreview) |
+| 세계관 DB (NVM-260 계획) | 계획 URL: `/dashboard?nav=settingDB&tab=worldsettings` (현재 미지원) | [world-setting](./world-setting.md#설정db-세계관-db-탭) |
+| 설정 검토 | [`/setting-review`](https://www.catchhole.com/setting-review) | 현재: [캐릭터 후보](./character.md#설정-검토-ssettingreview) · NVM-260 계획: [세계관 후보](./world-setting.md#설정-후보-검토--세계관-후보-탭) |
 | 분석 진행 | [`/loading`](https://www.catchhole.com/loading) | [analysis](./analysis.md#분석-진행-s4loading) |
 | 오류 리포트 | [`/report`](https://www.catchhole.com/report) | [analysis](./analysis.md#오류-리포트-s5report) |
 | 회차 검사 결과 | [`/episode-validation-report`](https://www.catchhole.com/episode-validation-report) | [analysis](./analysis.md#회차-검사-결과-sepisodevalidationreport) |
