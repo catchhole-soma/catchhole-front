@@ -2,7 +2,7 @@
 
 [← 전체 인덱스](./README.md)
 
-> 이 문서는 Jira [NVM-260](https://aiswmproject.atlassian.net/browse/NVM-260)과 GitHub [#110](https://github.com/catchhole-soma/catchhole-backend-java/issues/110)에서 구현할 세계관 후보 검토와 세계관 DB 화면의 MVP 기획을 정리한다. API 경로·HTTP 메서드·전체 DTO는 이 문서에서 확정하지 않고 Backend Swagger/OpenAPI 설계 시점에 결정한다.
+> 이 문서는 Jira [NVM-260](https://aiswmproject.atlassian.net/browse/NVM-260)과 GitHub [#110](https://github.com/catchhole-soma/catchhole-backend-java/issues/110)에서 구현할 세계관 후보 검토와 세계관 DB 화면의 MVP 목표를 정리한다. 현재 프론트는 `worldsettings` 탭과 `candidateType=world`를 지원하지 않으며, 아래 URL은 구현 후 사용할 계획 형식이다. API 경로·HTTP 메서드·전체 DTO는 이 문서에서 확정하지 않고 Backend Swagger/OpenAPI 설계 시점에 결정한다.
 
 ## 목차
 
@@ -129,7 +129,7 @@ Backend의 실제 테이블·컬럼 이름은 Backend 문서가 단일 출처다
 
 ## 설정 후보 검토 — 세계관 후보 탭
 
-**URL**: [`/setting-review?candidateType=world`](https://www.catchhole.com/setting-review?candidateType=world)
+**계획 URL (현재 미지원)**: `/setting-review?candidateType=world`
 
 기존 `/setting-review` 라우트와 공통 검토 레이아웃을 유지한다. 캐릭터 후보와 세계관 후보를 한 목록에 섞지 않고 `캐릭터 후보 / 세계관 후보` 탭으로 구분한다. 캐릭터 후보 계약은 [character.md의 설정 검토](./character.md#설정-검토-ssettingreview)를 따른다.
 
@@ -290,7 +290,7 @@ LLM 원본 응답은 디버깅 저장 대상이지만 사용자 화면에는 노
 
 ## 설정DB 세계관 DB 탭
 
-**URL**: [`/dashboard?nav=settingDB&tab=worldsettings`](https://www.catchhole.com/dashboard?nav=settingDB&tab=worldsettings)
+**계획 URL (현재 미지원)**: `/dashboard?nav=settingDB&tab=worldsettings`
 
 회차 후보 검토를 거쳐 확정된 현재 세계관 설정을 분류·대상별로 탐색하고, 새 대상이나 설정을 직접 추가·수정하는 화면이다. 기존 [`설정집 목록`](./character.md#설정db-설정집-목록-탭)은 별도 원문 파일 관리 화면으로 유지한다.
 
