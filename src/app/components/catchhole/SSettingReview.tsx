@@ -27,6 +27,7 @@ import {
   getSettingCandidateOptions,
   getSettingCandidatesQueryKey,
   getSettingCandidatesOptions,
+  getWorldSettingCandidatesOptions,
   updateSettingCandidateCharacterMatchMutation,
   updateSettingCandidateMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
@@ -40,6 +41,8 @@ import { shouldRetryQuery } from '../../lib/query-client';
 import { C } from './constants';
 import { PageNavigation } from './PageNavigation';
 import { UserMenu } from './UserMenu';
+import { SettingReviewTabs } from './worldsetting/SettingReviewTabs';
+import { WorldSettingReview } from './worldsetting/WorldSettingReview';
 
 type ReviewStatus = NonNullable<SettingCandidateResponse['reviewStatus']>;
 type MatchStatus = NonNullable<SettingCandidateResponse['matchStatus']>;
@@ -124,7 +127,7 @@ interface SettingDisplay {
 /**
  * 저장용 attributeName은 유지하고, 목록과 상세에서 사용할 사용자용 문구만 만든다.
  */
-function toSettingDisplay(attributeName?: string): SettingDisplay {
+function toSettingDisplay(attributeName?: string | null): SettingDisplay {
   const normalized = attributeName?.trim();
   if (!normalized) return { typeLabel: '설정', nameLabel: '설정명 없음' };
 
@@ -342,20 +345,20 @@ function ReviewSummary({
   total,
   reviewed,
   pending,
-  matchRequired,
+  attentionRequired,
 }: {
   episodeRange: string;
   total: number;
   reviewed: number;
   pending: number;
-  matchRequired: number;
+  attentionRequired: number;
 }) {
   const items = [
     ['분석 대상', episodeRange, C.t1],
     ['전체 후보', `${total}개`, C.t1],
     ['검토 완료', `${reviewed}개`, C.t1],
     ['검토 대기', `${pending}개`, C.t1],
-    ['연결 필요', `${matchRequired}개`, matchRequired > 0 ? C.warning : C.t1],
+    ['확인 필요', `${attentionRequired}개`, attentionRequired > 0 ? C.warning : C.t1],
   ];
   return (
     <section className="setting-review-summary" aria-label="설정 후보 검토 요약" style={{
@@ -1187,7 +1190,7 @@ function QueryState({
   );
 }
 
-export default function SSettingReview() {
+function CharacterSettingReview() {
   const navigate = useAppNavigate();
   const routerNavigate = useRouterNavigate();
   const location = useLocation();
@@ -1249,6 +1252,16 @@ export default function SSettingReview() {
   const firstCandidateId = candidates.find(
     candidate => candidate.reviewStatus === 'PENDING_REVIEW',
   )?.id ?? candidates[0]?.id;
+
+  const worldSummaryQuery = useQuery({
+    ...getWorldSettingCandidatesOptions({
+      path: { workId },
+      query: { batchId, page: 0, size: 1 },
+    }),
+    enabled: hasContext,
+    retry: shouldRetryCandidateQuery,
+  });
+  const worldSummary = worldSummaryQuery.data?.data;
 
   useEffect(() => {
     // 실패한 refetch가 보존한 이전 목록에서는 이미 처리한 후보를 다시 자동 선택하지 않는다.
@@ -1523,9 +1536,24 @@ export default function SSettingReview() {
   const reviewed = listData?.reviewedCandidateCount ?? 0;
   const pending = listData?.pendingCandidateCount ?? 0;
   const matchRequired = listData?.matchRequiredCandidateCount ?? 0;
+  const worldTotal = worldSummary?.totalCandidateCount ?? 0;
+  const worldReviewed = worldSummary?.reviewedCandidateCount ?? 0;
+  const worldPending = worldSummary?.pendingCandidateCount ?? 0;
+  const worldAttention = (worldSummary?.pendingComparisonCount ?? 0)
+    + (worldSummary?.processingComparisonCount ?? 0)
+    + (worldSummary?.failedComparisonCount ?? 0)
+    + (worldSummary?.recomparisonRequiredCount ?? 0);
+  const combinedTotal = total + worldTotal;
+  const combinedReviewed = reviewed + worldReviewed;
+  const combinedPending = pending + worldPending;
+  const combinedAttention = matchRequired + worldAttention;
   const totalPages = candidatePage?.totalPages ?? 0;
   const currentPage = candidatePage?.page ?? apiPage;
-  const reviewComplete = reviewFilter === 'PENDING_REVIEW' && total > 0 && pending === 0;
+  const reviewComplete = combinedTotal > 0
+    && combinedPending === 0
+    && combinedAttention === 0
+    && !worldSummaryQuery.isError
+    && !worldSummaryQuery.isPending;
 
   useEffect(() => {
     const serverTotalPages = candidatePage?.totalPages;
@@ -1597,11 +1625,27 @@ export default function SSettingReview() {
                   listData?.episodeEndNo,
                   listData?.episodeCount ?? 0,
                 )}
-                total={total}
-                reviewed={reviewed}
-                pending={pending}
-                matchRequired={matchRequired}
+                total={combinedTotal}
+                reviewed={combinedReviewed}
+                pending={combinedPending}
+                attentionRequired={combinedAttention}
               />
+              <SettingReviewTabs
+                active="character"
+                disabled={actionPending}
+                character={{ reviewed, total }}
+                world={{ reviewed: worldReviewed, total: worldTotal }}
+              />
+
+              {worldSummaryQuery.isError && (
+                <div role="alert" style={{
+                  marginTop: 12, padding: '10px 13px', borderRadius: 7,
+                  border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+                  color: C.warning, fontSize: 12,
+                }}>
+                  세계관 후보 집계를 불러오지 못해 전체 완료 여부를 확인할 수 없습니다.
+                </div>
+              )}
 
               {listQuery.isError && listQuery.data && (
                 <div role="alert" style={{
@@ -1618,7 +1662,7 @@ export default function SSettingReview() {
                   <QueryState
                     icon={<Sparkles size={29} color={C.primary} />}
                     title="검토할 설정 후보가 없습니다."
-                    description="이번 분석에서는 원문 근거가 명확한 설정을 찾지 못했습니다."
+                    description="이번 분석에서 추출된 캐릭터 후보가 없습니다. 세계관 후보는 위 탭에서 계속 검토할 수 있습니다."
                   />
                 </div>
               ) : (
@@ -1750,7 +1794,9 @@ export default function SSettingReview() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
                 <ActionButton disabled={true} tone={C.primary}>
-                  {pending === 0 && total > 0 ? '검토 완료 (다음 작업에서 연결)' : `검토 완료 · ${pending}개 후보 남음`}
+                  {reviewComplete
+                    ? '전체 후보 검토 완료 (다음 작업에서 연결)'
+                    : `검토 완료 · ${combinedPending}개 후보 · ${combinedAttention}개 확인 필요`}
                 </ActionButton>
               </div>
             </>
@@ -1800,4 +1846,11 @@ export default function SSettingReview() {
       `}</style>
     </div>
   );
+}
+
+export default function SSettingReview() {
+  const [searchParams] = useSearchParams();
+  return searchParams.get('candidateType') === 'world'
+    ? <WorldSettingReview />
+    : <CharacterSettingReview />;
 }

@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyErrors, AddWorldSettingPropertyResponses, ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateErrors, ConfirmWorldSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, CreateWorldSettingData, CreateWorldSettingErrors, CreateWorldSettingResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, DismissWorldSettingCandidateData, DismissWorldSettingCandidateErrors, DismissWorldSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkResponses, GetWorldSettingCandidateData, GetWorldSettingCandidateErrors, GetWorldSettingCandidateResponses, GetWorldSettingCandidatesData, GetWorldSettingCandidatesErrors, GetWorldSettingCandidatesResponses, GetWorldSettingData, GetWorldSettingErrors, GetWorldSettingResponses, GetWorldSettingsData, GetWorldSettingsErrors, GetWorldSettingsResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UpdateWorldSettingCandidateData, UpdateWorldSettingCandidateResponses, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityErrors, UpdateWorldSettingIdentityResponses, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyErrors, UpdateWorldSettingPropertyResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -53,6 +53,101 @@ export const getMyWorks = <ThrowOnError extends boolean = true>(options?: Option
 export const createWork = <ThrowOnError extends boolean = true>(options: Options<CreateWorkData, ThrowOnError>): RequestResult<CreateWorkResponses, CreateWorkErrors, ThrowOnError> => (options.client ?? client).post<CreateWorkResponses, CreateWorkErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 대상 목록 조회
+ *
+ * 대상명·설정명·설정값 검색, 분류 필터와 고정 정렬을 적용해 세계관 대상을 페이지 조회합니다.
+ */
+export const getWorldSettings = <ThrowOnError extends boolean = true>(options: Options<GetWorldSettingsData, ThrowOnError>): RequestResult<GetWorldSettingsResponses, GetWorldSettingsErrors, ThrowOnError> => (options.client ?? client).get<GetWorldSettingsResponses, GetWorldSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings',
+    ...options
+});
+
+/**
+ * 세계관 대상 직접 추가
+ *
+ * 분류·대상명과 첫 문자열 설정을 후보나 LLM 비교 없이 현재 세계관에 바로 추가합니다.
+ */
+export const createWorldSetting = <ThrowOnError extends boolean = true>(options: Options<CreateWorldSettingData, ThrowOnError>): RequestResult<CreateWorldSettingResponses, CreateWorldSettingErrors, ThrowOnError> => (options.client ?? client).post<CreateWorldSettingResponses, CreateWorldSettingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 설정 속성 수정
+ *
+ * 지정한 설정명 한 개만 이름·값을 수정하며 다른 JSON 속성은 유지합니다.
+ */
+export const updateWorldSettingProperty = <ThrowOnError extends boolean = true>(options: Options<UpdateWorldSettingPropertyData, ThrowOnError>): RequestResult<UpdateWorldSettingPropertyResponses, UpdateWorldSettingPropertyErrors, ThrowOnError> => (options.client ?? client).patch<UpdateWorldSettingPropertyResponses, UpdateWorldSettingPropertyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings/{worldSettingId}/properties',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 설정 속성 추가
+ *
+ * 현재 JSON object 전체가 아니라 설정명·설정값 한 개만 추가합니다.
+ */
+export const addWorldSettingProperty = <ThrowOnError extends boolean = true>(options: Options<AddWorldSettingPropertyData, ThrowOnError>): RequestResult<AddWorldSettingPropertyResponses, AddWorldSettingPropertyErrors, ThrowOnError> => (options.client ?? client).post<AddWorldSettingPropertyResponses, AddWorldSettingPropertyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings/{worldSettingId}/properties',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 설정 후보 비교 재시도
+ *
+ * 실패 또는 재비교 필요 후보의 기존 비교 결과를 비우고 비교 대기 상태로 전환합니다.
+ */
+export const retryWorldSettingCandidateComparison = <ThrowOnError extends boolean = true>(options: Options<RetryWorldSettingCandidateComparisonData, ThrowOnError>): RequestResult<RetryWorldSettingCandidateComparisonResponses, unknown, ThrowOnError> => (options.client ?? client).post<RetryWorldSettingCandidateComparisonResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}/recompare',
+    ...options
+});
+
+/**
+ * 세계관 설정 후보 제외
+ */
+export const dismissWorldSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<DismissWorldSettingCandidateData, ThrowOnError>): RequestResult<DismissWorldSettingCandidateResponses, DismissWorldSettingCandidateErrors, ThrowOnError> => (options.client ?? client).post<DismissWorldSettingCandidateResponses, DismissWorldSettingCandidateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}/dismiss',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 설정 후보 확정
+ *
+ * 동일 설정명의 현재값을 비교한 뒤 설정 한 개만 원자적으로 반영합니다.
+ */
+export const confirmWorldSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<ConfirmWorldSettingCandidateData, ThrowOnError>): RequestResult<ConfirmWorldSettingCandidateResponses, ConfirmWorldSettingCandidateErrors, ThrowOnError> => (options.client ?? client).post<ConfirmWorldSettingCandidateResponses, ConfirmWorldSettingCandidateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}/confirm',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -381,6 +476,43 @@ export const updateWork = <ThrowOnError extends boolean = true>(options: Options
 });
 
 /**
+ * 세계관 대상 분류·이름 수정
+ */
+export const updateWorldSettingIdentity = <ThrowOnError extends boolean = true>(options: Options<UpdateWorldSettingIdentityData, ThrowOnError>): RequestResult<UpdateWorldSettingIdentityResponses, UpdateWorldSettingIdentityErrors, ThrowOnError> => (options.client ?? client).patch<UpdateWorldSettingIdentityResponses, UpdateWorldSettingIdentityErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings/{worldSettingId}/identity',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 세계관 설정 후보 상세 조회
+ */
+export const getWorldSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<GetWorldSettingCandidateData, ThrowOnError>): RequestResult<GetWorldSettingCandidateResponses, GetWorldSettingCandidateErrors, ThrowOnError> => (options.client ?? client).get<GetWorldSettingCandidateResponses, GetWorldSettingCandidateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}',
+    ...options
+});
+
+/**
+ * 세계관 설정 후보 비교 대상 수정
+ *
+ * 분류·대상명·설정명을 보정하고 비교 제안을 비운 뒤 재비교 대기 상태로 전환합니다.
+ */
+export const updateWorldSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<UpdateWorldSettingCandidateData, ThrowOnError>): RequestResult<UpdateWorldSettingCandidateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<UpdateWorldSettingCandidateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * 설정 후보 상세 조회
  *
  * 로그인한 사용자가 본인 작품의 현재 검토 업로드 묶음에 속한 특정 AI 설정 후보를 조회합니다.
@@ -569,6 +701,26 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * 세계관 대상 상세 조회
+ */
+export const getWorldSetting = <ThrowOnError extends boolean = true>(options: Options<GetWorldSettingData, ThrowOnError>): RequestResult<GetWorldSettingResponses, GetWorldSettingErrors, ThrowOnError> => (options.client ?? client).get<GetWorldSettingResponses, GetWorldSettingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-settings/{worldSettingId}',
+    ...options
+});
+
+/**
+ * 세계관 설정 후보 목록 조회
+ *
+ * 한 업로드 묶음의 세계관 후보 집계와 필터된 후보 페이지를 조회합니다.
+ */
+export const getWorldSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<GetWorldSettingCandidatesData, ThrowOnError>): RequestResult<GetWorldSettingCandidatesResponses, GetWorldSettingCandidatesErrors, ThrowOnError> => (options.client ?? client).get<GetWorldSettingCandidatesResponses, GetWorldSettingCandidatesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/world-setting-candidates',
+    ...options
 });
 
 /**
