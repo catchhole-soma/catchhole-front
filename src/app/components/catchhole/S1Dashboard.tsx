@@ -21,6 +21,7 @@ import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
+import { CharacterTimeline } from './character/CharacterTimeline';
 import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
@@ -2410,195 +2411,6 @@ const TL_COLORS: Record<string, string> = {
   normal: C.t3, setting: C.primary, conflict: C.danger, resolved: C.success,
   current: C.primary, writing: C.warning,
 };
-const TL_FILTER_OPTIONS = {
-  character: ['수아', '강민준', '이레나', '하윤', '최검사', '박형사', '오변호사', '김판사', '신비서'],
-  event:     ['등장', '갈등', '수사', '재판', '화해', '충돌', '체포', '반전', '만남', '설정 등록'],
-  item:      ['검사 배지', '수사 수첩', '증거 USB', '법정 판결문', '증거 봉투', '법원 영장', '빨간 볼펜'],
-  error:     ['시간 흐름', '소지품', '수치 계산'],
-};
-
-function TimelineView() {
-  const [tlFilter, setTlFilter] = useState<'all' | 'character' | 'event' | 'item' | 'error'>('all');
-  const [tlSelected, setTlSelected] = useState<string | null>(null);
-
-  const filteredEvents = TL_EVENTS.filter(e => {
-    if (tlFilter === 'all') return true;
-    if (!tlSelected) {
-      if (tlFilter === 'error') return (e.errors?.length ?? 0) > 0;
-      return true;
-    }
-    if (tlFilter === 'character') return e.characters.includes(tlSelected);
-    if (tlFilter === 'event')     return e.eventTags.includes(tlSelected);
-    if (tlFilter === 'item')      return e.items.includes(tlSelected);
-    if (tlFilter === 'error')     return e.errors?.some(err => TL_ERROR_CFG[err.type].label === tlSelected) ?? false;
-    return true;
-  });
-
-  const filterLabels: Record<string, string> = { all: '전체', character: '인물별', event: '사건별', item: '아이템별', error: '오류별' };
-  const filterColors: Record<string, string> = { character: '#7C5CFC', event: '#E25C5C', item: '#F4A261', error: '#E25C5C' };
-
-  return (
-    <div>
-      {/* 1차 필터 */}
-      <div style={{ display: 'flex', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
-        {(['all', 'character', 'event', 'item', 'error'] as const).map(f => {
-          const active = tlFilter === f;
-          const fc = filterColors[f] || C.primary;
-          return (
-            <button key={f} onClick={() => { setTlFilter(f); setTlSelected(null); }} style={{
-              padding: '5px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
-              background: active ? (f === 'all' ? C.primary : fc) + '1A' : 'transparent',
-              border: `1px solid ${active ? (f === 'all' ? C.primary : fc) : C.border}`,
-              color: active ? (f === 'all' ? C.primary : fc) : C.t3,
-              fontWeight: f === 'error' ? 600 : 400,
-              transition: 'all 0.13s',
-            }}>
-              {f === 'error' ? '⚠ 오류별' : filterLabels[f]}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 2차 선택 chip */}
-      {tlFilter !== 'all' && (
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
-          {(tlFilter === 'error'
-            ? TL_FILTER_OPTIONS.error.map(opt => {
-                const errType = (Object.keys(TL_ERROR_CFG) as Array<keyof typeof TL_ERROR_CFG>).find(k => TL_ERROR_CFG[k].label === opt);
-                const errColor = errType ? TL_ERROR_CFG[errType].color : '#E25C5C';
-                const errIcon  = errType ? TL_ERROR_CFG[errType].icon  : '';
-                const sel = tlSelected === opt;
-                return (
-                  <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
-                    padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
-                    background: sel ? errColor + '20' : 'transparent',
-                    border: `1px solid ${sel ? errColor : C.border}`,
-                    color: sel ? errColor : C.t3,
-                    transition: 'all 0.12s',
-                  }}>
-                    {errIcon} {opt}
-                  </button>
-                );
-              })
-            : TL_FILTER_OPTIONS[tlFilter as 'character' | 'event' | 'item'].map(opt => {
-                const sel = tlSelected === opt;
-                const fc = filterColors[tlFilter] || C.primary;
-                return (
-                  <button key={opt} onClick={() => setTlSelected(prev => prev === opt ? null : opt)} style={{
-                    padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
-                    background: sel ? fc + '20' : 'transparent',
-                    border: `1px solid ${sel ? fc : C.border}`,
-                    color: sel ? fc : C.t3,
-                    transition: 'all 0.12s',
-                  }}>
-                    {opt}
-                  </button>
-                );
-              })
-          )}
-        </div>
-      )}
-
-      {/* 오류 상세 패널 */}
-      {tlFilter === 'error' && filteredEvents.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-          {filteredEvents.flatMap(ev =>
-            (ev.errors ?? [])
-              .filter(err => !tlSelected || TL_ERROR_CFG[err.type].label === tlSelected)
-              .map((err, i) => (
-                <div key={`${ev.ch}-${i}`} style={{
-                  background: TL_ERROR_CFG[err.type].color + '0A',
-                  border: `1px solid ${TL_ERROR_CFG[err.type].color}33`,
-                  borderLeft: `3px solid ${TL_ERROR_CFG[err.type].color}`,
-                  borderRadius: 6, padding: '10px 14px',
-                  display: 'flex', flexDirection: 'column', gap: 4,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12 }}>{TL_ERROR_CFG[err.type].icon}</span>
-                    <span style={{ color: TL_ERROR_CFG[err.type].color, fontSize: 11, fontWeight: 700 }}>
-                      {TL_ERROR_CFG[err.type].label}
-                    </span>
-                    <span style={{ color: C.t2, fontSize: 12, fontWeight: 600 }}>{ev.ch} · {ev.title}</span>
-                  </div>
-                  <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.5 }}>{err.desc}</div>
-                </div>
-              ))
-          )}
-        </div>
-      )}
-
-      {/* 타임라인 본체 */}
-      <div style={{ background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, padding: '24px 20px', overflowX: 'auto' }}>
-        {filteredEvents.length === 0 ? (
-          <div style={{ color: C.t3, textAlign: 'center', padding: '28px 0', fontSize: 13 }}>
-            해당 조건의 이벤트가 없습니다
-          </div>
-        ) : (
-          <div style={{ minWidth: Math.max(520, filteredEvents.length * 90) }}>
-            <div style={{ position: 'relative', height: 2, background: C.border, margin: '30px 24px 0', borderRadius: 1 }}>
-              {filteredEvents.map((ev, i) => {
-                const hasErr = (ev.errors?.length ?? 0) > 0;
-                return (
-                  <div key={i} style={{
-                    position: 'absolute',
-                    left: filteredEvents.length === 1 ? '50%' : `${i / (filteredEvents.length - 1) * 100}%`,
-                    transform: 'translateX(-50%) translateY(-50%)',
-                    width: 12, height: 12, borderRadius: '50%',
-                    background: hasErr ? '#E25C5C' : TL_COLORS[ev.type],
-                    border: `2px solid ${C.bg}`,
-                    boxShadow: `0 0 0 1.5px ${hasErr ? '#E25C5C' : TL_COLORS[ev.type]}`,
-                  }} />
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', marginTop: 16 }}>
-              {filteredEvents.map((ev, i) => {
-                const color = TL_COLORS[ev.type];
-                return (
-                  <div key={i} style={{
-                    flex: 1, padding: '0 4px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-                  }}>
-                    <div style={{ padding: '2px 6px', borderRadius: 3, background: color + '18', border: `1px solid ${color}33`, color, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>{ev.ch}</div>
-                    <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3 }}>{ev.title}</div>
-                    <div style={{ color: C.t3, fontSize: 10, lineHeight: 1.4 }}>{ev.desc}</div>
-                    {/* 인물·아이템 태그 */}
-                    {(ev.characters.length > 0 || ev.items.length > 0) && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, justifyContent: 'center' }}>
-                        {ev.characters.slice(0, 2).map(c => (
-                          <span key={c} style={{ fontSize: 9, color: '#7C5CFC', background: '#7C5CFC14', border: '1px solid #7C5CFC33', borderRadius: 3, padding: '1px 4px' }}>{c}</span>
-                        ))}
-                        {ev.items.slice(0, 1).map(it => (
-                          <span key={it} style={{ fontSize: 9, color: '#F4A261', background: '#F4A26114', border: '1px solid #F4A26133', borderRadius: 3, padding: '1px 4px' }}>{it}</span>
-                        ))}
-                      </div>
-                    )}
-                    {/* 오류 배지 (항상 표시) */}
-                    {ev.errors && ev.errors.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, justifyContent: 'center' }}>
-                        {ev.errors.map((err, ei) => (
-                          <span key={ei} style={{
-                            fontSize: 9, padding: '1px 4px', borderRadius: 3,
-                            color: TL_ERROR_CFG[err.type].color,
-                            background: TL_ERROR_CFG[err.type].color + '18',
-                            border: `1px solid ${TL_ERROR_CFG[err.type].color}44`,
-                          }}>
-                            {TL_ERROR_CFG[err.type].icon} {TL_ERROR_CFG[err.type].label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldsettings' | 'worldrules' | 'search';
 
 type QueryStateSettingTab = Extract<SettingTabId, 'worldsettings' | 'search'>;
@@ -2646,7 +2458,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
-const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
+const SETTING_TAB_IDS: SettingTabId[] = ['timeline', 'characters', 'worldsettings', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 function formatEpisodeDate(value?: string): string {
@@ -2703,6 +2515,13 @@ export default function S1Dashboard() {
   const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
     const next = switchSettingTabQueryState(prev, settingTab, id);
     next.set('tab', id);
+    if (id !== 'timeline' && next.get('modal') === 'character-timeline') {
+      next.delete('modal');
+      next.delete('charId');
+      next.delete('timelineFactType');
+      next.delete('timelineEpisodeNo');
+      next.delete('factId');
+    }
     if (id !== 'worldrules') {
       next.delete('settingBookFileId');
       if (next.get('modal') === 'setting-book-upload') next.delete('modal');
@@ -3145,12 +2964,12 @@ export default function S1Dashboard() {
 
                 <div className="dashboard-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
+                    { id: 'timeline', label: '캐릭터 타임라인', icon: <Clock size={13} /> },
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
                     { id: 'worldsettings', label: '세계관 DB', icon: <Globe size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
-                    { id: 'timeline', label: '타임라인', icon: <Clock size={13} />, upcoming: true },
                   ] as { id: SettingTabId; label: string; icon: React.ReactNode; upcoming?: boolean }[]).map((tab) => (
                     <button key={tab.id} onClick={() => {
                       if (tab.upcoming) setComingSoonFeature(tab.label);
@@ -3248,23 +3067,16 @@ export default function S1Dashboard() {
                     )}
 
                     {settingTab === 'timeline' && (
-                      <motion.div key="tl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
-                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>작중 시간 흐름을 시각화합니다. 빨간 항목은 현재 분석 회차에서 충돌이 감지된 설정입니다.</div>
-                        <TimelineView />
-                        <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          {[
-                            { color: C.primary, label: '설정 등록' },
-                            { color: C.success, label: '관계 해소' },
-                            { color: C.danger, label: '갈등 발생' },
-                            { color: C.warning, label: '충돌 감지' },
-                            { color: C.t3, label: '일반 이벤트' },
-                          ].map((l) => (
-                            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />
-                              <span style={{ color: C.t3, fontSize: 11 }}>{l.label}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <motion.div key="tl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
+                        <CharacterTimeline
+                          workId={effectiveWorkId}
+                          demoMode={demoMode}
+                          demoCharacters={demoCharacters}
+                          onAnalyze={() => navigate(
+                            `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
+                            'push-right',
+                          )}
+                        />
                       </motion.div>
                     )}
 
