@@ -1131,6 +1131,20 @@ export function WorldSettingReview() {
       <ReviewHeader onBack={backToAnalysisList} />
       <main style={{ flex: 1, overflowY: 'auto' }}>
         <div className="world-setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
+          <ReviewSummary
+            episodeRange={formatEpisodeRange(listData?.episodeStartNo, listData?.episodeEndNo, listData?.episodeCount ?? 0)}
+            total={combinedTotal}
+            reviewed={combinedReviewed}
+            pending={combinedPending}
+            attentionRequired={combinedAttention}
+          />
+          <SettingReviewTabs
+            active="world"
+            disabled={actionPending}
+            character={{ reviewed: characterReviewed, total: characterTotal }}
+            world={{ reviewed: worldReviewed, total: worldTotal }}
+          />
+
           {listQuery.isPending && !listQuery.data ? (
             <QueryState
               icon={<Loader2 size={27} color={C.primary} className="spin" />}
@@ -1146,20 +1160,6 @@ export function WorldSettingReview() {
             />
           ) : (
             <>
-              <ReviewSummary
-                episodeRange={formatEpisodeRange(listData?.episodeStartNo, listData?.episodeEndNo, listData?.episodeCount ?? 0)}
-                total={combinedTotal}
-                reviewed={combinedReviewed}
-                pending={combinedPending}
-                attentionRequired={combinedAttention}
-              />
-              <SettingReviewTabs
-                active="world"
-                disabled={actionPending}
-                character={{ reviewed: characterReviewed, total: characterTotal }}
-                world={{ reviewed: worldReviewed, total: worldTotal }}
-              />
-
               {confirmedTarget && (
                 <div role="status" style={{
                   marginTop: 12, padding: '11px 13px', borderRadius: 8,

@@ -76,7 +76,8 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 function isVersionConflict(error: unknown): boolean {
-  return toApiError(error)?.status === 409;
+  const apiError = toApiError(error);
+  return apiError?.status === 409 && apiError.code === 'WORLD_SETTING_VERSION_CONFLICT';
 }
 
 function formatUpdatedAt(value?: string): string {
@@ -225,16 +226,44 @@ interface PropertyDraft {
   initialSettingValue: string;
 }
 
+interface CreateWorldSettingDraft {
+  category: WorldCategory;
+  subjectName: string;
+  settingName: string;
+  settingValue: string;
+}
+
+interface IdentityDraft {
+  worldSettingId: string;
+  category: WorldCategory;
+  subjectName: string;
+}
+
+function emptyCreateDraft(): CreateWorldSettingDraft {
+  return { category: 'RACE', subjectName: '', settingName: '', settingValue: '' };
+}
+
+function isSameEvidence(left: CandidateEvidence, right: CandidateEvidence): boolean {
+  if (left.candidateId && right.candidateId) return left.candidateId === right.candidateId;
+  return left.sourceEpisodeNo === right.sourceEpisodeNo
+    && left.operation === right.operation
+    && left.value === right.value
+    && left.reviewedAt === right.reviewedAt;
+}
+
 function EvidencePanel({ evidence }: { evidence?: PropertyEvidence }) {
   const history = evidence?.history ?? [];
-  if (!evidence?.latestEvidence && history.length === 0) {
+  const latestEvidence = evidence?.latestEvidence;
+  if (!latestEvidence && history.length === 0) {
     return (
       <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.6 }}>
         직접 입력된 설정 · 연결된 원문 근거 없음
       </div>
     );
   }
-  const rows = history.length ? history : evidence?.latestEvidence ? [evidence.latestEvidence] : [];
+  const rows = latestEvidence
+    ? [latestEvidence, ...history.filter(item => !isSameEvidence(item, latestEvidence))]
+    : history;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {rows.map((item, index) => (
@@ -586,30 +615,30 @@ const modalInputStyle = {
 };
 
 function CreateWorldSettingModal({
+  draft,
   pending,
   error,
+  onDraftChange,
   onClose,
   onSubmit,
 }: {
+  draft: CreateWorldSettingDraft;
   pending: boolean;
   error?: string | null;
+  onDraftChange: (draft: CreateWorldSettingDraft) => void;
   onClose: () => void;
   onSubmit: (category: WorldCategory, subjectName: string, settingName: string, settingValue: string) => void;
 }) {
-  const [category, setCategory] = useState<WorldCategory>('RACE');
-  const [subjectName, setSubjectName] = useState('');
-  const [settingName, setSettingName] = useState('');
-  const [settingValue, setSettingValue] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const dirty = Boolean(subjectName || settingName || settingValue || category !== 'RACE');
+  const dirty = Boolean(draft.subjectName || draft.settingName || draft.settingValue || draft.category !== 'RACE');
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!subjectName.trim() || !settingName.trim() || !settingValue.trim()) {
+    if (!draft.subjectName.trim() || !draft.settingName.trim() || !draft.settingValue.trim()) {
       setValidationError('대상명·설정명·설정값을 모두 입력해 주세요.');
       return;
     }
     setValidationError(null);
-    onSubmit(category, subjectName.trim(), settingName.trim(), settingValue.trim());
+    onSubmit(draft.category, draft.subjectName.trim(), draft.settingName.trim(), draft.settingValue.trim());
   };
   return (
     <ModalShell
@@ -624,23 +653,23 @@ function CreateWorldSettingModal({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
         <label style={{ color: C.t3, fontSize: 11 }}>
           분류
-          <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...modalInputStyle, marginTop: 7 }}>
+          <select value={draft.category} onChange={event => onDraftChange({ ...draft, category: event.target.value as WorldCategory })} style={{ ...modalInputStyle, marginTop: 7 }}>
             {CATEGORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
         <label style={{ color: C.t3, fontSize: 11 }}>
           대상명
-          <input value={subjectName} onChange={event => setSubjectName(event.target.value)} placeholder="예: 엘프" style={{ ...modalInputStyle, marginTop: 7 }} />
+          <input value={draft.subjectName} onChange={event => onDraftChange({ ...draft, subjectName: event.target.value })} placeholder="예: 엘프" style={{ ...modalInputStyle, marginTop: 7 }} />
         </label>
       </div>
       <div style={{ color: C.t1, fontSize: 13, fontWeight: 700, margin: '20px 0 12px' }}>첫 설정</div>
       <label style={{ display: 'block', color: C.t3, fontSize: 11 }}>
         설정명
-        <input value={settingName} onChange={event => setSettingName(event.target.value)} placeholder="예: 서식지" style={{ ...modalInputStyle, marginTop: 7 }} />
+        <input value={draft.settingName} onChange={event => onDraftChange({ ...draft, settingName: event.target.value })} placeholder="예: 서식지" style={{ ...modalInputStyle, marginTop: 7 }} />
       </label>
       <label style={{ display: 'block', color: C.t3, fontSize: 11, marginTop: 13 }}>
         설정값
-        <textarea value={settingValue} onChange={event => setSettingValue(event.target.value)} placeholder="지속적으로 활용할 설정 내용을 입력하세요." style={{
+        <textarea value={draft.settingValue} onChange={event => onDraftChange({ ...draft, settingValue: event.target.value })} placeholder="지속적으로 활용할 설정 내용을 입력하세요." style={{
           ...modalInputStyle, height: 90, padding: '11px', marginTop: 7, resize: 'vertical',
         }} />
       </label>
@@ -658,35 +687,37 @@ function CreateWorldSettingModal({
 
 function EditIdentityModal({
   detail,
+  draft,
   pending,
   error,
   conflict,
+  onDraftChange,
   onClose,
   onReload,
   onSubmit,
 }: {
   detail: WorldSettingDetailResponse;
+  draft: Pick<IdentityDraft, 'category' | 'subjectName'>;
   pending: boolean;
   error?: string | null;
   conflict: boolean;
+  onDraftChange: (draft: Pick<IdentityDraft, 'category' | 'subjectName'>) => void;
   onClose: () => void;
   onReload: () => void;
   onSubmit: (category: WorldCategory, subjectName: string) => void;
 }) {
   const initialCategory = detail.category ?? 'RACE';
   const initialSubject = detail.subjectName ?? '';
-  const [category, setCategory] = useState<WorldCategory>(initialCategory);
-  const [subjectName, setSubjectName] = useState(initialSubject);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const dirty = category !== initialCategory || subjectName !== initialSubject;
+  const dirty = draft.category !== initialCategory || draft.subjectName !== initialSubject;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!subjectName.trim()) {
+    if (!draft.subjectName.trim()) {
       setValidationError('대상명을 입력해 주세요.');
       return;
     }
     setValidationError(null);
-    onSubmit(category, subjectName.trim());
+    onSubmit(draft.category, draft.subjectName.trim());
   };
   return (
     <ModalShell
@@ -701,13 +732,13 @@ function EditIdentityModal({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
         <label style={{ color: C.t3, fontSize: 11 }}>
           분류
-          <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...modalInputStyle, marginTop: 7 }}>
+          <select value={draft.category} onChange={event => onDraftChange({ ...draft, category: event.target.value as WorldCategory })} style={{ ...modalInputStyle, marginTop: 7 }}>
             {CATEGORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
         <label style={{ color: C.t3, fontSize: 11 }}>
           대상명
-          <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...modalInputStyle, marginTop: 7 }} />
+          <input value={draft.subjectName} onChange={event => onDraftChange({ ...draft, subjectName: event.target.value })} style={{ ...modalInputStyle, marginTop: 7 }} />
         </label>
       </div>
       <div style={{
@@ -751,6 +782,8 @@ export function WorldSettingDatabase({
   const selectedId = searchParams.get('settingId');
   const modal = searchParams.get('modal');
   const [searchDraft, setSearchDraft] = useState(q);
+  const [createDraft, setCreateDraft] = useState<CreateWorldSettingDraft>(emptyCreateDraft);
+  const [identityDraft, setIdentityDraft] = useState<IdentityDraft | null>(null);
   const [propertyDraft, setPropertyDraft] = useState<PropertyDraft | null>(null);
   const [propertyValidationError, setPropertyValidationError] = useState<string | null>(null);
   const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
@@ -826,6 +859,7 @@ export function WorldSettingDatabase({
     ...createWorldSettingMutation(),
     onSuccess: async response => {
       const createdId = response.data?.id;
+      setCreateDraft(emptyCreateDraft());
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
         next.delete('modal');
@@ -843,6 +877,7 @@ export function WorldSettingDatabase({
   const identityMutation = useMutation({
     ...updateWorldSettingIdentityMutation(),
     onSuccess: async (_, variables) => {
+      setIdentityDraft(null);
       await invalidateWorldSettings(variables.path.worldSettingId);
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
@@ -982,6 +1017,15 @@ export function WorldSettingDatabase({
   const currentPage = worldSettingPage?.page ?? apiPage;
   const totalPages = worldSettingPage?.totalPages ?? 0;
   const listError = listQuery.isError ? errorMessage(listQuery.error, '세계관 목록을 불러오지 못했습니다.') : null;
+  const activeIdentityDraft = detail && selectedId
+    ? identityDraft?.worldSettingId === selectedId
+      ? identityDraft
+      : {
+          worldSettingId: selectedId,
+          category: detail.category ?? 'RACE',
+          subjectName: detail.subjectName ?? '',
+        }
+    : null;
 
   return (
     <section style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -1016,7 +1060,7 @@ export function WorldSettingDatabase({
         }}><Check size={12} style={{ verticalAlign: 'middle', marginRight: 6 }} />{successMessage}</div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 250px 220px', gap: 10, marginBottom: 14 }}>
+      <div className="world-setting-db-filters" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 250px 220px', gap: 10, marginBottom: 14 }}>
         <form onSubmit={(event: FormEvent) => {
           event.preventDefault();
           updateListParams({ q: searchDraft.trim() });
@@ -1178,6 +1222,11 @@ export function WorldSettingDatabase({
                 expandedEvidence={expandedEvidence}
                 onEditIdentity={() => {
                   identityMutation.reset();
+                  setIdentityDraft(current => current?.worldSettingId === selectedId ? current : {
+                    worldSettingId: selectedId,
+                    category: detail.category ?? 'RACE',
+                    subjectName: detail.subjectName ?? '',
+                  });
                   setSearchParams(previous => {
                     const next = new URLSearchParams(previous);
                     next.set('modal', 'world-setting-edit');
@@ -1216,31 +1265,41 @@ export function WorldSettingDatabase({
 
       {modal === 'world-setting-create' && (
         <CreateWorldSettingModal
+          draft={createDraft}
           pending={createMutation.isPending}
           error={createMutation.isError ? errorMessage(createMutation.error, '새 대상을 추가하지 못했습니다.') : null}
-          onClose={() => setSearchParams(previous => {
-            const next = new URLSearchParams(previous);
-            next.delete('modal');
-            return next;
-          }, { replace: true })}
+          onDraftChange={setCreateDraft}
+          onClose={() => {
+            setCreateDraft(emptyCreateDraft());
+            setSearchParams(previous => {
+              const next = new URLSearchParams(previous);
+              next.delete('modal');
+              return next;
+            }, { replace: true });
+          }}
           onSubmit={(newCategory, subjectName, settingName, settingValue) => createMutation.mutate({
             path: { workId },
             body: { category: newCategory, subjectName, settingName, settingValue },
           })}
         />
       )}
-      {modal === 'world-setting-edit' && detail && selectedId && (
+      {modal === 'world-setting-edit' && detail && selectedId && activeIdentityDraft && (
         <EditIdentityModal
           key={detail.id}
           detail={detail}
+          draft={activeIdentityDraft}
           pending={identityMutation.isPending}
           error={identityMutation.isError ? errorMessage(identityMutation.error, '대상 정보를 수정하지 못했습니다.') : null}
           conflict={identityMutation.isError && isVersionConflict(identityMutation.error)}
-          onClose={() => setSearchParams(previous => {
-            const next = new URLSearchParams(previous);
-            next.delete('modal');
-            return next;
-          }, { replace: true })}
+          onDraftChange={next => setIdentityDraft({ worldSettingId: selectedId, ...next })}
+          onClose={() => {
+            setIdentityDraft(null);
+            setSearchParams(previous => {
+              const next = new URLSearchParams(previous);
+              next.delete('modal');
+              return next;
+            }, { replace: true });
+          }}
           onReload={() => void detailQuery.refetch()}
           onSubmit={(newCategory, subjectName) => identityMutation.mutate({
             path: { workId, worldSettingId: selectedId },
@@ -1250,6 +1309,9 @@ export function WorldSettingDatabase({
       )}
       <style>{`
         @media (max-width: 900px) {
+          .world-setting-db-filters {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
           .world-setting-db-layout {
             grid-template-columns: minmax(0, 1fr) !important;
           }

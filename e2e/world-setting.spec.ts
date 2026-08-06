@@ -241,6 +241,44 @@ test('세계관 후보 탭은 합산 진행률·필터·딥링크를 유지하�
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
 });
 
+test('세계관 후보 조회가 실패해도 캐릭터 후보 탭으로 이동할 수 있다', async ({ page }) => {
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+  const characterListPath = `/api/v1/works/${workId}/setting-candidates`;
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === worldListPath) {
+      return failure(route, 500, '세계관 후보를 불러오지 못했습니다.', 'COMMON_INTERNAL_SERVER_ERROR');
+    }
+    if (pathname === characterListPath) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 5,
+        episodeCount: 5,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([characterCandidate]),
+      });
+    }
+    if (pathname === `${characterListPath}/${characterCandidateId}`) {
+      return success(route, characterCandidate);
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+  await expect(page.getByRole('strong').filter({ hasText: '세계관 후보를 불러오지 못했습니다.' })).toBeVisible();
+
+  await page.getByRole('button', { name: /캐릭터 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBeNull();
+  await expect(page.getByText('수아', { exact: true }).first()).toBeVisible();
+});
+
 test('확정본 충돌은 비교 회복을 polling하고 같은 후보의 다음 충돌도 자동 재비교한다', async ({ page }) => {
   let candidate = worldCandidate();
   let confirmAttempts = 0;
@@ -453,6 +491,17 @@ test('모바일 세계관 DB는 사용자가 대상을 고를 때까지 목록�
   await authenticate(page);
   await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings`);
 
+  const filters = page.locator('.world-setting-db-filters');
+  const filterMetrics = await filters.evaluate(element => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  const filterTops = await filters.locator(':scope > *').evaluateAll(elements => (
+    elements.map(element => Math.round(element.getBoundingClientRect().top))
+  ));
+  expect(filterMetrics.scrollWidth).toBeLessThanOrEqual(filterMetrics.clientWidth);
+  expect(new Set(filterTops).size).toBe(3);
+
   const list = page.locator('.world-setting-db-list');
   await expect(list).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
@@ -506,7 +555,21 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
         evidenceSpans: [{ quote: '바바리안은 혹한 지역에서 살아간다.' }],
         reviewedAt: '2026-08-06T09:00:00',
       },
-      history: [],
+      history: [{
+        candidateId: worldCandidateId,
+        operation: 'ADD',
+        value: '혹한 지역',
+        sourceEpisodeNo: 3,
+        evidenceSpans: [{ quote: '바바리안은 혹한 지역에서 살아간다.' }],
+        reviewedAt: '2026-08-06T09:00:00',
+      }, {
+        candidateId: secondWorldCandidateId,
+        operation: 'ADD',
+        value: '설원 지대',
+        sourceEpisodeNo: 2,
+        evidenceSpans: [{ quote: '그들은 오래전부터 설원 지대에 정착했다.' }],
+        reviewedAt: '2026-08-05T09:00:00',
+      }],
     }],
     createdAt: '2026-08-06T08:00:00',
     updatedAt: '2026-08-06T09:00:00',
@@ -566,6 +629,9 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
     if (pathname === `${listPath}/${createdWorldSettingId}/properties` && request.method() === 'PATCH') {
       propertyAttempts += 1;
       propertyRequestBody = request.postDataJSON() as Record<string, unknown>;
+      if (propertyRequestBody.settingName === '중복 설정') {
+        return failure(route, 409, '같은 대상에 동일한 설정명이 이미 존재합니다.', 'WORLD_SETTING_DUPLICATE');
+      }
       if (propertyAttempts === 1) {
         detailVersion = 2;
         return failure(route, 409, '다른 변경이 먼저 반영되었습니다.', 'WORLD_SETTING_VERSION_CONFLICT');
@@ -590,7 +656,8 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(page.getByText('바바리안', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('바바리안은 혹한 지역에서 살아간다.')).toHaveCount(0);
   await page.getByText('3화', { exact: true }).click();
-  await expect(page.getByText('바바리안은 혹한 지역에서 살아간다.')).toBeVisible();
+  await expect(page.getByText('바바리안은 혹한 지역에서 살아간다.')).toHaveCount(1);
+  await expect(page.getByText('그들은 오래전부터 설원 지대에 정착했다.')).toBeVisible();
 
   await page.getByPlaceholder('대상 · 설정명 · 설정값 검색').fill('사회 구조');
   await page.getByRole('button', { name: '검색', exact: true }).click();
@@ -602,6 +669,12 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await page.getByLabel('대상명').fill('북부 설원 부족');
   await page.getByLabel('설정명').fill('서식지');
   await page.getByLabel('설정값').fill('북부 설원');
+  await page.goBack();
+  await expect(page.getByText('새 세계관 대상 추가', { exact: true })).toHaveCount(0);
+  await page.goForward();
+  await expect(page.getByLabel('대상명')).toHaveValue('북부 설원 부족');
+  await expect(page.getByLabel('설정명')).toHaveValue('서식지');
+  await expect(page.getByLabel('설정값')).toHaveValue('북부 설원');
   await page.getByRole('button', { name: '대상 추가', exact: true }).click();
   await expect(page.getByText('같은 분류와 대상명이 이미 존재합니다.')).toBeVisible();
   await expect(page.getByLabel('대상명')).toHaveValue('북부 설원 부족');
@@ -631,8 +704,23 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   });
   await expect(page.getByText('북부 설원의 혹한 지역', { exact: true })).toBeVisible();
 
+  await page.getByRole('button', { name: '서식지 설정 수정' }).click();
+  await detailPanel.getByLabel('설정명').fill('중복 설정');
+  await detailPanel.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByText('같은 대상에 동일한 설정명이 이미 존재합니다.')).toBeVisible();
+  await expect(detailPanel.getByRole('button', { name: '최신값 다시 불러오기' })).toHaveCount(0);
+  await expect(detailPanel.getByLabel('설정명')).toHaveValue('중복 설정');
+  page.once('dialog', dialog => dialog.accept());
+  await detailPanel.getByRole('button', { name: '취소', exact: true }).click();
+
   await page.getByRole('button', { name: '대상 정보 수정' }).click();
   await page.getByLabel('대상명').fill('북부 바바리안');
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBeNull();
+  await expect(page.getByRole('button', { name: '변경 저장' })).toHaveCount(0);
+  await page.goForward();
+  await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBe('world-setting-edit');
+  await expect(page.getByLabel('대상명')).toHaveValue('북부 바바리안');
   await page.getByRole('button', { name: '변경 저장' }).click();
   await expect.poll(() => identityAttempts).toBe(1);
   await expect(page.getByText('북부 바바리안', { exact: true }).first()).toBeVisible();
