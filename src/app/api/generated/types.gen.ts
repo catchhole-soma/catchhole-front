@@ -302,7 +302,10 @@ export type WorldSettingDetailResponse = {
         [key: string]: string;
     };
     propertyCount?: number;
-    version?: number;
+    /**
+     * 낙관적 잠금 버전
+     */
+    version: number;
     propertyEvidence?: Array<PropertyEvidence>;
     createdAt?: string;
     updatedAt?: string;
@@ -323,7 +326,7 @@ export type WorldSettingPropertyCreateRequest = {
     /**
      * 화면에서 조회한 현재 버전
      */
-    version?: number;
+    version: number;
 };
 
 /**
@@ -1538,7 +1541,7 @@ export type WorldSettingPropertyUpdateRequest = {
     /**
      * 화면에서 조회한 현재 버전
      */
-    version?: number;
+    version: number;
 };
 
 /**
@@ -1556,7 +1559,7 @@ export type WorldSettingIdentityUpdateRequest = {
     /**
      * 화면에서 조회한 현재 버전
      */
-    version?: number;
+    version: number;
 };
 
 /**
@@ -3552,9 +3555,26 @@ export type RetryWorldSettingCandidateComparisonData = {
     url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}/recompare';
 };
 
+export type RetryWorldSettingCandidateComparisonErrors = {
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 후보를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 검토 상태 충돌
+     */
+    409: CommonErrorResponse;
+};
+
+export type RetryWorldSettingCandidateComparisonError = RetryWorldSettingCandidateComparisonErrors[keyof RetryWorldSettingCandidateComparisonErrors];
+
 export type RetryWorldSettingCandidateComparisonResponses = {
     /**
-     * OK
+     * 세계관 설정 후보 재비교 대기 전환 성공
      */
     200: CommonResponseWorldSettingCandidateResponse;
 };
@@ -4577,9 +4597,30 @@ export type UpdateWorldSettingCandidateData = {
     url: '/api/v1/works/{workId}/world-setting-candidates/{candidateId}';
 };
 
+export type UpdateWorldSettingCandidateErrors = {
+    /**
+     * 입력값 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 후보를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 검토 상태 충돌
+     */
+    409: CommonErrorResponse;
+};
+
+export type UpdateWorldSettingCandidateError = UpdateWorldSettingCandidateErrors[keyof UpdateWorldSettingCandidateErrors];
+
 export type UpdateWorldSettingCandidateResponses = {
     /**
-     * OK
+     * 세계관 설정 후보 수정 성공
      */
     200: CommonResponseWorldSettingCandidateResponse;
 };
