@@ -332,7 +332,9 @@ flowchart TD
 
 대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 회차 분석에서 확정한 세계관은 `세계관 DB` 탭에 분류·대상별로 저장하며, 설정집 목록과 섞지 않습니다. 원고 목록에는 설정집 영역을 표시하지 않습니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
 
-> 세계관 DB와 설정 검색은 각각의 `q`·`page`를 보조 URL 키에 저장했다가 활성 탭의 공통 키로 복원합니다. 세계관 DB의 첫 대상 자동 선택은 데스크톱에만 적용하며, 900px 이하에서는 목록을 먼저 표시하고 `대상 목록으로`를 선택한 뒤에도 `settingId` 없이 목록에 머뭅니다.
+> 세계관 DB와 설정 검색은 각각의 `q`·`page`를 보조 URL 키에 저장했다가 활성 탭의 공통 키로 복원합니다. 세계관 DB의 첫 대상 자동 선택은 데스크톱에만 적용하며, 900px 이하에서는 검색·분류·정렬을 1열로 쌓고 목록을 먼저 표시합니다. `대상 목록으로`를 선택한 뒤에도 `settingId` 없이 목록에 머뭅니다.
+
+> 세계관 생성·대상 정보 수정 모달은 브라우저 Back으로 닫혀도 같은 화면 안에서 미저장 draft를 보존해 Forward 또는 재진입 시 복원합니다. 설정 근거는 최신 근거를 먼저 표시하고 과거 이력을 이어 표시하되 같은 후보는 중복하지 않습니다. HTTP 409 중 `WORLD_SETTING_VERSION_CONFLICT`에만 최신값 재조회 동선을 제공하며 대상명·설정명 중복은 입력과 오류 안내를 유지합니다.
 
 > 사이드바 하단은 API의 `remainingPercent`만 `남은 사용량`으로 표시합니다. 정확한 token 수와 처리 중 예약량은 사용자에게 노출하지 않습니다. 분석 생성·재시도에서 `AI_TOKEN_QUOTA_EXHAUSTED` 응답을 받으면 전역 안내 모달을 열어 기본 사용량 소진과 피드백 연락처를 안내하며, 내부 token 용어와 수치는 표시하지 않습니다.
 
@@ -443,3 +445,5 @@ flowchart TD
 > ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&candidate=<id>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
 
 > 세계관 후보가 `PENDING`·`PROCESSING`이면 목록과 선택 상세를 2초 간격으로 갱신하고 terminal 상태에서 멈춥니다. 확정 충돌의 자동 재비교는 상태 전환마다 한 번만 보내며, 회복 뒤 같은 후보가 다시 충돌하면 새 전환으로 다시 자동 재비교합니다.
+
+> 세계관 후보 목록의 최초 조회가 실패해도 공통 캐릭터·세계관 후보 탭은 오류 상태 위에 유지하여 정상 조회 가능한 다른 후보 종류로 이동할 수 있습니다.
