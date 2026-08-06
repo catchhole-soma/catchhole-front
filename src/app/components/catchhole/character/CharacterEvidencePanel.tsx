@@ -10,6 +10,11 @@ interface Props {
   evidence: CharacterFactEvidenceResponse | null;
   loading: boolean;
   error: string | null;
+  context?: {
+    factTypeLabel: string;
+    displayName: string;
+    factValue: string | null;
+  };
   onRetry: () => void;
   onClose: () => void;
 }
@@ -75,7 +80,18 @@ function HighlightedSource({
   const firstHighlightRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    firstHighlightRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const firstHighlight = firstHighlightRef.current;
+    const scrollContainer = firstHighlight?.closest<HTMLElement>('.character-evidence-panel__body');
+    if (!firstHighlight || !scrollContainer) return;
+
+    // 바깥 모달까지 scrollIntoView 하지 않고 원문 패널 내부에서만 첫 근거를 중앙으로 옮긴다.
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const highlightRect = firstHighlight.getBoundingClientRect();
+    const targetTop = scrollContainer.scrollTop
+      + highlightRect.top
+      - containerRect.top
+      - (scrollContainer.clientHeight - highlightRect.height) / 2;
+    scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
   }, [content, ranges]);
 
   const segments = useMemo(() => {
@@ -184,6 +200,7 @@ export function CharacterEvidencePanel({
   evidence,
   loading,
   error,
+  context,
   onRetry,
   onClose,
 }: Props) {
@@ -238,6 +255,14 @@ export function CharacterEvidencePanel({
           <X size={18} />
         </button>
       </header>
+
+      {context && (
+        <div className="character-evidence-panel__context" style={{ padding: '13px 22px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ color: C.primary, fontSize: 10, fontWeight: 700 }}>{context.factTypeLabel}</div>
+          <div style={{ color: C.t1, fontSize: 13, fontWeight: 700, marginTop: 4 }}>{context.displayName}</div>
+          <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.6, marginTop: 3 }}>{context.factValue || '—'}</div>
+        </div>
+      )}
 
       <div className="character-evidence-panel__body">
         {loading && (

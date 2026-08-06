@@ -390,7 +390,7 @@ function CandidateCard({
 }) {
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
-  const settingDisplay = toSettingDisplay(candidate.attributeName);
+  const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
   return (
     <button
       type="button"
@@ -969,7 +969,7 @@ function CandidateDetail({
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
   const confidence = confidenceDescription(candidate.confidence);
   const quotes = evidenceQuotes(candidate.evidenceSpans);
-  const settingDisplay = toSettingDisplay(candidate.attributeName);
+  const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
 
   return (
     <article className="setting-candidate-detail" style={{

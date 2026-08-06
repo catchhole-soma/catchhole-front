@@ -4,7 +4,7 @@ CatchHole 프론트엔드(`catchhole-front`) 작업 시 참고할 공용 컨텍�
 
 ## 프로젝트 개요
 
-CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI가 캐릭터·세계관 설정을 추출하고, 후보 검토·설정 DB·검색·원문 근거 확인 흐름을 제공하는 툴입니다. 이 레포는 그 프론트엔드(React SPA)입니다. 회차 기반 세계관 후보 검토와 세계관 DB는 NVM-260 MVP로 제공하며, 설정집 원문 분석과 충돌 분석 리포트·관계도·타임라인·그래프 뷰·챗봇은 MVP 이후 범위입니다.
+CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI가 캐릭터·세계관 설정을 추출하고, 후보 검토·설정 DB·검색·캐릭터 설정 이력 타임라인·원문 근거 확인 흐름을 제공하는 툴입니다. 이 레포는 그 프론트엔드(React SPA)입니다. 회차 기반 세계관 후보 검토와 세계관 DB, CharacterFact 기반 캐릭터 타임라인을 MVP로 제공하며, 설정집 원문 분석과 충돌 분석 리포트·관계도·작품 전체 사건 타임라인·그래프 뷰·챗봇은 MVP 이후 범위입니다.
 
 ## 기술 스택 & 명령어
 
@@ -37,7 +37,7 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 | `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/works` | `S0WorkPicker` | 작품 선택 (보호 화면 진입점) |
-| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=manuscripts\|settingDB\|analyses`로 실제 제공 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. 설정DB 하위 탭은 `?tab=characters\|worldsettings\|worldrules\|search`이며, 지원하지 않는 값은 `characters`로 대체한다. `worldsettings`는 확정 세계관 대상의 조회·검색·직접 추가·수정을 제공하고, `worldrules`는 별도 업로드한 설정집 원문을 다룬다. 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존한다. 관계도·타임라인·분석 리포트·그래프 뷰·챗봇은 내비게이션에서 업데이트 예정 안내만 표시하고 화면을 열지 않는다. |
+| `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=manuscripts\|settingDB\|analyses`로 실제 제공 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. 설정DB 하위 탭은 `?tab=timeline\|characters\|worldsettings\|worldrules\|search`이며, 지원하지 않는 값은 `characters`로 대체한다. `timeline`은 `timelinePage`, `modal=character-timeline`, `charId`, `timelineFactType`, `timelineEpisodeNo`, `factId`를 URL에 보존하며 기존 캐릭터 목록·원문 근거 API를 재사용한다. `worldsettings`는 확정 세계관 대상의 조회·검색·직접 추가·수정을 제공하고, `worldrules`는 별도 업로드한 설정집 원문을 다룬다. 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존한다. 관계도·작품 전체 사건 타임라인·분석 리포트·그래프 뷰·챗봇은 업데이트 예정 범위다. |
 | `/episode-upload` | `SEpisodeUpload` | 회차 업로드와 기존 설정 구축. 신규 회차 검수는 업데이트 예정으로 비활성화한다. |
 | `/setting-review` | `SSettingReview` | 업로드 묶음에서 추출된 캐릭터·세계관 후보를 `candidateType=character\|world`로 나눠 검토한다. `?workId=<id>&batchId=<id>&jobType=<EPISODE_VALIDATION\|SETTING_EXTRACTION>&candidate=<id>`로 검토 문맥·완료 후 목적지·선택 후보를 딥링크하며, 두 탭의 후보 DTO와 mutation은 분리한다. 상단 진행률은 두 후보 집계를 합산하고 뒤로가기는 해당 작품의 `nav=analyses`로 돌아간다. |
 | `/editor` | 회차·설정집 원문 보기 | `workId`와 원문 ID가 있는 경우 서버 원문을 읽기 전용으로 표시한다. |
