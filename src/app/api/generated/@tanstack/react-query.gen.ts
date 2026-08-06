@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { claimAnalysisJob, completeAnalysisJob, confirmPhoneVerification, confirmSettingCandidate, createAnalysisJob, createWork, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getEpisode, getEpisodes, getMe, getMyAiTokenUsage, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, login, logout, type Options, refresh, releaseAiTokens, replaceEpisodeFile, requestPhoneVerification, reserveAiTokens, restoreCharacter, retryAnalysisJob, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
-import type { ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
+import { addWorldSettingProperty, claimAnalysisJob, completeAnalysisJob, confirmPhoneVerification, confirmSettingCandidate, confirmWorldSettingCandidate, createAnalysisJob, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, failAnalysisJob, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getEpisode, getEpisodes, getMe, getMyAiTokenUsage, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, login, logout, type Options, refresh, releaseAiTokens, replaceEpisodeFile, requestPhoneVerification, reserveAiTokens, restoreCharacter, retryAnalysisJob, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateWork, updateWorldSettingCandidate, updateWorldSettingIdentity, updateWorldSettingProperty, uploadEpisodes, uploadSettingBook } from '../sdk.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkError, GetWorkResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, RefreshData, RefreshError, RefreshResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateData, UpdateWorldSettingCandidateError, UpdateWorldSettingCandidateResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -128,6 +128,217 @@ export const createWorkMutation = (options?: Partial<Options<CreateWorkData>>): 
             return data;
         },
         mutationKey: createWorkMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getWorldSettingsQueryKey = (options: Options<GetWorldSettingsData>) => createQueryKey('getWorldSettings', options);
+
+/**
+ * 세계관 대상 목록 조회
+ *
+ * 대상명·설정명·설정값 검색, 분류 필터와 고정 정렬을 적용해 세계관 대상을 페이지 조회합니다.
+ */
+export const getWorldSettingsOptions = (options: Options<GetWorldSettingsData>) => queryOptions<GetWorldSettingsResponse, GetWorldSettingsError, GetWorldSettingsResponse, ReturnType<typeof getWorldSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorldSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorldSettingsQueryKey(options)
+});
+
+const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
+    const params = { ...queryKey[0] };
+    if (page.body) {
+        params.body = {
+            ...queryKey[0].body as any,
+            ...page.body as any
+        };
+    }
+    if (page.headers) {
+        params.headers = {
+            ...queryKey[0].headers,
+            ...page.headers
+        };
+    }
+    if (page.path) {
+        params.path = {
+            ...queryKey[0].path as any,
+            ...page.path as any
+        };
+    }
+    if (page.query) {
+        params.query = {
+            ...queryKey[0].query as any,
+            ...page.query as any
+        };
+    }
+    return params as unknown as typeof page;
+};
+
+export const getWorldSettingsInfiniteQueryKey = (options: Options<GetWorldSettingsData>): QueryKey<Options<GetWorldSettingsData>> => createQueryKey('getWorldSettings', options, true);
+
+/**
+ * 세계관 대상 목록 조회
+ *
+ * 대상명·설정명·설정값 검색, 분류 필터와 고정 정렬을 적용해 세계관 대상을 페이지 조회합니다.
+ */
+export const getWorldSettingsInfiniteOptions = (options: Options<GetWorldSettingsData>) => {
+    const opts = infiniteQueryOptions<GetWorldSettingsResponse, GetWorldSettingsError, InfiniteData<GetWorldSettingsResponse>, QueryKey<Options<GetWorldSettingsData>>, number | Pick<QueryKey<Options<GetWorldSettingsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetWorldSettingsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getWorldSettings({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getWorldSettingsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const createWorldSettingMutationKey = (options?: Partial<Options<CreateWorldSettingData>>) => createMutationKey('createWorldSetting', options);
+
+/**
+ * 세계관 대상 직접 추가
+ *
+ * 분류·대상명과 첫 문자열 설정을 후보나 LLM 비교 없이 현재 세계관에 바로 추가합니다.
+ */
+export const createWorldSettingMutation = (options?: Partial<Options<CreateWorldSettingData>>): UseMutationOptions<CreateWorldSettingResponse, CreateWorldSettingError, Options<CreateWorldSettingData>> => {
+    const mutationOptions: UseMutationOptions<CreateWorldSettingResponse, CreateWorldSettingError, Options<CreateWorldSettingData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createWorldSetting({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: createWorldSettingMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const updateWorldSettingPropertyMutationKey = (options?: Partial<Options<UpdateWorldSettingPropertyData>>) => createMutationKey('updateWorldSettingProperty', options);
+
+/**
+ * 세계관 설정 속성 수정
+ *
+ * 지정한 설정명 한 개만 이름·값을 수정하며 다른 JSON 속성은 유지합니다.
+ */
+export const updateWorldSettingPropertyMutation = (options?: Partial<Options<UpdateWorldSettingPropertyData>>): UseMutationOptions<UpdateWorldSettingPropertyResponse, UpdateWorldSettingPropertyError, Options<UpdateWorldSettingPropertyData>> => {
+    const mutationOptions: UseMutationOptions<UpdateWorldSettingPropertyResponse, UpdateWorldSettingPropertyError, Options<UpdateWorldSettingPropertyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateWorldSettingProperty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateWorldSettingPropertyMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const addWorldSettingPropertyMutationKey = (options?: Partial<Options<AddWorldSettingPropertyData>>) => createMutationKey('addWorldSettingProperty', options);
+
+/**
+ * 세계관 설정 속성 추가
+ *
+ * 현재 JSON object 전체가 아니라 설정명·설정값 한 개만 추가합니다.
+ */
+export const addWorldSettingPropertyMutation = (options?: Partial<Options<AddWorldSettingPropertyData>>): UseMutationOptions<AddWorldSettingPropertyResponse, AddWorldSettingPropertyError, Options<AddWorldSettingPropertyData>> => {
+    const mutationOptions: UseMutationOptions<AddWorldSettingPropertyResponse, AddWorldSettingPropertyError, Options<AddWorldSettingPropertyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addWorldSettingProperty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: addWorldSettingPropertyMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const retryWorldSettingCandidateComparisonMutationKey = (options?: Partial<Options<RetryWorldSettingCandidateComparisonData>>) => createMutationKey('retryWorldSettingCandidateComparison', options);
+
+/**
+ * 세계관 설정 후보 비교 재시도
+ *
+ * 실패 또는 재비교 필요 후보의 기존 비교 결과를 비우고 비교 대기 상태로 전환합니다.
+ */
+export const retryWorldSettingCandidateComparisonMutation = (options?: Partial<Options<RetryWorldSettingCandidateComparisonData>>): UseMutationOptions<RetryWorldSettingCandidateComparisonResponse, RetryWorldSettingCandidateComparisonError, Options<RetryWorldSettingCandidateComparisonData>> => {
+    const mutationOptions: UseMutationOptions<RetryWorldSettingCandidateComparisonResponse, RetryWorldSettingCandidateComparisonError, Options<RetryWorldSettingCandidateComparisonData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await retryWorldSettingCandidateComparison({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: retryWorldSettingCandidateComparisonMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const dismissWorldSettingCandidateMutationKey = (options?: Partial<Options<DismissWorldSettingCandidateData>>) => createMutationKey('dismissWorldSettingCandidate', options);
+
+/**
+ * 세계관 설정 후보 제외
+ */
+export const dismissWorldSettingCandidateMutation = (options?: Partial<Options<DismissWorldSettingCandidateData>>): UseMutationOptions<DismissWorldSettingCandidateResponse, DismissWorldSettingCandidateError, Options<DismissWorldSettingCandidateData>> => {
+    const mutationOptions: UseMutationOptions<DismissWorldSettingCandidateResponse, DismissWorldSettingCandidateError, Options<DismissWorldSettingCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await dismissWorldSettingCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: dismissWorldSettingCandidateMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const confirmWorldSettingCandidateMutationKey = (options?: Partial<Options<ConfirmWorldSettingCandidateData>>) => createMutationKey('confirmWorldSettingCandidate', options);
+
+/**
+ * 세계관 설정 후보 확정
+ *
+ * 동일 설정명의 현재값을 비교한 뒤 설정 한 개만 원자적으로 반영합니다.
+ */
+export const confirmWorldSettingCandidateMutation = (options?: Partial<Options<ConfirmWorldSettingCandidateData>>): UseMutationOptions<ConfirmWorldSettingCandidateResponse, ConfirmWorldSettingCandidateError, Options<ConfirmWorldSettingCandidateData>> => {
+    const mutationOptions: UseMutationOptions<ConfirmWorldSettingCandidateResponse, ConfirmWorldSettingCandidateError, Options<ConfirmWorldSettingCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await confirmWorldSettingCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: confirmWorldSettingCandidateMutationKey(options)
     };
     return mutationOptions;
 };
@@ -668,6 +879,66 @@ export const updateWorkMutation = (options?: Partial<Options<UpdateWorkData>>): 
     return mutationOptions;
 };
 
+export const updateWorldSettingIdentityMutationKey = (options?: Partial<Options<UpdateWorldSettingIdentityData>>) => createMutationKey('updateWorldSettingIdentity', options);
+
+/**
+ * 세계관 대상 분류·이름 수정
+ */
+export const updateWorldSettingIdentityMutation = (options?: Partial<Options<UpdateWorldSettingIdentityData>>): UseMutationOptions<UpdateWorldSettingIdentityResponse, UpdateWorldSettingIdentityError, Options<UpdateWorldSettingIdentityData>> => {
+    const mutationOptions: UseMutationOptions<UpdateWorldSettingIdentityResponse, UpdateWorldSettingIdentityError, Options<UpdateWorldSettingIdentityData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateWorldSettingIdentity({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateWorldSettingIdentityMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getWorldSettingCandidateQueryKey = (options: Options<GetWorldSettingCandidateData>) => createQueryKey('getWorldSettingCandidate', options);
+
+/**
+ * 세계관 설정 후보 상세 조회
+ */
+export const getWorldSettingCandidateOptions = (options: Options<GetWorldSettingCandidateData>) => queryOptions<GetWorldSettingCandidateResponse, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, ReturnType<typeof getWorldSettingCandidateQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorldSettingCandidate({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorldSettingCandidateQueryKey(options)
+});
+
+export const updateWorldSettingCandidateMutationKey = (options?: Partial<Options<UpdateWorldSettingCandidateData>>) => createMutationKey('updateWorldSettingCandidate', options);
+
+/**
+ * 세계관 설정 후보 비교 대상 수정
+ *
+ * 분류·대상명·설정명을 보정하고 비교 제안을 비운 뒤 재비교 대기 상태로 전환합니다.
+ */
+export const updateWorldSettingCandidateMutation = (options?: Partial<Options<UpdateWorldSettingCandidateData>>): UseMutationOptions<UpdateWorldSettingCandidateResponse, UpdateWorldSettingCandidateError, Options<UpdateWorldSettingCandidateData>> => {
+    const mutationOptions: UseMutationOptions<UpdateWorldSettingCandidateResponse, UpdateWorldSettingCandidateError, Options<UpdateWorldSettingCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateWorldSettingCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateWorldSettingCandidateMutationKey(options)
+    };
+    return mutationOptions;
+};
+
 export const getSettingCandidateQueryKey = (options: Options<GetSettingCandidateData>) => createQueryKey('getSettingCandidate', options);
 
 /**
@@ -988,6 +1259,76 @@ export const updateProgressMutation = (options?: Partial<Options<UpdateProgressD
     return mutationOptions;
 };
 
+export const getWorldSettingQueryKey = (options: Options<GetWorldSettingData>) => createQueryKey('getWorldSetting', options);
+
+/**
+ * 세계관 대상 상세 조회
+ */
+export const getWorldSettingOptions = (options: Options<GetWorldSettingData>) => queryOptions<GetWorldSettingResponse, GetWorldSettingError, GetWorldSettingResponse, ReturnType<typeof getWorldSettingQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorldSetting({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorldSettingQueryKey(options)
+});
+
+export const getWorldSettingCandidatesQueryKey = (options: Options<GetWorldSettingCandidatesData>) => createQueryKey('getWorldSettingCandidates', options);
+
+/**
+ * 세계관 설정 후보 목록 조회
+ *
+ * 한 업로드 묶음의 세계관 후보 집계와 필터된 후보 페이지를 조회합니다.
+ */
+export const getWorldSettingCandidatesOptions = (options: Options<GetWorldSettingCandidatesData>) => queryOptions<GetWorldSettingCandidatesResponse, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, ReturnType<typeof getWorldSettingCandidatesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorldSettingCandidates({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorldSettingCandidatesQueryKey(options)
+});
+
+export const getWorldSettingCandidatesInfiniteQueryKey = (options: Options<GetWorldSettingCandidatesData>): QueryKey<Options<GetWorldSettingCandidatesData>> => createQueryKey('getWorldSettingCandidates', options, true);
+
+/**
+ * 세계관 설정 후보 목록 조회
+ *
+ * 한 업로드 묶음의 세계관 후보 집계와 필터된 후보 페이지를 조회합니다.
+ */
+export const getWorldSettingCandidatesInfiniteOptions = (options: Options<GetWorldSettingCandidatesData>) => {
+    const opts = infiniteQueryOptions<GetWorldSettingCandidatesResponse, GetWorldSettingCandidatesError, InfiniteData<GetWorldSettingCandidatesResponse>, QueryKey<Options<GetWorldSettingCandidatesData>>, number | Pick<QueryKey<Options<GetWorldSettingCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetWorldSettingCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getWorldSettingCandidates({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getWorldSettingCandidatesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
 export const getSettingCandidatesQueryKey = (options: Options<GetSettingCandidatesData>) => createQueryKey('getSettingCandidates', options);
 
 /**
@@ -1007,35 +1348,6 @@ export const getSettingCandidatesOptions = (options: Options<GetSettingCandidate
     },
     queryKey: getSettingCandidatesQueryKey(options)
 });
-
-const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
-    const params = { ...queryKey[0] };
-    if (page.body) {
-        params.body = {
-            ...queryKey[0].body as any,
-            ...page.body as any
-        };
-    }
-    if (page.headers) {
-        params.headers = {
-            ...queryKey[0].headers,
-            ...page.headers
-        };
-    }
-    if (page.path) {
-        params.path = {
-            ...queryKey[0].path as any,
-            ...page.path as any
-        };
-    }
-    if (page.query) {
-        params.query = {
-            ...queryKey[0].query as any,
-            ...page.query as any
-        };
-    }
-    return params as unknown as typeof page;
-};
 
 export const getSettingCandidatesInfiniteQueryKey = (options: Options<GetSettingCandidatesData>): QueryKey<Options<GetSettingCandidatesData>> => createQueryKey('getSettingCandidates', options, true);
 

@@ -24,6 +24,7 @@ import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
+import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { createWork, uploadSingleEpisode, Work, isDemoMode } from '../../lib/worksApi';
@@ -2598,7 +2599,46 @@ function TimelineView() {
   );
 }
 
-type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldrules' | 'search';
+type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldsettings' | 'worldrules' | 'search';
+
+type QueryStateSettingTab = Extract<SettingTabId, 'worldsettings' | 'search'>;
+
+const SETTING_TAB_QUERY_PARAMS: Record<QueryStateSettingTab, { q: string; page: string }> = {
+  worldsettings: { q: 'worldSettingQ', page: 'worldSettingPage' },
+  search: { q: 'factSearchQ', page: 'factSearchPage' },
+};
+
+function copyOptionalSearchParam(params: URLSearchParams, source: string, target: string) {
+  const value = params.get(source);
+  if (value == null) params.delete(target);
+  else params.set(target, value);
+}
+
+function switchSettingTabQueryState(
+  params: URLSearchParams,
+  current: SettingTabId,
+  target: SettingTabId,
+): URLSearchParams {
+  const next = new URLSearchParams(params);
+  if (current === target) return next;
+
+  if (current === 'worldsettings' || current === 'search') {
+    const saved = SETTING_TAB_QUERY_PARAMS[current];
+    copyOptionalSearchParam(next, 'q', saved.q);
+    copyOptionalSearchParam(next, 'page', saved.page);
+  }
+
+  if (target === 'worldsettings' || target === 'search') {
+    const saved = SETTING_TAB_QUERY_PARAMS[target];
+    copyOptionalSearchParam(next, saved.q, 'q');
+    copyOptionalSearchParam(next, saved.page, 'page');
+  } else {
+    next.delete('q');
+    next.delete('page');
+  }
+
+  return next;
+}
 
 const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스', episodeCount: 12 },
@@ -2606,7 +2646,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
-const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldrules', 'search'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 function formatEpisodeDate(value?: string): string {
@@ -2650,6 +2690,10 @@ export default function S1Dashboard() {
     if (id !== 'settingDB') {
       prev.delete('settingBookFileId');
       if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
+      prev.delete('settingId');
+      if (prev.get('modal') === 'world-setting-create' || prev.get('modal') === 'world-setting-edit') {
+        prev.delete('modal');
+      }
     }
     return prev;
   });
@@ -2657,12 +2701,19 @@ export default function S1Dashboard() {
   const tabParam = searchParams.get('tab');
   const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
   const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
-    prev.set('tab', id);
+    const next = switchSettingTabQueryState(prev, settingTab, id);
+    next.set('tab', id);
     if (id !== 'worldrules') {
-      prev.delete('settingBookFileId');
-      if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
+      next.delete('settingBookFileId');
+      if (next.get('modal') === 'setting-book-upload') next.delete('modal');
     }
-    return prev;
+    if (id !== 'worldsettings') {
+      next.delete('settingId');
+      if (next.get('modal') === 'world-setting-create' || next.get('modal') === 'world-setting-edit') {
+        next.delete('modal');
+      }
+    }
+    return next;
   });
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
@@ -3095,6 +3146,7 @@ export default function S1Dashboard() {
                 <div className="dashboard-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
+                    { id: 'worldsettings', label: '세계관 DB', icon: <Globe size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
@@ -3221,6 +3273,19 @@ export default function S1Dashboard() {
                         workId={effectiveWorkId}
                         enabled={episodeApiEnabled}
                       />
+                    )}
+
+                    {settingTab === 'worldsettings' && (
+                      <motion.div key="worldsettings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <WorldSettingDatabase
+                          workId={effectiveWorkId}
+                          enabled={episodeApiEnabled}
+                          onAnalyze={() => navigate(
+                            `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
+                            'push-right',
+                          )}
+                        />
+                      </motion.div>
                     )}
 
                     {settingTab === 'search' && (

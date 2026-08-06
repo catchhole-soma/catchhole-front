@@ -8,7 +8,7 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 아래 표의 경로와 각 다이어그램 밑의 딥링크는 `계획 URL`로 명시한 항목을 제외하면 배포 사이트 <https://catch-hole.vercel.app> 로 연결되는 **실제 클릭 가능한 링크**입니다. 단,
 - **로그인 보호 화면**은 토큰이 없으면 `/login`으로 리다이렉트됩니다(먼저 로그인 필요).
 - `<id>`가 들어간 딥링크는 실제 ID를 채워야 동작하므로 링크 대신 형식만 표기했습니다.
-- 아직 구현되지 않은 목표 동선은 반드시 `NVM-260 계획` 또는 `계획 URL`로 표시하며 실제 딥링크로 취급하지 않습니다.
+- 아직 구현되지 않은 목표 동선은 반드시 `계획` 또는 `계획 URL`로 표시하며 실제 딥링크로 취급하지 않습니다.
 
 근거(화면 계약이나 구현이 바뀌면 함께 갱신):
 - 인증 화면 계약 — [`data-requirements/auth.md`](data-requirements/auth.md)
@@ -18,7 +18,7 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 - 화면 간 전환 — 각 컴포넌트의 `navigate(...)` 호출
 - 사이드바 네비게이션 — `src/app/components/catchhole/AppSidebar.tsx`
 
-> **2026-08 현재 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터 설정 후보 검토입니다. 세계관 후보 검토와 세계관 DB는 NVM-260에서 구현할 MVP 목표입니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·타임라인은 메뉴 이름과 `업데이트 예정` 안내만 제공하며 목 화면으로 이동하지 않습니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 목표 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
+> **2026-08 현재 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·타임라인은 메뉴 이름과 `업데이트 예정` 안내만 제공하며 목 화면으로 이동하지 않습니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 목표 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
 
 ## Pencil Workflow Boards
 
@@ -46,7 +46,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | 작업·회차 상태 추적(완료 후 사용자가 결과로 이동) |
 | 충돌·모순 리포트 | [`/report`](https://catch-hole.vercel.app/report) | 분석 결과(충돌/모순) 리포트 |
 | 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | 방식 선택·입력·선택적 분리 확인·분석 추적 플로우 |
-| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | 현재는 AI가 회차 원문에서 뽑아낸 **캐릭터 후보**를 확인·확정. 세계관 후보 탭은 NVM-260 계획 |
+| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | AI가 회차 원문에서 뽑아낸 **캐릭터·세계관 후보**를 탭별로 확인·확정 |
 | **회차 검사 결과** | [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report) | 새로 올린 회차가 **기존 설정과 충돌·모순**되는지 검사한 결과 |
 
 ## 범례 (Legend)
@@ -259,12 +259,11 @@ flowchart TD
     t_char["캐릭터"]
     t_rel["관계도"]
     t_time["타임라인"]
-    t_worlddb["세계관 DB<br/>(NVM-260 계획)"]
+    t_worlddb["세계관 DB"]
     t_world["설정집 목록"]
     t_search["검색"]
   end
-  nav_settingDB --> t_char & t_rel & t_time & t_world & t_search
-  nav_settingDB -. "NVM-260 계획" .-> t_worlddb
+  nav_settingDB --> t_char & t_worlddb & t_rel & t_time & t_world & t_search
 
   subgraph ANALYSES["분석 목록"]
     direction TB
@@ -277,7 +276,7 @@ flowchart TD
   t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>(→ 삭제 확인)"]:::modal
   t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
 
-  subgraph WORLD_SETTINGS["확정 세계관 관리 (NVM-260 계획)"]
+  subgraph WORLD_SETTINGS["확정 세계관 관리"]
     direction TB
     world_list["분류·대상 목록<br/>검색·필터·정렬·페이지"]
     world_detail["선택 대상 상세<br/>설정 key/value 목록"]
@@ -331,7 +330,11 @@ flowchart TD
   classDef modal fill:#0F0F13,stroke:#9090A8,stroke-dasharray:4 3,color:#F0F0F5;
 ```
 
-대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. NVM-260 구현 후 회차 분석에서 확정한 세계관은 `세계관 DB` 탭에 분류·대상별로 저장하며, 설정집 목록과 섞지 않습니다. 현재 `worldsettings` 탭은 지원하지 않습니다. 원고 목록에는 설정집 영역을 표시하지 않습니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
+대시보드의 `회차 올리기`는 `/episode-upload` 전체 플로우로 이동합니다. 회차 분석에서 확정한 세계관은 `세계관 DB` 탭에 분류·대상별로 저장하며, 설정집 목록과 섞지 않습니다. 원고 목록에는 설정집 영역을 표시하지 않습니다. 설정집 목록 탭의 `설정집 업로드`는 별도 모달을 열며, TXT·DOCX 원본과 화면 조회·수정용 텍스트를 분리해 저장합니다. 설정집 분석·추출은 MVP 범위에 포함하지 않습니다.
+
+> 세계관 DB와 설정 검색은 각각의 `q`·`page`를 보조 URL 키에 저장했다가 활성 탭의 공통 키로 복원합니다. 세계관 DB의 첫 대상 자동 선택은 데스크톱에만 적용하며, 900px 이하에서는 검색·분류·정렬을 1열로 쌓고 목록을 먼저 표시합니다. `대상 목록으로`를 선택한 뒤에도 `settingId` 없이 목록에 머뭅니다.
+
+> 세계관 생성·대상 정보 수정 모달은 브라우저 Back으로 닫혀도 같은 화면 안에서 미저장 draft를 보존해 Forward 또는 재진입 시 복원합니다. 설정 근거는 최신 근거를 먼저 표시하고 과거 이력을 이어 표시하되 같은 후보는 중복하지 않습니다. HTTP 409 중 `WORLD_SETTING_VERSION_CONFLICT`에만 최신값 재조회 동선을 제공하며 대상명·설정명 중복은 입력과 오류 안내를 유지합니다.
 
 > 사이드바 하단은 API의 `remainingPercent`만 `남은 사용량`으로 표시합니다. 정확한 token 수와 처리 중 예약량은 사용자에게 노출하지 않습니다. 분석 생성·재시도에서 `AI_TOKEN_QUOTA_EXHAUSTED` 응답을 받으면 전역 안내 모달을 열어 기본 사용량 소진과 피드백 연락처를 안내하며, 내부 token 용어와 수치는 표시하지 않습니다.
 
@@ -341,8 +344,7 @@ flowchart TD
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
-> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
-> - 계획 URL (현재 미지원) — 세계관 DB `/dashboard?nav=settingDB&tab=worldsettings`
+> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [세계관 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
 > - 관계도 샘플 — [triangle](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=triangle) · [prosecution](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=prosecution) · [court](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=court)
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`, 그래프 노드 `?nav=graph&node=<id>`
 
@@ -409,16 +411,16 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  review["설정 후보 검토<br/>/setting-review<br/>캐릭터 후보 (현재)<br/>세계관 후보 탭 (NVM-260 계획)"]:::private
+  review["설정 후보 검토<br/>/setting-review<br/>캐릭터 후보 · 세계관 후보"]:::private
   review -- "이전" --> analyses["분석 목록<br/>/dashboard?workId&nav=analyses"]:::private
 
   manuscripts["원고 목록<br/>/dashboard?workId&nav=manuscripts"]:::private
 
   settingDB["설정 DB<br/>/dashboard?nav=settingDB"]:::private
-  worldDB["세계관 DB (NVM-260 계획)<br/>/dashboard?nav=settingDB&tab=worldsettings"]:::private
+  worldDB["세계관 DB<br/>/dashboard?nav=settingDB&tab=worldsettings"]:::private
   purpose{"업로드 분석 목적"}:::decision
   review -. "검토 완료 후 다음 단계<br/>후속 구현" .-> purpose
-  review -. "NVM-260 계획<br/>세계관 DB에서 보기" .-> worldDB
+  review -- "세계관 DB에서 보기" --> worldDB
   purpose -. "기존 설정 구축" .-> settingDB
   settingDB -- "원고 목록" --> manuscripts
 
@@ -440,5 +442,8 @@ flowchart TD
 ```
 
 > 딥링크 (클릭 시 이동): [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
-> ID 필요(형식만): 현재 설정 후보 검토 `?workId=<id>&batchId=<id>&jobType=<EPISODE_VALIDATION|SETTING_EXTRACTION>&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
-> 계획 URL (현재 미지원): 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&candidate=<id>`, 세계관 상세 `?nav=settingDB&tab=worldsettings&settingId=<id>`.
+> ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&candidate=<id>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
+
+> 세계관 후보가 `PENDING`·`PROCESSING`이면 목록과 선택 상세를 2초 간격으로 갱신하고 terminal 상태에서 멈춥니다. 확정 충돌의 자동 재비교는 상태 전환마다 한 번만 보내며, 회복 뒤 같은 후보가 다시 충돌하면 새 전환으로 다시 자동 재비교합니다.
+
+> 세계관 후보 목록의 최초 조회가 실패해도 공통 캐릭터·세계관 후보 탭은 오류 상태 위에 유지하여 정상 조회 가능한 다른 후보 종류로 이동할 수 있습니다.
