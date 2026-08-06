@@ -2601,6 +2601,45 @@ function TimelineView() {
 
 type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldsettings' | 'worldrules' | 'search';
 
+type QueryStateSettingTab = Extract<SettingTabId, 'worldsettings' | 'search'>;
+
+const SETTING_TAB_QUERY_PARAMS: Record<QueryStateSettingTab, { q: string; page: string }> = {
+  worldsettings: { q: 'worldSettingQ', page: 'worldSettingPage' },
+  search: { q: 'factSearchQ', page: 'factSearchPage' },
+};
+
+function copyOptionalSearchParam(params: URLSearchParams, source: string, target: string) {
+  const value = params.get(source);
+  if (value == null) params.delete(target);
+  else params.set(target, value);
+}
+
+function switchSettingTabQueryState(
+  params: URLSearchParams,
+  current: SettingTabId,
+  target: SettingTabId,
+): URLSearchParams {
+  const next = new URLSearchParams(params);
+  if (current === target) return next;
+
+  if (current === 'worldsettings' || current === 'search') {
+    const saved = SETTING_TAB_QUERY_PARAMS[current];
+    copyOptionalSearchParam(next, 'q', saved.q);
+    copyOptionalSearchParam(next, 'page', saved.page);
+  }
+
+  if (target === 'worldsettings' || target === 'search') {
+    const saved = SETTING_TAB_QUERY_PARAMS[target];
+    copyOptionalSearchParam(next, saved.q, 'q');
+    copyOptionalSearchParam(next, saved.page, 'page');
+  } else {
+    next.delete('q');
+    next.delete('page');
+  }
+
+  return next;
+}
+
 const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: number }> = {
   detective: { title: '빛나는 검사 로맨스', genre: '로맨스', episodeCount: 12 },
   murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
@@ -2662,18 +2701,19 @@ export default function S1Dashboard() {
   const tabParam = searchParams.get('tab');
   const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
   const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
-    prev.set('tab', id);
+    const next = switchSettingTabQueryState(prev, settingTab, id);
+    next.set('tab', id);
     if (id !== 'worldrules') {
-      prev.delete('settingBookFileId');
-      if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
+      next.delete('settingBookFileId');
+      if (next.get('modal') === 'setting-book-upload') next.delete('modal');
     }
     if (id !== 'worldsettings') {
-      prev.delete('settingId');
-      if (prev.get('modal') === 'world-setting-create' || prev.get('modal') === 'world-setting-edit') {
-        prev.delete('modal');
+      next.delete('settingId');
+      if (next.get('modal') === 'world-setting-create' || next.get('modal') === 'world-setting-edit') {
+        next.delete('modal');
       }
     }
-    return prev;
+    return next;
   });
 
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;

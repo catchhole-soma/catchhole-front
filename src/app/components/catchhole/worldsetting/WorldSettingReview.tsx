@@ -51,6 +51,11 @@ type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
 
 const DEFAULT_PAGE_SIZE = 20;
+const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
+
+function isComparisonActive(status?: ComparisonStatus): boolean {
+  return status === 'PENDING' || status === 'PROCESSING';
+}
 
 const CATEGORY_META: Record<WorldCategory, { label: string; description: string }> = {
   RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단' },
@@ -802,6 +807,17 @@ export function WorldSettingReview() {
     }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,
+    refetchInterval: query => {
+      const data = query.state.data?.data;
+      const activeCount = (data?.pendingComparisonCount ?? 0)
+        + (data?.processingComparisonCount ?? 0);
+      const currentPageActive = data?.candidates?.content?.some(candidate => (
+        isComparisonActive(candidate.comparisonStatus)
+      ));
+      return activeCount > 0 || currentPageActive
+        ? ACTIVE_COMPARISON_POLL_INTERVAL
+        : false;
+    },
   });
   const listData = listQuery.data?.data;
   const candidatePage = listData?.candidates;
@@ -835,6 +851,11 @@ export function WorldSettingReview() {
     }),
     enabled: hasContext && Boolean(selectedCandidateId),
     retry: shouldRetryCandidateQuery,
+    refetchInterval: query => (
+      isComparisonActive(query.state.data?.data?.comparisonStatus)
+        ? ACTIVE_COMPARISON_POLL_INTERVAL
+        : false
+    ),
   });
   const selectedCandidate = detailQuery.data?.data;
 
@@ -908,7 +929,11 @@ export function WorldSettingReview() {
 
   useEffect(() => {
     const candidateId = selectedCandidate?.id;
-    if (!candidateId || selectedCandidate.comparisonStatus !== 'RECOMPARISON_REQUIRED') return;
+    if (!candidateId) return;
+    if (selectedCandidate.comparisonStatus !== 'RECOMPARISON_REQUIRED') {
+      automaticRetryIds.current.delete(candidateId);
+      return;
+    }
     if (automaticRetryIds.current.has(candidateId) || retryMutation.isPending) return;
     automaticRetryIds.current.add(candidateId);
     retryMutation.mutate({ path: { workId, candidateId } });

@@ -241,10 +241,11 @@ test('세계관 후보 탭은 합산 진행률·필터·딥링크를 유지하�
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
 });
 
-test('확정본 충돌은 409 뒤 최신 후보를 다시 받아 재비교를 한 번 요청한다', async ({ page }) => {
+test('확정본 충돌은 비교 회복을 polling하고 같은 후보의 다음 충돌도 자동 재비교한다', async ({ page }) => {
   let candidate = worldCandidate();
   let confirmAttempts = 0;
   let retryAttempts = 0;
+  let pendingDetailReads = 0;
 
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -278,6 +279,10 @@ test('확정본 충돌은 409 뒤 최신 후보를 다시 받아 재비교를 �
       });
     }
     if (pathname === `${worldListPath}/${worldCandidateId}` && request.method() === 'GET') {
+      if (candidate.comparisonStatus === 'PENDING') {
+        pendingDetailReads += 1;
+        if (pendingDetailReads >= 2) candidate = worldCandidate();
+      }
       return success(route, candidate);
     }
     if (pathname === `${worldListPath}/${worldCandidateId}/confirm`) {
@@ -287,6 +292,7 @@ test('확정본 충돌은 409 뒤 최신 후보를 다시 받아 재비교를 �
     }
     if (pathname === `${worldListPath}/${worldCandidateId}/recompare`) {
       retryAttempts += 1;
+      pendingDetailReads = 0;
       candidate = {
         ...candidate,
         comparisonStatus: 'PENDING',
@@ -308,6 +314,156 @@ test('확정본 충돌은 409 뒤 최신 후보를 다시 받아 재비교를 �
   await expect(page.getByRole('article').getByText('비교 대기', { exact: true })).toBeVisible();
   await page.waitForTimeout(250);
   expect(retryAttempts).toBe(1);
+
+  const confirmButton = page.getByRole('button', { name: '병합 확정', exact: true });
+  await expect(confirmButton).toBeEnabled({ timeout: 7_000 });
+  await confirmButton.click();
+  await expect.poll(() => confirmAttempts).toBe(2);
+  await expect.poll(() => retryAttempts).toBe(2);
+});
+
+test('세계관 DB와 설정 검색은 q·page를 탭별로 저장하고 복원한다', async ({ page }) => {
+  const worldListQueries: Array<{ q: string | null; page: string | null }> = [];
+  const factSearchQueries: Array<{ q: string | null; page: string | null }> = [];
+  const settingRow = {
+    id: worldSettingId,
+    category: 'RACE',
+    subjectName: '바바리안',
+    propertyCount: 1,
+    version: 1,
+    updatedAt: '2026-08-06T09:00:00',
+  };
+  const settingDetail = {
+    ...settingRow,
+    properties: { 서식지: '북부 설원' },
+    propertyEvidences: {},
+  };
+  const factResult = {
+    characterFactId: '88888888-8888-4888-8888-888888888888',
+    factType: 'SKILL',
+    factTypeLabel: '스킬',
+    displayName: '월광 검술',
+    factValue: 'Lv.3',
+    isCurrent: true,
+    characterId: '99999999-9999-4999-8999-999999999999',
+    characterName: '아르켄',
+    sourceEpisodeNo: 12,
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const pathname = url.pathname;
+    const worldListPath = `/api/v1/works/${workId}/world-settings`;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === '/api/v1/works') {
+      return success(route, [{ id: workId, title: '탭 상태 작품', genre: '판타지', episodeCount: 12 }]);
+    }
+    if (pathname === `/api/v1/works/${workId}`) {
+      return success(route, { id: workId, title: '탭 상태 작품', genre: '판타지', latestEpisodeNo: 12 });
+    }
+    if (pathname === `/api/v1/works/${workId}/episodes`) return success(route, []);
+    if (pathname === worldListPath && request.method() === 'GET') {
+      worldListQueries.push({ q: url.searchParams.get('q'), page: url.searchParams.get('page') });
+      const apiPage = Number(url.searchParams.get('page') ?? 0);
+      return success(route, {
+        totalWorldSettingCount: 1,
+        worldSettings: {
+          content: [settingRow],
+          page: apiPage,
+          size: 20,
+          totalElements: 40,
+          totalPages: 2,
+          hasNext: apiPage < 1,
+        },
+      });
+    }
+    if (pathname === `${worldListPath}/${worldSettingId}`) return success(route, settingDetail);
+    if (pathname === `/api/v1/works/${workId}/character-facts/search`) {
+      factSearchQueries.push({ q: url.searchParams.get('q'), page: url.searchParams.get('page') });
+      const apiPage = Number(url.searchParams.get('page') ?? 0);
+      return success(route, {
+        content: [factResult],
+        page: apiPage,
+        size: 20,
+        totalElements: 40,
+        totalPages: 2,
+        hasNext: apiPage < 1,
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&q=세계&page=2`);
+  await expect.poll(() => worldListQueries.some(query => query.q === '세계' && query.page === '1')).toBe(true);
+
+  await page.getByRole('button', { name: '설정 검색', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('1');
+  await expect.poll(() => factSearchQueries.some(query => query.q === '' && query.page === '0')).toBe(true);
+
+  await page.getByRole('textbox', { name: '설정 검색' }).fill('검술');
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('검술');
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+
+  await page.getByRole('button', { name: '세계관 DB', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('세계');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  await expect.poll(() => worldListQueries.filter(query => query.q === '세계' && query.page === '1').length).toBeGreaterThan(1);
+
+  await page.getByRole('button', { name: '설정 검색', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('검술');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+});
+
+test('모바일 세계관 DB는 사용자가 대상을 고를 때까지 목록을 유지한다', async ({ page }) => {
+  const settingRow = {
+    id: worldSettingId,
+    category: 'RACE',
+    subjectName: '바바리안',
+    propertyCount: 1,
+    version: 1,
+    updatedAt: '2026-08-06T09:00:00',
+  };
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const worldListPath = `/api/v1/works/${workId}/world-settings`;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === '/api/v1/works') {
+      return success(route, [{ id: workId, title: '모바일 세계관 작품', genre: '판타지', episodeCount: 12 }]);
+    }
+    if (pathname === `/api/v1/works/${workId}`) {
+      return success(route, { id: workId, title: '모바일 세계관 작품', genre: '판타지', latestEpisodeNo: 12 });
+    }
+    if (pathname === `/api/v1/works/${workId}/episodes`) return success(route, []);
+    if (pathname === worldListPath && request.method() === 'GET') {
+      return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([settingRow]) });
+    }
+    if (pathname === `${worldListPath}/${worldSettingId}`) {
+      return success(route, { ...settingRow, properties: { 서식지: '북부 설원' }, propertyEvidences: {} });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings`);
+
+  const list = page.locator('.world-setting-db-list');
+  await expect(list).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
+  await list.getByText('바바리안', { exact: true }).click();
+  await expect(page.getByRole('button', { name: '대상 목록으로' })).toBeVisible();
+
+  await page.getByRole('button', { name: '대상 목록으로' }).click();
+  await expect(list).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
+  await page.waitForTimeout(250);
+  expect(new URL(page.url()).searchParams.get('settingId')).toBeNull();
 });
 
 test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 충돌 뒤 입력 보존을 처리한다', async ({ page }) => {

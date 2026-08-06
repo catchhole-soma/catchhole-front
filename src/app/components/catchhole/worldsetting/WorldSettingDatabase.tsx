@@ -42,6 +42,7 @@ type WorldCategory = NonNullable<WorldSettingDetailResponse['category']>;
 type WorldSort = 'CATEGORY_SUBJECT_ASC' | 'UPDATED_DESC';
 
 const PAGE_SIZE = 20;
+const MOBILE_VIEWPORT_QUERY = '(max-width: 900px)';
 const CATEGORY_META: Record<WorldCategory, { label: string; description: string; color: string }> = {
   RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단', color: '#9B7BFF' },
   FACTION: { label: '세력', description: '국가·조직·종교·길드처럼 영향력을 가진 집단', color: '#4BB8D9' },
@@ -754,8 +755,18 @@ export function WorldSettingDatabase({
   const [propertyValidationError, setPropertyValidationError] = useState<string | null>(null);
   const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [mobileViewport, setMobileViewport] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+  ));
 
   useEffect(() => setSearchDraft(q), [q]);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
+    const updateViewport = () => setMobileViewport(mediaQuery.matches);
+    updateViewport();
+    mediaQuery.addEventListener('change', updateViewport);
+    return () => mediaQuery.removeEventListener('change', updateViewport);
+  }, []);
   useEffect(() => {
     if (!successMessage) return undefined;
     const timer = window.setTimeout(() => setSuccessMessage(null), 3500);
@@ -775,13 +786,13 @@ export function WorldSettingDatabase({
   const items = useMemo(() => worldSettingPage?.content ?? [], [worldSettingPage?.content]);
 
   useEffect(() => {
-    if (modal || !listQuery.isSuccess || listQuery.isFetching || selectedId || !items[0]?.id) return;
+    if (mobileViewport || modal || !listQuery.isSuccess || listQuery.isFetching || selectedId || !items[0]?.id) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('settingId', items[0].id!);
       return next;
     }, { replace: true });
-  }, [items, listQuery.isFetching, listQuery.isSuccess, modal, selectedId, setSearchParams]);
+  }, [items, listQuery.isFetching, listQuery.isSuccess, mobileViewport, modal, selectedId, setSearchParams]);
 
   useEffect(() => {
     const totalPages = worldSettingPage?.totalPages;
