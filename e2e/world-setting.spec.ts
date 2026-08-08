@@ -735,8 +735,14 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(page.getByText('같은 대상에 동일한 설정명이 이미 존재합니다.')).toBeVisible();
   await expect(detailPanel.getByRole('button', { name: '최신값 다시 불러오기' })).toHaveCount(0);
   await expect(detailPanel.getByLabel('설정명')).toHaveValue('중복 설정');
-  page.once('dialog', dialog => dialog.accept());
   await detailPanel.getByRole('button', { name: '취소', exact: true }).click();
+  const discardDialog = page.getByRole('alertdialog');
+  await expect(discardDialog).toBeVisible();
+  await discardDialog.getByRole('button', { name: '계속 작성' }).click();
+  await expect(detailPanel.getByLabel('설정명')).toHaveValue('중복 설정');
+  await detailPanel.getByRole('button', { name: '취소', exact: true }).click();
+  await discardDialog.getByRole('button', { name: '작성 취소' }).click();
+  await expect(detailPanel.getByLabel('설정명')).toHaveCount(0);
 
   await page.getByRole('button', { name: '대상 정보 수정' }).click();
   await page.getByLabel('대상명').fill('북부 바바리안');

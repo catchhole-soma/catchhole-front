@@ -546,6 +546,62 @@ function WorldSettingDetail({
   );
 }
 
+function DiscardChangesDialog({
+  open,
+  description,
+  onKeepEditing,
+  onDiscard,
+}: {
+  open: boolean;
+  description: string;
+  onKeepEditing: () => void;
+  onDiscard: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      role="presentation"
+      onMouseDown={event => { if (event.target === event.currentTarget) onKeepEditing(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 260, padding: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.74)',
+      }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="discard-world-setting-title"
+        aria-describedby="discard-world-setting-description"
+        style={{
+          width: 'min(430px, 100%)', padding: 22, borderRadius: 12,
+          border: `1px solid ${C.warning}55`, background: C.surface,
+          boxShadow: '0 24px 72px rgba(0,0,0,0.62)',
+        }}
+      >
+        <strong id="discard-world-setting-title" style={{ display: 'block', color: C.t1, fontSize: 17 }}>
+          작성 중인 내용을 취소할까요?
+        </strong>
+        <p id="discard-world-setting-description" style={{ margin: '9px 0 20px', color: C.t2, fontSize: 12, lineHeight: 1.65 }}>
+          {description}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button onClick={onKeepEditing}>계속 작성</Button>
+          <button type="button" onClick={onDiscard} style={{
+            minHeight: 36, padding: '0 14px', borderRadius: 7,
+            border: `1px solid ${C.danger}66`, background: `${C.danger}18`,
+            color: C.danger, fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
+            cursor: 'pointer',
+          }}>
+            작성 취소
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ModalShell({
   title,
   description,
@@ -565,9 +621,13 @@ function ModalShell({
   onSubmit: (event: FormEvent) => void;
   submitLabel: string;
 }) {
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const requestClose = () => {
     if (pending) return;
-    if (dirty && !window.confirm('작성 중인 내용을 취소할까요?')) return;
+    if (dirty) {
+      setDiscardDialogOpen(true);
+      return;
+    }
     onClose();
   };
   return (
@@ -608,6 +668,15 @@ function ModalShell({
           </Button>
         </div>
       </form>
+      <DiscardChangesDialog
+        open={discardDialogOpen}
+        description="지금 닫으면 입력한 대상과 설정 내용이 저장되지 않습니다."
+        onKeepEditing={() => setDiscardDialogOpen(false)}
+        onDiscard={() => {
+          setDiscardDialogOpen(false);
+          onClose();
+        }}
+      />
     </div>
   );
 }
@@ -792,6 +861,9 @@ export function WorldSettingDatabase({
   const [propertyValidationError, setPropertyValidationError] = useState<string | null>(null);
   const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [propertyDraftDiscardRequest, setPropertyDraftDiscardRequest] = useState<{
+    afterDiscard?: () => void;
+  } | null>(null);
   const [mobileViewport, setMobileViewport] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
   ));
@@ -925,46 +997,56 @@ export function WorldSettingDatabase({
     setPropertyValidationError(null);
   };
 
-  const confirmDiscardPropertyDraft = () => {
-    if (!propertyDraft) return true;
-    return window.confirm('작성 중인 설정 내용을 취소할까요?');
+  const requestPropertyDraftDiscard = (afterDiscard?: () => void) => {
+    if (propertyPending) return;
+    if (!propertyDraft) {
+      afterDiscard?.();
+      return;
+    }
+    setPropertyDraftDiscardRequest({ afterDiscard });
+  };
+
+  const discardPropertyDraft = () => {
+    const afterDiscard = propertyDraftDiscardRequest?.afterDiscard;
+    setPropertyDraftDiscardRequest(null);
+    setPropertyDraft(null);
+    resetPropertyMutations();
+    afterDiscard?.();
   };
 
   const selectSetting = (id: string) => {
-    if (propertyPending || !confirmDiscardPropertyDraft()) return;
-    setPropertyDraft(null);
-    resetPropertyMutations();
-    setExpandedEvidence(null);
-    setSearchParams(previous => {
-      const next = new URLSearchParams(previous);
-      next.set('settingId', id);
-      next.delete('modal');
-      return next;
-    }, { replace: true });
+    requestPropertyDraftDiscard(() => {
+      setExpandedEvidence(null);
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        next.set('settingId', id);
+        next.delete('modal');
+        return next;
+      }, { replace: true });
+    });
   };
 
   const updateListParams = (patch: { q?: string; category?: WorldCategory; sort?: WorldSort }) => {
-    if (propertyPending || !confirmDiscardPropertyDraft()) return;
-    setPropertyDraft(null);
-    resetPropertyMutations();
-    setSearchParams(previous => {
-      const next = new URLSearchParams(previous);
-      if ('q' in patch) {
-        if (patch.q) next.set('q', patch.q);
-        else next.delete('q');
-      }
-      if ('category' in patch) {
-        if (patch.category) next.set('category', patch.category);
-        else next.delete('category');
-      }
-      if ('sort' in patch) {
-        if (patch.sort === 'UPDATED_DESC') next.set('sort', patch.sort);
-        else next.delete('sort');
-      }
-      next.set('page', '1');
-      next.delete('settingId');
-      return next;
-    }, { replace: true });
+    requestPropertyDraftDiscard(() => {
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if ('q' in patch) {
+          if (patch.q) next.set('q', patch.q);
+          else next.delete('q');
+        }
+        if ('category' in patch) {
+          if (patch.category) next.set('category', patch.category);
+          else next.delete('category');
+        }
+        if ('sort' in patch) {
+          if (patch.sort === 'UPDATED_DESC') next.set('sort', patch.sort);
+          else next.delete('sort');
+        }
+        next.set('page', '1');
+        next.delete('settingId');
+        return next;
+      }, { replace: true });
+    });
   };
 
   const saveProperty = () => {
@@ -995,15 +1077,14 @@ export function WorldSettingDatabase({
   };
 
   const changePage = (nextPage: number) => {
-    if (propertyPending || !confirmDiscardPropertyDraft()) return;
-    setPropertyDraft(null);
-    resetPropertyMutations();
-    setSearchParams(previous => {
-      const next = new URLSearchParams(previous);
-      next.set('page', String(nextPage + 1));
-      next.delete('settingId');
-      return next;
-    }, { replace: true });
+    requestPropertyDraftDiscard(() => {
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        next.set('page', String(nextPage + 1));
+        next.delete('settingId');
+        return next;
+      }, { replace: true });
+    });
   };
 
   if (!enabled) {
@@ -1045,13 +1126,13 @@ export function WorldSettingDatabase({
           color: C.t2, display: 'inline-flex', alignItems: 'center', fontSize: 11,
         }}>총 {total}개 대상</span>
         <Button primary onClick={() => {
-          if (!confirmDiscardPropertyDraft()) return;
-          setPropertyDraft(null);
-          createMutation.reset();
-          setSearchParams(previous => {
-            const next = new URLSearchParams(previous);
-            next.set('modal', 'world-setting-create');
-            return next;
+          requestPropertyDraftDiscard(() => {
+            createMutation.reset();
+            setSearchParams(previous => {
+              const next = new URLSearchParams(previous);
+              next.set('modal', 'world-setting-create');
+              return next;
+            });
           });
         }}><Plus size={13} /> 새 대상 추가</Button>
       </div>
@@ -1276,11 +1357,7 @@ export function WorldSettingDatabase({
                   });
                 }}
                 onDraftChange={setPropertyDraft}
-                onCancelDraft={() => {
-                  if (!confirmDiscardPropertyDraft()) return;
-                  setPropertyDraft(null);
-                  resetPropertyMutations();
-                }}
+                onCancelDraft={() => requestPropertyDraftDiscard()}
                 onSaveDraft={saveProperty}
                 onReload={() => void detailQuery.refetch()}
                 onToggleEvidence={name => setExpandedEvidence(current => current === name ? null : name)}
@@ -1334,6 +1411,12 @@ export function WorldSettingDatabase({
           })}
         />
       )}
+      <DiscardChangesDialog
+        open={propertyDraftDiscardRequest !== null}
+        description="지금 이동하면 작성 중인 설정명과 설정값이 저장되지 않습니다."
+        onKeepEditing={() => setPropertyDraftDiscardRequest(null)}
+        onDiscard={discardPropertyDraft}
+      />
       <style>{`
         @media (max-width: 900px) {
           .world-setting-db-filters {
