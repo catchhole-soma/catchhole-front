@@ -120,6 +120,72 @@ export type FieldErrorResponse = {
     message?: string;
 };
 
+export type Candidate = {
+    category: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
+    subjectName: string;
+    settingName: string;
+    extractedValue: string;
+    evidenceSpans: Array<EvidenceSpan>;
+    extractionConfidence: number;
+    rawExtractionJson?: {
+        [key: string]: unknown;
+    };
+};
+
+export type EvidenceSpan = {
+    quote: string;
+    startOffset?: number;
+    endOffset?: number;
+};
+
+/**
+ * Worker 세계관 설정 1차 추출 후보 게시 요청
+ */
+export type WorkerWorldSettingCandidatePublishRequest = {
+    candidates: Array<Candidate>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseListWorkerWorldSettingCandidatePayload = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Array<WorkerWorldSettingCandidatePayload>;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * Worker 세계관 설정 후보 payload
+ */
+export type WorkerWorldSettingCandidatePayload = {
+    candidateId?: string;
+    workId?: string;
+    sourceEpisodeId?: string;
+    category?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
+    subjectName?: string;
+    settingName?: string;
+    extractedValue?: string;
+    evidenceSpans?: Array<EvidenceSpan>;
+    extractionConfidence?: number;
+};
+
 /**
  * 작품 생성 요청
  */
@@ -371,6 +437,10 @@ export type WorldSettingCandidateResponse = {
     evidenceSpans?: unknown;
     extractionConfidence?: number | null;
     targetWorldSettingId?: string | null;
+    /**
+     * 2차 비교가 연결한 기존 확정 대상의 정식 대상명
+     */
+    targetSubjectName?: string | null;
     suggestedOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
     proposedSettingName?: string | null;
     beforeValue?: string | null;
@@ -777,7 +847,7 @@ export type AnalysisJobCreateRequest = {
     /**
      * 분석 작업 유형
      */
-    jobType: 'SETTING_EXTRACTION' | 'EPISODE_VALIDATION';
+    jobType: 'SETTING_EXTRACTION' | 'WORLD_SETTING_COMPARISON' | 'EPISODE_VALIDATION';
     /**
      * 분석 대상 업로드 배치 ID
      */
@@ -853,7 +923,7 @@ export type AnalysisJobResponse = {
     /**
      * 분석 작업 유형
      */
-    jobType?: 'SETTING_EXTRACTION' | 'EPISODE_VALIDATION';
+    jobType?: 'SETTING_EXTRACTION' | 'WORLD_SETTING_COMPARISON' | 'EPISODE_VALIDATION';
     /**
      * 분석 작업 상태
      */
@@ -1185,12 +1255,35 @@ export type AuthLoginRequest = {
 };
 
 /**
- * AI Worker 분석 작업 실패 요청
+ * 공통 API 응답 Envelope
  */
-export type WorkerAnalysisJobFailRequest = {
+export type CommonResponseWorkerWorldSettingCandidatePayload = {
     /**
-     * 실패 사유
+     * 요청 처리 성공 여부
      */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorkerWorldSettingCandidatePayload;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * Worker 세계관 설정 비교 실패 요청
+ */
+export type WorkerWorldSettingComparisonFailRequest = {
     errorMessage: string;
 };
 
@@ -1221,6 +1314,129 @@ export type CommonResponseVoid = {
 };
 
 /**
+ * Worker 세계관 설정 상세 비교 문맥 요청
+ */
+export type WorkerWorldSettingComparisonContextRequest = {
+    targetWorldSettingIds: Array<string>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorkerWorldSettingComparisonContextResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorkerWorldSettingComparisonContextResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+export type Target = {
+    worldSettingId?: string;
+    subjectName?: string;
+    propertiesJson?: {
+        [key: string]: string;
+    };
+    version?: number;
+};
+
+/**
+ * Worker 세계관 설정 상세 비교 문맥
+ */
+export type WorkerWorldSettingComparisonContextResponse = {
+    candidate?: WorkerWorldSettingCandidatePayload;
+    exactTargetWorldSettingId?: string;
+    targets?: Array<Target>;
+};
+
+export type ContextVersion = {
+    worldSettingId: string;
+    version?: number;
+};
+
+/**
+ * Worker 세계관 설정 비교 완료 요청
+ */
+export type WorkerWorldSettingComparisonCompleteRequest = {
+    targetWorldSettingId?: string;
+    matchedPropertyName?: string;
+    suggestedOperation: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
+    proposedSettingName: string;
+    proposedValue: string;
+    comparisonReason: string;
+    exactTargetWorldSettingId?: string;
+    contextVersions: Array<ContextVersion>;
+    rawComparisonJson?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorkerAnalysisJobHeartbeatResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorkerAnalysisJobHeartbeatResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * AI Worker Job lease 갱신 응답
+ */
+export type WorkerAnalysisJobHeartbeatResponse = {
+    /**
+     * 현재 lease token
+     */
+    leaseToken?: string;
+    /**
+     * 갱신된 lease 만료 시각
+     */
+    leaseExpiresAt?: string;
+};
+
+/**
+ * AI Worker 분석 작업 실패 요청
+ */
+export type WorkerAnalysisJobFailRequest = {
+    /**
+     * 실패 사유
+     */
+    errorMessage: string;
+};
+
+/**
  * AI Worker 분석 작업 완료 요청
  */
 export type WorkerAnalysisJobCompleteRequest = {
@@ -1229,11 +1445,11 @@ export type WorkerAnalysisJobCompleteRequest = {
      */
     summaryJson?: string | null;
     /**
-     * 입력 토큰 수
+     * 구버전 Worker 호환용 입력 토큰 수. Backend 정산에는 사용하지 않음
      */
     inputTokenCount?: number | null;
     /**
-     * 출력 토큰 수
+     * 구버전 Worker 호환용 출력 토큰 수. Backend 정산에는 사용하지 않음
      */
     outputTokenCount?: number | null;
 };
@@ -1250,6 +1466,10 @@ export type WorkerAnalysisJobClaimRequest = {
      * Worker가 기록할 현재 처리 단계
      */
     currentStep?: string | null;
+    /**
+     * Worker가 처리할 분석 작업 유형
+     */
+    allowedJobTypes: Array<'SETTING_EXTRACTION' | 'WORLD_SETTING_COMPARISON' | 'EPISODE_VALIDATION'>;
 };
 
 /**
@@ -1349,7 +1569,7 @@ export type WorkerAnalysisJobPayload = {
     /**
      * 분석 작업 유형
      */
-    jobType?: 'SETTING_EXTRACTION' | 'EPISODE_VALIDATION';
+    jobType?: 'SETTING_EXTRACTION' | 'WORLD_SETTING_COMPARISON' | 'EPISODE_VALIDATION';
     /**
      * 작품 ID
      */
@@ -1370,6 +1590,26 @@ export type WorkerAnalysisJobPayload = {
      * 현재 처리 단계
      */
     currentStep?: string | null;
+    /**
+     * Worker 소유권 lease token
+     */
+    leaseToken?: string;
+    /**
+     * Worker lease 만료 시각
+     */
+    leaseExpiresAt?: string;
+    /**
+     * 현재 Job claim 시도 횟수
+     */
+    claimAttemptCount?: number;
+    /**
+     * 완료된 내부 처리 checkpoint
+     */
+    checkpointStage?: 'CHUNKS_READY' | 'CHARACTER_CANDIDATES_SAVED' | 'WORLD_CANDIDATES_PUBLISHED' | 'WORLD_COMPARISONS_FINISHED';
+    /**
+     * 재비교 Job의 세계관 후보 ID
+     */
+    worldSettingCandidateId?: string | null;
     /**
      * 캐릭터 설정 attribute 해석 schema 목록
      */
@@ -1417,7 +1657,7 @@ export type AiTokenSettleRequest = {
     /**
      * provider 호출 결과
      */
-    outcome: 'SUCCESS' | 'FAILURE' | 'USAGE_UNAVAILABLE';
+    outcome: 'SUCCESS' | 'FAILURE' | 'USAGE_UNAVAILABLE' | 'WORKER_LEASE_EXPIRED';
 };
 
 /**
@@ -1427,7 +1667,7 @@ export type AiTokenReleaseRequest = {
     /**
      * 사용량을 확인할 수 없어 예약을 해제하는 결과
      */
-    outcome: 'SUCCESS' | 'FAILURE' | 'USAGE_UNAVAILABLE';
+    outcome: 'SUCCESS' | 'FAILURE' | 'USAGE_UNAVAILABLE' | 'WORKER_LEASE_EXPIRED';
 };
 
 /**
@@ -1445,7 +1685,7 @@ export type AiTokenReserveRequest = {
     /**
      * AI 토큰 사용 목적
      */
-    purpose: 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING';
+    purpose: 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON';
     /**
      * 같은 목적 안에서의 호출 순번
      */
@@ -2247,7 +2487,11 @@ export type WorkerAnalysisJobProgressRequest = {
     /**
      * 대상 회차에 명시적으로 적용할 처리 상태
      */
-    episodeStatus: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
+    episodeStatus?: 'UPLOADED' | 'CHUNKING' | 'CHUNKED' | 'PREPROCESSING' | 'PREPROCESSED' | 'ANALYZING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
+    /**
+     * 재개 시 사용할 완료 checkpoint
+     */
+    checkpointStage?: 'CHUNKS_READY' | 'CHARACTER_CANDIDATES_SAVED' | 'WORLD_CANDIDATES_PUBLISHED' | 'WORLD_COMPARISONS_FINISHED';
 };
 
 /**
@@ -2979,7 +3223,7 @@ export type AnalysisBatchJobGroupResponse = {
     /**
      * 분석 목적
      */
-    jobType?: 'SETTING_EXTRACTION' | 'EPISODE_VALIDATION';
+    jobType?: 'SETTING_EXTRACTION' | 'WORLD_SETTING_COMPARISON' | 'EPISODE_VALIDATION';
     /**
      * 분석 목적별 집계 상태
      */
@@ -3043,17 +3287,29 @@ export type AnalysisBatchSummaryResponse = {
      */
     episodeCount?: number;
     /**
-     * 배치에서 생성된 설정 후보 수
+     * 배치에서 생성된 캐릭터 설정 후보 수
      */
     totalCandidateCount?: number;
     /**
-     * 확정 또는 무시한 설정 후보 수
+     * 확정 또는 무시한 캐릭터 설정 후보 수
      */
     reviewedCandidateCount?: number;
     /**
-     * 검토 대기 설정 후보 수
+     * 검토 대기 캐릭터 설정 후보 수
      */
     pendingCandidateCount?: number;
+    /**
+     * 배치에서 생성된 세계관 설정 후보 수
+     */
+    worldSettingTotalCandidateCount?: number;
+    /**
+     * 확정 또는 무시한 세계관 설정 후보 수
+     */
+    worldSettingReviewedCandidateCount?: number;
+    /**
+     * 검토 대기 세계관 설정 후보 수
+     */
+    worldSettingPendingCandidateCount?: number;
     /**
      * 분석 목적별 최신 작업 집계
      */
@@ -3253,6 +3509,46 @@ export type CommonResponseAiTokenUsageResponse = {
 };
 
 /**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorkerWorldSettingSubjectPageResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorkerWorldSettingSubjectPageResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+export type Subject = {
+    worldSettingId?: string;
+    subjectName?: string;
+};
+
+/**
+ * Worker 세계관 설정 대상명 페이지
+ */
+export type WorkerWorldSettingSubjectPageResponse = {
+    subjects?: Array<Subject>;
+    page?: number;
+    hasNext?: boolean;
+};
+
+/**
  * 캐릭터 삭제 버튼 처리 결과. 데이터는 유지하고 보관 상태로 전환합니다.
  */
 export type CharacterArchiveResponse = {
@@ -3338,6 +3634,27 @@ export type ReplaceEpisodeFileResponses = {
 };
 
 export type ReplaceEpisodeFileResponse = ReplaceEpisodeFileResponses[keyof ReplaceEpisodeFileResponses];
+
+export type PublishWorkerWorldSettingCandidatesData = {
+    body: WorkerWorldSettingCandidatePublishRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates';
+};
+
+export type PublishWorkerWorldSettingCandidatesResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseListWorkerWorldSettingCandidatePayload;
+};
+
+export type PublishWorkerWorldSettingCandidatesResponse = PublishWorkerWorldSettingCandidatesResponses[keyof PublishWorkerWorldSettingCandidatesResponses];
 
 export type GetMyWorksData = {
     body?: never;
@@ -4206,8 +4523,119 @@ export type LoginResponses = {
 
 export type LoginResponse = LoginResponses[keyof LoginResponses];
 
+export type ClaimNextWorkerWorldSettingComparisonData = {
+    body?: never;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-comparisons/claim-next';
+};
+
+export type ClaimNextWorkerWorldSettingComparisonResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseWorkerWorldSettingCandidatePayload;
+};
+
+export type ClaimNextWorkerWorldSettingComparisonResponse = ClaimNextWorkerWorldSettingComparisonResponses[keyof ClaimNextWorkerWorldSettingComparisonResponses];
+
+export type FailWorkerWorldSettingComparisonData = {
+    body: WorkerWorldSettingComparisonFailRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates/{candidateId}/comparison-fail';
+};
+
+export type FailWorkerWorldSettingComparisonResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseVoid;
+};
+
+export type FailWorkerWorldSettingComparisonResponse = FailWorkerWorldSettingComparisonResponses[keyof FailWorkerWorldSettingComparisonResponses];
+
+export type GetWorkerWorldSettingComparisonContextData = {
+    body: WorkerWorldSettingComparisonContextRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates/{candidateId}/comparison-context';
+};
+
+export type GetWorkerWorldSettingComparisonContextResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseWorkerWorldSettingComparisonContextResponse;
+};
+
+export type GetWorkerWorldSettingComparisonContextResponse = GetWorkerWorldSettingComparisonContextResponses[keyof GetWorkerWorldSettingComparisonContextResponses];
+
+export type CompleteWorkerWorldSettingComparisonData = {
+    body: WorkerWorldSettingComparisonCompleteRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates/{candidateId}/comparison-complete';
+};
+
+export type CompleteWorkerWorldSettingComparisonResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseVoid;
+};
+
+export type CompleteWorkerWorldSettingComparisonResponse = CompleteWorkerWorldSettingComparisonResponses[keyof CompleteWorkerWorldSettingComparisonResponses];
+
+export type HeartbeatAnalysisJobData = {
+    body?: never;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/heartbeat';
+};
+
+export type HeartbeatAnalysisJobResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseWorkerAnalysisJobHeartbeatResponse;
+};
+
+export type HeartbeatAnalysisJobResponse = HeartbeatAnalysisJobResponses[keyof HeartbeatAnalysisJobResponses];
+
 export type FailAnalysisJobData = {
     body: WorkerAnalysisJobFailRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
     path: {
         analysisJobId: string;
     };
@@ -4243,6 +4671,9 @@ export type FailAnalysisJobResponse = FailAnalysisJobResponses[keyof FailAnalysi
 
 export type CompleteAnalysisJobData = {
     body?: WorkerAnalysisJobCompleteRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
     path: {
         analysisJobId: string;
     };
@@ -4277,7 +4708,7 @@ export type CompleteAnalysisJobResponses = {
 export type CompleteAnalysisJobResponse = CompleteAnalysisJobResponses[keyof CompleteAnalysisJobResponses];
 
 export type ClaimAnalysisJobData = {
-    body?: WorkerAnalysisJobClaimRequest;
+    body: WorkerAnalysisJobClaimRequest;
     path?: never;
     query?: never;
     url: '/api/internal/v1/analysis-jobs/claim';
@@ -4385,6 +4816,9 @@ export type ReleaseAiTokensResponse = ReleaseAiTokensResponses[keyof ReleaseAiTo
 
 export type ReserveAiTokensData = {
     body: AiTokenReserveRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
     path?: never;
     query?: never;
     url: '/api/internal/v1/ai-token-usages/reserve';
@@ -5160,6 +5594,9 @@ export type RestoreCharacterResponse = RestoreCharacterResponses[keyof RestoreCh
 
 export type UpdateProgressData = {
     body: WorkerAnalysisJobProgressRequest;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
     path: {
         analysisJobId: string;
     };
@@ -5667,3 +6104,28 @@ export type GetMyAiTokenUsageResponses = {
 };
 
 export type GetMyAiTokenUsageResponse = GetMyAiTokenUsageResponses[keyof GetMyAiTokenUsageResponses];
+
+export type GetWorkerWorldSettingSubjectsData = {
+    body?: never;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        analysisJobId: string;
+    };
+    query: {
+        category: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
+        page?: number;
+        size?: number;
+    };
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-subjects';
+};
+
+export type GetWorkerWorldSettingSubjectsResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseWorkerWorldSettingSubjectPageResponse;
+};
+
+export type GetWorkerWorldSettingSubjectsResponse = GetWorkerWorldSettingSubjectsResponses[keyof GetWorkerWorldSettingSubjectsResponses];
