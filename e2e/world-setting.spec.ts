@@ -678,6 +678,12 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(page.getByText('바바리안은 혹한 지역에서 살아간다.')).toHaveCount(1);
   await expect(page.getByText('그들은 오래전부터 설원 지대에 정착했다.')).toBeVisible();
 
+  await page.getByRole('button', { name: '분류: 종족' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('RACE');
+  await expect(page.getByRole('button', { name: '분류: 종족' })).toHaveAttribute('aria-current', 'true');
+  await page.getByRole('button', { name: '분류: 전체' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
+
   await page.getByPlaceholder('대상 · 설정명 · 설정값 검색').fill('사회 구조');
   await page.getByRole('button', { name: '검색', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('사회 구조');

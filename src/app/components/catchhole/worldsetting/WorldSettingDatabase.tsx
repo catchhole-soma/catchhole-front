@@ -57,6 +57,10 @@ const CATEGORY_OPTIONS = Object.entries(CATEGORY_META).map(([value, meta]) => ({
   value: value as WorldCategory,
   label: meta.label,
 }));
+const CATEGORY_FILTER_OPTIONS: ReadonlyArray<{ value?: WorldCategory; label: string }> = [
+  { label: '전체' },
+  ...CATEGORY_OPTIONS,
+];
 
 function parsePage(value: string | null): number {
   const parsed = Number(value);
@@ -1060,7 +1064,7 @@ export function WorldSettingDatabase({
         }}><Check size={12} style={{ verticalAlign: 'middle', marginRight: 6 }} />{successMessage}</div>
       )}
 
-      <div className="world-setting-db-filters" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 250px 220px', gap: 10, marginBottom: 14 }}>
+      <div className="world-setting-db-filters" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 220px', gap: 10, marginBottom: 14 }}>
         <form onSubmit={(event: FormEvent) => {
           event.preventDefault();
           updateListParams({ q: searchDraft.trim() });
@@ -1083,16 +1087,6 @@ export function WorldSettingDatabase({
           }}>검색</button>
         </form>
         <select
-          value={category ?? 'ALL'}
-          onChange={event => updateListParams({
-            category: event.target.value === 'ALL' ? undefined : event.target.value as WorldCategory,
-          })}
-          style={{ ...modalInputStyle, height: 42, background: C.surface }}
-        >
-          <option value="ALL">전체 분류</option>
-          {CATEGORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-        <select
           value={sort}
           onChange={event => updateListParams({ sort: event.target.value as WorldSort })}
           style={{ ...modalInputStyle, height: 42, background: C.surface }}
@@ -1100,6 +1094,39 @@ export function WorldSettingDatabase({
           <option value="CATEGORY_SUBJECT_ASC">분류·대상 이름순</option>
           <option value="UPDATED_DESC">최근 수정순</option>
         </select>
+        <div
+          role="group"
+          aria-label="세계관 분류"
+          style={{
+            gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 7,
+            padding: 6, borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface,
+          }}
+        >
+          {CATEGORY_FILTER_OPTIONS.map(option => {
+            const selected = category === option.value;
+            return (
+              <button
+                key={option.value ?? 'ALL'}
+                type="button"
+                aria-label={`분류: ${option.label}`}
+                aria-current={selected ? 'true' : undefined}
+                disabled={propertyPending}
+                onClick={() => updateListParams({ category: option.value })}
+                style={{
+                  minHeight: 32, padding: '0 12px', borderRadius: 7,
+                  border: `1px solid ${selected ? `${C.primary}77` : 'transparent'}`,
+                  background: selected ? `${C.primary}20` : C.bg,
+                  color: selected ? C.primary : C.t2,
+                  fontFamily: 'inherit', fontSize: 11, fontWeight: selected ? 750 : 600,
+                  cursor: propertyPending ? 'not-allowed' : 'pointer',
+                  opacity: propertyPending ? 0.58 : 1,
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {listQuery.isPending && !listQuery.data ? (
