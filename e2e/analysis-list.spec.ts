@@ -182,6 +182,9 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
           totalCandidateCount: 1,
           reviewedCandidateCount: 0,
           pendingCandidateCount: 1,
+          worldSettingTotalCandidateCount: 2,
+          worldSettingReviewedCandidateCount: 1,
+          worldSettingPendingCandidateCount: 1,
           jobGroups: [{
             jobType: 'SETTING_EXTRACTION',
             status: 'REVIEW_REQUIRED',
@@ -242,6 +245,8 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-review-token'));
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
   const analysisCard = page.getByRole('article');
+  await expect(analysisCard.getByText('캐릭터 설정 후보 0/1개 검토 완료')).toBeVisible();
+  await expect(analysisCard.getByText('세계관 설정 후보 1/2개 검토 완료')).toBeVisible();
   await expect(analysisCard.getByRole('button')).toHaveCount(1);
   await analysisCard.getByRole('button', { name: '결과 보기' }).click();
 

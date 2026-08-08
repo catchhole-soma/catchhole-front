@@ -98,6 +98,31 @@ function actionLabel(status: AnalysisBatchStatus): string {
   return '결과 보기';
 }
 
+function CandidateReviewCount({
+  label,
+  totalCount,
+  reviewedCount,
+  pendingCount,
+}: {
+  label: string;
+  totalCount: number;
+  reviewedCount: number;
+  pendingCount: number;
+}) {
+  if (totalCount === 0) return null;
+
+  return (
+    <div style={{ color: C.t2, fontSize: 12 }}>
+      {label} {reviewedCount}/{totalCount}개 검토 완료
+      {pendingCount > 0 && (
+        <span style={{ color: C.warning, marginLeft: 8 }}>
+          {pendingCount}개 대기
+        </span>
+      )}
+    </div>
+  );
+}
+
 function findActionJobGroup(
   batch: AnalysisBatchSummaryResponse,
   status: AnalysisBatchStatus,
@@ -294,9 +319,13 @@ export function AnalysisList({ workId }: { workId: string }) {
             const status = batch.status ?? 'COMPLETED';
             const view = STATUS_VIEW[status];
             const StatusIcon = view.icon;
-            const pendingCount = batch.pendingCandidateCount ?? 0;
-            const reviewedCount = batch.reviewedCandidateCount ?? 0;
-            const totalCount = batch.totalCandidateCount ?? 0;
+            const characterPendingCount = batch.pendingCandidateCount ?? 0;
+            const characterReviewedCount = batch.reviewedCandidateCount ?? 0;
+            const characterTotalCount = batch.totalCandidateCount ?? 0;
+            const worldSettingPendingCount = batch.worldSettingPendingCandidateCount ?? 0;
+            const worldSettingReviewedCount = batch.worldSettingReviewedCandidateCount ?? 0;
+            const worldSettingTotalCount = batch.worldSettingTotalCandidateCount ?? 0;
+            const hasCandidateCounts = characterTotalCount > 0 || worldSettingTotalCount > 0;
             const opensReview = status === 'REVIEW_REQUIRED' || status === 'COMPLETED';
             const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
             const actionEnabled = opensReview
@@ -372,14 +401,20 @@ export function AnalysisList({ workId }: { workId: string }) {
                         </span>
                       ))}
                     </div>
-                    {totalCount > 0 && (
-                      <div style={{ color: C.t2, fontSize: 12 }}>
-                        설정 후보 {reviewedCount}/{totalCount}개 검토 완료
-                        {pendingCount > 0 && (
-                          <span style={{ color: C.warning, marginLeft: 8 }}>
-                            {pendingCount}개 대기
-                          </span>
-                        )}
+                    {hasCandidateCounts && (
+                      <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap' }}>
+                        <CandidateReviewCount
+                          label="캐릭터 설정 후보"
+                          totalCount={characterTotalCount}
+                          reviewedCount={characterReviewedCount}
+                          pendingCount={characterPendingCount}
+                        />
+                        <CandidateReviewCount
+                          label="세계관 설정 후보"
+                          totalCount={worldSettingTotalCount}
+                          reviewedCount={worldSettingReviewedCount}
+                          pendingCount={worldSettingPendingCount}
+                        />
                       </div>
                     )}
                   </div>
