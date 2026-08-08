@@ -95,6 +95,7 @@ function worldCandidate(overrides: Record<string, unknown> = {}) {
     }],
     extractionConfidence: 0.91,
     targetWorldSettingId: worldSettingId,
+    targetSubjectName: '바바리안',
     suggestedOperation: 'MERGE',
     proposedSettingName: '서식지',
     beforeValue: '혹한 지역',
@@ -121,6 +122,8 @@ test('세계관 후보 탭은 합산 진행률·필터·딥링크를 유지하�
     subjectName: '화염검',
     settingName: '제작 재료',
     extractedValue: '용의 심장',
+    targetWorldSettingId: null,
+    targetSubjectName: null,
     suggestedOperation: 'ADD',
     proposedSettingName: '제작 재료',
     beforeValue: null,
@@ -210,6 +213,12 @@ test('세계관 후보 탭은 합산 진행률·필터·딥링크를 유지하�
   await expect(summary).toContainText('전체 후보');
   await expect(summary).toContainText('3개');
   await expect(page.getByText('바바리안 부족은 북부 설원의 혹한 속에서 살아왔다.')).toBeVisible();
+  await expect(page.getByText('설정명(key) · 1차 추출')).toBeVisible();
+  await expect(page.getByText('설정명(key) · 최종 제안')).toBeVisible();
+  await expect(page.getByText('설정값(value) · 기존 확정')).toBeVisible();
+  await expect(page.getByText('설정값(value) · 최종 제안')).toBeVisible();
+  await expect(page.getByText('대상 · 1차 추출')).toBeVisible();
+  await expect(page.getByText('대상 · 기존 확정 대상')).toBeVisible();
 
   await page.getByLabel('세계관 분류').selectOption('RACE');
   await page.getByLabel('제안된 반영 방식').selectOption('MERGE');
@@ -226,11 +235,21 @@ test('세계관 후보 탭은 합산 진행률·필터·딥링크를 유지하�
   await expect.poll(() => new URL(page.url()).searchParams.get('worldCategory')).toBe('RACE');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBe(worldCandidateId);
 
+  await page.getByRole('button', { name: '내용 수정', exact: true }).click();
+  const finalOperationSelect = page.getByRole('combobox', { name: '반영 방식', exact: true });
+  await expect(finalOperationSelect.locator('option')).toHaveText([
+    '추가 제안',
+    '수정 제안',
+    '병합 제안',
+  ]);
+  await expect(finalOperationSelect.locator('option[value="EXCLUDE"]')).toHaveCount(0);
+  await page.getByRole('button', { name: '취소', exact: true }).click();
+
   await page.getByRole('button', { name: '병합 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
     operation: 'MERGE',
     category: 'RACE',
-    subjectName: '북부 바바리안',
+    subjectName: '바바리안',
     settingName: '서식지',
     value: '혹한 지역의 북부 설원',
   });

@@ -44,6 +44,7 @@ import { SettingReviewTabs } from './SettingReviewTabs';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 type WorldOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
+type ConfirmableWorldOperation = Exclude<WorldOperation, 'EXCLUDE'>;
 type ReviewStatus = NonNullable<WorldSettingCandidateResponse['reviewStatus']>;
 type ComparisonStatus = NonNullable<WorldSettingCandidateResponse['comparisonStatus']>;
 type ReviewFilter = ReviewStatus | 'ALL';
@@ -67,11 +68,17 @@ const CATEGORY_META: Record<WorldCategory, { label: string; description: string 
   IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구' },
 };
 
-const OPERATION_META: Record<WorldOperation, { label: string; confirmLabel: string; color: string }> = {
-  ADD: { label: '추가 제안', confirmLabel: '추가 확정', color: C.success },
-  UPDATE: { label: '수정 제안', confirmLabel: '수정 확정', color: C.warning },
-  MERGE: { label: '병합 제안', confirmLabel: '병합 확정', color: C.primary },
-  EXCLUDE: { label: '제외 제안', confirmLabel: '제외 확정', color: C.t3 },
+const OPERATION_META: Record<WorldOperation, { label: string; color: string }> = {
+  ADD: { label: '추가 제안', color: C.success },
+  UPDATE: { label: '수정 제안', color: C.warning },
+  MERGE: { label: '병합 제안', color: C.primary },
+  EXCLUDE: { label: '제외 제안', color: C.t3 },
+};
+
+const CONFIRMABLE_OPERATION_META: Record<ConfirmableWorldOperation, { confirmLabel: string }> = {
+  ADD: { confirmLabel: '추가 확정' },
+  UPDATE: { confirmLabel: '수정 확정' },
+  MERGE: { confirmLabel: '병합 확정' },
 };
 
 const REVIEW_META: Record<ReviewStatus, { label: string; color: string }> = {
@@ -111,6 +118,12 @@ const OPERATION_FILTERS: Array<{ value: OperationFilter; label: string }> = [
   })),
 ];
 
+const CONFIRMABLE_OPERATION_OPTIONS: Array<{ value: ConfirmableWorldOperation; label: string }> = [
+  { value: 'ADD', label: OPERATION_META.ADD.label },
+  { value: 'UPDATE', label: OPERATION_META.UPDATE.label },
+  { value: 'MERGE', label: OPERATION_META.MERGE.label },
+];
+
 function parsePositiveInteger(value: string | null, fallback: number, maximum?: number): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) return fallback;
@@ -141,6 +154,10 @@ function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolea
 
 function errorMessage(error: unknown, fallback: string): string {
   return toApiError(error)?.message ?? (error instanceof Error ? error.message : fallback);
+}
+
+function resolvedTargetSubjectName(candidate: WorldSettingCandidateResponse): string | undefined {
+  return candidate.targetSubjectName ?? candidate.subjectName;
 }
 
 function formatEpisodeRange(start?: number | null, end?: number | null, count = 0): string {
@@ -408,16 +425,52 @@ function WorldCandidateCard({
   );
 }
 
-function DetailValue({ label, value, strong = false }: { label: string; value?: string | null; strong?: boolean }) {
+function DetailValue({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{
       minHeight: 72, padding: '14px 16px', borderRadius: 8,
-      border: `1px solid ${strong ? `${C.primary}55` : C.border}`,
-      background: strong ? `${C.primary}12` : C.bg,
+      border: `1px solid ${C.border}`, background: C.bg,
     }}>
-      <div style={{ color: strong ? C.primary : C.t3, fontSize: 10, marginBottom: 7 }}>{label}</div>
-      <div style={{ color: C.t1, fontSize: strong ? 16 : 14, fontWeight: strong ? 750 : 650, lineHeight: 1.5 }}>
+      <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>{label}</div>
+      <div style={{ color: C.t1, fontSize: 14, fontWeight: 650, lineHeight: 1.5 }}>
         {value || '값 없음'}
+      </div>
+    </div>
+  );
+}
+
+function ProposalChangeRow({
+  label,
+  beforeLabel,
+  beforeValue,
+  afterLabel,
+  afterValue,
+}: {
+  label: string;
+  beforeLabel: string;
+  beforeValue?: string | null;
+  afterLabel: string;
+  afterValue?: string | null;
+}) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 28px minmax(0, 1fr)',
+      alignItems: 'stretch', gap: 8,
+    }}>
+      <div style={{ padding: '11px 13px', borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg }}>
+        <div style={{ color: C.t3, fontSize: 10, marginBottom: 5 }}>{label} · {beforeLabel}</div>
+        <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.5, overflowWrap: 'anywhere' }}>
+          {beforeValue || '없음'}
+        </div>
+      </div>
+      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 800 }}>
+        →
+      </div>
+      <div style={{ padding: '11px 13px', borderRadius: 7, border: `1px solid ${C.primary}66`, background: `${C.primary}12` }}>
+        <div style={{ color: C.primary, fontSize: 10, marginBottom: 5 }}>{label} · {afterLabel}</div>
+        <div style={{ color: C.t1, fontSize: 12, fontWeight: 750, lineHeight: 1.5, overflowWrap: 'anywhere' }}>
+          {afterValue || '없음'}
+        </div>
       </div>
     </div>
   );
@@ -445,6 +498,9 @@ function WorldCandidateDetail({
   const review = REVIEW_META[candidate.reviewStatus ?? 'PENDING_REVIEW'];
   const comparison = COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
   const operation = candidate.suggestedOperation ? OPERATION_META[candidate.suggestedOperation] : null;
+  const confirmableOperation = candidate.suggestedOperation && candidate.suggestedOperation !== 'EXCLUDE'
+    ? CONFIRMABLE_OPERATION_META[candidate.suggestedOperation]
+    : null;
   const category = candidate.category ? CATEGORY_META[candidate.category] : null;
   const confidence = confidenceLabel(candidate.extractionConfidence);
   const evidence = evidenceSpans(candidate.evidenceSpans);
@@ -453,6 +509,9 @@ function WorldCandidateDetail({
   const retryAvailable = candidate.comparisonStatus === 'FAILED'
     || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED';
   const finalOperation = candidate.finalOperation ? OPERATION_META[candidate.finalOperation] : null;
+  const targetSubjectName = resolvedTargetSubjectName(candidate);
+  const subjectNameChanged = candidate.targetSubjectName != null
+    && candidate.targetSubjectName !== candidate.subjectName;
 
   return (
     <article style={{
@@ -484,11 +543,48 @@ function WorldCandidateDetail({
 
       {comparisonReady ? (
         <div style={{ marginTop: 12 }}>
-          <DetailValue
-            label={`확정 시 반영될 값 · ${candidate.proposedSettingName || candidate.settingName || '설정'}`}
-            value={candidate.proposedValue}
-            strong
-          />
+          {candidate.suggestedOperation === 'EXCLUDE' ? (
+            <div style={{
+              padding: '14px 15px', borderRadius: 8,
+              border: `1px solid ${C.t3}55`, background: `${C.t3}0F`,
+              color: C.t2, fontSize: 12, lineHeight: 1.6,
+            }}>
+              확정 세계관 DB에 반영하지 않는 제외 제안입니다. 제외하려면 아래의 별도 제외 버튼을 사용해 주세요.
+            </div>
+          ) : (
+            <div style={{
+              padding: 14, borderRadius: 9,
+              border: `1px solid ${C.primary}44`, background: `${C.primary}08`,
+              display: 'grid', gap: 9,
+            }}>
+              <div style={{ color: C.primary, fontSize: 11, fontWeight: 750, marginBottom: 1 }}>
+                확정 시 변경 내용
+              </div>
+              {subjectNameChanged && (
+                <ProposalChangeRow
+                  label="대상"
+                  beforeLabel="1차 추출"
+                  beforeValue={candidate.subjectName}
+                  afterLabel="기존 확정 대상"
+                  afterValue={targetSubjectName}
+                />
+              )}
+              <ProposalChangeRow
+                label="설정명(key)"
+                beforeLabel="1차 추출"
+                beforeValue={candidate.settingName}
+                afterLabel="최종 제안"
+                afterValue={candidate.proposedSettingName || candidate.settingName}
+              />
+              <ProposalChangeRow
+                label="설정값(value)"
+                beforeLabel="기존 확정"
+                beforeValue={candidate.beforeValue}
+                afterLabel="최종 제안"
+                afterValue={candidate.proposedValue}
+              />
+            </div>
+          )}
           <div style={{
             marginTop: 10, padding: '13px 15px', borderRadius: 8,
             border: `1px solid ${C.border}`, background: C.bg,
@@ -588,14 +684,14 @@ function WorldCandidateDetail({
               </span>
             </ActionButton>
           )}
-          {comparisonReady && operation && (
+          {comparisonReady && operation && confirmableOperation && (
             <ActionButton
               disabled={actionPending}
               tone={operation.color}
-              onClick={candidate.suggestedOperation === 'EXCLUDE' ? onDismiss : onConfirm}
+              onClick={onConfirm}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Check size={13} /> {operation.confirmLabel}
+                <Check size={13} /> {confirmableOperation.confirmLabel}
               </span>
             </ActionButton>
           )}
@@ -621,12 +717,16 @@ function CandidateEditModal({
   onSubmit: (draft: CandidateDraft, identityChanged: boolean) => void;
 }) {
   const initialCategory = candidate.category ?? 'RACE';
-  const initialSubject = candidate.subjectName ?? '';
+  const initialSubject = resolvedTargetSubjectName(candidate) ?? '';
   const initialSetting = candidate.proposedSettingName ?? candidate.settingName ?? '';
   const [category, setCategory] = useState<WorldCategory>(initialCategory);
   const [subjectName, setSubjectName] = useState(initialSubject);
   const [settingName, setSettingName] = useState(initialSetting);
-  const [operation, setOperation] = useState<WorldOperation>(candidate.suggestedOperation ?? 'ADD');
+  const [operation, setOperation] = useState<ConfirmableWorldOperation>(
+    candidate.suggestedOperation === 'UPDATE' || candidate.suggestedOperation === 'MERGE'
+      ? candidate.suggestedOperation
+      : 'ADD',
+  );
   const [value, setValue] = useState(candidate.proposedValue ?? candidate.extractedValue ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
   const identityChanged = category !== initialCategory
@@ -712,8 +812,8 @@ function CandidateEditModal({
           <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
             <label style={{ color: C.t3, fontSize: 11 }}>
               반영 방식
-              <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
-                {OPERATION_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              <select value={operation} onChange={event => setOperation(event.target.value as ConfirmableWorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
+                {CONFIRMABLE_OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label style={{ color: C.t3, fontSize: 11 }}>
@@ -754,7 +854,7 @@ function CandidateEditModal({
             fontSize: 12, fontWeight: 750, cursor: pending ? 'not-allowed' : 'pointer',
             opacity: pending ? 0.62 : 1,
           }}>
-            {pending ? '처리 중…' : identityChanged ? '변경안 다시 비교' : operation === 'EXCLUDE' ? '제외 확정' : '수정 후 확정'}
+            {pending ? '처리 중…' : identityChanged ? '변경안 다시 비교' : '수정 후 확정'}
           </button>
         </div>
       </form>
@@ -1004,7 +1104,8 @@ export function WorldSettingReview() {
   };
 
   const candidateConfirmBody = (candidate: WorldSettingCandidateResponse): CandidateDraft | null => {
-    if (!candidate.category || !candidate.subjectName || !candidate.suggestedOperation
+    const subjectName = resolvedTargetSubjectName(candidate);
+    if (!candidate.category || !subjectName || !candidate.suggestedOperation
       || candidate.suggestedOperation === 'EXCLUDE') return null;
     const settingName = candidate.proposedSettingName ?? candidate.settingName;
     const value = candidate.proposedValue ?? candidate.extractedValue;
@@ -1012,7 +1113,7 @@ export function WorldSettingReview() {
     return {
       operation: candidate.suggestedOperation,
       category: candidate.category,
-      subjectName: candidate.subjectName,
+      subjectName,
       settingName,
       value,
     };
@@ -1046,11 +1147,6 @@ export function WorldSettingReview() {
           subjectName: draft.subjectName,
           settingName: draft.settingName,
         },
-      });
-    } else if (draft.operation === 'EXCLUDE') {
-      dismissMutation.mutate({
-        path: { workId, candidateId: selectedCandidateId },
-        body: {},
       });
     } else {
       confirmMutation.mutate({
