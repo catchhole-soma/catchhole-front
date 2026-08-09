@@ -3028,6 +3028,204 @@ export type PageResponseCharacterSummaryResponse = {
 };
 
 /**
+ * 캐릭터 타임라인 Fact 항목
+ */
+export type CharacterTimelineFactResponse = {
+    /**
+     * CharacterFact ID
+     */
+    characterFactId?: string;
+    /**
+     * Fact 유형
+     */
+    factType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
+    /**
+     * 사용자용 Fact 유형 표시명
+     */
+    factTypeLabel?: string;
+    /**
+     * 사용자용 설정명
+     */
+    displayName?: string;
+    /**
+     * 사용자용 설정값
+     */
+    factValue?: string | null;
+    /**
+     * 회차 추출 또는 수동 입력 출처
+     */
+    sourceType?: 'EPISODE' | 'MANUAL';
+    /**
+     * 출처 회차 ID. 수동 Fact는 null
+     */
+    sourceEpisodeId?: string | null;
+    /**
+     * 출처 회차 번호. 수동 Fact는 null
+     */
+    sourceEpisodeNo?: number | null;
+    /**
+     * 저장된 원문 인용문 존재 여부
+     */
+    hasEvidence?: boolean;
+};
+
+/**
+ * 캐릭터 타임라인 cursor 묶음
+ */
+export type CharacterTimelineResponse = {
+    /**
+     * 고정 정렬된 Fact 목록
+     */
+    content?: Array<CharacterTimelineFactResponse>;
+    /**
+     * 다음 묶음 cursor. 마지막 묶음이면 null
+     */
+    nextCursor?: string | null;
+    /**
+     * 다음 묶음 존재 여부
+     */
+    hasNext?: boolean;
+    /**
+     * 이번 응답에 실제 포함된 Fact 개수
+     */
+    size?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterTimelineResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterTimelineResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 캐릭터 타임라인 회차 바로가기 요약
+ */
+export type CharacterTimelineEpisodeResponse = {
+    /**
+     * 출처 회차 ID
+     */
+    episodeId?: string;
+    /**
+     * 출처 회차 번호
+     */
+    episodeNo?: number;
+    /**
+     * 현재 필터에서 이 회차에 포함된 Fact 개수
+     */
+    factCount?: number;
+};
+
+/**
+ * 캐릭터 타임라인 Fact 유형별 개수
+ */
+export type CharacterTimelineFactTypeCountResponse = {
+    /**
+     * Fact 유형
+     */
+    factType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
+    /**
+     * 사용자용 Fact 유형 표시명
+     */
+    factTypeLabel?: string;
+    /**
+     * 현재·과거를 모두 포함한 Fact 개수
+     */
+    count?: number;
+};
+
+/**
+ * 캐릭터 설정 이력 타임라인 요약
+ */
+export type CharacterTimelineSummaryResponse = {
+    /**
+     * 캐릭터 ID
+     */
+    characterId?: string;
+    /**
+     * 캐릭터 이름
+     */
+    characterName?: string;
+    /**
+     * 첫 등장 회차 번호
+     */
+    firstAppearanceEpisodeNo?: number | null;
+    /**
+     * 지원 유형 전체 Fact 개수
+     */
+    totalFactCount?: number;
+    /**
+     * 지원 유형 Fact가 존재하는 전체 회차 개수
+     */
+    totalEpisodeCount?: number;
+    /**
+     * 적용된 타임라인 유형 필터
+     */
+    appliedFactType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+    /**
+     * 현재 필터에 해당하는 Fact 개수
+     */
+    filteredFactCount?: number;
+    /**
+     * 지원 유형별 Fact 개수. 개수가 0인 유형도 포함
+     */
+    factTypeCounts?: Array<CharacterTimelineFactTypeCountResponse>;
+    /**
+     * 현재 필터에서 Fact가 존재하는 회차 목록
+     */
+    episodes?: Array<CharacterTimelineEpisodeResponse>;
+    /**
+     * 현재 필터에 해당하는 출처 회차 없는 수동 Fact 개수
+     */
+    manualFactCount?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseCharacterTimelineSummaryResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: CharacterTimelineSummaryResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * 설정DB CharacterFact 상세와 저장된 원문 근거 응답
  */
 export type CharacterFactDetailResponse = {
@@ -5995,6 +6193,88 @@ export type GetCharactersResponses = {
 };
 
 export type GetCharactersResponse = GetCharactersResponses[keyof GetCharactersResponses];
+
+export type GetCharacterTimelineData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: {
+        factType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+        cursor?: string;
+        fromEpisodeNo?: number;
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/characters/{characterId}/timeline';
+};
+
+export type GetCharacterTimelineErrors = {
+    /**
+     * Fact 유형, cursor, 시작 회차 또는 크기 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 ACTIVE 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetCharacterTimelineError = GetCharacterTimelineErrors[keyof GetCharacterTimelineErrors];
+
+export type GetCharacterTimelineResponses = {
+    /**
+     * 캐릭터 타임라인 조회 성공
+     */
+    200: CommonResponseCharacterTimelineResponse;
+};
+
+export type GetCharacterTimelineResponse = GetCharacterTimelineResponses[keyof GetCharacterTimelineResponses];
+
+export type GetCharacterTimelineSummaryData = {
+    body?: never;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: {
+        /**
+         * 타임라인 Fact 유형 필터. TIME은 지원하지 않습니다.
+         */
+        factType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+    };
+    url: '/api/v1/works/{workId}/characters/{characterId}/timeline/summary';
+};
+
+export type GetCharacterTimelineSummaryErrors = {
+    /**
+     * 지원하지 않는 Fact 유형
+     */
+    400: CommonErrorResponse;
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 ACTIVE 캐릭터를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetCharacterTimelineSummaryError = GetCharacterTimelineSummaryErrors[keyof GetCharacterTimelineSummaryErrors];
+
+export type GetCharacterTimelineSummaryResponses = {
+    /**
+     * 캐릭터 타임라인 요약 조회 성공
+     */
+    200: CommonResponseCharacterTimelineSummaryResponse;
+};
+
+export type GetCharacterTimelineSummaryResponse = GetCharacterTimelineSummaryResponses[keyof GetCharacterTimelineSummaryResponses];
 
 export type GetArchivedCharactersData = {
     body?: never;

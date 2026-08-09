@@ -18,7 +18,7 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 - 화면 간 전환 — 각 컴포넌트의 `navigate(...)` 호출
 - 사이드바 네비게이션 — `src/app/components/catchhole/AppSidebar.tsx`
 
-> **2026-08 현재 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·타임라인은 메뉴 이름과 `업데이트 예정` 안내만 제공하며 목 화면으로 이동하지 않습니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 목표 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
+> **2026-08 MVP 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 타임라인·캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 캐릭터 타임라인은 확정된 `CharacterFact` 전체 이력을 회차별로 조회하고 기존 원문 근거 패널을 재사용합니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·작품 전체 사건 타임라인은 업데이트 예정 범위입니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
 
 ## Pencil Workflow Boards
 
@@ -256,9 +256,9 @@ flowchart TD
 
   subgraph TABS["설정 DB 하위 탭"]
     direction LR
-    t_char["캐릭터"]
+    t_char["캐릭터 DB"]
     t_rel["관계도"]
-    t_time["타임라인"]
+    t_time["캐릭터 타임라인"]
     t_worlddb["세계관 DB"]
     t_world["설정집 목록"]
     t_search["검색"]
@@ -275,6 +275,8 @@ flowchart TD
 
   t_char -. "카드 클릭" .-> m_chardetail["캐릭터 상세 모달<br/>(→ 삭제 확인)"]:::modal
   t_char -. "설정 만들기" .-> m_settings["캐릭터 설정 빌더<br/>(AI 생성 / 직접 입력)"]:::modal
+  t_time -. "캐릭터 선택" .-> m_chartimeline["캐릭터 설정 이력 모달<br/>유형 필터 · 회차 바로가기 · cursor 조회"]:::modal
+  m_chartimeline -. "근거" .-> m_timeline_evidence["기존 CharacterFact 원문 근거 패널<br/>전체 원문 · quote 하이라이트"]:::modal
 
   subgraph WORLD_SETTINGS["확정 세계관 관리"]
     direction TB
@@ -344,7 +346,7 @@ flowchart TD
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)
-> - 설정DB 탭 — [캐릭터](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [세계관 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
+> - 설정DB 탭 — [캐릭터 타임라인](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=timeline) · [캐릭터 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [세계관 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) · [관계도](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search)
 > - 관계도 샘플 — [triangle](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=triangle) · [prosecution](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=prosecution) · [court](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=relations&relGraph=court)
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`, 그래프 노드 `?nav=graph&node=<id>`
 
