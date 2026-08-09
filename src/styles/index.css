@@ -2,3 +2,19 @@
 @import './tailwind.css';
 @import './theme.css';
 @import './responsive.css';
+
+@keyframes catchhole-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: catchhole-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

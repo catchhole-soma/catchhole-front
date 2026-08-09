@@ -1542,7 +1542,8 @@ function CharacterSettingReview() {
   const worldAttention = (worldSummary?.pendingComparisonCount ?? 0)
     + (worldSummary?.processingComparisonCount ?? 0)
     + (worldSummary?.failedComparisonCount ?? 0)
-    + (worldSummary?.recomparisonRequiredCount ?? 0);
+    + (worldSummary?.recomparisonRequiredCount ?? 0)
+    + (worldSummary?.conflictCandidateCount ?? 0);
   const combinedTotal = total + worldTotal;
   const combinedReviewed = reviewed + worldReviewed;
   const combinedPending = pending + worldPending;
