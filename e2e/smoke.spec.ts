@@ -34,6 +34,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^캐릭터 타임라인/ })).toHaveCount(0);
 
   const sidebarLabels = ['원고 목록', '설정 DB', '분석 목록', '분석 리포트', '그래프 뷰', '챗봇'];
   for (const label of sidebarLabels) {
@@ -41,12 +42,20 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   }
   await expect(page.getByText(/이번 달 14\/20회/)).toHaveCount(0);
 
+  await page.getByRole('button', { name: /^캐릭터 DB/ }).click();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+
   await page.getByRole('button', { name: /^분석 리포트/ }).click();
   await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: /^관계도/ }).click();
   await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /^원고 목록/ }).click();
+  await page.getByRole('button', { name: /^설정 DB/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('characters');
   await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
 });
 

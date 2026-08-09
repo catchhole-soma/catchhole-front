@@ -23,6 +23,7 @@ async function authenticate(page: Page) {
 
 test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 근거 패널을 연다', async ({ page }) => {
   const timelineRequests: Array<Record<string, string | null>> = [];
+  let summaryRequestCount = 0;
   let cursorRequestCount = 0;
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -62,24 +63,94 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
         hasNext: false,
       });
     }
+    if (pathname === `/api/v1/works/${workId}/characters/${characterId}`) {
+      return success(route, {
+        id: characterId,
+        name: '아리아',
+        roleLabel: '주인공',
+        currentAge: 24,
+        currentLevel: 3,
+        firstAppearanceEpisode: {
+          episodeId: '55555555-5555-4555-8555-555555555551',
+          episodeNo: 1,
+          title: '첫 등장',
+        },
+        profile: [{
+          characterFactId: secondFactId,
+          key: 'profile.height',
+          displayName: '신장',
+          value: '170cm',
+          valueType: 'STRING',
+          properties: [],
+          hasEvidence: false,
+        }],
+        stats: [],
+        skills: [],
+        items: [],
+        statuses: [{
+          characterFactId: firstFactId,
+          key: 'status.injury',
+          displayName: '부상',
+          value: '오른발을 다침',
+          valueType: 'STRING',
+          properties: [],
+          hasEvidence: true,
+        }],
+      });
+    }
     if (pathname === `/api/v1/works/${workId}/characters/${characterId}/timeline/summary`) {
+      summaryRequestCount += 1;
       const factType = url.searchParams.get('factType') ?? 'ALL';
+      const factTypes = url.searchParams.getAll('factTypes');
+      const factKeys = url.searchParams.getAll('factKeys');
+      const filteredFactCount = factTypes.length > 0 || factKeys.length > 0
+        ? 2
+        : factType === 'PROFILE' || factType === 'AGE' ? 1 : factType === 'STATUS' ? 2 : 4;
       return success(route, {
         characterId,
         characterName: '아리아',
         firstAppearanceEpisodeNo: 1,
-        totalFactCount: 2,
+        totalFactCount: 4,
         totalEpisodeCount: 2,
         appliedFactType: factType,
-        filteredFactCount: 2,
+        appliedFactTypes: factTypes,
+        appliedFactKeys: factKeys,
+        filteredFactCount,
         factTypeCounts: [
-          { factType: 'PROFILE', factTypeLabel: '프로필', count: 0 },
-          { factType: 'AGE', factTypeLabel: '나이', count: 0 },
+          { factType: 'PROFILE', factTypeLabel: '프로필', count: 1 },
+          { factType: 'AGE', factTypeLabel: '나이', count: 1 },
           { factType: 'LEVEL', factTypeLabel: '레벨', count: 0 },
           { factType: 'STAT', factTypeLabel: '스탯', count: 0 },
           { factType: 'SKILL', factTypeLabel: '스킬', count: 0 },
           { factType: 'ITEM', factTypeLabel: '아이템', count: 0 },
           { factType: 'STATUS', factTypeLabel: '상태', count: 2 },
+        ],
+        factFacets: [
+          {
+            factType: 'PROFILE',
+            factTypeLabel: '프로필',
+            count: 1,
+            factKeys: [{ factKey: 'profile.height', displayName: '신장', count: 1 }],
+          },
+          {
+            factType: 'AGE',
+            factTypeLabel: '나이',
+            count: 1,
+            factKeys: [{ factKey: 'age', displayName: '나이', count: 1 }],
+          },
+          { factType: 'LEVEL', factTypeLabel: '레벨', count: 0, factKeys: [] },
+          { factType: 'STAT', factTypeLabel: '스탯', count: 0, factKeys: [] },
+          { factType: 'SKILL', factTypeLabel: '스킬', count: 0, factKeys: [] },
+          { factType: 'ITEM', factTypeLabel: '아이템', count: 0, factKeys: [] },
+          {
+            factType: 'STATUS',
+            factTypeLabel: '상태',
+            count: 2,
+            factKeys: [
+              { factKey: 'status.injury', displayName: '부상', count: 1 },
+              { factKey: 'status.recovery', displayName: '회복', count: 1 },
+            ],
+          },
         ],
         episodes: [
           { episodeId: '55555555-5555-4555-8555-555555555551', episodeNo: 1, factCount: 1 },
@@ -91,20 +162,42 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
     if (pathname === `/api/v1/works/${workId}/characters/${characterId}/timeline`) {
       timelineRequests.push({
         factType: url.searchParams.get('factType'),
+        factTypes: url.searchParams.getAll('factTypes').join(','),
+        factKeys: url.searchParams.getAll('factKeys').join(','),
         cursor: url.searchParams.get('cursor'),
         fromEpisodeNo: url.searchParams.get('fromEpisodeNo'),
       });
-      const secondFact = {
-        characterFactId: secondFactId,
-        factType: 'STATUS',
-        factTypeLabel: '상태',
-        displayName: '회복',
-        factValue: '상처가 회복되기 시작함',
-        sourceType: 'EPISODE',
-        sourceEpisodeId: '55555555-5555-4555-8555-555555555552',
-        sourceEpisodeNo: 2,
-        hasEvidence: false,
-      };
+      const profileSelected = url.searchParams.getAll('factTypes').includes('PROFILE');
+      const secondFact = profileSelected
+        ? {
+            characterFactId: secondFactId,
+            factType: 'PROFILE',
+            factKey: 'profile.height',
+            factTypeLabel: '프로필',
+            displayName: '신장',
+            factValue: '170cm',
+            sourceType: 'EPISODE',
+            sourceEpisodeId: '55555555-5555-4555-8555-555555555552',
+            sourceEpisodeNo: 2,
+            hasEvidence: false,
+          }
+        : {
+            characterFactId: secondFactId,
+            factType: 'STATUS',
+            factKey: 'status.recovery',
+            factTypeLabel: '상태',
+            displayName: '회복',
+            factValue: '상처가 회복되기 시작함',
+            sourceType: 'EPISODE',
+            sourceEpisodeId: '55555555-5555-4555-8555-555555555552',
+            sourceEpisodeNo: 2,
+            hasEvidence: false,
+          };
+      const profileOnly = url.searchParams.getAll('factTypes').includes('PROFILE')
+        && url.searchParams.getAll('factKeys').length === 0;
+      if (profileOnly) {
+        return success(route, { content: [secondFact], nextCursor: null, hasNext: false, size: 1 });
+      }
       if (url.searchParams.get('cursor')) {
         cursorRequestCount += 1;
         if (cursorRequestCount === 1) {
@@ -128,6 +221,7 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
         content: [{
           characterFactId: firstFactId,
           factType: 'STATUS',
+          factKey: 'status.injury',
           factTypeLabel: '상태',
           displayName: '부상',
           factValue: '오른발을 다침',
@@ -163,20 +257,79 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   });
 
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=timeline`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
 
-  await expect(page.getByText('캐릭터 타임라인', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('아리아', { exact: true })).toBeVisible();
-  await expect(page.getByText('첫 등장 1화', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /아리아/ }).click();
+  await expect(page.getByText('현재 나이', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '변화 이력 보기' }).click();
 
+  const detailModal = page.getByTestId('character-modal-backdrop');
   const dialog = page.getByRole('dialog', { name: '캐릭터 설정 이력' });
+  await expect(detailModal).toBeVisible();
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText('부상', { exact: true })).toBeVisible();
+  await expect.poll(async () => {
+    const [currentDetailBox, currentTimelineBox] = await Promise.all([
+      detailModal.locator('.character-detail-modal').boundingBox(),
+      dialog.boundingBox(),
+    ]);
+    if (!currentDetailBox || !currentTimelineBox) return Number.POSITIVE_INFINITY;
+    return currentTimelineBox.x - (currentDetailBox.x + currentDetailBox.width);
+  }).toBeLessThanOrEqual(20);
+  const [detailBox, initialTimelineBox] = await Promise.all([
+    detailModal.locator('.character-detail-modal').boundingBox(),
+    dialog.boundingBox(),
+  ]);
+  expect(detailBox).not.toBeNull();
+  expect(initialTimelineBox).not.toBeNull();
+  const panelGap = initialTimelineBox!.x - (detailBox!.x + detailBox!.width);
+  expect(panelGap).toBeGreaterThanOrEqual(12);
+  await expect(dialog.getByText('변화 이력을 보고 싶은 설정을 선택하세요.')).toBeVisible();
+  await expect(detailModal.getByRole('button', { name: '부상 원문 근거 보기' })).toHaveCount(0);
+  expect(timelineRequests).toHaveLength(0);
+  await expect.poll(() => summaryRequestCount).toBeGreaterThan(0);
+
+  const profileFilter = detailModal.getByRole('button', { name: '프로필 전체 변화 이력 추가' });
+  await profileFilter.click();
+  await expect(detailModal.getByRole('button', { name: '프로필 전체 변화 이력 제거' }))
+    .toHaveAttribute('aria-pressed', 'true');
+  await expect(detailModal.getByRole('button', { name: '신장 변화 이력 추가' }))
+    .toHaveAttribute('aria-pressed', 'false');
+  await expect(detailModal.locator('.character-section-timeline-heading.is-selected + div')).toHaveCount(1);
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactTypes')).toEqual(['PROFILE']);
+  await expect.poll(() => timelineRequests.some(request => request.factTypes === 'PROFILE')).toBe(true);
+
+  const injuryFilter = detailModal.getByRole('button', { name: '부상 변화 이력 추가' });
+  await injuryFilter.click();
+  await expect(detailModal.getByRole('button', { name: '부상 변화 이력 제거' }))
+    .toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactKeys')).toEqual(['status.injury']);
+  await expect.poll(() => timelineRequests.some(request => (
+    request.factTypes === 'PROFILE' && request.factKeys === 'status.injury'
+  ))).toBe(true);
+  await expect(dialog.locator('.character-timeline-fact__copy strong').getByText('부상', { exact: true })).toBeVisible();
+
   await dialog.getByRole('button', { name: '처음부터 다시 불러오기' }).click();
-  await expect(dialog.getByText('회복', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('신장', { exact: true })).toBeVisible();
   await expect.poll(() => timelineRequests.filter(request => request.cursor === 'cursor-2').length).toBe(2);
 
+  await dialog.getByRole('button', { name: '부상 필터 제거' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactKeys')).toEqual([]);
+  await expect.poll(() => timelineRequests.some(request => (
+    request.factTypes === 'PROFILE' && request.factKeys === ''
+  ))).toBe(true);
+  await expect(dialog.getByRole('button', { name: '부상 필터 제거' })).toHaveCount(0);
+
+  await dialog.getByRole('button', { name: '프로필 전체 이력 필터 제거' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactTypes')).toEqual([]);
+  await expect(dialog.getByText('변화 이력을 보고 싶은 설정을 선택하세요.')).toBeVisible();
+  expect(timelineRequests.filter(request => (
+    !request.factType && !request.factTypes && !request.factKeys
+  ))).toHaveLength(0);
+
+  await dialog.getByRole('button', { name: '전체 이력 보기' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactTypes')).toEqual([]);
+  await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactKeys')).toEqual([]);
   await dialog.getByRole('button', { name: /상태 2/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactType')).toBe('STATUS');
   await expect.poll(() => timelineRequests.some(request => request.factType === 'STATUS')).toBe(true);
@@ -191,14 +344,25 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   await dialog.locator('button.timeline-evidence-button:not(:disabled)').click();
 
   await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
+  const evidenceTimelineBox = await dialog.boundingBox();
+  expect(evidenceTimelineBox).not.toBeNull();
+  expect(Math.abs(evidenceTimelineBox!.width - initialTimelineBox!.width)).toBeLessThan(2);
   await expect(page.getByTestId('character-evidence-highlight')).toHaveText('검을 들었다');
   await expect(page.getByRole('button', { name: '원문 근거 닫기' })).toBeVisible();
   await expect.poll(() => page.locator('.character-evidence-panel__body').evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-  expect(await page.getByTestId('character-timeline-backdrop').evaluate(element => element.scrollTop)).toBe(0);
-  expect(new URL(page.url()).searchParams.get('factId')).toBe(firstFactId);
+  await expect(detailModal.locator('.character-detail-modal')).toHaveCSS('pointer-events', 'none');
+  expect(new URL(page.url()).searchParams.get('timelineFactId')).toBe(firstFactId);
+  expect(new URL(page.url()).searchParams.get('factId')).toBeNull();
 
   await page.getByRole('button', { name: '원문 근거 닫기' }).click();
   await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toHaveCount(0);
-  expect(new URL(page.url()).searchParams.get('factId')).toBeNull();
+  expect(new URL(page.url()).searchParams.get('timelineFactId')).toBeNull();
   expect(new URL(page.url()).searchParams.get('timelineFactType')).toBe('STATUS');
+  await expect(dialog.getByText('부상', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: '타임라인 닫기' }).click();
+  await expect(page.getByText('현재 나이', { exact: true })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBe('char-detail');
+  await expect.poll(() => new URL(page.url()).searchParams.get('mode')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactType')).toBeNull();
 });
