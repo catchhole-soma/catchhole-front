@@ -3040,6 +3040,10 @@ export type CharacterTimelineFactResponse = {
      */
     factType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
     /**
+     * 종류별 하위 필터 식별에 사용하는 canonical Fact key
+     */
+    factKey?: string;
+    /**
      * 사용자용 Fact 유형 표시명
      */
     factTypeLabel?: string;
@@ -3136,6 +3140,46 @@ export type CharacterTimelineEpisodeResponse = {
 };
 
 /**
+ * 캐릭터 타임라인 종류별 선택 그룹
+ */
+export type CharacterTimelineFactFacetResponse = {
+    /**
+     * 상위 Fact 유형
+     */
+    factType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
+    /**
+     * 사용자용 Fact 유형 표시명
+     */
+    factTypeLabel?: string;
+    /**
+     * 캐릭터 전체 이력에서 이 유형에 해당하는 Fact 개수
+     */
+    count?: number;
+    /**
+     * 캐릭터가 실제로 가진 하위 canonical Fact key 목록
+     */
+    factKeys?: Array<CharacterTimelineFactKeyCountResponse>;
+};
+
+/**
+ * 캐릭터 타임라인 하위 설정 항목 집계
+ */
+export type CharacterTimelineFactKeyCountResponse = {
+    /**
+     * 필터 식별에 사용하는 canonical Fact key
+     */
+    factKey?: string;
+    /**
+     * 사용자용 설정명
+     */
+    displayName?: string;
+    /**
+     * 캐릭터 전체 이력에서 이 key에 해당하는 Fact 개수
+     */
+    count?: number;
+};
+
+/**
  * 캐릭터 타임라인 Fact 유형별 개수
  */
 export type CharacterTimelineFactTypeCountResponse = {
@@ -3182,6 +3226,14 @@ export type CharacterTimelineSummaryResponse = {
      */
     appliedFactType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
     /**
+     * 종류별 보기에서 OR 조건으로 적용된 상위 Fact 유형
+     */
+    appliedFactTypes?: Array<'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME'>;
+    /**
+     * 종류별 보기에서 OR 조건으로 적용된 하위 canonical Fact key
+     */
+    appliedFactKeys?: Array<string>;
+    /**
      * 현재 필터에 해당하는 Fact 개수
      */
     filteredFactCount?: number;
@@ -3189,6 +3241,10 @@ export type CharacterTimelineSummaryResponse = {
      * 지원 유형별 Fact 개수. 개수가 0인 유형도 포함
      */
     factTypeCounts?: Array<CharacterTimelineFactTypeCountResponse>;
+    /**
+     * 종류별 선택 화면에 사용하는 상위 유형과 캐릭터 보유 하위 key 전체 집계
+     */
+    factFacets?: Array<CharacterTimelineFactFacetResponse>;
     /**
      * 현재 필터에서 Fact가 존재하는 회차 목록
      */
@@ -6202,6 +6258,14 @@ export type GetCharacterTimelineData = {
     };
     query?: {
         factType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+        /**
+         * 종류별 보기에서 OR로 적용할 상위 Fact 유형 목록
+         */
+        factTypes?: Array<'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS'>;
+        /**
+         * 종류별 보기에서 OR로 적용할 canonical Fact key 목록
+         */
+        factKeys?: Array<string>;
         cursor?: string;
         fromEpisodeNo?: number;
         size?: number;
@@ -6246,6 +6310,14 @@ export type GetCharacterTimelineSummaryData = {
          * 타임라인 Fact 유형 필터. TIME은 지원하지 않습니다.
          */
         factType?: 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+        /**
+         * 종류별 보기에서 OR로 적용할 상위 Fact 유형 목록. ALL은 다른 값·factKeys와 함께 쓸 수 없습니다.
+         */
+        factTypes?: Array<'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS'>;
+        /**
+         * 종류별 보기에서 OR로 적용할 canonical Fact key 목록.
+         */
+        factKeys?: Array<string>;
     };
     url: '/api/v1/works/{workId}/characters/{characterId}/timeline/summary';
 };
