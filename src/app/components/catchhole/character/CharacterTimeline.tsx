@@ -9,47 +9,57 @@ import {
   FileText,
   Loader2,
   RefreshCw,
-  Upload,
-  Users,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import {
   getCharacterFactEvidenceOptions,
-  getCharactersOptions,
   getCharacterTimelineInfiniteQueryKey,
   getCharacterTimelineSummaryOptions,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import { getCharacterTimeline } from '../../../api/generated/sdk.gen';
 import type {
-  CharacterDetailResponse,
-  CharacterSummaryResponse,
   CharacterTimelineFactResponse,
+  GetCharacterTimelineData,
+  GetCharacterTimelineSummaryData,
 } from '../../../api/generated/types.gen';
-import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPagination';
 import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
-import { PageNavigation } from '../PageNavigation';
 import { CharacterEvidencePanel } from './CharacterEvidencePanel';
+import {
+  EMPTY_TIMELINE_SELECTION,
+  hasTimelineSelection,
+  readTimelineSelection,
+  TIMELINE_FACT_TYPES,
+  writeTimelineSelection,
+  type TimelineFactType,
+  type TimelineSelection,
+} from './character-timeline-filter';
 import './character-timeline.css';
 
-type TimelineFactFilter = 'ALL' | 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS';
+type TimelineFactFilter = 'ALL' | TimelineFactType;
+type TimelineViewMode = 'types' | 'all';
 
-interface Props {
+interface CharacterTimelineModalProps {
   workId: string;
+  characterId: string;
   demoMode: boolean;
-  demoCharacters: CharacterDetailResponse[];
-  onAnalyze: () => void;
+  onClose: () => void;
 }
 
 interface TimelineModalProps {
   workId: string;
   characterId: string;
+  viewMode: TimelineViewMode;
+  selection: TimelineSelection;
   factType: TimelineFactFilter;
   fromEpisodeNo: number | null;
   selectedFactId: string | null;
   demoMode: boolean;
+  onViewModeChange: (viewMode: TimelineViewMode) => void;
+  onSelectionApply: (selection: TimelineSelection) => void;
   onFactTypeChange: (factType: TimelineFactFilter) => void;
   onEpisodeChange: (episodeNo: number | null) => void;
   onEvidenceOpen: (factId: string) => void;
@@ -57,11 +67,9 @@ interface TimelineModalProps {
   onClose: () => void;
 }
 
-const TIMELINE_CARD_HEIGHT = 64;
-const TIMELINE_GRID_GAP = 14;
 const TIMELINE_PAGE_SIZE = 20;
 const FACT_FILTERS: TimelineFactFilter[] = [
-  'ALL', 'PROFILE', 'AGE', 'LEVEL', 'STAT', 'SKILL', 'ITEM', 'STATUS',
+  'ALL', ...TIMELINE_FACT_TYPES,
 ];
 const FACT_FILTER_LABELS: Record<TimelineFactFilter, string> = {
   ALL: '전체',
@@ -99,43 +107,17 @@ function queryErrorMessage(error: unknown, fallback: string): string {
   return toApiError(error)?.message ?? fallback;
 }
 
-function avatarColor(id: string): string {
-  const palette = [C.primary, '#E25C5C', '#4BB8D9', C.success, '#D4A04A', '#B48BFF'];
-  const index = [...id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % palette.length;
-  return palette[index];
-}
-
-function TimelineCharacterCard({
-  character,
-  onClick,
-}: {
-  character: CharacterSummaryResponse;
-  onClick: () => void;
-}) {
-  const id = character.id ?? character.name ?? 'character';
-  const name = character.name?.trim() || '이름 없음';
-  const color = avatarColor(id);
-  return (
-    <button type="button" className="character-timeline-card" onClick={onClick}>
-      <span className="character-timeline-card__avatar" style={{ color, borderColor: `${color}66`, background: `${color}18` }}>
-        {name.slice(0, 1)}
-      </span>
-      <span className="character-timeline-card__copy">
-        <strong>{name}</strong>
-        <small>첫 등장 {character.firstAppearanceEpisodeNo == null ? '—' : `${character.firstAppearanceEpisodeNo}화`}</small>
-      </span>
-      <ChevronRight size={15} aria-hidden="true" />
-    </button>
-  );
-}
-
 function TimelineModal({
   workId,
   characterId,
+  viewMode,
+  selection,
   factType,
   fromEpisodeNo,
   selectedFactId,
   demoMode,
+  onViewModeChange,
+  onSelectionApply,
   onFactTypeChange,
   onEpisodeChange,
   onEvidenceOpen,
@@ -146,11 +128,28 @@ function TimelineModal({
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [shortcutRangeIndex, setShortcutRangeIndex] = useState(0);
   const [shortcutOpen, setShortcutOpen] = useState(false);
+  const selectionApplied = hasTimelineSelection(selection);
+
+  useEffect(() => {
+    setShortcutOpen(false);
+  }, [characterId, selectionApplied, viewMode]);
+
+  const multiFilterQuery = useMemo(() => ({
+    ...(selection.factTypes.length > 0 ? { factTypes: selection.factTypes } : {}),
+    ...(selection.factKeys.length > 0 ? { factKeys: selection.factKeys } : {}),
+  }), [selection.factKeys, selection.factTypes]);
+  const summaryFilterQuery: NonNullable<GetCharacterTimelineSummaryData['query']> = viewMode === 'types'
+    ? selectionApplied ? multiFilterQuery : { factType: 'ALL' }
+    : { factType };
+  const timelineFilterQuery: NonNullable<GetCharacterTimelineData['query']> = viewMode === 'types'
+    ? multiFilterQuery
+    : { factType };
+  const timelineEnabled = viewMode === 'all' || selectionApplied;
 
   const summaryQuery = useQuery({
     ...getCharacterTimelineSummaryOptions({
       path: { workId, characterId },
-      query: { factType },
+      query: summaryFilterQuery,
     }),
     enabled: !demoMode && Boolean(workId) && Boolean(characterId),
     retry: (failureCount, error) => (
@@ -161,7 +160,7 @@ function TimelineModal({
   const timelineOptions = {
     path: { workId, characterId },
     query: {
-      factType,
+      ...timelineFilterQuery,
       ...(fromEpisodeNo == null ? {} : { fromEpisodeNo }),
       size: TIMELINE_PAGE_SIZE,
     },
@@ -173,7 +172,7 @@ function TimelineModal({
       const { data } = await getCharacterTimeline({
         path: { workId, characterId },
         query: {
-          factType,
+          ...timelineFilterQuery,
           size: TIMELINE_PAGE_SIZE,
           ...(pageParam == null
             ? fromEpisodeNo == null ? {} : { fromEpisodeNo }
@@ -190,7 +189,7 @@ function TimelineModal({
         ? lastPage.data.nextCursor
         : undefined
     ),
-    enabled: !demoMode && Boolean(workId) && Boolean(characterId),
+    enabled: !demoMode && Boolean(workId) && Boolean(characterId) && timelineEnabled,
     retry: (failureCount, error) => (
       toApiError(error)?.status !== 400
       && toApiError(error)?.status !== 404
@@ -209,6 +208,33 @@ function TimelineModal({
   });
 
   const summary = summaryQuery.data?.data;
+  const selectionItems = useMemo(() => {
+    const facets = summary?.factFacets ?? [];
+    const parentItems = selection.factTypes.map(type => {
+      const facet = facets.find(item => item.factType === type);
+      return {
+        id: `type:${type}`,
+        label: `${facet?.factTypeLabel ?? FACT_FILTER_LABELS[type]} 전체 이력`,
+        selection: {
+          factTypes: selection.factTypes.filter(selectedType => selectedType !== type),
+          factKeys: selection.factKeys,
+        } satisfies TimelineSelection,
+      };
+    });
+    const childItems = selection.factKeys.map(factKey => {
+      const item = facets.flatMap(facet => facet.factKeys ?? [])
+        .find(factKeyCount => factKeyCount.factKey === factKey);
+      return {
+        id: `key:${factKey}`,
+        label: item?.displayName ?? factKey,
+        selection: {
+          factTypes: selection.factTypes,
+          factKeys: selection.factKeys.filter(selectedKey => selectedKey !== factKey),
+        } satisfies TimelineSelection,
+      };
+    });
+    return [...parentItems, ...childItems];
+  }, [selection.factKeys, selection.factTypes, summary?.factFacets]);
   const facts = useMemo(() => {
     const seen = new Set<string>();
     return (timelineQuery.data?.pages ?? [])
@@ -288,27 +314,27 @@ function TimelineModal({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose, onEvidenceClose, selectedFactId]);
 
-  const initialError = !demoMode && (summaryQuery.isError || timelineQuery.isLoadingError);
-  const emptyMessage = factType === 'ALL'
+  const initialError = !demoMode && (
+    summaryQuery.isError
+    || (timelineEnabled && timelineQuery.isLoadingError)
+  );
+  const initialLoading = summaryQuery.isPending
+    || (timelineEnabled && timelineQuery.isPending);
+  const emptyMessage = viewMode === 'all' && factType === 'ALL'
     ? '아직 확정된 설정 이력이 없습니다.'
-    : '선택한 유형의 설정 이력이 없습니다.';
+    : '선택한 종류의 설정 이력이 없습니다.';
 
   return (
     <motion.div
-      className="character-timeline-backdrop"
+      className={`character-timeline-backdrop${selectedFactId ? ' character-timeline-backdrop--with-evidence' : ''}`}
       data-testid="character-timeline-backdrop"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      onClick={onClose}
+      initial={{ x: 32, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
     >
       <motion.section
         role="dialog"
-        aria-modal="true"
         aria-label="캐릭터 설정 이력"
-        initial={{ y: 24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
         className={`character-timeline-modal${selectedFactId ? ' character-timeline-modal--with-evidence' : ''}${shortcutOpen ? ' character-timeline-modal--shortcut-open' : ''}`}
-        onClick={event => event.stopPropagation()}
       >
         <header className="character-timeline-modal__header">
           <span className="character-timeline-modal__icon"><Clock3 size={19} /></span>
@@ -320,33 +346,89 @@ function TimelineModal({
               {' · '}{summary?.totalEpisodeCount ?? 0}개 회차
             </span>
           </div>
-          <button type="button" className="timeline-shortcut-toggle" onClick={() => setShortcutOpen(value => !value)}>
-            회차 바로가기
-          </button>
+          {timelineEnabled && (
+            <button type="button" className="timeline-shortcut-toggle" onClick={() => setShortcutOpen(value => !value)}>
+              회차 바로가기
+            </button>
+          )}
           <button type="button" className="timeline-icon-button" aria-label="타임라인 닫기" onClick={onClose}>
             <X size={19} />
           </button>
         </header>
 
-        <div className="character-timeline-filters" aria-label="설정 유형 필터">
-          {FACT_FILTERS.map(filter => {
-            const count = filter === 'ALL'
-              ? summary?.totalFactCount ?? 0
-              : summary?.factTypeCounts?.find(item => item.factType === filter)?.count ?? 0;
-            return (
-              <button
-                type="button"
-                key={filter}
-                className={factType === filter ? 'is-active' : undefined}
-                onClick={() => onFactTypeChange(filter)}
-              >
-                {FACT_FILTER_LABELS[filter]} <span>{count}</span>
-              </button>
-            );
-          })}
+        <div className="character-timeline-view-tabs" aria-label="타임라인 보기 방식">
+          <button
+            type="button"
+            className={viewMode === 'types' ? 'is-active' : undefined}
+            onClick={() => onViewModeChange('types')}
+          >
+            종류별 보기
+          </button>
+          <button
+            type="button"
+            className={viewMode === 'all' ? 'is-active' : undefined}
+            onClick={() => onViewModeChange('all')}
+          >
+            전체 보기
+          </button>
         </div>
 
-        {demoMode ? (
+        {viewMode === 'all' && (
+          <div className="character-timeline-filters" aria-label="설정 유형 필터">
+            {FACT_FILTERS.map(filter => {
+              const count = filter === 'ALL'
+                ? summary?.totalFactCount ?? 0
+                : summary?.factTypeCounts?.find(item => item.factType === filter)?.count ?? 0;
+              return (
+                <button
+                  type="button"
+                  key={filter}
+                  className={factType === filter ? 'is-active' : undefined}
+                  onClick={() => onFactTypeChange(filter)}
+                >
+                  {FACT_FILTER_LABELS[filter]} <span>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {viewMode === 'types' && selectionApplied && (
+          <div className="character-timeline-applied-filters">
+            <div>
+              {selectionItems.map(item => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className="character-timeline-applied-filter"
+                  aria-label={`${item.label} 필터 제거`}
+                  onClick={() => onSelectionApply(item.selection)}
+                >
+                  <span>{item.label}</span>
+                  <X size={12} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="선택한 이력 필터 모두 지우기"
+              onClick={() => onSelectionApply(EMPTY_TIMELINE_SELECTION)}
+            >
+              <X size={13} /> 모두 지우기
+            </button>
+          </div>
+        )}
+
+        {viewMode === 'types' && !selectionApplied ? (
+          <div className="character-timeline-state">
+            <SlidersHorizontal size={28} />
+            <strong>변화 이력을 보고 싶은 설정을 선택하세요.</strong>
+            <span>왼쪽 현재 설정을 클릭하면 여러 항목을 한 타임라인에서 비교할 수 있습니다.</span>
+            <button type="button" className="timeline-primary-button" onClick={() => onViewModeChange('all')}>
+              전체 이력 보기
+            </button>
+          </div>
+        ) : demoMode ? (
           <div className="character-timeline-state">
             <Clock3 size={28} />
             <strong>데모 캐릭터에는 확정 이력이 없습니다.</strong>
@@ -355,13 +437,16 @@ function TimelineModal({
         ) : initialError ? (
           <div className="character-timeline-state" role="alert">
             <AlertCircle size={28} color={C.danger} />
-            <strong>{queryErrorMessage(summaryQuery.error ?? timelineQuery.error, '타임라인을 불러오지 못했습니다.')}</strong>
+            <strong>{queryErrorMessage(
+              summaryQuery.error ?? timelineQuery.error,
+              '타임라인을 불러오지 못했습니다.',
+            )}</strong>
             <button type="button" className="timeline-secondary-button" onClick={() => {
               void summaryQuery.refetch();
-              void timelineQuery.refetch();
+              if (timelineEnabled) void timelineQuery.refetch();
             }}><RefreshCw size={13} /> 다시 시도</button>
           </div>
-        ) : (summaryQuery.isPending || timelineQuery.isPending) ? (
+        ) : initialLoading ? (
           <div className="character-timeline-state"><Loader2 className="spin" size={22} /> 타임라인을 불러오는 중입니다.</div>
         ) : (
           <div className="character-timeline-layout">
@@ -496,73 +581,18 @@ function TimelineModal({
   );
 }
 
-export function CharacterTimeline({ workId, demoMode, demoCharacters, onAnalyze }: Props) {
+export function CharacterTimelineModal({
+  workId,
+  characterId,
+  demoMode,
+  onClose,
+}: CharacterTimelineModalProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const previousPageSizeRef = useRef<number | null>(null);
-  const {
-    containerRef,
-    contentStartRef,
-    columnCount,
-    pageSize,
-    ready: layoutReady,
-  } = useResponsiveGridPagination({
-    minItemWidth: 220,
-    itemHeight: TIMELINE_CARD_HEIGHT,
-    gap: TIMELINE_GRID_GAP,
-    maxColumns: 4,
-    maxPageSize: 24,
-    reservedBottomSpace: 72,
-    mobilePageSize: 8,
-  });
-  const requestedPage = positiveInteger(searchParams.get('timelinePage')) ?? 1;
-  const page = requestedPage - 1;
-  const selectedCharacterId = searchParams.get('modal') === 'character-timeline'
-    ? searchParams.get('charId')
-    : null;
+  const viewMode: TimelineViewMode = searchParams.get('timelineView') === 'all' ? 'all' : 'types';
+  const selection = readTimelineSelection(searchParams);
   const factType = timelineFilter(searchParams.get('timelineFactType'));
   const fromEpisodeNo = positiveInteger(searchParams.get('timelineEpisodeNo'));
-  const selectedFactId = selectedCharacterId ? searchParams.get('factId') : null;
-
-  const charactersQuery = useQuery({
-    ...getCharactersOptions({ path: { workId }, query: { page, size: pageSize } }),
-    enabled: !demoMode && Boolean(workId) && layoutReady,
-  });
-  const demoPage = useMemo(() => {
-    const start = page * pageSize;
-    return demoCharacters.slice(start, start + pageSize).map(character => ({
-      id: character.id,
-      name: character.name,
-      firstAppearanceEpisodeNo: character.firstAppearanceEpisode?.episodeNo,
-    } satisfies CharacterSummaryResponse));
-  }, [demoCharacters, page, pageSize]);
-  const characters = demoMode ? demoPage : charactersQuery.data?.data?.content ?? [];
-  const totalPages = demoMode
-    ? Math.ceil(demoCharacters.length / pageSize)
-    : charactersQuery.data?.data?.totalPages ?? 0;
-
-  useEffect(() => {
-    if (!layoutReady) return;
-    const previousPageSize = previousPageSizeRef.current;
-    previousPageSizeRef.current = pageSize;
-    if (previousPageSize == null || previousPageSize === pageSize) return;
-
-    // 화면에 보이던 첫 캐릭터의 절대 순번을 새 페이지 크기에도 포함한다.
-    const firstVisibleIndex = page * previousPageSize;
-    const resizedPage = Math.floor(firstVisibleIndex / pageSize);
-    if (resizedPage === page) return;
-    setSearchParams(previous => {
-      previous.set('timelinePage', String(resizedPage + 1));
-      return previous;
-    }, { replace: true });
-  }, [layoutReady, page, pageSize, setSearchParams]);
-
-  useEffect(() => {
-    if (!layoutReady || totalPages === 0 || page < totalPages) return;
-    setSearchParams(previous => {
-      previous.set('timelinePage', String(totalPages));
-      return previous;
-    }, { replace: true });
-  }, [layoutReady, page, setSearchParams, totalPages]);
+  const selectedFactId = searchParams.get('timelineFactId');
 
   const updateTimelineParams = (update: (params: URLSearchParams) => void, replace = false) => {
     setSearchParams(previous => {
@@ -570,96 +600,44 @@ export function CharacterTimeline({ workId, demoMode, demoCharacters, onAnalyze 
       return previous;
     }, { replace });
   };
-  const closeModal = () => updateTimelineParams(params => {
-    params.delete('modal');
-    params.delete('charId');
-    params.delete('timelineFactType');
-    params.delete('timelineEpisodeNo');
-    params.delete('factId');
-  });
-
-  const loading = !demoMode && (!layoutReady || charactersQuery.isPending);
-  const error = !demoMode && charactersQuery.isError;
 
   return (
-    <>
-      <div ref={containerRef} className="character-timeline-page">
-        <header className="character-timeline-page__header">
-          <div>
-            <h2>캐릭터 타임라인</h2>
-            <p>캐릭터를 선택해 회차별로 축적된 설정 이력을 확인할 수 있습니다.</p>
-          </div>
-        </header>
-        <div ref={contentStartRef} />
-
-        {loading && <div className="character-timeline-list-state"><Loader2 className="spin" size={18} /> 캐릭터 목록을 불러오는 중입니다.</div>}
-        {error && (
-          <div className="character-timeline-list-state" role="alert">
-            <AlertCircle size={24} color={C.danger} />
-            <span>{queryErrorMessage(charactersQuery.error, '캐릭터 목록을 불러오지 못했습니다.')}</span>
-            <button type="button" className="timeline-secondary-button" onClick={() => charactersQuery.refetch()}><RefreshCw size={13} /> 다시 시도</button>
-          </div>
-        )}
-        {!loading && !error && characters.length === 0 && (
-          <div className="character-timeline-list-state">
-            <span className="character-timeline-empty-icon"><Users size={26} /></span>
-            <strong>등록된 캐릭터가 없습니다</strong>
-            <span>원고를 분석하여 캐릭터를 추출해 보세요!</span>
-            <button type="button" className="timeline-primary-button" onClick={onAnalyze}><Upload size={13} /> 원고 분석하기</button>
-          </div>
-        )}
-        {!loading && !error && characters.length > 0 && (
-          <>
-            <div className="character-timeline-card-grid" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
-              {characters.map(character => (
-                <TimelineCharacterCard
-                  key={character.id}
-                  character={character}
-                  onClick={() => character.id && updateTimelineParams(params => {
-                    params.set('modal', 'character-timeline');
-                    params.set('charId', character.id!);
-                    params.set('timelineFactType', 'ALL');
-                    params.delete('timelineEpisodeNo');
-                    params.delete('factId');
-                  })}
-                />
-              ))}
-            </div>
-            <div className="character-timeline-pagination">
-              <PageNavigation
-                page={page}
-                totalPages={totalPages}
-                disabled={!demoMode && charactersQuery.isFetching}
-                onPageChange={nextPage => updateTimelineParams(params => params.set('timelinePage', String(nextPage + 1)))}
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {selectedCharacterId && (
-        <TimelineModal
-          workId={workId}
-          characterId={selectedCharacterId}
-          factType={factType}
-          fromEpisodeNo={fromEpisodeNo}
-          selectedFactId={selectedFactId}
-          demoMode={demoMode}
-          onFactTypeChange={nextFactType => updateTimelineParams(params => {
-            params.set('timelineFactType', nextFactType);
-            params.delete('timelineEpisodeNo');
-            params.delete('factId');
-          })}
-          onEpisodeChange={episodeNo => updateTimelineParams(params => {
-            if (episodeNo == null) params.delete('timelineEpisodeNo');
-            else params.set('timelineEpisodeNo', String(episodeNo));
-            params.delete('factId');
-          })}
-          onEvidenceOpen={factId => updateTimelineParams(params => params.set('factId', factId), selectedFactId != null)}
-          onEvidenceClose={() => updateTimelineParams(params => params.delete('factId'), true)}
-          onClose={closeModal}
-        />
-      )}
-    </>
+    <TimelineModal
+      workId={workId}
+      characterId={characterId}
+      viewMode={viewMode}
+      selection={selection}
+      factType={factType}
+      fromEpisodeNo={fromEpisodeNo}
+      selectedFactId={selectedFactId}
+      demoMode={demoMode}
+      onViewModeChange={nextViewMode => updateTimelineParams(params => {
+        if (nextViewMode === 'all') {
+          params.set('timelineView', 'all');
+          writeTimelineSelection(params, EMPTY_TIMELINE_SELECTION);
+        } else params.delete('timelineView');
+        params.delete('timelineEpisodeNo');
+        params.delete('timelineFactId');
+      })}
+      onSelectionApply={nextSelection => updateTimelineParams(params => {
+        writeTimelineSelection(params, nextSelection);
+        params.delete('timelineView');
+        params.delete('timelineEpisodeNo');
+        params.delete('timelineFactId');
+      })}
+      onFactTypeChange={nextFactType => updateTimelineParams(params => {
+        params.set('timelineFactType', nextFactType);
+        params.delete('timelineEpisodeNo');
+        params.delete('timelineFactId');
+      })}
+      onEpisodeChange={episodeNo => updateTimelineParams(params => {
+        if (episodeNo == null) params.delete('timelineEpisodeNo');
+        else params.set('timelineEpisodeNo', String(episodeNo));
+        params.delete('timelineFactId');
+      })}
+      onEvidenceOpen={factId => updateTimelineParams(params => params.set('timelineFactId', factId), selectedFactId != null)}
+      onEvidenceClose={() => updateTimelineParams(params => params.delete('timelineFactId'), true)}
+      onClose={onClose}
+    />
   );
 }

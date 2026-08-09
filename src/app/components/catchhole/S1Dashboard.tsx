@@ -21,7 +21,14 @@ import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
-import { CharacterTimeline } from './character/CharacterTimeline';
+import { CharacterTimelineModal } from './character/CharacterTimeline';
+import {
+  clearTimelineSelection,
+  createTimelineSelection,
+  EMPTY_TIMELINE_SELECTION,
+  writeTimelineSelection,
+  type TimelineSelection,
+} from './character/character-timeline-filter';
 import { AnalysisList } from './AnalysisList';
 import { loadDemoCharacterState } from './character/demoCharacters';
 import { SettingBookWorkspace } from './SettingBookWorkspace';
@@ -2411,7 +2418,7 @@ const TL_COLORS: Record<string, string> = {
   normal: C.t3, setting: C.primary, conflict: C.danger, resolved: C.success,
   current: C.primary, writing: C.warning,
 };
-type SettingTabId = 'characters' | 'relations' | 'timeline' | 'worldsettings' | 'worldrules' | 'search';
+type SettingTabId = 'characters' | 'relations' | 'worldsettings' | 'worldrules' | 'search';
 
 type QueryStateSettingTab = Extract<SettingTabId, 'worldsettings' | 'search'>;
 
@@ -2458,7 +2465,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
-const SETTING_TAB_IDS: SettingTabId[] = ['timeline', 'characters', 'worldsettings', 'worldrules', 'search'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
 const REL_GRAPH_IDS: RelGraphId[] = ['triangle', 'prosecution', 'court'];
 
 function formatEpisodeDate(value?: string): string {
@@ -2498,16 +2505,26 @@ export default function S1Dashboard() {
   const navParam = searchParams.get('nav');
   const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
   const setActiveNav = (id: NavId) => setSearchParams(prev => {
-    prev.set('nav', id);
+    const currentTabParam = prev.get('tab');
+    const currentTab = (SETTING_TAB_IDS as string[]).includes(currentTabParam ?? '')
+      ? currentTabParam as SettingTabId
+      : 'characters';
+    const next = id === 'settingDB'
+      ? switchSettingTabQueryState(prev, currentTab, 'characters')
+      : new URLSearchParams(prev);
+
+    next.set('nav', id);
+    // 별도 타임라인 탭 없이 캐릭터 상세에서 이력을 확인하므로 캐릭터 DB로 진입한다.
+    if (id === 'settingDB') next.set('tab', 'characters');
     if (id !== 'settingDB') {
-      prev.delete('settingBookFileId');
-      if (prev.get('modal') === 'setting-book-upload') prev.delete('modal');
-      prev.delete('settingId');
-      if (prev.get('modal') === 'world-setting-create' || prev.get('modal') === 'world-setting-edit') {
-        prev.delete('modal');
+      next.delete('settingBookFileId');
+      if (next.get('modal') === 'setting-book-upload') next.delete('modal');
+      next.delete('settingId');
+      if (next.get('modal') === 'world-setting-create' || next.get('modal') === 'world-setting-edit') {
+        next.delete('modal');
       }
     }
-    return prev;
+    return next;
   });
 
   const tabParam = searchParams.get('tab');
@@ -2515,12 +2532,21 @@ export default function S1Dashboard() {
   const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
     const next = switchSettingTabQueryState(prev, settingTab, id);
     next.set('tab', id);
-    if (id !== 'timeline' && next.get('modal') === 'character-timeline') {
+    if (id !== 'characters' && (
+      next.get('modal') === 'char-detail'
+      || next.get('modal') === 'character-timeline'
+      || next.get('modal') === 'character-archive'
+    )) {
       next.delete('modal');
       next.delete('charId');
+      next.delete('mode');
+      next.delete('timelineView');
       next.delete('timelineFactType');
+      next.delete('timelineFactTypes');
+      next.delete('timelineFactKeys');
       next.delete('timelineEpisodeNo');
       next.delete('factId');
+      next.delete('timelineFactId');
     }
     if (id !== 'worldrules') {
       next.delete('settingBookFileId');
@@ -2535,10 +2561,52 @@ export default function S1Dashboard() {
     return next;
   });
 
+  useEffect(() => {
+    if (tabParam !== 'timeline') return;
+    // 이전 독립 타임라인 URL도 캐릭터 DB 안의 동일 이력 화면으로 자연스럽게 연결한다.
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'characters');
+      next.delete('timelinePage');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams, tabParam]);
+
   const selectedCharDetail = searchParams.get('modal') === 'char-detail' ? searchParams.get('charId') : null;
+  const legacyCharacterTimelineId = searchParams.get('modal') === 'character-timeline'
+    ? searchParams.get('charId')
+    : null;
   const selectedCharEditing = selectedCharDetail !== null && searchParams.get('mode') === 'edit';
-  const selectedCharacterFactId = selectedCharDetail !== null ? searchParams.get('factId') : null;
+  const characterTimelineOpen = selectedCharDetail !== null && searchParams.get('mode') === 'timeline';
+  const timelineFactTypesParam = searchParams.getAll('timelineFactTypes').join('\u0000');
+  const timelineFactKeysParam = searchParams.getAll('timelineFactKeys').join('\u0000');
+  const appliedTimelineSelection = React.useMemo(() => createTimelineSelection(
+    timelineFactTypesParam ? timelineFactTypesParam.split('\u0000') : [],
+    timelineFactKeysParam ? timelineFactKeysParam.split('\u0000') : [],
+  ), [timelineFactKeysParam, timelineFactTypesParam]);
+  const visibleTimelineSelection = characterTimelineOpen && searchParams.get('timelineView') === 'all'
+    ? EMPTY_TIMELINE_SELECTION
+    : appliedTimelineSelection;
+  const selectedCharacterFactId = selectedCharDetail !== null && !characterTimelineOpen
+    ? searchParams.get('factId')
+    : null;
+  const selectedTimelineFactId = characterTimelineOpen ? searchParams.get('timelineFactId') : null;
   const characterArchiveOpen = searchParams.get('modal') === 'character-archive';
+
+  useEffect(() => {
+    if (!legacyCharacterTimelineId) return;
+    // 이전 전체 타임라인 URL도 캐릭터 상세 오른쪽 패널 구조로 복원한다.
+    setSearchParams(prev => {
+      prev.set('modal', 'char-detail');
+      prev.set('charId', legacyCharacterTimelineId);
+      prev.set('mode', 'timeline');
+      const legacyFactId = prev.get('factId');
+      if (legacyFactId) prev.set('timelineFactId', legacyFactId);
+      prev.delete('factId');
+      return prev;
+    }, { replace: true });
+  }, [legacyCharacterTimelineId, setSearchParams]);
+
   const setSelectedCharDetail = (id: string | null) => setSearchParams(prev => {
     if (id) { prev.set('modal', 'char-detail'); prev.set('charId', id); }
     else {
@@ -2546,6 +2614,11 @@ export default function S1Dashboard() {
       prev.delete('charId');
       prev.delete('mode');
       prev.delete('factId');
+      prev.delete('timelineFactId');
+      prev.delete('timelineView');
+      prev.delete('timelineFactType');
+      prev.delete('timelineEpisodeNo');
+      clearTimelineSelection(prev);
     }
     return prev;
   });
@@ -2555,6 +2628,40 @@ export default function S1Dashboard() {
     if (edit) prev.set('mode', 'edit');
     else prev.delete('mode');
     prev.delete('factId');
+    prev.delete('timelineFactId');
+    prev.delete('timelineView');
+    prev.delete('timelineFactType');
+    prev.delete('timelineEpisodeNo');
+    clearTimelineSelection(prev);
+    return prev;
+  });
+  const openCharacterTimeline = () => setSearchParams(prev => {
+    prev.set('mode', 'timeline');
+    prev.delete('factId');
+    prev.delete('timelineFactId');
+    prev.delete('timelineView');
+    prev.delete('timelineFactType');
+    prev.delete('timelineEpisodeNo');
+    clearTimelineSelection(prev);
+    return prev;
+  });
+  const closeCharacterTimeline = () => setSearchParams(prev => {
+    prev.delete('mode');
+    prev.delete('timelineFactId');
+    prev.delete('timelineView');
+    prev.delete('timelineFactType');
+    prev.delete('timelineEpisodeNo');
+    clearTimelineSelection(prev);
+    return prev;
+  });
+  const changeCharacterTimelineSelection = (
+    selection: TimelineSelection,
+  ) => setSearchParams(prev => {
+    prev.delete('timelineView');
+    prev.delete('timelineFactType');
+    prev.delete('timelineEpisodeNo');
+    prev.delete('timelineFactId');
+    writeTimelineSelection(prev, selection);
     return prev;
   });
   const setSelectedCharEditing = (editing: boolean) => setSearchParams(prev => {
@@ -2581,6 +2688,7 @@ export default function S1Dashboard() {
     prev.delete('charId');
     prev.delete('mode');
     prev.delete('factId');
+    prev.delete('timelineFactId');
     return prev;
   });
 
@@ -2964,7 +3072,6 @@ export default function S1Dashboard() {
 
                 <div className="dashboard-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
-                    { id: 'timeline', label: '캐릭터 타임라인', icon: <Clock size={13} /> },
                     { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
                     { id: 'worldsettings', label: '세계관 DB', icon: <Globe size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
@@ -3012,6 +3119,12 @@ export default function S1Dashboard() {
                           onClose={() => setSelectedCharDetail(null)}
                           onEvidenceOpen={openCharacterEvidence}
                           onEvidenceClose={closeCharacterEvidence}
+                          timelineOpen={characterTimelineOpen}
+                          timelineEvidenceOpen={Boolean(selectedTimelineFactId)}
+                          appliedTimelineSelection={visibleTimelineSelection}
+                          onTimelineOpen={openCharacterTimeline}
+                          onTimelineClose={closeCharacterTimeline}
+                          onTimelineSelectionChange={changeCharacterTimelineSelection}
                           onArchiveOpen={() => setCharacterArchiveOpen(true)}
                           onArchiveClose={() => setCharacterArchiveOpen(false)}
                           onEditChange={setSelectedCharEditing}
@@ -3021,6 +3134,14 @@ export default function S1Dashboard() {
                             'push-right',
                           )}
                         />
+                        {selectedCharDetail && characterTimelineOpen && (
+                          <CharacterTimelineModal
+                            workId={effectiveWorkId}
+                            characterId={selectedCharDetail}
+                            demoMode={demoMode}
+                            onClose={closeCharacterTimeline}
+                          />
+                        )}
                       </motion.div>
                     )}
 
@@ -3063,20 +3184,6 @@ export default function S1Dashboard() {
                             <div style={{ color: C.t3, fontSize: 12, marginTop: 4 }}>159화 갈등 서술 불일치 감지</div>
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-
-                    {settingTab === 'timeline' && (
-                      <motion.div key="tl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
-                        <CharacterTimeline
-                          workId={effectiveWorkId}
-                          demoMode={demoMode}
-                          demoCharacters={demoCharacters}
-                          onAnalyze={() => navigate(
-                            `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
-                            'push-right',
-                          )}
-                        />
                       </motion.div>
                     )}
 
