@@ -7,13 +7,21 @@ export class ApiError extends Error {
   code: string;
   status: number;
   details: FieldErrorDetail[];
+  context: Record<string, unknown>;
 
-  constructor(message: string, code: string, status: number, details: FieldErrorDetail[] = []) {
+  constructor(
+    message: string,
+    code: string,
+    status: number,
+    details: FieldErrorDetail[] = [],
+    context: Record<string, unknown> = {},
+  ) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
     this.details = details;
+    this.context = context;
   }
 }
 
@@ -63,11 +71,13 @@ export function toApiError(error: unknown): ApiError | null {
         return [{ field: detail.field, message: detail.message }];
       })
     : [];
+  const context = isRecord(errorBody.context) ? errorBody.context : {};
 
   return new ApiError(
     typeof error.message === 'string' ? error.message : '요청 처리 중 오류가 발생했습니다.',
     typeof errorBody.code === 'string' ? errorBody.code : 'UNKNOWN_ERROR',
     typeof errorBody.status === 'number' ? errorBody.status : 0,
     details,
+    context,
   );
 }

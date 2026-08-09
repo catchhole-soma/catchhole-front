@@ -19,11 +19,9 @@ import {
   useSearchParams,
 } from 'react-router';
 import {
-  confirmWorldSettingCandidateMutation,
-  dismissWorldSettingCandidateMutation,
+  confirmWorldSettingCandidateGroupMutation,
+  dismissWorldSettingCandidateGroupMutation,
   getSettingCandidatesOptions,
-  getWorldSettingCandidateOptions,
-  getWorldSettingCandidateQueryKey,
   getWorldSettingCandidatesOptions,
   getWorldSettingCandidatesQueryKey,
   getWorldSettingsQueryKey,
@@ -31,7 +29,8 @@ import {
   updateWorldSettingCandidateMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
-  WorldSettingCandidateConfirmRequest,
+  Decision,
+  WorldSettingCandidateGroupResponse,
   WorldSettingCandidateResponse,
 } from '../../../api/generated/types.gen';
 import { useAppNavigate } from '../../../hooks/useAppNavigate';
@@ -49,13 +48,10 @@ type ComparisonStatus = NonNullable<WorldSettingCandidateResponse['comparisonSta
 type ReviewFilter = ReviewStatus | 'ALL';
 type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
+type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
 
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
-
-function isComparisonActive(status?: ComparisonStatus): boolean {
-  return status === 'PENDING' || status === 'PROCESSING';
-}
 
 const CATEGORY_META: Record<WorldCategory, { label: string; description: string }> = {
   RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단' },
@@ -67,17 +63,20 @@ const CATEGORY_META: Record<WorldCategory, { label: string; description: string 
   IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구' },
 };
 
-const OPERATION_META: Record<WorldOperation, { label: string; confirmLabel: string; color: string }> = {
-  ADD: { label: '추가 제안', confirmLabel: '추가 확정', color: C.success },
-  UPDATE: { label: '수정 제안', confirmLabel: '수정 확정', color: C.warning },
-  MERGE: { label: '병합 제안', confirmLabel: '병합 확정', color: C.primary },
-  EXCLUDE: { label: '제외 제안', confirmLabel: '제외 확정', color: C.t3 },
+const OPERATION_META: Record<WorldOperation, { label: string; color: string }> = {
+  ADD: { label: '추가', color: C.success },
+  UPDATE: { label: '수정', color: C.warning },
+  MERGE: { label: '병합', color: C.primary },
+  EXCLUDE: { label: '반영하지 않음', color: C.t3 },
 };
+
+const OPERATION_OPTIONS: Array<{ value: WorldOperation; label: string }> = Object.entries(OPERATION_META)
+  .map(([value, meta]) => ({ value: value as WorldOperation, label: meta.label }));
 
 const REVIEW_META: Record<ReviewStatus, { label: string; color: string }> = {
   PENDING_REVIEW: { label: '검토 대기', color: C.warning },
   CONFIRMED: { label: '확정', color: C.success },
-  DISMISSED: { label: '제외', color: C.t3 },
+  DISMISSED: { label: '제외됨', color: C.t3 },
 };
 
 const COMPARISON_META: Record<ComparisonStatus, { label: string; color: string }> = {
@@ -92,7 +91,7 @@ const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
   { value: 'PENDING_REVIEW', label: '검토 대기' },
   { value: 'CONFIRMED', label: '확정' },
-  { value: 'DISMISSED', label: '제외' },
+  { value: 'DISMISSED', label: '제외됨' },
 ];
 
 const CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
@@ -118,21 +117,15 @@ function parsePositiveInteger(value: string | null, fallback: number, maximum?: 
 }
 
 function parseReviewFilter(value: string | null): ReviewFilter {
-  return REVIEW_FILTERS.some(filter => filter.value === value)
-    ? value as ReviewFilter
-    : 'PENDING_REVIEW';
+  return REVIEW_FILTERS.some(filter => filter.value === value) ? value as ReviewFilter : 'PENDING_REVIEW';
 }
 
 function parseCategoryFilter(value: string | null): CategoryFilter {
-  return CATEGORY_FILTERS.some(filter => filter.value === value)
-    ? value as CategoryFilter
-    : 'ALL';
+  return CATEGORY_FILTERS.some(filter => filter.value === value) ? value as CategoryFilter : 'ALL';
 }
 
 function parseOperationFilter(value: string | null): OperationFilter {
-  return OPERATION_FILTERS.some(filter => filter.value === value)
-    ? value as OperationFilter
-    : 'ALL';
+  return OPERATION_FILTERS.some(filter => filter.value === value) ? value as OperationFilter : 'ALL';
 }
 
 function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolean {
@@ -143,20 +136,33 @@ function errorMessage(error: unknown, fallback: string): string {
   return toApiError(error)?.message ?? (error instanceof Error ? error.message : fallback);
 }
 
+function isComparisonActive(status?: ComparisonStatus): boolean {
+  return status === 'PENDING' || status === 'PROCESSING';
+}
+
+function resolvedTargetSubjectName(candidate: WorldSettingCandidateResponse): string | undefined {
+  return candidate.targetSubjectName ?? candidate.subjectName;
+}
+
 function formatEpisodeRange(start?: number | null, end?: number | null, count = 0): string {
   if (count === 0 || start == null || end == null) return '대상 회차 없음';
   return start === end ? `${start}화 · 1개 회차` : `${start}–${end}화 · ${count}개 회차`;
 }
 
-function confidenceLabel(confidence?: number | null): { value: string; description: string; color: string } {
-  if (confidence == null || confidence < 0 || confidence > 1) {
-    return { value: '정보 없음', description: '근거 명확도 정보 없음', color: C.t3 };
-  }
-  const percent = `${Math.round(confidence * 100)}%`;
-  if (confidence >= 0.7) {
-    return { value: percent, description: '원문에서 명확히 확인되는 설정', color: C.success };
-  }
-  return { value: percent, description: '원문을 직접 확인해 주세요', color: C.warning };
+function episodeEvidenceLabel(episodeNos: number[] | undefined): string {
+  const values = [...new Set(episodeNos ?? [])].sort((a, b) => a - b);
+  return values.length ? `${values.map(value => `${value}화`).join('·')} 근거` : '회차 근거 없음';
+}
+
+function operationSummary(group: WorldSettingCandidateGroupResponse): string {
+  const entries = [
+    [group.addCount, '추가'],
+    [group.updateCount, '수정'],
+    [group.mergeCount, '병합'],
+    [group.excludeCount, '반영 안 함'],
+  ] as const;
+  const summary = entries.filter(([count]) => (count ?? 0) > 0).map(([count, label]) => `${label} ${count}`).join(' · ');
+  return summary || '변경 방식 확인 중';
 }
 
 interface EvidenceSpan {
@@ -184,12 +190,43 @@ function evidenceSpans(value: unknown): EvidenceSpan[] {
   });
 }
 
+function candidateDecision(candidate: WorldSettingCandidateResponse): DecisionDraft | null {
+  const operation = candidate.suggestedOperation;
+  const category = candidate.category;
+  const subjectName = resolvedTargetSubjectName(candidate);
+  const settingName = candidate.proposedSettingName ?? candidate.settingName;
+  const value = candidate.proposedValue ?? candidate.extractedValue;
+  if (!operation || !category || !subjectName || !settingName || !value) return null;
+  return { operation, category, subjectName, settingName, value };
+}
+
+function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): string | null {
+  if (!candidate.comparisonReason) return null;
+  const targetName = resolvedTargetSubjectName(candidate);
+  let reason = candidate.comparisonReason;
+  if (targetName) {
+    reason = reason.replace(/T\d+/g, `기존 '${targetName}' 설정`);
+  }
+  return reason
+    .replace(/\bkey로/gi, '설정 항목으로')
+    .replace(/\bkey를/gi, '설정 항목을')
+    .replace(/\bkey가/gi, '설정 항목이')
+    .replace(/\bkey별/gi, '설정 항목별')
+    .replace(/\bkey\b/gi, '설정 항목')
+    .replace(/\bversion\b/gi, '확정 내용')
+    .replace(/\bADD\b/g, '추가')
+    .replace(/\bUPDATE\b/g, '수정')
+    .replace(/\bMERGE\b/g, '병합')
+    .replace(/\bEXCLUDE\b/g, '반영하지 않음');
+}
+
 function Badge({ label, color }: { label: string; color: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
       padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
       background: `${color}18`, color, fontSize: 10, fontWeight: 750,
+      whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
@@ -202,16 +239,11 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
       height: 62, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 14,
       padding: '0 28px', borderBottom: `1px solid ${C.border}`, background: C.bg,
     }}>
-      <button
-        type="button"
-        aria-label="이전 화면"
-        onClick={onBack}
-        style={{
-          width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
-          background: 'transparent', color: C.t2, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
+      <button type="button" aria-label="이전 화면" onClick={onBack} style={{
+        width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
+        background: 'transparent', color: C.t2, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
         <ChevronLeft size={18} />
       </button>
       <strong style={{ color: C.t1, fontSize: 17 }}>설정 후보 검토</strong>
@@ -271,10 +303,9 @@ function QueryState({
 }) {
   return (
     <div style={{
-      minHeight: 320, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 10,
-      border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface,
-      textAlign: 'center', padding: 24,
+      minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 10, border: `1px solid ${C.border}`,
+      borderRadius: 10, background: C.surface, textAlign: 'center', padding: 24,
     }}>
       {icon}
       <strong style={{ color: C.t1, fontSize: 15 }}>{title}</strong>
@@ -296,24 +327,20 @@ function ActionButton({
   onClick?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      style={{
-        minHeight: 38, padding: '0 15px', borderRadius: 7,
-        border: `1px solid ${disabled ? C.border : `${tone}88`}`,
-        background: disabled ? 'transparent' : `${tone}18`,
-        color: disabled ? C.t3 : tone, fontFamily: 'inherit',
-        fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
-    >
+    <button type="button" disabled={disabled} onClick={onClick} style={{
+      minHeight: 38, padding: '0 15px', borderRadius: 7,
+      border: `1px solid ${disabled ? C.border : `${tone}88`}`,
+      background: disabled ? 'transparent' : `${tone}18`,
+      color: disabled ? C.t3 : tone, fontFamily: 'inherit', fontSize: 12,
+      fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    }}>
       {children}
     </button>
   );
 }
 
-function SelectFilter<T extends string>({
+function FilterGroup<T extends string>({
   label,
   value,
   options,
@@ -327,246 +354,423 @@ function SelectFilter<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-      <span style={{ color: C.t3, fontSize: 11, fontWeight: 650 }}>{label}</span>
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={event => onChange(event.target.value as T)}
-        style={{
-          height: 36, padding: '0 10px', borderRadius: 7,
-          border: `1px solid ${C.border}`, background: C.bg, color: C.t1,
-          fontFamily: 'inherit', fontSize: 12, cursor: disabled ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {options.map(option => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function WorldCandidateCard({
-  candidate,
-  selected,
-  disabled,
-  onClick,
-}: {
-  candidate: WorldSettingCandidateResponse;
-  selected: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const category = candidate.category ? CATEGORY_META[candidate.category] : null;
-  const operation = candidate.suggestedOperation ? OPERATION_META[candidate.suggestedOperation] : null;
-  const review = REVIEW_META[candidate.reviewStatus ?? 'PENDING_REVIEW'];
-  const comparison = COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      style={{
-        width: '100%', padding: '13px 14px', borderRadius: 9,
-        border: `1px solid ${selected ? C.primary : C.border}`,
-        background: selected ? `${C.primary}14` : C.surface,
-        textAlign: 'left', fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.65 : 1,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <Badge label={candidate.sourceEpisodeNo == null ? '회차 정보 없음' : `${candidate.sourceEpisodeNo}화`} color={C.t2} />
-        {category && <Badge label={category.label} color={C.primary} />}
-        <div style={{ flex: 1 }} />
-        {operation && <Badge label={operation.label.replace(' 제안', '')} color={operation.color} />}
-      </div>
-      <strong style={{
-        display: 'block', color: C.t1, fontSize: 13,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {candidate.subjectName || '대상명 없음'} · {candidate.settingName || '설정명 없음'}
-      </strong>
-      <div style={{
-        marginTop: 5, color: C.t2, fontSize: 12,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {candidate.extractedValue || '추출값 없음'}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
-        <Badge label={review.label} color={review.color} />
-        {candidate.comparisonStatus !== 'COMPLETED' && (
-          <Badge label={comparison.label} color={comparison.color} />
-        )}
-        {candidate.userModified && <Badge label="사용자 수정" color={C.primary} />}
-        <div style={{ flex: 1 }} />
-        <span style={{ color: C.t3, fontSize: 10 }}>
-          근거 {confidenceLabel(candidate.extractionConfidence).value}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function DetailValue({ label, value, strong = false }: { label: string; value?: string | null; strong?: boolean }) {
-  return (
-    <div style={{
-      minHeight: 72, padding: '14px 16px', borderRadius: 8,
-      border: `1px solid ${strong ? `${C.primary}55` : C.border}`,
-      background: strong ? `${C.primary}12` : C.bg,
-    }}>
-      <div style={{ color: strong ? C.primary : C.t3, fontSize: 10, marginBottom: 7 }}>{label}</div>
-      <div style={{ color: C.t1, fontSize: strong ? 16 : 14, fontWeight: strong ? 750 : 650, lineHeight: 1.5 }}>
-        {value || '값 없음'}
+    <div role="group" aria-label={label}>
+      <div style={{ color: C.t3, fontSize: 11, fontWeight: 650, marginBottom: 7 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {options.map(option => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              style={{
+                minHeight: 30, padding: '0 10px', borderRadius: 7,
+                border: `1px solid ${active ? C.primary : C.border}`,
+                background: active ? `${C.primary}18` : 'transparent',
+                color: active ? C.primary : C.t2,
+                fontFamily: 'inherit', fontSize: 11, fontWeight: active ? 700 : 500,
+                cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.58 : 1,
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function WorldCandidateDetail({
+function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
+  switch (group.status) {
+    case 'PENDING': return { label: '비교 대기', color: C.t3 };
+    case 'PROCESSING': return { label: '비교 중', color: C.primary };
+    case 'FAILED': return { label: '비교 실패', color: C.danger };
+    case 'RECOMPARISON_REQUIRED': return {
+      label: group.recomparisonScope === 'GROUP' ? '그룹 재비교 필요' : '일부 재비교 필요',
+      color: C.warning,
+    };
+    default: return { label: '검토 대기', color: C.warning };
+  }
+}
+
+function WorldCandidateGroupCard({
+  group,
+  selected,
+  disabled,
+  onClick,
+}: {
+  group: WorldSettingCandidateGroupResponse;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const category = group.category ? CATEGORY_META[group.category] : null;
+  const status = groupStatusMeta(group);
+  return (
+    <button type="button" disabled={disabled} onClick={onClick} style={{
+      width: '100%', padding: '15px 15px 14px', borderRadius: 10,
+      border: `1px solid ${selected ? C.primary : C.border}`,
+      background: selected ? `${C.primary}14` : C.surface,
+      textAlign: 'left', fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.65 : 1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        {category && <Badge label={category.label} color={C.primary} />}
+        <strong style={{
+          color: C.t1, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {group.subjectName || '대상명 없음'}
+        </strong>
+        <div style={{ flex: 1 }} />
+        <Badge label={`${group.changeCount ?? 0}개 설정`} color={C.primary} />
+      </div>
+      <div style={{ color: C.t2, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
+        <Badge label={episodeEvidenceLabel(group.evidenceEpisodeNos)} color={C.t2} />
+        <Badge label={status.label} color={status.color} />
+      </div>
+    </button>
+  );
+}
+
+function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupResponse }) {
+  if (group.status === 'READY') return null;
+  const status = groupStatusMeta(group);
+  const reason = group.candidates?.find(candidate => candidate.comparisonErrorMessage)?.comparisonErrorMessage;
+  const description = group.status === 'FAILED'
+    ? reason || '기존 세계관과 비교하지 못했습니다. 다시 비교를 요청해 주세요.'
+    : group.status === 'RECOMPARISON_REQUIRED'
+      ? reason || (group.recomparisonScope === 'GROUP'
+        ? '대상의 생성·이름·분류가 바뀌어 이 대상의 모든 설정 항목을 다시 비교합니다.'
+        : '확정된 내용이 바뀐 설정 항목만 최신 상태로 다시 비교합니다.')
+      : group.status === 'PROCESSING'
+        ? '최신 세계관 설정과 비교하고 있습니다. 완료되면 같은 화면에서 검토할 수 있습니다.'
+        : '기존 세계관 설정과 비교할 차례를 기다리고 있습니다.';
+  return (
+    <div role="status" style={{
+      margin: '0 22px 16px', padding: '12px 14px', borderRadius: 8,
+      border: `1px solid ${status.color}55`, background: `${status.color}12`,
+      color: status.color, fontSize: 12, lineHeight: 1.6,
+      display: 'flex', alignItems: 'flex-start', gap: 8,
+    }}>
+      {group.status === 'PROCESSING' || group.status === 'PENDING'
+        ? <Loader2 size={15} className="spin" style={{ marginTop: 2, flexShrink: 0 }} />
+        : <AlertCircle size={15} style={{ marginTop: 2, flexShrink: 0 }} />}
+      <div><strong>{status.label}</strong><br />{description}</div>
+    </div>
+  );
+}
+
+function WorldKeyDiffRow({
   candidate,
-  actionPending,
-  actionError,
-  retrying,
-  onDismiss,
+  decision,
+  selected,
+  conflictResolved,
+  recompared,
+  disabled,
+  onToggle,
   onEdit,
-  onConfirm,
-  onRetry,
 }: {
   candidate: WorldSettingCandidateResponse;
-  actionPending: boolean;
-  actionError?: string | null;
-  retrying: boolean;
-  onDismiss: () => void;
+  decision: DecisionDraft | null;
+  selected: boolean;
+  conflictResolved: boolean;
+  recompared: boolean;
+  disabled: boolean;
+  onToggle: () => void;
   onEdit: () => void;
-  onConfirm: () => void;
-  onRetry: () => void;
 }) {
-  const review = REVIEW_META[candidate.reviewStatus ?? 'PENDING_REVIEW'];
+  const operation = decision?.operation ?? candidate.suggestedOperation;
+  const consolidationStatus = candidate.consolidationStatus ?? 'SINGLE';
+  const hasConflict = consolidationStatus === 'CONFLICT';
+  const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
+  const operationMeta = operation ? OPERATION_META[operation] : null;
   const comparison = COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
-  const operation = candidate.suggestedOperation ? OPERATION_META[candidate.suggestedOperation] : null;
-  const category = candidate.category ? CATEGORY_META[candidate.category] : null;
-  const confidence = confidenceLabel(candidate.extractionConfidence);
   const evidence = evidenceSpans(candidate.evidenceSpans);
-  const pendingReview = candidate.reviewStatus === 'PENDING_REVIEW';
-  const comparisonReady = candidate.comparisonStatus === 'COMPLETED';
-  const retryAvailable = candidate.comparisonStatus === 'FAILED'
-    || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED';
-  const finalOperation = candidate.finalOperation ? OPERATION_META[candidate.finalOperation] : null;
-
+  const keyName = decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName ?? '설정명 없음';
+  const proposedValue = decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
+  const proposedTone = hasConflict && !conflictResolved
+    ? C.warning
+    : operation === 'EXCLUDE' ? C.primary : C.success;
+  const proposedLabel = hasConflict && !conflictResolved
+    ? '확인이 필요한 추출값'
+    : operation === 'EXCLUDE' ? '추출된 값' : '+ 제안값';
+  const preservesExistingValue = operation === 'EXCLUDE';
+  const beforeTone = preservesExistingValue ? C.t2 : C.danger;
+  const beforeLabel = preservesExistingValue
+    ? (candidate.beforeValue ? '비교한 기존값' : '비교 대상')
+    : '− 기존값';
+  const beforeValue = candidate.beforeValue
+    || (operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
+  const comparisonReason = userFacingComparisonReason(candidate);
+  const canSelect = candidate.reviewStatus === 'PENDING_REVIEW'
+    && candidate.comparisonStatus === 'COMPLETED'
+    && decision !== null;
   return (
-    <article style={{
-      minHeight: 560, padding: 22, borderRadius: 10,
-      border: `1px solid ${C.border}`, background: C.surface,
+    <section style={{
+      padding: '18px 22px', borderTop: `1px solid ${C.border}`,
+      opacity: selected || !canSelect ? 1 : 0.64,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 18, flexWrap: 'wrap' }}>
-        <strong style={{ color: C.t1, fontSize: 17, marginRight: 4 }}>세계관 후보 상세</strong>
-        <Badge label={review.label} color={review.color} />
-        <Badge label={comparison.label} color={comparison.color} />
-        {category && <Badge label={category.label} color={C.primary} />}
-        {operation && <Badge label={operation.label} color={operation.color} />}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <input
+          type="checkbox"
+          aria-label={`${keyName} 변경 선택`}
+          checked={selected}
+          disabled={disabled || !canSelect}
+          onChange={onToggle}
+          style={{ width: 17, height: 17, accentColor: C.primary, flexShrink: 0 }}
+        />
+        <strong style={{ color: C.t1, fontSize: 14, overflowWrap: 'anywhere' }}>{keyName}</strong>
         <div style={{ flex: 1 }} />
-        <Badge label={candidate.sourceEpisodeNo == null ? '회차 정보 없음' : `${candidate.sourceEpisodeNo}화`} color={C.t2} />
+        {operationMeta && <Badge label={operationMeta.label} color={operationMeta.color} />}
+        {consolidationStatus === 'MERGED' && <Badge label="여러 내용 정리됨" color={C.primary} />}
+        {hasConflict && (
+          <Badge label={conflictResolved ? '내용 확인 완료' : '내용 확인 필요'} color={conflictResolved ? C.success : C.warning} />
+        )}
+        <Badge
+          label={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화 근거`}
+          color={C.t2}
+        />
+        {candidate.comparisonStatus !== 'COMPLETED' && <Badge label={comparison.label} color={comparison.color} />}
+        {recompared && <Badge label="재비교됨" color={C.success} />}
+        {candidate.reviewStatus && candidate.reviewStatus !== 'PENDING_REVIEW' && (
+          <Badge label={REVIEW_META[candidate.reviewStatus].label} color={REVIEW_META[candidate.reviewStatus].color} />
+        )}
+        <button type="button" disabled={disabled || !canSelect} onClick={onEdit} style={{
+          minHeight: 28, padding: '0 8px', borderRadius: 6, border: `1px solid ${C.border}`,
+          background: 'transparent', color: disabled || !canSelect ? C.t3 : C.t2,
+          fontFamily: 'inherit', fontSize: 10, cursor: disabled || !canSelect ? 'not-allowed' : 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}><Pencil size={10} /> 수정</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <DetailValue label="대상" value={candidate.subjectName} />
-        <DetailValue label="설정명" value={candidate.settingName} />
-      </div>
-
-      <div style={{ color: C.t3, fontSize: 11, fontWeight: 700, margin: '20px 0 9px' }}>
-        기존 설정과 이번 추출값 비교
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <DetailValue label="비교 당시 기존 확정값" value={candidate.beforeValue} />
-        <DetailValue label="이번 회차 추출값" value={candidate.extractedValue} />
-      </div>
-
-      {comparisonReady ? (
-        <div style={{ marginTop: 12 }}>
-          <DetailValue
-            label={`확정 시 반영될 값 · ${candidate.proposedSettingName || candidate.settingName || '설정'}`}
-            value={candidate.proposedValue}
-            strong
-          />
-          <div style={{
-            marginTop: 10, padding: '13px 15px', borderRadius: 8,
-            border: `1px solid ${C.border}`, background: C.bg,
-          }}>
-            <div style={{ color: C.t3, fontSize: 10, marginBottom: 6 }}>AI 비교 이유</div>
-            <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.65 }}>
-              {candidate.comparisonReason || '비교 이유가 제공되지 않았습니다.'}
-            </div>
+      <div className="world-setting-key-diff-values" style={{
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10,
+        margin: '13px 0 0 27px',
+      }}>
+        <div style={{
+          minHeight: 72, padding: '12px 14px', borderRadius: 8,
+          border: `1px solid ${preservesExistingValue ? C.border : `${C.danger}2F`}`,
+          background: preservesExistingValue ? `${C.t2}08` : `${C.danger}0B`,
+        }}>
+          <div style={{ color: beforeTone, fontSize: 10, fontWeight: 750, marginBottom: 7 }}>{beforeLabel}</div>
+          <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+            {beforeValue}
           </div>
         </div>
-      ) : (
         <div style={{
-          marginTop: 12, padding: '14px 15px', borderRadius: 8,
-          border: `1px solid ${comparison.color}55`, background: `${comparison.color}12`,
-          color: comparison.color, fontSize: 12, lineHeight: 1.6,
+          minHeight: 72, padding: '12px 14px', borderRadius: 8,
+          border: `1px solid ${proposedTone}77`, background: `${proposedTone}16`,
+          boxShadow: `inset 3px 0 0 ${proposedTone}`,
         }}>
-          {candidate.comparisonStatus === 'FAILED'
-            ? candidate.comparisonErrorMessage || '기존 세계관과 비교하지 못했습니다.'
-            : candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
-              ? '확정본이 바뀌어 최신 설정과 다시 비교하고 있습니다.'
-              : candidate.comparisonStatus === 'PROCESSING'
-                ? '기존 세계관 설정과 비교하고 있습니다.'
-                : '기존 세계관 설정과 비교할 차례를 기다리고 있습니다.'}
+          <div style={{ color: proposedTone, fontSize: 10, fontWeight: 800, marginBottom: 7 }}>{proposedLabel}</div>
+          {hasConflict && !conflictResolved && sourceValues.length > 1 ? (
+            <div style={{ display: 'grid', gap: 7 }}>
+              {sourceValues.map((value, index) => (
+                <div key={`${index}-${value}`} style={{ color: C.t1, fontSize: 12, fontWeight: 700, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+                  <span style={{ color: C.warning, fontSize: 9, marginRight: 7 }}>추출 {index + 1}</span>
+                  {value}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.t1, fontSize: 13, fontWeight: 750, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+              {proposedValue || '값 없음'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {consolidationStatus === 'MERGED' && (
+        <div style={{
+          margin: '10px 0 0 27px', padding: '9px 12px', borderRadius: 7,
+          border: `1px solid ${C.primary}3D`, background: `${C.primary}0A`,
+          color: C.t2, fontSize: 11, lineHeight: 1.6,
+        }}>
+          여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.
+        </div>
+      )}
+      {hasConflict && !conflictResolved && (
+        <div role="alert" style={{
+          margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          color: C.warning, fontSize: 11, lineHeight: 1.6,
+        }}>
+          원문 내용이 서로 달라 자동으로 하나로 합치지 않았습니다. 수정에서 최종 설정값을 정해 주세요.
+        </div>
+      )}
+
+      {comparisonReason && (
+        <div style={{
+          margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
+          border: `1px solid ${C.primary}44`, background: `${C.primary}0C`,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+        }}>
+          <Sparkles size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: C.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>AI 비교 판단</div>
+            <div style={{ color: C.t2, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+              {comparisonReason}
+            </div>
+          </div>
         </div>
       )}
 
       <div style={{
-        marginTop: 12, padding: '14px 15px', borderRadius: 8,
+        margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
         border: `1px solid ${C.border}`, background: C.bg,
+        display: 'flex', alignItems: 'flex-start', gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: evidence.length ? 9 : 0 }}>
-          <FileText size={14} color={C.primary} />
-          <strong style={{ color: C.t2, fontSize: 12 }}>원문 근거</strong>
-          <div style={{ flex: 1 }} />
-          <span style={{ color: confidence.color, fontSize: 11, fontWeight: 700 }}>
-            AI 근거 명확도 {confidence.value}
-          </span>
+        <FileText size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: C.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>1차 추출 원문</div>
+          {evidence.length ? (
+            <div style={{ display: 'grid', gap: 7 }}>
+              {evidence.map((span, index) => (
+                <div key={`${span.startOffset ?? 'unknown'}-${span.endOffset ?? index}-${span.quote}`} style={{
+                  color: C.t1, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere',
+                }}>
+                  {evidence.length > 1 && (
+                    <span style={{ color: C.t3, fontSize: 9, marginRight: 7 }}>근거 {index + 1}</span>
+                  )}
+                  “{span.quote}”
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
+          )}
         </div>
-        {evidence.length ? evidence.map((span, index) => (
-          <blockquote key={`${span.startOffset ?? index}-${span.quote}`} style={{
-            margin: index ? '8px 0 0' : 0, paddingLeft: 12,
-            borderLeft: `2px solid ${C.primary}88`, color: C.t1,
-            fontSize: 12, lineHeight: 1.65,
-          }}>
-            “{span.quote}”
-            {(span.startOffset != null || span.endOffset != null) && (
-              <span style={{ display: 'block', color: C.t3, fontSize: 10, marginTop: 3 }}>
-                offset {span.startOffset ?? '?'}–{span.endOffset ?? '?'}
-              </span>
-            )}
-          </blockquote>
-        )) : (
-          <span style={{ color: C.t3, fontSize: 11 }}>{confidence.description} · 표시할 quote가 없습니다.</span>
-        )}
       </div>
+    </section>
+  );
+}
 
-      {!pendingReview && (
-        <div style={{
-          marginTop: 12, padding: '14px 15px', borderRadius: 8,
-          border: `1px solid ${review.color}55`, background: `${review.color}0F`,
+function WorldCandidateGroupDetail({
+  group,
+  selectedIds,
+  resolvedConflictIds,
+  recomparedIds,
+  decisions,
+  actionPending,
+  actionError,
+  onToggle,
+  onEdit,
+  onDismiss,
+  onConfirm,
+  onRetry,
+}: {
+  group: WorldSettingCandidateGroupResponse;
+  selectedIds: Set<string>;
+  resolvedConflictIds: Set<string>;
+  recomparedIds: Set<string>;
+  decisions: Record<string, DecisionDraft>;
+  actionPending: boolean;
+  actionError?: string | null;
+  onToggle: (candidateId: string) => void;
+  onEdit: (candidate: WorldSettingCandidateResponse) => void;
+  onDismiss: () => void;
+  onConfirm: () => void;
+  onRetry: () => void;
+}) {
+  const candidates = group.candidates ?? [];
+  const category = group.category ? CATEGORY_META[group.category] : null;
+  const selectedCandidates = candidates.filter(candidate => candidate.id && selectedIds.has(candidate.id));
+  const selectedCount = selectedCandidates.length;
+  const selectedExcludeCount = selectedCandidates.filter(candidate => (
+    candidate.id && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE'
+  )).length;
+  const duplicateSettingNames = (() => {
+    const seen = new Map<string, string>();
+    const duplicates = new Set<string>();
+    for (const candidate of selectedCandidates) {
+      if (!candidate.id) continue;
+      const settingName = decisions[candidate.id]?.settingName
+        ?? candidate.proposedSettingName
+        ?? candidate.settingName;
+      if (!settingName) continue;
+      const normalized = settingName.trim().normalize('NFC').toLocaleLowerCase('ko-KR');
+      if (seen.has(normalized)) duplicates.add(seen.get(normalized) ?? settingName.trim());
+      else seen.set(normalized, settingName.trim());
+    }
+    return [...duplicates];
+  })();
+  const selectedApplyCount = selectedCount - selectedExcludeCount;
+  const unresolvedConflicts = selectedCandidates.filter(candidate => candidate.id
+    && candidate.consolidationStatus === 'CONFLICT'
+    && !resolvedConflictIds.has(candidate.id)
+    && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
+  const confirmLabel = selectedApplyCount === 0
+    ? `제안대로 ${selectedExcludeCount}개 제외`
+    : selectedExcludeCount === 0
+      ? `${selectedApplyCount}개 설정 반영`
+      : `${selectedApplyCount}개 반영 · ${selectedExcludeCount}개 제외 확정`;
+  const retryAvailable = candidates.some(candidate => candidate.comparisonStatus === 'FAILED'
+    || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED');
+  const confirmable = selectedCount > 0 && selectedCandidates
+    .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW'
+      && candidate.comparisonStatus === 'COMPLETED'
+      && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
+    && duplicateSettingNames.length === 0
+    && unresolvedConflicts.length === 0;
+  return (
+    <article style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
+      <header style={{ padding: '21px 22px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <strong style={{ color: C.t1, fontSize: 18 }}>
+            {category?.label ?? '세계관'} · {group.subjectName || '대상명 없음'}
+          </strong>
+          <div style={{ flex: 1 }} />
+          <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
+        </div>
+        <p style={{ margin: '7px 0 0', color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
+          같은 대상에서 추출된 설정을 항목별로 검토합니다.
+        </p>
+      </header>
+
+      <RecomparisonNotice group={group} />
+      {candidates.map(candidate => candidate.id && (
+        <WorldKeyDiffRow
+          key={candidate.id}
+          candidate={candidate}
+          decision={decisions[candidate.id] ?? candidateDecision(candidate)}
+          selected={selectedIds.has(candidate.id)}
+          conflictResolved={resolvedConflictIds.has(candidate.id)}
+          recompared={recomparedIds.has(candidate.id)}
+          disabled={actionPending}
+          onToggle={() => onToggle(candidate.id!)}
+          onEdit={() => onEdit(candidate)}
+        />
+      ))}
+
+      {duplicateSettingNames.length > 0 && (
+        <div role="alert" style={{
+          margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          color: C.warning, fontSize: 12, lineHeight: 1.55,
         }}>
-          <div style={{ color: review.color, fontSize: 11, fontWeight: 750, marginBottom: 7 }}>
-            사용자 최종 결정 · {finalOperation?.label ?? review.label}
-          </div>
-          <div style={{ color: C.t1, fontSize: 13, lineHeight: 1.6 }}>
-            {candidate.finalSubjectName || candidate.subjectName} · {candidate.finalSettingName || candidate.settingName}
-            {candidate.reviewStatus === 'CONFIRMED' && ` · ${candidate.finalValue || '값 없음'}`}
-          </div>
-          <div style={{ color: C.t3, fontSize: 10, marginTop: 5 }}>
-            {candidate.reviewedByDisplayName || '검토자 정보 없음'}
-            {candidate.reviewedAt ? ` · ${new Date(candidate.reviewedAt).toLocaleString('ko-KR')}` : ''}
-          </div>
+          같은 설정명 ‘{duplicateSettingNames.join('’, ‘')}’이 여러 번 있습니다.
+          내용을 하나로 합치거나 하나만 선택해 주세요.
+        </div>
+      )}
+
+      {unresolvedConflicts.length > 0 && (
+        <div role="alert" style={{
+          margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          color: C.warning, fontSize: 12, lineHeight: 1.55,
+        }}>
+          원문마다 내용이 다른 설정이 선택되어 있습니다. 수정에서 최종 내용을 정하거나 선택을 해제해 주세요.
         </div>
       )}
 
       {actionError && (
         <div role="alert" style={{
-          marginTop: 12, padding: '11px 13px', borderRadius: 7,
+          margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
           color: C.danger, fontSize: 12, lineHeight: 1.55,
         }}>
@@ -574,60 +778,59 @@ function WorldCandidateDetail({
         </div>
       )}
 
-      {pendingReview && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-          <ActionButton disabled={actionPending} onClick={onDismiss}>제외</ActionButton>
-          {retryAvailable ? (
-            <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
-              {retrying ? '다시 비교 요청 중…' : '다시 비교'}
-            </ActionButton>
-          ) : (
-            <ActionButton disabled={!comparisonReady || actionPending} tone={C.warning} onClick={onEdit}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Pencil size={12} /> 내용 수정
-              </span>
-            </ActionButton>
-          )}
-          {comparisonReady && operation && (
-            <ActionButton
-              disabled={actionPending}
-              tone={operation.color}
-              onClick={candidate.suggestedOperation === 'EXCLUDE' ? onDismiss : onConfirm}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Check size={13} /> {operation.confirmLabel}
-              </span>
-            </ActionButton>
-          )}
-        </div>
-      )}
+      <footer style={{
+        position: 'sticky', bottom: 0, zIndex: 2, marginTop: 18, padding: '16px 22px',
+        borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
+        display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9, flexWrap: 'wrap',
+      }}>
+        {retryAvailable && (
+          <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
+            <RefreshCw size={12} /> 다시 비교
+          </ActionButton>
+        )}
+        {selectedApplyCount > 0 && (
+          <ActionButton disabled={actionPending || selectedCount === 0} tone={C.danger} onClick={onDismiss}>
+            선택 항목 제외
+          </ActionButton>
+        )}
+        <button type="button" disabled={actionPending || !confirmable} onClick={onConfirm} style={{
+          minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
+          background: actionPending || !confirmable ? C.border : C.primary,
+          color: actionPending || !confirmable ? C.t3 : '#fff', fontFamily: 'inherit',
+          fontSize: 12, fontWeight: 800, cursor: actionPending || !confirmable ? 'not-allowed' : 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+        }}>
+          {actionPending ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
+          {confirmLabel}
+        </button>
+      </footer>
     </article>
   );
 }
 
-type CandidateDraft = WorldSettingCandidateConfirmRequest;
-
 function CandidateEditModal({
   candidate,
+  initialDecision,
   pending,
   error,
   onClose,
   onSubmit,
 }: {
   candidate: WorldSettingCandidateResponse;
+  initialDecision: DecisionDraft;
   pending: boolean;
   error?: string | null;
   onClose: () => void;
-  onSubmit: (draft: CandidateDraft, identityChanged: boolean) => void;
+  onSubmit: (draft: DecisionDraft, identityChanged: boolean) => void;
 }) {
-  const initialCategory = candidate.category ?? 'RACE';
-  const initialSubject = candidate.subjectName ?? '';
-  const initialSetting = candidate.proposedSettingName ?? candidate.settingName ?? '';
+  const initialCategory = initialDecision.category;
+  const initialSubject = initialDecision.subjectName;
+  const initialSetting = initialDecision.settingName;
   const [category, setCategory] = useState<WorldCategory>(initialCategory);
   const [subjectName, setSubjectName] = useState(initialSubject);
   const [settingName, setSettingName] = useState(initialSetting);
-  const [operation, setOperation] = useState<WorldOperation>(candidate.suggestedOperation ?? 'ADD');
-  const [value, setValue] = useState(candidate.proposedValue ?? candidate.extractedValue ?? '');
+  const [operation, setOperation] = useState<WorldOperation>(initialDecision.operation);
+  const [value, setValue] = useState(initialDecision.value);
   const [validationError, setValidationError] = useState<string | null>(null);
   const identityChanged = category !== initialCategory
     || subjectName.trim() !== initialSubject.trim()
@@ -643,13 +846,7 @@ function CandidateEditModal({
       return;
     }
     setValidationError(null);
-    onSubmit({
-      category,
-      subjectName: normalizedSubject,
-      settingName: normalizedSetting,
-      operation,
-      value: normalizedValue,
-    }, identityChanged);
+    onSubmit({ category, subjectName: normalizedSubject, settingName: normalizedSetting, operation, value: normalizedValue }, identityChanged);
   };
 
   const inputStyle = {
@@ -659,29 +856,22 @@ function CandidateEditModal({
   };
 
   return (
-    <div
-      role="presentation"
-      onMouseDown={event => { if (event.target === event.currentTarget && !pending) onClose(); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200, padding: 20,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.68)',
-      }}
-    >
+    <div role="presentation" onMouseDown={event => {
+      if (event.target === event.currentTarget && !pending) onClose();
+    }} style={{
+      position: 'fixed', inset: 0, zIndex: 200, padding: 20, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.68)',
+    }}>
       <form onSubmit={submit} style={{
         width: 'min(720px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
         borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
       }}>
-        <div style={{
-          padding: '19px 22px', borderBottom: `1px solid ${C.border}`,
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <strong style={{ color: C.t1, fontSize: 16 }}>반영안 수정</strong>
+        <div style={{ padding: '19px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
+          <strong style={{ color: C.t1, fontSize: 16 }}>{candidate.settingName || '설정 항목'} 반영 내용 수정</strong>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={pending} aria-label="닫기" onClick={onClose} style={{
-            border: 'none', background: 'none', color: C.t3,
-            cursor: pending ? 'not-allowed' : 'pointer', padding: 4,
+            border: 'none', background: 'none', color: C.t3, cursor: pending ? 'not-allowed' : 'pointer', padding: 4,
           }}><X size={18} /></button>
         </div>
         <div style={{ padding: 22 }}>
@@ -690,71 +880,44 @@ function CandidateEditModal({
             background: `${C.warning}12`, border: `1px solid ${C.warning}44`,
             color: C.warning, fontSize: 11, lineHeight: 1.6,
           }}>
-            분류·대상·설정명을 바꾸면 새 비교 대상을 찾기 위해 다시 비교합니다.
-            반영 방식이나 최종값만 바꾸면 바로 확정할 수 있습니다.
+            분류·대상·설정명을 바꾸면 최신 확정 내용과 이 설정 항목을 다시 비교합니다.
+            반영 방식이나 최종값만 바꾸면 현재 그룹의 확정 요청에 함께 반영됩니다.
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: 10 }}>
-            <label style={{ color: C.t3, fontSize: 11 }}>
-              분류
+          <div className="world-setting-edit-identity" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: 10 }}>
+            <label style={{ color: C.t3, fontSize: 11 }}>분류
               <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
                 {CATEGORY_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>
-              대상
+            <label style={{ color: C.t3, fontSize: 11 }}>대상
               <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>
-              설정명
+            <label style={{ color: C.t3, fontSize: 11 }}>설정명
               <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
-            <label style={{ color: C.t3, fontSize: 11 }}>
-              반영 방식
+          <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
+            <label style={{ color: C.t3, fontSize: 11 }}>반영 방식
               <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
-                {OPERATION_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>
-              최종 설정값
+            <label style={{ color: C.t3, fontSize: 11 }}>최종 설정값
               <textarea value={value} onChange={event => setValue(event.target.value)} style={{
                 ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
               }} />
             </label>
           </div>
-          <div style={{
-            marginTop: 14, padding: '11px 13px', borderRadius: 7,
-            border: `1px solid ${C.border}`, background: C.bg,
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
-          }}>
-            <div>
-              <div style={{ color: C.t3, fontSize: 10, marginBottom: 4 }}>비교 당시 기존값</div>
-              <div style={{ color: C.t2, fontSize: 12 }}>{candidate.beforeValue || '값 없음'}</div>
-            </div>
-            <div>
-              <div style={{ color: C.t3, fontSize: 10, marginBottom: 4 }}>이번 추출값</div>
-              <div style={{ color: C.t2, fontSize: 12 }}>{candidate.extractedValue || '값 없음'}</div>
-            </div>
-          </div>
-          {(validationError || error) && (
-            <div role="alert" style={{ marginTop: 12, color: C.danger, fontSize: 12 }}>
-              {validationError ?? error}
-            </div>
-          )}
+          {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: C.danger, fontSize: 12 }}>{validationError ?? error}</div>}
         </div>
-        <div style={{
-          padding: '15px 22px', borderTop: `1px solid ${C.border}`,
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
-        }}>
+        <div style={{ padding: '15px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
           <button type="submit" disabled={pending} style={{
             minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
-            background: C.primary, color: '#fff', fontFamily: 'inherit',
-            fontSize: 12, fontWeight: 750, cursor: pending ? 'not-allowed' : 'pointer',
-            opacity: pending ? 0.62 : 1,
+            background: C.primary, color: '#fff', fontFamily: 'inherit', fontSize: 12,
+            fontWeight: 750, cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.62 : 1,
           }}>
-            {pending ? '처리 중…' : identityChanged ? '변경안 다시 비교' : operation === 'EXCLUDE' ? '제외 확정' : '수정 후 확정'}
+            {pending ? '처리 중…' : identityChanged ? '변경안 다시 비교' : '변경안 저장'}
           </button>
         </div>
       </form>
@@ -770,7 +933,8 @@ export function WorldSettingReview() {
   const [searchParams, setSearchParams] = useSearchParams();
   const workId = searchParams.get('workId') ?? '';
   const batchId = searchParams.get('batchId') ?? '';
-  const selectedCandidateId = searchParams.get('candidate');
+  const selectedGroupKey = searchParams.get('group');
+  const legacyCandidateId = searchParams.get('candidate');
   const reviewFilter = parseReviewFilter(searchParams.get('reviewStatus'));
   const categoryFilter = parseCategoryFilter(searchParams.get('worldCategory'));
   const operationFilter = parseOperationFilter(searchParams.get('operation'));
@@ -778,20 +942,24 @@ export function WorldSettingReview() {
   const size = parsePositiveInteger(searchParams.get('size'), DEFAULT_PAGE_SIZE, 100);
   const apiPage = urlPage - 1;
   const hasContext = Boolean(workId && batchId);
-  const [editOpen, setEditOpen] = useState(false);
-  const [confirmedTarget, setConfirmedTarget] = useState<{ id: string; subjectName: string } | null>(null);
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(selectedCandidateId));
-  const mountedRef = useRef(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [resolvedConflictIds, setResolvedConflictIds] = useState<Set<string>>(new Set());
+  const [recomparedIds, setRecomparedIds] = useState<Set<string>>(new Set());
+  const [decisionOverrides, setDecisionOverrides] = useState<Record<string, DecisionDraft>>({});
+  const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
+  const [confirmedTarget, setConfirmedTarget] = useState<{
+    id?: string;
+    subjectName: string;
+    appliedCount: number;
+    excludedCount: number;
+  } | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(selectedGroupKey || legacyCandidateId));
+  const selectionGroupRef = useRef<string | null>(null);
   const automaticRetryIds = useRef(new Set<string>());
   const reviewNavigationState = location.state as {
     returnToAnalysisList?: unknown;
     returnToAnalysisListByUrl?: unknown;
   } | null;
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
 
   const listQuery = useQuery({
     ...getWorldSettingCandidatesOptions({
@@ -809,159 +977,157 @@ export function WorldSettingReview() {
     retry: shouldRetryCandidateQuery,
     refetchInterval: query => {
       const data = query.state.data?.data;
-      const activeCount = (data?.pendingComparisonCount ?? 0)
-        + (data?.processingComparisonCount ?? 0);
-      const currentPageActive = data?.candidates?.content?.some(candidate => (
+      const activeCount = (data?.pendingComparisonCount ?? 0) + (data?.processingComparisonCount ?? 0);
+      const currentPageActive = data?.groups?.content?.some(group => group.candidates?.some(candidate => (
         isComparisonActive(candidate.comparisonStatus)
-      ));
-      return activeCount > 0 || currentPageActive
-        ? ACTIVE_COMPARISON_POLL_INTERVAL
-        : false;
+      )));
+      return activeCount > 0 || currentPageActive ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
   const listData = listQuery.data?.data;
-  const candidatePage = listData?.candidates;
-  const candidates = useMemo(() => candidatePage?.content ?? [], [candidatePage?.content]);
-  const firstCandidateId = candidates.find(candidate => candidate.reviewStatus === 'PENDING_REVIEW')?.id
-    ?? candidates[0]?.id;
+  const groupPage = listData?.groups;
+  const groups = useMemo(() => groupPage?.content ?? [], [groupPage?.content]);
+  const selectedGroup = groups.find(group => group.groupKey === selectedGroupKey)
+    ?? (legacyCandidateId ? groups.find(group => group.candidates?.some(candidate => candidate.id === legacyCandidateId)) : undefined);
 
   const characterSummaryQuery = useQuery({
-    ...getSettingCandidatesOptions({
-      path: { workId },
-      query: { batchId, page: 0, size: 1 },
-    }),
+    ...getSettingCandidatesOptions({ path: { workId }, query: { batchId, page: 0, size: 1 } }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,
   });
   const characterSummary = characterSummaryQuery.data?.data;
 
   useEffect(() => {
-    if (!listQuery.isSuccess || listQuery.isFetching || selectedCandidateId || !firstCandidateId) return;
+    if (!listQuery.isSuccess || listQuery.isFetching) return;
+    const nextGroup = selectedGroup ?? groups[0];
+    if (!nextGroup?.groupKey) return;
+    if (selectedGroupKey === nextGroup.groupKey && !legacyCandidateId) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
-      next.set('candidate', firstCandidateId);
-      return next;
-    }, { replace: true, state: location.state });
-  }, [firstCandidateId, listQuery.isFetching, listQuery.isSuccess, location.state, selectedCandidateId, setSearchParams]);
-
-  const detailQuery = useQuery({
-    ...getWorldSettingCandidateOptions({
-      path: { workId, candidateId: selectedCandidateId ?? '' },
-      query: { batchId },
-    }),
-    enabled: hasContext && Boolean(selectedCandidateId),
-    retry: shouldRetryCandidateQuery,
-    refetchInterval: query => (
-      isComparisonActive(query.state.data?.data?.comparisonStatus)
-        ? ACTIVE_COMPARISON_POLL_INTERVAL
-        : false
-    ),
-  });
-  const selectedCandidate = detailQuery.data?.data;
-
-  const invalidateCandidateState = async (candidateId?: string) => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: getWorldSettingCandidatesQueryKey({ path: { workId }, query: { batchId } }),
-      }),
-      ...(candidateId ? [queryClient.invalidateQueries({
-        queryKey: getWorldSettingCandidateQueryKey({
-          path: { workId, candidateId }, query: { batchId },
-        }),
-      })] : []),
-      queryClient.invalidateQueries({
-        queryKey: getWorldSettingsQueryKey({ path: { workId } }),
-      }),
-    ]);
-  };
-
-  const clearCurrentCandidate = (candidateId: string) => {
-    if (!mountedRef.current || window.location.pathname !== '/setting-review') return;
-    const current = new URLSearchParams(window.location.search);
-    if (current.get('candidateType') !== 'world' || current.get('candidate') !== candidateId) return;
-    setSearchParams(previous => {
-      if (previous.get('candidate') !== candidateId) return previous;
-      const next = new URLSearchParams(previous);
+      next.set('group', nextGroup.groupKey!);
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
+  }, [groups, legacyCandidateId, listQuery.isFetching, listQuery.isSuccess, location.state, selectedGroup, selectedGroupKey, setSearchParams]);
+
+  useEffect(() => {
+    const groupKey = selectedGroup?.groupKey ?? null;
+    if (selectionGroupRef.current === groupKey) return;
+    selectionGroupRef.current = groupKey;
+    const defaultIds = (selectedGroup?.candidates ?? []).flatMap(candidate => (
+      candidate.id
+        && candidate.reviewStatus === 'PENDING_REVIEW'
+        && candidate.consolidationStatus !== 'CONFLICT'
+        ? [candidate.id]
+        : []
+    ));
+    setSelectedIds(new Set(defaultIds));
+    setResolvedConflictIds(new Set());
+    setRecomparedIds(new Set());
+    setDecisionOverrides({});
+    setEditCandidate(null);
+  }, [selectedGroup]);
+
+  const invalidateReviewState = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getWorldSettingCandidatesQueryKey({ path: { workId }, query: { batchId } }) }),
+      queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) }),
+    ]);
   };
 
   const confirmMutation = useMutation({
-    ...confirmWorldSettingCandidateMutation(),
-    onSuccess: async (response, variables) => {
-      await invalidateCandidateState(variables.path.candidateId);
-      if (response.data?.targetWorldSettingId) {
+    ...confirmWorldSettingCandidateGroupMutation(),
+    onSuccess: async response => {
+      await invalidateReviewState();
+      const result = response.data;
+      const resultCandidates = result?.candidates ?? [];
+      if (result && resultCandidates.length) {
+        const excludedCount = resultCandidates.filter(candidate => candidate.finalOperation === 'EXCLUDE').length;
         setConfirmedTarget({
-          id: response.data.targetWorldSettingId,
-          subjectName: response.data.finalSubjectName ?? response.data.subjectName ?? '확정한 세계관 대상',
+          id: result.worldSettingId ?? undefined,
+          subjectName: resultCandidates[0]?.finalSubjectName
+            ?? resultCandidates[0]?.subjectName
+            ?? selectedGroup?.subjectName
+            ?? '확정한 세계관 대상',
+          appliedCount: resultCandidates.length - excludedCount,
+          excludedCount,
         });
       }
-      setEditOpen(false);
-      clearCurrentCandidate(variables.path.candidateId);
+      setDecisionOverrides({});
+      setResolvedConflictIds(new Set());
     },
-    onError: async (_, variables) => {
-      // 409 재비교 전환도 서버에 커밋되므로 오류 응답 뒤 최신 상태를 다시 받는다.
-      await invalidateCandidateState(variables.path.candidateId);
+    onError: async () => {
+      await invalidateReviewState();
     },
   });
   const dismissMutation = useMutation({
-    ...dismissWorldSettingCandidateMutation(),
-    onSuccess: async (_, variables) => {
-      await invalidateCandidateState(variables.path.candidateId);
-      setEditOpen(false);
-      clearCurrentCandidate(variables.path.candidateId);
+    ...dismissWorldSettingCandidateGroupMutation(),
+    onSuccess: async () => {
+      await invalidateReviewState();
+      setDecisionOverrides({});
+      setResolvedConflictIds(new Set());
     },
   });
   const updateMutation = useMutation({
     ...updateWorldSettingCandidateMutation(),
-    onSuccess: async (_, variables) => {
-      await invalidateCandidateState(variables.path.candidateId);
-      setEditOpen(false);
+    onSuccess: async () => {
+      await invalidateReviewState();
+      setEditCandidate(null);
     },
   });
   const retryMutation = useMutation({
     ...retryWorldSettingCandidateComparisonMutation(),
-    onSuccess: async (_, variables) => {
-      await invalidateCandidateState(variables.path.candidateId);
-    },
+    onSuccess: invalidateReviewState,
   });
 
   useEffect(() => {
-    const candidateId = selectedCandidate?.id;
-    if (!candidateId) return;
-    if (selectedCandidate.comparisonStatus !== 'RECOMPARISON_REQUIRED') {
-      automaticRetryIds.current.delete(candidateId);
-      return;
+    const candidates = selectedGroup?.candidates ?? [];
+    const recoveredIds: string[] = [];
+    for (const candidate of candidates) {
+      if (!candidate.id) continue;
+      if (candidate.comparisonStatus === 'COMPLETED'
+          && automaticRetryIds.current.has(candidate.id)) {
+        recoveredIds.push(candidate.id);
+        automaticRetryIds.current.delete(candidate.id);
+      } else if (candidate.comparisonStatus === 'FAILED') {
+        automaticRetryIds.current.delete(candidate.id);
+      }
     }
-    if (automaticRetryIds.current.has(candidateId) || retryMutation.isPending) return;
-    automaticRetryIds.current.add(candidateId);
-    retryMutation.mutate({ path: { workId, candidateId } });
-  }, [retryMutation, selectedCandidate, workId]);
+    if (recoveredIds.length) {
+      setRecomparedIds(previous => new Set([...previous, ...recoveredIds]));
+    }
+    const retryCandidate = candidates.find(candidate => candidate.id
+      && (candidate.comparisonStatus === 'PENDING'
+        || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED')
+      && !automaticRetryIds.current.has(candidate.id));
+    if (!retryCandidate?.id || retryMutation.isPending) return;
+    automaticRetryIds.current.add(retryCandidate.id);
+    retryMutation.mutate({ path: { workId, candidateId: retryCandidate.id } });
+  }, [retryMutation, selectedGroup, workId]);
 
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
     || updateMutation.isPending
     || retryMutation.isPending;
-  const selectedActionError = [confirmMutation, dismissMutation, updateMutation, retryMutation]
-    .find(mutation => mutation.isError
-      && mutation.variables?.path.candidateId === selectedCandidateId)?.error;
+  const selectedActionError = confirmMutation.error ?? dismissMutation.error ?? updateMutation.error ?? retryMutation.error;
+  const apiActionError = toApiError(selectedActionError);
+  const conflictScope = apiActionError?.context?.scope;
+  const conflictReason = apiActionError?.context?.reasonMessage;
   const actionError = selectedActionError
-    ? errorMessage(selectedActionError, '후보를 처리하지 못했습니다. 입력값을 유지했으니 다시 시도해 주세요.')
+    ? `${typeof conflictScope === 'string' ? `${conflictScope} 재비교 · ` : ''}${typeof conflictReason === 'string'
+      ? conflictReason
+      : errorMessage(selectedActionError, '대상 그룹을 처리하지 못했습니다. 최신 상태를 확인해 주세요.')}`
     : null;
 
-  const updateFilters = (
-    nextReview: ReviewFilter,
-    nextCategory: CategoryFilter,
-    nextOperation: OperationFilter,
-  ) => {
+  const updateFilters = (nextReview: ReviewFilter, nextCategory: CategoryFilter, nextOperation: OperationFilter) => {
     if (actionPending) return;
     setMobileDetailOpen(false);
-    setEditOpen(false);
+    setEditCandidate(null);
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
     retryMutation.reset();
+    selectionGroupRef.current = null;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       if (nextReview === 'PENDING_REVIEW') next.delete('reviewStatus');
@@ -971,22 +1137,24 @@ export function WorldSettingReview() {
       if (nextOperation === 'ALL') next.delete('operation');
       else next.set('operation', nextOperation);
       next.set('page', '1');
+      next.delete('group');
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
   };
 
-  const selectCandidate = (candidateId: string) => {
+  const selectGroup = (groupKey: string) => {
     if (actionPending) return;
     setMobileDetailOpen(true);
-    setEditOpen(false);
+    setEditCandidate(null);
     confirmMutation.reset();
     dismissMutation.reset();
     updateMutation.reset();
     retryMutation.reset();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
-      next.set('candidate', candidateId);
+      next.set('group', groupKey);
+      next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
   };
@@ -994,70 +1162,76 @@ export function WorldSettingReview() {
   const changePage = (page: number) => {
     if (actionPending) return;
     setMobileDetailOpen(false);
-    setEditOpen(false);
+    selectionGroupRef.current = null;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('page', String(page + 1));
+      next.delete('group');
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
   };
 
-  const candidateConfirmBody = (candidate: WorldSettingCandidateResponse): CandidateDraft | null => {
-    if (!candidate.category || !candidate.subjectName || !candidate.suggestedOperation
-      || candidate.suggestedOperation === 'EXCLUDE') return null;
-    const settingName = candidate.proposedSettingName ?? candidate.settingName;
-    const value = candidate.proposedValue ?? candidate.extractedValue;
-    if (!settingName || !value) return null;
-    return {
-      operation: candidate.suggestedOperation,
-      category: candidate.category,
-      subjectName: candidate.subjectName,
-      settingName,
-      value,
-    };
-  };
-
-  const confirmSelected = () => {
-    if (!selectedCandidateId || !selectedCandidate || actionPending) return;
-    const body = candidateConfirmBody(selectedCandidate);
-    if (!body) return;
-    confirmMutation.mutate({ path: { workId, candidateId: selectedCandidateId }, body });
-  };
-  const dismissSelected = () => {
-    if (!selectedCandidateId || actionPending) return;
-    dismissMutation.mutate({
-      path: { workId, candidateId: selectedCandidateId },
-      body: {},
+  const toggleCandidate = (candidateId: string) => {
+    if (actionPending) return;
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      if (next.has(candidateId)) next.delete(candidateId);
+      else next.add(candidateId);
+      return next;
     });
   };
-  const retrySelected = () => {
-    if (!selectedCandidateId || actionPending) return;
-    automaticRetryIds.current.add(selectedCandidateId);
-    retryMutation.mutate({ path: { workId, candidateId: selectedCandidateId } });
+
+  const selectedCandidates = (selectedGroup?.candidates ?? []).filter(candidate => candidate.id && selectedIds.has(candidate.id));
+  const confirmSelected = () => {
+    if (!selectedGroup || !batchId || actionPending) return;
+    const candidates = selectedCandidates.flatMap(candidate => {
+      if (!candidate.id) return [];
+      const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
+      return decision ? [{
+        candidateId: candidate.id,
+        ...decision,
+        conflictResolved: candidate.consolidationStatus === 'CONFLICT'
+          ? resolvedConflictIds.has(candidate.id)
+          : undefined,
+      }] : [];
+    });
+    if (!candidates.length || candidates.length !== selectedCandidates.length) return;
+    confirmMutation.mutate({ path: { workId }, body: { batchId, candidates } });
   };
-  const submitEditedCandidate = (draft: CandidateDraft, identityChanged: boolean) => {
-    if (!selectedCandidateId || actionPending) return;
+
+  const dismissSelected = () => {
+    if (!selectedCandidates.length || actionPending) return;
+    dismissMutation.mutate({
+      path: { workId },
+      body: { batchId, candidateIds: selectedCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []) },
+    });
+  };
+
+  const retryGroup = () => {
+    if (!selectedGroup || actionPending) return;
+    const candidate = selectedGroup.candidates?.find(item => item.id
+      && (item.comparisonStatus === 'FAILED' || item.comparisonStatus === 'RECOMPARISON_REQUIRED'));
+    if (!candidate?.id) return;
+    automaticRetryIds.current.add(candidate.id);
+    retryMutation.mutate({ path: { workId, candidateId: candidate.id } });
+  };
+
+  const submitEditedCandidate = (draft: DecisionDraft, identityChanged: boolean) => {
+    if (!editCandidate?.id || actionPending) return;
     if (identityChanged) {
       updateMutation.mutate({
-        path: { workId, candidateId: selectedCandidateId },
-        body: {
-          category: draft.category,
-          subjectName: draft.subjectName,
-          settingName: draft.settingName,
-        },
+        path: { workId, candidateId: editCandidate.id },
+        body: { category: draft.category, subjectName: draft.subjectName, settingName: draft.settingName },
       });
-    } else if (draft.operation === 'EXCLUDE') {
-      dismissMutation.mutate({
-        path: { workId, candidateId: selectedCandidateId },
-        body: {},
-      });
-    } else {
-      confirmMutation.mutate({
-        path: { workId, candidateId: selectedCandidateId },
-        body: draft,
-      });
+      return;
     }
+    setDecisionOverrides(previous => ({ ...previous, [editCandidate.id!]: draft }));
+    if (editCandidate.consolidationStatus === 'CONFLICT') {
+      setResolvedConflictIds(previous => new Set([...previous, editCandidate.id!]));
+      setSelectedIds(previous => new Set([...previous, editCandidate.id!]));
+    }
+    setEditCandidate(null);
   };
 
   const backToAnalysisList = () => {
@@ -1066,10 +1240,7 @@ export function WorldSettingReview() {
       routerNavigate(reviewNavigationState?.returnToAnalysisListByUrl === true ? -2 : -1);
       return;
     }
-    navigate(
-      workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
-      'pop', undefined, { replace: true },
-    );
+    navigate(workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works', 'pop', undefined, { replace: true });
   };
 
   const worldTotal = listData?.totalCandidateCount ?? 0;
@@ -1081,31 +1252,30 @@ export function WorldSettingReview() {
   const worldAttention = (listData?.pendingComparisonCount ?? 0)
     + (listData?.processingComparisonCount ?? 0)
     + (listData?.failedComparisonCount ?? 0)
-    + (listData?.recomparisonRequiredCount ?? 0);
+    + (listData?.recomparisonRequiredCount ?? 0)
+    + (listData?.conflictCandidateCount ?? 0);
   const characterAttention = characterSummary?.matchRequiredCandidateCount ?? 0;
   const combinedTotal = characterTotal + worldTotal;
   const combinedReviewed = characterReviewed + worldReviewed;
   const combinedPending = characterPending + worldPending;
   const combinedAttention = characterAttention + worldAttention;
   const summaryUnavailable = characterSummaryQuery.isError;
-  const reviewComplete = combinedTotal > 0
-    && combinedPending === 0
-    && combinedAttention === 0
-    && !summaryUnavailable
-    && !characterSummaryQuery.isPending;
-  const totalPages = candidatePage?.totalPages ?? 0;
-  const currentPage = candidatePage?.page ?? apiPage;
+  const reviewComplete = combinedTotal > 0 && combinedPending === 0 && combinedAttention === 0
+    && !summaryUnavailable && !characterSummaryQuery.isPending;
+  const totalPages = groupPage?.totalPages ?? 0;
+  const currentPage = groupPage?.page ?? apiPage;
 
   useEffect(() => {
-    const serverTotalPages = candidatePage?.totalPages;
+    const serverTotalPages = groupPage?.totalPages;
     if (serverTotalPages == null || apiPage < Math.max(serverTotalPages, 1)) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('page', String(Math.max(serverTotalPages, 1)));
+      next.delete('group');
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [apiPage, candidatePage?.totalPages, location.state, setSearchParams]);
+  }, [apiPage, groupPage?.totalPages, location.state, setSearchParams]);
 
   if (!hasContext) {
     return (
@@ -1125,8 +1295,8 @@ export function WorldSettingReview() {
 
   return (
     <div style={{
-      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: C.bg,
+      fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <ReviewHeader onBack={backToAnalysisList} />
       <main style={{ flex: 1, overflowY: 'auto' }}>
@@ -1149,7 +1319,7 @@ export function WorldSettingReview() {
             <QueryState
               icon={<Loader2 size={27} color={C.primary} className="spin" />}
               title="세계관 후보를 불러오고 있습니다."
-              description="이번 분석 묶음에서 추출된 지속 설정을 확인하고 있습니다."
+              description="같은 분류와 대상의 설정 항목을 하나의 그룹으로 묶고 있습니다."
             />
           ) : listQuery.isError && !listQuery.data ? (
             <QueryState
@@ -1168,18 +1338,22 @@ export function WorldSettingReview() {
                 }}>
                   <Check size={14} color={C.success} />
                   <span style={{ color: C.success, fontSize: 12, fontWeight: 700 }}>
-                    {confirmedTarget.subjectName} 설정을 세계관 DB에 반영했습니다.
+                    {confirmedTarget.appliedCount > 0 && confirmedTarget.excludedCount > 0
+                      ? `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 반영하고 ${confirmedTarget.excludedCount}개를 제외했습니다.`
+                      : confirmedTarget.appliedCount > 0
+                        ? `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 세계관 DB에 반영했습니다.`
+                        : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.excludedCount}개를 검토 결과 제외했습니다.`}
                   </span>
                   <div style={{ flex: 1 }} />
-                  <button type="button" onClick={() => navigate(
-                    `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB&tab=worldsettings&settingId=${encodeURIComponent(confirmedTarget.id)}`,
-                    'push-left',
-                  )} style={{
-                    border: 'none', background: 'none', color: C.primary,
-                    fontFamily: 'inherit', fontSize: 11, fontWeight: 750, cursor: 'pointer',
-                  }}>
-                    세계관 DB에서 보기
-                  </button>
+                  {confirmedTarget.id && (
+                    <button type="button" onClick={() => navigate(
+                      `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB&tab=worldsettings&settingId=${encodeURIComponent(confirmedTarget.id!)}`,
+                      'push-left',
+                    )} style={{
+                      border: 'none', background: 'none', color: C.primary,
+                      fontFamily: 'inherit', fontSize: 11, fontWeight: 750, cursor: 'pointer',
+                    }}>세계관 DB에서 보기</button>
+                  )}
                   <button type="button" aria-label="확정 안내 닫기" onClick={() => setConfirmedTarget(null)} style={{
                     border: 'none', background: 'none', color: C.t3, cursor: 'pointer', padding: 2,
                   }}><X size={14} /></button>
@@ -1189,20 +1363,14 @@ export function WorldSettingReview() {
               {summaryUnavailable && (
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
-                  border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-                  color: C.warning, fontSize: 12,
-                }}>
-                  캐릭터 후보 집계를 불러오지 못해 전체 완료 여부를 확인할 수 없습니다.
-                </div>
+                  border: `1px solid ${C.warning}55`, background: `${C.warning}12`, color: C.warning, fontSize: 12,
+                }}>캐릭터 후보 집계를 불러오지 못해 전체 완료 여부를 확인할 수 없습니다.</div>
               )}
               {listQuery.isError && listQuery.data && (
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
-                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-                  color: C.danger, fontSize: 12,
-                }}>
-                  최신 후보를 불러오지 못해 마지막으로 확인한 세계관 목록을 표시합니다.
-                </div>
+                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`, color: C.danger, fontSize: 12,
+                }}>최신 후보를 불러오지 못해 마지막으로 확인한 대상 그룹을 표시합니다.</div>
               )}
 
               {worldTotal === 0 ? (
@@ -1215,47 +1383,26 @@ export function WorldSettingReview() {
                 </div>
               ) : (
                 <div className={`world-setting-review-layout${mobileDetailOpen ? ' mobile-detail-open' : ''}`} style={{
-                  marginTop: 18, display: 'grid',
-                  gridTemplateColumns: 'minmax(310px, 390px) minmax(0, 1fr)',
+                  marginTop: 18, display: 'grid', gridTemplateColumns: 'minmax(310px, 390px) minmax(0, 1fr)',
                   gap: 18, alignItems: 'start',
                 }}>
                   <aside className="world-setting-review-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                    <div style={{
-                      padding: 14, borderRadius: 9, border: `1px solid ${C.border}`,
-                      background: C.surface, display: 'grid', gap: 11,
-                    }}>
-                      <SelectFilter
-                        label="검토 상태"
-                        value={reviewFilter}
-                        options={REVIEW_FILTERS}
-                        disabled={actionPending}
-                        onChange={value => updateFilters(value, categoryFilter, operationFilter)}
-                      />
-                      <SelectFilter
-                        label="세계관 분류"
-                        value={categoryFilter}
-                        options={CATEGORY_FILTERS}
-                        disabled={actionPending}
-                        onChange={value => updateFilters(reviewFilter, value, operationFilter)}
-                      />
-                      <SelectFilter
-                        label="제안된 반영 방식"
-                        value={operationFilter}
-                        options={OPERATION_FILTERS}
-                        disabled={actionPending}
-                        onChange={value => updateFilters(reviewFilter, categoryFilter, value)}
-                      />
-                    </div>
-                    <div style={{ color: C.t3, fontSize: 11 }}>회차 번호 · 생성 순</div>
-                    {candidates.length ? (
+                    <FilterGroup label="검토 상태" value={reviewFilter} options={REVIEW_FILTERS} disabled={actionPending}
+                      onChange={value => updateFilters(value, categoryFilter, operationFilter)} />
+                    <FilterGroup label="세계관 분류" value={categoryFilter} options={CATEGORY_FILTERS} disabled={actionPending}
+                      onChange={value => updateFilters(reviewFilter, value, operationFilter)} />
+                    <FilterGroup label="제안된 반영 방식" value={operationFilter} options={OPERATION_FILTERS} disabled={actionPending}
+                      onChange={value => updateFilters(reviewFilter, categoryFilter, value)} />
+                    <div style={{ color: C.t3, fontSize: 11 }}>대상별 변경 묶음 · 생성 순</div>
+                    {groups.length ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {candidates.map(candidate => candidate.id && (
-                          <WorldCandidateCard
-                            key={candidate.id}
-                            candidate={candidate}
-                            selected={candidate.id === selectedCandidateId}
+                        {groups.map(group => group.groupKey && (
+                          <WorldCandidateGroupCard
+                            key={group.groupKey}
+                            group={group}
+                            selected={group.groupKey === selectedGroup?.groupKey}
                             disabled={actionPending}
-                            onClick={() => selectCandidate(candidate.id!)}
+                            onClick={() => selectGroup(group.groupKey!)}
                           />
                         ))}
                       </div>
@@ -1264,67 +1411,47 @@ export function WorldSettingReview() {
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
                         background: C.surface, textAlign: 'center', color: C.t3, fontSize: 12,
                       }}>
-                        조건에 맞는 세계관 후보가 없습니다.
+                        조건에 맞는 세계관 대상이 없습니다.
                         <button type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
                           display: 'block', margin: '10px auto 0', border: 'none', background: 'none',
                           color: C.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
                         }}>필터 초기화</button>
                       </div>
                     )}
-                    <PageNavigation
-                      page={currentPage}
-                      totalPages={totalPages}
-                      disabled={listQuery.isFetching || actionPending}
-                      onPageChange={changePage}
-                    />
+                    <PageNavigation page={currentPage} totalPages={totalPages}
+                      disabled={listQuery.isFetching || actionPending} onPageChange={changePage} />
                   </aside>
 
                   <section className="world-setting-review-detail">
-                    <button
-                      type="button"
-                      className="world-setting-review-mobile-back"
-                      onClick={() => setMobileDetailOpen(false)}
-                      style={{
-                        display: 'none', marginBottom: 10, border: 'none', background: 'none',
-                        color: C.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
-                      }}
-                    >
-                      <ChevronLeft size={15} /> 후보 목록으로
-                    </button>
-                    {!selectedCandidateId ? (
+                    <button type="button" className="world-setting-review-mobile-back" onClick={() => setMobileDetailOpen(false)} style={{
+                      display: 'none', marginBottom: 10, border: 'none', background: 'none',
+                      color: C.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
+                    }}><ChevronLeft size={15} /> 대상 목록으로</button>
+                    {!selectedGroup ? (
                       <QueryState
                         icon={<Sparkles size={26} color={C.primary} />}
-                        title="세계관 후보를 선택해 주세요."
-                        description="목록에서 후보를 선택하면 기존값·추출값·제안값과 원문 근거를 확인할 수 있습니다."
-                      />
-                    ) : detailQuery.isPending ? (
-                      <QueryState
-                        icon={<Loader2 size={26} color={C.primary} className="spin" />}
-                        title="후보 상세를 불러오고 있습니다."
-                        description="비교 결과와 원문 근거를 확인하고 있습니다."
-                      />
-                    ) : detailQuery.isError || !selectedCandidate ? (
-                      <QueryState
-                        icon={<AlertCircle size={27} color={C.danger} />}
-                        title="후보 상세를 불러오지 못했습니다."
-                        description={errorMessage(detailQuery.error, '후보가 현재 분석 묶음에 속하는지 확인해 주세요.')}
-                        action={<ActionButton tone={C.primary} onClick={() => void detailQuery.refetch()}><RefreshCw size={13} /> 다시 시도</ActionButton>}
+                        title="세계관 대상을 선택해 주세요."
+                        description="목록에서 대상을 선택하면 같은 대상의 설정 항목과 1차 원문 근거를 함께 확인할 수 있습니다."
                       />
                     ) : (
-                      <WorldCandidateDetail
-                        candidate={selectedCandidate}
+                      <WorldCandidateGroupDetail
+                        group={selectedGroup}
+                        selectedIds={selectedIds}
+                        resolvedConflictIds={resolvedConflictIds}
+                        recomparedIds={recomparedIds}
+                        decisions={decisionOverrides}
                         actionPending={actionPending}
                         actionError={actionError}
-                        retrying={retryMutation.isPending}
-                        onDismiss={dismissSelected}
-                        onEdit={() => {
+                        onToggle={toggleCandidate}
+                        onEdit={candidate => {
                           confirmMutation.reset();
                           dismissMutation.reset();
                           updateMutation.reset();
-                          setEditOpen(true);
+                          setEditCandidate(candidate);
                         }}
+                        onDismiss={dismissSelected}
                         onConfirm={confirmSelected}
-                        onRetry={retrySelected}
+                        onRetry={retryGroup}
                       />
                     )}
                   </section>
@@ -1343,38 +1470,26 @@ export function WorldSettingReview() {
         </div>
       </main>
 
-      {selectedCandidate && editOpen && (
+      {editCandidate?.id && candidateDecision(editCandidate) && (
         <CandidateEditModal
-          key={selectedCandidate.id}
-          candidate={selectedCandidate}
+          key={editCandidate.id}
+          candidate={editCandidate}
+          initialDecision={decisionOverrides[editCandidate.id] ?? candidateDecision(editCandidate)!}
           pending={actionPending}
           error={actionError}
-          onClose={() => {
-            if (actionPending) return;
-            setEditOpen(false);
-          }}
+          onClose={() => { if (!actionPending) setEditCandidate(null); }}
           onSubmit={submitEditedCandidate}
         />
       )}
       <style>{`
         @media (max-width: 768px) {
-          .world-setting-review-layout {
-            grid-template-columns: minmax(0, 1fr) !important;
-          }
-          .world-setting-review-content {
-            padding: 18px 16px calc(32px + env(safe-area-inset-bottom)) !important;
-          }
-          .world-setting-review-layout.mobile-detail-open .world-setting-review-sidebar {
-            display: none !important;
-          }
-          .world-setting-review-layout:not(.mobile-detail-open) .world-setting-review-detail {
-            display: none !important;
-          }
-          .world-setting-review-mobile-back {
-            display: inline-flex !important;
-            align-items: center;
-            gap: 4px;
-          }
+          .world-setting-review-layout { grid-template-columns: minmax(0, 1fr) !important; }
+          .world-setting-review-content { padding: 18px 16px calc(32px + env(safe-area-inset-bottom)) !important; }
+          .world-setting-review-layout.mobile-detail-open .world-setting-review-sidebar { display: none !important; }
+          .world-setting-review-layout:not(.mobile-detail-open) .world-setting-review-detail { display: none !important; }
+          .world-setting-review-mobile-back { display: inline-flex !important; align-items: center; gap: 4px; }
+          .world-setting-key-diff-values { grid-template-columns: minmax(0, 1fr) !important; }
+          .world-setting-edit-identity, .world-setting-edit-value { grid-template-columns: minmax(0, 1fr) !important; }
         }
       `}</style>
     </div>

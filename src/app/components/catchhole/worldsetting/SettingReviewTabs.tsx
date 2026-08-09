@@ -18,14 +18,18 @@ interface SettingReviewTabsProps {
 
 const SAVED_PARAMS = {
   character: {
-    candidate: 'characterCandidate',
+    selection: 'characterCandidate',
     reviewStatus: 'characterReviewStatus',
     page: 'characterPage',
+    matchStatus: 'characterMatchStatus',
   },
   world: {
-    candidate: 'worldCandidate',
+    selection: 'worldGroup',
+    legacySelection: 'worldCandidate',
     reviewStatus: 'worldReviewStatus',
     page: 'worldPage',
+    category: 'worldCategoryFilter',
+    operation: 'worldOperation',
   },
 } as const;
 
@@ -40,8 +44,8 @@ function copyOptional(
 }
 
 /**
- * 활성 탭의 공통 URL 상태를 보관하고 대상 탭의 마지막 상태를 복원한다.
- * `candidate`, `reviewStatus`, `page`는 활성 탭의 딥링크 계약으로 계속 유지한다.
+ * 활성 탭의 URL 상태를 보관하고 대상 탭의 마지막 상태를 복원한다.
+ * 캐릭터는 `candidate`, 세계관은 `group`을 선택 식별자로 사용한다.
  */
 function switchSettingCandidateType(
   params: URLSearchParams,
@@ -51,24 +55,45 @@ function switchSettingCandidateType(
   if (current === target) return params;
 
   const next = new URLSearchParams(params);
-  const currentSaved = SAVED_PARAMS[current];
-  copyOptional(next, 'candidate', currentSaved.candidate);
-  copyOptional(next, 'reviewStatus', currentSaved.reviewStatus);
-  copyOptional(next, 'page', currentSaved.page);
 
-  if (current === 'character') copyOptional(next, 'matchStatus', 'characterMatchStatus');
+  if (current === 'character') {
+    const currentSaved = SAVED_PARAMS.character;
+    copyOptional(next, 'reviewStatus', currentSaved.reviewStatus);
+    copyOptional(next, 'page', currentSaved.page);
+    copyOptional(next, 'candidate', currentSaved.selection);
+    copyOptional(next, 'matchStatus', currentSaved.matchStatus);
+  } else {
+    const currentSaved = SAVED_PARAMS.world;
+    copyOptional(next, 'reviewStatus', currentSaved.reviewStatus);
+    copyOptional(next, 'page', currentSaved.page);
+    copyOptional(next, 'group', currentSaved.selection);
+    copyOptional(next, 'candidate', currentSaved.legacySelection);
+    copyOptional(next, 'worldCategory', currentSaved.category);
+    copyOptional(next, 'operation', currentSaved.operation);
+  }
 
-  const targetSaved = SAVED_PARAMS[target];
-  copyOptional(next, targetSaved.candidate, 'candidate');
-  copyOptional(next, targetSaved.reviewStatus, 'reviewStatus');
-  copyOptional(next, targetSaved.page, 'page');
+  next.delete('candidate');
+  next.delete('group');
+  next.delete('matchStatus');
+  next.delete('worldCategory');
+  next.delete('operation');
 
   if (target === 'character') {
+    const targetSaved = SAVED_PARAMS.character;
+    copyOptional(next, targetSaved.reviewStatus, 'reviewStatus');
+    copyOptional(next, targetSaved.page, 'page');
+    copyOptional(next, targetSaved.selection, 'candidate');
+    copyOptional(next, targetSaved.matchStatus, 'matchStatus');
     next.delete('candidateType');
-    copyOptional(next, 'characterMatchStatus', 'matchStatus');
   } else {
+    const targetSaved = SAVED_PARAMS.world;
+    copyOptional(next, targetSaved.reviewStatus, 'reviewStatus');
+    copyOptional(next, targetSaved.page, 'page');
+    copyOptional(next, targetSaved.selection, 'group');
+    if (!next.has('group')) copyOptional(next, targetSaved.legacySelection, 'candidate');
+    copyOptional(next, targetSaved.category, 'worldCategory');
+    copyOptional(next, targetSaved.operation, 'operation');
     next.set('candidateType', 'world');
-    next.delete('matchStatus');
   }
   return next;
 }
