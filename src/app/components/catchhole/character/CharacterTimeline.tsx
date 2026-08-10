@@ -125,6 +125,7 @@ function TimelineModal({
   onClose,
 }: TimelineModalProps) {
   const queryClient = useQueryClient();
+  const feedRef = useRef<HTMLElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [shortcutRangeIndex, setShortcutRangeIndex] = useState(0);
   const [shortcutOpen, setShortcutOpen] = useState(false);
@@ -145,6 +146,13 @@ function TimelineModal({
     ? multiFilterQuery
     : { factType };
   const timelineEnabled = viewMode === 'all' || selectionApplied;
+  const feedResetKey = [
+    viewMode,
+    factType,
+    fromEpisodeNo ?? '',
+    selection.factTypes.join('\u0000'),
+    selection.factKeys.join('\u0000'),
+  ].join('\u0001');
 
   const summaryQuery = useQuery({
     ...getCharacterTimelineSummaryOptions({
@@ -293,6 +301,10 @@ function TimelineModal({
   }, [episodeRanges, fromEpisodeNo]);
 
   useEffect(() => {
+    if (feedRef.current) feedRef.current.scrollTop = 0;
+  }, [feedResetKey]);
+
+  useEffect(() => {
     const target = loadMoreRef.current;
     if (!target || !hasNextPage || isFetchNextPageError) return;
     const observer = new IntersectionObserver(entries => {
@@ -419,16 +431,7 @@ function TimelineModal({
           </div>
         )}
 
-        {viewMode === 'types' && !selectionApplied ? (
-          <div className="character-timeline-state">
-            <SlidersHorizontal size={28} />
-            <strong>변화 이력을 보고 싶은 설정을 선택하세요.</strong>
-            <span>왼쪽 현재 설정을 클릭하면 여러 항목을 한 타임라인에서 비교할 수 있습니다.</span>
-            <button type="button" className="timeline-primary-button" onClick={() => onViewModeChange('all')}>
-              전체 이력 보기
-            </button>
-          </div>
-        ) : demoMode ? (
+        {demoMode ? (
           <div className="character-timeline-state">
             <Clock3 size={28} />
             <strong>데모 캐릭터에는 확정 이력이 없습니다.</strong>
@@ -448,6 +451,15 @@ function TimelineModal({
           </div>
         ) : initialLoading ? (
           <div className="character-timeline-state"><Loader2 className="spin" size={22} /> 타임라인을 불러오는 중입니다.</div>
+        ) : viewMode === 'types' && !selectionApplied ? (
+          <div className="character-timeline-state">
+            <SlidersHorizontal size={28} />
+            <strong>변화 이력을 보고 싶은 설정을 선택하세요.</strong>
+            <span>왼쪽 현재 설정을 클릭하면 여러 항목을 한 타임라인에서 비교할 수 있습니다.</span>
+            <button type="button" className="timeline-primary-button" onClick={() => onViewModeChange('all')}>
+              전체 이력 보기
+            </button>
+          </div>
         ) : (
           <div className="character-timeline-layout">
             <aside className="character-timeline-shortcuts" aria-label="회차 바로가기">
@@ -497,7 +509,7 @@ function TimelineModal({
               ) : <p>회차 출처가 있는 설정이 없습니다.</p>}
             </aside>
 
-            <main className="character-timeline-feed" aria-live="polite">
+            <main ref={feedRef} className="character-timeline-feed" aria-live="polite">
               {facts.length === 0 ? (
                 <div className="character-timeline-empty">{emptyMessage}</div>
               ) : groups.map(group => (

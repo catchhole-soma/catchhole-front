@@ -24,6 +24,7 @@ async function authenticate(page: Page) {
 test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 근거 패널을 연다', async ({ page }) => {
   const timelineRequests: Array<Record<string, string | null>> = [];
   let summaryRequestCount = 0;
+  let summaryShouldFail = true;
   let cursorRequestCount = 0;
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -100,6 +101,18 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
     }
     if (pathname === `/api/v1/works/${workId}/characters/${characterId}/timeline/summary`) {
       summaryRequestCount += 1;
+      if (summaryShouldFail) {
+        return route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '타임라인 요약을 불러오지 못했습니다.',
+            data: null,
+            error: { code: 'CHARACTER_TIMELINE_NOT_FOUND', status: 404, details: [] },
+          }),
+        });
+      }
       const factType = url.searchParams.get('factType') ?? 'ALL';
       const factTypes = url.searchParams.getAll('factTypes');
       const factKeys = url.searchParams.getAll('factKeys');
@@ -284,6 +297,10 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   expect(initialTimelineBox).not.toBeNull();
   const panelGap = initialTimelineBox!.x - (detailBox!.x + detailBox!.width);
   expect(panelGap).toBeGreaterThanOrEqual(12);
+  await expect(dialog.getByRole('alert')).toContainText('타임라인 요약을 불러오지 못했습니다.');
+  await expect(dialog.getByText('변화 이력을 보고 싶은 설정을 선택하세요.')).toHaveCount(0);
+  summaryShouldFail = false;
+  await dialog.getByRole('button', { name: '다시 시도' }).click();
   await expect(dialog.getByText('변화 이력을 보고 싶은 설정을 선택하세요.')).toBeVisible();
   await expect(detailModal.getByRole('button', { name: '부상 원문 근거 보기' })).toHaveCount(0);
   expect(timelineRequests).toHaveLength(0);
@@ -313,11 +330,20 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   await expect(dialog.getByText('신장', { exact: true })).toBeVisible();
   await expect.poll(() => timelineRequests.filter(request => request.cursor === 'cursor-2').length).toBe(2);
 
+  const timelineFeed = dialog.locator('.character-timeline-feed');
+  await timelineFeed.evaluate(element => {
+    element.style.height = '80px';
+    element.style.overflowY = 'auto';
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => timelineFeed.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+
   await dialog.getByRole('button', { name: '부상 필터 제거' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.getAll('timelineFactKeys')).toEqual([]);
   await expect.poll(() => timelineRequests.some(request => (
     request.factTypes === 'PROFILE' && request.factKeys === ''
   ))).toBe(true);
+  await expect.poll(() => timelineFeed.evaluate(element => element.scrollTop)).toBe(0);
   await expect(dialog.getByRole('button', { name: '부상 필터 제거' })).toHaveCount(0);
 
   await dialog.getByRole('button', { name: '프로필 전체 이력 필터 제거' }).click();
