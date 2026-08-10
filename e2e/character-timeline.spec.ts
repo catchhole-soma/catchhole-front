@@ -354,6 +354,14 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   expect(new URL(page.url()).searchParams.get('timelineFactId')).toBe(firstFactId);
   expect(new URL(page.url()).searchParams.get('factId')).toBeNull();
 
+  const dimmedDetailBox = await detailModal.locator('.character-detail-modal').boundingBox();
+  expect(dimmedDetailBox).not.toBeNull();
+  await page.mouse.click(dimmedDetailBox!.x + 12, dimmedDetailBox!.y + 180);
+  await expect(detailModal).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('timelineFactId')).toBe(firstFactId);
+
   await page.getByRole('button', { name: '원문 근거 닫기' }).click();
   await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toHaveCount(0);
   expect(new URL(page.url()).searchParams.get('timelineFactId')).toBeNull();
@@ -365,4 +373,19 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBe('char-detail');
   await expect.poll(() => new URL(page.url()).searchParams.get('mode')).toBeNull();
   await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactType')).toBeNull();
+
+  await page.goto(
+    `/dashboard?workId=${workId}&nav=settingDB&tab=characters`
+      + `&modal=character-timeline&charId=${characterId}`
+      + `&timelineFactType=STATUS&timelineEpisodeNo=2&factId=${firstFactId}`,
+  );
+  await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBe('char-detail');
+  await expect.poll(() => new URL(page.url()).searchParams.get('mode')).toBe('timeline');
+  await expect.poll(() => new URL(page.url()).searchParams.get('timelineView')).toBe('all');
+  await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactType')).toBe('STATUS');
+  await expect.poll(() => new URL(page.url()).searchParams.get('timelineEpisodeNo')).toBe('2');
+  await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactId')).toBe(firstFactId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('factId')).toBeNull();
+  await expect(page.getByRole('dialog', { name: '캐릭터 설정 이력' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '캐릭터 설정 원문 근거' })).toBeVisible();
 });
