@@ -35,7 +35,11 @@ interface WorldSettingDetail {
   id: string;
   category: string;
   subjectName: string;
-  properties: Record<string, string>;
+  properties: Array<{
+    scopeName: string | null;
+    settingName: string;
+    value: string;
+  }>;
   version: number;
 }
 
@@ -102,34 +106,37 @@ test.describe('세계관 DB 실제 연동', () => {
 
       await expect(page.getByText('등록된 세계관 설정이 없습니다.')).toBeVisible();
       await page.getByRole('button', { name: '새 대상 추가', exact: true }).last().click();
-      await page.getByLabel('대상명').fill('북부 설원');
-      await page.getByLabel('설정명').fill('사회 구조');
-      await page.getByLabel('설정값').fill('부족 단위로 생활');
+      await page.getByLabel('분류').selectOption('LOCATION');
+      await page.getByLabel('대상명').fill('미궁');
+      await page.getByLabel('범위 (선택)').fill('1층');
+      await page.getByLabel('설정명').fill('출몰 규칙');
+      await page.getByLabel('설정값').fill('동쪽에서 고블린이 출몰한다.');
       await page.getByRole('button', { name: '대상 추가', exact: true }).click();
 
       await expect(page.getByText('새 세계관 대상 추가', { exact: true })).toHaveCount(0);
-      await expect(page.getByText('북부 설원', { exact: true }).first()).toBeVisible();
-      await expect(page.getByText('부족 단위로 생활', { exact: true })).toBeVisible();
+      await expect(page.getByText('미궁', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('동쪽에서 고블린이 출몰한다.', { exact: true })).toBeVisible();
 
       const detailPanel = page.locator('.world-setting-db-detail');
-      await detailPanel.getByRole('button', { name: '설정 추가', exact: true }).click();
-      await detailPanel.getByLabel('설정명').fill('서식지');
-      await detailPanel.getByLabel('설정값').fill('혹한 지역');
+      await detailPanel.getByRole('button', { name: '범위·설정 추가', exact: true }).click();
+      await detailPanel.getByLabel('범위 (선택)').fill('2층');
+      await detailPanel.getByLabel('설정명').fill('출몰 규칙');
+      await detailPanel.getByLabel('설정값').fill('중앙부에서 언데드가 출몰한다.');
       await detailPanel.getByRole('button', { name: '추가', exact: true }).click();
-      await expect(page.getByText('혹한 지역', { exact: true })).toBeVisible();
+      await expect(page.getByText('중앙부에서 언데드가 출몰한다.', { exact: true })).toBeVisible();
 
-      await page.getByRole('button', { name: '사회 구조 설정 수정' }).click();
-      await detailPanel.getByLabel('설정값').fill('여러 부족이 연맹으로 생활');
+      await page.getByRole('button', { name: '1층 출몰 규칙 설정 수정' }).click();
+      await detailPanel.getByLabel('설정값').fill('동쪽과 남쪽에서 고블린이 출몰한다.');
       await detailPanel.getByRole('button', { name: '저장', exact: true }).click();
-      await expect(page.getByText('여러 부족이 연맹으로 생활', { exact: true })).toBeVisible();
+      await expect(page.getByText('동쪽과 남쪽에서 고블린이 출몰한다.', { exact: true })).toBeVisible();
 
       await page.getByRole('button', { name: '대상 정보 수정', exact: true }).click();
-      await page.getByLabel('대상명').fill('북부 설원 부족');
+      await page.getByLabel('대상명').fill('심연 미궁');
       await page.getByRole('button', { name: '변경 저장', exact: true }).click();
-      await expect(page.getByText('북부 설원 부족', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('심연 미궁', { exact: true }).first()).toBeVisible();
 
       const listResponse = await request.get(
-        `${apiBaseUrl}/api/v1/works/${session.workId}/world-settings?q=${encodeURIComponent('북부 설원 부족')}`,
+        `${apiBaseUrl}/api/v1/works/${session.workId}/world-settings?q=${encodeURIComponent('심연 미궁')}`,
         { headers: { Authorization: session.authorization } },
       );
       expect(listResponse.ok(), await listResponse.text()).toBeTruthy();
@@ -137,8 +144,8 @@ test.describe('세계관 DB 실제 연동', () => {
       expect(list.data.totalWorldSettingCount).toBe(1);
       expect(list.data.worldSettings.content).toHaveLength(1);
       expect(list.data.worldSettings.content[0]).toMatchObject({
-        category: 'RACE',
-        subjectName: '북부 설원 부족',
+        category: 'LOCATION',
+        subjectName: '심연 미궁',
         propertyCount: 2,
       });
 
@@ -149,19 +156,27 @@ test.describe('세계관 DB 실제 연동', () => {
       expect(detailResponse.ok(), await detailResponse.text()).toBeTruthy();
       const detail = await detailResponse.json() as Envelope<WorldSettingDetail>;
       expect(detail.data).toMatchObject({
-        category: 'RACE',
-        subjectName: '북부 설원 부족',
-        properties: {
-          '사회 구조': '여러 부족이 연맹으로 생활',
-          서식지: '혹한 지역',
-        },
+        category: 'LOCATION',
+        subjectName: '심연 미궁',
         version: 3,
       });
+      expect(detail.data.properties).toEqual(expect.arrayContaining([
+        {
+          scopeName: '1층',
+          settingName: '출몰 규칙',
+          value: '동쪽과 남쪽에서 고블린이 출몰한다.',
+        },
+        {
+          scopeName: '2층',
+          settingName: '출몰 규칙',
+          value: '중앙부에서 언데드가 출몰한다.',
+        },
+      ]));
 
       await page.reload();
-      await expect(page.getByText('북부 설원 부족', { exact: true }).first()).toBeVisible();
-      await expect(page.getByText('여러 부족이 연맹으로 생활', { exact: true })).toBeVisible();
-      await expect(page.getByText('혹한 지역', { exact: true })).toBeVisible();
+      await expect(page.getByText('심연 미궁', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('동쪽과 남쪽에서 고블린이 출몰한다.', { exact: true })).toBeVisible();
+      await expect(page.getByText('중앙부에서 언데드가 출몰한다.', { exact: true })).toBeVisible();
     } finally {
       const deleteWorkResponse = await request.delete(
         `${apiBaseUrl}/api/v1/works/${session.workId}`,

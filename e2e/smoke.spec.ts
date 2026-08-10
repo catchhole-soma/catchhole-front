@@ -1137,6 +1137,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   let analysisRequestCount = 0;
+  let analysisRequestBody: Record<string, unknown> | null = null;
   let releaseAnalysisRequest!: () => void;
   const analysisResponseGate = new Promise<void>(resolve => {
     releaseAnalysisRequest = resolve;
@@ -1148,6 +1149,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
       analysisRequestCount += 1;
+      analysisRequestBody = request.postDataJSON() as Record<string, unknown>;
       await analysisResponseGate;
       return route.fulfill({
         status: 200,
@@ -1203,6 +1205,11 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   await reanalysisButton.click();
 
   await expect.poll(() => analysisRequestCount).toBe(1);
+  await expect.poll(() => analysisRequestBody).toEqual({
+    jobType: 'SETTING_EXTRACTION',
+    batchId,
+    episodeId,
+  });
   await expect(reanalysisButton).toBeDisabled();
   await reanalysisButton.click({ force: true });
 
