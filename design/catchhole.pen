@@ -309325,6 +309325,1342 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "aOsEn",
+      "x": 41211,
+      "y": 0,
+      "name": "CharDetailModal / 변화 이력 분할 탐색 (MVP)",
+      "clip": true,
+      "width": 1760,
+      "height": 960,
+      "fill": "#0D0D12",
+      "gap": 12,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "uaWG8",
+          "name": "현재 캐릭터 설정 패널",
+          "clip": true,
+          "width": 900,
+          "height": "fill_container",
+          "fill": "#17171F",
+          "cornerRadius": 12,
+          "stroke": "#2A2A36",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "vbWGz",
+              "name": "캐릭터 상세 헤더",
+              "width": "fill_container",
+              "height": 100,
+              "stroke": "#2A2A36",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 14,
+              "padding": [
+                18,
+                22
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "r8DAfB",
+                  "name": "캐릭터 아바타",
+                  "width": 58,
+                  "height": 58,
+                  "cornerRadius": 29,
+                  "stroke": "#D4A04A",
+                  "strokeWidth": 2,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bvPi9",
+                      "name": "캐릭터 이니셜",
+                      "fill": "#D4A04A",
+                      "content": "비",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xwsFw",
+                  "name": "캐릭터 이름 영역",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 5,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vEd7s",
+                      "name": "캐릭터 이름",
+                      "fill": "#F2F2F7",
+                      "content": "비요른 안델",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hYQyO",
+                      "name": "캐릭터 역할",
+                      "fill": "#8B6DFF",
+                      "content": "역할 없음",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DoYA0",
+                  "name": "이력 닫기 버튼",
+                  "height": 36,
+                  "cornerRadius": 7,
+                  "stroke": "#2A2A36",
+                  "strokeWidth": 1,
+                  "gap": 7,
+                  "padding": [
+                    0,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "lDHbY",
+                      "name": "이력 닫기 아이콘",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "#A9A9B8"
+                    },
+                    {
+                      "type": "text",
+                      "id": "P3C71",
+                      "name": "이력 닫기 라벨",
+                      "fill": "#A9A9B8",
+                      "content": "이력 닫기",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "BBzi4",
+                  "name": "상세 닫기 아이콘",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "#77778A"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EfmFu",
+              "name": "현재 설정 본문",
+              "clip": true,
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#17171F",
+              "layout": "vertical",
+              "gap": 18,
+              "padding": [
+                22,
+                26
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zhS83",
+                  "name": "기본 정보 제목",
+                  "fill": "#77778A",
+                  "content": "기본 정보",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "z7YafE",
+                  "name": "기본 정보 표",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 90,
+                  "cornerRadius": 8,
+                  "stroke": "#2A2A36",
+                  "strokeWidth": 1,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "UhrCV",
+                      "name": "이름 정보",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "stroke": "#2A2A36",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        15,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "KO96r",
+                          "name": "이름 라벨 행",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "X5ts3",
+                              "name": "이름 라벨",
+                              "fill": "#77778A",
+                              "content": "이름",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "g60Pod",
+                          "name": "이름 값",
+                          "fill": "#F2F2F7",
+                          "content": "비요른 안델",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kXChA",
+                      "name": "역할 정보",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "stroke": "#2A2A36",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        15,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "x74hl",
+                          "name": "역할 라벨 행",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "TMqjd",
+                              "name": "역할 라벨",
+                              "fill": "#77778A",
+                              "content": "역할",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "H5aKY0",
+                          "name": "역할 값",
+                          "fill": "#F2F2F7",
+                          "content": "—",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "foyIL",
+                      "name": "현재 나이 정보",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "stroke": "#2A2A36",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        15,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "N1XOE0",
+                          "name": "현재 나이 라벨 행",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ppDLG",
+                              "name": "현재 나이 라벨",
+                              "fill": "#77778A",
+                              "content": "현재 나이",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "KnVsr",
+                              "name": "현재 나이 변화 이력",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "clock-3",
+                              "library": "lucide",
+                              "fill": "#8B6DFF"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "a07OVm",
+                          "name": "현재 나이 값",
+                          "fill": "#F2F2F7",
+                          "content": "20세",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MsrUH",
+                      "name": "현재 레벨 정보",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "stroke": "#2A2A36",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        15,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "qjJQW",
+                          "name": "현재 레벨 라벨 행",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YMnKR",
+                              "name": "현재 레벨 라벨",
+                              "fill": "#77778A",
+                              "content": "현재 레벨",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "IPmn1",
+                              "name": "현재 레벨 변화 이력",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "clock-3",
+                              "library": "lucide",
+                              "fill": "#8B6DFF"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "jtdoL",
+                          "name": "현재 레벨 값",
+                          "fill": "#F2F2F7",
+                          "content": "1",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "o0McS",
+                      "name": "첫 등장 회차 정보",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "stroke": "#2A2A36",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        15,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "fiNcE",
+                          "name": "첫 등장 회차 라벨 행",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "nwZwJ",
+                              "name": "첫 등장 회차 라벨",
+                              "fill": "#77778A",
+                              "content": "첫 등장 회차",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "m1gs8",
+                          "name": "첫 등장 회차 값",
+                          "fill": "#F2F2F7",
+                          "content": "2화",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kzgBM",
+                  "name": "현재 설정 그룹",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "gap": 22,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Eswtd",
+                      "name": "프로필 설정",
+                      "width": 360,
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 9,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "g61Yee",
+                          "name": "프로필 헤더",
+                          "width": "fill_container",
+                          "height": 28,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ViChd",
+                              "name": "프로필 제목",
+                              "fill": "#77778A",
+                              "content": "프로필",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "zB9v1",
+                              "name": "프로필 전체 이력 버튼",
+                              "gap": 5,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BVJnT",
+                                  "name": "프로필 전체 이력 라벨",
+                                  "fill": "#A9A9B8",
+                                  "content": "프로필 전체 이력",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "TnhTA",
+                                  "name": "프로필 전체 이력 아이콘",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "clock-3",
+                                  "library": "lucide",
+                                  "fill": "#77778A"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "t96w5",
+                          "name": "신장 설정 행",
+                          "width": "fill_container",
+                          "height": 58,
+                          "fill": "#121218",
+                          "stroke": "#2A2A36",
+                          "strokeWidth": 1,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dyAOg",
+                              "name": "신장 설정명",
+                              "fill": "#A9A9B8",
+                              "textGrowth": "fixed-width",
+                              "width": 95,
+                              "content": "신장",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "zUu7u",
+                              "name": "신장 설정값",
+                              "fill": "#D7D7DF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "192",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "JLrcr",
+                              "name": "신장 이력 추가",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "clock-3",
+                              "library": "lucide",
+                              "fill": "#77778A"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wyrLb",
+                          "name": "성별 설정 행",
+                          "width": "fill_container",
+                          "height": 58,
+                          "fill": "#121218",
+                          "stroke": "#2A2A36",
+                          "strokeWidth": 1,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "DNiCW",
+                              "name": "성별 설정명",
+                              "fill": "#A9A9B8",
+                              "textGrowth": "fixed-width",
+                              "width": 95,
+                              "content": "성별",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "GExUf",
+                              "name": "성별 설정값",
+                              "fill": "#D7D7DF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "남자",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "YhDN8",
+                              "name": "성별 이력 추가",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "clock-3",
+                              "library": "lucide",
+                              "fill": "#77778A"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aN0CD",
+                          "name": "종족 설정 행",
+                          "width": "fill_container",
+                          "height": 58,
+                          "fill": "#121218",
+                          "stroke": "#2A2A36",
+                          "strokeWidth": 1,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Nqj9G",
+                              "name": "종족 설정명",
+                              "fill": "#A9A9B8",
+                              "textGrowth": "fixed-width",
+                              "width": 95,
+                              "content": "종족",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "OtNun",
+                              "name": "종족 설정값",
+                              "fill": "#D7D7DF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "바바리안",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "p3qKu0",
+                              "name": "종족 이력 추가",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "clock-3",
+                              "library": "lucide",
+                              "fill": "#77778A"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vcGVL",
+                      "name": "스탯 설정",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 9,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZJwSx",
+                          "name": "스탯 헤더",
+                          "width": "fill_container",
+                          "height": 28,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "htnZ3",
+                              "name": "스탯 제목",
+                              "fill": "#77778A",
+                              "content": "스탯",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "a4qVz",
+                              "name": "스탯 전체 이력 버튼",
+                              "gap": 5,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "QRhxs",
+                                  "name": "스탯 전체 이력 라벨",
+                                  "fill": "#A9A9B8",
+                                  "content": "스탯 전체 이력",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "w5oUs",
+                                  "name": "스탯 전체 이력 아이콘",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "clock-3",
+                                  "library": "lucide",
+                                  "fill": "#77778A"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zEq3X",
+                          "name": "스탯 설정 표",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "oMZIh",
+                              "name": "스탯 설정 행 1",
+                              "width": "fill_container",
+                              "height": 58,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "B5hhN",
+                                  "name": "힘 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "BUjLD",
+                                      "name": "힘 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "힘",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "rp0Z6",
+                                      "name": "힘 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "1",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "x5Gme",
+                                      "name": "힘 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "OEiVg",
+                                  "name": "민첩 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "WNcmR",
+                                      "name": "민첩 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "민첩",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "N9Ukl",
+                                      "name": "민첩 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "189",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "QTiGt",
+                                      "name": "민첩 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "F8UMo",
+                              "name": "스탯 설정 행 2",
+                              "width": "fill_container",
+                              "height": 58,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "u5sMn0",
+                                  "name": "전투지수 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "ZlsC5",
+                                      "name": "전투지수 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "전투지수",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "sj8tf",
+                                      "name": "전투지수 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "68",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "NGEZX",
+                                      "name": "전투지수 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "dh55l",
+                                  "name": "마나 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "pMWck",
+                                      "name": "마나 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "마나",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "KPiTb",
+                                      "name": "마나 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "100",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "ZNsLv",
+                                      "name": "마나 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Y09WB",
+                              "name": "스탯 설정 행 3",
+                              "width": "fill_container",
+                              "height": 58,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "E4Itm",
+                                  "name": "정신 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "J8blQo",
+                                      "name": "정신 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "정신",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "UiV5E",
+                                      "name": "정신 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "36",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "O222Bo",
+                                      "name": "정신 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "d2aZH",
+                                  "name": "육체 스탯 셀",
+                                  "width": "fill_container",
+                                  "height": "fill_container",
+                                  "fill": "#121218",
+                                  "stroke": "#2A2A36",
+                                  "strokeWidth": 1,
+                                  "gap": 10,
+                                  "padding": [
+                                    0,
+                                    14
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "uFleD",
+                                      "name": "육체 스탯명",
+                                      "fill": "#A9A9B8",
+                                      "textGrowth": "fixed-width",
+                                      "width": 70,
+                                      "content": "육체",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "pnh8M",
+                                      "name": "육체 스탯값",
+                                      "fill": "#D7D7DF",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "25",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "icon",
+                                      "id": "qoOS6",
+                                      "name": "육체 스탯 이력 추가",
+                                      "width": 15,
+                                      "height": 15,
+                                      "icon": "clock-3",
+                                      "library": "lucide",
+                                      "fill": "#77778A"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "X5OBCT",
+          "name": "변화 이력 사이드 패널",
+          "clip": true,
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#17171F",
+          "cornerRadius": 12,
+          "stroke": "#2A2A36",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hhevd",
+              "name": "변화 이력 헤더",
+              "width": "fill_container",
+              "height": 82,
+              "stroke": "#2A2A36",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 12,
+              "padding": [
+                16,
+                20
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WMj9B",
+                  "name": "타임라인 아이콘 배경",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#7C5CFC18",
+                  "cornerRadius": 9,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "fh1AH",
+                      "name": "타임라인 아이콘",
+                      "width": 19,
+                      "height": 19,
+                      "icon": "clock-3",
+                      "library": "lucide",
+                      "fill": "#7C5CFC"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fKdRb",
+                  "name": "변화 이력 제목 영역",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JGMgP",
+                      "name": "변화 이력 캐릭터 이름",
+                      "fill": "#F2F2F7",
+                      "content": "비요른 안델",
+                      "fontFamily": "Inter",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DY3Yr",
+                      "name": "변화 이력 요약",
+                      "fill": "#77778A",
+                      "content": "첫 등장 2화 · 32개 설정 · 7개 회차",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "cRDff",
+                  "name": "변화 이력 닫기",
+                  "width": 19,
+                  "height": 19,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "#77778A"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "o24A6w",
+              "name": "타임라인 보기 탭",
+              "width": "fill_container",
+              "height": 48,
+              "stroke": "#2A2A36",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 4,
+              "padding": [
+                8,
+                20,
+                0,
+                20
+              ],
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cizXT",
+                  "name": "종류별 보기 탭",
+                  "height": 40,
+                  "stroke": "#7C5CFC",
+                  "strokeWidth": {
+                    "bottom": 2
+                  },
+                  "padding": [
+                    0,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ogtqa",
+                      "name": "종류별 보기 라벨",
+                      "fill": "#B6A7FF",
+                      "content": "종류별 보기",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hc2da",
+                  "name": "전체 보기 탭",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p7KRm",
+                      "name": "전체 보기 라벨",
+                      "fill": "#77778A",
+                      "content": "전체 보기",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BxsqO",
+              "name": "설정 선택 안내",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 40,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "tFaG8",
+                  "name": "설정 선택 아이콘",
+                  "width": 30,
+                  "height": 30,
+                  "icon": "sliders-horizontal",
+                  "library": "lucide",
+                  "fill": "#77778A"
+                },
+                {
+                  "type": "text",
+                  "id": "scTCV",
+                  "name": "설정 선택 제목",
+                  "fill": "#F2F2F7",
+                  "content": "변화 이력을 보고 싶은 설정을 선택하세요.",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "m6SoVy",
+                  "name": "설정 선택 설명",
+                  "fill": "#77778A",
+                  "textGrowth": "fixed-width",
+                  "width": 520,
+                  "content": "왼쪽 현재 설정의 시계 아이콘을 클릭하면 여러 항목을 한 타임라인에서 비교할 수 있습니다.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "kKZzl",
+                  "name": "전체 이력 보기 버튼",
+                  "height": 36,
+                  "fill": "#7C5CFC",
+                  "cornerRadius": 7,
+                  "padding": [
+                    0,
+                    14
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hhPAC",
+                      "name": "전체 이력 보기 라벨",
+                      "fill": "#FFFFFF",
+                      "content": "전체 이력 보기",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {

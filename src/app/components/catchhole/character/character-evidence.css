@@ -7,6 +7,135 @@
   grid-template-columns: minmax(380px, 0.82fr) minmax(620px, 1.18fr);
 }
 
+.character-detail-backdrop--with-timeline {
+  padding-right: calc(min(720px, 46vw) + 36px) !important;
+  justify-content: flex-end !important;
+}
+
+.character-detail-modal--timeline-open {
+  width: min(1100px, calc(100vw - min(720px, 46vw) - 56px)) !important;
+  max-width: none !important;
+  transition: opacity 0.18s ease;
+}
+
+.character-detail-backdrop--timeline-evidence-open .character-detail-modal {
+  pointer-events: none;
+  opacity: 0.42;
+}
+
+.character-detail-header__identity {
+  min-width: 0;
+}
+
+.character-detail-header__actions,
+.character-detail-header__management-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.character-detail-header__timeline-action {
+  border-radius: 6px;
+  box-shadow: 0 5px 18px #7c5cfc26;
+}
+
+.character-detail-header__timeline-action button {
+  white-space: nowrap;
+}
+
+.character-detail-header__action-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: #32323f;
+}
+
+.character-section-timeline-heading {
+  margin: 0 0 7px;
+  color: #77778a;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.character-section-timeline-heading.is-selected + div {
+  border-color: #7c5cfc !important;
+  box-shadow: 0 0 0 1px #7c5cfc22;
+}
+
+.character-section-timeline-toggle {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #343442;
+  border-radius: 6px;
+  background: #14141b;
+  color: #a9a9b8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+
+.character-section-timeline-toggle:hover {
+  border-color: #7c5cfc88;
+  background: #7c5cfc10;
+  color: #b6a7ff;
+}
+
+.character-section-timeline-toggle.is-selected {
+  border-color: #7c5cfc;
+  background: #7c5cfc1c;
+  color: #b6a7ff;
+}
+
+.character-timeline-row-action {
+  flex: 0 0 auto;
+  color: #77778a;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.is-selected > .character-timeline-row-action,
+.is-selected .character-timeline-row-action {
+  color: #9b83ff;
+}
+
+.character-setting-row--selectable,
+.character-basic-cell--selectable {
+  cursor: pointer;
+  transition: background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.character-setting-row--selectable:hover,
+.character-basic-cell--selectable:hover {
+  background: #7c5cfc0d;
+}
+
+.character-setting-row--selectable.is-selected,
+.character-basic-cell--selectable.is-selected {
+  background: #7c5cfc14;
+  box-shadow: inset 3px 0 0 #7c5cfc;
+}
+
+.character-setting-row--selectable:focus-visible,
+.character-basic-cell--selectable:focus-visible,
+.character-section-timeline-toggle:focus-visible {
+  outline: 2px solid #9b83ff;
+  outline-offset: -2px;
+}
+
 .character-detail-modal--with-evidence.character-detail-modal--editing .character-skill-item-sections {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
@@ -43,6 +172,49 @@
 }
 
 @media (max-width: 768px) {
+  .character-detail-backdrop--with-timeline {
+    padding: 20px 12px calc(58dvh + 12px) !important;
+    justify-content: center !important;
+  }
+
+  .character-detail-modal--timeline-open {
+    width: 1000px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .character-detail-header {
+    flex-wrap: wrap;
+  }
+
+  .character-detail-header__close {
+    order: 2;
+  }
+
+  .character-detail-header__actions {
+    width: 100%;
+    order: 3;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .character-detail-header__timeline-action,
+  .character-detail-header__timeline-action button {
+    width: 100%;
+  }
+
+  .character-detail-header__timeline-action button {
+    justify-content: center;
+  }
+
+  .character-detail-header__action-divider {
+    display: none;
+  }
+
+  .character-detail-header__management-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .character-detail-modal--with-evidence {
     display: flex;
     flex-direction: column;
@@ -67,4 +239,5 @@
   .character-detail-modal--with-evidence .character-detail-body {
     max-height: calc(58dvh - 92px) !important;
   }
+
 }

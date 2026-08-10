@@ -137,11 +137,26 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
         hasNext: true,
       });
     }
+    const selectedMobileCharacter = characterRows.find(character => (
+      pathname.endsWith(`/works/${WORK_ID}/characters/${character.id}`)
+    ));
+    if (selectedMobileCharacter) {
+      return fulfill(route, {
+        ...selectedMobileCharacter,
+        roleLabel: '주인공',
+        firstAppearanceEpisode: { episodeNo: selectedMobileCharacter.firstAppearanceEpisodeNo },
+        profile: [],
+        stats: [],
+        skills: [],
+        items: [],
+        statuses: [],
+      });
+    }
     return fulfill(route, []);
   });
 
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${WORK_ID}`);
+  await page.goto(`/dashboard?workId=${WORK_ID}&nav=settingDB&tab=characters`);
 
   await expect.poll(() => requestedCharacterSize).toBe('6');
   await expect(page.getByText('모바일 캐릭터 1', { exact: true })).toBeVisible();
@@ -164,6 +179,31 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
     getComputedStyle(element).whiteSpace === 'nowrap'
       && element.scrollHeight <= element.clientHeight + 1
   ))).toBe(true);
+
+  await page.getByRole('button', { name: /모바일 캐릭터 1/ }).click();
+  const detailModal = page.locator('.character-detail-modal');
+  const timelineButton = detailModal.getByRole('button', { name: '변화 이력 보기' });
+  await expect(timelineButton).toBeVisible();
+  const [headerActionsBox, timelineButtonBox] = await Promise.all([
+    detailModal.locator('.character-detail-header__actions').boundingBox(),
+    timelineButton.boundingBox(),
+  ]);
+  expect(headerActionsBox).not.toBeNull();
+  expect(timelineButtonBox).not.toBeNull();
+  expect(timelineButtonBox!.width).toBeGreaterThanOrEqual(headerActionsBox!.width - 2);
+  await expectNoHorizontalOverflow(page, '.character-detail-modal');
+
+  await timelineButton.click();
+  const timelinePanel = page.getByRole('dialog', { name: '캐릭터 설정 이력' });
+  await expect(timelinePanel).toBeVisible();
+  await expect(timelinePanel.getByText('변화 이력을 보고 싶은 설정을 선택하세요.')).toBeVisible();
+  const timelinePanelBox = await timelinePanel.boundingBox();
+  expect(timelinePanelBox).not.toBeNull();
+  expect(timelinePanelBox!.y).toBeGreaterThan(0);
+  await expect(detailModal).toBeVisible();
+  await timelinePanel.getByRole('button', { name: '타임라인 닫기' }).click();
+
+  await detailModal.getByRole('button', { name: '닫기', exact: true }).click();
 
   await tabs.getByRole('button', { name: /^설정집 목록/ }).click();
   const uploadButton = page.getByRole('button', { name: '설정집 업로드', exact: true });

@@ -7,6 +7,7 @@ import {
   Archive,
   Check,
   ChevronRight,
+  Clock3,
   FileText,
   Loader2,
   Plus,
@@ -42,6 +43,13 @@ import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { CharacterEvidencePanel } from './CharacterEvidencePanel';
+import {
+  EMPTY_TIMELINE_SELECTION,
+  toggleTimelineFactKey,
+  toggleTimelineFactType,
+  type TimelineFactType,
+  type TimelineSelection,
+} from './character-timeline-filter';
 import { getDemoCharacterEvidence, saveDemoCharacterState } from './demoCharacters';
 import './character-evidence.css';
 
@@ -97,6 +105,12 @@ interface Props {
   onClose: () => void;
   onEvidenceOpen: (characterFactId: string) => void;
   onEvidenceClose: () => void;
+  timelineOpen: boolean;
+  timelineEvidenceOpen: boolean;
+  appliedTimelineSelection: TimelineSelection;
+  onTimelineOpen: () => void;
+  onTimelineClose: () => void;
+  onTimelineSelectionChange: (selection: TimelineSelection) => void;
   onArchiveOpen: () => void;
   onArchiveClose: () => void;
   onEditChange: (editing: boolean) => void;
@@ -496,7 +510,11 @@ function EvidenceButton({
       type="button"
       aria-label={`${label} 원문 근거 보기`}
       title="원문 근거 보기"
-      onClick={onClick}
+      onClick={event => {
+        // 설정 행 자체가 이력 선택 버튼으로 동작해도 근거 열기와 선택이 동시에 실행되지 않게 한다.
+        event.stopPropagation();
+        onClick();
+      }}
       style={{ background: 'none', border: 'none', color: C.primary, padding: 2, cursor: 'pointer', lineHeight: 0 }}
     >
       <FileText size={14} />
@@ -509,35 +527,75 @@ function SimpleSettingList({
   emptyLabel,
   columns = 1,
   onEvidence,
+  timelineOpen = false,
+  factType,
+  timelineSelection = EMPTY_TIMELINE_SELECTION,
+  onTimelineKeyToggle,
 }: {
   settings: CharacterSettingResponse[];
   emptyLabel: string;
   columns?: 1 | 2;
   onEvidence: (characterFactId: string) => void;
+  timelineOpen?: boolean;
+  factType?: TimelineFactType;
+  timelineSelection?: TimelineSelection;
+  onTimelineKeyToggle?: (factType: TimelineFactType, visibleFactKeys: string[], factKey: string) => void;
 }) {
   if (settings.length === 0) return <EmptyArea label={emptyLabel} />;
   const orderedSettings = orderManualSettingsLast(settings);
+  const visibleFactKeys = orderedSettings
+    .map(setting => setting.key?.trim())
+    .filter((key): key is string => Boolean(key));
   return (
     <div className={`character-simple-settings character-setting-columns-${columns}`} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-      {orderedSettings.map((item, index) => (
-        <div className="character-setting-row" key={item.characterFactId ?? item.key ?? index} style={{
-          minHeight: 40, padding: '8px 14px', display: 'grid',
-          gridTemplateColumns: columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
-          alignItems: 'center', gap: 10,
-          borderRight: columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : 'none',
-          borderBottom: Math.floor(index / columns) < Math.ceil(orderedSettings.length / columns) - 1
-            ? `1px solid ${C.border}`
-            : 'none',
-        }}>
-          <span style={{ color: C.t3, fontSize: 12 }}>{item.displayName ?? item.key}</span>
-          <span style={{ color: C.t2, fontSize: 12, overflowWrap: 'anywhere' }}>{item.value || '—'}</span>
-          <EvidenceButton
-            enabled={Boolean(item.hasEvidence && item.characterFactId)}
-            label={item.displayName ?? item.key ?? emptyLabel}
-            onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
-          />
-        </div>
-      ))}
+      {orderedSettings.map((item, index) => {
+        const factKey = item.key?.trim() ?? '';
+        const selectable = timelineOpen && Boolean(factType && factKey && onTimelineKeyToggle);
+        // 타입 전체 선택은 바깥 묶음으로 표현하고, 현재 칸은 해당 factKey를 직접 골랐을 때만 강조한다.
+        const selected = timelineSelection.factKeys.includes(factKey);
+        const toggle = () => {
+          if (selectable && factType) onTimelineKeyToggle?.(factType, visibleFactKeys, factKey);
+        };
+        return (
+          <div
+            className={`character-setting-row${selectable ? ' character-setting-row--selectable' : ''}${selected ? ' is-selected' : ''}`}
+            key={item.characterFactId ?? item.key ?? index}
+            role={selectable ? 'button' : undefined}
+            aria-pressed={selectable ? selected : undefined}
+            aria-label={selectable ? `${item.displayName ?? item.key ?? emptyLabel} 변화 이력 ${selected ? '제거' : '추가'}` : undefined}
+            tabIndex={selectable ? 0 : undefined}
+            onClick={toggle}
+            onKeyDown={event => {
+              if (!selectable || (event.key !== 'Enter' && event.key !== ' ')) return;
+              event.preventDefault();
+              toggle();
+            }}
+            style={{
+              minHeight: 40, padding: '8px 14px', display: 'grid',
+              gridTemplateColumns: `${columns === 2 ? '80px minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto'}`,
+              alignItems: 'center', gap: 10,
+              borderRight: columns === 2 && index % 2 === 0 ? `1px solid ${C.border}` : 'none',
+              borderBottom: Math.floor(index / columns) < Math.ceil(orderedSettings.length / columns) - 1
+                ? `1px solid ${C.border}`
+                : 'none',
+            }}
+          >
+            <span style={{ color: C.t3, fontSize: 12 }}>{item.displayName ?? item.key}</span>
+            <span style={{ color: C.t2, fontSize: 12, overflowWrap: 'anywhere' }}>{item.value || '—'}</span>
+            {timelineOpen ? (
+              <span className="character-timeline-row-action" aria-hidden="true">
+                <Clock3 size={13} />
+              </span>
+            ) : (
+              <EvidenceButton
+                enabled={Boolean(item.hasEvidence && item.characterFactId)}
+                label={item.displayName ?? item.key ?? emptyLabel}
+                onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -942,6 +1000,12 @@ export function CharacterDatabase({
   onClose,
   onEvidenceOpen,
   onEvidenceClose,
+  timelineOpen,
+  timelineEvidenceOpen,
+  appliedTimelineSelection,
+  onTimelineOpen,
+  onTimelineClose,
+  onTimelineSelectionChange,
   onArchiveOpen,
   onArchiveClose,
   onEditChange,
@@ -1368,6 +1432,30 @@ export function CharacterDatabase({
     setConfirming(null);
     onClose();
   };
+  const currentFactKeys = (group: SettingGroupKey): string[] => (
+    (detail?.[group] ?? [])
+      .map(setting => setting.key?.trim())
+      .filter((key): key is string => Boolean(key))
+  );
+  const toggleTimelineType = (factType: TimelineFactType, visibleFactKeys: string[] = []) => {
+    onTimelineSelectionChange(toggleTimelineFactType(
+      appliedTimelineSelection,
+      factType,
+      visibleFactKeys,
+    ));
+  };
+  const toggleTimelineKey = (
+    factType: TimelineFactType,
+    visibleFactKeys: string[],
+    factKey: string,
+  ) => {
+    onTimelineSelectionChange(toggleTimelineFactKey(
+      appliedTimelineSelection,
+      factType,
+      visibleFactKeys,
+      factKey,
+    ));
+  };
 
   return (
     <>
@@ -1502,14 +1590,17 @@ export function CharacterDatabase({
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           data-testid="character-modal-backdrop"
-          onClick={closeDetail}
-          className="character-detail-backdrop"
+          onClick={() => {
+            // 타임라인 원문 패널이 상세 모달 위에 열린 동안에는 어두워진 영역 클릭을 닫기 동작으로 해석하지 않는다.
+            if (!timelineEvidenceOpen) closeDetail();
+          }}
+          className={`character-detail-backdrop${timelineOpen ? ' character-detail-backdrop--with-timeline' : ''}${timelineEvidenceOpen ? ' character-detail-backdrop--timeline-evidence-open' : ''}`}
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
         >
           <motion.div
             initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
             onClick={event => event.stopPropagation()}
-            className={`character-detail-modal${selectedEvidenceFactId ? ' character-detail-modal--with-evidence' : ''}${isEditing ? ' character-detail-modal--editing' : ''}`}
+            className={`character-detail-modal${selectedEvidenceFactId ? ' character-detail-modal--with-evidence' : ''}${isEditing ? ' character-detail-modal--editing' : ''}${timelineOpen ? ' character-detail-modal--timeline-open' : ''}`}
             style={{ width: selectedEvidenceFactId ? 1640 : 1000, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}
           >
             {confirming && (
@@ -1559,17 +1650,28 @@ export function CharacterDatabase({
               <>
                 <div className="character-detail-header" style={{ padding: '22px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
                   <Avatar id={detail.id ?? selectedCharacterId} name={isEditing ? draft?.name ?? detail.name ?? '' : detail.name ?? ''} size={54} />
-                  <div style={{ flex: 1 }}>
+                  <div className="character-detail-header__identity" style={{ flex: 1 }}>
                     <div style={{ color: C.t1, fontSize: 19, fontWeight: 700 }}>{isEditing ? draft?.name || detail.name : detail.name}</div>
                     <div style={{ color: C.primary, fontSize: 12, marginTop: 3 }}>{isEditing ? draft?.roleLabel || '역할 없음' : detail.roleLabel || '역할 없음'}</div>
                   </div>
-                  {!isEditing && (
-                    <>
-                      <ModalButton danger onClick={() => { setActionError(null); setConfirming('delete'); }}><Trash2 size={14} /> 삭제</ModalButton>
-                      <ModalButton onClick={() => onEditChange(true)}>수정</ModalButton>
-                    </>
+                  {!isEditing && !timelineOpen && (
+                    <div className="character-detail-header__actions">
+                      <div className="character-detail-header__timeline-action">
+                        <ModalButton primary onClick={onTimelineOpen}>
+                          <Clock3 size={14} /> 변화 이력 보기
+                        </ModalButton>
+                      </div>
+                      <span className="character-detail-header__action-divider" aria-hidden="true" />
+                      <div className="character-detail-header__management-actions">
+                        <ModalButton onClick={() => onEditChange(true)}>수정</ModalButton>
+                        <ModalButton danger onClick={() => { setActionError(null); setConfirming('delete'); }}><Trash2 size={14} /> 삭제</ModalButton>
+                      </div>
+                    </div>
                   )}
-                  <button type="button" aria-label="닫기" onClick={closeDetail} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 5, lineHeight: 0 }}>
+                  {timelineOpen && (
+                    <ModalButton onClick={onTimelineClose}><X size={14} /> 이력 닫기</ModalButton>
+                  )}
+                  <button type="button" className="character-detail-header__close" aria-label="닫기" onClick={closeDetail} style={{ background: 'none', border: 'none', color: C.t3, cursor: 'pointer', padding: 5, lineHeight: 0 }}>
                     <X size={19} />
                   </button>
                 </div>
@@ -1618,24 +1720,52 @@ export function CharacterDatabase({
                       })
                     ) : (
                       [
-                        { label: '이름', value: detail.name || '—' },
-                        { label: '역할', value: detail.roleLabel || '—' },
-                        { label: '현재 나이', value: detail.currentAge == null ? '—' : `${detail.currentAge}세`, factReference: detail.currentAgeFact },
-                        { label: '현재 레벨', value: detail.currentLevel == null ? '—' : String(detail.currentLevel), factReference: detail.currentLevelFact },
-                        { label: '첫 등장 회차', value: detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화` },
-                      ].map(({ label, value, factReference }, index) => (
-                        <div key={label} style={{ padding: '12px 14px', borderRight: index < 4 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                            {label}
-                            <EvidenceButton
-                              enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
-                              label={label}
-                              onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
-                            />
+                        { label: '이름', value: detail.name || '—', factReference: null, factType: null },
+                        { label: '역할', value: detail.roleLabel || '—', factReference: null, factType: null },
+                        { label: '현재 나이', value: detail.currentAge == null ? '—' : `${detail.currentAge}세`, factReference: detail.currentAgeFact, factType: 'AGE' as TimelineFactType },
+                        { label: '현재 레벨', value: detail.currentLevel == null ? '—' : String(detail.currentLevel), factReference: detail.currentLevelFact, factType: 'LEVEL' as TimelineFactType },
+                        { label: '첫 등장 회차', value: detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화`, factReference: null, factType: null },
+                      ].map(({ label, value, factReference, factType }, index) => {
+                        const selectable = timelineOpen && factType != null;
+                        const selected = factType != null && appliedTimelineSelection.factTypes.includes(factType);
+                        return (
+                          <div
+                            key={label}
+                            className={`${selectable ? 'character-basic-cell--selectable' : ''}${selected ? ' is-selected' : ''}`}
+                            role={selectable ? 'button' : undefined}
+                            aria-pressed={selectable ? selected : undefined}
+                            aria-label={selectable ? `${label} 변화 이력 ${selected ? '제거' : '추가'}` : undefined}
+                            tabIndex={selectable ? 0 : undefined}
+                            onClick={() => {
+                              if (selectable && factType) toggleTimelineType(factType);
+                            }}
+                            onKeyDown={event => {
+                              if (!selectable || !factType || (event.key !== 'Enter' && event.key !== ' ')) return;
+                              event.preventDefault();
+                              toggleTimelineType(factType);
+                            }}
+                            style={{ padding: '12px 14px', borderRight: index < 4 ? `1px solid ${C.border}` : 'none' }}
+                          >
+                            <div style={{ color: C.t3, fontSize: 10, marginBottom: 7, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                              <span>{label}</span>
+                              {timelineOpen ? (
+                                selectable && (
+                                  <span className="character-timeline-row-action" aria-hidden="true">
+                                    <Clock3 size={13} />
+                                  </span>
+                                )
+                              ) : (
+                                <EvidenceButton
+                                  enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
+                                  label={label}
+                                  onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
+                                />
+                              )}
+                            </div>
+                            <div style={{ color: C.t1, fontSize: 13, fontWeight: 600 }}>{value}</div>
                           </div>
-                          <div style={{ color: C.t1, fontSize: 13, fontWeight: 600 }}>{value}</div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 
@@ -1644,21 +1774,31 @@ export function CharacterDatabase({
                     style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}
                   >
                     <div data-testid="character-profile-section" style={{ flex: '0.9 1 280px', minWidth: 0 }}>
-                      <SectionTitle>프로필</SectionTitle>
+                      <SectionTitle
+                        timelineOpen={timelineOpen}
+                        factType="PROFILE"
+                        selected={appliedTimelineSelection.factTypes.includes('PROFILE')}
+                        onToggle={() => toggleTimelineType('PROFILE', currentFactKeys('profile'))}
+                      >프로필</SectionTitle>
                       <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                         {isEditing && draft
                           ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} onAdd={() => addSimpleSetting('profile')} onEvidence={onEvidenceOpen} />
-                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={onEvidenceOpen} />}
+                          : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="PROFILE" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                       </div>
                     </div>
 
                     <div data-testid="character-setting-sections" style={{ display: 'flex', flex: '1.35 1 420px', minWidth: 0, flexDirection: 'column', gap: 14 }}>
                       <div>
-                        <SectionTitle>스탯</SectionTitle>
+                        <SectionTitle
+                          timelineOpen={timelineOpen}
+                          factType="STAT"
+                          selected={appliedTimelineSelection.factTypes.includes('STAT')}
+                          onToggle={() => toggleTimelineType('STAT', currentFactKeys('stats'))}
+                        >스탯</SectionTitle>
                         <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                           {isEditing && draft
                             ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={onEvidenceOpen} />
-                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={onEvidenceOpen} />}
+                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="STAT" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                         </div>
                       </div>
 
@@ -1668,32 +1808,47 @@ export function CharacterDatabase({
                         style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}
                       >
                         <div data-testid="character-skill-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
-                          <SectionTitle>스킬</SectionTitle>
+                          <SectionTitle
+                            timelineOpen={timelineOpen}
+                            factType="SKILL"
+                            selected={appliedTimelineSelection.factTypes.includes('SKILL')}
+                            onToggle={() => toggleTimelineType('SKILL', currentFactKeys('skills'))}
+                          >스킬</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
                               ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={onEvidenceOpen} />
-                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={onEvidenceOpen} />}
+                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="SKILL" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                           </div>
                         </div>
                         <div data-testid="character-item-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
-                          <SectionTitle>아이템</SectionTitle>
+                          <SectionTitle
+                            timelineOpen={timelineOpen}
+                            factType="ITEM"
+                            selected={appliedTimelineSelection.factTypes.includes('ITEM')}
+                            onToggle={() => toggleTimelineType('ITEM', currentFactKeys('items'))}
+                          >아이템</SectionTitle>
                           <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
                               ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={onEvidenceOpen} />
-                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={onEvidenceOpen} />}
+                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="ITEM" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <SectionTitle>상태</SectionTitle>
+                        <SectionTitle
+                          timelineOpen={timelineOpen}
+                          factType="STATUS"
+                          selected={appliedTimelineSelection.factTypes.includes('STATUS')}
+                          onToggle={() => toggleTimelineType('STATUS', currentFactKeys('statuses'))}
+                        >상태</SectionTitle>
                         <div
                           data-testid="character-status-settings"
                           style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}
                         >
                           {isEditing && draft
                             ? <EditSettingList settings={draft.statuses} group="statuses" emptyLabel="상태" complex columns={2} onChange={(index, value) => changeSetting('statuses', index, value)} onRemove={index => removeSetting('statuses', index)} onAdd={() => addComplexSetting('statuses')} onEvidence={onEvidenceOpen} />
-                            : <SimpleSettingList settings={detail.statuses ?? []} emptyLabel="상태" columns={2} onEvidence={onEvidenceOpen} />}
+                            : <SimpleSettingList settings={detail.statuses ?? []} emptyLabel="상태" columns={2} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="STATUS" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                         </div>
                       </div>
                     </div>
@@ -1705,7 +1860,7 @@ export function CharacterDatabase({
                       <ModalButton primary onClick={() => { setActionError(null); setConfirming('save'); }}><Check size={14} /> 저장</ModalButton>
                     </div>
                   )}
-                  {!isEditing && (
+                  {!isEditing && !timelineOpen && (
                     <div style={{ color: C.t3, fontSize: 11, marginTop: 20, display: 'flex', alignItems: 'center', gap: 7 }}>
                       <FileText size={13} color={C.primary} /> 문서 아이콘이 있는 설정은 선택하여 원문 근거를 확인할 수 있습니다.
                     </div>
@@ -1721,7 +1876,36 @@ export function CharacterDatabase({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({
+  children,
+  timelineOpen = false,
+  factType,
+  selected = false,
+  onToggle,
+}: {
+  children: React.ReactNode;
+  timelineOpen?: boolean;
+  factType?: TimelineFactType;
+  selected?: boolean;
+  onToggle?: () => void;
+}) {
+  if (timelineOpen && factType && onToggle) {
+    return (
+      <div className={`character-section-timeline-heading${selected ? ' is-selected' : ''}`}>
+        <span>{children}</span>
+        <button
+          type="button"
+          className={`character-section-timeline-toggle${selected ? ' is-selected' : ''}`}
+          aria-label={`${String(children)} 전체 변화 이력 ${selected ? '제거' : '추가'}`}
+          aria-pressed={selected}
+          onClick={onToggle}
+        >
+          <Clock3 size={13} aria-hidden="true" />
+          <span>{children} 전체</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 7 }}>
       {children}
