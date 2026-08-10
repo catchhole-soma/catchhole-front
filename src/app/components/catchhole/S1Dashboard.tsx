@@ -2600,6 +2600,8 @@ export default function S1Dashboard() {
       prev.set('modal', 'char-detail');
       prev.set('charId', legacyCharacterTimelineId);
       prev.set('mode', 'timeline');
+      // 이전 독립 타임라인은 선택 대기 화면이 없었으므로 같은 전체 이력 상태로 복원한다.
+      prev.set('timelineView', 'all');
       const legacyFactId = prev.get('factId');
       if (legacyFactId) prev.set('timelineFactId', legacyFactId);
       prev.delete('factId');

@@ -1590,7 +1590,10 @@ export function CharacterDatabase({
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           data-testid="character-modal-backdrop"
-          onClick={closeDetail}
+          onClick={() => {
+            // 타임라인 원문 패널이 상세 모달 위에 열린 동안에는 어두워진 영역 클릭을 닫기 동작으로 해석하지 않는다.
+            if (!timelineEvidenceOpen) closeDetail();
+          }}
           className={`character-detail-backdrop${timelineOpen ? ' character-detail-backdrop--with-timeline' : ''}${timelineEvidenceOpen ? ' character-detail-backdrop--timeline-evidence-open' : ''}`}
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
         >
