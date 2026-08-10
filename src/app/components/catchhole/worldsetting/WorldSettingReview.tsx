@@ -26,7 +26,7 @@ import {
   getWorldSettingCandidatesQueryKey,
   getWorldSettingsQueryKey,
   retryWorldSettingCandidateComparisonMutation,
-  updateWorldSettingCandidateMutation,
+  updateWorldSettingCandidateDecisionsMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
   Decision,
@@ -53,14 +53,14 @@ type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
 
-const CATEGORY_META: Record<WorldCategory, { label: string; description: string }> = {
-  RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단' },
-  FACTION: { label: '세력', description: '국가·조직·종교·길드처럼 영향력을 가진 집단' },
-  LOCATION: { label: '장소', description: '반복 등장하거나 세계 구조에 영향을 주는 공간' },
-  MONSTER: { label: '몬스터', description: '지속적인 특성이나 규칙이 있는 몬스터' },
-  POWER_SYSTEM: { label: '마법·능력 체계', description: '마법과 능력의 원리·조건·한계' },
-  WORLD_RULE_HISTORY: { label: '규칙·역사', description: '세계의 법칙·제도·관습·역사' },
-  IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구' },
+const CATEGORY_META: Record<WorldCategory, { label: string; description: string; color: string }> = {
+  RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단', color: '#9B7BFF' },
+  FACTION: { label: '세력', description: '국가·조직·종교·길드처럼 영향력을 가진 집단', color: '#4BB8D9' },
+  LOCATION: { label: '장소', description: '반복 등장하거나 세계 구조에 영향을 주는 공간', color: '#00C896' },
+  MONSTER: { label: '몬스터', description: '지속적인 특성이나 규칙이 있는 몬스터', color: '#E25C5C' },
+  POWER_SYSTEM: { label: '마법·능력 체계', description: '마법과 능력의 원리·조건·한계', color: '#B48BFF' },
+  WORLD_RULE_HISTORY: { label: '규칙·역사', description: '세계의 법칙·제도·관습·역사', color: '#D4A04A' },
+  IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구', color: '#F4A261' },
 };
 
 const OPERATION_META: Record<WorldOperation, { label: string; color: string }> = {
@@ -191,13 +191,50 @@ function evidenceSpans(value: unknown): EvidenceSpan[] {
 }
 
 function candidateDecision(candidate: WorldSettingCandidateResponse): DecisionDraft | null {
+  if (candidate.finalOperation
+      && candidate.finalCategory
+      && candidate.finalSubjectName
+      && candidate.finalSettingName
+      && candidate.finalValue) {
+    return {
+      operation: candidate.finalOperation,
+      category: candidate.finalCategory,
+      subjectName: candidate.finalSubjectName,
+      scopeName: candidate.finalScopeName ?? undefined,
+      settingName: candidate.finalSettingName,
+      value: candidate.finalValue,
+      reviewNote: candidate.reviewNote ?? undefined,
+    };
+  }
   const operation = candidate.suggestedOperation;
   const category = candidate.category;
   const subjectName = resolvedTargetSubjectName(candidate);
+  const scopeName = candidate.proposedScopeName ?? candidate.scopeName ?? undefined;
   const settingName = candidate.proposedSettingName ?? candidate.settingName;
   const value = candidate.proposedValue ?? candidate.extractedValue;
   if (!operation || !category || !subjectName || !settingName || !value) return null;
-  return { operation, category, subjectName, settingName, value };
+  return { operation, category, subjectName, scopeName, settingName, value };
+}
+
+function groupDecisionIdentity(
+  group: WorldSettingCandidateGroupResponse,
+  decisions: Record<string, DecisionDraft>,
+): { category?: WorldCategory; subjectName?: string } {
+  const identities = (group.candidates ?? []).flatMap(candidate => {
+    const decision = (candidate.id ? decisions[candidate.id] : undefined) ?? candidateDecision(candidate);
+    return decision ? [{ category: decision.category, subjectName: decision.subjectName }] : [];
+  });
+  const firstIdentity = identities[0];
+  const sameIdentity = firstIdentity && identities.every(identity => (
+    identity.category === firstIdentity.category
+    && identity.subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')
+      === firstIdentity.subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')
+  ));
+  if (sameIdentity) return firstIdentity;
+  return {
+    category: group.category ?? undefined,
+    subjectName: group.subjectName ?? undefined,
+  };
 }
 
 function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): string | null {
@@ -399,16 +436,19 @@ function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
 
 function WorldCandidateGroupCard({
   group,
+  decisions,
   selected,
   disabled,
   onClick,
 }: {
   group: WorldSettingCandidateGroupResponse;
+  decisions: Record<string, DecisionDraft>;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
-  const category = group.category ? CATEGORY_META[group.category] : null;
+  const identity = groupDecisionIdentity(group, decisions);
+  const category = identity.category ? CATEGORY_META[identity.category] : null;
   const status = groupStatusMeta(group);
   return (
     <button type="button" disabled={disabled} onClick={onClick} style={{
@@ -419,11 +459,11 @@ function WorldCandidateGroupCard({
       opacity: disabled ? 0.65 : 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        {category && <Badge label={category.label} color={C.primary} />}
+        {category && <Badge label={category.label} color={category.color} />}
         <strong style={{
           color: C.t1, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {group.subjectName || '대상명 없음'}
+          {identity.subjectName || '대상명 없음'}
         </strong>
         <div style={{ flex: 1 }} />
         <Badge label={`${group.changeCount ?? 0}개 설정`} color={C.primary} />
@@ -468,20 +508,18 @@ function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupRespon
 function WorldKeyDiffRow({
   candidate,
   decision,
-  selected,
   conflictResolved,
   recompared,
   disabled,
-  onToggle,
+  onExclude,
   onEdit,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
-  selected: boolean;
   conflictResolved: boolean;
   recompared: boolean;
   disabled: boolean;
-  onToggle: () => void;
+  onExclude: () => void;
   onEdit: () => void;
 }) {
   const operation = decision?.operation ?? candidate.suggestedOperation;
@@ -491,7 +529,11 @@ function WorldKeyDiffRow({
   const operationMeta = operation ? OPERATION_META[operation] : null;
   const comparison = COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
   const evidence = evidenceSpans(candidate.evidenceSpans);
+  const scopeName = decision
+    ? decision.scopeName ?? null
+    : candidate.proposedScopeName ?? candidate.scopeName ?? null;
   const keyName = decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName ?? '설정명 없음';
+  const propertyPath = scopeName ? `${scopeName} › ${keyName}` : keyName;
   const proposedValue = decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
   const proposedTone = hasConflict && !conflictResolved
     ? C.warning
@@ -507,24 +549,17 @@ function WorldKeyDiffRow({
   const beforeValue = candidate.beforeValue
     || (operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
   const comparisonReason = userFacingComparisonReason(candidate);
-  const canSelect = candidate.reviewStatus === 'PENDING_REVIEW'
+  const canEdit = candidate.reviewStatus === 'PENDING_REVIEW'
     && candidate.comparisonStatus === 'COMPLETED'
     && decision !== null;
+  const canExclude = candidate.reviewStatus === 'PENDING_REVIEW';
   return (
     <section style={{
       padding: '18px 22px', borderTop: `1px solid ${C.border}`,
-      opacity: selected || !canSelect ? 1 : 0.64,
+      opacity: candidate.reviewStatus === 'PENDING_REVIEW' ? 1 : 0.68,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <input
-          type="checkbox"
-          aria-label={`${keyName} 변경 선택`}
-          checked={selected}
-          disabled={disabled || !canSelect}
-          onChange={onToggle}
-          style={{ width: 17, height: 17, accentColor: C.primary, flexShrink: 0 }}
-        />
-        <strong style={{ color: C.t1, fontSize: 14, overflowWrap: 'anywhere' }}>{keyName}</strong>
+        <strong style={{ color: C.t1, fontSize: 14, overflowWrap: 'anywhere' }}>{propertyPath}</strong>
         <div style={{ flex: 1 }} />
         {operationMeta && <Badge label={operationMeta.label} color={operationMeta.color} />}
         {consolidationStatus === 'MERGED' && <Badge label="여러 내용 정리됨" color={C.primary} />}
@@ -540,17 +575,25 @@ function WorldKeyDiffRow({
         {candidate.reviewStatus && candidate.reviewStatus !== 'PENDING_REVIEW' && (
           <Badge label={REVIEW_META[candidate.reviewStatus].label} color={REVIEW_META[candidate.reviewStatus].color} />
         )}
-        <button type="button" disabled={disabled || !canSelect} onClick={onEdit} style={{
+        <button type="button" disabled={disabled || !canEdit} onClick={onEdit} style={{
           minHeight: 28, padding: '0 8px', borderRadius: 6, border: `1px solid ${C.border}`,
-          background: 'transparent', color: disabled || !canSelect ? C.t3 : C.t2,
-          fontFamily: 'inherit', fontSize: 10, cursor: disabled || !canSelect ? 'not-allowed' : 'pointer',
+          background: 'transparent', color: disabled || !canEdit ? C.t3 : C.t2,
+          fontFamily: 'inherit', fontSize: 10, cursor: disabled || !canEdit ? 'not-allowed' : 'pointer',
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}><Pencil size={10} /> 수정</button>
+        {canExclude && (
+          <button type="button" disabled={disabled} onClick={onExclude} aria-label={`${propertyPath} 제외`} style={{
+            minHeight: 28, padding: '0 9px', borderRadius: 6, border: `1px solid ${C.danger}66`,
+            background: `${C.danger}0D`, color: disabled ? C.t3 : C.danger,
+            fontFamily: 'inherit', fontSize: 10, fontWeight: 750,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+          }}>제외</button>
+        )}
       </div>
 
       <div className="world-setting-key-diff-values" style={{
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10,
-        margin: '13px 0 0 27px',
+        margin: '13px 0 0',
       }}>
         <div style={{
           minHeight: 72, padding: '12px 14px', borderRadius: 8,
@@ -587,7 +630,7 @@ function WorldKeyDiffRow({
 
       {consolidationStatus === 'MERGED' && (
         <div style={{
-          margin: '10px 0 0 27px', padding: '9px 12px', borderRadius: 7,
+          margin: '10px 0 0', padding: '9px 12px', borderRadius: 7,
           border: `1px solid ${C.primary}3D`, background: `${C.primary}0A`,
           color: C.t2, fontSize: 11, lineHeight: 1.6,
         }}>
@@ -596,7 +639,7 @@ function WorldKeyDiffRow({
       )}
       {hasConflict && !conflictResolved && (
         <div role="alert" style={{
-          margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
+          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: C.warning, fontSize: 11, lineHeight: 1.6,
         }}>
@@ -606,7 +649,7 @@ function WorldKeyDiffRow({
 
       {comparisonReason && (
         <div style={{
-          margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
+          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.primary}44`, background: `${C.primary}0C`,
           display: 'flex', alignItems: 'flex-start', gap: 8,
         }}>
@@ -621,7 +664,7 @@ function WorldKeyDiffRow({
       )}
 
       <div style={{
-        margin: '10px 0 0 27px', padding: '10px 12px', borderRadius: 7,
+        margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
         border: `1px solid ${C.border}`, background: C.bg,
         display: 'flex', alignItems: 'flex-start', gap: 8,
       }}>
@@ -652,80 +695,87 @@ function WorldKeyDiffRow({
 
 function WorldCandidateGroupDetail({
   group,
-  selectedIds,
   resolvedConflictIds,
   recomparedIds,
   decisions,
   actionPending,
   actionError,
-  onToggle,
+  onExclude,
   onEdit,
-  onDismiss,
+  onEditIdentity,
   onConfirm,
   onRetry,
 }: {
   group: WorldSettingCandidateGroupResponse;
-  selectedIds: Set<string>;
   resolvedConflictIds: Set<string>;
   recomparedIds: Set<string>;
   decisions: Record<string, DecisionDraft>;
   actionPending: boolean;
   actionError?: string | null;
-  onToggle: (candidateId: string) => void;
+  onExclude: (candidateId: string) => void;
   onEdit: (candidate: WorldSettingCandidateResponse) => void;
-  onDismiss: () => void;
+  onEditIdentity: () => void;
   onConfirm: () => void;
   onRetry: () => void;
 }) {
   const candidates = group.candidates ?? [];
-  const category = group.category ? CATEGORY_META[group.category] : null;
-  const selectedCandidates = candidates.filter(candidate => candidate.id && selectedIds.has(candidate.id));
-  const selectedCount = selectedCandidates.length;
-  const selectedExcludeCount = selectedCandidates.filter(candidate => (
-    candidate.id && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE'
-  )).length;
-  const duplicateSettingNames = (() => {
+  const identity = groupDecisionIdentity(group, decisions);
+  const category = identity.category ? CATEGORY_META[identity.category] : null;
+  const pendingCandidates = candidates.filter(candidate => candidate.id && candidate.reviewStatus === 'PENDING_REVIEW');
+  const duplicatePropertyPaths = (() => {
     const seen = new Map<string, string>();
     const duplicates = new Set<string>();
-    for (const candidate of selectedCandidates) {
+    for (const candidate of pendingCandidates) {
       if (!candidate.id) continue;
+      if ((decisions[candidate.id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE') continue;
       const settingName = decisions[candidate.id]?.settingName
         ?? candidate.proposedSettingName
         ?? candidate.settingName;
       if (!settingName) continue;
-      const normalized = settingName.trim().normalize('NFC').toLocaleLowerCase('ko-KR');
-      if (seen.has(normalized)) duplicates.add(seen.get(normalized) ?? settingName.trim());
-      else seen.set(normalized, settingName.trim());
+      const selectedDecision = decisions[candidate.id] ?? candidateDecision(candidate);
+      const scopeName = selectedDecision
+        ? selectedDecision.scopeName ?? null
+        : candidate.proposedScopeName ?? candidate.scopeName ?? null;
+      const category = selectedDecision?.category ?? candidate.category;
+      const subjectName = selectedDecision?.subjectName ?? resolvedTargetSubjectName(candidate);
+      const normalizedScope = scopeName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') || null;
+      const normalizedSetting = settingName.trim().normalize('NFC').toLocaleLowerCase('ko-KR');
+      const normalizedSubject = subjectName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') ?? null;
+      const normalized = JSON.stringify([category, normalizedSubject, normalizedScope, normalizedSetting]);
+      const displayPath = scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim();
+      if (seen.has(normalized)) duplicates.add(seen.get(normalized) ?? displayPath);
+      else seen.set(normalized, displayPath);
     }
     return [...duplicates];
   })();
-  const selectedApplyCount = selectedCount - selectedExcludeCount;
-  const unresolvedConflicts = selectedCandidates.filter(candidate => candidate.id
+  const unresolvedConflicts = pendingCandidates.filter(candidate => candidate.id
     && candidate.consolidationStatus === 'CONFLICT'
     && !resolvedConflictIds.has(candidate.id)
     && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
-  const confirmLabel = selectedApplyCount === 0
-    ? `제안대로 ${selectedExcludeCount}개 제외`
-    : selectedExcludeCount === 0
-      ? `${selectedApplyCount}개 설정 반영`
-      : `${selectedApplyCount}개 반영 · ${selectedExcludeCount}개 제외 확정`;
   const retryAvailable = candidates.some(candidate => candidate.comparisonStatus === 'FAILED'
     || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED');
-  const confirmable = selectedCount > 0 && selectedCandidates
+  const confirmable = pendingCandidates.length > 0 && pendingCandidates
     .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW'
       && candidate.comparisonStatus === 'COMPLETED'
       && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
-    && duplicateSettingNames.length === 0
+    && duplicatePropertyPaths.length === 0
     && unresolvedConflicts.length === 0;
   return (
     <article style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <strong style={{ color: C.t1, fontSize: 18 }}>
-            {category?.label ?? '세계관'} · {group.subjectName || '대상명 없음'}
+            {category?.label ?? '세계관'} · {identity.subjectName || '대상명 없음'}
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
+          <button type="button" disabled={actionPending || pendingCandidates.length === 0} onClick={onEditIdentity} style={{
+            minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
+            background: 'transparent', color: actionPending || pendingCandidates.length === 0 ? C.t3 : C.t2,
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
+            cursor: actionPending || pendingCandidates.length === 0 ? 'not-allowed' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+          }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
         </div>
         <p style={{ margin: '7px 0 0', color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
           같은 대상에서 추출된 설정을 항목별로 검토합니다.
@@ -738,23 +788,22 @@ function WorldCandidateGroupDetail({
           key={candidate.id}
           candidate={candidate}
           decision={decisions[candidate.id] ?? candidateDecision(candidate)}
-          selected={selectedIds.has(candidate.id)}
           conflictResolved={resolvedConflictIds.has(candidate.id)}
           recompared={recomparedIds.has(candidate.id)}
           disabled={actionPending}
-          onToggle={() => onToggle(candidate.id!)}
+          onExclude={() => onExclude(candidate.id!)}
           onEdit={() => onEdit(candidate)}
         />
       ))}
 
-      {duplicateSettingNames.length > 0 && (
+      {duplicatePropertyPaths.length > 0 && (
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: C.warning, fontSize: 12, lineHeight: 1.55,
         }}>
-          같은 설정명 ‘{duplicateSettingNames.join('’, ‘')}’이 여러 번 있습니다.
-          내용을 하나로 합치거나 하나만 선택해 주세요.
+          같은 대상 안에서 같은 범위와 설정명 ‘{duplicatePropertyPaths.join('’, ‘')}’이 여러 번 있습니다.
+          내용을 하나로 합치거나 중복 항목을 제외해 주세요.
         </div>
       )}
 
@@ -764,7 +813,7 @@ function WorldCandidateGroupDetail({
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: C.warning, fontSize: 12, lineHeight: 1.55,
         }}>
-          원문마다 내용이 다른 설정이 선택되어 있습니다. 수정에서 최종 내용을 정하거나 선택을 해제해 주세요.
+          원문마다 내용이 다른 설정입니다. 수정에서 최종 내용을 정하거나 해당 항목을 제외해 주세요.
         </div>
       )}
 
@@ -788,11 +837,6 @@ function WorldCandidateGroupDetail({
             <RefreshCw size={12} /> 다시 비교
           </ActionButton>
         )}
-        {selectedApplyCount > 0 && (
-          <ActionButton disabled={actionPending || selectedCount === 0} tone={C.danger} onClick={onDismiss}>
-            선택 항목 제외
-          </ActionButton>
-        )}
         <button type="button" disabled={actionPending || !confirmable} onClick={onConfirm} style={{
           minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
           background: actionPending || !confirmable ? C.border : C.primary,
@@ -801,7 +845,7 @@ function WorldCandidateGroupDetail({
           display: 'inline-flex', alignItems: 'center', gap: 6,
         }}>
           {actionPending ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-          {confirmLabel}
+          모두 확정
         </button>
       </footer>
     </article>
@@ -809,36 +853,35 @@ function WorldCandidateGroupDetail({
 }
 
 function CandidateEditModal({
-  candidate,
   initialDecision,
+  identityOnly = false,
   pending,
   error,
   onClose,
   onSubmit,
 }: {
-  candidate: WorldSettingCandidateResponse;
   initialDecision: DecisionDraft;
+  identityOnly?: boolean;
   pending: boolean;
   error?: string | null;
   onClose: () => void;
-  onSubmit: (draft: DecisionDraft, identityChanged: boolean) => void;
+  onSubmit: (draft: DecisionDraft) => void;
 }) {
   const initialCategory = initialDecision.category;
   const initialSubject = initialDecision.subjectName;
+  const initialScope = initialDecision.scopeName ?? '';
   const initialSetting = initialDecision.settingName;
   const [category, setCategory] = useState<WorldCategory>(initialCategory);
   const [subjectName, setSubjectName] = useState(initialSubject);
+  const [scopeName, setScopeName] = useState(initialScope);
   const [settingName, setSettingName] = useState(initialSetting);
   const [operation, setOperation] = useState<WorldOperation>(initialDecision.operation);
   const [value, setValue] = useState(initialDecision.value);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const identityChanged = category !== initialCategory
-    || subjectName.trim() !== initialSubject.trim()
-    || settingName.trim() !== initialSetting.trim();
-
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const normalizedSubject = subjectName.trim();
+    const normalizedScope = scopeName.trim() || undefined;
     const normalizedSetting = settingName.trim();
     const normalizedValue = value.trim();
     if (!normalizedSubject || !normalizedSetting || !normalizedValue) {
@@ -846,7 +889,14 @@ function CandidateEditModal({
       return;
     }
     setValidationError(null);
-    onSubmit({ category, subjectName: normalizedSubject, settingName: normalizedSetting, operation, value: normalizedValue }, identityChanged);
+    onSubmit({
+      category,
+      subjectName: normalizedSubject,
+      scopeName: normalizedScope,
+      settingName: normalizedSetting,
+      operation,
+      value: normalizedValue,
+    });
   };
 
   const inputStyle = {
@@ -868,7 +918,11 @@ function CandidateEditModal({
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
       }}>
         <div style={{ padding: '19px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
-          <strong style={{ color: C.t1, fontSize: 16 }}>{candidate.settingName || '설정 항목'} 반영 내용 수정</strong>
+          <strong style={{ color: C.t1, fontSize: 16 }}>
+            {identityOnly
+              ? '분류·대상 일괄 수정'
+              : `${initialDecision.scopeName ? `${initialDecision.scopeName} › ` : ''}${initialDecision.settingName || '설정 항목'} 반영 내용 수정`}
+          </strong>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={pending} aria-label="닫기" onClick={onClose} style={{
             border: 'none', background: 'none', color: C.t3, cursor: pending ? 'not-allowed' : 'pointer', padding: 4,
@@ -880,10 +934,13 @@ function CandidateEditModal({
             background: `${C.warning}12`, border: `1px solid ${C.warning}44`,
             color: C.warning, fontSize: 11, lineHeight: 1.6,
           }}>
-            분류·대상·설정명을 바꾸면 최신 확정 내용과 이 설정 항목을 다시 비교합니다.
-            반영 방식이나 최종값만 바꾸면 현재 그룹의 확정 요청에 함께 반영됩니다.
+            {identityOnly
+              ? '이 묶음의 모든 미확정 설정에 분류와 대상을 함께 적용합니다. 범위·설정명·반영 방식·최종값은 그대로 유지하며 LLM 재비교는 호출하지 않습니다.'
+              : '이 설정 항목 하나의 분류·대상·범위·설정명·반영 방식·최종값을 수정합니다. 다른 항목에는 적용되지 않으며 LLM 재비교도 호출하지 않습니다.'}
           </div>
-          <div className="world-setting-edit-identity" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: 10 }}>
+          <div className="world-setting-edit-identity" style={{
+            display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10,
+          }}>
             <label style={{ color: C.t3, fontSize: 11 }}>분류
               <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
                 {CATEGORY_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -892,22 +949,36 @@ function CandidateEditModal({
             <label style={{ color: C.t3, fontSize: 11 }}>대상
               <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>설정명
-              <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
-            </label>
           </div>
-          <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
-            <label style={{ color: C.t3, fontSize: 11 }}>반영 방식
-              <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
-                {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>최종 설정값
-              <textarea value={value} onChange={event => setValue(event.target.value)} style={{
-                ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
-              }} />
-            </label>
-          </div>
+          {!identityOnly && (
+            <>
+              <div className="world-setting-edit-property" style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10, marginTop: 16 }}>
+                <label style={{ color: C.t3, fontSize: 11 }}>범위 (선택)
+                  <input
+                    value={scopeName}
+                    onChange={event => setScopeName(event.target.value)}
+                    placeholder="예: 1층"
+                    style={{ ...inputStyle, marginTop: 7 }}
+                  />
+                </label>
+                <label style={{ color: C.t3, fontSize: 11 }}>설정명
+                  <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
+                </label>
+              </div>
+              <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
+                <label style={{ color: C.t3, fontSize: 11 }}>반영 방식
+                  <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
+                    {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label style={{ color: C.t3, fontSize: 11 }}>최종 설정값
+                  <textarea value={value} onChange={event => setValue(event.target.value)} style={{
+                    ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
+                  }} />
+                </label>
+              </div>
+            </>
+          )}
           {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: C.danger, fontSize: 12 }}>{validationError ?? error}</div>}
         </div>
         <div style={{ padding: '15px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -917,7 +988,7 @@ function CandidateEditModal({
             background: C.primary, color: '#fff', fontFamily: 'inherit', fontSize: 12,
             fontWeight: 750, cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.62 : 1,
           }}>
-            {pending ? '처리 중…' : identityChanged ? '변경안 다시 비교' : '변경안 저장'}
+            {pending ? '처리 중…' : identityOnly ? '일괄 수정 적용' : '수정안 적용'}
           </button>
         </div>
       </form>
@@ -942,14 +1013,15 @@ export function WorldSettingReview() {
   const size = parsePositiveInteger(searchParams.get('size'), DEFAULT_PAGE_SIZE, 100);
   const apiPage = urlPage - 1;
   const hasContext = Boolean(workId && batchId);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [resolvedConflictIds, setResolvedConflictIds] = useState<Set<string>>(new Set());
   const [recomparedIds, setRecomparedIds] = useState<Set<string>>(new Set());
   const [decisionOverrides, setDecisionOverrides] = useState<Record<string, DecisionDraft>>({});
   const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
+  const [editIdentityOnly, setEditIdentityOnly] = useState(false);
   const [confirmedTarget, setConfirmedTarget] = useState<{
     id?: string;
     subjectName: string;
+    targetCount: number;
     appliedCount: number;
     excludedCount: number;
   } | null>(null);
@@ -1014,19 +1086,18 @@ export function WorldSettingReview() {
     const groupKey = selectedGroup?.groupKey ?? null;
     if (selectionGroupRef.current === groupKey) return;
     selectionGroupRef.current = groupKey;
-    const defaultIds = (selectedGroup?.candidates ?? []).flatMap(candidate => (
-      candidate.id
-        && candidate.reviewStatus === 'PENDING_REVIEW'
-        && candidate.consolidationStatus !== 'CONFLICT'
-        ? [candidate.id]
-        : []
-    ));
-    setSelectedIds(new Set(defaultIds));
+    setEditCandidate(null);
+    setEditIdentityOnly(false);
+  }, [selectedGroup]);
+
+  useEffect(() => {
+    selectionGroupRef.current = null;
     setResolvedConflictIds(new Set());
     setRecomparedIds(new Set());
     setDecisionOverrides({});
     setEditCandidate(null);
-  }, [selectedGroup]);
+    setEditIdentityOnly(false);
+  }, [batchId, workId]);
 
   const invalidateReviewState = async () => {
     await Promise.all([
@@ -1037,24 +1108,43 @@ export function WorldSettingReview() {
 
   const confirmMutation = useMutation({
     ...confirmWorldSettingCandidateGroupMutation(),
-    onSuccess: async response => {
+    onSuccess: async (response, variables) => {
+      const confirmedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
       await invalidateReviewState();
       const result = response.data;
       const resultCandidates = result?.candidates ?? [];
       if (result && resultCandidates.length) {
         const excludedCount = resultCandidates.filter(candidate => candidate.finalOperation === 'EXCLUDE').length;
+        const appliedCandidates = resultCandidates.filter(candidate => candidate.finalOperation !== 'EXCLUDE');
+        const finalTargetKeys = new Set(appliedCandidates.flatMap(candidate => {
+          const category = candidate.finalCategory ?? candidate.category;
+          const subjectName = candidate.finalSubjectName ?? candidate.subjectName;
+          return category && subjectName
+            ? [`${category}|${subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')}`]
+            : [];
+        }));
         setConfirmedTarget({
           id: result.worldSettingId ?? undefined,
-          subjectName: resultCandidates[0]?.finalSubjectName
+          subjectName: appliedCandidates[0]?.finalSubjectName
+            ?? appliedCandidates[0]?.subjectName
+            ?? resultCandidates[0]?.finalSubjectName
             ?? resultCandidates[0]?.subjectName
             ?? selectedGroup?.subjectName
             ?? '확정한 세계관 대상',
+          targetCount: finalTargetKeys.size,
           appliedCount: resultCandidates.length - excludedCount,
           excludedCount,
         });
       }
-      setDecisionOverrides({});
-      setResolvedConflictIds(new Set());
+      setDecisionOverrides(previous => Object.fromEntries(
+        Object.entries(previous).filter(([candidateId]) => !confirmedIds.has(candidateId)),
+      ));
+      setResolvedConflictIds(previous => new Set(
+        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
+      ));
+      setRecomparedIds(previous => new Set(
+        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
+      ));
     },
     onError: async () => {
       await invalidateReviewState();
@@ -1062,22 +1152,51 @@ export function WorldSettingReview() {
   });
   const dismissMutation = useMutation({
     ...dismissWorldSettingCandidateGroupMutation(),
-    onSuccess: async () => {
+    onSuccess: async (_response, variables) => {
       await invalidateReviewState();
-      setDecisionOverrides({});
-      setResolvedConflictIds(new Set());
-    },
-  });
-  const updateMutation = useMutation({
-    ...updateWorldSettingCandidateMutation(),
-    onSuccess: async () => {
-      await invalidateReviewState();
-      setEditCandidate(null);
+      const dismissedIds = new Set(variables.body.candidateIds);
+      setDecisionOverrides(previous => Object.fromEntries(
+        Object.entries(previous).filter(([candidateId]) => !dismissedIds.has(candidateId)),
+      ));
+      setResolvedConflictIds(previous => new Set(
+        [...previous].filter(candidateId => !dismissedIds.has(candidateId)),
+      ));
+      setRecomparedIds(previous => new Set(
+        [...previous].filter(candidateId => !dismissedIds.has(candidateId)),
+      ));
     },
   });
   const retryMutation = useMutation({
     ...retryWorldSettingCandidateComparisonMutation(),
     onSuccess: invalidateReviewState,
+  });
+  const updateDecisionMutation = useMutation({
+    ...updateWorldSettingCandidateDecisionsMutation(),
+    onSuccess: async (response, variables) => {
+      const updatedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
+      const firstDecision = variables.body.candidates[0];
+      const nextGroupKey = response.data?.groupKey;
+      setDecisionOverrides(previous => Object.fromEntries(
+        Object.entries(previous).filter(([candidateId]) => !updatedIds.has(candidateId)),
+      ));
+      setEditCandidate(null);
+      setEditIdentityOnly(false);
+      selectionGroupRef.current = null;
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (nextGroupKey) next.set('group', nextGroupKey);
+        if (firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category) {
+          next.set('worldCategory', firstDecision.category);
+        }
+        if (firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation) {
+          next.set('operation', firstDecision.operation);
+        }
+        next.set('page', '1');
+        next.delete('candidate');
+        return next;
+      }, { replace: true, state: location.state });
+      await invalidateReviewState();
+    },
   });
 
   useEffect(() => {
@@ -1107,9 +1226,12 @@ export function WorldSettingReview() {
 
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
-    || updateMutation.isPending
-    || retryMutation.isPending;
-  const selectedActionError = confirmMutation.error ?? dismissMutation.error ?? updateMutation.error ?? retryMutation.error;
+    || retryMutation.isPending
+    || updateDecisionMutation.isPending;
+  const selectedActionError = updateDecisionMutation.error
+    ?? confirmMutation.error
+    ?? dismissMutation.error
+    ?? retryMutation.error;
   const apiActionError = toApiError(selectedActionError);
   const conflictScope = apiActionError?.context?.scope;
   const conflictReason = apiActionError?.context?.reasonMessage;
@@ -1123,10 +1245,11 @@ export function WorldSettingReview() {
     if (actionPending) return;
     setMobileDetailOpen(false);
     setEditCandidate(null);
+    setEditIdentityOnly(false);
     confirmMutation.reset();
     dismissMutation.reset();
-    updateMutation.reset();
     retryMutation.reset();
+    updateDecisionMutation.reset();
     selectionGroupRef.current = null;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -1147,10 +1270,11 @@ export function WorldSettingReview() {
     if (actionPending) return;
     setMobileDetailOpen(true);
     setEditCandidate(null);
+    setEditIdentityOnly(false);
     confirmMutation.reset();
     dismissMutation.reset();
-    updateMutation.reset();
     retryMutation.reset();
+    updateDecisionMutation.reset();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('group', groupKey);
@@ -1172,39 +1296,31 @@ export function WorldSettingReview() {
     }, { replace: true, state: location.state });
   };
 
-  const toggleCandidate = (candidateId: string) => {
-    if (actionPending) return;
-    setSelectedIds(previous => {
-      const next = new Set(previous);
-      if (next.has(candidateId)) next.delete(candidateId);
-      else next.add(candidateId);
-      return next;
-    });
-  };
-
-  const selectedCandidates = (selectedGroup?.candidates ?? []).filter(candidate => candidate.id && selectedIds.has(candidate.id));
-  const confirmSelected = () => {
+  const pendingCandidates = (selectedGroup?.candidates ?? []).filter(candidate => (
+    candidate.id && candidate.reviewStatus === 'PENDING_REVIEW'
+  ));
+  const confirmAll = () => {
     if (!selectedGroup || !batchId || actionPending) return;
-    const candidates = selectedCandidates.flatMap(candidate => {
+    const candidates = pendingCandidates.flatMap(candidate => {
       if (!candidate.id) return [];
       const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
       return decision ? [{
         candidateId: candidate.id,
         ...decision,
         conflictResolved: candidate.consolidationStatus === 'CONFLICT'
-          ? resolvedConflictIds.has(candidate.id)
+          ? resolvedConflictIds.has(candidate.id) || candidate.userModified
           : undefined,
       }] : [];
     });
-    if (!candidates.length || candidates.length !== selectedCandidates.length) return;
+    if (!candidates.length || candidates.length !== pendingCandidates.length) return;
     confirmMutation.mutate({ path: { workId }, body: { batchId, candidates } });
   };
 
-  const dismissSelected = () => {
-    if (!selectedCandidates.length || actionPending) return;
+  const dismissCandidate = (candidateId: string) => {
+    if (!candidateId || actionPending) return;
     dismissMutation.mutate({
       path: { workId },
-      body: { batchId, candidateIds: selectedCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []) },
+      body: { batchId, candidateIds: [candidateId] },
     });
   };
 
@@ -1217,21 +1333,33 @@ export function WorldSettingReview() {
     retryMutation.mutate({ path: { workId, candidateId: candidate.id } });
   };
 
-  const submitEditedCandidate = (draft: DecisionDraft, identityChanged: boolean) => {
+  const submitEditedCandidate = (draft: DecisionDraft) => {
     if (!editCandidate?.id || actionPending) return;
-    if (identityChanged) {
-      updateMutation.mutate({
-        path: { workId, candidateId: editCandidate.id },
-        body: { category: draft.category, subjectName: draft.subjectName, settingName: draft.settingName },
-      });
-      return;
-    }
-    setDecisionOverrides(previous => ({ ...previous, [editCandidate.id!]: draft }));
-    if (editCandidate.consolidationStatus === 'CONFLICT') {
-      setResolvedConflictIds(previous => new Set([...previous, editCandidate.id!]));
-      setSelectedIds(previous => new Set([...previous, editCandidate.id!]));
-    }
-    setEditCandidate(null);
+    const candidates = editIdentityOnly
+      ? pendingCandidates.flatMap(candidate => {
+        if (!candidate.id) return [];
+        const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
+        return decision ? [{
+          candidateId: candidate.id,
+          ...decision,
+          category: draft.category,
+          subjectName: draft.subjectName,
+        }] : [];
+      })
+      : [{ candidateId: editCandidate.id, ...draft }];
+    if (!candidates.length || (editIdentityOnly && candidates.length !== pendingCandidates.length)) return;
+    const resolvedConflictId = !editIdentityOnly && editCandidate.consolidationStatus === 'CONFLICT'
+      ? editCandidate.id
+      : null;
+    updateDecisionMutation.mutate({
+      path: { workId },
+      body: { batchId, candidates },
+    }, {
+      onSuccess: () => {
+        if (!resolvedConflictId) return;
+        setResolvedConflictIds(previous => new Set([...previous, resolvedConflictId]));
+      },
+    });
   };
 
   const backToAnalysisList = () => {
@@ -1339,9 +1467,13 @@ export function WorldSettingReview() {
                   <Check size={14} color={C.success} />
                   <span style={{ color: C.success, fontSize: 12, fontWeight: 700 }}>
                     {confirmedTarget.appliedCount > 0 && confirmedTarget.excludedCount > 0
-                      ? `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 반영하고 ${confirmedTarget.excludedCount}개를 제외했습니다.`
+                      ? confirmedTarget.targetCount > 1
+                        ? `${confirmedTarget.targetCount}개 세계관 대상에 설정 ${confirmedTarget.appliedCount}개를 반영하고 ${confirmedTarget.excludedCount}개를 제외했습니다.`
+                        : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 반영하고 ${confirmedTarget.excludedCount}개를 제외했습니다.`
                       : confirmedTarget.appliedCount > 0
-                        ? `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 세계관 DB에 반영했습니다.`
+                        ? confirmedTarget.targetCount > 1
+                          ? `${confirmedTarget.targetCount}개 세계관 대상에 설정 ${confirmedTarget.appliedCount}개를 반영했습니다.`
+                          : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 세계관 DB에 반영했습니다.`
                         : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.excludedCount}개를 검토 결과 제외했습니다.`}
                   </span>
                   <div style={{ flex: 1 }} />
@@ -1400,6 +1532,7 @@ export function WorldSettingReview() {
                           <WorldCandidateGroupCard
                             key={group.groupKey}
                             group={group}
+                            decisions={decisionOverrides}
                             selected={group.groupKey === selectedGroup?.groupKey}
                             disabled={actionPending}
                             onClick={() => selectGroup(group.groupKey!)}
@@ -1436,21 +1569,29 @@ export function WorldSettingReview() {
                     ) : (
                       <WorldCandidateGroupDetail
                         group={selectedGroup}
-                        selectedIds={selectedIds}
                         resolvedConflictIds={resolvedConflictIds}
                         recomparedIds={recomparedIds}
                         decisions={decisionOverrides}
                         actionPending={actionPending}
                         actionError={actionError}
-                        onToggle={toggleCandidate}
+                        onExclude={dismissCandidate}
+                        onEditIdentity={() => {
+                          const candidate = pendingCandidates.find(item => item.id && candidateDecision(item));
+                          if (!candidate) return;
+                          confirmMutation.reset();
+                          dismissMutation.reset();
+                          updateDecisionMutation.reset();
+                          setEditIdentityOnly(true);
+                          setEditCandidate(candidate);
+                        }}
                         onEdit={candidate => {
                           confirmMutation.reset();
                           dismissMutation.reset();
-                          updateMutation.reset();
+                          updateDecisionMutation.reset();
+                          setEditIdentityOnly(false);
                           setEditCandidate(candidate);
                         }}
-                        onDismiss={dismissSelected}
-                        onConfirm={confirmSelected}
+                        onConfirm={confirmAll}
                         onRetry={retryGroup}
                       />
                     )}
@@ -1472,12 +1613,16 @@ export function WorldSettingReview() {
 
       {editCandidate?.id && candidateDecision(editCandidate) && (
         <CandidateEditModal
-          key={editCandidate.id}
-          candidate={editCandidate}
+          key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : 'candidate'}`}
           initialDecision={decisionOverrides[editCandidate.id] ?? candidateDecision(editCandidate)!}
+          identityOnly={editIdentityOnly}
           pending={actionPending}
           error={actionError}
-          onClose={() => { if (!actionPending) setEditCandidate(null); }}
+          onClose={() => {
+            if (actionPending) return;
+            setEditCandidate(null);
+            setEditIdentityOnly(false);
+          }}
           onSubmit={submitEditedCandidate}
         />
       )}
@@ -1489,7 +1634,7 @@ export function WorldSettingReview() {
           .world-setting-review-layout:not(.mobile-detail-open) .world-setting-review-detail { display: none !important; }
           .world-setting-review-mobile-back { display: inline-flex !important; align-items: center; gap: 4px; }
           .world-setting-key-diff-values { grid-template-columns: minmax(0, 1fr) !important; }
-          .world-setting-edit-identity, .world-setting-edit-value { grid-template-columns: minmax(0, 1fr) !important; }
+          .world-setting-edit-identity, .world-setting-edit-property, .world-setting-edit-value { grid-template-columns: minmax(0, 1fr) !important; }
         }
       `}</style>
     </div>

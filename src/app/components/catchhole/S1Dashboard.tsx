@@ -2940,6 +2940,7 @@ export default function S1Dashboard() {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
       return;
     }
+    const jobType = 'SETTING_EXTRACTION' as const;
     const requestWorkId = effectiveWorkId;
     const isCurrentRequestContext = () => (
       dashboardMountedRef.current
@@ -2950,7 +2951,7 @@ export default function S1Dashboard() {
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
         path: { workId: requestWorkId },
-        body: { jobType: 'EPISODE_VALIDATION', batchId: episode.batchId, episodeId: episode.id },
+        body: { jobType, batchId: episode.batchId, episodeId: episode.id },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
@@ -2959,7 +2960,7 @@ export default function S1Dashboard() {
       if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
       const analysisJobIdParam = analysisJobIds.join(',');
       navigate(
-        `/episode-upload?workId=${encodeURIComponent(requestWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=EPISODE_VALIDATION`,
+        `/episode-upload?workId=${encodeURIComponent(requestWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=${jobType}`,
         'push-right',
       );
     } catch (error) {

@@ -32,6 +32,7 @@ import type {
   PropertyEvidence,
   WorldSettingDetailResponse,
   WorldSettingListItemResponse,
+  WorldSettingPropertyResponse,
 } from '../../../api/generated/types.gen';
 import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
@@ -40,6 +41,11 @@ import { PageNavigation } from '../PageNavigation';
 
 type WorldCategory = NonNullable<WorldSettingDetailResponse['category']>;
 type WorldSort = 'CATEGORY_SUBJECT_ASC' | 'UPDATED_DESC';
+
+interface WorldSettingPropertyGroup {
+  scopeName: string | null;
+  properties: WorldSettingPropertyResponse[];
+}
 
 const PAGE_SIZE = 20;
 const MOBILE_VIEWPORT_QUERY = '(max-width: 900px)';
@@ -94,6 +100,27 @@ function formatUpdatedAt(value?: string): string {
   if (diff >= 0 && diff < 86_400_000) return `${Math.max(1, Math.floor(diff / 3_600_000))}시간 전 수정`;
   return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
     .format(date).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function propertyPathKey(scopeName?: string | null, settingName?: string | null): string {
+  return JSON.stringify([scopeName?.trim() || null, settingName?.trim() || '']);
+}
+
+function groupProperties(properties?: WorldSettingPropertyResponse[]): WorldSettingPropertyGroup[] {
+  const groups = new Map<string, WorldSettingPropertyGroup>();
+  for (const property of properties ?? []) {
+    if (!property.settingName) continue;
+    const scopeName = property.scopeName?.trim() || null;
+    const key = scopeName ?? '';
+    const group = groups.get(key) ?? { scopeName, properties: [] };
+    group.properties.push(property);
+    groups.set(key, group);
+  }
+  return [...groups.values()].sort((left, right) => {
+    if (left.scopeName === null) return -1;
+    if (right.scopeName === null) return 1;
+    return left.scopeName.localeCompare(right.scopeName, 'ko-KR');
+  });
 }
 
 function Badge({ category }: { category?: WorldCategory }) {
@@ -209,11 +236,12 @@ function ListItem({
         <div style={{ flex: 1 }} />
         <span style={{ color: C.t3, fontSize: 10 }}>{formatUpdatedAt(item.updatedAt)}</span>
       </div>
-      {(item.matchedSettingName || item.matchedSettingValue) && (
+      {(item.matchedScopeName || item.matchedSettingName || item.matchedSettingValue) && (
         <div style={{
           marginTop: 8, color: C.t2, fontSize: 10,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
+          {item.matchedScopeName ? `${item.matchedScopeName} › ` : ''}
           {item.matchedSettingName || '일치 설정'} · {item.matchedSettingValue || '값 없음'}
         </div>
       )}
@@ -223,9 +251,12 @@ function ListItem({
 
 interface PropertyDraft {
   mode: 'add' | 'edit';
+  currentScopeName?: string;
   currentSettingName?: string;
+  scopeName: string;
   settingName: string;
   settingValue: string;
+  initialScopeName: string;
   initialSettingName: string;
   initialSettingValue: string;
 }
@@ -233,6 +264,7 @@ interface PropertyDraft {
 interface CreateWorldSettingDraft {
   category: WorldCategory;
   subjectName: string;
+  scopeName: string;
   settingName: string;
   settingValue: string;
 }
@@ -244,7 +276,7 @@ interface IdentityDraft {
 }
 
 function emptyCreateDraft(): CreateWorldSettingDraft {
-  return { category: 'RACE', subjectName: '', settingName: '', settingValue: '' };
+  return { category: 'RACE', subjectName: '', scopeName: '', settingName: '', settingValue: '' };
 }
 
 function isSameEvidence(left: CandidateEvidence, right: CandidateEvidence): boolean {
@@ -346,7 +378,20 @@ function PropertyEditor({
       <div style={{ color: C.primary, fontSize: 11, fontWeight: 750, marginBottom: 10 }}>
         {draft.mode === 'add' ? '새 설정 추가' : '설정 수정'}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 0.7fr) minmax(220px, 1.7fr)', gap: 10 }}>
+      <div className="world-setting-property-editor-fields" style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(120px, 0.65fr) minmax(140px, 0.8fr) minmax(220px, 1.7fr)',
+        gap: 10,
+      }}>
+        <label style={{ color: C.t3, fontSize: 10 }}>
+          범위 (선택)
+          <input
+            value={draft.scopeName}
+            onChange={event => onChange({ ...draft, scopeName: event.target.value })}
+            placeholder="예: 1층"
+            style={{ ...inputStyle, marginTop: 6 }}
+          />
+        </label>
         <label style={{ color: C.t3, fontSize: 10 }}>
           설정명
           <input
@@ -363,6 +408,9 @@ function PropertyEditor({
             style={{ ...inputStyle, marginTop: 6 }}
           />
         </label>
+      </div>
+      <div style={{ color: C.t3, fontSize: 10, marginTop: 7 }}>
+        범위는 대상 아래 한 단계만 사용할 수 있으며, 필요하지 않으면 비워 두세요.
       </div>
       {error && (
         <div role="alert" style={{ marginTop: 9, color: C.danger, fontSize: 11, lineHeight: 1.5 }}>
@@ -411,16 +459,20 @@ function WorldSettingDetail({
   expandedEvidence: string | null;
   onEditIdentity: () => void;
   onStartAdd: () => void;
-  onStartEdit: (name: string, value: string) => void;
+  onStartEdit: (scopeName: string | null, name: string, value: string) => void;
   onDraftChange: (draft: PropertyDraft) => void;
   onCancelDraft: () => void;
   onSaveDraft: () => void;
   onReload: () => void;
-  onToggleEvidence: (name: string) => void;
+  onToggleEvidence: (scopeName: string | null, name: string) => void;
 }) {
-  const properties = Object.entries(detail.properties ?? {});
-  const evidenceByName = useMemo(() => new Map(
-    (detail.propertyEvidence ?? []).map(evidence => [evidence.settingName ?? '', evidence]),
+  const properties = useMemo(() => detail.properties ?? [], [detail.properties]);
+  const propertyGroups = useMemo(() => groupProperties(properties), [properties]);
+  const evidenceByPath = useMemo(() => new Map(
+    (detail.propertyEvidence ?? []).map(evidence => [
+      propertyPathKey(evidence.scopeName, evidence.settingName),
+      evidence,
+    ]),
   ), [detail.propertyEvidence]);
   return (
     <div style={{
@@ -447,7 +499,7 @@ function WorldSettingDetail({
           background: C.bg, border: `1px solid ${C.border}`, color: C.t3, fontSize: 10,
         }}>{properties.length}</span>
         <div style={{ flex: 1 }} />
-        <Button disabled={Boolean(propertyDraft) || propertyPending} onClick={onStartAdd}><Plus size={12} /> 설정 추가</Button>
+        <Button disabled={Boolean(propertyDraft) || propertyPending} onClick={onStartAdd}><Plus size={12} /> 범위·설정 추가</Button>
       </div>
 
       {propertyDraft?.mode === 'add' && (
@@ -465,69 +517,111 @@ function WorldSettingDetail({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {properties.map(([name, value]) => {
-          const editing = propertyDraft?.mode === 'edit' && propertyDraft.currentSettingName === name;
-          const evidence = evidenceByName.get(name);
-          const latestEpisode = evidence?.latestEvidence?.sourceEpisodeNo;
-          if (editing) {
-            return (
-              <PropertyEditor
-                key={name}
-                draft={propertyDraft}
-                pending={propertyPending}
-                error={propertyError}
-                conflict={propertyConflict}
-                onChange={onDraftChange}
-                onCancel={onCancelDraft}
-                onReload={onReload}
-                onSave={onSaveDraft}
-              />
-            );
-          }
-          return (
-            <div key={name} style={{
-              borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden',
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+        {propertyGroups.map(group => {
+          const scopeAccent = group.scopeName ? C.primary : C.t2;
+          return <section key={group.scopeName ?? 'root'}>
+            <div style={{
+              minHeight: 44, padding: '7px 11px', boxSizing: 'border-box',
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9,
+              borderRadius: 8, border: `1px solid ${scopeAccent}38`,
+              background: `${scopeAccent}0D`,
             }}>
-              <div style={{
-                minHeight: 72, padding: '12px 13px', display: 'grid',
-                gridTemplateColumns: 'minmax(120px, 0.7fr) minmax(220px, 1.6fr) 100px 34px',
-                alignItems: 'center', gap: 12,
-              }}>
-                <div>
-                  <div style={{ color: C.t3, fontSize: 9, marginBottom: 5 }}>설정명</div>
-                  <strong style={{ color: C.t1, fontSize: 12 }}>{name}</strong>
-                </div>
-                <div>
-                  <div style={{ color: C.t3, fontSize: 9, marginBottom: 5 }}>설정값</div>
-                  <span style={{ color: C.t1, fontSize: 12, lineHeight: 1.55 }}>{value}</span>
-                </div>
-                <button type="button" onClick={() => onToggleEvidence(name)} style={{
-                  border: 'none', background: 'none', textAlign: 'left', padding: 0,
-                  color: evidence ? C.primary : C.t3, fontFamily: 'inherit', cursor: 'pointer',
+              <span aria-hidden="true" style={{
+                width: 3, height: 26, borderRadius: 2, background: scopeAccent, flexShrink: 0,
+              }} />
+              <div style={{ minWidth: 0 }}>
+                <span style={{
+                  display: 'block', color: scopeAccent, fontSize: 9, fontWeight: 750,
+                  letterSpacing: '0.02em', marginBottom: 2,
                 }}>
-                  <div style={{ fontSize: 9, marginBottom: 5 }}>최근 근거</div>
-                  <span style={{ fontSize: 11 }}>{latestEpisode == null ? '직접 입력' : `${latestEpisode}화`}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${name} 설정 수정`}
-                  disabled={Boolean(propertyDraft) || propertyPending}
-                  onClick={() => onStartEdit(name, value)}
-                  style={{
-                    width: 32, height: 32, borderRadius: 7, border: `1px solid ${C.border}`,
-                    background: C.surface, color: C.t2, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', cursor: propertyDraft || propertyPending ? 'not-allowed' : 'pointer',
-                  }}
-                ><Pencil size={13} /></button>
+                  {group.scopeName ? '설정 범위' : '전체 대상'}
+                </span>
+                <h4 style={{ margin: 0, color: C.t1, fontSize: 13, fontWeight: 800 }}>
+                  {group.scopeName ?? '공통 설정'}
+                </h4>
               </div>
-              {expandedEvidence === name && (
-                <div style={{ padding: '11px 13px', borderTop: `1px solid ${C.border}`, background: C.surface }}>
-                  <EvidencePanel evidence={evidence} />
-                </div>
-              )}
+              <div style={{ flex: 1 }} />
+              <span style={{
+                padding: '3px 7px', borderRadius: 9, border: `1px solid ${C.border}`,
+                background: C.surface, color: C.t2, fontSize: 10, whiteSpace: 'nowrap',
+              }}>
+                {group.properties.length}개 설정
+              </span>
             </div>
-          );
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {group.properties.map(property => {
+                const scopeName = property.scopeName?.trim() || null;
+                const name = property.settingName ?? '설정명 없음';
+                const value = property.value ?? '';
+                const pathKey = propertyPathKey(scopeName, name);
+                const editing = propertyDraft?.mode === 'edit'
+                  && propertyPathKey(propertyDraft.currentScopeName, propertyDraft.currentSettingName) === pathKey;
+                const evidence = evidenceByPath.get(pathKey);
+                const latestEpisode = evidence?.latestEvidence?.sourceEpisodeNo;
+                if (editing) {
+                  return (
+                    <PropertyEditor
+                      key={pathKey}
+                      draft={propertyDraft}
+                      pending={propertyPending}
+                      error={propertyError}
+                      conflict={propertyConflict}
+                      onChange={onDraftChange}
+                      onCancel={onCancelDraft}
+                      onReload={onReload}
+                      onSave={onSaveDraft}
+                    />
+                  );
+                }
+                return (
+                  <div key={pathKey} style={{
+                    borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      minHeight: 72, padding: '12px 13px', display: 'grid',
+                      gridTemplateColumns: 'minmax(150px, 0.8fr) minmax(220px, 1.6fr) 100px 34px',
+                      alignItems: 'center', gap: 12,
+                    }}>
+                      <div>
+                        <div style={{ color: C.t3, fontSize: 9, marginBottom: 5 }}>범위 › 설정명</div>
+                        <strong style={{ color: C.t1, fontSize: 12 }}>
+                          {scopeName ? `${scopeName} › ` : ''}{name}
+                        </strong>
+                      </div>
+                      <div>
+                        <div style={{ color: C.t3, fontSize: 9, marginBottom: 5 }}>설정값</div>
+                        <span style={{ color: C.t1, fontSize: 12, lineHeight: 1.55 }}>{value}</span>
+                      </div>
+                      <button type="button" onClick={() => onToggleEvidence(scopeName, name)} style={{
+                        border: 'none', background: 'none', textAlign: 'left', padding: 0,
+                        color: evidence ? C.primary : C.t3, fontFamily: 'inherit', cursor: 'pointer',
+                      }}>
+                        <div style={{ fontSize: 9, marginBottom: 5 }}>최근 근거</div>
+                        <span style={{ fontSize: 11 }}>{latestEpisode == null ? '직접 입력' : `${latestEpisode}화`}</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${scopeName ? `${scopeName} ` : ''}${name} 설정 수정`}
+                        disabled={Boolean(propertyDraft) || propertyPending}
+                        onClick={() => onStartEdit(scopeName, name, value)}
+                        style={{
+                          width: 32, height: 32, borderRadius: 7, border: `1px solid ${C.border}`,
+                          background: C.surface, color: C.t2, display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', cursor: propertyDraft || propertyPending ? 'not-allowed' : 'pointer',
+                        }}
+                      ><Pencil size={13} /></button>
+                    </div>
+                    {expandedEvidence === pathKey && (
+                      <div style={{ padding: '11px 13px', borderTop: `1px solid ${C.border}`, background: C.surface }}>
+                        <EvidencePanel evidence={evidence} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>;
         })}
       </div>
 
@@ -700,10 +794,18 @@ function CreateWorldSettingModal({
   error?: string | null;
   onDraftChange: (draft: CreateWorldSettingDraft) => void;
   onClose: () => void;
-  onSubmit: (category: WorldCategory, subjectName: string, settingName: string, settingValue: string) => void;
+  onSubmit: (
+    category: WorldCategory,
+    subjectName: string,
+    scopeName: string | null,
+    settingName: string,
+    settingValue: string,
+  ) => void;
 }) {
   const [validationError, setValidationError] = useState<string | null>(null);
-  const dirty = Boolean(draft.subjectName || draft.settingName || draft.settingValue || draft.category !== 'RACE');
+  const dirty = Boolean(
+    draft.subjectName || draft.scopeName || draft.settingName || draft.settingValue || draft.category !== 'RACE',
+  );
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!draft.subjectName.trim() || !draft.settingName.trim() || !draft.settingValue.trim()) {
@@ -711,12 +813,18 @@ function CreateWorldSettingModal({
       return;
     }
     setValidationError(null);
-    onSubmit(draft.category, draft.subjectName.trim(), draft.settingName.trim(), draft.settingValue.trim());
+    onSubmit(
+      draft.category,
+      draft.subjectName.trim(),
+      draft.scopeName.trim() || null,
+      draft.settingName.trim(),
+      draft.settingValue.trim(),
+    );
   };
   return (
     <ModalShell
       title="새 세계관 대상 추가"
-      description="분류와 대상, 첫 설정을 입력하면 세계관 DB에 바로 추가됩니다."
+      description="분류와 대상, 선택 범위와 첫 설정을 입력하면 세계관 DB에 바로 추가됩니다."
       pending={pending}
       dirty={dirty}
       onClose={onClose}
@@ -737,6 +845,18 @@ function CreateWorldSettingModal({
       </div>
       <div style={{ color: C.t1, fontSize: 13, fontWeight: 700, margin: '20px 0 12px' }}>첫 설정</div>
       <label style={{ display: 'block', color: C.t3, fontSize: 11 }}>
+        범위 (선택)
+        <input
+          value={draft.scopeName}
+          onChange={event => onDraftChange({ ...draft, scopeName: event.target.value })}
+          placeholder="예: 1층"
+          style={{ ...modalInputStyle, marginTop: 7 }}
+        />
+        <span style={{ display: 'block', marginTop: 6, color: C.t3, fontSize: 10 }}>
+          대상 아래 한 단계 범위만 입력할 수 있습니다. 공통 설정이면 비워 두세요.
+        </span>
+      </label>
+      <label style={{ display: 'block', color: C.t3, fontSize: 11, marginTop: 13 }}>
         설정명
         <input value={draft.settingName} onChange={event => onDraftChange({ ...draft, settingName: event.target.value })} placeholder="예: 서식지" style={{ ...modalInputStyle, marginTop: 7 }} />
       </label>
@@ -819,7 +939,7 @@ function EditIdentityModal({
         border: `1px solid ${C.border}`, background: C.bg,
         color: C.t2, fontSize: 11,
       }}>
-        연결된 설정 {detail.propertyCount ?? Object.keys(detail.properties ?? {}).length}개 · 설정값은 변경되지 않습니다.
+        연결된 설정 {detail.propertyCount ?? detail.properties?.length ?? 0}개 · 설정값은 변경되지 않습니다.
       </div>
       {(validationError || error) && (
         <div role="alert" style={{ marginTop: 11, color: C.danger, fontSize: 11 }}>
@@ -1051,6 +1171,7 @@ export function WorldSettingDatabase({
 
   const saveProperty = () => {
     if (!propertyDraft || !selectedId || !detail || propertyPending) return;
+    const scopeName = propertyDraft.scopeName.trim() || undefined;
     const settingName = propertyDraft.settingName.trim();
     const settingValue = propertyDraft.settingValue.trim();
     if (!settingName || !settingValue) {
@@ -1061,13 +1182,15 @@ export function WorldSettingDatabase({
     if (propertyDraft.mode === 'add') {
       addPropertyMutation.mutate({
         path: { workId, worldSettingId: selectedId },
-        body: { settingName, settingValue, version: detail.version },
+        body: { scopeName, settingName, settingValue, version: detail.version },
       });
     } else {
       updatePropertyMutation.mutate({
         path: { workId, worldSettingId: selectedId },
         body: {
+          currentScopeName: propertyDraft.currentScopeName?.trim() || undefined,
           currentSettingName: propertyDraft.currentSettingName!,
+          scopeName,
           settingName,
           settingValue,
           version: detail.version,
@@ -1117,7 +1240,7 @@ export function WorldSettingDatabase({
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 18 }}>
         <div>
           <strong style={{ display: 'block', color: C.t1, fontSize: 20, marginBottom: 6 }}>세계관 DB</strong>
-          <span style={{ color: C.t3, fontSize: 12 }}>분류와 대상을 선택해 지속 설정을 한곳에서 관리합니다.</span>
+          <span style={{ color: C.t3, fontSize: 12 }}>대상 아래 범위와 설정 경로를 한곳에서 관리합니다.</span>
         </div>
         <div style={{ flex: 1 }} />
         <span style={{
@@ -1344,15 +1467,18 @@ export function WorldSettingDatabase({
                 onStartAdd={() => {
                   resetPropertyMutations();
                   setPropertyDraft({
-                    mode: 'add', settingName: '', settingValue: '',
+                    mode: 'add', scopeName: '', settingName: '', settingValue: '',
+                    initialScopeName: '',
                     initialSettingName: '', initialSettingValue: '',
                   });
                 }}
-                onStartEdit={(name, value) => {
+                onStartEdit={(scopeName, name, value) => {
                   resetPropertyMutations();
                   setPropertyDraft({
-                    mode: 'edit', currentSettingName: name,
+                    mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
+                    scopeName: scopeName ?? '',
                     settingName: name, settingValue: value,
+                    initialScopeName: scopeName ?? '',
                     initialSettingName: name, initialSettingValue: value,
                   });
                 }}
@@ -1360,7 +1486,10 @@ export function WorldSettingDatabase({
                 onCancelDraft={() => requestPropertyDraftDiscard()}
                 onSaveDraft={saveProperty}
                 onReload={() => void detailQuery.refetch()}
-                onToggleEvidence={name => setExpandedEvidence(current => current === name ? null : name)}
+                onToggleEvidence={(scopeName, name) => {
+                  const key = propertyPathKey(scopeName, name);
+                  setExpandedEvidence(current => current === key ? null : key);
+                }}
               />
             )}
           </section>
@@ -1381,9 +1510,9 @@ export function WorldSettingDatabase({
               return next;
             }, { replace: true });
           }}
-          onSubmit={(newCategory, subjectName, settingName, settingValue) => createMutation.mutate({
+          onSubmit={(newCategory, subjectName, scopeName, settingName, settingValue) => createMutation.mutate({
             path: { workId },
-            body: { category: newCategory, subjectName, settingName, settingValue },
+            body: { category: newCategory, subjectName, scopeName, settingName, settingValue },
           })}
         />
       )}
@@ -1419,6 +1548,9 @@ export function WorldSettingDatabase({
       />
       <style>{`
         @media (max-width: 900px) {
+          .world-setting-property-editor-fields {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
           .world-setting-db-filters {
             grid-template-columns: minmax(0, 1fr) !important;
           }
