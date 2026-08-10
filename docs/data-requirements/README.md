@@ -88,7 +88,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 - [upload](./upload.md) — 회차 업로드 (SEpisodeUpload)
 - [episode](./episode.md) — 원고 목록
 - [character](./character.md) — 설정DB · 설정 검토 · 캐릭터
-- [world-setting](./world-setting.md) — NVM-260 세계관 후보 검토 · 세계관 DB
+- [world-setting](./world-setting.md) — NVM-260 세계관 MVP · NVM-268 1단계 범위 경로 · 세계관 DB
 - [analysis](./analysis.md) — 분석 진행 · 오류 리포트 · 회차 검사
 
 ## 화면 ↔ 도메인 매핑
