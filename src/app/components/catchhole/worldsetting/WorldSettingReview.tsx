@@ -1114,7 +1114,7 @@ export function WorldSettingReview() {
 
   const confirmMutation = useMutation({
     ...confirmWorldSettingCandidateGroupMutation(),
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       const confirmedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
       const result = response.data;
       const resultCandidates = result?.candidates ?? [];
@@ -1150,16 +1150,16 @@ export function WorldSettingReview() {
       setRecomparedIds(previous => new Set(
         [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
       ));
-      // 저장 응답 뒤의 목록 재조회는 백그라운드로 돌려 탭과 뒤로가기를 계속 사용할 수 있게 한다.
-      void invalidateReviewState();
+      // mutation pending 상태를 목록·상세 캐시 갱신까지 유지해 이전 응답으로 중복 액션하지 못하게 한다.
+      await invalidateReviewState();
     },
-    onError: () => {
-      void invalidateReviewState();
+    onError: async () => {
+      await invalidateReviewState();
     },
   });
   const dismissMutation = useMutation({
     ...dismissWorldSettingCandidateGroupMutation(),
-    onSuccess: (_response, variables) => {
+    onSuccess: async (_response, variables) => {
       const dismissedIds = new Set(variables.body.candidateIds);
       setDecisionOverrides(previous => Object.fromEntries(
         Object.entries(previous).filter(([candidateId]) => !dismissedIds.has(candidateId)),
@@ -1170,18 +1170,18 @@ export function WorldSettingReview() {
       setRecomparedIds(previous => new Set(
         [...previous].filter(candidateId => !dismissedIds.has(candidateId)),
       ));
-      void invalidateReviewState();
+      await invalidateReviewState();
     },
   });
   const retryMutation = useMutation({
     ...retryWorldSettingCandidateComparisonMutation(),
-    onSuccess: () => {
-      void invalidateReviewState();
+    onSuccess: async () => {
+      await invalidateReviewState();
     },
   });
   const updateDecisionMutation = useMutation({
     ...updateWorldSettingCandidateDecisionsMutation(),
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       const updatedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
       const firstDecision = variables.body.candidates[0];
       const nextGroupKey = response.data?.groupKey;
@@ -1204,7 +1204,7 @@ export function WorldSettingReview() {
         next.delete('candidate');
         return next;
       }, { replace: true, state: location.state });
-      void invalidateReviewState();
+      await invalidateReviewState();
     },
   });
 

@@ -23,6 +23,7 @@ import {
   dismissSettingCandidateMutation,
   getCharactersQueryKey,
   getCharactersOptions,
+  getSettingCandidateOptions,
   getSettingCandidatesQueryKey,
   getSettingCandidatesOptions,
   getWorldSettingCandidatesOptions,
@@ -222,6 +223,20 @@ function matchesMatchFilter(status: MatchStatus | undefined, filter: MatchFilter
 
 function characterGroupKey(entityName?: string | null): string {
   return (entityName ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function withSelectableGroupKey(
+  group: SettingCandidateGroupResponse,
+  index: number,
+): SettingCandidateGroupResponse {
+  if (group.groupKey?.trim()) return group;
+  const firstCandidateId = group.candidates?.find(candidate => candidate.id)?.id;
+  return {
+    ...group,
+    // URL에서 빈 문자열은 선택 없음과 구분되지 않는다. 이름 없는 legacy 그룹도 선택할 수 있도록
+    // 서버 식별자를 바꾸지 않는 화면 전용 key를 부여한다.
+    groupKey: `__unnamed__:${firstCandidateId ?? index}`,
+  };
 }
 
 function reviewColor(status: ReviewStatus | undefined): string {
@@ -1206,6 +1221,7 @@ export function CharacterSettingReview() {
   );
   const selectionGroupRef = useRef<string | null>(null);
   const confirmingGroupKeyRef = useRef<string | null>(null);
+  const resolvingLegacyCandidateRef = useRef<string | null>(null);
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
 
@@ -1239,6 +1255,14 @@ export function CharacterSettingReview() {
     },
   });
   const listData = listQuery.data?.data;
+  const legacyCandidateQuery = useQuery({
+    ...getSettingCandidateOptions({
+      path: { workId, candidateId: legacyCandidateId ?? '' },
+      query: { batchId },
+    }),
+    enabled: hasContext && Boolean(legacyCandidateId),
+    retry: shouldRetryCandidateQuery,
+  });
   const usesLegacyCandidatePage = listData?.groups == null && listData?.candidates != null;
   const legacyGroupedActionsUnsafe = usesLegacyCandidatePage
     && ((listData?.candidates?.totalPages ?? 0) > 1 || listData?.candidates?.hasNext === true);
@@ -1261,8 +1285,8 @@ export function CharacterSettingReview() {
         candidates,
       }))
       // 구버전 Java의 단건 페이지를 사용하는 배포 구간에도 미상 그룹을 마지막에 유지한다.
-      .sort((first, second) => Number(characterGroupKey(first.entityName) === '미상')
-        - Number(characterGroupKey(second.entityName) === '미상'));
+      .sort((first, second) => Number(['', '미상'].includes(characterGroupKey(first.entityName)))
+        - Number(['', '미상'].includes(characterGroupKey(second.entityName))));
     return {
       content,
       page: candidatePage.page,
@@ -1274,7 +1298,10 @@ export function CharacterSettingReview() {
   }, [listData?.candidates]);
   // Java와 Front를 순차 배포할 때도 목록이 비지 않도록 한 릴리스 동안 단건 페이지를 폴백으로 읽는다.
   const groupPage = listData?.groups ?? legacyGroupPage;
-  const groups = useMemo(() => groupPage?.content ?? [], [groupPage?.content]);
+  const groups = useMemo(
+    () => (groupPage?.content ?? []).map(withSelectableGroupKey),
+    [groupPage?.content],
+  );
   const selectedGroup = groups.find(group => group.groupKey === selectedGroupKey)
     ?? (legacyCandidateId
       ? groups.find(group => group.candidates?.some(candidate => candidate.id === legacyCandidateId))
@@ -1298,8 +1325,110 @@ export function CharacterSettingReview() {
   const worldSummary = worldSummaryQuery.data?.data;
 
   useEffect(() => {
+    if (!legacyCandidateId || !legacyCandidateQuery.isSuccess) return;
+    if (resolvingLegacyCandidateRef.current === legacyCandidateId) return;
+    const targetCandidate = legacyCandidateQuery.data?.data;
+    if (!targetCandidate) return;
+    resolvingLegacyCandidateRef.current = legacyCandidateId;
+    let cancelled = false;
+
+    const resolveOwningGroup = async () => {
+      const targetReview = targetCandidate.reviewStatus ?? 'PENDING_REVIEW';
+      // 현재 URL 필터가 후보를 포함하면 사용자의 탐색 문맥을 보존한다. 후보가 필터 밖이면
+      // 전체로 넓혀 공유 링크가 반드시 실제 그룹을 찾도록 한다.
+      const targetMatch: MatchFilter = matchesMatchFilter(targetCandidate.matchStatus, matchFilter)
+        ? matchFilter
+        : 'ALL';
+      let targetPage = 0;
+      let targetGroupKey: string | null = null;
+
+      while (!cancelled) {
+        const response = await queryClient.fetchQuery(getSettingCandidatesOptions({
+          path: { workId },
+          query: {
+            batchId,
+            reviewStatus: targetReview,
+            matchStatuses: matchStatusesForFilter(targetMatch),
+            page: targetPage,
+            size,
+            includeLegacyCandidates: true,
+          },
+        }));
+        const responseData = response.data;
+        const responseGroups = responseData?.groups?.content
+          ?? Array.from((responseData?.candidates?.content ?? []).reduce((grouped, candidate) => {
+            const key = characterGroupKey(candidate.entityName);
+            grouped.set(key, [...(grouped.get(key) ?? []), candidate]);
+            return grouped;
+          }, new Map<string, SettingCandidateResponse[]>()).entries()).map(([groupKey, candidates]) => ({
+            groupKey,
+            entityName: candidates[0]?.entityName ?? '',
+            candidateCount: candidates.length,
+            evidenceEpisodeNos: [],
+            candidates,
+          }));
+        const owningGroupIndex = responseGroups.findIndex(group => (
+          group.candidates?.some(candidate => candidate.id === legacyCandidateId)
+        ));
+        if (owningGroupIndex >= 0) {
+          targetGroupKey = withSelectableGroupKey(
+            responseGroups[owningGroupIndex],
+            owningGroupIndex,
+          ).groupKey ?? null;
+          break;
+        }
+        const totalPages = responseData?.groups?.totalPages
+          ?? responseData?.candidates?.totalPages
+          ?? 0;
+        targetPage += 1;
+        if (targetPage >= totalPages) break;
+      }
+
+      if (cancelled || !targetGroupKey) return;
+      setMobileDetailOpen(true);
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (targetReview === 'PENDING_REVIEW') next.delete('reviewStatus');
+        else next.set('reviewStatus', targetReview);
+        if (targetMatch === 'ALL') next.delete('matchStatus');
+        else next.set('matchStatus', targetMatch);
+        next.set('page', String(targetPage + 1));
+        next.set('group', targetGroupKey);
+        next.delete('candidate');
+        return next;
+      }, { replace: true, state: location.state });
+    };
+
+    void resolveOwningGroup().catch(() => {
+      resolvingLegacyCandidateRef.current = null;
+    });
+    return () => {
+      cancelled = true;
+      if (resolvingLegacyCandidateRef.current === legacyCandidateId) {
+        resolvingLegacyCandidateRef.current = null;
+      }
+    };
+  }, [
+    batchId,
+    legacyCandidateId,
+    legacyCandidateQuery.data?.data,
+    legacyCandidateQuery.isSuccess,
+    location.state,
+    matchFilter,
+    queryClient,
+    setSearchParams,
+    size,
+    workId,
+  ]);
+
+  useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
+    // 단건 공유 URL은 대상 후보의 실제 필터·페이지·그룹을 먼저 찾은 뒤 canonical group URL로 바꾼다.
+    if (legacyCandidateId) return;
     if (!listQuery.isSuccess || listQuery.fetchStatus === 'fetching') return;
+    // keepPreviousData가 이전 페이지를 잠시 유지하는 동안 그 목록으로 canonical URL을
+    // 되돌리지 않는다. 현재 URL의 페이지 응답이 도착한 뒤에만 선택을 보정한다.
+    if (groupPage?.page != null && groupPage.page !== apiPage) return;
     const nextGroup = selectedGroup ?? groups[0];
     if (!nextGroup?.groupKey) {
       if (!selectedGroupKey && !legacyCandidateId) return;
@@ -1318,7 +1447,7 @@ export function CharacterSettingReview() {
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, selectedGroup, selectedGroupKey, setSearchParams]);
+  }, [apiPage, groupPage?.page, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, selectedGroup, selectedGroupKey, setSearchParams]);
 
   useEffect(() => {
     const groupKey = selectedGroup?.groupKey ?? null;
@@ -1331,6 +1460,7 @@ export function CharacterSettingReview() {
 
   useEffect(() => {
     selectionGroupRef.current = null;
+    resolvingLegacyCandidateRef.current = null;
     setEditCandidate(null);
     setMatchTarget(null);
     setGroupMatchOpen(false);
@@ -1640,6 +1770,8 @@ export function CharacterSettingReview() {
 
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
+    if (listQuery.fetchStatus === 'fetching') return;
+    if (groupPage?.page != null && groupPage.page !== apiPage) return;
     const serverTotalPages = groupPage?.totalPages;
     if (serverTotalPages == null || apiPage < Math.max(serverTotalPages, 1)) return;
     setSearchParams(previous => {
@@ -1649,7 +1781,7 @@ export function CharacterSettingReview() {
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [apiPage, groupPage?.totalPages, location.state, setSearchParams]);
+  }, [apiPage, groupPage?.page, groupPage?.totalPages, listQuery.fetchStatus, location.state, setSearchParams]);
 
   if (!hasContext) {
     return (
@@ -1772,9 +1904,9 @@ export function CharacterSettingReview() {
 
                     {groups.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {groups.map(group => group.groupKey && (
+                        {groups.map(group => (
                           <CandidateGroupCard
-                            key={group.groupKey}
+                            key={group.groupKey!}
                             group={group}
                             selected={group.groupKey === selectedGroupKey}
                             disabled={false}

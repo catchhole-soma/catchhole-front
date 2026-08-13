@@ -1997,3 +1997,106 @@ test('큰 캐릭터 후보 묶음도 세계관 후보처럼 한 목록으로 렌
   expect(groupConfirmBody?.candidates?.map(candidate => candidate.candidateId))
     .toEqual(largeGroupCandidates.map(candidate => candidate.id));
 });
+
+test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 실제 그룹을 찾아간다', async ({ page }) => {
+  const precedingId = '77777777-7777-4777-8777-777777777771';
+  const target = { ...candidates[1], id: secondCandidateId, entityName: '후보 대상' };
+  const preceding = { ...candidates[1], id: precedingId, entityName: '앞선 대상' };
+  const requestedPages: string[] = [];
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === `${listPath}/${secondCandidateId}`) return fulfill(route, target);
+    if (pathname === listPath) {
+      const reviewStatus = requestUrl.searchParams.get('reviewStatus');
+      const pageIndex = Number(requestUrl.searchParams.get('page') ?? 0);
+      requestedPages.push(`${reviewStatus ?? 'PENDING_REVIEW'}:${pageIndex}`);
+      const visible = reviewStatus === 'CONFIRMED'
+        ? [preceding, target][pageIndex]
+        : candidates[0];
+      const totalPages = reviewStatus === 'CONFIRMED' ? 2 : 1;
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 2,
+        episodeCount: 2,
+        totalCandidateCount: 3,
+        reviewedCandidateCount: 2,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: visible.entityName.trim().replace(/\s+/g, ' ').toLocaleLowerCase(),
+            entityName: visible.entityName,
+            candidateCount: 1,
+            evidenceEpisodeNos: [visible.episodeNo],
+            candidates: [visible],
+          }],
+          page: pageIndex,
+          size: 1,
+          totalElements: totalPages,
+          totalPages,
+          hasNext: pageIndex + 1 < totalPages,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&size=1&candidate=${secondCandidateId}`,
+  );
+
+  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('CONFIRMED');
+  await expect.poll(() => requestedPages).toContain('CONFIRMED:1');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
+  await expect(page.getByRole('heading', { name: '후보 대상' })).toBeVisible();
+});
+
+test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토한다', async ({ page }) => {
+  const unnamed = { ...candidates[0], entityName: '', rawEntityMention: '' };
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '',
+            entityName: '',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [unnamed],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await expect(page.getByRole('button', { name: /이름 없는 캐릭터 1개 설정/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '이름 없는 캐릭터' })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('group')).toContain('__unnamed__:');
+});
