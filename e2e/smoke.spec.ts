@@ -870,6 +870,14 @@ test('신규 회차 검수 완료 후 현재 업로드 묶음의 설정 후보 �
   await expect.poll(() => new URL(page.url()).searchParams.get('batchId')).toBe(batchId);
   await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('EPISODE_VALIDATION');
   await expect(page.getByText('검토할 설정 후보가 없습니다.')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (
+    window.history.state?.usr?.returnToAnalysisList
+  ))).toBe(`/dashboard?workId=${workId}&nav=analyses`);
+
+  await page.getByRole('button', { name: '이전 화면' }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard\\?workId=${workId}&nav=analyses$`),
+  );
 });
 
 test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변경·삭제·중복 요청을 막는다', async ({ page }) => {
@@ -1612,6 +1620,7 @@ test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보
   let updateAttempt = 0;
   let updateBody: Record<string, unknown> | undefined;
   let detailRequestCount = 0;
+  const evidenceRequestCounts: Record<string, number> = {};
   let failCharacterListRefetch = false;
   let releaseUpdate!: () => void;
   const updateGate = new Promise<void>(resolve => {
@@ -1654,13 +1663,45 @@ ${evidenceEpilogue}`;
     },
     firstAppearanceEpisode: null,
     profile: [{
-      characterFactId: 'fact-profile-1',
+      characterFactId: 'fact-profile-2',
       key: 'profile.occupation',
       displayName: '직업',
       value: '검사 지망생',
       valueType: 'STRING',
       properties: [],
       hasEvidence: true,
+      sourceFacts: [
+        {
+          characterFactId: 'fact-profile-1',
+          sourceEpisodeId: 'episode-1',
+          sourceEpisodeNo: 1,
+          hasEvidence: true,
+        },
+        {
+          characterFactId: 'fact-profile-2',
+          sourceEpisodeId: 'episode-2',
+          sourceEpisodeNo: 2,
+          hasEvidence: true,
+        },
+        {
+          characterFactId: 'fact-profile-3',
+          sourceEpisodeId: 'episode-2',
+          sourceEpisodeNo: 2,
+          hasEvidence: true,
+        },
+        {
+          characterFactId: 'fact-profile-manual',
+          sourceEpisodeId: null,
+          sourceEpisodeNo: null,
+          hasEvidence: false,
+        },
+        {
+          characterFactId: 'fact-profile-manual-2',
+          sourceEpisodeId: null,
+          sourceEpisodeNo: null,
+          hasEvidence: false,
+        },
+      ],
       attributeNameEditable: false,
       attributeNamePrefix: null,
       displayNameEditable: false,
@@ -1760,7 +1801,7 @@ ${evidenceEpilogue}`;
         displayNameEditable: true,
       },
       {
-        characterFactId: 'fact-status-2',
+        // 합성된 현재 snapshot은 단일 대표 Fact ID가 없어도 이미 저장된 설정이다.
         key: 'status.recovering',
         displayName: '회복 중',
         value: '활성',
@@ -1908,6 +1949,7 @@ ${evidenceEpilogue}`;
     ));
     if (evidenceMatch && method === 'GET') {
       const factId = evidenceMatch[1];
+      evidenceRequestCounts[factId] = (evidenceRequestCounts[factId] ?? 0) + 1;
       const quote = factId === 'fact-age-1'
         ? '스물세 살이 된 수아는 기본 검술을 다시 점검했다.'
         : '교관은 수아가 현재 15레벨에 도달했다고 기록했다.';
@@ -1932,6 +1974,43 @@ ${evidenceEpilogue}`;
               quote,
               startOffset,
               endOffset,
+            }],
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const profileEvidenceMatch = pathname.match(new RegExp(
+      `/works/${workId}/character-facts/(fact-profile-[123])/evidence$`,
+    ));
+    if (profileEvidenceMatch && method === 'GET') {
+      const factId = profileEvidenceMatch[1];
+      evidenceRequestCounts[factId] = (evidenceRequestCounts[factId] ?? 0) + 1;
+      const firstSource = factId === 'fact-profile-1';
+      const quote = firstSource
+        ? '수아는 왕립 검술학교의 연무장에 홀로 남아 있었다.'
+        : '수아는 훈련용 검을 들어 올리고 마력 감지에 집중했다.';
+      const quoteCodeUnitOffset = evidenceSource.indexOf(quote);
+      const startOffset = Array.from(evidenceSource.slice(0, quoteCodeUnitOffset)).length;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            characterFactId: factId,
+            sourceCandidateId: `candidate-${factId}`,
+            episode: {
+              episodeId: firstSource ? 'episode-1' : 'episode-2',
+              episodeNo: firstSource ? 1 : 2,
+              title: firstSource ? '입학식' : '연무장 훈련',
+            },
+            content: evidenceSource,
+            evidenceSpans: [{
+              quote,
+              startOffset,
+              endOffset: startOffset + Array.from(quote).length,
             }],
           },
           error: null,
@@ -2048,6 +2127,7 @@ ${evidenceEpilogue}`;
   await expect(page.getByText('심각도 낮음', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '현재 나이 원문 근거 보기' })).toBeVisible();
   await expect(page.getByRole('button', { name: '현재 레벨 원문 근거 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '직업 원문 근거 보기' })).toBeVisible();
 
   const strengthRow = page.getByText('근력', { exact: true }).locator('..');
   const agilityRow = page.getByText('민첩', { exact: true }).locator('..');
@@ -2089,6 +2169,65 @@ ${evidenceEpilogue}`;
   await expect(statusRow).toHaveCSS('border-bottom-width', '1px');
   await expect(recoveringStatusRow).toHaveCSS('border-bottom-width', '1px');
   await expect(dormantStatusRow).toHaveCSS('border-bottom-width', '0px');
+
+  expect(evidenceRequestCounts['fact-profile-1'] ?? 0).toBe(0);
+  expect(evidenceRequestCounts['fact-profile-2'] ?? 0).toBe(0);
+  expect(evidenceRequestCounts['fact-profile-3'] ?? 0).toBe(0);
+  await page.getByRole('button', { name: '직업 원문 근거 보기' }).click();
+  const synthesizedEvidencePanel = page.getByRole('region', { name: '캐릭터 설정 원문 근거' });
+  await expect(synthesizedEvidencePanel.getByText('여러 근거를 종합해 만든 현재값입니다.')).toBeVisible();
+  await expect(synthesizedEvidencePanel.getByText('프로필', { exact: true })).toBeVisible();
+  await expect(synthesizedEvidencePanel.getByText('직업', { exact: true })).toBeVisible();
+  await expect.poll(() => evidenceRequestCounts['fact-profile-1'] ?? 0).toBe(1);
+  expect(evidenceRequestCounts['fact-profile-2'] ?? 0).toBe(0);
+  await expect(synthesizedEvidencePanel.getByRole('button', { name: '2화 · 근거 1', exact: true })).toBeVisible();
+  await expect(synthesizedEvidencePanel.getByRole('button', { name: '2화 · 근거 2', exact: true })).toBeVisible();
+  await expect(synthesizedEvidencePanel.getByRole('button', { name: /회차 없는 근거 1/ })).toBeDisabled();
+  await expect(synthesizedEvidencePanel.getByRole('button', { name: /회차 없는 근거 2/ })).toBeDisabled();
+
+  const evidenceViewport = page.viewportSize();
+  const evidenceModal = page.locator('.character-detail-modal--with-evidence');
+  const evidenceColumn = evidenceModal.locator(':scope > .character-evidence-panel');
+  const detailColumn = evidenceModal.locator(':scope > div').first();
+  await page.setViewportSize({ width: 1041, height: 900 });
+  await expect.poll(async () => {
+    const [evidenceBox, detailBox] = await Promise.all([
+      evidenceColumn.boundingBox(),
+      detailColumn.boundingBox(),
+    ]);
+    return evidenceBox != null
+      && detailBox != null
+      && detailBox.y >= evidenceBox.y + evidenceBox.height - 1;
+  }).toBe(true);
+  await expect.poll(() => evidenceModal.evaluate(element => (
+    element.scrollWidth <= element.clientWidth
+  ))).toBe(true);
+  await page.setViewportSize({ width: 1042, height: 900 });
+  await expect.poll(async () => {
+    const [evidenceBox, detailBox] = await Promise.all([
+      evidenceColumn.boundingBox(),
+      detailColumn.boundingBox(),
+    ]);
+    return evidenceBox != null
+      && detailBox != null
+      && Math.abs(detailBox.y - evidenceBox.y) < 2
+      && detailBox.x > evidenceBox.x;
+  }).toBe(true);
+  await expect.poll(() => evidenceModal.evaluate(element => (
+    element.scrollWidth <= element.clientWidth
+  ))).toBe(true);
+  if (evidenceViewport) await page.setViewportSize(evidenceViewport);
+
+  await synthesizedEvidencePanel.getByRole('button', { name: '2화 · 근거 1', exact: true }).click();
+  await expect.poll(() => evidenceRequestCounts['fact-profile-2'] ?? 0).toBe(1);
+  await expect(page).toHaveURL(/factId=fact-profile-2/);
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveText(
+    '수아는 훈련용 검을 들어 올리고 마력 감지에 집중했다.',
+  );
+  await synthesizedEvidencePanel.getByRole('button', { name: '2화 · 근거 2', exact: true }).click();
+  await expect.poll(() => evidenceRequestCounts['fact-profile-3'] ?? 0).toBe(1);
+  await expect(page).toHaveURL(/factId=fact-profile-3/);
+  await synthesizedEvidencePanel.getByRole('button', { name: '원문 근거 닫기' }).click();
 
   await page.getByRole('button', { name: '현재 나이 원문 근거 보기' }).click();
   await expect(page).toHaveURL(/factId=fact-age-1/);

@@ -149,6 +149,58 @@ function worldCandidateGroup(candidates: Array<ReturnType<typeof worldCandidate>
   };
 }
 
+test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비교 안내만 표시한다', async ({ page }) => {
+  const rawError = 'World-setting comparison failed after 3 attempts: A single extracted value must be preserved.';
+  const failedCandidate = worldCandidate({
+    comparisonStatus: 'FAILED',
+    comparisonErrorMessage: rawError,
+    suggestedOperation: undefined,
+    proposedSettingName: null,
+    proposedValue: null,
+  });
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 1,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([failedCandidate])]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await expect(page.getByText(
+    '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.',
+  )).toBeVisible();
+  await expect(page.getByText(rawError)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toBeVisible();
+});
+
 test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 한 번에 반영한다', async ({ page }) => {
   let firstCandidate = worldCandidate({
     consolidationStatus: 'MERGED',

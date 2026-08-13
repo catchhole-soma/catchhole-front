@@ -265,11 +265,9 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
 
   await page.getByRole('button', { name: '이전 화면' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
-  await page.goBack();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
 });
 
-test('진행 화면을 거쳐 후보 검토 후 돌아가면 중간 진행 이력을 남기지 않는다', async ({ page }) => {
+test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL로 돌아간다', async ({ page }) => {
   const analysisJobId = '44444444-4444-4444-8444-444444444444';
 
   await page.route('**/api/v1/**', route => {
@@ -369,8 +367,6 @@ test('진행 화면을 거쳐 후보 검토 후 돌아가면 중간 진행 이�
 
   await page.getByRole('button', { name: '이전 화면' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
-  await page.goBack();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
 });
 
 test('원고 목록 배너는 과거 실패보다 최신 분석 배치 상태를 표시한다', async ({ page }) => {
