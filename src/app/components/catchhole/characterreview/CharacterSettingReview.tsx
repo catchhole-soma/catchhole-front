@@ -1492,7 +1492,7 @@ export function CharacterSettingReview() {
 
   const confirmMutation = useMutation({
     ...confirmSettingCandidateGroupMutation(),
-    onSuccess: (_response, variables) => {
+    onSuccess: async (_response, variables) => {
       const submittedGroupKey = confirmingGroupKeyRef.current;
       confirmingGroupKeyRef.current = null;
       setSearchParams(previous => {
@@ -1504,17 +1504,17 @@ export function CharacterSettingReview() {
         }
         return next;
       }, { replace: true, state: location.state });
-      void invalidateCandidateData(variables.path.workId);
+      await invalidateCandidateData(variables.path.workId);
     },
-    onError: (_, variables) => {
+    onError: async (_, variables) => {
       confirmingGroupKeyRef.current = null;
-      void invalidateCandidateData(variables.path.workId);
+      await invalidateCandidateData(variables.path.workId);
     },
   });
   const retryComparisonMutation = useMutation({
     ...retrySettingCandidateComparisonMutation(),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
           path: { workId: variables.path.workId },
           query: { batchId },
@@ -1524,8 +1524,8 @@ export function CharacterSettingReview() {
   });
   const dismissMutation = useMutation({
     ...dismissSettingCandidateMutation(),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
           path: { workId: variables.path.workId },
           query: { batchId },
@@ -1535,7 +1535,7 @@ export function CharacterSettingReview() {
   });
   const updateMutation = useMutation({
     ...updateSettingCandidateMutation(),
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       setEditCandidate(null);
       selectionGroupRef.current = null;
       setSearchParams(previous => {
@@ -1545,12 +1545,12 @@ export function CharacterSettingReview() {
         next.delete('candidate');
         return next;
       }, { replace: true, state: location.state });
-      void invalidateCandidateData(variables.path.workId);
+      await invalidateCandidateData(variables.path.workId);
     },
   });
   const matchMutation = useMutation({
     ...updateSettingCandidateCharacterMatchMutation(),
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       setMatchTarget(null);
       selectionGroupRef.current = null;
       setSearchParams(previous => {
@@ -1565,12 +1565,12 @@ export function CharacterSettingReview() {
         next.delete('candidate');
         return next;
       }, { replace: true, state: location.state });
-      void invalidateCandidateData(variables.path.workId);
+      await invalidateCandidateData(variables.path.workId);
     },
   });
   const groupMatchMutation = useMutation({
     ...updateSettingCandidateGroupCharacterMatchMutation(),
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       setGroupMatchOpen(false);
       selectionGroupRef.current = null;
       setSearchParams(previous => {
@@ -1579,7 +1579,7 @@ export function CharacterSettingReview() {
           next.delete('candidate');
           return next;
       }, { replace: true, state: location.state });
-      void invalidateCandidateData(variables.path.workId);
+      await invalidateCandidateData(variables.path.workId);
     },
   });
 

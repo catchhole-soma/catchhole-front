@@ -136,6 +136,7 @@ export function CharacterFactComparisonPanel({
   const policy = getCharacterFactComparisonPolicy(candidate);
   const retryAvailable = policy.retryAvailable;
   const completed = comparisonStatus === 'COMPLETED';
+  const pendingReview = candidate.reviewStatus == null || candidate.reviewStatus === 'PENDING_REVIEW';
   const snapshotChanges = candidate.snapshotChanges ?? [];
   const primaryUpsert = snapshotChanges.find(change => (
     change.action === 'UPSERT'
@@ -332,7 +333,7 @@ export function CharacterFactComparisonPanel({
         </div>
       )}
 
-      {completed && operation !== 'EXCLUDE' && (
+      {completed && pendingReview && operation !== 'EXCLUDE' && (
         <div style={{ marginTop: 15 }}>
           <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>확정 방식</div>
           <div className="character-comparison-decisions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>

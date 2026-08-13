@@ -462,6 +462,73 @@ test('마지막 검토 대기 후보를 확정하면 완료 상태를 표시한�
     .toBeVisible();
 });
 
+test('묶음 확정 응답 후 최신 후보 목록을 받을 때까지 중복 확정을 잠근다', async ({ page }) => {
+  let confirmed = false;
+  let confirmRequestCount = 0;
+  let releaseListRefresh: (() => void) | null = null;
+  const listRefreshGate = new Promise<void>(resolve => {
+    releaseListRefresh = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      if (confirmed) await listRefreshGate;
+      const content = confirmed ? [] : [candidates[0]];
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: confirmed ? 1 : 0,
+        pendingCandidateCount: confirmed ? 0 : 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content,
+          page: 0,
+          size: 20,
+          totalElements: content.length,
+          totalPages: content.length === 0 ? 0 : 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/group-confirm`) {
+      confirmRequestCount += 1;
+      confirmed = true;
+      return fulfill(route, { id: firstCandidateId, reviewStatus: 'CONFIRMED' });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) {
+      return fulfill(route, {
+        ...candidates[0],
+        reviewStatus: confirmed ? 'CONFIRMED' : 'PENDING_REVIEW',
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await page.getByRole('button', { name: /설정 모두 확정/ }).click();
+  await expect.poll(() => confirmRequestCount).toBe(1);
+
+  await page.getByRole('button', { name: /수아 1개 설정/ }).click();
+  const pendingButton = page.getByRole('button', { name: '전체 확정 중…' });
+  await expect(pendingButton).toBeDisabled();
+  await page.waitForTimeout(100);
+  expect(confirmRequestCount).toBe(1);
+
+  releaseListRefresh?.();
+  await expect(page.getByText('모든 설정 후보 검토를 완료했습니다.'))
+    .toHaveCount(2, { timeout: 10_000 });
+});
+
 test('확정 후 목록 재조회가 실패하면 이전 후보를 다시 자동 선택하지 않는다', async ({ page }) => {
   let confirmed = false;
 
@@ -927,6 +994,74 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
       baseSnapshotVersion: 7,
     }],
   });
+});
+
+test('검토 완료 후보는 저장된 확정 방식을 추측하지 않고 비교 결과만 읽기 전용으로 표시한다', async ({ page }) => {
+  const confirmedCandidate = {
+    ...candidates[0],
+    reviewStatus: 'CONFIRMED' as const,
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'COMPLETED' as const,
+    suggestedOperation: 'MERGE' as const,
+    temporalScope: 'PRESENT' as const,
+    comparisonTargetFactType: 'PROFILE' as const,
+    comparisonTargetFactKey: 'profile.eye_color',
+    proposedFactValue: '짙은 갈색',
+    proposedValueJson: { value: '짙은 갈색' },
+    snapshotChanges: [{
+      action: 'UPSERT' as const,
+      factType: 'PROFILE' as const,
+      factKey: 'profile.eye_color',
+      beforeFactValue: '갈색',
+      beforeValueJson: { value: '갈색' },
+      proposedFactValue: '짙은 갈색',
+      proposedValueJson: { value: '짙은 갈색' },
+    }],
+    comparisonReason: '기존 설명과 새 내용을 합쳤습니다.',
+    comparisonBaseSnapshotVersion: 7,
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 1,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [confirmedCandidate],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) return fulfill(route, confirmedCandidate);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}`
+    + `&reviewStatus=CONFIRMED&candidate=${firstCandidateId}`,
+  );
+
+  const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
+  await expect(comparisonPanel.getByText('현재 설정 병합', { exact: true })).toBeVisible();
+  await expect(comparisonPanel.getByText('갈색 → 짙은 갈색', { exact: true })).toBeVisible();
+  await expect(comparisonPanel.getByText('확정 방식', { exact: true })).toHaveCount(0);
+  await expect(comparisonPanel.getByRole('button', { name: /AI 제안대로 현재 설정 반영/ })).toHaveCount(0);
+  await expect(comparisonPanel.getByRole('button', { name: /이력에만 저장/ })).toHaveCount(0);
 });
 
 test('재비교 결과가 바뀌면 저장된 현재값 반영 선택을 허용 가능한 이력 저장으로 보정한다', async ({ page }) => {
