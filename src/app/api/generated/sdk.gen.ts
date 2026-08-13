@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddWorldSettingPropertyData, AddWorldSettingPropertyErrors, AddWorldSettingPropertyResponses, ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateResponses, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateErrors, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupErrors, ConfirmWorldSettingCandidateGroupResponses, ConfirmWorldSettingCandidateResponses, ConflictData, ConflictResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, CreateWorldSettingData, CreateWorldSettingErrors, CreateWorldSettingResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, DismissWorldSettingCandidateData, DismissWorldSettingCandidateErrors, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupErrors, DismissWorldSettingCandidateGroupResponses, DismissWorldSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetCharacterTimelineData, GetCharacterTimelineErrors, GetCharacterTimelineResponses, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryErrors, GetCharacterTimelineSummaryResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkErrors, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponses, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponses, GetWorkResponses, GetWorldSettingCandidateData, GetWorldSettingCandidateErrors, GetWorldSettingCandidateResponses, GetWorldSettingCandidatesData, GetWorldSettingCandidatesErrors, GetWorldSettingCandidatesResponses, GetWorldSettingData, GetWorldSettingErrors, GetWorldSettingResponses, GetWorldSettingsData, GetWorldSettingsErrors, GetWorldSettingsResponses, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, NotFoundData, NotFoundResponses, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponses, RateLimitedData, RateLimitedResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonErrors, RetryWorldSettingCandidateComparisonResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, SuccessData, SuccessResponses, UnknownErrorData, UnknownErrorResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsErrors, UpdateWorldSettingCandidateDecisionsResponses, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityErrors, UpdateWorldSettingIdentityResponses, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyErrors, UpdateWorldSettingPropertyResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses, UploadTooLargeData, UploadTooLargeResponses, ValidationData, ValidationResponses } from './types.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyErrors, AddWorldSettingPropertyResponses, ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponses, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponses, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupResponses, ConfirmSettingCandidateResponses, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateErrors, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupErrors, ConfirmWorldSettingCandidateGroupResponses, ConfirmWorldSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, CreateWorldSettingData, CreateWorldSettingErrors, CreateWorldSettingResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, DismissWorldSettingCandidateData, DismissWorldSettingCandidateErrors, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupErrors, DismissWorldSettingCandidateGroupResponses, DismissWorldSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponses, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetCharacterTimelineData, GetCharacterTimelineErrors, GetCharacterTimelineResponses, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryErrors, GetCharacterTimelineSummaryResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponses, GetWorkErrors, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponses, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponses, GetWorkResponses, GetWorldSettingCandidateData, GetWorldSettingCandidateErrors, GetWorldSettingCandidateResponses, GetWorldSettingCandidatesData, GetWorldSettingCandidatesErrors, GetWorldSettingCandidatesResponses, GetWorldSettingData, GetWorldSettingErrors, GetWorldSettingResponses, GetWorldSettingsData, GetWorldSettingsErrors, GetWorldSettingsResponses, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonResponses, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonErrors, RetryWorldSettingCandidateComparisonResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchResponses, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsErrors, UpdateWorldSettingCandidateDecisionsResponses, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityErrors, UpdateWorldSettingIdentityResponses, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyErrors, UpdateWorldSettingPropertyResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -40,15 +40,6 @@ export const replaceEpisodeFile = <ThrowOnError extends boolean = true>(options:
 export const publishWorkerWorldSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<PublishWorkerWorldSettingCandidatesData, ThrowOnError>): RequestResult<PublishWorkerWorldSettingCandidatesResponses, unknown, ThrowOnError> => (options.client ?? client).put<PublishWorkerWorldSettingCandidatesResponses, unknown, ThrowOnError>({
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const validation = <ThrowOnError extends boolean = true>(options: Options<ValidationData, ThrowOnError>): RequestResult<ValidationResponses, unknown, ThrowOnError> => (options.client ?? client).post<ValidationResponses, unknown, ThrowOnError>({
-    url: '/test/validation',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -208,6 +199,17 @@ export const confirmWorldSettingCandidateGroup = <ThrowOnError extends boolean =
 });
 
 /**
+ * 캐릭터 설정 후보 2차 비교 재요청
+ *
+ * 실패하거나 현재 문맥과 어긋난 PENDING_REVIEW 후보의 비교 상태를 초기화하고 동일 후보에 대한 숨김 비교 Job을 멱등 생성합니다.
+ */
+export const retrySettingCandidateComparison = <ThrowOnError extends boolean = true>(options: Options<RetrySettingCandidateComparisonData, ThrowOnError>): RequestResult<RetrySettingCandidateComparisonResponses, unknown, ThrowOnError> => (options.client ?? client).post<RetrySettingCandidateComparisonResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-candidates/{candidateId}/recompare',
+    ...options
+});
+
+/**
  * 설정 후보 무시
  *
  * 로그인한 사용자가 본인 작품의 설정 후보를 DISMISSED 상태로 전환합니다. 이미 무시된 후보는 성공으로 처리하며, 확정된 후보는 상태 충돌로 거절합니다. 무시 처리에서는 CharacterFact 생성이나 WorkCharacter 스냅샷 갱신을 하지 않습니다.
@@ -221,12 +223,31 @@ export const dismissSettingCandidate = <ThrowOnError extends boolean = true>(opt
 /**
  * 설정 후보 확정
  *
- * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. PENDING_REVIEW 후보가 처음 확정되는 경우 활성 schema를 schemaKey 정확 일치, 별칭, 마지막이 .*로 끝나는 속성 패턴 순으로 매칭하고 값 타입과 merge policy를 검증합니다. UNRESOLVED 캐릭터 후보는 같은 이름의 활성 캐릭터를 재사용하거나 새로 생성하고, 확정 후보와 같은 이름의 검토 대기 미해소 후보를 기존 또는 신규 연결 상태로 함께 갱신합니다. 검증을 통과하면 CharacterFact를 생성하고 WorkCharacter 현재 스냅샷을 갱신합니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
+ * 로그인한 사용자가 본인 작품의 설정 후보를 CONFIRMED 상태로 전환합니다. 기본 APPLY_PROPOSAL은 COMPLETED 상태의 2차 비교 operation·시간 범위·최종값과 관련 snapshot 문맥을 다시 검증한 뒤 append-only CharacterFact, WorkCharacter snapshot, provenance를 한 트랜잭션으로 반영합니다. HISTORY_ONLY는 CharacterFact와 원문 근거만 보존하고 snapshot·provenance·version을 바꾸지 않습니다. UNRESOLVED 이름이 실제 신규이면 빈 캐릭터에 deterministic ADD를 허용하지만, 동명 활성 캐릭터가 있으면 먼저 연결하고 숨김 재비교 Job을 만든 뒤 409로 재조회시킵니다. 이미 확정된 후보는 성공으로 처리하되 CharacterFact를 중복 생성하지 않으며, 무시된 후보는 상태 충돌로 거절합니다.
  */
 export const confirmSettingCandidate = <ThrowOnError extends boolean = true>(options: Options<ConfirmSettingCandidateData, ThrowOnError>): RequestResult<ConfirmSettingCandidateResponses, ConfirmSettingCandidateErrors, ThrowOnError> => (options.client ?? client).post<ConfirmSettingCandidateResponses, ConfirmSettingCandidateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/setting-candidates/{candidateId}/confirm',
-    ...options
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 캐릭터 설정 후보 그룹 전체 확정
+ *
+ * 같은 캐릭터 이름의 모든 검토 대기 후보를 먼저 함께 검증하고 한 트랜잭션으로 확정합니다. EXCLUDE 제안은 현재 설정이나 이력을 만들지 않고 자동으로 무시 완료하며, 그 밖의 후보는 선택한 반영 방식대로 저장합니다. 단일 후보 확정 UI는 제공하지 않습니다.
+ */
+export const confirmSettingCandidateGroup = <ThrowOnError extends boolean = true>(options: Options<ConfirmSettingCandidateGroupData, ThrowOnError>): RequestResult<ConfirmSettingCandidateGroupResponses, unknown, ThrowOnError> => (options.client ?? client).post<ConfirmSettingCandidateGroupResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-candidates/group-confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -455,6 +476,41 @@ export const completeWorkerWorldSettingComparison = <ThrowOnError extends boolea
 });
 
 /**
+ * 캐릭터 Fact 비교 실패
+ */
+export const failWorkerCharacterFactComparison = <ThrowOnError extends boolean = true>(options: Options<FailWorkerCharacterFactComparisonData, ThrowOnError>): RequestResult<FailWorkerCharacterFactComparisonResponses, unknown, ThrowOnError> => (options.client ?? client).post<FailWorkerCharacterFactComparisonResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/setting-candidates/{candidateId}/character-fact-comparison-fail',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 캐릭터 Fact 비교 문맥 조회
+ */
+export const getWorkerCharacterFactComparisonContext = <ThrowOnError extends boolean = true>(options: Options<GetWorkerCharacterFactComparisonContextData, ThrowOnError>): RequestResult<GetWorkerCharacterFactComparisonContextResponses, unknown, ThrowOnError> => (options.client ?? client).post<GetWorkerCharacterFactComparisonContextResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/setting-candidates/{candidateId}/character-fact-comparison-context',
+    ...options
+});
+
+/**
+ * 캐릭터 Fact 비교 완료
+ */
+export const completeWorkerCharacterFactComparison = <ThrowOnError extends boolean = true>(options: Options<CompleteWorkerCharacterFactComparisonData, ThrowOnError>): RequestResult<CompleteWorkerCharacterFactComparisonResponses, unknown, ThrowOnError> => (options.client ?? client).post<CompleteWorkerCharacterFactComparisonResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/setting-candidates/{candidateId}/character-fact-comparison-complete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * AI Worker 분석 작업 lease 갱신
  */
 export const heartbeatAnalysisJob = <ThrowOnError extends boolean = true>(options: Options<HeartbeatAnalysisJobData, ThrowOnError>): RequestResult<HeartbeatAnalysisJobResponses, unknown, ThrowOnError> => (options.client ?? client).post<HeartbeatAnalysisJobResponses, unknown, ThrowOnError>({
@@ -487,6 +543,15 @@ export const completeAnalysisJob = <ThrowOnError extends boolean = true>(options
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * 다음 캐릭터 Fact 비교 claim
+ */
+export const claimNextWorkerCharacterFactComparison = <ThrowOnError extends boolean = true>(options: Options<ClaimNextWorkerCharacterFactComparisonData, ThrowOnError>): RequestResult<ClaimNextWorkerCharacterFactComparisonResponses, unknown, ThrowOnError> => (options.client ?? client).post<ClaimNextWorkerCharacterFactComparisonResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
+    url: '/api/internal/v1/analysis-jobs/{analysisJobId}/character-fact-comparisons/claim-next',
+    ...options
 });
 
 /**
@@ -654,6 +719,21 @@ export const updateSettingCandidateCharacterMatch = <ThrowOnError extends boolea
 });
 
 /**
+ * 캐릭터 설정 후보 그룹 일괄 연결
+ *
+ * 현재 같은 이름으로 묶인 모든 검토 대기 후보를 하나의 기존 캐릭터에 연결하거나 같은 이름의 새 캐릭터 등록 예정 그룹으로 지정합니다. 일부 후보만 전달하면 거절합니다.
+ */
+export const updateSettingCandidateGroupCharacterMatch = <ThrowOnError extends boolean = true>(options: Options<UpdateSettingCandidateGroupCharacterMatchData, ThrowOnError>): RequestResult<UpdateSettingCandidateGroupCharacterMatchResponses, unknown, ThrowOnError> => (options.client ?? client).patch<UpdateSettingCandidateGroupCharacterMatchResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/works/{workId}/setting-candidates/group-character-match',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * 설정집 원본 soft delete
  *
  * 설정집 DB 행과 저장 객체는 보존하고 활성 목록에서 숨깁니다.
@@ -803,18 +883,6 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
     }
 });
 
-export const uploadTooLarge = <ThrowOnError extends boolean = true>(options?: Options<UploadTooLargeData, ThrowOnError>): RequestResult<UploadTooLargeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UploadTooLargeResponses, unknown, ThrowOnError>({ url: '/test/upload-too-large', ...options });
-
-export const unknownError = <ThrowOnError extends boolean = true>(options?: Options<UnknownErrorData, ThrowOnError>): RequestResult<UnknownErrorResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UnknownErrorResponses, unknown, ThrowOnError>({ url: '/test/unknown-error', ...options });
-
-export const success = <ThrowOnError extends boolean = true>(options?: Options<SuccessData, ThrowOnError>): RequestResult<SuccessResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SuccessResponses, unknown, ThrowOnError>({ url: '/test/success', ...options });
-
-export const rateLimited = <ThrowOnError extends boolean = true>(options?: Options<RateLimitedData, ThrowOnError>): RequestResult<RateLimitedResponses, unknown, ThrowOnError> => (options?.client ?? client).get<RateLimitedResponses, unknown, ThrowOnError>({ url: '/test/rate-limited', ...options });
-
-export const notFound = <ThrowOnError extends boolean = true>(options?: Options<NotFoundData, ThrowOnError>): RequestResult<NotFoundResponses, unknown, ThrowOnError> => (options?.client ?? client).get<NotFoundResponses, unknown, ThrowOnError>({ url: '/test/not-found', ...options });
-
-export const conflict = <ThrowOnError extends boolean = true>(options?: Options<ConflictData, ThrowOnError>): RequestResult<ConflictResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ConflictResponses, unknown, ThrowOnError>({ url: '/test/conflict', ...options });
-
 /**
  * 세계관 대상 상세 조회
  */
@@ -858,7 +926,7 @@ export const getSettingCandidates = <ThrowOnError extends boolean = true>(option
 /**
  * 캐릭터 목록 조회
  *
- * 본인 작품의 ACTIVE 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
+ * 본인 작품의 ACTIVE 캐릭터 카드를 updatedAt DESC, id DESC 순서로 페이지 조회합니다. 보관된 캐릭터는 제외합니다.
  */
 export const getCharacters = <ThrowOnError extends boolean = true>(options: Options<GetCharactersData, ThrowOnError>): RequestResult<GetCharactersResponses, GetCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetCharactersResponses, GetCharactersErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -891,7 +959,7 @@ export const getCharacterTimelineSummary = <ThrowOnError extends boolean = true>
 /**
  * 보관 캐릭터 목록 조회
  *
- * 본인 작품의 ARCHIVED 캐릭터 카드를 createdAt DESC, id DESC 순서로 페이지 조회합니다.
+ * 본인 작품의 ARCHIVED 캐릭터 카드를 updatedAt DESC, id DESC 순서로 페이지 조회합니다.
  */
 export const getArchivedCharacters = <ThrowOnError extends boolean = true>(options: Options<GetArchivedCharactersData, ThrowOnError>): RequestResult<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError> => (options.client ?? client).get<GetArchivedCharactersResponses, GetArchivedCharactersErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

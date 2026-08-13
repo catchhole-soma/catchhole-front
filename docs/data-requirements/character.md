@@ -137,8 +137,8 @@
 > **MVP 범위 메모**
 > - 설정DB의 기본 진입은 `캐릭터 DB`이며 캐릭터 상세 헤더의 강조된 `변화 이력 보기`로 진입한다.
 > - 세부 항목 선택지는 상세 응답의 현재 설정만 사용한다. 과거에만 존재하고 현재는 사라진 key는 세부 선택지로 노출하지 않는다.
-> - `{유형명} 전체 이력`은 `isCurrent`와 관계없이 해당 유형의 과거·현재 Fact를 모두 조회하므로 과거에만 존재한 설정도 확인할 수 있다.
-> - 타임라인은 설정 후보 확정 또는 캐릭터 수동 수정으로 생성된 `CharacterFact` 전체를 기준으로 하며 `isCurrent=true`와 `isCurrent=false`를 구분하지 않고 모두 표시한다.
+> - `{유형명} 전체 이력`은 snapshot 기여 여부와 관계없이 해당 유형의 Fact를 모두 조회하므로 현재값에 포함되지 않은 설정도 확인할 수 있다.
+> - 타임라인은 설정 후보 확정 또는 캐릭터 수동 수정으로 생성된 `CharacterFact` 전체를 기준으로 하며 현재 snapshot 기여 여부로 숨기거나 구분하지 않고 모두 표시한다.
 > - `PENDING_REVIEW`·`DISMISSED` 상태의 `SettingCandidate`는 표시하지 않는다.
 > - 중복으로 보이는 Fact도 프론트에서 합치거나 숨기지 않는다. 중복 감지와 추출 최적화는 별도 작업 범위다.
 > - 회상·과거 서술 등 서사 시간을 판별하지 않는다. 회차 그룹에는 `1화`, `2화`처럼 출처 회차만 표시하고 사건이 해당 회차에 실제 발생했다고 표현하지 않는다.
@@ -199,7 +199,7 @@
 - 상세 헤더의 Primary CTA `변화 이력 보기`를 누르면 수정·삭제 액션을 숨기고 우측 이력 패널을 연다. CTA는 관리 액션과 시각적으로 구분한다.
 - 이력 패널은 처음에 `변화 이력을 보고 싶은 설정을 선택하세요.` 안내와 `전체 이력 보기`만 표시하고, 빈 다중 필터로 Fact 목록 API를 호출하지 않는다.
 - `현재 나이`, `현재 레벨` 기본 정보 셀은 각각 `AGE`, `LEVEL` 전체 이력을 직접 선택·해제한다.
-- 프로필·스탯·스킬·아이템·상태 제목의 `{유형명} 전체 이력`은 해당 유형의 과거·현재 Fact 전체를 선택한다.
+- 프로필·스탯·스킬·아이템·상태 제목의 `{유형명} 전체 이력`은 확정된 해당 유형 Fact 전체를 선택한다.
 - 상세에 보이는 현재 설정 행은 canonical `factKey` 하나를 선택한다. 현재 화면에서 사라진 과거 key는 개별 선택지로 만들지 않는다.
 - 종류 전체와 현재 설정 행은 서로 다른 그룹에 걸쳐 복수 선택할 수 있다. 체크박스를 추가하지 않고 선택된 셀·행의 배경과 이력 아이콘 색으로 구분한다.
 - 왼쪽 설정을 누를 때마다 적용 칩과 타임라인을 즉시 갱신한다. 별도 `선택 완료`, 하단 고정 액션, 로컬 선택 초안은 두지 않는다.
@@ -235,7 +235,7 @@
   - 추가 데이터 없음
   - 다음 묶음 조회 실패와 재시도
 
-`isCurrent`는 실제 서사상 현재 상태를 보장하지 않으므로 타임라인 응답과 화면에 사용하지 않는다. 동일한 key의 과거 Fact와 최신 Fact도 각각 독립된 이력으로 표시한다.
+snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으므로 타임라인 응답과 화면에 사용하지 않는다. 동일한 key의 이전 Fact와 최신 Fact도 각각 독립된 이력으로 표시한다.
 
 **원문 근거가 열린 상태**
 
@@ -343,7 +343,7 @@
 | 출처 없는 수동 Fact 개수 | 0 이상의 정수·필수 | 없으면 `0` |
 
 - 요약의 전체 Fact·회차 수는 `TIME`을 제외한 지원 유형 전체를 기준으로 한다.
-- 유형별 개수는 `isCurrent` 여부와 관계없이 현재 캐릭터의 전체 이력을 집계한다.
+- 유형별 개수는 snapshot 기여 여부와 관계없이 현재 캐릭터의 전체 이력을 집계한다.
 - 유형별 개수와 종류별 facet은 현재 선택과 무관한 캐릭터 전체 이력 기준이다. 적용 필터 칩의 이름과 전체 보기 집계가 선택에 따라 사라지지 않아야 한다.
 - 현재 상세에 없는 과거 key는 하위 선택지에서 숨기지만 `{유형명} 전체 이력` 결과에는 포함한다.
 - 회차 바로가기 목록과 현재 필터의 Fact 개수는 단일 유형 또는 `factTypes OR factKeys` 다중 조건을 적용한 결과다.
@@ -369,7 +369,7 @@
 | 원문 근거 존재 여부 | Fact별 boolean·필수 | 근거 액션 활성화 여부에 사용 |
 
 - Fact 묶음은 기본 20개이며 FE 요청 크기는 20으로 고정한다. BE는 검증과 테스트 편의를 위해 1~100 범위를 허용할 수 있다.
-- 모달은 `isCurrent` 여부와 관계없이 선택 캐릭터의 전체 Fact를 대상으로 한다.
+- 모달은 snapshot 기여 여부와 관계없이 선택 캐릭터의 전체 Fact를 대상으로 한다.
 - 출처 회차는 `CharacterFact.sourceEpisode`를 우선 사용하고, 없을 때 연결된 `SettingCandidate.episode`를 보조 출처로 사용한다.
 - 서버의 최종 정렬은 `출처 있음 우선` → `sourceEpisodeNo ASC` → `첫 번째 저장 근거 startOffset ASC NULLS LAST` → `createdAt ASC` → `characterFactId ASC`로 고정한다.
 - 수동 Fact는 모든 회차 Fact 뒤에 `createdAt ASC` → `characterFactId ASC`로 정렬한다.
@@ -377,7 +377,7 @@
 - cursor는 URL-safe 불투명 문자열로 제공한다. FE는 내용을 해석·수정하지 않고 다음 요청에 그대로 전달한다.
 - cursor는 캐릭터, 상위 유형·하위 key 선택과 정렬 경계가 일치할 때만 유효하다. 다른 캐릭터·선택의 cursor를 전달하면 400으로 거절한다.
 - 동일 회차 Fact가 두 cursor 묶음에 걸칠 수 있다. 서버는 정렬을 유지하고 FE는 `characterFactId`로 중복 제거한 뒤 동일 회차 그룹에 병합한다.
-- 목록 응답에는 하위 선택 식별용 `factKey`를 포함한다. `isCurrent`, `effectiveFromEpisodeNo`, `valueJson`, `normalizedValue`, 전체 원문, `evidenceSpans`, raw AI 응답은 포함하지 않는다.
+- 목록 응답에는 하위 선택 식별용 `factKey`를 포함한다. snapshot 기여 여부, `effectiveFromEpisodeNo`, `valueJson`, `normalizedValue`, 전체 원문, `evidenceSpans`, raw AI 응답은 포함하지 않는다.
 - `hasEvidence`는 연결된 후보의 `evidenceSpans`에 비어 있지 않은 quote가 하나 이상 있을 때 `true`다. S3 전체 원문의 현재 조회 가능 여부와는 독립적이다.
 
 **선택한 Fact의 원문 근거 데이터**
@@ -421,7 +421,7 @@
 - `cursor`와 `fromEpisodeNo`는 동시에 전달하지 않는다. BE도 동시 전달을 400으로 거절한다.
 - 유형 필터가 바뀌면 summary와 Fact 첫 묶음을 함께 다시 조회한다.
 - 회차 검색 입력은 요약의 회차 바로가기 목록에 있는 값만 확정 가능하다. 현재 필터에 Fact가 없는 회차는 서버 요청 전에 안내한다.
-- 타임라인은 읽기 전용이므로 생성·수정·삭제 데이터와 `isCurrent` scope를 전달하지 않는다.
+- 타임라인은 읽기 전용이므로 생성·수정·삭제 데이터와 snapshot 기여 scope를 전달하지 않는다.
 
 **FE ↔ BE 왕복 시나리오**
 
@@ -468,7 +468,7 @@
 
 - ACTIVE 캐릭터만 조회 가능하며 작품 소유권과 캐릭터의 작품 소속을 검증한다.
 - `PROFILE`을 포함하는 전용 타임라인 필터를 사용하고 `TIME`은 제외한다.
-- current와 historical Fact를 모두 포함하고 `isCurrent`를 응답하지 않는다.
+- snapshot 기여 여부와 관계없이 모든 Fact를 포함하고 기여 여부 필드를 응답하지 않는다.
 - 회차 summary는 전체 제공하고 Fact는 cursor 20개 단위로 제공한다.
 - 회차 없는 수동 Fact는 타임라인 마지막에 배치한다.
 - offset은 서버 정렬과 기존 원문 하이라이트에만 사용하고 타임라인 응답·화면에 노출하지 않는다.
@@ -662,14 +662,14 @@
 > **필터·정렬 정책**
 > - 설정 유형 필터와 설정 시점 필터를 서로 독립적으로 제공한다.
 > - 설정 유형 필터 값은 `ALL`, `AGE`, `LEVEL`, `STAT`, `SKILL`, `ITEM`, `STATUS`로 고정하며, 화면에는 각각 `전체`, `나이`, `레벨`, `스탯`, `스킬`, `아이템`, `상태`로 표시한다.
-> - 설정 시점 필터 값은 `ALL`, `CURRENT`, `HISTORICAL`로 고정하며, 화면에는 각각 `전체 이력`, `현재 설정`, `이전 설정`으로 표시한다. `CURRENT`는 `isCurrent=true`, `HISTORICAL`은 `isCurrent=false`에 대응한다.
+> - 설정 시점 필터 값은 하위 호환을 위해 `ALL`, `CURRENT`, `HISTORICAL`로 유지한다. 화면에는 각각 `전체 이력`, `현재값 근거`, `그 외 이력`으로 표시한다. `CURRENT`는 현재 snapshot 구성에 기여하는 Fact, `HISTORICAL`은 현재 snapshot에 기여하지 않는 나머지 이력을 뜻하며 서사상 현재·과거를 단정하지 않는다.
 > - 기본값은 `q=""`, `factType=ALL`, `scope=ALL`, `page=1`, `size=20`이다.
-> - 정렬은 `isCurrent DESC` → `effectiveFromEpisodeNo DESC NULLS LAST` → `createdAt DESC` → `characterFactId ASC` 순으로 고정한다.
+> - 정렬은 `contributesToCurrentSnapshot DESC` → `effectiveFromEpisodeNo DESC NULLS LAST` → `createdAt DESC` → `characterFactId ASC` 순으로 고정한다. FE도 이 필드를 우선하고, 단계적 배포 중 구서버 응답에서만 deprecated `isCurrent`를 fallback으로 사용한다. 어느 필드도 서사상 현재 시점을 뜻하지 않는다.
 > - 검색어 또는 필터가 바뀌면 `page=1`로 초기화한다.
 > - `활성`·`비활성` 표현은 캐릭터의 보관 상태와 혼동될 수 있으므로 사용하지 않는다.
 
 > **검색 결과 카드 텍스트 정책**
-> - 1행: 설정 유형 한글 표시명 + `현재 설정` 또는 `이전 설정` 배지
+> - 1행: 설정 유형 한글 표시명 + `현재값 근거` 또는 `그 외 이력` 배지
 > - 2행: 사용자용 설정명 `displayName`. 값이 없으면 `설정명 없음`
 > - 3행: `factValue`. 값이 없으면 `—`
 > - 4행: `{characterName} · {sourceEpisodeNo}화에서 확인`. 출처 회차가 없으면 `{characterName} · 출처 회차 없음`
@@ -687,12 +687,12 @@
   - 상태
 - 설정 시점 필터
   - 전체 이력
-  - 현재 설정
-  - 이전 설정
+  - 현재값 근거
+  - 그 외 이력
 - 검색 결과 총건수
 - 페이지네이션된 검색 결과 카드
   - 설정 유형
-  - 현재 설정·이전 설정 구분
+  - 현재 snapshot 기여 근거·그 외 이력 구분
   - 사용자용 설정명(`displayName`)
   - 사용자용 설정값(`factValue`)
   - 해당 설정을 소유한 캐릭터명
@@ -703,9 +703,9 @@
 **2. 사용자 액션**
 - 검색어 입력·삭제 → 서버 검색 결과 갱신
 - 설정 유형 선택 → 해당 유형만 검색
-- 설정 시점 선택 → 전체 이력·현재 설정·이전 설정 중 선택한 범위만 검색
+- 설정 시점 선택 → 전체 이력·현재값 근거·그 외 이력 중 선택한 범위만 검색
 - 페이지 이동
-- 검색 결과 카드 선택 → 현재 설정과 이전 설정을 구분하지 않고 모두 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달) 열기
+- 검색 결과 카드 선택 → 현재값 근거와 그 외 이력을 구분하지 않고 모두 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달) 열기
 - 다른 설정DB 탭 선택 → 선택한 탭으로 전환
 
 **3. 화면 전환 식별자**
@@ -744,7 +744,8 @@
   - `factTypeLabel`: `나이` / `레벨` / `스탯` / `스킬` / `아이템` / `상태`
   - `displayName`: 사용자에게 표시할 설정명. exact schema는 registry 표시명, pattern은 정규화한 key suffix, custom은 `valueJson.name` 후 key suffix 순으로 결정
   - `factValue`: 사용자에게 표시할 설정값, nullable
-  - `isCurrent`: 현재 설정 여부
+  - `contributesToCurrentSnapshot`: 현재 snapshot 구성에 실제로 기여하는지 나타내는 boolean. 배지·정렬의 기준
+  - `isCurrent`: deprecated 하위 호환 alias. `contributesToCurrentSnapshot`이 없는 구서버 응답에서만 fallback
   - `characterId`: 설정 소유 캐릭터 식별자
   - `characterName`: 설정 소유 캐릭터명
   - `sourceEpisodeId`: 설정이 추출된 출처 회차 식별자, nullable
@@ -776,10 +777,10 @@
 
 ![설정DB 검색 결과 상세 모달 MVP](../screens/XVvBu.png)
 
-검색 결과로 선택한 하나의 `CharacterFact`를 현재·이전 설정 구분 없이 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
+검색 결과로 선택한 하나의 `CharacterFact`를 현재 snapshot 기여 여부와 무관하게 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
 
 > **MVP 표시 정책**
-> - 현재 설정과 이전 설정 모두 같은 상세 컴포넌트를 사용하고 `isCurrent` 배지만 다르게 표시한다.
+> - 현재값 근거와 그 외 이력 모두 같은 상세 컴포넌트를 사용하고 snapshot 기여 여부 배지만 다르게 표시한다.
 > - 설정 유형은 `factTypeLabel`, 설정명은 `displayName`, 설정값은 `factValue`로 구분한다.
 > - 내부 식별자인 `factKey`는 응답 계약에 유지하되 사용자 화면에는 표시하지 않는다.
 > - 설정값은 `factValue`만 표시한다. `valueJson`, `normalizedValue`, `rawAiResultJson`은 사용자에게 노출하지 않는다.
@@ -790,7 +791,7 @@
 
 **1. 화면에 표시할 데이터**
 - 모달 제목: 설정 유형 한글 표시명
-- 현재 상태 배지: `현재 설정` 또는 `이전 설정`
+- 현재 snapshot 기여 배지: `현재값 근거` 또는 `그 외 이력`
 - 설정 정보
   - 사용자용 설정명(`displayName`)
   - 사용자용 설정값(`factValue`)
@@ -840,7 +841,8 @@
   - `factKey`: 내부 식별·호환용이며 화면에는 노출하지 않음
   - `displayName`: 사용자용 설정명
   - `factValue`, nullable
-  - `isCurrent`
+  - `contributesToCurrentSnapshot`: 현재 snapshot 구성 기여 여부
+  - `isCurrent`: deprecated 하위 호환 alias. 새 필드가 없을 때만 fallback
   - `effectiveFromEpisodeNo`, nullable
   - `characterId`, `characterName`
   - `sourceCandidateId`, nullable
@@ -1019,9 +1021,9 @@
 | 이름 | 단일 문자열·필수 | 없음 |
 | 역할 | 단일 문자열·선택 | 없으면 `null` |
 | 현재 나이 | 단일 정수·선택 | 없으면 `null` |
-| 현재 나이 Fact 참조 | `characterFactId`, `hasEvidence` 객체·선택 | 현재 나이 Fact가 없으면 `null` |
+| 현재 나이 출처 Fact | `sourceFacts[]` 목록·필수 | 수동 수정도 회차·원문 없는 Fact 1건을 포함하며, provenance를 복구할 수 없는 legacy snapshot만 빈 목록 |
 | 현재 레벨 | 단일 정수·선택 | 없으면 `null` |
-| 현재 레벨 Fact 참조 | `characterFactId`, `hasEvidence` 객체·선택 | 현재 레벨 Fact가 없으면 `null` |
+| 현재 레벨 출처 Fact | `sourceFacts[]` 목록·필수 | 수동 수정도 회차·원문 없는 Fact 1건을 포함하며, provenance를 복구할 수 없는 legacy snapshot만 빈 목록 |
 | 첫 등장 회차 식별자·번호 | 단일 값·선택 | 없으면 모두 `null` |
 | 프로필 설정 | key-value 항목 목록·필수 | 없으면 빈 목록 |
 | 현재 스탯 | key-value 항목 목록·필수 | 없으면 빈 목록 |
@@ -1030,8 +1032,10 @@
 | 현재 상태 | 설정 원소 목록·필수 | 없으면 빈 목록 |
 
 - JSON 구조를 FE가 작품마다 직접 해석하지 않도록 각 항목은 화면 표시명, 사용자용 값, 원본 key를 구분해 제공한다.
-- 설정별 원문 근거 진입을 위해 각 현재 설정 항목에는 대응하는 `characterFactId`와 `hasEvidence`를 제공한다. 기본 정보 영역의 현재 나이·현재 레벨은 각각 `currentAgeFact`, `currentLevelFact`로 같은 정보를 제공한다.
-- 캐릭터 상세의 현재 설정 목록에는 `isCurrent=true`인 `PROFILE`, `AGE`, `LEVEL`, `STAT`, `SKILL`, `ITEM`, `STATUS`만 포함하고 `TIME`과 과거 fact는 제외한다.
+- 현재값 하나가 여러 Fact를 병합한 결과일 수 있으므로 각 설정은 `sourceFacts[]`를 제공한다. 각 참조는 `characterFactId`, `hasEvidence`, nullable 출처 회차 식별자·번호를 포함하고, 현재 나이·현재 레벨도 각각 복수 출처 목록을 제공한다. 수동 수정 Fact도 `sourceEpisodeId/sourceEpisodeNo=null`, `hasEvidence=false`인 출처로 포함한다.
+- `sourceFacts`가 하나면 문서 아이콘 선택 즉시 기존 단건 evidence API를 호출한다. 둘 이상이면 회차 탭을 표시하고 현재 탭의 Fact만 lazy 조회하며, 화면에는 `여러 근거를 종합한 현재값` 안내를 표시한다.
+- 이전 서버와의 단계적 배포 동안 단일 `characterFactId`·`hasEvidence`·`currentAgeFact`·`currentLevelFact`가 함께 내려오면 `sourceFacts`가 비어 있을 때만 fallback으로 사용한다. FE는 이 단일 참조를 snapshot의 저장 여부나 React key로 사용하지 않는다.
+- 캐릭터 상세의 현재 설정 목록은 `WorkCharacter` snapshot의 `PROFILE`, `AGE`, `LEVEL`, `STAT`, `SKILL`, `ITEM`, `STATUS`를 기준으로 제공하고 `TIME`과 snapshot에 반영되지 않은 Fact는 제외한다.
 - 캐릭터 상세의 첫 등장 회차는 식별자와 번호만 제공하며, 화면에서 사용하지 않는 회차 제목은 포함하지 않는다.
 
 **선택한 설정의 원문 근거 데이터**
@@ -1054,13 +1058,13 @@
 **수정 완료 후 최신 데이터**
 
 - 저장 성공 여부와 갱신된 캐릭터 현재 상세 데이터
-- 수정된 설정별 새 `characterFactId`
+- 수정된 설정별 새 `CharacterFact`와 갱신된 `sourceFacts`
 - 이름·역할·첫 등장 회차 수정은 캐릭터의 현재 대표 필드에 반영
 - 프로필·나이·레벨·스탯·스킬·아이템·상태 수정은 새로운 수동 정정 `CharacterFact`를 생성한 뒤 캐릭터의 현재 대표값과 JSON snapshot에 반영
 - 사용자가 새로 추가한 설정은 `manual_*` 식별자 대신 유형 prefix와 설정명을 합친 의미 있는 pattern key로 전달한다. 예를 들어 좌우명·행운·부상은 각각 `profile.좌우명`, `stats.행운`, `status.부상`이며, 표시명은 `properties.name`, 대표값은 설정 자체의 `value`로 함께 전달한다. Backend는 exact → alias → pattern 순으로 해석해 alias가 있으면 canonical key로 저장하고 canonicalize 후 중복을 거절한다.
 - 이름 수정 후에도 기존 `CharacterFact`는 동일한 `characterId`를 참조하므로 상세와 이력의 캐릭터명은 갱신된 이름으로 표시
 - 과거 원고, `EpisodeChunk.chunkText`와 임베딩, 기존 `SettingCandidate.entityName`·`rawEntityMention`·`evidenceSpans`, 과거 `CharacterFact`는 수정하지 않고 분석 당시 기록으로 유지
-- 직접 수정한 설정은 원문에서 추출한 기존 fact를 덮어쓰지 않고 새로운 수동 정정 `CharacterFact`로 생성하며, 같은 `factType + factKey`의 이전 current fact는 과거 이력으로 전환
+- 직접 수정한 설정은 원문에서 추출한 기존 fact를 덮어쓰지 않고 새로운 수동 정정 `CharacterFact`로 생성하며, snapshot 출처를 새 Fact로 갱신한다. 이전 Fact는 별도의 current flag 전환 없이 타임라인 이력으로 계속 보존한다.
 - 수동 정정 fact는 출처 후보·출처 회차·근거 인용문이 없으면 모두 `null` 또는 빈 목록으로 제공
 - 원문 근거는 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)에 정의한 `CharacterFact.sourceCandidate` 연결을 기준으로 조회
 
@@ -1080,7 +1084,7 @@
 
 **5-2. FE → BE 전달 데이터 요구사항**
 - 상세 조회 대상 작품의 `workId`와 캐릭터의 `characterId`
-- 캐릭터 상세의 후속 원문 근거 패널에서 선택할 현재 설정의 `characterFactId`
+- 캐릭터 상세 원문 근거 패널에서 현재 선택한 `sourceFacts[].characterFactId`
 - 수정 저장 시 다음 데이터를 하나의 요청으로 전달
   - 캐릭터의 `characterId`
   - 수정된 이름·역할·현재 나이·현재 레벨·첫 등장 회차
@@ -1091,19 +1095,19 @@
 - 보관함 조회 시 작품의 `workId`, 0부터 시작하는 `page`, 고정 `size=9`를 전달한다.
 - 복구 시 작품의 `workId`와 보관된 캐릭터의 `characterId`를 전달한다.
 
-**5-3. 후속 구현 요구사항 — 캐릭터 상세의 CharacterFact 진입·단건 수정**
-- 구현된 CharacterFact 상세 조회를 재사용해 캐릭터 상세의 각 현재 설정 항목을 `characterFactId` 기반의 Fact 상세 진입점으로 확장한다.
-- 항목 선택 시 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)의 Fact 상세 표현을 재사용해 `factType`, `factKey`, `factValue`, 현재 여부, 출처 회차와 저장된 인용문을 조회한다. 구조화된 세부 속성과 원문 전체는 현재 상세 API 범위가 아니다.
+**5-3. 후속 구현 요구사항 — 캐릭터 상세의 CharacterFact 단건 수정**
+- 현재 설정의 원문 근거 진입은 `sourceFacts`와 구현된 CharacterFact evidence 조회를 재사용한다. 동일 현재값의 여러 출처는 한꺼번에 fetch하지 않고 사용자가 선택한 Fact만 조회한다.
+- 단건 수정 화면은 [설정DB 검색 결과 상세 모달](#설정db-검색-결과-상세-모달)의 Fact 표현을 재사용해 `factType`, `factKey`, `factValue`, snapshot 기여 여부, 출처 회차와 저장된 인용문을 조회한다. 구조화된 세부 속성과 원문 전체는 현재 상세 API 범위가 아니다.
 - Fact 단건 수정은 현재 캐릭터 전체 설정을 목표 상태로 보내는 API와 분리하여, 오래된 화면 데이터가 수정하지 않은 다른 설정을 덮어쓰지 않게 한다.
-- 수정 시 기존 `CharacterFact` 행의 값과 근거를 덮어쓰지 않는다. 기존 current Fact를 historical로 전환하고 출처 없는 새 manual Fact를 current로 생성한 뒤 캐릭터 snapshot을 전체 current Fact로 다시 조립한다.
-- 캐릭터 상세의 Fact 진입과 단건 수정이 구현되기 전에는 현재 설정 요약에서 `properties`를 펼치거나 항목 전체를 Fact 상세 링크처럼 표시하지 않는다.
+- 수정 시 기존 `CharacterFact` 행의 값과 근거를 덮어쓰지 않는다. 출처 없는 새 manual Fact를 만들고 해당 snapshot slot과 provenance만 갱신한다.
+- 단건 수정이 구현되기 전에는 현재 설정 요약에서 `properties`를 펼치거나 항목 전체를 Fact 수정 링크처럼 표시하지 않는다.
 
 **5-4. 프로필 설정 계약**
 - Backend는 `CharacterFactType.PROFILE`과 전역 `profile.*` schema를 제공한다.
 - 설정 후보의 `attributeName`이 활성 profile schema와 exact·alias·pattern으로 매칭되면 `PROFILE` Fact로 확정한다.
-- `PROFILE` 후보 확정 시 `CharacterFact`를 생성하고 current Fact의 `valueJson`을 `WorkCharacter.profileJson` snapshot에 반영한다.
-- 성별·종족·소속·설명처럼 프로필 항목이 여러 개이면 `factKey`별 current 이력을 유지하고, 상세 응답에서는 현재 프로필 항목 목록으로 제공한다.
-- 프로필 설정에도 `characterFactId`와 출처 후보·회차·quote·offset을 제공하여 다른 설정과 동일하게 원문 근거를 열 수 있도록 한다.
+- `PROFILE` 후보 확정 시 `CharacterFact`를 생성하고 승인된 제안값을 `WorkCharacter.profileJson` snapshot에 반영한다.
+- 성별·종족·소속·설명처럼 프로필 항목이 여러 개이면 `factKey`별 Fact 이력을 보존하고, 상세 응답에서는 snapshot의 현재 프로필 항목 목록으로 제공한다.
+- 프로필 설정에도 `sourceFacts`와 출처 후보·회차·quote·offset을 제공하여 다른 설정과 동일하게 복수 원문 근거를 열 수 있도록 한다.
 - Python Worker에는 활성 profile schema가 prompt hint로 전달되지만 고정 추출 대상·허용 key·예시에 `profile.*`이 아직 명시되지 않았다. 프로필 후보를 안정적으로 생성하려면 고정 프롬프트와 추출 테스트를 별도 후속 작업에서 정합화한다.
 
 **6. BE와 협의할 범위·상태값**
@@ -1141,24 +1145,31 @@
 > - `AnalysisJob`은 회차마다 하나씩 생성되므로 여러 회차 후보를 한 화면에서 검토할 때 단일 `analysisJobId`를 대표 식별자로 사용하지 않는다.
 > - 같은 `/setting-review` 화면 안에서 `캐릭터 후보 / 세계관 후보` 탭을 제공하며 두 후보를 한 목록에 섞지 않는다.
 > - 탭별 완료 수·전체 수를 표시하고, 캐릭터와 세계관 후보가 모두 처리돼야 전체 검토를 완료할 수 있다.
-> - 좌측 후보 목록은 요약 응답, 우측 선택 후보는 상세 응답으로 분리한다. 조회한 상세 응답은 FE에서 캐싱할 수 있다.
-> - 후보 수정 저장과 확정은 별도 액션으로 제공하며, 사용자는 `PENDING_REVIEW` 상태에서 여러 번 수정할 수 있다.
+> - 좌측 목록은 `정규화한 캐릭터 이름`이 같은 후보를 그룹으로 표시하고, 우측에는 그룹 응답 안의 모든 후보를 세계관 검토처럼 세로로 이어서 표시한다. 후보 탭을 하나씩 전환하지 않으며 페이지 경계에서 같은 이름이 갈라지지 않도록 Backend가 그룹을 만든 뒤 페이지네이션한다.
+> - 후보 수정·제외는 row 단위로 제공하지만 확정은 그룹의 남은 `PENDING_REVIEW` 후보 전체를 한 요청·한 트랜잭션으로 처리한다. 단일 후보 확정 버튼은 제공하지 않는다.
 > - `CONFIRMED`, `DISMISSED` 후보는 읽기 전용으로 표시하고 되돌리기는 지원하지 않는다.
-> - 설정집 다시 분석, 일괄 확정·무시, 근거 문장 직접 수정, 문단 번호 표시는 MVP에서 제외한다.
+> - 설정집 다시 분석, 그룹 전체 무시, 근거 문장 직접 수정, 문단 번호 표시는 MVP에서 제외한다.
 
 > **현재 구현 계약**
 > - 캐릭터 후보 저장·확정 로직은 그대로 유지한다. 세계관 후보는 별도 데이터 계약을 사용하고 공통 검토 화면의 레이아웃·원문 근거·페이지네이션 패턴만 공유한다.
 > - `batchId` 회차 범위, 전체·완료·대기·연결 필요 집계, 검토·연결 상태 필터, 서버 페이지네이션과 후보 목록·상세 조회를 연결한다.
+> - 신규 그룹 화면은 목록 요청에 `includeLegacyCandidates=false`를 보내 같은 후보가 deprecated 단건 페이지에 중복되는 것을 막는다. Backend는 구형 클라이언트를 위해 이 값을 생략하면 기존 단건 페이지를 계속 반환한다.
 > - 검토 완료 개수는 본문의 분석·검토 요약에서 확인하므로 헤더에는 중복된 완료 개수와 진행 바를 표시하지 않는다.
 > - 검토 화면은 `PENDING_REVIEW`를 기본 필터로 사용한다. 이 기본 검토 흐름에서 확정·무시 후 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하되, 좌측 목록과 화면의 현재 스크롤 위치는 유지한다. 선택 변경을 이유로 카드나 상세 패널까지 자동 스크롤하지 않으며, 남은 대기 후보가 없으면 검토 완료 상태를 표시한다.
+> - 탭·필터·현재 그룹은 필터 요청 중에도 언마운트하지 않는다. 직전 그룹을 표시한 채 새 목록을 받고, 응답에 현재 그룹이 없을 때만 첫 그룹으로 보정하거나 선택을 제거해 연속 클릭 대상을 유지한다.
 > - 저장용 `attributeName`과 `valueType`을 그대로 노출하지 않고 설정 유형·설정명을 사용자용 문구로 변환한다. 후보에서는 `attributeValue`를 표시하며, 확정 후 이 값이 `CharacterFact.factValue`로 사용된다.
-> - `PENDING_REVIEW`이면서 `MATCHED`, `AUTO_MATCHED_BY_NAME` 또는 `UNRESOLVED`인 단일 후보를 확정할 수 있다. 성공 후 목록·상세·집계와 캐릭터 목록을 서버 기준으로 다시 조회한다.
-> - `AMBIGUOUS` 후보는 캐릭터 연결을 먼저 해소해야 하므로 확정 버튼을 비활성화하고 서버 요청을 보내지 않는다.
+> - 같은 이름 그룹의 모든 `PENDING_REVIEW` 후보가 `MATCHED`, `AUTO_MATCHED_BY_NAME` 또는 신규 등록 예정 `UNRESOLVED`이고 비교 정책을 통과해야 그룹 전체를 확정할 수 있다. 하나라도 `AMBIGUOUS`이거나 비교 처리 중·실패이면 전체 확정을 잠근다.
+> - 그룹 전체 확정은 후보별 `APPLY_PROPOSAL` 또는 `HISTORY_ONLY` 선택을 모아 단일 API로 전달한다. 서버는 요청 ID가 해당 배치·이름의 전체 대기 후보와 정확히 일치하는지 다시 검사한다.
 > - 연결 상태와 관계없이 `PENDING_REVIEW` 후보를 무시할 수 있다. 성공 후 목록·상세·집계를 서버 기준으로 다시 조회하고, `DISMISSED` 상세는 읽기 전용으로 표시한다. 무시 실패 시 현재 후보와 선택 상태를 유지해 같은 화면에서 재시도한다.
 > - 설정 유형 서버 필터, 상태별 세부 집계, 사용자 수정 여부, 목록·상세 DTO 분리는 후속 조회 단위에서 보강한다.
-> - 모든 `PENDING_REVIEW` 후보는 설정명·표시값 수정 모달을 열 수 있다. Backend가 응답한 `attributeNameEditable`과 `attributeNamePrefix`를 기준으로 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 prefix를 잠근 채 suffix만 수정한다. FE의 key 목록이나 접두어 추측으로 편집 가능 여부를 결정하지 않는다.
+> - 모든 `PENDING_REVIEW` 후보는 설정명·표시값 수정 모달을 열 수 있다. 캐릭터 이름은 이 모달에서 편집하지 않는다. Backend가 응답한 `attributeNameEditable`과 `attributeNamePrefix`를 기준으로 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 prefix를 잠근 채 suffix만 수정한다.
+> - 상세 header의 `캐릭터 일괄 연결`은 현재 이름 그룹의 모든 대기 후보 ID에 기존 캐릭터 연결 또는 새 캐릭터 등록 예정 결정을 한 요청으로 적용한다. 한 후보만 바꾸려면 각 row의 기존 연결 버튼을 사용한다.
 > - 모든 `PENDING_REVIEW` 후보는 기존 활성 캐릭터 연결 또는 새 캐릭터 등록 예정 상태로 연결을 바꿀 수 있다. `AMBIGUOUS` 후보는 연결을 해소한 뒤 확정한다.
 > - 후보 수정과 캐릭터 연결 성공 후 목록·상세를 다시 조회한다. 실패하면 모달 입력과 선택을 유지해 같은 화면에서 재시도한다.
+> - 캐릭터 연결이 확정된 후보는 현재 `WorkCharacter` snapshot과 2차 비교한 결과를 상세에 표시한다. 캐릭터 후보용 비교 DTO와 확정 mutation은 세계관 후보 계약과 합치지 않는다.
+> - 비교 상태가 `PENDING`, `PROCESSING`이면 확정을 잠근다. `WAITING_FOR_CHARACTER_MATCH`는 기존 캐릭터 연결이 필요한 경우 잠그되, `matchStatus=UNRESOLVED`인 신규 캐릭터 등록 예정 후보는 확정을 허용한다. 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 연결·비교 Job을 만든 뒤 재확정을 요구한다. 배포 전 후보가 `MATCHED/AUTO_MATCHED_BY_NAME + NOT_REQUIRED`이면 확정을 잠그고 `현재 설정 비교 시작`을 제공한다. `FAILED`, `RECOMPARISON_REQUIRED`이면 현재 상세와 최초 원문 근거를 유지하고 재비교를 제공한다.
+> - `ADD`, `UPDATE`, `MERGE` 제안은 `AI 제안대로 현재 설정 반영` 또는 `이력에만 저장` 중 하나로 확정한다. `HISTORY_ONLY`는 이력 저장만, `EXCLUDE`는 기존 무시 액션, `REVIEW_REQUIRED`는 이력 저장 또는 후보 수정 후 재비교만 허용한다.
+> - 기존 캐릭터의 현재값 변경 제안은 세계관 diff와 같은 밀도로 `기존값 / 제안값`, 함께 변경될 snapshot slot, 판단 이유를 읽기 전용으로 보여준다. 신규 캐릭터 후보는 비교할 기존 snapshot이 없으므로 추출값과 신규 반영 안내만 표시한다. 화면 diff는 Backend의 `beforeFactValue`·`proposedFactValue`를 우선하고 구조화 JSON은 구응답 fallback으로만 사용한다. 사용자가 기존 Fact 하나하나를 체크해 종료 대상을 재조립하는 UI는 두지 않는다.
 > - 검토 완료 후 다음 단계 분기는 후속 변경 단위에서 연결한다.
 
 > **사용자용 설정 문구 표시 정책**
@@ -1206,19 +1217,16 @@
   - 검토 완료 수: `CONFIRMED + DISMISSED`
   - 검토 대기 수
   - 캐릭터 연결 필요 수: `PENDING_REVIEW`이면서 `AMBIGUOUS`
-- 좌측 후보 목록 영역
-  - 캐릭터명
-  - 설정 유형과 설정명
-  - 표시용 설정값
-  - 출처 회차 번호
-  - 검토 상태 배지
-  - 캐릭터 연결 상태 배지
-  - 사용자 수정 배지
+- 좌측 후보 그룹 목록 영역
+  - 캐릭터명과 그룹 내 설정 수
+  - 그룹의 출처 회차 목록
+  - 연결 상태와 확인 필요 개수
 - 목록 필터
   - 검토 상태: 전체·검토 대기·확정·무시
   - 연결 상태: 전체·연결됨·새 캐릭터 후보·캐릭터 연결 확인 필요
   - 설정 유형: 전체·프로필·나이/레벨·스탯·스킬·아이템·상태·시간/사건
-- 우측 선택 후보 상세 영역
+- 우측 선택 그룹·후보 상세 영역
+  - 같은 이름 그룹의 후보 목록과 캐릭터 일괄 연결
   - 캐릭터 후보명과 원문 표현
   - 검토 상태와 캐릭터 연결 상태
   - 현재 연결된 기존 캐릭터 또는 새 캐릭터 등록 예정 이름
@@ -1226,13 +1234,17 @@
   - AI 근거 명확도와 구간별 안내 문구
   - `{episodeNo}화에서 확인` 출처 정보
   - `AI가 추출할 때 참고한 원문` quote 목록
+  - 현재 snapshot 비교 상태·제안 작업·시점 분류
+  - AI 제안값, 현재값 변경 목록과 판단 이유
+  - `AI 제안대로 현재 설정 반영` / `이력에만 저장` 확정 방식
   - 사용자 수정 후보인 경우 원문과 수정값이 다를 수 있다는 안내
+  - 남은 대기 후보 전체를 처리하는 그룹 `모두 확정`
 - 목록 페이지네이션
 - 검토 완료 후 다음 단계 이동 버튼
 
 **2. 사용자 액션**
 - 헤더 `뒤로`·`분석 목록으로` → `/dashboard?workId={workId}&nav=analyses`의 현재 작품 분석 목록으로 이동
-- 후보 선택 → 우측에 상세 조회
+- 캐릭터 이름 그룹 선택 → 우측에서 그룹 내 후보를 전환해 상세 조회
 - 검토 상태·연결 상태·설정 유형 필터 선택·페이지 이동
 - `PENDING_REVIEW + AMBIGUOUS`
   - 무시
@@ -1248,8 +1260,14 @@
   - 설정값 수정·수정 저장
   - `연결 변경` → 기존 캐릭터에 연결하거나 새 캐릭터 이름 재입력
 - 캐릭터 연결은 확정 전까지 여러 번 변경할 수 있고, 변경 후에도 검토 상태는 `PENDING_REVIEW` 유지
-- 설정값 수정 저장 후에도 `PENDING_REVIEW`를 유지하며 다시 수정·확정·무시 가능
+- 설정값 수정 저장 후에도 `PENDING_REVIEW`를 유지하고 비교 상태를 재비교 필요로 갱신한다. 재비교가 완료될 때까지 확정은 잠그되 수정·무시는 가능하다.
+- 비교 실패·기준 snapshot 변경 → `다시 비교`, 연결된 레거시 `NOT_REQUIRED` 후보 → `현재 설정 비교 시작`으로 retry하고 이전 제안·최초 원문 근거는 유지
+- `ADD`·`UPDATE`·`MERGE` → 후보별 현재값 반영 또는 이력 저장 방식을 선택한 뒤 그룹 전체 확정
+- `HISTORY_ONLY`·`REVIEW_REQUIRED` → 현재 snapshot을 바꾸지 않는 이력 저장만 선택 가능
+- `EXCLUDE` → 후보 무시 액션으로 처리
 - `CONFIRMED`, `DISMISSED` 후보 선택 → 상세를 읽기 전용으로 조회
+- 그룹 캐릭터 일괄 연결 → 같은 이름의 모든 대기 후보를 하나의 기존 캐릭터 또는 동일 이름의 신규 캐릭터 등록 예정 상태로 변경
+- 개별 캐릭터 연결 → 각 후보 row의 연결 버튼으로 처리하며 일반 설정 수정에서는 캐릭터 이름을 변경하지 않음
 - 모든 후보의 검토가 끝나면 검토 완료 선택
   - 기존 확정 설정이 있는 작품의 추가 회차 분석 → 오류 탐지 작업을 시작하고 [분석 진행](./analysis.md#분석-진행-s4loading)으로 이동한 뒤 완료 시 오류 리포트로 이동
   - 작품의 최초 원고 분석 → 오류 리포트를 생성하지 않고 [설정DB 캐릭터 탭](#설정db-캐릭터-탭)으로 이동
@@ -1281,13 +1299,14 @@
 - 검토 대상 업로드 묶음: `batchId`
 - 이전 화면: `/dashboard?workId={workId}&nav=analyses`
 - 검토 후 다음 단계를 결정할 분석 목적: `jobType={EPISODE_VALIDATION|SETTING_EXTRACTION}`
-- 선택 후보: `candidate={candidateId}`
+- 선택 캐릭터 그룹: `group={normalizedCharacterName}`
+- 구형 후보 딥링크 호환: `candidate={candidateId}`. 진입 후 후보가 속한 `group`으로 교체한다.
 - 검토 상태: `reviewStatus={ALL|PENDING_REVIEW|CONFIRMED|DISMISSED}`
 - 연결 상태 URL: `matchStatus={ALL|CONNECTED|UNRESOLVED|AMBIGUOUS}`. `CONNECTED`는 API의 `matchStatuses=MATCHED,AUTO_MATCHED_BY_NAME`으로 변환한다.
 - 설정 유형: `settingType={ALL|PROFILE|AGE_LEVEL|STAT|SKILL|ITEM|STATUS|TIME}`
 - 페이지 번호: `page={1 이상의 정수}`
 - 페이지 크기: `size=20`
-- URL 예시: `/setting-review?workId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d444&batchId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&jobType=EPISODE_VALIDATION&candidate=01970c2e-7e6d-7000-8e5d-2a9bc4b6d333&reviewStatus=PENDING_REVIEW&matchStatus=ALL&settingType=ALL&page=1&size=20`
+- URL 예시: `/setting-review?workId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d444&batchId=01970c2e-7e6d-7000-8e5d-2a9bc4b6d555&jobType=EPISODE_VALIDATION&group=수아&reviewStatus=PENDING_REVIEW&matchStatus=ALL&page=1&size=20`
 - `EPISODE_VALIDATION` 검토 완료: 오류 탐지 작업을 생성하고 `/loading?workId={workId}&analysisJobIds={commaSeparatedValidationJobIds}`로 이동한 뒤 성공 시 회차 오류 리포트로 이동
 - `SETTING_EXTRACTION` 검토 완료: `/dashboard?workId={workId}&nav=settingDB&tab=characters`로 이동하며 오류 리포트는 표시하지 않음
 
@@ -1352,7 +1371,7 @@
 - MVP 첫 조회 계약은 `episodeNo ASC` → 생성 시각 ASC → 후보 ID ASC로 안정적인 순서를 보장한다. 근거 `startOffset` 정렬은 구조화 근거 DTO와 함께 후속 조회 계약에서 보강한다.
 - 페이지 메타데이터로 `page`, `size`, `totalElements`, `totalPages`, `hasNext`를 제공한다.
 - 화면 URL의 `page`는 1부터 시작하고 API 요청·응답의 `page`는 0부터 시작하므로 FE에서 변환한다.
-- 1차 조회는 기존 후보 응답 DTO를 목록에도 재사용한다. 목록 요약 DTO 분리와 구조화 값·근거·AI 원본 응답 제외는 후속 조회 단위에서 적용한다.
+- 1차 조회는 기존 후보 응답 DTO를 목록에도 재사용하지만 목록 변환에서는 화면에 사용하지 않는 `rawAiResultJson`을 제외한다. 신규 그룹 화면은 `includeLegacyCandidates=false`로 deprecated `candidates` 페이지까지 제외하며, 별도 목록 요약 DTO 분리는 후속 조회 단위에서 적용한다.
 
 **우측 선택 후보 상세 데이터**
 
@@ -1364,11 +1383,20 @@
 | 구조화된 설정 세부 값 | 객체·선택 | 화면에는 표시하지 않음. 내용 미수정이면 유지하고 JSON 복합 후보의 이름·값 수정 시 name-only로 축소 |
 | 출처 청크 식별자 | 단일 값·선택 | 없으면 `null` |
 | 원문 근거 | `quote`, 회차 전체 기준 `startOffset`, `endOffset` 목록·필수 | 근거가 없으면 빈 목록 |
+| 현재 설정 비교 상태 | enum·필수 | 비교 불필요·연결 대기·대기·처리·완료·실패·재비교 필요 |
+| 제안 작업 | `ADD`/`UPDATE`/`MERGE`/`HISTORY_ONLY`/`EXCLUDE`/`REVIEW_REQUIRED`·선택 | 비교 완료 전에는 `null` |
+| 시점 분류 | `PRESENT`/`PAST`/`HYPOTHETICAL`/`UNKNOWN`·선택 | 비교 완료 전에는 `null` |
+| 비교 대상과 제안값 | fact type·canonical key·사용자용 `proposedFactValue`·구조화 `proposedValueJson`·선택 | 대상 또는 안전한 제안이 없으면 `null` |
+| snapshot 변경 제안 | action·fact type·canonical key·사용자용 전후 표시값·구조화 전후 값 목록·필수 | 현재값 변경이 없으면 빈 목록 |
+| AI 판단 이유 | 문자열·선택 | 없으면 `null` |
+| 비교 기준 snapshot version | 0 이상의 정수·선택 | 비교 완료 전에는 `null` |
+| 비교 오류 | 문자열·선택 | 실패·재비교 필요가 아니면 `null` |
 | 사용자 설정 내용 수정 여부 | boolean·후속 | 수정 추적 계약 추가 전에는 표시하지 않음 |
 
 - 원문 근거에는 회차 번호를 반드시 제공하고 문단 번호는 제공하지 않는다.
 - `rawAiResultJson`은 디버깅용 데이터이므로 화면에는 표시하지 않으며, 상세 응답에서 제거하는 계약 분리는 후속 조회 단위에서 적용한다.
 - 설정 내용이나 캐릭터 연결을 수정해도 출처 회차·원문 표현·청크·근거 quote·offset은 최초 추출값으로 유지한다.
+- 비교 제안은 최초 원문 근거를 대체하지 않는다. FE는 snapshot 변경 목록을 표시만 하고 확정 요청에서 임의로 재조립하지 않는다.
 
 **사용자 액션 완료 후 최신 데이터**
 
@@ -1385,6 +1413,7 @@
   - 작품의 `workId`
   - 현재 검토 대상 `batchId`
   - 1차 조회는 검토 상태, 복수 연결 상태, 0부터 시작하는 API 페이지 번호, 페이지 크기
+  - 신규 그룹 화면은 deprecated 단건 페이지 중복을 막기 위한 `includeLegacyCandidates=false`
   - 설정 유형 필터는 후속 조회 단위에서 추가
 - 후보 상세 조회
   - `workId`, `batchId`, `candidateId`
@@ -1399,8 +1428,14 @@
   - `workId`, `candidateId`, 사용자가 선택한 기존 `characterId`
 - 새 캐릭터 지정 또는 이름 재수정
   - `workId`, `candidateId`, 사용자가 입력한 새 캐릭터 이름
-- 후보 확정·무시
-  - `workId`, `candidateId`, 사용자가 선택한 확정 또는 무시 액션
+- 후보 확정
+  - `workId`, `candidateId`, 사용자가 선택한 `applicationMode`, 상세에서 받은 `comparisonBaseSnapshotVersion`
+  - `applicationMode`은 `APPLY_PROPOSAL` 또는 `HISTORY_ONLY`만 전송하며 작업별 허용 여부를 화면과 Backend가 모두 검증한다.
+- 후보 무시
+  - `workId`, `candidateId`
+- 후보 비교 시작·재시도
+  - `workId`, `candidateId`
+  - 실패·재비교 필요 또는 연결 완료된 레거시 `NOT_REQUIRED` 상태에서 호출하고 성공 후 목록·상세를 무효화한다.
 - 검토 완료
   - `workId`, 현재 검토 대상 `batchId`
   - 검토 대기 수가 0일 때만 요청할 수 있다.

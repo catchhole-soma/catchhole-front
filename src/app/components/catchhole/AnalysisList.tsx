@@ -201,7 +201,10 @@ export function AnalysisList({ workId }: { workId: string }) {
       + `&currentAnalysisJobIds=${encodedIds}`
       + `&jobType=${group.jobType}`,
       'push-right',
-      { returnToAnalysisList: `${location.pathname}${location.search}` },
+      {
+        returnToAnalysisList: `${location.pathname}${location.search}`,
+        returnHistoryDelta: -1,
+      },
     );
   };
 
@@ -217,7 +220,10 @@ export function AnalysisList({ workId }: { workId: string }) {
       + `&jobType=${jobType}`
       + reviewStatus,
       'dissolve',
-      { returnToAnalysisList: `${location.pathname}${location.search}` },
+      {
+        returnToAnalysisList: `${location.pathname}${location.search}`,
+        returnHistoryDelta: -1,
+      },
     );
   };
 

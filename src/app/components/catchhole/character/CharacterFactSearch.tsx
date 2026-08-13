@@ -38,8 +38,9 @@ const FACT_TYPE_OPTIONS: ReadonlyArray<{ value: FactTypeFilter; label: string }>
 ];
 const SCOPE_OPTIONS: ReadonlyArray<{ value: ScopeFilter; label: string }> = [
   { value: 'ALL', label: '전체 이력' },
-  { value: 'CURRENT', label: '현재 설정' },
-  { value: 'HISTORICAL', label: '이전 설정' },
+  // API enum은 하위 호환을 위해 유지하되, UI에서는 snapshot 기여 여부라는 실제 의미를 설명한다.
+  { value: 'CURRENT', label: '현재값 근거' },
+  { value: 'HISTORICAL', label: '그 외 이력' },
 ];
 const FACT_TYPES = new Set<FactTypeFilter>(FACT_TYPE_OPTIONS.map(option => option.value));
 const SCOPES = new Set<ScopeFilter>(SCOPE_OPTIONS.map(option => option.value));
@@ -74,6 +75,13 @@ function sourceLabel(result: CharacterFactSearchResponse): string {
 
 function factTypeColor(factType: CharacterFactSearchResponse['factType']): string {
   return factType ? FACT_TYPE_COLORS[factType] : C.primary;
+}
+
+function contributesToCurrentSnapshot(
+  fact: Pick<CharacterFactSearchResponse, 'contributesToCurrentSnapshot' | 'isCurrent'>,
+): boolean {
+  // 새 계약을 우선하고, isCurrent는 이전 Backend 응답과의 호환에만 사용한다.
+  return fact.contributesToCurrentSnapshot ?? fact.isCurrent ?? false;
 }
 
 function queryErrorMessage(error: unknown, fallback: string): string {
@@ -495,12 +503,12 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                   <span style={{
                     padding: '3px 8px',
                     borderRadius: 10,
-                    border: `1px solid ${result.isCurrent ? C.success : C.warning}`,
-                    color: result.isCurrent ? C.success : C.warning,
+                    border: `1px solid ${contributesToCurrentSnapshot(result) ? C.success : C.warning}`,
+                    color: contributesToCurrentSnapshot(result) ? C.success : C.warning,
                     fontSize: 10,
                     fontWeight: 650,
                   }}>
-                    {result.isCurrent ? '현재 설정' : '이전 설정'}
+                    {contributesToCurrentSnapshot(result) ? '현재값 근거' : '그 외 이력'}
                   </span>
                   <ChevronRight size={16} color={C.t3} style={{ marginLeft: 'auto' }} />
                 </span>
@@ -593,12 +601,12 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                 <span style={{
                   padding: '4px 10px',
                   borderRadius: 12,
-                  border: `1px solid ${detail.isCurrent ? C.success : C.warning}`,
-                  color: detail.isCurrent ? C.success : C.warning,
+                  border: `1px solid ${contributesToCurrentSnapshot(detail) ? C.success : C.warning}`,
+                  color: contributesToCurrentSnapshot(detail) ? C.success : C.warning,
                   fontSize: 11,
                   fontWeight: 650,
                 }}>
-                  {detail.isCurrent ? '현재 설정' : '이전 설정'}
+                  {contributesToCurrentSnapshot(detail) ? '현재값 근거' : '그 외 이력'}
                 </span>
               )}
               <button

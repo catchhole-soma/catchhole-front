@@ -31,6 +31,7 @@ import {
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
   CharacterDetailResponse,
+  CharacterFactReferenceResponse,
   CharacterSettingPropertyRequest,
   CharacterSettingResponse,
   CharacterSettingUpdateRequest,
@@ -62,13 +63,14 @@ interface DraftProperty extends CharacterSettingPropertyRequest {
 
 interface DraftSetting {
   draftId: string;
-  characterFactId?: string;
+  /** 서버 snapshot에서 읽은 설정인지 여부다. 근거 Fact 존재 여부와는 독립적이다. */
+  persisted: boolean;
+  sourceFacts: CharacterFactReferenceResponse[];
   key: string;
   displayName: string;
   value: string;
   valueType: SettingValueType;
   properties: DraftProperty[];
-  hasEvidence: boolean;
   attributeNameEditable: boolean;
   attributeNamePrefix: string | null;
   displayNameEditable: boolean;
@@ -170,8 +172,11 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
   const displayName = value.displayName ?? value.key ?? '설정';
   const settingValue = value.value ?? '';
   return {
-    draftId: value.characterFactId ?? createDraftSettingId(),
-    characterFactId: value.characterFactId,
+    // 현재 snapshot은 여러 source Fact에서 합성될 수 있으므로 단일 Fact ID를 화면 key로 쓰지 않는다.
+    // 설정 key는 snapshot 안에서 유일하며, 편집 중 key가 바뀌어도 draftId 값 자체는 유지된다.
+    draftId: key ? `character-setting-${key}` : createDraftSettingId(),
+    persisted: true,
+    sourceFacts: sourceFactsForSetting(value),
     key,
     displayName,
     value: settingValue,
@@ -182,7 +187,6 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
       value: property.value ?? null,
       valueType: property.valueType ?? 'STRING',
     })),
-    hasEvidence: value.hasEvidence ?? false,
     attributeNameEditable: value.attributeNameEditable ?? false,
     attributeNamePrefix: value.attributeNamePrefix ?? null,
     displayNameEditable: value.displayNameEditable ?? false,
@@ -190,6 +194,104 @@ function toDraftSetting(value: CharacterSettingResponse): DraftSetting {
     initialDisplayName: displayName,
     initialValue: settingValue,
   };
+}
+
+/**
+ * 새 응답의 복수 provenance를 우선 사용하고, 이전 Backend의 단건 alias도 읽을 수 있게 유지한다.
+ */
+function sourceFactsWithLegacyFallback(
+  sourceFacts: CharacterFactReferenceResponse[] | undefined,
+  legacyReference?: CharacterFactReferenceResponse | null,
+): CharacterFactReferenceResponse[] {
+  if (sourceFacts && sourceFacts.length > 0) return sourceFacts;
+  return legacyReference ? [legacyReference] : [];
+}
+
+function sourceFactsForSetting(setting: CharacterSettingResponse): CharacterFactReferenceResponse[] {
+  if (setting.sourceFacts && setting.sourceFacts.length > 0) return setting.sourceFacts;
+  return setting.characterFactId
+    ? [{
+        characterFactId: setting.characterFactId,
+        hasEvidence: setting.hasEvidence ?? false,
+      }]
+    : [];
+}
+
+function firstEvidenceFactId(
+  sourceFacts: CharacterFactReferenceResponse[],
+): string | null {
+  return sourceFacts.find(source => source.hasEvidence)?.characterFactId ?? null;
+}
+
+interface CurrentSnapshotEvidenceSelection {
+  sourceFacts: CharacterFactReferenceResponse[];
+  context: {
+    factTypeLabel: string;
+    displayName: string;
+    factValue: string | null;
+  };
+}
+
+/** 선택한 Fact가 어떤 현재 snapshot 값을 구성하는지 찾아 복수 출처와 표시 문맥을 함께 반환한다. */
+function findCurrentSnapshotEvidenceSelection(
+  detail: CharacterDetailResponse,
+  characterFactId: string,
+): CurrentSnapshotEvidenceSelection | null {
+  const ageSources = sourceFactsWithLegacyFallback(
+    detail.currentAgeSourceFacts,
+    detail.currentAgeFact,
+  );
+  if (ageSources.some(source => source.characterFactId === characterFactId)) {
+    return {
+      sourceFacts: ageSources,
+      context: {
+        factTypeLabel: '나이',
+        displayName: '현재 나이',
+        factValue: detail.currentAge == null ? null : `${detail.currentAge}세`,
+      },
+    };
+  }
+
+  const levelSources = sourceFactsWithLegacyFallback(
+    detail.currentLevelSourceFacts,
+    detail.currentLevelFact,
+  );
+  if (levelSources.some(source => source.characterFactId === characterFactId)) {
+    return {
+      sourceFacts: levelSources,
+      context: {
+        factTypeLabel: '레벨',
+        displayName: '현재 레벨',
+        factValue: detail.currentLevel == null ? null : String(detail.currentLevel),
+      },
+    };
+  }
+
+  const settingGroups: Array<{
+    label: string;
+    settings: CharacterSettingResponse[] | undefined;
+  }> = [
+    { label: '프로필', settings: detail.profile },
+    { label: '스탯', settings: detail.stats },
+    { label: '스킬', settings: detail.skills },
+    { label: '아이템', settings: detail.items },
+    { label: '상태', settings: detail.statuses },
+  ];
+  for (const group of settingGroups) {
+    for (const setting of group.settings ?? []) {
+      const sourceFacts = sourceFactsForSetting(setting);
+      if (!sourceFacts.some(source => source.characterFactId === characterFactId)) continue;
+      return {
+        sourceFacts,
+        context: {
+          factTypeLabel: group.label,
+          displayName: setting.displayName ?? setting.key ?? '설정',
+          factValue: setting.value ?? null,
+        },
+      };
+    }
+  }
+  return null;
 }
 
 function orderManualSettingsLast<T extends { key?: string | null }>(settings: readonly T[]): T[] {
@@ -274,7 +376,9 @@ function toNameOnlyProperties(item: DraftSetting): DraftProperty[] {
 }
 
 function hasSettingContentChanged(item: DraftSetting): boolean {
-  if (!item.characterFactId) return true;
+  // 근거가 없거나 여러 Fact에서 합성된 snapshot도 이미 저장된 설정일 수 있다.
+  // 따라서 단일 characterFactId 존재 여부가 아니라 명시적인 persisted 상태로 신규 설정을 구분한다.
+  if (!item.persisted) return true;
   return item.key !== item.initialKey
     || item.displayName.trim() !== item.initialDisplayName?.trim()
     || nullable(item.value) !== nullable(item.initialValue ?? '');
@@ -372,7 +476,7 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     previousItems: CharacterSettingResponse[] | undefined,
   ): CharacterSettingResponse[] => items.map(item => {
     const previousItem = previousItems?.find(candidate => (
-      candidate.characterFactId === item.characterFactId
+      candidate.key === item.initialKey
     ));
     const contentChanged = hasSettingContentChanged(item);
     const patternEdited = item.attributeNameEditable;
@@ -380,16 +484,22 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     const properties = (patternEdited || manualOrCustomEdited) && contentChanged
       ? toNameOnlyProperties(item)
       : item.properties;
+    const sourceFacts = isUnchangedSetting(previousItem, item)
+      ? previousItem == null ? [] : sourceFactsForSetting(previousItem)
+      : [{
+          characterFactId: `demo-fact-${item.key}-${Date.now()}`,
+          hasEvidence: false,
+        }];
+    const representativeSource = sourceFacts[sourceFacts.length - 1];
     return {
-      characterFactId: item.characterFactId ?? `demo-fact-${item.key}`,
+      characterFactId: representativeSource?.characterFactId,
+      sourceFacts,
       key: item.key,
       displayName: item.displayName,
       value: nullable(item.value),
       valueType: item.valueType,
       properties,
-      hasEvidence: isUnchangedSetting(previousItem, item)
-        ? previousItem?.hasEvidence ?? false
-        : false,
+      hasEvidence: sourceFacts.some(source => source.hasEvidence),
       attributeNameEditable: item.attributeNameEditable,
       attributeNamePrefix: item.attributeNamePrefix,
       displayNameEditable: item.displayNameEditable,
@@ -397,6 +507,16 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
   });
   const currentAge = optionalInteger(draft.currentAge, 0, '현재 나이');
   const currentLevel = optionalInteger(draft.currentLevel, 0, '현재 레벨');
+  const currentAgeSourceFacts = currentAge == null
+    ? []
+    : currentAge === previous.currentAge
+      ? sourceFactsWithLegacyFallback(previous.currentAgeSourceFacts, previous.currentAgeFact)
+      : [{ characterFactId: `demo-fact-age-${Date.now()}`, hasEvidence: false }];
+  const currentLevelSourceFacts = currentLevel == null
+    ? []
+    : currentLevel === previous.currentLevel
+      ? sourceFactsWithLegacyFallback(previous.currentLevelSourceFacts, previous.currentLevelFact)
+      : [{ characterFactId: `demo-fact-level-${Date.now()}`, hasEvidence: false }];
   return {
     ...previous,
     name: draft.name.trim(),
@@ -404,15 +524,13 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
     currentAge,
     currentAgeFact: currentAge == null
       ? undefined
-      : currentAge === previous.currentAge
-        ? previous.currentAgeFact
-        : { characterFactId: `demo-fact-age-${Date.now()}`, hasEvidence: false },
+      : currentAgeSourceFacts[currentAgeSourceFacts.length - 1],
+    currentAgeSourceFacts,
     currentLevel,
     currentLevelFact: currentLevel == null
       ? undefined
-      : currentLevel === previous.currentLevel
-        ? previous.currentLevelFact
-        : { characterFactId: `demo-fact-level-${Date.now()}`, hasEvidence: false },
+      : currentLevelSourceFacts[currentLevelSourceFacts.length - 1],
+    currentLevelSourceFacts,
     firstAppearanceEpisode: draft.firstAppearanceEpisodeNo.trim()
       ? { episodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차') ?? undefined }
       : undefined,
@@ -550,6 +668,7 @@ function SimpleSettingList({
     <div className={`character-simple-settings character-setting-columns-${columns}`} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {orderedSettings.map((item, index) => {
         const factKey = item.key?.trim() ?? '';
+        const evidenceFactId = firstEvidenceFactId(sourceFactsForSetting(item));
         const selectable = timelineOpen && Boolean(factType && factKey && onTimelineKeyToggle);
         // 타입 전체 선택은 바깥 묶음으로 표현하고, 현재 칸은 해당 factKey를 직접 골랐을 때만 강조한다.
         const selected = timelineSelection.factKeys.includes(factKey);
@@ -559,7 +678,7 @@ function SimpleSettingList({
         return (
           <div
             className={`character-setting-row${selectable ? ' character-setting-row--selectable' : ''}${selected ? ' is-selected' : ''}`}
-            key={item.characterFactId ?? item.key ?? index}
+            key={item.key ?? index}
             role={selectable ? 'button' : undefined}
             aria-pressed={selectable ? selected : undefined}
             aria-label={selectable ? `${item.displayName ?? item.key ?? emptyLabel} 변화 이력 ${selected ? '제거' : '추가'}` : undefined}
@@ -588,9 +707,9 @@ function SimpleSettingList({
               </span>
             ) : (
               <EvidenceButton
-                enabled={Boolean(item.hasEvidence && item.characterFactId)}
+                enabled={Boolean(evidenceFactId)}
                 label={item.displayName ?? item.key ?? emptyLabel}
-                onClick={() => item.characterFactId && onEvidence(item.characterFactId)}
+                onClick={() => evidenceFactId && onEvidence(evidenceFactId)}
               />
             )}
           </div>
@@ -635,6 +754,7 @@ function EditSettingList({
     }}>
       {settings.length === 0 && <div style={{ gridColumn: '1 / -1' }}><EmptyArea label={emptyLabel} /></div>}
       {settings.map((item, index) => {
+        const evidenceFactId = firstEvidenceFactId(item.sourceFacts);
         const dynamicNameEditable = item.attributeNameEditable && Boolean(item.attributeNamePrefix);
         const editableName = dynamicNameEditable || item.displayNameEditable;
         return (
@@ -728,9 +848,9 @@ function EditSettingList({
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <EvidenceButton
-                enabled={Boolean(item.hasEvidence && item.characterFactId && onEvidence)}
+                enabled={Boolean(evidenceFactId && onEvidence)}
                 label={item.displayName}
-                onClick={() => item.characterFactId && onEvidence?.(item.characterFactId)}
+                onClick={() => evidenceFactId && onEvidence?.(evidenceFactId)}
               />
               <button
                 type="button"
@@ -1202,6 +1322,16 @@ export function CharacterDatabase({
       ? getDemoCharacterEvidence(selectedEvidenceFactId)
       : evidenceQuery.data?.data ?? null
     : null;
+  const currentSnapshotEvidenceSelection = useMemo(
+    () => detail && selectedEvidenceFactId
+      ? findCurrentSnapshotEvidenceSelection(detail, selectedEvidenceFactId)
+      : null,
+    [detail, selectedEvidenceFactId],
+  );
+  const selectedEvidenceSources = currentSnapshotEvidenceSelection?.sourceFacts
+    ?? (selectedEvidenceFactId
+      ? [{ characterFactId: selectedEvidenceFactId, hasEvidence: true }]
+      : []);
   const demoSummaries = useMemo(() => demoCharacters.map(toSummary), [demoCharacters]);
   const characterPage = charactersQuery.data?.data;
   const hasCharacterPage = characterPage !== undefined;
@@ -1321,6 +1451,8 @@ export function CharacterDatabase({
       ...current,
       [group]: [...current[group], {
         draftId: createDraftSettingId(),
+        persisted: false,
+        sourceFacts: [],
         key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: '',
@@ -1344,6 +1476,8 @@ export function CharacterDatabase({
       ...current,
       [group]: [...current[group], {
         draftId: createDraftSettingId(),
+        persisted: false,
+        sourceFacts: [],
         key: `${prefix}${normalizeDynamicSuffix(label)}`,
         displayName: label,
         value: label,
@@ -1619,6 +1753,11 @@ export function CharacterDatabase({
                 error={!demoMode && evidenceQuery.isError
                   ? errorMessage(evidenceQuery.error, '원문 근거를 불러오지 못했습니다.')
                   : null}
+                sources={selectedEvidenceSources}
+                activeSourceFactId={selectedEvidenceFactId}
+                synthesized={selectedEvidenceSources.length > 1}
+                context={currentSnapshotEvidenceSelection?.context}
+                onSourceSelect={onEvidenceOpen}
                 onRetry={() => {
                   if (!demoMode) void evidenceQuery.refetch();
                 }}
@@ -1693,19 +1832,20 @@ export function CharacterDatabase({
                         ['현재 레벨', 'currentLevel', draft.currentLevel],
                         ['첫 등장 회차', 'firstAppearanceEpisodeNo', draft.firstAppearanceEpisodeNo],
                       ].map(([label, key, value], index) => {
-                        const factReference = key === 'currentAge'
-                          ? detail.currentAgeFact
+                        const factReferences = key === 'currentAge'
+                          ? sourceFactsWithLegacyFallback(detail.currentAgeSourceFacts, detail.currentAgeFact)
                           : key === 'currentLevel'
-                            ? detail.currentLevelFact
-                            : null;
+                            ? sourceFactsWithLegacyFallback(detail.currentLevelSourceFacts, detail.currentLevelFact)
+                            : [];
+                        const evidenceFactId = firstEvidenceFactId(factReferences);
                         return (
                         <div key={key} style={{ padding: '10px 12px', borderRight: index < 4 ? `1px solid ${C.border}` : 'none' }}>
                           <div style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                             {label}
                             <EvidenceButton
-                              enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
+                              enabled={Boolean(evidenceFactId)}
                               label={label}
-                              onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
+                              onClick={() => evidenceFactId && onEvidenceOpen(evidenceFactId)}
                             />
                           </div>
                           <input
@@ -1720,14 +1860,15 @@ export function CharacterDatabase({
                       })
                     ) : (
                       [
-                        { label: '이름', value: detail.name || '—', factReference: null, factType: null },
-                        { label: '역할', value: detail.roleLabel || '—', factReference: null, factType: null },
-                        { label: '현재 나이', value: detail.currentAge == null ? '—' : `${detail.currentAge}세`, factReference: detail.currentAgeFact, factType: 'AGE' as TimelineFactType },
-                        { label: '현재 레벨', value: detail.currentLevel == null ? '—' : String(detail.currentLevel), factReference: detail.currentLevelFact, factType: 'LEVEL' as TimelineFactType },
-                        { label: '첫 등장 회차', value: detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화`, factReference: null, factType: null },
-                      ].map(({ label, value, factReference, factType }, index) => {
+                        { label: '이름', value: detail.name || '—', sourceFacts: [], factType: null },
+                        { label: '역할', value: detail.roleLabel || '—', sourceFacts: [], factType: null },
+                        { label: '현재 나이', value: detail.currentAge == null ? '—' : `${detail.currentAge}세`, sourceFacts: sourceFactsWithLegacyFallback(detail.currentAgeSourceFacts, detail.currentAgeFact), factType: 'AGE' as TimelineFactType },
+                        { label: '현재 레벨', value: detail.currentLevel == null ? '—' : String(detail.currentLevel), sourceFacts: sourceFactsWithLegacyFallback(detail.currentLevelSourceFacts, detail.currentLevelFact), factType: 'LEVEL' as TimelineFactType },
+                        { label: '첫 등장 회차', value: detail.firstAppearanceEpisode?.episodeNo == null ? '—' : `${detail.firstAppearanceEpisode.episodeNo}화`, sourceFacts: [], factType: null },
+                      ].map(({ label, value, sourceFacts, factType }, index) => {
                         const selectable = timelineOpen && factType != null;
                         const selected = factType != null && appliedTimelineSelection.factTypes.includes(factType);
+                        const evidenceFactId = firstEvidenceFactId(sourceFacts);
                         return (
                           <div
                             key={label}
@@ -1756,9 +1897,9 @@ export function CharacterDatabase({
                                 )
                               ) : (
                                 <EvidenceButton
-                                  enabled={Boolean(factReference?.hasEvidence && factReference.characterFactId)}
+                                  enabled={Boolean(evidenceFactId)}
                                   label={label}
-                                  onClick={() => factReference?.characterFactId && onEvidenceOpen(factReference.characterFactId)}
+                                  onClick={() => evidenceFactId && onEvidenceOpen(evidenceFactId)}
                                 />
                               )}
                             </div>

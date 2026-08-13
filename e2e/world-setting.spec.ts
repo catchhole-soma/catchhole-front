@@ -149,6 +149,58 @@ function worldCandidateGroup(candidates: Array<ReturnType<typeof worldCandidate>
   };
 }
 
+test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비교 안내만 표시한다', async ({ page }) => {
+  const rawError = 'World-setting comparison failed after 3 attempts: A single extracted value must be preserved.';
+  const failedCandidate = worldCandidate({
+    comparisonStatus: 'FAILED',
+    comparisonErrorMessage: rawError,
+    suggestedOperation: undefined,
+    proposedSettingName: null,
+    proposedValue: null,
+  });
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 1,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([failedCandidate])]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await expect(page.getByText(
+    '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.',
+  )).toBeVisible();
+  await expect(page.getByText(rawError)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toBeVisible();
+});
+
 test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 한 번에 반영한다', async ({ page }) => {
   let firstCandidate = worldCandidate({
     consolidationStatus: 'MERGED',
@@ -340,6 +392,15 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect.poll(() => new URL(page.url()).searchParams.get('worldCategory')).toBe('RACE');
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('RACE|바바리안');
 
+  const operationFilter = page.getByRole('group', { name: '제안된 반영 방식' });
+  await operationFilter.getByRole('button', { name: '추가', exact: true }).click();
+  await expect(page.getByText('반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await operationFilter.getByRole('button', { name: '전체 반영 방식', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('operation')).toBeNull();
+  await page.getByRole('button').filter({ hasText: '바바리안' }).first().click();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+
   await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).first().click();
   await expect(page.getByRole('combobox', { name: '분류', exact: true })).toHaveValue('RACE');
   await expect(page.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('바바리안');
@@ -410,6 +471,61 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('worldsettings');
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
+});
+
+test('세계관 후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 쓰지 않는다', async ({ page }) => {
+  let releaseUpdate: (() => void) | undefined;
+  const candidate = worldCandidate();
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === worldListPath && request.method() === 'GET') {
+      return success(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([candidate])]),
+      });
+    }
+    if (pathname === `${worldListPath}/decisions` && request.method() === 'PATCH') {
+      await new Promise<void>(resolve => {
+        releaseUpdate = resolve;
+      });
+      return success(route, {
+        groupKey: `RACE|${candidate.subjectName}`,
+        candidates: [candidate],
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true }).click();
+  await page.getByRole('textbox', { name: '대상', exact: true }).fill('북부 바바리안');
+  await page.getByRole('button', { name: '일괄 수정 적용', exact: true }).click();
+  await expect.poll(() => Boolean(releaseUpdate)).toBe(true);
+
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  releaseUpdate?.();
+  await page.waitForTimeout(500);
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
 });
 
 test('개별 설정 수정안은 다른 대상 그룹을 다녀와도 해당 row에만 유지된다', async ({ page }) => {
@@ -932,6 +1048,8 @@ test('서로 다른 원문 값은 사용자가 최종값을 정한 뒤에만 모
   await page.getByRole('button', { name: '수정안 적용' }).click();
 
   await expect(page.getByText('내용 확인 완료')).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('내용 확인 완료')).toBeVisible();
   await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
   await page.getByRole('button', { name: '모두 확정' }).click();
 
@@ -947,6 +1065,79 @@ test('서로 다른 원문 값은 사용자가 최종값을 정한 뒤에만 모
       conflictResolved: true,
     }],
   });
+});
+
+test('현재 페이지 밖 세계관 후보 공유 링크를 실제 대상 그룹으로 복원한다', async ({ page }) => {
+  const unrelated = worldCandidate({
+    id: worldCandidateId,
+    category: 'RACE',
+    subjectName: '바바리안',
+    targetSubjectName: '바바리안',
+  });
+  const target = worldCandidate({
+    id: secondWorldCandidateId,
+    category: 'LOCATION',
+    subjectName: '심층 미궁',
+    targetSubjectName: '심층 미궁',
+    settingName: '구조',
+    proposedSettingName: '구조',
+  });
+  const requestedPages: number[] = [];
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+
+  await page.route('**/api/v1/**', route => {
+    const url = new URL(route.request().url());
+    const pathname = url.pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `${worldListPath}/${secondWorldCandidateId}`) return success(route, target);
+    if (pathname === worldListPath) {
+      const pageIndex = Number(url.searchParams.get('page') ?? 0);
+      requestedPages.push(pageIndex);
+      const candidate = pageIndex === 0 ? unrelated : target;
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 2,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 2,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        conflictCandidateCount: 0,
+        groups: {
+          content: [worldCandidateGroup([candidate])],
+          page: pageIndex,
+          size: 20,
+          totalElements: 2,
+          totalPages: 2,
+          hasNext: pageIndex === 0,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&candidate=${secondWorldCandidateId}`);
+
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('LOCATION|심층 미궁');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  await expect(page.getByText('장소 · 심층 미궁', { exact: true })).toBeVisible();
+  expect(requestedPages).toContain(1);
 });
 
 test('동일 설정명이 남은 기존 배치는 중복 항목을 제외한 뒤 확정한다', async ({ page }) => {

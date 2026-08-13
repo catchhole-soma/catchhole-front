@@ -18,7 +18,7 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 - 화면 간 전환 — 각 컴포넌트의 `navigate(...)` 호출
 - 사이드바 네비게이션 — `src/app/components/catchhole/AppSidebar.tsx`
 
-> **2026-08 MVP 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 설정 DB의 기본 진입 탭은 캐릭터 DB입니다. 캐릭터 상세의 `변화 이력`은 상세를 유지한 채 우측 이력 패널을 열며, 처음에는 빈 안내만 표시합니다. 현재 설정이나 종류 전체를 누르면 확정된 `CharacterFact` 이력을 즉시 복수 조회하고, 타임라인의 근거는 기존 원문 패널을 같은 우측 영역에 겹쳐 표시합니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·작품 전체 사건 타임라인은 업데이트 예정 범위입니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
+> **2026-08 MVP 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 캐릭터 후보는 같은 이름별 그룹으로 표시하고 `미상`은 마지막에 두며 그룹 안 모든 row를 세계관 검토처럼 세로로 이어서 보여줍니다. row별 설정 내용 수정·제외·단건 연결과 그룹 캐릭터 일괄 연결을 허용하되, 일반 수정에서는 캐릭터 이름을 바꾸지 않고 확정은 남은 대기 후보 전체를 한 요청으로 처리합니다. 기존 캐릭터와 비교된 후보는 기존값·제안값·AI 판단을 함께 표시하고 `현재 설정 반영` 또는 `이력만 저장` 방식을 선택합니다. 비교 처리·기존 캐릭터 연결 대기 상태가 하나라도 있으면 그룹 확정을 잠그고 실패·재비교 필요 상태에는 retry를 제공합니다. 신규 등록 예정인 `UNRESOLVED` 그룹은 한 캐릭터로 함께 확정할 수 있으며, 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 비교 후 재확정합니다. 연결된 레거시 `NOT_REQUIRED` 후보에는 `현재 설정 비교 시작`을 제공합니다. 설정 DB의 기본 진입 탭은 캐릭터 DB입니다. 캐릭터 상세의 현재값이 여러 Fact에서 합성된 경우 출처 회차 탭으로 기존 단건 원문 API를 lazy 조회합니다. `변화 이력`은 상세를 유지한 채 우측 이력 패널을 열며, 처음에는 빈 안내만 표시합니다. 현재 설정이나 종류 전체를 누르면 확정된 `CharacterFact` 이력을 즉시 복수 조회하고, 타임라인의 근거는 기존 원문 패널을 같은 우측 영역에 겹쳐 표시합니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·작품 전체 사건 타임라인은 업데이트 예정 범위입니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
 
 ## Pencil Workflow Boards
 
@@ -46,7 +46,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | 작업·회차 상태 추적(완료 후 사용자가 결과로 이동) |
 | 충돌·모순 리포트 | [`/report`](https://catch-hole.vercel.app/report) | 분석 결과(충돌/모순) 리포트 |
 | 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | 방식 선택·입력·선택적 분리 확인·분석 추적 플로우 |
-| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | AI가 회차 원문에서 뽑아낸 **캐릭터·세계관 후보**를 탭별로 확인·확정 |
+| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | AI가 회차 원문에서 뽑아낸 **캐릭터·세계관 후보**를 탭별로 확인하고, 캐릭터 후보는 현재 snapshot 비교 제안 또는 이력 저장 방식으로 확정 |
 | **회차 검사 결과** | [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report) | 새로 올린 회차가 **기존 설정과 충돌·모순**되는지 검사한 결과 |
 
 ## 범례 (Legend)
@@ -443,7 +443,7 @@ flowchart TD
 ```
 
 > 딥링크 (클릭 시 이동): [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
-> ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&candidate=<id>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&candidate=<id>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)).
+> ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&group=<group-key>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&group=<group-key>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)). 구형 `candidate=<id>` 딥링크는 진입 후 해당 그룹으로 정규화한다.
 
 > 세계관 후보가 `PENDING`·`PROCESSING`이면 목록과 선택 상세를 2초 간격으로 갱신하고 terminal 상태에서 멈춥니다. 확정 충돌의 자동 재비교는 상태 전환마다 한 번만 보내며, 회복 뒤 같은 후보가 다시 충돌하면 새 전환으로 다시 자동 재비교합니다.
 

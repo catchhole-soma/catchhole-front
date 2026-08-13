@@ -147,15 +147,71 @@
   border-right: 1px solid #2a2a36;
   background: #121218;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .character-evidence-panel__body {
-  max-height: calc(100dvh - 160px);
+  min-height: 0;
+  flex: 1;
   padding: 20px 22px 24px;
   overflow-y: auto;
 }
 
-@media (max-width: 900px) {
+.character-evidence-panel__provenance {
+  padding: 12px 22px;
+  border-bottom: 1px solid #2a2a36;
+}
+
+.character-evidence-panel__synthesized {
+  margin-bottom: 9px;
+  color: #a9a9b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.character-evidence-panel__source-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.character-evidence-panel__source-tab {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid #343442;
+  border-radius: 999px;
+  background: #14141b;
+  color: #a9a9b8;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.character-evidence-panel__source-tab:hover:not(:disabled),
+.character-evidence-panel__source-tab.is-selected {
+  border-color: #7c5cfc;
+  background: #7c5cfc1c;
+  color: #b6a7ff;
+}
+
+.character-evidence-panel__source-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.character-evidence-panel__source-tab span {
+  color: #77778a;
+  font-size: 9px;
+}
+
+/* viewport 여백 40px과 modal border 2px를 뺀 뒤에도 1,000px 최소 track 폭이 확보될 때만 2열로 둔다. */
+@media (max-width: 1041px) {
   .character-detail-modal--with-evidence {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -166,12 +222,14 @@
     border-bottom: 1px solid #2a2a36;
   }
 
-  .character-evidence-panel__body {
-    max-height: calc(min(46vh, 480px) - 88px);
-  }
 }
 
 @media (max-width: 768px) {
+  .character-comparison-values,
+  .character-comparison-decisions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
   .character-detail-backdrop--with-timeline {
     padding: 20px 12px calc(58dvh + 12px) !important;
     justify-content: center !important;
@@ -225,10 +283,9 @@
     max-height: min(42dvh, 360px);
   }
 
-  .character-evidence-panel__body {
-    max-height: calc(min(42dvh, 360px) - 76px);
-    padding: 16px;
-  }
+  .character-evidence-panel__body { padding: 16px; }
+
+  .character-evidence-panel__provenance { padding: 10px 16px; }
 
   .character-detail-modal--with-evidence > div:last-child {
     min-height: 0;

@@ -59,7 +59,9 @@ function searchResult(id = factId) {
     factTypeLabel: '스킬',
     displayName: id === missingFactId ? '사라진 기술' : '월광 검술',
     factValue: id === missingFactId ? 'Lv.0' : 'Lv.3',
-    isCurrent: id !== retryFactId,
+    contributesToCurrentSnapshot: id !== retryFactId,
+    // 새 필드와 값이 다를 때도 deprecated alias보다 새 계약을 우선해야 한다.
+    isCurrent: true,
     characterId,
     characterName: '아르켄',
     sourceEpisodeId: '66666666-6666-4666-8666-666666666666',
@@ -76,6 +78,7 @@ function detail(id = factId, evidenceQuotes: string[] = []) {
     factTypeLabel: '스킬',
     displayName: '월광 검술',
     factValue: 'Lv.3',
+    contributesToCurrentSnapshot: id !== retryFactId,
     isCurrent: true,
     effectiveFromEpisodeNo: 10,
     characterId,
@@ -211,7 +214,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   ))).toBe(true);
   expect(new URL(page.url()).searchParams.get('page')).toBe('2');
 
-  await page.getByRole('button', { name: '현재 설정', exact: true }).click();
+  await page.getByRole('button', { name: '현재값 근거', exact: true }).click();
   await expect.poll(() => requests.some(request => (
     request.factType === 'SKILL'
     && request.scope === 'CURRENT'
@@ -315,6 +318,7 @@ test('상세 실패를 모달 안에서 재시도하고 404를 찾을 수 없음
 
   const cards = page.getByTestId('character-fact-results').getByRole('button');
   await expect(cards).toHaveCount(2);
+  await expect(cards.first().getByText('그 외 이력', { exact: true })).toBeVisible();
   await cards.first().click();
 
   const retryDialog = page.getByRole('dialog', { name: '설정 상세' });
