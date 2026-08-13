@@ -2382,6 +2382,7 @@ test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 �
   const target = { ...candidates[1], id: secondCandidateId, entityName: '후보 대상' };
   const preceding = { ...candidates[1], id: precedingId, entityName: '앞선 대상' };
   const requestedPages: string[] = [];
+  const requestedLegacyCandidates: Array<string | null> = [];
 
   await page.route('**/api/v1/**', route => {
     const requestUrl = new URL(route.request().url());
@@ -2393,6 +2394,7 @@ test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 �
       const reviewStatus = requestUrl.searchParams.get('reviewStatus');
       const pageIndex = Number(requestUrl.searchParams.get('page') ?? 0);
       requestedPages.push(`${reviewStatus ?? 'ALL'}:${pageIndex}`);
+      requestedLegacyCandidates.push(requestUrl.searchParams.get('includeLegacyCandidates'));
       const visible = reviewStatus !== 'PENDING_REVIEW'
         ? [preceding, target][pageIndex]
         : candidates[0];
@@ -2435,6 +2437,127 @@ test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 �
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
   await expect(page.getByRole('heading', { name: '후보 대상' })).toBeVisible();
+  expect(requestedLegacyCandidates).not.toContain('true');
+  expect(requestedLegacyCandidates).toContain('false');
+});
+
+test('단건 공유 링크의 그룹 탐색 실패를 같은 화면에서 다시 시도한다', async ({ page }) => {
+  const target = { ...candidates[1], id: secondCandidateId, entityName: '재시도 대상' };
+  let failedGroupRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === `${listPath}/${secondCandidateId}`) return fulfill(route, target);
+    if (pathname === listPath) {
+      const reviewStatus = requestUrl.searchParams.get('reviewStatus');
+      if (reviewStatus == null && failedGroupRequestCount < 3) {
+        failedGroupRequestCount += 1;
+        return fulfillError(route, 500, '후보 묶음 조회에 실패했습니다.');
+      }
+      const visible = reviewStatus === 'PENDING_REVIEW' ? candidates[0] : target;
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 2,
+        episodeCount: 2,
+        totalCandidateCount: 2,
+        reviewedCandidateCount: 1,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: visible.entityName.trim().replace(/\s+/g, ' ').toLocaleLowerCase(),
+            entityName: visible.entityName,
+            candidateCount: 1,
+            evidenceEpisodeNos: [visible.episodeNo],
+            candidates: [visible],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${secondCandidateId}`,
+  );
+
+  await expect(page.getByText('공유된 후보의 묶음 위치를 찾지 못했습니다.')).toBeVisible();
+  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
+  await expect(page.getByRole('heading', { name: '재시도 대상' })).toBeVisible();
+  await expect.poll(() => failedGroupRequestCount).toBe(3);
+});
+
+test('후보 polling 중에도 수정 모달의 입력 포커스를 유지한다', async ({ page }) => {
+  let listRequestCount = 0;
+  const processingCandidate = {
+    ...candidates[0],
+    comparisonStatus: 'PROCESSING',
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      listRequestCount += 1;
+      const refreshedCandidate = {
+        ...processingCandidate,
+        confidence: 0.9 + listRequestCount / 1000,
+      };
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [refreshedCandidate],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) return fulfill(route, processingCandidate);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+
+  const valueInput = page.getByRole('dialog', { name: '설정 후보 수정' }).getByLabel('설정값');
+  await valueInput.fill('입력 중인 설정값');
+  await valueInput.focus();
+  const requestCountBeforePolling = listRequestCount;
+  await expect.poll(() => listRequestCount).toBeGreaterThan(requestCountBeforePolling);
+
+  await expect(valueInput).toBeFocused();
+  await expect(valueInput).toHaveValue('입력 중인 설정값');
 });
 
 test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토한다', async ({ page }) => {

@@ -545,6 +545,13 @@ function ModalLayer({
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const pendingRef = useRef(pending);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    pendingRef.current = pending;
+  }, [onClose, pending]);
 
   useEffect(() => {
     const previousActiveElement = document.activeElement instanceof HTMLElement
@@ -564,9 +571,9 @@ function ModalLayer({
     (focusableElements()[0] ?? dialog)?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pending) {
+      if (event.key === 'Escape' && !pendingRef.current) {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -594,7 +601,7 @@ function ModalLayer({
       document.body.style.overflow = previousOverflow;
       previousActiveElement?.focus();
     };
-  }, [onClose, pending]);
+  }, []);
 
   return (
     <div
@@ -1226,6 +1233,8 @@ export function CharacterSettingReview() {
     resolution: MatchResolution;
   } | null>(null);
   const [applicationModes, setApplicationModes] = useState<Record<string, CharacterFactApplicationMode>>({});
+  const [legacyResolutionError, setLegacyResolutionError] = useState(false);
+  const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(
     () => Boolean(searchParams.get('group') || searchParams.get('candidate')),
   );
@@ -1335,6 +1344,11 @@ export function CharacterSettingReview() {
   const worldSummary = worldSummaryQuery.data?.data;
 
   useEffect(() => {
+    setLegacyResolutionError(false);
+    setLegacyResolutionAttempt(0);
+  }, [legacyCandidateId]);
+
+  useEffect(() => {
     if (!legacyCandidateId || !legacyCandidateQuery.isSuccess) return;
     if (resolvingLegacyCandidateRef.current === legacyCandidateId) return;
     const targetCandidate = legacyCandidateQuery.data?.data;
@@ -1364,7 +1378,7 @@ export function CharacterSettingReview() {
             matchStatuses: matchStatusesForFilter(targetMatch),
             page: targetPage,
             size,
-            includeLegacyCandidates: true,
+            includeLegacyCandidates: false,
           },
         }));
         const responseData = response.data;
@@ -1398,6 +1412,7 @@ export function CharacterSettingReview() {
       }
 
       if (cancelled || !targetGroupKey) return;
+      setLegacyResolutionError(false);
       setMobileDetailOpen(true);
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
@@ -1413,7 +1428,9 @@ export function CharacterSettingReview() {
     };
 
     void resolveOwningGroup().catch(() => {
+      if (cancelled) return;
       resolvingLegacyCandidateRef.current = null;
+      setLegacyResolutionError(true);
     });
     return () => {
       cancelled = true;
@@ -1426,6 +1443,7 @@ export function CharacterSettingReview() {
     legacyCandidateId,
     legacyCandidateQuery.data?.data,
     legacyCandidateQuery.isSuccess,
+    legacyResolutionAttempt,
     location.state,
     matchFilter,
     queryClient,
@@ -1898,6 +1916,32 @@ export function CharacterSettingReview() {
                   color: C.danger, fontSize: 12,
                 }}>
                   최신 후보를 불러오지 못해 마지막으로 확인한 목록을 표시합니다.
+                </div>
+              )}
+
+              {legacyCandidateId && legacyResolutionError && (
+                <div role="alert" style={{
+                  marginTop: 12, padding: '10px 13px', borderRadius: 7,
+                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
+                  color: C.danger, fontSize: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                }}>
+                  <span>공유된 후보의 묶음 위치를 찾지 못했습니다.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resolvingLegacyCandidateRef.current = null;
+                      setLegacyResolutionError(false);
+                      setLegacyResolutionAttempt(attempt => attempt + 1);
+                    }}
+                    style={{
+                      minHeight: 32, padding: '0 11px', borderRadius: 6,
+                      border: `1px solid ${C.danger}88`, background: 'transparent',
+                      color: C.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    다시 시도
+                  </button>
                 </div>
               )}
 
