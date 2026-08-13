@@ -221,6 +221,16 @@ function matchesMatchFilter(status: MatchStatus | undefined, filter: MatchFilter
   return status === filter;
 }
 
+function matchesReviewFilter(status: ReviewStatus, filter: ReviewFilter): boolean {
+  return filter === 'ALL' || status === filter;
+}
+
+function isCharacterReviewLocation(): boolean {
+  const currentParams = new URLSearchParams(window.location.search);
+  return window.location.pathname === '/setting-review'
+    && currentParams.get('candidateType') !== 'world';
+}
+
 function characterGroupKey(entityName?: string | null): string {
   return (entityName ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
@@ -1333,7 +1343,10 @@ export function CharacterSettingReview() {
     let cancelled = false;
 
     const resolveOwningGroup = async () => {
-      const targetReview = targetCandidate.reviewStatus ?? 'PENDING_REVIEW';
+      const candidateReview = targetCandidate.reviewStatus ?? 'PENDING_REVIEW';
+      const targetReview: ReviewFilter = matchesReviewFilter(candidateReview, reviewFilter)
+        ? reviewFilter
+        : 'ALL';
       // 현재 URL 필터가 후보를 포함하면 사용자의 탐색 문맥을 보존한다. 후보가 필터 밖이면
       // 전체로 넓혀 공유 링크가 반드시 실제 그룹을 찾도록 한다.
       const targetMatch: MatchFilter = matchesMatchFilter(targetCandidate.matchStatus, matchFilter)
@@ -1347,7 +1360,7 @@ export function CharacterSettingReview() {
           path: { workId },
           query: {
             batchId,
-            reviewStatus: targetReview,
+            reviewStatus: targetReview === 'ALL' ? undefined : targetReview,
             matchStatuses: matchStatusesForFilter(targetMatch),
             page: targetPage,
             size,
@@ -1416,6 +1429,7 @@ export function CharacterSettingReview() {
     location.state,
     matchFilter,
     queryClient,
+    reviewFilter,
     setSearchParams,
     size,
     workId,
@@ -1495,15 +1509,18 @@ export function CharacterSettingReview() {
     onSuccess: async (_response, variables) => {
       const submittedGroupKey = confirmingGroupKeyRef.current;
       confirmingGroupKeyRef.current = null;
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        // 요청 중 사용자가 다른 그룹을 골랐다면 그 새 선택은 그대로 유지한다.
-        if (submittedGroupKey != null && previous.get('group') === submittedGroupKey) {
-          next.delete('group');
-          next.delete('candidate');
-        }
-        return next;
-      }, { replace: true, state: location.state });
+      // 느린 확정 중 세계관 탭으로 이동했다면 이전 캐릭터 화면의 URL을 다시 쓰지 않는다.
+      if (isCharacterReviewLocation()) {
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          // 요청 중 사용자가 다른 그룹을 골랐다면 그 새 선택은 그대로 유지한다.
+          if (submittedGroupKey != null && previous.get('group') === submittedGroupKey) {
+            next.delete('group');
+            next.delete('candidate');
+          }
+          return next;
+        }, { replace: true, state: location.state });
+      }
       await invalidateCandidateData(variables.path.workId);
     },
     onError: async (_, variables) => {
@@ -1610,7 +1627,10 @@ export function CharacterSettingReview() {
     || updateMutation.isPending
     || matchMutation.isPending
     || retryComparisonMutation.isPending
-    || groupMatchMutation.isPending;
+    || groupMatchMutation.isPending
+    // 필터·페이지가 바뀐 직후 placeholder 목록은 새 URL 조건과 일치하지 않는다.
+    // 조회용 탐색은 유지하되 이전 행에 대한 쓰기만 잠근다.
+    || listQuery.isPlaceholderData;
 
   const resetActionsIfSettled = () => {
     if (actionPending) return;

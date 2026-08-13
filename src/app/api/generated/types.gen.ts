@@ -1851,12 +1851,12 @@ export type WorkerCharacterPriorFactCandidate = {
     sourceEpisodeNo?: number | null;
     attributeName?: string;
     attributeValue?: string | null;
-    valueJson?: JsonNode;
+    valueJson?: JsonNode | null;
     evidenceSpans?: Array<EvidenceSpan>;
     comparisonStatus?: 'NOT_REQUIRED' | 'WAITING_FOR_CHARACTER_MATCH' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'RECOMPARISON_REQUIRED';
-    suggestedOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'HISTORY_ONLY' | 'EXCLUDE' | 'REVIEW_REQUIRED';
+    suggestedOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'HISTORY_ONLY' | 'EXCLUDE' | 'REVIEW_REQUIRED' | null;
     proposedFactValue?: string | null;
-    proposedValueJson?: JsonNode;
+    proposedValueJson?: JsonNode | null;
 };
 
 /**

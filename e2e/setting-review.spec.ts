@@ -222,6 +222,8 @@ test('느린 필터 응답 중에도 필터와 뒤로가기 버튼을 유지해 
   await expect.poll(() => Boolean(releaseAllFilter)).toBe(true);
   await expect(page.getByRole('button', { name: '이전 화면' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '제외', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '확정', exact: true }).first().click({ timeout: 500 });
   await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('CONFIRMED');
 
@@ -2021,6 +2023,74 @@ test('그룹 확정 중 다른 후보 묶음을 선택하면 새 선택을 유�
   await expect(page.getByRole('heading', { name: '민준' })).toBeVisible();
 });
 
+test('그룹 확정 중 세계관 탭으로 이동하면 늦은 성공 응답이 탭 URL을 되돌리지 않는다', async ({ page }) => {
+  let releaseConfirm: (() => void) | undefined;
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const characterListPath = `/api/v1/works/${workId}/setting-candidates`;
+    const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+    if (pathname === characterListPath && request.method() === 'GET') {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아', entityName: '수아', candidateCount: 1,
+            evidenceEpisodeNos: [1], candidates: [candidates[0]],
+          }],
+          page: 0, size: 20, totalElements: 1, totalPages: 1, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${characterListPath}/group-confirm`) {
+      await new Promise<void>(resolve => {
+        releaseConfirm = resolve;
+      });
+      return fulfill(route, { groupKey: '수아', entityName: '수아', candidates: [] });
+    }
+    if (pathname === worldListPath && request.method() === 'GET') {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: {
+          content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=수아`);
+
+  await page.getByRole('button', { name: /1개 설정 모두 확정/ }).click();
+  await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
+  await page.getByRole('button', { name: /세계관 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+
+  releaseConfirm?.();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+  await expect(page.getByText('이번 분석에서 추출된 세계관 후보가 없습니다.')).toBeVisible();
+});
+
 test('구버전 다중 페이지 후보 응답에서는 불완전한 묶음 일괄 작업을 잠근다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -2148,11 +2218,11 @@ test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 �
     if (pathname === listPath) {
       const reviewStatus = requestUrl.searchParams.get('reviewStatus');
       const pageIndex = Number(requestUrl.searchParams.get('page') ?? 0);
-      requestedPages.push(`${reviewStatus ?? 'PENDING_REVIEW'}:${pageIndex}`);
-      const visible = reviewStatus === 'CONFIRMED'
+      requestedPages.push(`${reviewStatus ?? 'ALL'}:${pageIndex}`);
+      const visible = reviewStatus !== 'PENDING_REVIEW'
         ? [preceding, target][pageIndex]
         : candidates[0];
-      const totalPages = reviewStatus === 'CONFIRMED' ? 2 : 1;
+      const totalPages = reviewStatus !== 'PENDING_REVIEW' ? 2 : 1;
       return fulfill(route, {
         batchId,
         episodeStartNo: 1,
@@ -2186,8 +2256,8 @@ test('단건 공유 링크가 기본 필터와 현재 페이지 밖 후보의 �
     `/setting-review?workId=${workId}&batchId=${batchId}&size=1&candidate=${secondCandidateId}`,
   );
 
-  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('CONFIRMED');
-  await expect.poll(() => requestedPages).toContain('CONFIRMED:1');
+  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('ALL');
+  await expect.poll(() => requestedPages).toContain('ALL:1');
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
   await expect(page.getByRole('heading', { name: '후보 대상' })).toBeVisible();
