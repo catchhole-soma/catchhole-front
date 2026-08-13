@@ -575,6 +575,7 @@ export default function SEpisodeUpload() {
   const batchRetryInFlight = useRef(false);
   const reviewReturnState = location.state as {
     returnToAnalysisList?: unknown;
+    returnHistoryDelta?: unknown;
   } | null;
   const returnToAnalysisList = reviewReturnState?.returnToAnalysisList;
   const resolvedAnalysisListUrl = typeof returnToAnalysisList === 'string' && returnToAnalysisList
@@ -1575,6 +1576,10 @@ export default function SEpisodeUpload() {
                         'dissolve',
                         {
                           returnToAnalysisList: resolvedAnalysisListUrl,
+                          // 분석 목록에서 진행 화면을 거쳐 왔다면 review -> progress -> list 두 칸을 되돌린다.
+                          // 새 업로드처럼 명시적 목록 진입점이 없으면 review helper가 저장 URL로 대체한다.
+                          returnHistoryDelta: reviewReturnState?.returnHistoryDelta === -1
+                            ? -2 : undefined,
                         },
                       );
                     }}>

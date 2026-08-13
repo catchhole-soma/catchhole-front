@@ -2,13 +2,14 @@ import type { NavigateFunction } from 'react-router';
 
 export type ReviewReturnState = {
   returnToAnalysisList?: unknown;
+  returnHistoryDelta?: unknown;
 };
 
 /**
  * 검토 진입 전 분석 목록으로 돌아간다.
  *
- * 검토 과정에서 query가 여러 번 replace되거나 새로고침되어도 history 깊이를 추측하지 않고
- * 진입 시 저장한 명시적 URL을 사용한다.
+ * 알려진 진입 흐름에서는 기존 history 항목으로 돌아가 중복 대시보드·완료된 진행 화면을
+ * 남기지 않는다. 새로고침·직접 URL 진입처럼 history를 신뢰할 수 없으면 저장 URL을 사용한다.
  */
 export function returnToAnalysisList(
   navigate: NavigateFunction,
@@ -19,5 +20,15 @@ export function returnToAnalysisList(
     && state.returnToAnalysisList
     ? state.returnToAnalysisList
     : fallbackUrl;
+  const returnHistoryDelta = state?.returnHistoryDelta === -1 || state?.returnHistoryDelta === -2
+    ? state.returnHistoryDelta
+    : null;
+  const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
+  if (returnHistoryDelta != null
+    && typeof historyIndex === 'number'
+    && historyIndex >= Math.abs(returnHistoryDelta)) {
+    navigate(returnHistoryDelta);
+    return;
+  }
   navigate(savedUrl, { replace: true });
 }

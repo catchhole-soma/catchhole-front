@@ -203,6 +203,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       'push-right',
       {
         returnToAnalysisList: `${location.pathname}${location.search}`,
+        returnHistoryDelta: -1,
       },
     );
   };
@@ -221,6 +222,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       'dissolve',
       {
         returnToAnalysisList: `${location.pathname}${location.search}`,
+        returnHistoryDelta: -1,
       },
     );
   };

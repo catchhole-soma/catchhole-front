@@ -41,3 +41,17 @@ export function getCharacterFactComparisonPolicy(
       : 'HISTORY_ONLY',
   };
 }
+
+/** 저장해 둔 사용자 선택이 재비교 결과에서 더 이상 허용되지 않으면 현재 정책의 기본값으로 보정한다. */
+export function resolveCharacterFactApplicationMode(
+  candidate: SettingCandidateResponse,
+  requestedMode?: CharacterFactApplicationMode,
+): CharacterFactApplicationMode {
+  const policy = getCharacterFactComparisonPolicy(candidate);
+  if (requestedMode === 'APPLY_PROPOSAL'
+    && (policy.canApplyProposal || policy.defaultApplicationMode === 'APPLY_PROPOSAL')) {
+    return requestedMode;
+  }
+  if (requestedMode === 'HISTORY_ONLY' && policy.canSaveHistory) return requestedMode;
+  return policy.defaultApplicationMode;
+}

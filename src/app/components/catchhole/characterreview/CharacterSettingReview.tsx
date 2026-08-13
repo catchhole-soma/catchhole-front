@@ -47,6 +47,7 @@ import {
 } from '../character/CharacterFactComparisonPanel';
 import {
   getCharacterFactComparisonPolicy,
+  resolveCharacterFactApplicationMode,
   type CharacterFactApplicationMode,
 } from '../character/character-fact-comparison-policy';
 import { SettingReviewTabs } from '../worldsetting/SettingReviewTabs';
@@ -1204,6 +1205,7 @@ export function CharacterSettingReview() {
     () => Boolean(searchParams.get('group') || searchParams.get('candidate')),
   );
   const selectionGroupRef = useRef<string | null>(null);
+  const confirmingGroupKeyRef = useRef<string | null>(null);
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
 
@@ -1237,6 +1239,9 @@ export function CharacterSettingReview() {
     },
   });
   const listData = listQuery.data?.data;
+  const usesLegacyCandidatePage = listData?.groups == null && listData?.candidates != null;
+  const legacyGroupedActionsUnsafe = usesLegacyCandidatePage
+    && ((listData?.candidates?.totalPages ?? 0) > 1 || listData?.candidates?.hasNext === true);
   const legacyGroupPage = useMemo(() => {
     const candidatePage = listData?.candidates;
     if (!candidatePage) return undefined;
@@ -1333,11 +1338,12 @@ export function CharacterSettingReview() {
   }, [batchId, workId]);
 
   const applicationModeForCandidate = (candidate: SettingCandidateResponse): CharacterFactApplicationMode => (
-    candidate.id && applicationModes[candidate.id]
-      ? applicationModes[candidate.id]
-      : hasCharacterFactComparison(candidate)
-        ? getCharacterFactComparisonPolicy(candidate).defaultApplicationMode
-        : 'APPLY_PROPOSAL'
+    hasCharacterFactComparison(candidate)
+      ? resolveCharacterFactApplicationMode(
+          candidate,
+          candidate.id ? applicationModes[candidate.id] : undefined,
+        )
+      : 'APPLY_PROPOSAL'
   );
 
   const invalidateCandidateData = async (targetWorkId = workId) => {
@@ -1357,15 +1363,21 @@ export function CharacterSettingReview() {
   const confirmMutation = useMutation({
     ...confirmSettingCandidateGroupMutation(),
     onSuccess: (_response, variables) => {
+      const submittedGroupKey = confirmingGroupKeyRef.current;
+      confirmingGroupKeyRef.current = null;
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
-        next.delete('group');
-        next.delete('candidate');
+        // 요청 중 사용자가 다른 그룹을 골랐다면 그 새 선택은 그대로 유지한다.
+        if (submittedGroupKey != null && previous.get('group') === submittedGroupKey) {
+          next.delete('group');
+          next.delete('candidate');
+        }
         return next;
       }, { replace: true, state: location.state });
       void invalidateCandidateData(variables.path.workId);
     },
     onError: (_, variables) => {
+      confirmingGroupKeyRef.current = null;
       void invalidateCandidateData(variables.path.workId);
     },
   });
@@ -1541,7 +1553,7 @@ export function CharacterSettingReview() {
   };
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
-    if (!selectedGroup || candidateIds.length === 0 || actionPending) return;
+    if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe) return;
     groupMatchMutation.mutate({
       path: { workId },
       body: resolution === 'MATCH_EXISTING'
@@ -1563,7 +1575,9 @@ export function CharacterSettingReview() {
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 
-  const groupConfirmBlockedReason = pendingGroupCandidates.length === 0
+  const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
+    ? '서버 업데이트 전 호환 목록에서는 묶음 전체를 보장할 수 없어 일괄 확정을 지원하지 않습니다.'
+    : pendingGroupCandidates.length === 0
     ? '확정할 검토 대기 설정이 없습니다.'
     : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
       ? '캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.'
@@ -1577,16 +1591,14 @@ export function CharacterSettingReview() {
           : null;
   const confirmSelectedGroup = () => {
     if (!selectedGroup || actionPending || groupConfirmBlockedReason) return;
+    confirmingGroupKeyRef.current = selectedGroup.groupKey ?? null;
     confirmMutation.mutate({
       path: { workId },
       body: {
         batchId,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
-          applicationMode: applicationModes[candidate.id!]
-            ?? (hasCharacterFactComparison(candidate)
-              ? getCharacterFactComparisonPolicy(candidate).defaultApplicationMode
-              : 'APPLY_PROPOSAL'),
+          applicationMode: applicationModeForCandidate(candidate),
           baseSnapshotVersion: candidate.comparisonBaseSnapshotVersion ?? null,
         })),
       },
@@ -1826,8 +1838,10 @@ export function CharacterSettingReview() {
                             </div>
                             {pendingGroupCandidates.length > 0 && (
                               <ActionButton
-                                disabled={actionPending || matchFilter !== 'ALL'}
-                                disabledTitle={matchFilter !== 'ALL'
+                                disabled={actionPending || matchFilter !== 'ALL' || legacyGroupedActionsUnsafe}
+                                disabledTitle={legacyGroupedActionsUnsafe
+                                  ? '서버 업데이트 전 호환 목록에서는 그룹 일부만 보일 수 있어 일괄 연결할 수 없습니다.'
+                                  : matchFilter !== 'ALL'
                                   ? '연결 상태 필터를 전체로 바꾼 뒤 그룹 전체 연결을 변경해 주세요.'
                                   : undefined}
                                 tone={C.primary}

@@ -65,7 +65,7 @@ npm run test:e2e
 - `MATCHED`와 `AUTO_MATCHED_BY_NAME`은 모두 연결 완료로 조회하되 배지에서는 분석 시점부터 존재한 기존 캐릭터 연결과 이번 확정에서 생성된 신규 캐릭터 연결을 구분한다. 신규 캐릭터를 만든 최초 확정 후보와 같은 이름으로 자동 연결된 형제 후보는 모두 `AUTO_MATCHED_BY_NAME`이다.
 - 캐릭터 후보의 2차 비교는 세계관 후보 DTO·컴포넌트와 합치지 않는다. 공통 색상·상태 표현만 재사용하고, 캐릭터에는 `AI 제안대로 현재 설정 반영(APPLY_PROPOSAL)`과 `이력에만 저장(HISTORY_ONLY)` 두 확정 방식만 노출한다.
 - 캐릭터 후보 목록은 같은 분석 배치의 `정규화한 캐릭터 이름`별 그룹으로 표시하고 `미상`은 마지막에 둔다. 그룹 상세은 모든 row를 세로로 이어서 보여준다. row별 설정명·설정값 수정과 제외, 단건 캐릭터 연결은 유지하되 단건 확정은 노출하지 않는다. 그룹 header의 `캐릭터 일괄 연결`은 모든 대기 후보를 하나의 기존 캐릭터 또는 동일 이름의 신규 캐릭터 등록 예정 상태로 함께 바꾸며, 일반 수정 폼에서는 캐릭터 이름을 편집하지 않는다.
-- 신규 캐릭터 그룹 화면의 목록·집계 조회는 `includeLegacyCandidates=false`를 보내 deprecated 단건 페이지의 중복 payload를 받지 않는다. 구버전 Backend가 이 파라미터를 무시하고 `groups` 없이 `candidates`만 반환하는 배포 구간에는 기존 단건 페이지를 이름별로 묶는 fallback을 유지한다.
+- 신규 캐릭터 그룹 화면의 목록·집계 조회는 `includeLegacyCandidates=false`를 보내 deprecated 단건 페이지의 중복 payload를 받지 않는다. 구버전 Backend가 이 파라미터를 무시하고 `groups` 없이 `candidates`만 반환하는 배포 구간에는 기존 단건 페이지를 이름별로 묶는 fallback을 유지한다. 단, legacy 응답이 여러 페이지면 같은 이름 그룹의 전체 범위를 보장할 수 없으므로 일괄 연결·확정은 잠그고 조회와 단건 작업만 허용한다.
 - 비교 결과의 사용자용 diff는 Backend의 `proposedFactValue`와 `snapshotChanges[].beforeFactValue/proposedFactValue`를 우선한다. 구조화 JSON을 화면에서 다시 조립하지 않으며 구응답 호환 표시가 필요할 때만 fallback으로 직렬화한다.
 - `PENDING`·`PROCESSING` 비교와 기존 캐릭터 연결이 필요한 `WAITING_FOR_CHARACTER_MATCH`는 확정을 잠근다. 단, `matchStatus=UNRESOLVED`인 신규 캐릭터 등록 예정 후보는 현행 확정을 허용한다. 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 연결·비교 Job을 만든 뒤 재확정을 요구하고, 실제 신규 캐릭터라면 빈 snapshot에 설정을 바로 반영한다. 배포 전 후보가 `MATCHED/AUTO_MATCHED_BY_NAME + NOT_REQUIRED`로 남아 있으면 `현재 설정 비교 시작` retry를 제공한다. `FAILED`·`RECOMPARISON_REQUIRED`는 상세과 1차 원문 근거를 유지한 채 retry를 제공하며, `EXCLUDE`는 기존 무시 액션, `REVIEW_REQUIRED`는 후보 수정·재비교 또는 이력 저장으로 유도한다.
 
