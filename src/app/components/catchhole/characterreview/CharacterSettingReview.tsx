@@ -1340,6 +1340,11 @@ export function CharacterSettingReview() {
     }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,
+    refetchInterval: query => {
+      const data = query.state.data?.data;
+      const activeCount = (data?.pendingComparisonCount ?? 0) + (data?.processingComparisonCount ?? 0);
+      return activeCount > 0 ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
+    },
   });
   const worldSummary = worldSummaryQuery.data?.data;
 

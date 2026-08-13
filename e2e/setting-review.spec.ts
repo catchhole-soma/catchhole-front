@@ -144,6 +144,64 @@ test('캐릭터 후보 조회가 실패해도 세계관 후보 탭으로 이동�
   await expect(page.getByText('이번 분석에서 추출된 세계관 후보가 없습니다.')).toBeVisible();
 });
 
+test('캐릭터 탭에서도 진행 중인 세계관 비교 집계를 polling한다', async ({ page }) => {
+  let worldSummaryRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [candidates[0]],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      worldSummaryRequestCount += 1;
+      return fulfill(route, {
+        batchId,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: worldSummaryRequestCount === 1 ? 1 : 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await expect.poll(() => worldSummaryRequestCount, { timeout: 6_000 }).toBeGreaterThan(1);
+});
+
 test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시한다', async ({ page }) => {
   const requestedReviewStatuses: Array<string | null> = [];
   const requestedLegacyCandidates: Array<string | null> = [];

@@ -22,6 +22,7 @@ import {
   confirmWorldSettingCandidateGroupMutation,
   dismissWorldSettingCandidateGroupMutation,
   getSettingCandidatesOptions,
+  getWorldSettingCandidateOptions,
   getWorldSettingCandidatesOptions,
   getWorldSettingCandidatesQueryKey,
   getWorldSettingsQueryKey,
@@ -712,6 +713,7 @@ function WorldCandidateGroupDetail({
   onEditIdentity,
   onConfirm,
   onRetry,
+  confirmationFiltered,
 }: {
   group: WorldSettingCandidateGroupResponse;
   resolvedConflictIds: Set<string>;
@@ -724,6 +726,7 @@ function WorldCandidateGroupDetail({
   onEditIdentity: () => void;
   onConfirm: () => void;
   onRetry: () => void;
+  confirmationFiltered: boolean;
 }) {
   const candidates = group.candidates ?? [];
   const identity = groupDecisionIdentity(group, decisions);
@@ -758,6 +761,7 @@ function WorldCandidateGroupDetail({
   const unresolvedConflicts = pendingCandidates.filter(candidate => candidate.id
     && candidate.consolidationStatus === 'CONFLICT'
     && !resolvedConflictIds.has(candidate.id)
+    && !candidate.userModified
     && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
   const retryAvailable = candidates.some(candidate => candidate.comparisonStatus === 'FAILED'
     || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED');
@@ -766,7 +770,8 @@ function WorldCandidateGroupDetail({
       && candidate.comparisonStatus === 'COMPLETED'
       && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
     && duplicatePropertyPaths.length === 0
-    && unresolvedConflicts.length === 0;
+    && unresolvedConflicts.length === 0
+    && !confirmationFiltered;
   return (
     <article style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
@@ -795,7 +800,7 @@ function WorldCandidateGroupDetail({
           key={candidate.id}
           candidate={candidate}
           decision={decisions[candidate.id] ?? candidateDecision(candidate)}
-          conflictResolved={resolvedConflictIds.has(candidate.id)}
+          conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
           recompared={recomparedIds.has(candidate.id)}
           disabled={actionPending}
           onExclude={() => onExclude(candidate.id!)}
@@ -831,6 +836,16 @@ function WorldCandidateGroupDetail({
           color: C.danger, fontSize: 12, lineHeight: 1.55,
         }}>
           {actionError}
+        </div>
+      )}
+
+      {confirmationFiltered && pendingCandidates.length > 0 && (
+        <div role="alert" style={{
+          margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          color: C.warning, fontSize: 12, lineHeight: 1.55,
+        }}>
+          반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.
         </div>
       )}
 
@@ -1033,7 +1048,10 @@ export function WorldSettingReview() {
     excludedCount: number;
   } | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(selectedGroupKey || legacyCandidateId));
+  const [legacyResolutionError, setLegacyResolutionError] = useState(false);
+  const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
   const selectionGroupRef = useRef<string | null>(null);
+  const resolvingLegacyCandidateRef = useRef<string | null>(null);
   const automaticRetryIds = useRef(new Set<string>());
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
@@ -1064,6 +1082,14 @@ export function WorldSettingReview() {
     },
   });
   const listData = listQuery.data?.data;
+  const legacyCandidateQuery = useQuery({
+    ...getWorldSettingCandidateOptions({
+      path: { workId, candidateId: legacyCandidateId ?? '' },
+      query: { batchId },
+    }),
+    enabled: hasContext && Boolean(legacyCandidateId),
+    retry: shouldRetryCandidateQuery,
+  });
   const groupPage = listData?.groups;
   const groups = useMemo(() => groupPage?.content ?? [], [groupPage?.content]);
   const selectedGroup = groups.find(group => group.groupKey === selectedGroupKey)
@@ -1080,6 +1106,103 @@ export function WorldSettingReview() {
   const characterSummary = characterSummaryQuery.data?.data;
 
   useEffect(() => {
+    setLegacyResolutionError(false);
+    setLegacyResolutionAttempt(0);
+  }, [legacyCandidateId]);
+
+  useEffect(() => {
+    if (!legacyCandidateId || !legacyCandidateQuery.isSuccess) return;
+    if (resolvingLegacyCandidateRef.current === legacyCandidateId) return;
+    const targetCandidate = legacyCandidateQuery.data?.data;
+    if (!targetCandidate) return;
+    resolvingLegacyCandidateRef.current = legacyCandidateId;
+    let cancelled = false;
+
+    const resolveOwningGroup = async () => {
+      const targetReview: ReviewFilter = reviewFilter === 'ALL'
+        || targetCandidate.reviewStatus === reviewFilter ? reviewFilter : 'ALL';
+      const targetCategory: CategoryFilter = categoryFilter === 'ALL'
+        || targetCandidate.category === categoryFilter ? categoryFilter : 'ALL';
+      const candidateOperation = targetCandidate.finalOperation ?? targetCandidate.suggestedOperation;
+      const targetOperation: OperationFilter = operationFilter === 'ALL'
+        || candidateOperation === operationFilter ? operationFilter : 'ALL';
+      let targetPage = 0;
+      let targetGroupKey: string | null = null;
+
+      while (!cancelled) {
+        const response = await queryClient.fetchQuery(getWorldSettingCandidatesOptions({
+          path: { workId },
+          query: {
+            batchId,
+            reviewStatus: targetReview === 'ALL' ? undefined : targetReview,
+            category: targetCategory === 'ALL' ? undefined : targetCategory,
+            operation: targetOperation === 'ALL' ? undefined : targetOperation,
+            page: targetPage,
+            size,
+          },
+        }));
+        const responseData = response.data;
+        const owningGroup = responseData?.groups?.content?.find(group => (
+          group.candidates?.some(candidate => candidate.id === legacyCandidateId)
+        ));
+        if (owningGroup?.groupKey) {
+          targetGroupKey = owningGroup.groupKey;
+          break;
+        }
+        targetPage += 1;
+        if (targetPage >= (responseData?.groups?.totalPages ?? 0)) break;
+      }
+
+      if (cancelled || !targetGroupKey) {
+        if (!cancelled) setLegacyResolutionError(true);
+        return;
+      }
+      setLegacyResolutionError(false);
+      setMobileDetailOpen(true);
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (targetReview === 'PENDING_REVIEW') next.delete('reviewStatus');
+        else next.set('reviewStatus', targetReview);
+        if (targetCategory === 'ALL') next.delete('worldCategory');
+        else next.set('worldCategory', targetCategory);
+        if (targetOperation === 'ALL') next.delete('operation');
+        else next.set('operation', targetOperation);
+        next.set('page', String(targetPage + 1));
+        next.set('group', targetGroupKey);
+        next.delete('candidate');
+        return next;
+      }, { replace: true, state: location.state });
+    };
+
+    void resolveOwningGroup().catch(() => {
+      if (cancelled) return;
+      resolvingLegacyCandidateRef.current = null;
+      setLegacyResolutionError(true);
+    });
+    return () => {
+      cancelled = true;
+      if (resolvingLegacyCandidateRef.current === legacyCandidateId) {
+        resolvingLegacyCandidateRef.current = null;
+      }
+    };
+  }, [
+    batchId,
+    categoryFilter,
+    legacyCandidateId,
+    legacyCandidateQuery.data?.data,
+    legacyCandidateQuery.isSuccess,
+    legacyResolutionAttempt,
+    location.state,
+    operationFilter,
+    queryClient,
+    reviewFilter,
+    setSearchParams,
+    size,
+    workId,
+  ]);
+
+  useEffect(() => {
+    if (legacyCandidateId) return;
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
     // 수정 응답으로 대상 그룹이 바뀐 동안에는 이전 목록의 첫 그룹으로 되돌리지 않는다.
     if (!listQuery.isSuccess || listQuery.fetchStatus === 'fetching') return;
@@ -1316,7 +1439,7 @@ export function WorldSettingReview() {
     candidate.id && candidate.reviewStatus === 'PENDING_REVIEW'
   ));
   const confirmAll = () => {
-    if (!selectedGroup || !batchId || actionPending) return;
+    if (!selectedGroup || !batchId || actionPending || operationFilter !== 'ALL') return;
     const candidates = pendingCandidates.flatMap(candidate => {
       if (!candidate.id) return [];
       const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
@@ -1522,6 +1645,26 @@ export function WorldSettingReview() {
                 }}>최신 후보를 불러오지 못해 마지막으로 확인한 대상 그룹을 표시합니다.</div>
               )}
 
+              {legacyCandidateId && legacyResolutionError && (
+                <div role="alert" style={{
+                  marginTop: 12, padding: '10px 13px', borderRadius: 7,
+                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
+                  color: C.danger, fontSize: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                }}>
+                  <span>공유된 세계관 후보의 묶음 위치를 찾지 못했습니다.</span>
+                  <button type="button" onClick={() => {
+                    resolvingLegacyCandidateRef.current = null;
+                    setLegacyResolutionError(false);
+                    setLegacyResolutionAttempt(attempt => attempt + 1);
+                  }} style={{
+                    minHeight: 32, padding: '0 11px', borderRadius: 6,
+                    border: `1px solid ${C.danger}88`, background: 'transparent',
+                    color: C.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  }}>다시 시도</button>
+                </div>
+              )}
+
               {worldTotal === 0 ? (
                 <div style={{ marginTop: 20 }}>
                   <QueryState
@@ -1610,6 +1753,7 @@ export function WorldSettingReview() {
                         }}
                         onConfirm={confirmAll}
                         onRetry={retryGroup}
+                        confirmationFiltered={operationFilter !== 'ALL'}
                       />
                     )}
                   </section>
