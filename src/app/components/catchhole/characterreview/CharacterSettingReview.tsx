@@ -1827,6 +1827,25 @@ export function CharacterSettingReview() {
       <ReviewHeader onBack={backToAnalysisList} />
       <main className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
+          {listQuery.data && (
+            <ReviewSummary
+              episodeRange={formatEpisodeRange(
+                listData?.episodeStartNo,
+                listData?.episodeEndNo,
+                listData?.episodeCount ?? 0,
+              )}
+              total={combinedTotal}
+              reviewed={combinedReviewed}
+              pending={combinedPending}
+              attentionRequired={combinedAttention}
+            />
+          )}
+          <SettingReviewTabs
+            active="character"
+            character={{ reviewed, total }}
+            world={{ reviewed: worldReviewed, total: worldTotal }}
+          />
+
           {listQuery.isPending && !listQuery.data ? (
             <QueryState
               icon={<Loader2 size={27} color={C.primary} className="spin" />}
@@ -1856,23 +1875,6 @@ export function CharacterSettingReview() {
             />
           ) : (
             <>
-              <ReviewSummary
-                episodeRange={formatEpisodeRange(
-                  listData?.episodeStartNo,
-                  listData?.episodeEndNo,
-                  listData?.episodeCount ?? 0,
-                )}
-                total={combinedTotal}
-                reviewed={combinedReviewed}
-                pending={combinedPending}
-                attentionRequired={combinedAttention}
-              />
-              <SettingReviewTabs
-                active="character"
-                character={{ reviewed, total }}
-                world={{ reviewed: worldReviewed, total: worldTotal }}
-              />
-
               {worldSummaryQuery.isError && (
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,

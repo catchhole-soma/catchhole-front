@@ -106,6 +106,44 @@ test('필수 검토 문맥이 없으면 후보 API를 호출하지 않는다', a
   await expect.poll(() => candidateRequestCount).toBe(0);
 });
 
+test('캐릭터 후보 조회가 실패해도 세계관 후보 탭으로 이동할 수 있다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return fulfillError(route, 500, '캐릭터 후보를 조회하지 못했습니다.');
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: {
+          content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await expect(page.getByText('설정 후보를 불러오지 못했습니다.')).toBeVisible();
+  await page.getByRole('button', { name: /세계관 후보/ }).click();
+
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+  await expect(page.getByText('이번 분석에서 추출된 세계관 후보가 없습니다.')).toBeVisible();
+});
+
 test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시한다', async ({ page }) => {
   const requestedReviewStatuses: Array<string | null> = [];
   const requestedLegacyCandidates: Array<string | null> = [];
@@ -994,6 +1032,82 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
       candidateId: firstCandidateId,
       applicationMode: 'HISTORY_ONLY',
       baseSnapshotVersion: 7,
+    }],
+  });
+});
+
+test('동일 상태 종료 제안을 현재 설정에서 제거하는 방식으로 확정한다', async ({ page }) => {
+  let confirmBody: unknown;
+  const removeCandidate = {
+    ...candidates[1],
+    reviewStatus: 'PENDING_REVIEW' as const,
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'COMPLETED' as const,
+    suggestedOperation: 'REMOVE' as const,
+    temporalScope: 'PRESENT' as const,
+    comparisonTargetFactType: 'STATUS' as const,
+    comparisonTargetFactKey: 'status.부상_상태',
+    proposedFactValue: null,
+    proposedValueJson: null,
+    snapshotChanges: [{
+      action: 'REMOVE' as const,
+      factType: 'STATUS' as const,
+      factKey: 'status.부상_상태',
+      beforeFactValue: '경상',
+      beforeValueJson: { value: '경상' },
+      proposedFactValue: null,
+      proposedValueJson: null,
+    }],
+    comparisonReason: '상처가 회복되어 현재 부상 상태를 종료합니다.',
+    comparisonBaseSnapshotVersion: 9,
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 2,
+        episodeEndNo: 2,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [removeCandidate],
+          page: 0, size: 20, totalElements: 1, totalPages: 1, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/group-confirm`) {
+      confirmBody = request.postDataJSON();
+      return fulfill(route, { id: secondCandidateId, reviewStatus: 'CONFIRMED' });
+    }
+    if (pathname === `${listPath}/${secondCandidateId}`) return fulfill(route, removeCandidate);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${secondCandidateId}`,
+  );
+
+  const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
+  await expect(comparisonPanel.getByText('현재 설정 종료', { exact: true })).toBeVisible();
+  await expect(comparisonPanel.getByText('종료할 현재 설정', { exact: true })).toBeVisible();
+  await expect(comparisonPanel.getByText('현재값에서 종료', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
+  await expect.poll(() => confirmBody).toEqual({
+    batchId,
+    candidates: [{
+      candidateId: secondCandidateId,
+      applicationMode: 'APPLY_PROPOSAL',
+      baseSnapshotVersion: 9,
     }],
   });
 });

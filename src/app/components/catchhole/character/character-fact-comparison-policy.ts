@@ -25,7 +25,7 @@ export function getCharacterFactComparisonPolicy(
     && candidate.matchedCharacterId != null
     && (candidate.matchStatus === 'MATCHED' || candidate.matchStatus === 'AUTO_MATCHED_BY_NAME');
   const canApplyProposal = completed
-    && (operation === 'ADD' || operation === 'UPDATE' || operation === 'MERGE');
+    && (operation === 'ADD' || operation === 'UPDATE' || operation === 'MERGE' || operation === 'REMOVE');
   const canSaveHistory = completed && operation != null && operation !== 'EXCLUDE';
   const canAcceptExclusion = completed && operation === 'EXCLUDE';
 

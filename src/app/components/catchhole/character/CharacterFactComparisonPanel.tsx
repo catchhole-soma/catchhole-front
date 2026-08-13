@@ -34,6 +34,7 @@ const OPERATION_META: Record<CharacterFactOperation, { label: string; color: str
   ADD: { label: '현재 설정 추가', color: C.success },
   UPDATE: { label: '현재 설정 수정', color: C.warning },
   MERGE: { label: '현재 설정 병합', color: C.primary },
+  REMOVE: { label: '현재 설정 종료', color: C.danger },
   HISTORY_ONLY: { label: '이력만 저장', color: C.t3 },
   EXCLUDE: { label: '반영하지 않음', color: C.danger },
   REVIEW_REQUIRED: { label: '사용자 검토 필요', color: C.warning },
@@ -148,6 +149,9 @@ export function CharacterFactComparisonPanel({
     primaryUpsert?.proposedValueJson ?? candidate.proposedValueJson,
   );
   const additionalChanges = snapshotChanges.filter(change => change !== primaryUpsert);
+  const additionalChangesLabel = operation === 'REMOVE'
+    ? '종료할 현재 설정'
+    : '함께 적용할 현재 설정 변경';
 
   return (
     <section
@@ -290,7 +294,7 @@ export function CharacterFactComparisonPanel({
 
       {completed && additionalChanges.length > 0 && (
         <div style={{ marginTop: 13 }}>
-          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>함께 적용할 현재 설정 변경</div>
+          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>{additionalChangesLabel}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {additionalChanges.map((change, index) => (
               <div
