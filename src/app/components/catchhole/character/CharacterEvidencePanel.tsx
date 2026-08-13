@@ -10,18 +10,52 @@ interface Props {
   evidence: CharacterFactEvidenceResponse | null;
   loading: boolean;
   error: string | null;
+  sources?: CharacterEvidenceSourceTab[];
+  activeSourceFactId?: string | null;
+  synthesized?: boolean;
   context?: {
     factTypeLabel: string;
     displayName: string;
     factValue: string | null;
   };
+  onSourceSelect?: (characterFactId: string) => void;
   onRetry: () => void;
   onClose: () => void;
+}
+
+export interface CharacterEvidenceSourceTab {
+  characterFactId: string;
+  sourceEpisodeNo?: number | null;
+  hasEvidence: boolean;
 }
 
 interface HighlightRange {
   start: number;
   end: number;
+}
+
+function evidenceSourceLabel(
+  sources: CharacterEvidenceSourceTab[],
+  sourceIndex: number,
+): string {
+  const source = sources[sourceIndex];
+  const hasSameEpisode = (candidate: CharacterEvidenceSourceTab) => (
+    source.sourceEpisodeNo == null
+      ? candidate.sourceEpisodeNo == null
+      : candidate.sourceEpisodeNo === source.sourceEpisodeNo
+  );
+  const matchingSources = sources.filter(hasSameEpisode);
+  const matchingSourceIndex = sources
+    .slice(0, sourceIndex + 1)
+    .filter(hasSameEpisode)
+    .length;
+
+  if (source.sourceEpisodeNo == null) {
+    return `회차 없는 근거 ${matchingSourceIndex}`;
+  }
+  return matchingSources.length > 1
+    ? `${source.sourceEpisodeNo}화 · 근거 ${matchingSourceIndex}`
+    : `${source.sourceEpisodeNo}화`;
 }
 
 function validHighlightRanges(
@@ -200,7 +234,11 @@ export function CharacterEvidencePanel({
   evidence,
   loading,
   error,
+  sources = [],
+  activeSourceFactId,
+  synthesized = false,
   context,
+  onSourceSelect,
   onRetry,
   onClose,
 }: Props) {
@@ -255,6 +293,40 @@ export function CharacterEvidencePanel({
           <X size={18} />
         </button>
       </header>
+
+      {sources.length > 1 && (
+        <div className="character-evidence-panel__provenance">
+          {synthesized && (
+            <div className="character-evidence-panel__synthesized">
+              여러 근거를 종합해 만든 현재값입니다.
+            </div>
+          )}
+          <div
+            role="group"
+            aria-label="현재값을 구성한 원문 근거"
+            className="character-evidence-panel__source-tabs"
+          >
+            {sources.map((source, index) => {
+              const selected = source.characterFactId === activeSourceFactId;
+              const label = evidenceSourceLabel(sources, index);
+              return (
+                <button
+                  key={source.characterFactId}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={!source.hasEvidence || !onSourceSelect}
+                  title={source.hasEvidence ? `${label} 원문 근거 보기` : `${label}에는 저장된 원문이 없습니다.`}
+                  onClick={() => onSourceSelect?.(source.characterFactId)}
+                  className={`character-evidence-panel__source-tab${selected ? ' is-selected' : ''}`}
+                >
+                  {label}
+                  {!source.hasEvidence && <span>원문 없음</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {context && (
         <div className="character-evidence-panel__context" style={{ padding: '13px 22px', borderBottom: `1px solid ${C.border}` }}>

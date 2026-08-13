@@ -18,7 +18,8 @@ interface SettingReviewTabsProps {
 
 const SAVED_PARAMS = {
   character: {
-    selection: 'characterCandidate',
+    selection: 'characterGroup',
+    legacySelection: 'characterCandidate',
     reviewStatus: 'characterReviewStatus',
     page: 'characterPage',
     matchStatus: 'characterMatchStatus',
@@ -45,7 +46,7 @@ function copyOptional(
 
 /**
  * 활성 탭의 URL 상태를 보관하고 대상 탭의 마지막 상태를 복원한다.
- * 캐릭터는 `candidate`, 세계관은 `group`을 선택 식별자로 사용한다.
+ * 두 탭 모두 `group`을 선택 식별자로 사용하고 `candidate`는 구형 딥링크에만 사용한다.
  */
 function switchSettingCandidateType(
   params: URLSearchParams,
@@ -60,7 +61,8 @@ function switchSettingCandidateType(
     const currentSaved = SAVED_PARAMS.character;
     copyOptional(next, 'reviewStatus', currentSaved.reviewStatus);
     copyOptional(next, 'page', currentSaved.page);
-    copyOptional(next, 'candidate', currentSaved.selection);
+    copyOptional(next, 'group', currentSaved.selection);
+    copyOptional(next, 'candidate', currentSaved.legacySelection);
     copyOptional(next, 'matchStatus', currentSaved.matchStatus);
   } else {
     const currentSaved = SAVED_PARAMS.world;
@@ -82,7 +84,8 @@ function switchSettingCandidateType(
     const targetSaved = SAVED_PARAMS.character;
     copyOptional(next, targetSaved.reviewStatus, 'reviewStatus');
     copyOptional(next, targetSaved.page, 'page');
-    copyOptional(next, targetSaved.selection, 'candidate');
+    copyOptional(next, targetSaved.selection, 'group');
+    if (!next.has('group')) copyOptional(next, targetSaved.legacySelection, 'candidate');
     copyOptional(next, targetSaved.matchStatus, 'matchStatus');
     next.delete('candidateType');
   } else {

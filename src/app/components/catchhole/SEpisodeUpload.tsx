@@ -573,9 +573,15 @@ export default function SEpisodeUpload() {
   const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
   const detectionRequestSequence = useRef(0);
   const batchRetryInFlight = useRef(false);
-  const returnToAnalysisList = (
-    location.state as { returnToAnalysisList?: unknown } | null
-  )?.returnToAnalysisList;
+  const reviewReturnState = location.state as {
+    returnToAnalysisList?: unknown;
+  } | null;
+  const returnToAnalysisList = reviewReturnState?.returnToAnalysisList;
+  const resolvedAnalysisListUrl = typeof returnToAnalysisList === 'string' && returnToAnalysisList
+    ? returnToAnalysisList
+    : workId
+      ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`
+      : '/works';
 
   const goBackToEntry = () => {
     if (step === 'processing') {
@@ -1568,8 +1574,7 @@ export default function SEpisodeUpload() {
                         + `&jobType=${resolvedAnalysisJobType}`,
                         'dissolve',
                         {
-                          returnToAnalysisList,
-                          returnToAnalysisListByUrl: true,
+                          returnToAnalysisList: resolvedAnalysisListUrl,
                         },
                       );
                     }}>

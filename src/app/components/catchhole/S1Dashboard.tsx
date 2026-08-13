@@ -3053,7 +3053,8 @@ export default function S1Dashboard() {
         />
 
         <div className="dashboard-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <AnimatePresence mode="wait">
+          {/* 메뉴 전환 시 이전 화면을 남겨 두지 않아 연속 클릭과 뒤로가기를 즉시 처리한다. */}
+          <>
             {activeNav === 'settingDB' && (
               <motion.div key="settingDB" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
@@ -3104,7 +3105,7 @@ export default function S1Dashboard() {
                 </div>
 
                 <div className="dashboard-section-content" style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
-                  <AnimatePresence mode="wait">
+                  <>
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
                         <CharacterDatabase
@@ -3219,7 +3220,7 @@ export default function S1Dashboard() {
                         />
                       </motion.div>
                     )}
-                  </AnimatePresence>
+                  </>
                 </div>
               </motion.div>
             )}
@@ -3502,7 +3503,7 @@ export default function S1Dashboard() {
                 )}
               </motion.div>
             )}
-          </AnimatePresence>
+          </>
         </div>
       </div>
       {mobileNavOpen && (
