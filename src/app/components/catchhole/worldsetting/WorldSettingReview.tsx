@@ -137,6 +137,12 @@ function errorMessage(error: unknown, fallback: string): string {
   return toApiError(error)?.message ?? (error instanceof Error ? error.message : fallback);
 }
 
+function isWorldReviewLocation(): boolean {
+  const currentParams = new URLSearchParams(window.location.search);
+  return window.location.pathname === '/setting-review'
+    && currentParams.get('candidateType') === 'world';
+}
+
 function isComparisonActive(status?: ComparisonStatus): boolean {
   return status === 'PENDING' || status === 'PROCESSING';
 }
@@ -1191,19 +1197,21 @@ export function WorldSettingReview() {
       setEditCandidate(null);
       setEditIdentityOnly(false);
       selectionGroupRef.current = null;
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        if (nextGroupKey) next.set('group', nextGroupKey);
-        if (firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category) {
-          next.set('worldCategory', firstDecision.category);
-        }
-        if (firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation) {
-          next.set('operation', firstDecision.operation);
-        }
-        next.set('page', '1');
-        next.delete('candidate');
-        return next;
-      }, { replace: true, state: location.state });
+      if (isWorldReviewLocation()) {
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          if (nextGroupKey) next.set('group', nextGroupKey);
+          if (firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category) {
+            next.set('worldCategory', firstDecision.category);
+          }
+          if (firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation) {
+            next.set('operation', firstDecision.operation);
+          }
+          next.set('page', '1');
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      }
       await invalidateReviewState();
     },
   });

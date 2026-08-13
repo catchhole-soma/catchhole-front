@@ -464,6 +464,61 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
 });
 
+test('세계관 후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 쓰지 않는다', async ({ page }) => {
+  let releaseUpdate: (() => void) | undefined;
+  const candidate = worldCandidate();
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === worldListPath && request.method() === 'GET') {
+      return success(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([candidate])]),
+      });
+    }
+    if (pathname === `${worldListPath}/decisions` && request.method() === 'PATCH') {
+      await new Promise<void>(resolve => {
+        releaseUpdate = resolve;
+      });
+      return success(route, {
+        groupKey: `RACE|${candidate.subjectName}`,
+        candidates: [candidate],
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true }).click();
+  await page.getByRole('textbox', { name: '대상', exact: true }).fill('북부 바바리안');
+  await page.getByRole('button', { name: '일괄 수정 적용', exact: true }).click();
+  await expect.poll(() => Boolean(releaseUpdate)).toBe(true);
+
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  releaseUpdate?.();
+  await page.waitForTimeout(500);
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+});
+
 test('개별 설정 수정안은 다른 대상 그룹을 다녀와도 해당 row에만 유지된다', async ({ page }) => {
   let updateBody: Record<string, unknown> | null = null;
   let confirmedBody: Record<string, unknown> | null = null;

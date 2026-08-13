@@ -1555,13 +1555,15 @@ export function CharacterSettingReview() {
     onSuccess: async (response, variables) => {
       setEditCandidate(null);
       selectionGroupRef.current = null;
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        const nextGroupKey = characterGroupKey(response.data?.entityName);
-        if (nextGroupKey) next.set('group', nextGroupKey);
-        next.delete('candidate');
-        return next;
-      }, { replace: true, state: location.state });
+      if (isCharacterReviewLocation()) {
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          const nextGroupKey = characterGroupKey(response.data?.entityName);
+          if (nextGroupKey) next.set('group', nextGroupKey);
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      }
       await invalidateCandidateData(variables.path.workId);
     },
   });
@@ -1570,18 +1572,20 @@ export function CharacterSettingReview() {
     onSuccess: async (response, variables) => {
       setMatchTarget(null);
       selectionGroupRef.current = null;
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
-        if (!matchesMatchFilter(response.data?.matchStatus, activeMatchFilter)) {
-          next.delete('group');
-        } else {
-          const nextGroupKey = characterGroupKey(response.data?.entityName);
-          if (nextGroupKey) next.set('group', nextGroupKey);
-        }
-        next.delete('candidate');
-        return next;
-      }, { replace: true, state: location.state });
+      if (isCharacterReviewLocation()) {
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
+          if (!matchesMatchFilter(response.data?.matchStatus, activeMatchFilter)) {
+            next.delete('group');
+          } else {
+            const nextGroupKey = characterGroupKey(response.data?.entityName);
+            if (nextGroupKey) next.set('group', nextGroupKey);
+          }
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      }
       await invalidateCandidateData(variables.path.workId);
     },
   });
@@ -1590,12 +1594,14 @@ export function CharacterSettingReview() {
     onSuccess: async (response, variables) => {
       setGroupMatchOpen(false);
       selectionGroupRef.current = null;
-      setSearchParams(previous => {
+      if (isCharacterReviewLocation()) {
+        setSearchParams(previous => {
           const next = new URLSearchParams(previous);
           if (response.data?.groupKey) next.set('group', response.data.groupKey);
           next.delete('candidate');
           return next;
-      }, { replace: true, state: location.state });
+        }, { replace: true, state: location.state });
+      }
       await invalidateCandidateData(variables.path.workId);
     },
   });

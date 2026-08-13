@@ -387,6 +387,66 @@ test('브라우저 뒤로가기 직후 이전 검토 화면이 클릭을 가로�
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('settingDB');
 });
 
+test('후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 쓰지 않는다', async ({ page }) => {
+  let releaseUpdate: (() => void) | undefined;
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        candidates: {
+          content: [candidates[0]],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}` && route.request().method() === 'PATCH') {
+      await new Promise<void>(resolve => {
+        releaseUpdate = resolve;
+      });
+      return fulfill(route, { ...candidates[0], attributeValue: '짙은 갈색' });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}`) return fulfill(route, candidates[0]);
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.goto(
+    `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
+  );
+
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '설정 후보 수정' });
+  await dialog.getByLabel('설정값').fill('짙은 갈색');
+  await dialog.getByRole('button', { name: '저장', exact: true }).click();
+  await expect.poll(() => Boolean(releaseUpdate)).toBe(true);
+
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  releaseUpdate?.();
+  await page.waitForTimeout(500);
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+});
+
 test('모바일에서는 후보 목록과 상세를 한 화면씩 전환한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
