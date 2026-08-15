@@ -6,7 +6,7 @@ import { C, EditorMode, NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
-import { UserMenu } from './UserMenu';
+import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
 import {
   BookOpen, Users, GitBranch, Clock, Globe, BarChart3,
   Shield, OctagonAlert, AlertTriangle, Plus,
@@ -106,7 +106,7 @@ export function BtnG({ label, onClick, icon, small, disabled = false }: {
 }) {
   const [h, setH] = useState(false);
   return (
-    <button disabled={disabled} onClick={onClick} onMouseEnter={() => { if (!disabled) setH(true); }} onMouseLeave={() => setH(false)}
+    <button className="legacy-action legacy-action--secondary" disabled={disabled} onClick={onClick} onMouseEnter={() => { if (!disabled) setH(true); }} onMouseLeave={() => setH(false)}
       style={{
         height: small ? 32 : 38, padding: small ? '0 12px' : '0 16px', borderRadius: 6,
         border: `1px solid ${h ? '#3A3A4A' : C.border}`, background: h ? '#1F1F2A' : 'transparent',
@@ -121,7 +121,7 @@ export function BtnG({ label, onClick, icon, small, disabled = false }: {
 export function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; icon?: React.ReactNode }) {
   const [h, setH] = useState(false);
   return (
-    <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+    <button className="legacy-action legacy-action--primary" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
         height: 38, padding: '0 18px', borderRadius: 6, border: 'none',
         background: h ? '#6B4EE8' : C.primary, color: '#fff', fontSize: 13, fontWeight: 600,
@@ -202,8 +202,9 @@ export function FileDropArea({
   };
 
   return (
-    <div style={{ marginBottom: error ? 4 : 12 }}>
+    <div className={`file-drop-area${file ? ' has-file' : ''}${error ? ' has-error' : ''}`} style={{ marginBottom: error ? 4 : 12 }}>
       <div
+        className="file-drop-area__target"
         aria-disabled={disabled}
         onDragOver={(e) => {
           e.preventDefault();
@@ -272,23 +273,30 @@ function SourceFileModal({
   onSubmit: () => void;
 }) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{
+    <motion.div className="theme-modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{
       position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.68)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
-      <motion.div initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{
+      <motion.div
+        className="theme-modal source-file-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="source-file-modal-title"
+        initial={{ y: 18, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        style={{
         width: 480, maxWidth: '100%', borderRadius: 12, border: `1px solid ${C.border}`,
         background: C.surface, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <div style={{ color: C.t1, fontSize: 17, fontWeight: 700 }}>{title}</div>
+        <div className="theme-modal__header" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <div className="theme-modal__title" id="source-file-modal-title" style={{ color: C.t1, fontSize: 17, fontWeight: 700 }}>{title}</div>
           <button type="button" aria-label="닫기" disabled={pending} onClick={onClose} style={{
             width: 28, height: 28, border: 0, background: 'transparent', color: C.t3,
             cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.4 : 1,
           }}><X size={16} /></button>
         </div>
-        <div style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>{description}</div>
-        {currentFilename && <div style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>현재 원본: {currentFilename}</div>}
+        <div className="theme-modal__description" style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>{description}</div>
+        {currentFilename && <div className="theme-modal__meta" style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>현재 원본: {currentFilename}</div>}
         <FileDropArea
           file={file}
           error={fileError}
@@ -298,7 +306,7 @@ function SourceFileModal({
         />
         {warning && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.warning}12`, color: C.warning, fontSize: 12 }}>{warning}</div>}
         {requestError && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.danger}12`, color: C.danger, fontSize: 12 }}>{requestError}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="theme-modal__footer" style={{ display: 'flex', gap: 8 }}>
           <button type="button" disabled={pending} onClick={onClose} style={{
             flex: 1, height: 40, borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent',
             color: C.t2, fontFamily: 'inherit', cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.5 : 1,
@@ -696,7 +704,7 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
         {uploadType === 'ep-only' && step === 1 && (
           <>
             <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6 }}>회차 올리기</div>
-            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>회차 파일을 업로드하면 AI가 설정 DB와 대조해 충돌을 탐지합니다</div>
+            <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>회차 파일을 업로드하면 AI가 작품 설정과 대조해 충돌을 탐지합니다</div>
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>작품 선택</div>
@@ -830,14 +838,14 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
 
         {step === 2 && (() => {
           const cfg = uploadType === 'fresh' || isSettings ? {
-            title: uploadType === 'fresh' ? 'AI 분석 중...' : 'AI 설정 DB 구축 중...',
-            desc: uploadType === 'fresh' ? '회차 기반 설정 DB를 구축합니다' : '캐릭터·관계·타임라인을 자동 추출합니다',
+            title: uploadType === 'fresh' ? 'AI 분석 중...' : 'AI 작품 설정 정리 중...',
+            desc: uploadType === 'fresh' ? '회차 기반 작품 설정을 정리합니다' : '캐릭터·관계·타임라인을 자동 추출합니다',
             items: ['캐릭터 목록 추출 완료', '외모·성격 설정 파싱 중', '관계도 구축 중', '타임라인 분석 대기'],
             onNext: () => setStep(3),
             btnLabel: '계속',
           } : {
             title: 'AI 설정 대조 중...',
-            desc: '설정 DB와 대조하여 충돌을 탐지합니다',
+            desc: '작품 설정과 대조하여 충돌을 탐지합니다',
             items: ['캐릭터 설정 로드 완료', '회차 텍스트 파싱 중', '충돌 패턴 대조 중', '타임라인 검증 대기'],
             onNext: () => { nav('/loading', 'dissolve'); onClose(); },
             btnLabel: '결과 보기',
@@ -924,7 +932,7 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
                 flex: 2, height: 40, borderRadius: 6, border: 'none',
                 background: C.primary, color: '#fff', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'inherit',
-              }}>설정 DB 확정 및 등록</button>
+              }}>작품 설정 확정 및 저장</button>
             </div>
           </>
         )}
@@ -2406,7 +2414,7 @@ const TL_EVENTS: TLEvent[] = [
     errors: [{ type: 'inventory', desc: '107화에서 제출된 USB를 수아가 다시 소지한 것으로 서술 ⚠' }] },
   { ch: '155화', title: '로맨스 전환점',   desc: '수아·강민준 감정선 결정적 분기',       type: 'normal',   characters: ['수아', '강민준'],             eventTags: ['만남'],          items: ['빨간 볼펜'],
     errors: [{ type: 'calculation', desc: '23화(23세) 기준 \'3년 후\' → 26세여야 하나 25세로 서술' }] },
-  { ch: '158화', title: 'DB 최신화',       desc: '분석 완료, 설정 최신 반영 상태',       type: 'current',  characters: [],                             eventTags: [],                items: [] },
+  { ch: '158화', title: '설정 최신화',       desc: '분석 완료, 설정 최신 반영 상태',       type: 'current',  characters: [],                             eventTags: [],                items: [] },
   { ch: '159화', title: '설정 충돌 감지',  desc: '강민준 눈 색 충돌 ⚠, USB 재등장',    type: 'writing',  characters: ['수아', '강민준', '이레나'],   eventTags: ['충돌'],          items: ['증거 USB', '검사 배지'],
     errors: [
       { type: 'time', desc: '"그로부터 2년이 흘렀다" 서술이 실제 흐름과 1년 차이' },
@@ -2529,37 +2537,49 @@ export default function S1Dashboard() {
 
   const tabParam = searchParams.get('tab');
   const settingTab: SettingTabId = (SETTING_TAB_IDS as string[]).includes(tabParam ?? '') ? (tabParam as SettingTabId) : 'characters';
-  const setSettingTab = (id: SettingTabId) => setSearchParams(prev => {
-    const next = switchSettingTabQueryState(prev, settingTab, id);
-    next.set('tab', id);
-    if (id !== 'characters' && (
-      next.get('modal') === 'char-detail'
-      || next.get('modal') === 'character-timeline'
-      || next.get('modal') === 'character-archive'
-    )) {
-      next.delete('modal');
-      next.delete('charId');
-      next.delete('mode');
-      next.delete('timelineView');
-      next.delete('timelineFactType');
-      next.delete('timelineFactTypes');
-      next.delete('timelineFactKeys');
-      next.delete('timelineEpisodeNo');
-      next.delete('factId');
-      next.delete('timelineFactId');
-    }
-    if (id !== 'worldrules') {
-      next.delete('settingBookFileId');
-      if (next.get('modal') === 'setting-book-upload') next.delete('modal');
-    }
-    if (id !== 'worldsettings') {
-      next.delete('settingId');
-      if (next.get('modal') === 'world-setting-create' || next.get('modal') === 'world-setting-edit') {
-        next.delete('modal');
+  const setSettingTab = (id: SettingTabId) => {
+    const openCategoryOverview = id === 'worldsettings';
+    setSearchParams(prev => {
+      const next = switchSettingTabQueryState(prev, settingTab, id);
+      next.set('tab', id);
+      if (openCategoryOverview) {
+        next.delete('category');
+        next.delete('q');
+        next.delete('page');
+        next.delete('sort');
+        next.delete('settingId');
+        next.delete('worldSettingQ');
+        next.delete('worldSettingPage');
       }
-    }
-    return next;
-  });
+      if (id !== 'characters' && (
+        next.get('modal') === 'char-detail'
+        || next.get('modal') === 'character-timeline'
+        || next.get('modal') === 'character-archive'
+      )) {
+        next.delete('modal');
+        next.delete('charId');
+        next.delete('mode');
+        next.delete('timelineView');
+        next.delete('timelineFactType');
+        next.delete('timelineFactTypes');
+        next.delete('timelineFactKeys');
+        next.delete('timelineEpisodeNo');
+        next.delete('factId');
+        next.delete('timelineFactId');
+      }
+      if (id !== 'worldrules') {
+        next.delete('settingBookFileId');
+        if (next.get('modal') === 'setting-book-upload') next.delete('modal');
+      }
+      if (id !== 'worldsettings') {
+        next.delete('settingId');
+        if (next.get('modal') === 'world-setting-create' || next.get('modal') === 'world-setting-edit') {
+          next.delete('modal');
+        }
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (tabParam !== 'timeline') return;
@@ -3001,17 +3021,14 @@ export default function S1Dashboard() {
           }
         : null;
   return (
-    <div className="dashboard-page" style={{
+    <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' ? ' database-v2' : ''}`} style={{
       background: C.bg, width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
-      <div className="app-topbar dashboard-topbar" style={{
-        height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', flexShrink: 0, zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <WorkspaceTopbar
+        onBrandClick={() => navigate('/works', 'dissolve')}
+        leading={(
           <button
             type="button"
             className="mobile-nav-trigger"
@@ -3021,28 +3038,8 @@ export default function S1Dashboard() {
           >
             <Menu size={19} />
           </button>
-        <div
-          onClick={() => navigate('/works', 'dissolve')}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/works', 'dissolve'); }}
-          role="button" tabIndex={0}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-        >
-          <div style={{
-            width: 26, height: 26, borderRadius: 6, background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Shield size={14} color="#fff" />
-          </div>
-          <span style={{ color: C.t1, fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>CatchHole</span>
-          <span style={{
-            padding: '2px 7px', borderRadius: 3, background: C.primary + '18',
-            color: C.primary, fontSize: 10, fontWeight: 600, border: `1px solid ${C.primary}33`,
-            marginLeft: 2,
-          }}>BETA</span>
-        </div>
-        </div>
-        <UserMenu />
-      </div>
+        )}
+      />
 
       <div className="dashboard-shell" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AppSidebar
@@ -3058,15 +3055,15 @@ export default function S1Dashboard() {
             {activeNav === 'settingDB' && (
               <motion.div key="settingDB" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-                <div className="dashboard-section-header" style={{
+                <div className="dashboard-section-header setting-db-header" style={{
                   padding: '20px 40px', borderBottom: `1px solid ${C.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
                 }}>
                   <div>
-                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
-                    <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
+                    <div className="setting-db-header__eyebrow" style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>설정 대시보드</div>
+                    <div className="setting-db-header__title" style={{ color: C.t1, fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px' }}>
                       {selectedWorkDisplay.title}
-                      <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{selectedWorkDisplay.genre}</span>
+                      <span className="setting-db-header__genre" style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, background: C.primary + '18', color: C.primary, fontSize: 12, fontWeight: 500, border: `1px solid ${C.primary}33`, verticalAlign: 'middle' }}>{selectedWorkDisplay.genre}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -3074,10 +3071,10 @@ export default function S1Dashboard() {
                   </div>
                 </div>
 
-                <div className="dashboard-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+                <div className="dashboard-tabs setting-db-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
-                    { id: 'characters', label: '캐릭터 DB', icon: <Users size={13} /> },
-                    { id: 'worldsettings', label: '세계관 DB', icon: <Globe size={13} /> },
+                    { id: 'characters', label: '캐릭터 설정', icon: <Users size={13} /> },
+                    { id: 'worldsettings', label: '세계관 설정', icon: <Globe size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
@@ -3085,7 +3082,7 @@ export default function S1Dashboard() {
                     <button key={tab.id} onClick={() => {
                       if (tab.upcoming) setComingSoonFeature(tab.label);
                       else setSettingTab(tab.id);
-                    }} style={{
+                    }} className={`setting-db-tab${settingTab === tab.id ? ' is-active' : ''}${tab.upcoming ? ' is-upcoming' : ''}`} style={{
                       height: 44, padding: '0 16px', background: 'none', border: 'none',
                       borderBottom: `2px solid ${settingTab === tab.id ? C.primary : 'transparent'}`,
                       color: settingTab === tab.id ? C.primary : tab.upcoming ? C.t3 : C.t2,
@@ -3104,7 +3101,7 @@ export default function S1Dashboard() {
                   ))}
                 </div>
 
-                <div className="dashboard-section-content" style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
+                <div className="dashboard-section-content setting-db-content" style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
                   <>
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
@@ -3213,7 +3210,7 @@ export default function S1Dashboard() {
 
                     {settingTab === 'search' && (
                       <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ maxWidth: 900 }}>
-                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>AI가 추출한 전체 설정 DB에서 키워드로 빠르게 검색합니다. 설정 오류를 방지하거나 떡밥을 확인할 때 유용합니다.</div>
+                        <div style={{ color: C.t3, fontSize: 13, marginBottom: 16 }}>확정된 모든 작품 설정에서 키워드로 빠르게 검색합니다. 설정 오류를 방지하거나 떡밥을 확인할 때 유용합니다.</div>
                         <CharacterFactSearch
                           workId={effectiveWorkId}
                           enabled={episodeApiEnabled}
@@ -3318,8 +3315,8 @@ export default function S1Dashboard() {
                 style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
                 <div className="dashboard-manuscript-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 24 }}>
                   <div>
-                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드된 원고</div>
-                    <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                    <div data-page-eyebrow style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>MANUSCRIPTS · 업로드된 원고</div>
+                    <span data-page-title style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
                       {selectedWorkDisplay.title}
                     </span>
                   </div>

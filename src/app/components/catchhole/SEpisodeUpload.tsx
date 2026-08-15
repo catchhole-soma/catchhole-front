@@ -157,15 +157,18 @@ function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
       height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 20px', borderBottom: `1px solid ${C.border}`,
     }}>
-      <button type="button" aria-label={backLabel} onClick={onBack} style={{
+      <button className="episode-upload-header__back" type="button" aria-label={backLabel} onClick={onBack} style={{
         width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
         background: 'transparent', color: C.t2, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <ChevronLeft size={16} />
       </button>
-      <div style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>회차 업로드</div>
-      <div style={{ flex: 1 }} />
+      <div className="episode-upload-header__title">
+        <small>MANUSCRIPT</small>
+        <strong>회차 업로드</strong>
+      </div>
+      <div className="episode-upload-header__spacer" />
       <UserMenu />
     </div>
   );
@@ -176,8 +179,8 @@ function Stepper({ labels, current }: { labels: string[]; current: number }) {
     <div className="episode-upload-stepper" style={{ display: 'flex', alignItems: 'center', maxWidth: 860, margin: '0 auto', padding: '24px 20px 0' }}>
       {labels.map((label, index) => (
         <React.Fragment key={label}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
+          <div className="episode-upload-step">
+            <div className={`episode-upload-step__number${index + 1 < current ? ' is-complete' : ''}${index + 1 === current ? ' is-current' : ''}`} style={{
               width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
               background: index + 1 <= current ? C.primary : C.border,
               color: index + 1 <= current ? '#fff' : C.t3,
@@ -186,12 +189,12 @@ function Stepper({ labels, current }: { labels: string[]; current: number }) {
             }}>
               {index + 1 < current ? <Check size={12} /> : index + 1}
             </div>
-            <span style={{ color: index + 1 === current ? C.t1 : C.t3, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <span className={`episode-upload-step__label${index + 1 === current ? ' is-current' : ''}`} style={{ color: index + 1 === current ? C.t1 : C.t3, fontSize: 12, whiteSpace: 'nowrap' }}>
               {label}
             </span>
           </div>
           {index < labels.length - 1 && (
-            <div style={{ flex: 1, height: 1, background: index + 1 < current ? C.primary : C.border, margin: '0 12px' }} />
+            <div className={`episode-upload-step__line${index + 1 < current ? ' is-complete' : ''}`} style={{ flex: 1, height: 1, background: index + 1 < current ? C.primary : C.border, margin: '0 12px' }} />
           )}
         </React.Fragment>
       ))}
@@ -201,7 +204,7 @@ function Stepper({ labels, current }: { labels: string[]; current: number }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: '0.05em' }}>
+    <div className="episode-upload-field-label" style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: '0.05em' }}>
       {children}
     </div>
   );
@@ -216,6 +219,7 @@ function TextInput({ value, onChange, type = 'text', placeholder, disabled }: {
 }) {
   return (
     <input
+      className="episode-upload-input"
       value={value}
       onChange={event => onChange(event.target.value)}
       type={type}
@@ -237,7 +241,7 @@ function PrimaryButton({ children, onClick, disabled = false }: {
   disabled?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={{
+    <button className="episode-upload-button episode-upload-button--primary" type="button" onClick={onClick} disabled={disabled} style={{
       width: '100%', height: 40, border: 'none', borderRadius: 6,
       background: C.primary, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
       cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
@@ -253,7 +257,7 @@ function SecondaryButton({ children, onClick, disabled = false }: {
   disabled?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={{
+    <button className="episode-upload-button episode-upload-button--secondary" type="button" onClick={onClick} disabled={disabled} style={{
       height: 40, padding: '0 16px', borderRadius: 6, border: `1px solid ${C.border}`,
       background: 'transparent', color: C.t2, fontFamily: 'inherit', fontSize: 13,
       cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
@@ -265,7 +269,7 @@ function SecondaryButton({ children, onClick, disabled = false }: {
 
 function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div style={{
+    <div className="episode-upload-alert episode-upload-alert--danger" role="alert" style={{
       display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', marginBottom: 16,
       borderRadius: 6, border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
       color: C.danger, fontSize: 12,
@@ -286,7 +290,7 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
 
 function Spinner({ size = 16 }: { size?: number }) {
   return (
-    <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
+    <motion.div className="episode-upload-spinner" animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
       <RefreshCw size={size} color={C.primary} />
     </motion.div>
   );
@@ -300,8 +304,9 @@ function AnalysisJobTypeSelector({ value, onChange, disabled }: {
   return (
     <>
       <FieldLabel>분석 유형</FieldLabel>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div className="episode-analysis-types" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button
+          className={`episode-analysis-type${value === 'SETTING_EXTRACTION' ? ' is-selected' : ''}`}
           type="button"
           disabled={disabled}
           onClick={() => onChange('SETTING_EXTRACTION')}
@@ -318,6 +323,7 @@ function AnalysisJobTypeSelector({ value, onChange, disabled }: {
           <div style={{ fontSize: 11, color: C.t3 }}>원고에서 설정 후보를 추출합니다</div>
         </button>
         <button
+          className="episode-analysis-type is-disabled"
           type="button"
           disabled
           aria-label="신규 회차 검수 업데이트 예정"
@@ -364,8 +370,8 @@ function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
   };
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <button type="button" disabled={disabled} onClick={() => inputRef.current?.click()} style={{
+    <div className={`episode-multi-file${files.length >= 2 ? ' has-file' : ''}${error ? ' has-error' : ''}`} style={{ marginBottom: 16 }}>
+      <button className="episode-multi-file__target" type="button" disabled={disabled} onClick={() => inputRef.current?.click()} style={{
         width: '100%', minHeight: 110, borderRadius: 8,
         border: `2px dashed ${error ? C.danger : files.length >= 2 ? C.success : C.border}`,
         background: files.length >= 2 ? `${C.success}08` : 'transparent',
@@ -383,7 +389,7 @@ function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
         <Upload size={22} style={{ margin: '0 auto 8px' }} />
         {files.length > 0 ? `${files.length}개 파일 선택됨` : '회차별 TXT 파일을 두 개 이상 선택하세요'}
       </button>
-      {error && <div style={{ color: C.danger, fontSize: 12, marginTop: 6 }}>{error}</div>}
+      {error && <div className="episode-upload-error" style={{ color: C.danger, fontSize: 12, marginTop: 6 }}>{error}</div>}
     </div>
   );
 }
@@ -398,8 +404,8 @@ function SettingsFileInput({ include, setInclude, file, error, setFile, disabled
   txtOnly?: boolean;
 }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.t2, fontSize: 13, marginBottom: include ? 10 : 0 }}>
+    <div className="episode-settings-file" style={{ marginBottom: 18 }}>
+      <label className="episode-settings-file__toggle" style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.t2, fontSize: 13, marginBottom: include ? 10 : 0 }}>
         <input
           type="checkbox"
           checked={include}
@@ -428,9 +434,9 @@ function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
   disabled: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+    <div className="episode-confirmation-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
       {episodeConfirmations.map(confirmation => (
-        <div key={confirmation.detectionOrder} style={{
+        <div className="episode-confirmation-row" key={confirmation.detectionOrder} style={{
           display: 'grid', gridTemplateColumns: '90px 1fr 90px', gap: 10, alignItems: 'center',
           padding: 12, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
         }}>
@@ -1100,9 +1106,9 @@ export default function SEpisodeUpload() {
 
   if (!UUID_PATTERN.test(workId)) {
     return (
-      <div style={{ width: '100%', height: '100%', background: C.bg, color: C.t2 }}>
+      <div className="episode-upload-page theme-v2 workspace-v2" style={{ width: '100%', height: '100%', background: C.bg, color: C.t2 }}>
         <Header onBack={() => navigate('/works', 'pop')} />
-        <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center' }}>
+        <div className="episode-upload-empty" style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center' }}>
           <AlertCircle size={36} color={C.warning} style={{ marginBottom: 14 }} />
           <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 8 }}>작품 정보를 확인할 수 없습니다</div>
           <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
@@ -1115,7 +1121,7 @@ export default function SEpisodeUpload() {
   }
 
   return (
-    <div className="episode-upload-page" style={{
+    <div className="episode-upload-page theme-v2 workspace-v2" style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: C.bg, color: C.t1,
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
@@ -1125,12 +1131,12 @@ export default function SEpisodeUpload() {
         backLabel={step === 'processing' ? '분석 목록으로 돌아가기' : undefined}
       />
       <Stepper labels={labels} current={currentStep} />
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <main className="episode-upload-main" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="episode-upload-content" style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
           {step === 'select-mode' && (
             <>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식과 분석 목적을 선택하세요.</div>
+              <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
+              <div className="episode-upload-description" style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식과 분석 목적을 선택하세요.</div>
 
               {episodesQuery.isError && (
                 <ErrorBanner message="기존 회차 번호를 불러오지 못했습니다. 번호를 직접 확인해주세요." onRetry={() => void episodesQuery.refetch()} />
@@ -1165,7 +1171,7 @@ export default function SEpisodeUpload() {
               </div>
 
               {uploadType === 'SINGLE_EPISODE' && (
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                <div className="episode-upload-form-section" style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
                   <div className="episode-upload-field-row" style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                     <div className="episode-upload-number-field" style={{ width: 160 }}>
                       <FieldLabel>회차 번호</FieldLabel>
@@ -1176,7 +1182,7 @@ export default function SEpisodeUpload() {
                         placeholder="비우면 파일에서 감지"
                         onChange={setEpisodeNo}
                       />
-                      <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.45, marginTop: 6 }}>
+                      <div className="episode-upload-help" style={{ color: C.t3, fontSize: 11, lineHeight: 1.45, marginTop: 6 }}>
                         {episodesQuery.isPending
                           ? '추천 회차를 확인하고 있습니다.'
                           : suggestedEpisodeNo
@@ -1195,7 +1201,7 @@ export default function SEpisodeUpload() {
                     </div>
                   </div>
                   {existingEpisodeNos.has(singleNo) && (
-                    <div style={{ color: C.danger, fontSize: 12, margin: '-8px 0 12px' }}>이미 등록된 회차 번호입니다.</div>
+                    <div className="episode-upload-error" style={{ color: C.danger, fontSize: 12, margin: '-8px 0 12px' }}>이미 등록된 회차 번호입니다.</div>
                   )}
                   <FieldLabel>회차 파일</FieldLabel>
                   <FileDropArea
@@ -1213,7 +1219,7 @@ export default function SEpisodeUpload() {
               )}
 
               {uploadType === 'MULTI_EPISODE_SINGLE_FILE' && (
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                <div className="episode-upload-form-section" style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
                   <FieldLabel>다회차 원고 파일</FieldLabel>
                   <FileDropArea
                     file={bulkFile}
@@ -1227,7 +1233,7 @@ export default function SEpisodeUpload() {
                     </div>
                   )}
                   {episodeConfirmations.length > 0 && (
-                    <div style={{
+                    <div className="episode-upload-alert episode-upload-alert--success" style={{
                       display: 'flex', justifyContent: 'space-between', padding: '10px 12px', marginBottom: 16,
                       borderRadius: 6, background: `${C.success}10`, border: `1px solid ${C.success}44`,
                       color: C.success, fontSize: 12,
@@ -1247,7 +1253,7 @@ export default function SEpisodeUpload() {
               )}
 
               {uploadType === 'MULTI_EPISODE_MULTI_FILE' && (
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                <div className="episode-upload-form-section" style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
                   <FieldLabel>회차별 TXT 파일</FieldLabel>
                   <MultiFileDropArea
                     files={multiFiles}
@@ -1322,7 +1328,7 @@ export default function SEpisodeUpload() {
                     />
                   )}
                   {settingSaveStatus === 'success' && (
-                    <div style={{ color: C.success, fontSize: 12, margin: '-4px 0 14px' }}>
+                    <div className="episode-upload-success" style={{ color: C.success, fontSize: 12, margin: '-4px 0 14px' }}>
                       설정집 원본은 저장되었습니다. 회차를 다시 시도해도 중복 저장하지 않습니다.
                     </div>
                   )}
@@ -1355,15 +1361,16 @@ export default function SEpisodeUpload() {
 
           {step === 'boundary-preview' && (
             <>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>회차 분리 확인</div>
-              <div style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>
+              <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>회차 분리 확인</div>
+              <div className="episode-upload-description" style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>
                 감지 경계는 고정됩니다. 번호와 제목만 확인·수정할 수 있습니다.
               </div>
               {requestError && <ErrorBanner message={requestError} />}
               <div className="episode-boundary-layout" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="episode-boundary-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {episodeConfirmations.map(confirmation => (
                     <button
+                      className={`episode-boundary-item${selectedDetectionOrder === confirmation.detectionOrder ? ' is-selected' : ''}`}
                       key={confirmation.detectionOrder}
                       type="button"
                       onClick={() => setSelectedDetectionOrder(confirmation.detectionOrder)}
@@ -1388,7 +1395,7 @@ export default function SEpisodeUpload() {
                   ) ?? episodeConfirmations[0];
                   if (!selectedConfirmation) return null;
                   return (
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, padding: 16 }}>
+                    <div className="episode-boundary-preview" style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, padding: 16 }}>
                       <div className="episode-upload-field-row" style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                         <div className="episode-upload-number-field" style={{ width: 110 }}>
                           <FieldLabel>회차 번호</FieldLabel>
@@ -1414,13 +1421,13 @@ export default function SEpisodeUpload() {
                         </div>
                       </div>
                       <FieldLabel>고정 경계 원문 미리보기</FieldLabel>
-                      <div style={{
+                      <div className="episode-boundary-source" style={{
                         maxHeight: 390, overflowY: 'auto', whiteSpace: 'pre-wrap', padding: 14,
                         borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg,
                         color: C.t2, fontSize: 12, lineHeight: 1.8,
                       }}>
                         {selectedConfirmation.sourceHeading && (
-                          <div style={{
+                          <div className="episode-boundary-source__heading" style={{
                             color: C.t1, fontSize: 14, fontWeight: 700,
                             paddingBottom: 10, marginBottom: 10,
                             borderBottom: `1px solid ${C.border}`,
@@ -1435,7 +1442,7 @@ export default function SEpisodeUpload() {
                 })()}
               </div>
               {episodeConfirmationValidationError && (
-                <div style={{ color: C.danger, fontSize: 12, marginTop: 12 }}>
+                <div className="episode-upload-error" style={{ color: C.danger, fontSize: 12, marginTop: 12 }}>
                   {episodeConfirmationValidationError}
                 </div>
               )}
@@ -1453,8 +1460,8 @@ export default function SEpisodeUpload() {
           )}
 
           {step === 'processing' && (
-            <div>
-              <div style={{ textAlign: 'center', marginBottom: 26 }}>
+            <div className="episode-processing">
+              <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
                 {analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
                   : analysisFailed
@@ -1462,13 +1469,13 @@ export default function SEpisodeUpload() {
                     : analysisUnavailable
                       ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
-                <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
+                <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
                     : analysisFailed ? '일부 회차 분석에 실패했습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
                 </div>
-                <div style={{ color: C.t2, fontSize: 13 }}>
+                <div className="episode-processing__description" style={{ color: C.t2, fontSize: 13 }}>
                   {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
                 </div>
               </div>
@@ -1477,7 +1484,7 @@ export default function SEpisodeUpload() {
                 <ErrorBanner message={settingUploadError} onRetry={() => void uploadSelectedSettingBook()} />
               )}
               {settingSaveStatus === 'success' && includeSettings && (
-                <div style={{
+                <div className="episode-upload-alert episode-upload-alert--success" style={{
                   display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px', marginBottom: 16,
                   borderRadius: 6, border: `1px solid ${C.success}44`, background: `${C.success}10`,
                   color: C.success, fontSize: 12,
@@ -1515,19 +1522,19 @@ export default function SEpisodeUpload() {
                 && !analysisSucceeded && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="episode-processing__list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {progressEpisodes.map(episode => {
                   const status = toProcessingStatus(episode.status);
                   const sequenceIndex = status === null || status === 'FAILED'
                     ? -1
                     : PROCESSING_SEQUENCE.indexOf(status);
                   return (
-                    <div key={episode.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface }}>
+                    <div className="episode-processing-card" key={episode.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700 }}>
+                        <div className="episode-processing-card__title" style={{ fontSize: 14, fontWeight: 700 }}>
                           {episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}
                         </div>
-                        <span style={{
+                        <span className={`episode-processing-card__status status-${status ?? 'UNAVAILABLE'}`} style={{
                           color: status === null
                             ? C.warning
                             : status === 'FAILED'
@@ -1541,13 +1548,13 @@ export default function SEpisodeUpload() {
                         </span>
                       </div>
                       {status === null ? (
-                        <div style={{ color: C.t3, fontSize: 12 }}>
+                        <div className="episode-processing-card__unavailable" style={{ color: C.t3, fontSize: 12 }}>
                           이 회차는 삭제되어 더 이상 분석 대상에 포함되지 않습니다.
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <div className="episode-processing-card__steps" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                           {PROCESSING_SEQUENCE.map((item, index) => (
-                            <span key={item} style={{
+                            <span className={index <= sequenceIndex ? 'is-complete' : ''} key={item} style={{
                               padding: '3px 8px', borderRadius: 12, fontSize: 10.5,
                               background: index <= sequenceIndex ? `${C.primary}18` : C.bg,
                               border: `1px solid ${index <= sequenceIndex ? `${C.primary}55` : C.border}`,
@@ -1563,7 +1570,7 @@ export default function SEpisodeUpload() {
                 })}
               </div>
 
-              <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
+              <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisSucceeded ? (
@@ -1608,7 +1615,7 @@ export default function SEpisodeUpload() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

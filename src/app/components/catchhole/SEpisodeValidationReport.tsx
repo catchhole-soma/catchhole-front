@@ -37,7 +37,7 @@ const MOCK_VALIDATION_ISSUES: ErrorCardData[] = [
       { chapter: '23화', snippet: '"갈색 눈동자가 형광등 불빛에 반짝였다."', status: 'match' },
       { chapter: '159화', snippet: '"그녀의 파란 눈을 가득 채웠다."', status: 'conflict' },
     ],
-    aiSuggestion: '"그녀의 파란 눈" → "그녀의 갈색 눈동자" 로 수정하거나, 콘텍스트상 눈 색이 바뀐 설정이라면 23화 설정 DB를 업데이트하세요.',
+    aiSuggestion: '"그녀의 파란 눈" → "그녀의 갈색 눈동자" 로 수정하거나, 콘텍스트상 눈 색이 바뀐 설정이라면 23화 작품 설정을 수정하세요.',
   },
   {
     id: 2,
@@ -203,7 +203,7 @@ export default function SEpisodeValidationReport() {
             }}>
               <CircleCheckBig size={28} />
               <div style={{ fontSize: 14, fontWeight: 600 }}>충돌/모순이 발견되지 않았습니다</div>
-              <div style={{ color: C.t3, fontSize: 12 }}>설정 DB와 비교한 결과 새 회차에 문제가 없습니다.</div>
+              <div style={{ color: C.t3, fontSize: 12 }}>작품 설정과 비교한 결과 새 회차에 문제가 없습니다.</div>
             </div>
           ) : (
             <SplitPane

@@ -36,6 +36,7 @@ export function AiTokenQuotaModal() {
 
   return (
     <div
+      className="theme-v2 theme-modal-backdrop"
       role="presentation"
       onMouseDown={event => {
         if (event.target === event.currentTarget) setOpen(false);
@@ -47,6 +48,7 @@ export function AiTokenQuotaModal() {
       }}
     >
       <div
+        className="theme-modal ai-token-quota-modal"
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -58,7 +60,7 @@ export function AiTokenQuotaModal() {
           boxShadow: '0 24px 80px rgba(0,0,0,0.68)',
         }}
       >
-        <div style={{
+        <div className="theme-modal__header" style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '19px 22px', borderBottom: `1px solid ${C.border}`,
         }}>
@@ -69,7 +71,7 @@ export function AiTokenQuotaModal() {
           }}>
             <AlertTriangle size={19} />
           </div>
-          <div id="ai-token-quota-title" style={{ flex: 1, color: C.t1, fontSize: 16, fontWeight: 700 }}>
+          <div className="theme-modal__title" id="ai-token-quota-title" style={{ flex: 1, color: C.t1, fontSize: 16, fontWeight: 700 }}>
             기본 사용량을 모두 소진했습니다
           </div>
           <button
@@ -82,13 +84,13 @@ export function AiTokenQuotaModal() {
           </button>
         </div>
 
-        <div style={{ padding: '22px', color: C.t2, fontSize: 13, lineHeight: 1.7 }}>
+        <div className="theme-modal__body" style={{ padding: '22px', color: C.t2, fontSize: 13, lineHeight: 1.7 }}>
           <p style={{ margin: '0 0 14px' }}>
             서비스를 적극 이용해 주셔서 감사합니다. 간단한 피드백과 함께 연락해 주시면
             추가 사용량 제공을 도와드리겠습니다.
           </p>
 
-          <div style={{
+          <div className="theme-modal__summary" style={{
             minHeight: 42, padding: '11px 13px', boxSizing: 'border-box', borderRadius: 7,
             display: 'flex', alignItems: 'center', gap: 9,
             background: '#22222C', border: `1px solid ${C.border}`,

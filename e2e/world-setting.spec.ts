@@ -359,7 +359,7 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect(page.getByText('종족 · 바바리안')).toBeVisible();
   await expect(
     page.getByRole('button').filter({ hasText: '바바리안' }).getByText('종족', { exact: true }).first(),
-  ).toHaveCSS('color', 'rgb(155, 123, 255)');
+  ).toHaveCSS('color', 'rgb(8, 126, 242)');
   await expect(page.getByText('2개 설정').first()).toBeVisible();
   await expect(page.getByText('바바리안 부족은 북부 설원의 혹한 속에서 살아왔다.')).toBeVisible();
   await expect(page.getByText('혹한의 땅은 바바리안의 오랜 터전이었다.')).toBeVisible();
@@ -369,11 +369,21 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect(page.getByText('− 기존값').first()).toBeVisible();
   await expect(page.getByText('+ 제안값').first()).toBeVisible();
   await expect(page.getByText('1차 추출 원문').first()).toBeVisible();
+  await expect(page.locator('.world-setting-evidence-card').first())
+    .toHaveCSS('background-color', 'rgb(248, 251, 255)');
+  await expect(page.locator('.world-setting-evidence-card .theme-evidence__quote').first())
+    .toHaveCSS('color', 'rgb(51, 58, 70)');
   await expect(page.getByText('여러 내용 정리됨')).toBeVisible();
   await expect(page.getByText('여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.')).toBeVisible();
 
   const worldCategoryFilter = page.getByRole('group', { name: '세계관 분류' });
+  const worldReviewFilter = page.getByRole('group', { name: '검토 상태' });
+  const worldPendingFilter = worldReviewFilter.getByRole('button', { name: '검토 대기', exact: true });
+  await expect(worldPendingFilter).toHaveCSS('min-height', '34px');
+  await expect(worldPendingFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
+  await expect(worldPendingFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
   await expect(worldCategoryFilter.getByRole('button', { name: '전체 분류', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
   await worldCategoryFilter.getByRole('button', { name: '종족', exact: true }).click();
   await expect(worldCategoryFilter.getByRole('button', { name: '종족', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => new URL(page.url()).searchParams.get('worldCategory')).toBe('RACE');
@@ -386,6 +396,13 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect.poll(() => new URL(page.url()).searchParams.get('worldGroup')).toBe('RACE|바바리안');
   await expect.poll(() => new URL(page.url()).searchParams.get('worldCategoryFilter')).toBe('RACE');
   await expect(page.getByText('수아', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.character-setting-evidence-card').first())
+    .toHaveCSS('background-color', 'rgb(248, 251, 255)');
+  const characterPendingFilter = page.getByRole('group', { name: '검토 상태' })
+    .getByRole('button', { name: '검토 대기', exact: true });
+  await expect(characterPendingFilter).toHaveCSS('min-height', '34px');
+  await expect(characterPendingFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
+  await expect(characterPendingFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
 
   await page.getByRole('button', { name: /세계관 후보/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
@@ -466,11 +483,50 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
       },
     ],
   });
-  await expect(page.getByText('북부 바바리안 설정 2개를 세계관 DB에 반영했습니다.')).toBeVisible();
-  await page.getByRole('button', { name: '세계관 DB에서 보기' }).click();
+  await expect(page.getByText('북부 바바리안 설정 2개를 세계관 설정에 저장했습니다.')).toBeVisible();
+  await page.getByRole('button', { name: '세계관 설정에서 보기' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('worldsettings');
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
+});
+
+test('세계관 필터 결과 없음은 밝은 공통 안내 카드로 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 5,
+        episodeCount: 5,
+        totalCandidateCount: 2,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 2,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&worldCategory=LOCATION`);
+
+  const locationFilter = page.getByRole('group', { name: '세계관 분류' })
+    .getByRole('button', { name: '장소', exact: true });
+  await expect(locationFilter).toHaveCSS('min-height', '34px');
+  await expect(locationFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
+  await expect(locationFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
+
+  const emptyState = page.locator('.review-empty-state');
+  await expect(emptyState).toContainText('조건에 맞는 세계관 대상이 없습니다.');
+  await expect(emptyState).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(emptyState.getByRole('button', { name: '필터 초기화', exact: true }))
+    .toHaveCSS('color', 'rgb(8, 126, 242)');
 });
 
 test('세계관 후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 쓰지 않는다', async ({ page }) => {
@@ -700,8 +756,8 @@ test('개별 설정 수정안은 다른 대상 그룹을 다녀와도 해당 row
       value: '생명체의 육체를 먹는다.',
     }],
   });
-  await expect(page.getByText('2층 설정 1개를 세계관 DB에 반영했습니다.')).toBeVisible();
-  await expect(page.getByRole('button', { name: '세계관 DB에서 보기' })).toBeVisible();
+  await expect(page.getByText('2층 설정 1개를 세계관 설정에 저장했습니다.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '세계관 설정에서 보기' })).toBeVisible();
 });
 
 test('같은 설정명도 범위가 다르면 함께 모두 확정한다', async ({ page }) => {
@@ -1655,7 +1711,8 @@ test('대상 전체 충돌은 GROUP 재비교 상태로 잠그고 영향 row를 
     if (pathname.endsWith('/recompare')) {
       const candidateId = pathname.split('/').at(-2)!;
       retriedCandidateIds.push(candidateId);
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // 자동 재비교 전의 GROUP 잠금 상태를 먼저 검증할 수 있도록 mock 응답을 유지한다.
+      await new Promise(resolve => setTimeout(resolve, 1_000));
       candidates = candidates.map(candidate => candidate.id === candidateId
         ? { ...candidate, comparisonStatus: 'PENDING', comparisonErrorMessage: null }
         : candidate);
@@ -1672,7 +1729,7 @@ test('대상 전체 충돌은 GROUP 재비교 상태로 잠그고 영향 row를 
   await expect.poll(() => retriedCandidateIds).toEqual([worldCandidateId, secondWorldCandidateId]);
 });
 
-test('세계관 DB와 설정 검색은 q·page를 탭별로 저장하고 복원한다', async ({ page }) => {
+test('설정 검색 상태는 복원하고 세계관 설정 재진입은 분류 선택으로 초기화한다', async ({ page }) => {
   const worldListQueries: Array<{ q: string | null; page: string | null }> = [];
   const factSearchQueries: Array<{ q: string | null; page: string | null }> = [];
   const settingRow = {
@@ -1758,10 +1815,15 @@ test('세계관 DB와 설정 검색은 q·page를 탭별로 저장하고 복원�
   await page.getByRole('button', { name: '다음 페이지' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
 
-  await page.getByRole('button', { name: '세계관 DB', exact: true }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('세계');
-  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
-  await expect.poll(() => worldListQueries.filter(query => query.q === '세계' && query.page === '1').length).toBeGreaterThan(1);
+  await page.getByRole('button', { name: '세계관 설정', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBeNull();
+  await expect(page.getByRole('heading', { name: '어떤 세계관 설정을 볼까요?' })).toBeVisible();
+  await page.getByRole('button', { name: '전체 설정 보기' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
+  await page.getByRole('button', { name: '세계관 설정', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
+  await expect(page.getByRole('heading', { name: '어떤 세계관 설정을 볼까요?' })).toBeVisible();
 
   await page.getByRole('button', { name: '설정 검색', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('검술');
@@ -1805,7 +1867,7 @@ test('모바일 세계관 DB는 사용자가 대상을 고를 때까지 목록�
   });
 
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=ALL`);
 
   const filters = page.locator('.world-setting-db-filters');
   const filterMetrics = await filters.evaluate(element => ({
@@ -1977,7 +2039,19 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   });
 
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters&category=ALL&q=이전검색&page=2&worldSettingQ=이전검색&worldSettingPage=2`);
+  await page.getByRole('button', { name: '세계관 설정', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '어떤 세계관 설정을 볼까요?' })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
+  await expect(page.getByRole('button', { name: '종족 설정 보기' })).toBeVisible();
+  await page.getByRole('button', { name: '전체 설정 보기' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
+  await expect(page.locator('.database-v2')).toHaveCount(1);
+  await expect(page.locator('.world-setting-db-filters')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('.world-setting-list-item').first()).toHaveCSS('background-color', 'rgb(231, 243, 255)');
+  await expect(page.locator('.world-setting-detail-card')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('.world-setting-detail-header')).not.toContainText('버전');
   await expect(page.getByText('바바리안', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('heading', { name: '공통 설정', exact: true })).toHaveCSS('font-size', '13px');
   await expect(page.getByText('전체 대상', { exact: true })).toBeVisible();
@@ -1985,12 +2059,14 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await page.getByText('3화', { exact: true }).click();
   await expect(page.getByText('바바리안은 혹한 지역에서 살아간다.')).toHaveCount(1);
   await expect(page.getByText('그들은 오래전부터 설원 지대에 정착했다.')).toBeVisible();
+  await expect(page.locator('.world-setting-property-row__evidence')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
   await page.getByRole('button', { name: '분류: 종족' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('RACE');
   await expect(page.getByRole('button', { name: '분류: 종족' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('button', { name: '분류: 종족' })).toHaveCSS('background-color', 'rgb(231, 243, 255)');
   await page.getByRole('button', { name: '분류: 전체' }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
 
   await page.getByPlaceholder('대상 · 설정명 · 설정값 검색').fill('사회 구조');
   await page.getByRole('button', { name: '검색', exact: true }).click();
@@ -1999,6 +2075,9 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
 
   await page.getByRole('button', { name: '새 대상 추가', exact: true }).click();
   const createForm = page.getByText('새 세계관 대상 추가', { exact: true }).locator('..').locator('..').locator('..');
+  await expect(page.getByText('첫 설정', { exact: true })).toHaveCSS('color', 'rgb(25, 30, 38)');
+  await expect(page.getByLabel('설정값')).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(page.getByLabel('설정값')).toHaveCSS('color', 'rgb(25, 30, 38)');
   await page.getByLabel('대상명').fill('북부 설원 부족');
   await page.getByLabel('범위 (선택)').fill('1층');
   await page.getByLabel('설정명').fill('서식지');
@@ -2059,6 +2138,10 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(detailPanel.getByLabel('설정명')).toHaveCount(0);
 
   await page.getByRole('button', { name: '대상 정보 수정' }).click();
+  const identityModal = page.locator('.database-modal').filter({ hasText: '대상 정보 수정' });
+  await expect(identityModal.locator('.database-modal__close')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(identityModal.locator('.database-modal__notice')).toHaveCSS('background-color', 'rgb(238, 247, 255)');
+  await expect(identityModal.locator('.database-modal__footer')).toHaveCSS('border-top-color', 'rgb(225, 229, 236)');
   await page.getByLabel('대상명').fill('북부 바바리안');
   await page.goBack();
   await expect.poll(() => new URL(page.url()).searchParams.get('modal')).toBeNull();
@@ -2095,7 +2178,7 @@ test('세계관 DB 목록 오류를 재시도하면 빈 상태와 직접 추가 
   });
 
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings`);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=ALL`);
   await expect(page.getByText('세계관 목록을 불러오지 못했습니다.')).toBeVisible();
   await page.getByRole('button', { name: '다시 시도' }).click();
   await expect(page.getByText('등록된 세계관 설정이 없습니다.')).toBeVisible();

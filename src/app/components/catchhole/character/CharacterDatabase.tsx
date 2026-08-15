@@ -120,7 +120,6 @@ interface Props {
   onAnalyze: () => void;
 }
 
-const AVATAR_COLORS = [C.primary, '#E25C5C', '#4BB8D9', C.success, '#D4A04A', '#B48BFF'];
 const CHARACTER_CARD_HEIGHT = 177;
 const CHARACTER_GRID_GAP = 16;
 const ARCHIVE_PAGE_SIZE = 9;
@@ -143,11 +142,6 @@ let nextDraftSettingId = 0;
 function createDraftSettingId(): string {
   nextDraftSettingId += 1;
   return `character-setting-${nextDraftSettingId}`;
-}
-
-function colorFor(id: string): string {
-  const hash = Array.from(id).reduce((value, char) => value + char.charCodeAt(0), 0);
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
 function toSummary(detail: CharacterDetailResponse): CharacterSummaryResponse {
@@ -542,20 +536,6 @@ function draftToDemoDetail(previous: CharacterDetailResponse, draft: CharacterDr
   };
 }
 
-function Avatar({ id, name, size = 48 }: { id: string; name: string; size?: number }) {
-  const color = colorFor(id);
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      background: color + '18', border: `2px solid ${color}`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color, fontSize: size * 0.4, fontWeight: 700,
-    }}>
-      {name.trim().charAt(0) || '?'}
-    </div>
-  );
-}
-
 function CharacterCard({
   character,
   selected,
@@ -566,11 +546,11 @@ function CharacterCard({
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const id = character.id ?? '';
-  const color = colorFor(id);
+  const color = C.primary;
   return (
     <button
       type="button"
+      className={`character-card${selected ? ' is-selected' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -582,11 +562,13 @@ function CharacterCard({
         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-        <Avatar id={id} name={character.name ?? ''} size={48} />
-        <strong style={{ flex: 1, minWidth: 0, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {character.name || '이름 없음'}
-        </strong>
+      <div className="character-card__header" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+        <div className="character-card__identity" style={{ flex: 1, minWidth: 0 }}>
+          <span className="character-card__eyebrow">CHARACTER</span>
+          <strong className="character-card__name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {character.name || '이름 없음'}
+          </strong>
+        </div>
         <ChevronRight size={17} color={hovered || selected ? color : C.t3} />
       </div>
       {[
@@ -607,8 +589,12 @@ function CharacterCard({
 
 function EmptyArea({ label }: { label: string }) {
   return (
-    <div style={{ padding: '18px 14px', color: C.t3, fontSize: 12, textAlign: 'center' }}>
-      등록된 {label} 정보가 없습니다.
+    <div className="character-setting-empty" style={{ padding: '18px 14px', color: C.t3, fontSize: 12, textAlign: 'center' }}>
+      <span className="character-setting-empty__icon" aria-hidden="true"><FileText size={15} /></span>
+      <span className="character-setting-empty__copy">
+        <strong>{label} 정보 없음</strong>
+        <span>확정된 설정이 생기면 여기에 표시됩니다.</span>
+      </span>
     </div>
   );
 }
@@ -780,8 +766,9 @@ function EditSettingList({
             borderRadius: complex ? 7 : 0,
           }}>
             {dynamicNameEditable ? (
-              <div style={{ display: 'flex', minWidth: 0 }}>
+              <div className="character-edit-setting-name" style={{ display: 'flex', minWidth: 0 }}>
                 <span
+                  className="character-edit-setting-prefix"
                   title={item.attributeNamePrefix ?? undefined}
                   style={{
                     minHeight: 36,
@@ -801,6 +788,7 @@ function EditSettingList({
                   {SETTING_GROUP_LABELS[group]}
                 </span>
                 <input
+                  className="character-edit-setting-input"
                   aria-label={`${emptyLabel} 이름`}
                   value={item.displayName}
                   onChange={event => {
@@ -824,6 +812,7 @@ function EditSettingList({
               </div>
             ) : editableName ? (
               <input
+                className="character-edit-setting-input"
                 aria-label={`${emptyLabel} 이름`}
                 value={item.displayName}
                 onChange={event => {
@@ -841,6 +830,7 @@ function EditSettingList({
               </span>
             )}
             <input
+              className="character-edit-setting-input"
               aria-label={`${item.displayName} 값`}
               value={item.value}
               onChange={event => onChange(index, { ...item, value: event.target.value })}
@@ -853,6 +843,7 @@ function EditSettingList({
                 onClick={() => evidenceFactId && onEvidence?.(evidenceFactId)}
               />
               <button
+                className="character-edit-setting-remove"
                 type="button"
                 aria-label={`${item.displayName} 제거`}
                 onClick={() => onRemove(index)}
@@ -865,7 +856,7 @@ function EditSettingList({
         );
       })}
       {onAdd && (
-        <button type="button" onClick={onAdd} style={{
+        <button className="character-edit-setting-add" type="button" onClick={onAdd} style={{
           gridColumn: '1 / -1',
           height: 32, borderRadius: 6, border: `1px dashed ${C.border}`,
           background: 'transparent', color: C.t3, fontSize: 12, fontFamily: 'inherit',
@@ -892,7 +883,7 @@ function ModalButton({
   disabled?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={{
+    <button type="button" className={`database-button${primary ? ' is-primary' : ''}${danger ? ' is-danger' : ''}`} onClick={onClick} disabled={disabled} style={{
       height: 36, padding: '0 15px', borderRadius: 6,
       border: primary ? 'none' : `1px solid ${C.border}`,
       background: primary ? (danger ? C.danger : C.primary) : 'transparent',
@@ -918,11 +909,11 @@ function ConfirmLayer({
 }) {
   const deleting = kind === 'delete';
   return (
-    <div style={{
+    <div className="character-confirm-layer" style={{
       position: 'absolute', inset: 0, zIndex: 3, background: 'rgba(0,0,0,0.76)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12,
     }}>
-      <div style={{ width: 500, padding: '26px 28px', borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+      <div className="character-confirm-dialog" style={{ width: 500, padding: '26px 28px', borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 16 }}>
           {deleting ? <Archive size={20} color={C.t2} /> : <AlertCircle size={20} color={C.warning} />}
           {deleting ? '캐릭터를 삭제하시겠습니까?' : '수정 내용을 저장하시겠습니까?'}
@@ -932,7 +923,7 @@ function ConfirmLayer({
             ? '캐릭터 목록, 설정 검색, 이후 원고 캐릭터 매칭과 충돌 감지 대상에서 제외됩니다. 기존 설정 이력과 원문 근거는 그대로 보관됩니다.'
             : '값을 직접 변경한 설정에는 근거 문장이 표시되지 않습니다. 업로드한 원고와 AI 분석 당시의 데이터는 변경되지 않습니다.'}
         </p>
-        <div style={{ padding: '11px 13px', borderRadius: 7, background: '#24242F', border: `1px solid ${C.border}`, color: C.t2, fontSize: 12, marginBottom: 20 }}>
+        <div className="character-confirm-dialog__notice" style={{ padding: '11px 13px', borderRadius: 7, background: '#24242F', border: `1px solid ${C.border}`, color: C.t2, fontSize: 12, marginBottom: 20 }}>
           {deleting
             ? '삭제된 캐릭터는 보관함으로 이동하며, 보관함에서 다시 복구할 수 있습니다.'
             : '수정 뒤에는 설정 검색, 캐릭터 자동 연결, 충돌 감지, 원문 근거 표시 결과가 달라질 수 있습니다.'}
@@ -978,6 +969,7 @@ function ArchivedCharactersLayer({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       data-testid="character-archive-backdrop"
+      className="character-archive-backdrop"
       onClick={() => {
         if (!restoring) onClose();
       }}
@@ -990,6 +982,7 @@ function ArchivedCharactersLayer({
       <motion.div
         role="dialog"
         aria-label="보관된 캐릭터"
+        className="character-archive-modal"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         onClick={event => event.stopPropagation()}
@@ -999,7 +992,7 @@ function ArchivedCharactersLayer({
           boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden',
         }}
       >
-        <div style={{
+        <div className="character-archive-header" style={{
           padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
@@ -1029,15 +1022,15 @@ function ArchivedCharactersLayer({
           </button>
         </div>
 
-        <div style={{ padding: 24, minHeight: 250 }}>
+        <div className="character-archive-body" style={{ padding: 24, minHeight: 250 }}>
           {loading && (
-            <div style={{ height: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
+            <div className="database-state database-state--compact" style={{ height: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
               <Loader2 size={18} className="spin" /> 보관된 캐릭터를 불러오는 중입니다.
             </div>
           )}
 
           {!loading && error && characters.length === 0 && (
-            <div role="alert" style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
+            <div className="database-state database-state--compact is-error" role="alert" style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
               <AlertCircle size={24} color={C.danger} />
               <span>{error}</span>
               <ModalButton onClick={onRetry}><RefreshCw size={13} /> 다시 시도</ModalButton>
@@ -1045,7 +1038,7 @@ function ArchivedCharactersLayer({
           )}
 
           {!loading && !error && characters.length === 0 && (
-            <div style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <div className="database-state database-state--compact is-empty" style={{ height: 210, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
               <Archive size={28} color={C.t3} />
               <strong style={{ color: C.t1, fontSize: 15 }}>보관된 캐릭터가 없습니다</strong>
               <span style={{ color: C.t3, fontSize: 12 }}>삭제한 캐릭터가 이곳에 표시됩니다.</span>
@@ -1062,6 +1055,7 @@ function ArchivedCharactersLayer({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {characters.map(character => (
                   <div
+                    className="character-archive-item"
                     key={character.id}
                     style={{
                       minHeight: 70, padding: '12px 14px', borderRadius: 8,
@@ -1069,10 +1063,10 @@ function ArchivedCharactersLayer({
                       display: 'flex', alignItems: 'center', gap: 12,
                     }}
                   >
-                    <Avatar id={character.id ?? character.name ?? ''} name={character.name ?? ''} size={40} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: C.t1, fontSize: 13, fontWeight: 650 }}>{character.name}</div>
-                      <div style={{ color: C.t3, fontSize: 11, marginTop: 4 }}>
+                    <div className="character-archive-item__identity" style={{ flex: 1, minWidth: 0 }}>
+                      <span className="character-archive-item__eyebrow">CHARACTER</span>
+                      <div className="character-archive-item__name" style={{ color: C.t1, fontSize: 14, fontWeight: 750 }}>{character.name}</div>
+                      <div className="character-archive-item__meta" style={{ color: C.t3, fontSize: 11, marginTop: 4 }}>
                         나이 {character.currentAge == null ? '—' : `${character.currentAge}세`}
                         {' · '}
                         첫 등장 {character.firstAppearanceEpisodeNo == null ? '—' : `${character.firstAppearanceEpisodeNo}화`}
@@ -1595,6 +1589,7 @@ export function CharacterDatabase({
     <>
       {feedback && (
         <div
+          className="database-toast"
           role="status"
           aria-live="polite"
           style={{
@@ -1620,10 +1615,10 @@ export function CharacterDatabase({
         </div>
       )}
 
-      <div ref={containerRef} style={{ width: '100%', maxWidth: 1680 }}>
+      <div ref={containerRef} className="character-database" style={{ width: '100%', maxWidth: 1680 }}>
         <div className="character-database-header" style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div className="character-database-heading">
-            <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 DB</h2>
+            <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 설정</h2>
             <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
               캐릭터 카드를 선택하면 현재 설정과 원문 근거를 확인할 수 있습니다.
             </p>
@@ -1636,7 +1631,7 @@ export function CharacterDatabase({
         <div ref={contentStartRef} />
 
         {listRefetchError && (
-          <div role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="database-inline-alert is-error" role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertCircle size={14} />
             <span style={{ flex: 1 }}>{errorMessage(charactersQuery.error, '캐릭터 목록을 새로고침하지 못했습니다.')}</span>
             <button type="button" onClick={() => charactersQuery.refetch()} style={{ background: 'none', border: 'none', color: C.danger, cursor: 'pointer', padding: 0, fontSize: 12 }}>
@@ -1646,13 +1641,13 @@ export function CharacterDatabase({
         )}
 
         {loadingList && (
-          <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
+          <div className="database-state is-loading" style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
             <Loader2 size={18} className="spin" /> 캐릭터 목록을 불러오는 중입니다.
           </div>
         )}
 
         {listError && (
-          <div style={{ height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
+          <div className="database-state is-error" style={{ height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.t3, fontSize: 13 }}>
             <AlertCircle size={24} color={C.danger} />
             <span>{errorMessage(charactersQuery.error, '캐릭터 목록을 불러오지 못했습니다.')}</span>
             <ModalButton onClick={() => charactersQuery.refetch()}><RefreshCw size={13} /> 다시 시도</ModalButton>
@@ -1660,7 +1655,7 @@ export function CharacterDatabase({
         )}
 
         {!loadingList && !listError && characters.length === 0 && (
-          <div style={{ height: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div className="database-state is-empty" style={{ height: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <div style={{ width: 56, height: 56, borderRadius: 14, background: C.primary + '14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={26} color={C.primary} />
             </div>
@@ -1672,7 +1667,7 @@ export function CharacterDatabase({
 
         {!loadingList && !listError && characters.length > 0 && (
           <div>
-            <div style={{
+            <div className="character-database-grid" style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
               gap: CHARACTER_GRID_GAP,
@@ -1767,13 +1762,13 @@ export function CharacterDatabase({
 
             <div style={{ minWidth: 0 }}>
             {!demoMode && detailQuery.isPending && (
-              <div style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
+              <div className="database-state is-loading" style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
                 <Loader2 size={18} className="spin" /> 캐릭터 정보를 불러오는 중입니다.
               </div>
             )}
 
             {((!demoMode && detailQuery.isError) || (demoMode && !detail)) && (
-              <div style={{ minHeight: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <div className="database-state is-error" style={{ minHeight: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                 <AlertCircle size={26} color={C.danger} />
                 <span style={{ color: C.t2, fontSize: 13 }}>
                   {!demoMode ? errorMessage(detailQuery.error, '캐릭터 정보를 찾을 수 없습니다.') : '캐릭터 정보를 찾을 수 없습니다.'}
@@ -1788,10 +1783,10 @@ export function CharacterDatabase({
             {detail && (demoMode || (!detailQuery.isPending && !detailQuery.isError)) && (
               <>
                 <div className="character-detail-header" style={{ padding: '22px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <Avatar id={detail.id ?? selectedCharacterId} name={isEditing ? draft?.name ?? detail.name ?? '' : detail.name ?? ''} size={54} />
                   <div className="character-detail-header__identity" style={{ flex: 1 }}>
-                    <div style={{ color: C.t1, fontSize: 19, fontWeight: 700 }}>{isEditing ? draft?.name || detail.name : detail.name}</div>
-                    <div style={{ color: C.primary, fontSize: 12, marginTop: 3 }}>{isEditing ? draft?.roleLabel || '역할 없음' : detail.roleLabel || '역할 없음'}</div>
+                    <span className="character-detail-header__eyebrow">CHARACTER</span>
+                    <div className="character-detail-header__name" style={{ color: C.t1, fontSize: 19, fontWeight: 700 }}>{isEditing ? draft?.name || detail.name : detail.name}</div>
+                    <div className="character-detail-header__role" style={{ color: C.primary, fontSize: 12, marginTop: 3 }}>{isEditing ? draft?.roleLabel || '역할 없음' : detail.roleLabel || '역할 없음'}</div>
                   </div>
                   {!isEditing && !timelineOpen && (
                     <div className="character-detail-header__actions">
@@ -1817,7 +1812,7 @@ export function CharacterDatabase({
 
                 <div className="character-detail-body" style={{ padding: '22px 28px 26px', maxHeight: 'calc(100dvh - 190px)', overflowY: 'auto' }}>
                   {actionError && (
-                    <div role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12 }}>
+                    <div className="database-inline-alert is-error" role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12 }}>
                       {actionError}
                     </div>
                   )}
@@ -1921,7 +1916,7 @@ export function CharacterDatabase({
                         selected={appliedTimelineSelection.factTypes.includes('PROFILE')}
                         onToggle={() => toggleTimelineType('PROFILE', currentFactKeys('profile'))}
                       >프로필</SectionTitle>
-                      <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                      <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                         {isEditing && draft
                           ? <EditSettingList settings={draft.profile} group="profile" emptyLabel="프로필" onChange={(index, value) => changeSetting('profile', index, value)} onRemove={index => removeSetting('profile', index)} onAdd={() => addSimpleSetting('profile')} onEvidence={onEvidenceOpen} />
                           : <SimpleSettingList settings={detail.profile ?? []} emptyLabel="프로필" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="PROFILE" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
@@ -1936,7 +1931,7 @@ export function CharacterDatabase({
                           selected={appliedTimelineSelection.factTypes.includes('STAT')}
                           onToggle={() => toggleTimelineType('STAT', currentFactKeys('stats'))}
                         >스탯</SectionTitle>
-                        <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                        <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                           {isEditing && draft
                             ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={onEvidenceOpen} />
                             : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="STAT" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
@@ -1955,7 +1950,7 @@ export function CharacterDatabase({
                             selected={appliedTimelineSelection.factTypes.includes('SKILL')}
                             onToggle={() => toggleTimelineType('SKILL', currentFactKeys('skills'))}
                           >스킬</SectionTitle>
-                          <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                          <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
                               ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={onEvidenceOpen} />
                               : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="SKILL" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
@@ -1968,7 +1963,7 @@ export function CharacterDatabase({
                             selected={appliedTimelineSelection.factTypes.includes('ITEM')}
                             onToggle={() => toggleTimelineType('ITEM', currentFactKeys('items'))}
                           >아이템</SectionTitle>
-                          <div style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
+                          <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
                               ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={onEvidenceOpen} />
                               : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="ITEM" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
@@ -1984,6 +1979,7 @@ export function CharacterDatabase({
                           onToggle={() => toggleTimelineType('STATUS', currentFactKeys('statuses'))}
                         >상태</SectionTitle>
                         <div
+                          className="character-setting-surface"
                           data-testid="character-status-settings"
                           style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}
                         >
@@ -2048,7 +2044,7 @@ function SectionTitle({
     );
   }
   return (
-    <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 7 }}>
+    <div className="character-section-title" style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 7 }}>
       {children}
     </div>
   );

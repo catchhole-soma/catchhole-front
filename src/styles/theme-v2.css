@@ -1,0 +1,205 @@
+.theme-v2 {
+  --ch-canvas: #f5f7fb;
+  --ch-surface: #ffffff;
+  --ch-surface-soft: #eef7ff;
+  --ch-surface-accent: #e7f3ff;
+  --ch-ink: #191e26;
+  --ch-text: #333a46;
+  --ch-text-muted: #657083;
+  --ch-text-subtle: #8c96a8;
+  --ch-border: #e1e5ec;
+  --ch-border-strong: #cfd6e2;
+  --ch-primary: #087ef2;
+  --ch-primary-hover: #006fdc;
+  --ch-primary-pressed: #0062c4;
+  --ch-primary-contrast: #ffffff;
+  --ch-ai: #087ef2;
+  --ch-success: #0f9f7a;
+  --ch-warning: #d98324;
+  --ch-danger: #df4d5f;
+  --ch-shadow-card: 0 10px 32px rgb(31 55 88 / 7%);
+  --ch-shadow-float: 0 24px 64px rgb(31 55 88 / 13%);
+  --ch-radius-sm: 10px;
+  --ch-radius-md: 16px;
+  --ch-radius-lg: 24px;
+  --ch-radius-xl: 32px;
+  color: var(--ch-text);
+  background: var(--ch-canvas);
+}
+
+.theme-v2 button,
+.theme-v2 input,
+.theme-v2 textarea,
+.theme-v2 select {
+  font: inherit;
+}
+
+.theme-v2 :focus-visible {
+  outline: 3px solid rgb(8 126 242 / 24%);
+  outline-offset: 3px;
+}
+
+.product-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: inherit;
+}
+
+button.product-brand { cursor: pointer; }
+
+.brand-logo {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.brand-logo img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.brand-logo--symbol {
+  width: 36px;
+  height: 36px;
+}
+
+.brand-logo--symbol img {
+  top: 50%;
+  left: 50%;
+  width: 148%;
+  height: auto;
+  transform: translate(-50%, -50%);
+}
+
+.brand-logo--wordmark {
+  width: 172px;
+  height: 32px;
+}
+
+.brand-logo--wordmark img {
+  top: calc(50% + 1px);
+  left: 50%;
+  width: 126%;
+  height: auto;
+  mix-blend-mode: multiply;
+  transform: translate(-50%, -50%);
+}
+
+.product-brand__wordmark {
+  width: 158px;
+  height: 29px;
+}
+
+.product-brand__badge {
+  padding: 3px 7px;
+  border: 1px solid rgb(8 126 242 / 24%);
+  border-radius: 999px;
+  background: var(--ch-surface-accent, rgb(8 126 242 / 12%));
+  color: var(--ch-primary, #087ef2);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ch-action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--ch-radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.ch-action:hover {
+  transform: translateY(-1px);
+}
+
+.ch-action:active {
+  transform: translateY(0);
+}
+
+.ch-action:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ch-action--primary {
+  border-color: var(--ch-primary);
+  background: var(--ch-primary);
+  color: var(--ch-primary-contrast);
+}
+
+.ch-action--primary:hover {
+  border-color: var(--ch-primary-hover);
+  background: var(--ch-primary-hover);
+}
+
+.ch-action--primary:active {
+  border-color: var(--ch-primary-pressed);
+  background: var(--ch-primary-pressed);
+}
+
+.ch-action--secondary {
+  border-color: var(--ch-border-strong);
+  background: var(--ch-surface);
+  color: var(--ch-ink);
+}
+
+.ch-action--secondary:hover {
+  border-color: var(--ch-primary);
+  color: var(--ch-primary);
+}
+
+.ch-action--ghost {
+  background: transparent;
+  color: var(--ch-text-muted);
+}
+
+.ch-action--ghost:hover {
+  background: var(--ch-surface-soft);
+  color: var(--ch-primary);
+}
+
+.ch-action--compact {
+  min-height: 38px;
+  padding-right: 16px;
+  padding-left: 16px;
+  font-size: 13px;
+}
+
+.ch-surface-card {
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-lg);
+  background: var(--ch-surface);
+  box-shadow: var(--ch-shadow-card);
+}
+
+.ch-surface-card--soft {
+  border-color: transparent;
+  background: var(--ch-surface-soft);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-action {
+    transition: none;
+  }
+}

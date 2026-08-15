@@ -1,0 +1,240 @@
+.setting-review-screen {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  background: var(--ch-canvas) !important;
+}
+
+.setting-review-screen .review-header {
+  display: flex !important;
+  height: 72px !important;
+  flex-shrink: 0;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 0 30px !important;
+  border-color: var(--ch-border) !important;
+  background: rgb(255 255 255 / 94%) !important;
+  backdrop-filter: blur(14px);
+}
+
+.review-header__back {
+  display: flex !important;
+  width: 38px !important;
+  height: 38px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--ch-border) !important;
+  border-radius: 11px !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text-muted) !important;
+  cursor: pointer;
+}
+
+.review-header__back:hover { border-color: var(--ch-primary) !important; color: var(--ch-primary) !important; }
+.review-header__title { display: flex; flex-direction: column; gap: 2px; }
+.review-header__title small { color: var(--ch-primary); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.review-header__title strong { color: var(--ch-ink); font-size: 18px; letter-spacing: -.03em; }
+.review-header__spacer { flex: 1; }
+
+.setting-review-screen .setting-review-main { flex: 1; overflow-y: auto; background: var(--ch-canvas); }
+.setting-review-screen .setting-review-content { max-width: 1450px; margin: 0 auto; padding: 32px 32px 72px !important; }
+.setting-review-screen .world-setting-review-content { max-width: 1450px; margin: 0 auto; padding: 32px 32px 72px !important; }
+
+.setting-review-screen .setting-review-summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 36px !important;
+  padding: 20px 24px !important;
+  border: 1px solid var(--ch-border) !important;
+  border-radius: var(--ch-radius-md) !important;
+  background: var(--ch-surface) !important;
+  box-shadow: var(--ch-shadow-card);
+}
+.setting-review-summary__item > div { margin-bottom: 5px; color: var(--ch-text-subtle) !important; font-size: 11px; }
+.setting-review-summary__item > strong { color: var(--ch-ink) !important; font-size: 16px !important; }
+
+.setting-review-tabs {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-md);
+  background: var(--ch-surface);
+  box-shadow: 0 4px 18px rgb(31 55 88 / 4%);
+}
+.setting-review-tabs__button {
+  position: relative; display: flex; min-height: 60px; align-items: center; gap: 9px; padding: 0 30px;
+  border: 0; background: transparent; color: var(--ch-text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.setting-review-tabs__button:hover { background: var(--ch-surface-soft); color: var(--ch-ink); }
+.setting-review-tabs__button.is-active { background: var(--ch-surface-accent); color: var(--ch-primary); font-weight: 800; }
+.setting-review-tabs__button.is-active::after { position: absolute; right: 18px; bottom: 0; left: 18px; height: 3px; border-radius: 3px 3px 0 0; background: var(--ch-primary); content: ''; }
+.setting-review-tabs__count { min-width: 28px; padding: 3px 7px; border: 1px solid var(--ch-border); border-radius: 999px; background: var(--ch-canvas); color: var(--ch-text-subtle); font-size: 10px; font-weight: 800; }
+.setting-review-tabs__button.is-active .setting-review-tabs__count { border-color: rgb(8 126 242 / 20%); background: var(--ch-surface); color: var(--ch-primary); }
+
+.setting-review-screen .setting-review-layout { margin-top: 20px !important; gap: 20px !important; }
+.setting-review-screen .setting-review-sidebar { padding: 18px; border: 1px solid var(--ch-border); border-radius: var(--ch-radius-md); background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
+.review-filter__label { margin-bottom: 8px !important; color: var(--ch-text-muted) !important; font-size: 11px !important; font-weight: 750 !important; }
+.review-filter__options { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; }
+.review-filter__button {
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--ch-border) !important;
+  border-radius: 9px !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text-muted) !important;
+  font-family: inherit;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  cursor: pointer;
+}
+.review-filter__button:hover:not(:disabled) { border-color: var(--ch-primary) !important; color: var(--ch-primary) !important; }
+.review-filter__button.is-active {
+  border-color: var(--ch-primary) !important;
+  background: var(--ch-surface-accent) !important;
+  color: var(--ch-primary) !important;
+  font-weight: 800 !important;
+}
+.review-filter__button:focus-visible { outline: 3px solid rgb(8 126 242 / 15%); outline-offset: 2px; }
+.review-filter__button:disabled { opacity: .58 !important; cursor: not-allowed; }
+
+.setting-review-screen .review-empty-state {
+  min-height: 108px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px !important;
+  border: 1px dashed var(--ch-border-strong) !important;
+  border-radius: 12px !important;
+  background: var(--ch-canvas) !important;
+  color: var(--ch-text-muted) !important;
+  line-height: 1.55;
+}
+.review-empty-state__title { color: var(--ch-text-muted); }
+.review-empty-state__action {
+  min-height: 30px;
+  margin-top: 8px !important;
+  padding: 0 10px;
+  border-radius: 8px !important;
+  color: var(--ch-primary) !important;
+  font-weight: 750;
+}
+.review-empty-state__action:hover { background: var(--ch-surface-accent) !important; }
+
+.setting-review-screen .candidate-group-card {
+  width: 100% !important; min-height: 86px !important; padding: 15px 16px !important;
+  border: 1px solid var(--ch-border) !important; border-radius: 12px !important;
+  background: var(--ch-surface) !important; color: var(--ch-ink) !important;
+  box-shadow: 0 3px 12px rgb(31 55 88 / 4%); cursor: pointer;
+}
+.setting-review-screen .candidate-group-card:hover { border-color: rgb(8 126 242 / 40%) !important; }
+.setting-review-screen .candidate-group-card.is-selected { border-color: var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 8px 20px rgb(8 126 242 / 10%); }
+.candidate-group-card strong { color: var(--ch-ink) !important; }
+.setting-review-screen .world-setting-review-sidebar { display: flex !important; flex-direction: column; gap: 14px !important; padding: 18px; border: 1px solid var(--ch-border); border-radius: var(--ch-radius-md); background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
+.setting-review-screen .world-setting-review-layout { margin-top: 20px !important; gap: 20px !important; }
+.setting-review-screen .world-candidate-group-card {
+  width: 100% !important; padding: 15px 16px !important; border: 1px solid var(--ch-border) !important;
+  border-radius: 12px !important; background: var(--ch-surface) !important; color: var(--ch-text) !important;
+  box-shadow: 0 3px 12px rgb(31 55 88 / 4%); cursor: pointer;
+}
+.setting-review-screen .world-candidate-group-card:hover { border-color: rgb(8 126 242 / 40%) !important; }
+.setting-review-screen .world-candidate-group-card.is-selected { border-color: var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 8px 20px rgb(8 126 242 / 10%); }
+.setting-review-screen .world-candidate-group-card strong { color: var(--ch-ink) !important; }
+.setting-review-screen .world-candidate-group-card > div:nth-child(2) { color: var(--ch-text-muted) !important; }
+
+.setting-review-screen .setting-review-detail > div > article {
+  overflow: hidden;
+  border: 1px solid var(--ch-border) !important;
+  border-radius: var(--ch-radius-md) !important;
+  background: var(--ch-surface) !important;
+  box-shadow: var(--ch-shadow-card);
+}
+.setting-review-screen .setting-review-detail article > header { padding: 22px 24px 18px !important; background: var(--ch-surface); }
+.setting-review-screen .setting-review-detail article > header h2 { color: var(--ch-ink) !important; font-size: 21px !important; }
+.setting-review-screen .setting-review-detail article > header p { color: var(--ch-text-muted) !important; }
+.setting-review-screen .setting-candidate-detail { padding: 20px 24px !important; border-color: var(--ch-border) !important; background: var(--ch-surface) !important; }
+.setting-review-screen .setting-candidate-detail.is-read-only { opacity: 1 !important; }
+.setting-review-screen .setting-candidate-detail strong { color: var(--ch-ink) !important; }
+.setting-review-screen .setting-candidate-detail blockquote { color: var(--ch-text) !important; }
+.setting-review-screen .setting-candidate-detail > div[style*="background"] { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; }
+.setting-review-screen .setting-candidate-detail > div.setting-candidate-status-notice {
+  border-color: rgb(15 159 122 / 26%) !important;
+  background: rgb(15 159 122 / 6%) !important;
+  color: var(--ch-text) !important;
+}
+.setting-review-screen .setting-candidate-detail > div.setting-candidate-status-notice.is-dismissed {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-canvas) !important;
+  color: var(--ch-text-muted) !important;
+}
+.setting-candidate-status-notice svg { flex-shrink: 0; }
+.setting-review-screen .character-comparison-values,
+.setting-review-screen .character-comparison-decisions { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; }
+.setting-review-screen .character-comparison-panel { border-color: rgb(15 159 122 / 24%) !important; background: rgb(15 159 122 / 4%) !important; }
+.setting-review-screen .character-comparison-value { min-height: 76px; }
+.setting-review-screen .character-comparison-value--before { border-color: rgb(223 77 95 / 20%) !important; background: rgb(223 77 95 / 4%) !important; }
+.setting-review-screen .character-comparison-value--proposed { border-color: rgb(15 159 122 / 35%) !important; background: rgb(15 159 122 / 7%) !important; box-shadow: inset 3px 0 0 var(--ch-success) !important; }
+.setting-review-screen .character-comparison-value--before .character-comparison-value__label { color: var(--ch-danger) !important; }
+.setting-review-screen .character-comparison-value--proposed .character-comparison-value__label { color: var(--ch-success) !important; }
+.setting-review-screen .character-comparison-value__content { color: var(--ch-ink) !important; }
+
+.setting-review-screen .review-action {
+  min-height: 38px !important; padding: 0 17px !important; border-radius: 10px !important;
+  background: var(--ch-surface) !important; font-size: 12px !important; font-weight: 750 !important; cursor: pointer;
+}
+.setting-review-screen .review-action:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 16px rgb(31 55 88 / 8%); }
+.setting-review-screen .review-action:disabled { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; color: var(--ch-text-subtle) !important; opacity: .65 !important; cursor: not-allowed; }
+.setting-review-screen .setting-review-detail article > footer { border-color: var(--ch-border) !important; background: rgb(255 255 255 / 95%) !important; box-shadow: 0 -12px 28px rgb(31 55 88 / 8%) !important; }
+.setting-review-screen .world-candidate-detail-card { overflow: hidden; border-color: var(--ch-border) !important; border-radius: var(--ch-radius-md) !important; background: var(--ch-surface) !important; box-shadow: var(--ch-shadow-card); }
+.setting-review-screen .world-candidate-detail-card > header { padding: 22px 24px 18px !important; background: var(--ch-surface); }
+.setting-review-screen .world-candidate-detail-card > header strong { color: var(--ch-ink) !important; font-size: 20px !important; }
+.setting-review-screen .world-candidate-detail-card > header p { color: var(--ch-text-muted) !important; }
+.setting-review-screen .world-setting-diff-row { padding: 20px 24px !important; border-color: var(--ch-border) !important; background: var(--ch-surface); }
+.setting-review-screen .world-setting-diff-row strong { color: var(--ch-ink) !important; }
+.setting-review-screen .world-setting-key-diff-values > div:first-child { border-color: rgb(223 77 95 / 20%) !important; background: rgb(223 77 95 / 4%) !important; }
+.setting-review-screen .world-setting-key-diff-values > div:last-child { border-color: rgb(15 159 122 / 35%) !important; background: rgb(15 159 122 / 7%) !important; box-shadow: inset 3px 0 0 var(--ch-success) !important; }
+.setting-review-screen .world-setting-key-diff-values > div > div:last-child,
+.setting-review-screen .world-setting-key-diff-values > div:last-child div { color: var(--ch-ink) !important; }
+.setting-review-screen .world-candidate-detail-card > footer { border-color: var(--ch-border) !important; background: rgb(255 255 255 / 95%) !important; box-shadow: 0 -12px 28px rgb(31 55 88 / 8%); }
+.setting-review-screen .world-candidate-detail-card > footer > button:last-child { border-radius: 10px !important; background: var(--ch-primary) !important; color: white !important; }
+.setting-review-screen .world-candidate-detail-card > footer > button:last-child:disabled { background: var(--ch-border) !important; color: var(--ch-text-subtle) !important; }
+.setting-review-screen .world-setting-review-mobile-back { color: var(--ch-primary) !important; }
+
+.setting-review-screen .review-modal-layer { background: rgb(25 30 38 / 48%) !important; backdrop-filter: blur(7px); }
+.setting-review-screen .review-modal,
+.review-modal-layer .review-modal { border-color: var(--ch-border) !important; border-radius: 20px !important; background: var(--ch-surface) !important; box-shadow: var(--ch-shadow-float) !important; }
+.review-modal > div:first-child { border-color: var(--ch-border) !important; }
+.review-modal > div:first-child h2 { color: var(--ch-ink) !important; }
+.review-modal > div:first-child p { color: var(--ch-text-muted) !important; }
+.review-modal > div:first-child strong { color: var(--ch-ink) !important; }
+.review-modal label { color: var(--ch-text-muted) !important; }
+.review-modal input, .review-modal textarea, .review-modal select { border-color: var(--ch-border-strong) !important; border-radius: 10px !important; background: var(--ch-surface) !important; color: var(--ch-ink) !important; }
+.review-modal input:focus, .review-modal textarea:focus, .review-modal select:focus { border-color: var(--ch-primary) !important; box-shadow: 0 0 0 3px rgb(8 126 242 / 12%); }
+.review-modal > div:last-child { border-color: var(--ch-border) !important; background: var(--ch-canvas); }
+.review-modal__choice { border-color: var(--ch-border) !important; background: var(--ch-surface) !important; color: var(--ch-ink) !important; }
+.review-modal__choice:hover { border-color: var(--ch-primary) !important; background: var(--ch-surface-soft) !important; }
+.review-modal__choice.is-selected { border-color: var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: inset 3px 0 0 var(--ch-primary); }
+.review-modal__choice span { color: var(--ch-text-muted) !important; }
+
+.setting-review-screen .setting-review-page {
+  min-height: 320px !important; border: 1px solid var(--ch-border) !important;
+  border-radius: var(--ch-radius-md) !important; background: var(--ch-surface) !important; box-shadow: var(--ch-shadow-card);
+}
+.setting-review-screen .setting-review-page strong { color: var(--ch-ink) !important; }
+.setting-review-screen .setting-review-page > span { color: var(--ch-text-muted) !important; }
+.setting-review-mobile-back { border: 0; background: transparent; color: var(--ch-primary); }
+
+@media (max-width: 768px) {
+  .setting-review-screen .review-header { height: 64px !important; padding: 0 16px !important; }
+  .setting-review-screen .setting-review-content { padding: 20px 16px calc(32px + env(safe-area-inset-bottom)) !important; }
+  .setting-review-screen .world-setting-review-content { padding: 20px 16px calc(32px + env(safe-area-inset-bottom)) !important; }
+  .setting-review-screen .setting-review-summary { gap: 20px !important; }
+  .setting-review-summary__item { min-width: 82px; }
+  .setting-review-tabs__button { flex: 1; justify-content: center; padding: 0 12px; }
+  .setting-review-screen .setting-review-sidebar { padding: 14px; }
+  .setting-review-screen .setting-candidate-detail { padding: 17px 16px !important; }
+}

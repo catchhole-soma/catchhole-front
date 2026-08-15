@@ -165,7 +165,7 @@ function getAnswer(q: string): { answer: string; evidence?: Message['evidence'] 
     };
   }
   return {
-    answer: '설정 DB를 검색했지만 정확히 일치하는 설정을 찾지 못했습니다. 더 구체적으로 질문해 주세요.',
+    answer: '작품 설정을 검색했지만 정확히 일치하는 설정을 찾지 못했습니다. 더 구체적으로 질문해 주세요.',
   };
 }
 
@@ -288,7 +288,7 @@ export default function S3Chat() {
               <span style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>{(WORK_INFO[selectedWork] ?? FALLBACK_WORK_INFO).title}</span>
               <span style={{ color: C.t3, fontSize: 13 }}>▾</span>
             </div>
-            <span style={{ color: C.t3, fontSize: 12 }}>설정 DB 기반 · 158화 로드됨</span>
+            <span style={{ color: C.t3, fontSize: 12 }}>작품 설정 기반 · 158화 로드됨</span>
           </div>
 
           {/* 메시지 목록 */}

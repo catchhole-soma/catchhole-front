@@ -32,6 +32,7 @@ export function EpisodeDeleteModal({
 
   return (
     <motion.div
+      className="theme-modal-backdrop"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -50,6 +51,7 @@ export function EpisodeDeleteModal({
       }}
     >
       <motion.div
+        className="theme-modal episode-delete-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -65,7 +67,7 @@ export function EpisodeDeleteModal({
           overflow: 'hidden',
         }}
       >
-        <div style={{
+        <div className="theme-modal__header" style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -85,17 +87,17 @@ export function EpisodeDeleteModal({
           }}>
             <Trash2 size={17} />
           </div>
-          <div id={titleId} style={{ color: C.t1, fontSize: 16, fontWeight: 700 }}>
+          <div className="theme-modal__title" id={titleId} style={{ color: C.t1, fontSize: 16, fontWeight: 700 }}>
             {episode.episodeNo}화를 삭제할까요?
           </div>
         </div>
 
-        <div style={{ padding: '22px' }}>
-          <div style={{ color: C.t2, fontSize: 13, marginBottom: 14 }}>
+        <div className="theme-modal__body" style={{ padding: '22px' }}>
+          <div className="theme-modal__description" style={{ color: C.t2, fontSize: 13, marginBottom: 14 }}>
             삭제한 회차는 원고 목록에서 사라집니다.
           </div>
 
-          <div style={{
+          <div className="theme-modal__summary" style={{
             padding: '12px 14px',
             borderRadius: 7,
             background: '#22222C',
@@ -150,7 +152,7 @@ export function EpisodeDeleteModal({
           )}
         </div>
 
-        <div style={{
+        <div className="theme-modal__footer" style={{
           display: 'flex',
           justifyContent: 'flex-end',
           gap: 8,

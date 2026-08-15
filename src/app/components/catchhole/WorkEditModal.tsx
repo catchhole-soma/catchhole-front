@@ -102,7 +102,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
 
   return (
     <motion.div
-      className="work-edit-backdrop"
+      className="work-edit-backdrop theme-modal-backdrop"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -121,7 +121,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
       }}
     >
       <motion.form
-        className="work-form-modal"
+        className="work-form-modal theme-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-edit-title"

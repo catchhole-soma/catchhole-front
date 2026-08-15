@@ -82,11 +82,11 @@ const FACT_FILTER_LABELS: Record<TimelineFactFilter, string> = {
   STATUS: '상태',
 };
 const FACT_COLORS: Record<Exclude<TimelineFactFilter, 'ALL'>, string> = {
-  PROFILE: '#8B6DFF',
+  PROFILE: '#087EF2',
   AGE: '#F4A261',
   LEVEL: '#E879B9',
   STAT: '#4BB8D9',
-  SKILL: '#7655E8',
+  SKILL: '#3976D4',
   ITEM: '#D4A04A',
   STATUS: '#E25C5C',
 };

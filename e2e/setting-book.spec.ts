@@ -140,7 +140,20 @@ test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보�
 
   const fileList = page.getByLabel('설정집 파일 목록');
   await expect(fileList).toBeVisible();
+  await expect(page.getByRole('heading', { name: '설정집', exact: true })).toHaveCSS('color', 'rgb(25, 30, 38)');
+  await expect(fileList).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(page.getByTestId('setting-book-empty-source')).toBeVisible();
+  await expect(page.getByTestId('setting-book-empty-source')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  const [emptySourceBox, emptySourceContentBox] = await Promise.all([
+    page.getByTestId('setting-book-empty-source').boundingBox(),
+    page.getByTestId('setting-book-empty-source-content').boundingBox(),
+  ]);
+  expect(emptySourceBox).not.toBeNull();
+  expect(emptySourceContentBox).not.toBeNull();
+  expect(Math.abs(
+    ((emptySourceBox?.y ?? 0) + (emptySourceBox?.height ?? 0) / 2)
+      - ((emptySourceContentBox?.y ?? 0) + (emptySourceContentBox?.height ?? 0) / 2),
+  )).toBeLessThan(3);
   const initialWidthBox = await fileList.boundingBox();
   expect(initialWidthBox?.width).toBeLessThan(360);
 
@@ -155,6 +168,8 @@ test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보�
     .getByRole('button', { name: '다시 시도', exact: true })
     .click();
   await expect(page.getByTestId('setting-book-source')).toContainText(content);
+  await expect(page.getByTestId('setting-book-source')).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(page.getByTestId('setting-book-source')).toHaveCSS('color', 'rgb(51, 58, 70)');
 
   await page.getByRole('button', { name: '설정집 원문 닫기', exact: true }).click();
   await expect(page).not.toHaveURL(/settingBookFileId=/);
@@ -185,6 +200,8 @@ test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보�
   await page.getByTestId('setting-book-upload-submit').click();
   const uploadDialog = page.getByRole('dialog', { name: '설정집 업로드' });
   await expect(uploadDialog).toBeVisible();
+  await expect(uploadDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(uploadDialog).toHaveCSS('border-radius', '20px');
   await expect(uploadDialog.getByText('세계관 설정집.txt', { exact: true })).toBeVisible();
   await expect(uploadDialog.getByText('설정집 원본을 업로드하지 못했습니다.', { exact: true })).toBeVisible();
   await page.getByTestId('setting-book-upload-submit').click();

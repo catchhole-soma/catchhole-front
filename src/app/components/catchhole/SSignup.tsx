@@ -23,6 +23,7 @@ import {
 } from '../../api/generated/@tanstack/react-query.gen';
 import { saveAuthToken } from '../../lib/auth';
 import { NetworkError, toApiError } from '../../lib/api-errors';
+import { BrandLogo } from './ui-v2/BrandLogo';
 
 const PHONE_VERIFICATION_STORAGE_KEY = 'catchhole_phone_verification';
 
@@ -98,14 +99,14 @@ function Input({
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div>
-      <div style={{
+    <div className="auth-field">
+      <div className={`auth-field__control${focused ? ' is-focused' : ''}${error ? ' is-error' : ''}`} style={{
         display: 'flex', alignItems: 'center', gap: 10,
         background: C.bg, border: `1px solid ${error ? C.danger + '88' : focused ? C.primary + '88' : C.border}`,
         borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
         opacity: disabled ? 0.72 : 1,
       }}>
-        <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
+        <span className="auth-field__icon" style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
         <input
           type={type}
           placeholder={placeholder}
@@ -116,6 +117,7 @@ function Input({
           inputMode={inputMode}
           maxLength={maxLength}
           disabled={disabled}
+          className="auth-field__input"
           style={{
             flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
             color: C.t1, fontSize: 14, fontFamily: 'inherit',
@@ -124,7 +126,7 @@ function Input({
         {right}
       </div>
       {error && (
-        <div role="alert" style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
+        <div className="auth-field__error" role="alert" style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
       )}
     </div>
   );
@@ -412,25 +414,16 @@ export default function SSignup() {
           background: C.primary + '15', filter: 'blur(40px)',
         }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Shield size={18} color="#fff" />
-            </div>
-            <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' }}>CatchHole</span>
-          </div>
-          <div style={{ color: C.t1, fontSize: 22, fontWeight: 700, lineHeight: 1.4, letterSpacing: '-0.5px', marginBottom: 16 }}>
+          <BrandLogo alt="CatchHole" className="auth-modal-brand__logo" />
+          <div className="auth-modal-brand__headline" style={{ color: C.t1, fontSize: 22, fontWeight: 700, lineHeight: 1.4, letterSpacing: '-0.5px', marginBottom: 16 }}>
             원고 속 설정을<br />체계적으로 정리해보세요.
           </div>
-          <div style={{ color: C.t3, fontSize: 13, lineHeight: 1.7 }}>
+          <div className="auth-modal-brand__description" style={{ color: C.t3, fontSize: 13, lineHeight: 1.7 }}>
             회원가입 후 작품과 원고를 등록하고<br />
             AI 설정 추출을 시작할 수 있습니다.
           </div>
         </div>
-        <div style={{ color: C.t3, fontSize: 11 }}>© 2026 CatchHole</div>
+        <div className="auth-modal-brand__footer" style={{ color: C.t3, fontSize: 11 }}>© 2026 CatchHole</div>
       </div>
 
       <form
@@ -441,8 +434,9 @@ export default function SSignup() {
           void handleSignup();
         }}
       >
-        <div id="signup-modal-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>회원가입</div>
-        <div style={{ color: C.t3, fontSize: 13, marginBottom: 24 }}>휴대폰 인증 후 계정을 만들어 분석을 시작하세요.</div>
+        <BrandLogo alt="CatchHole" className="auth-modal-form__logo" />
+        <div className="auth-modal-form__title" id="signup-modal-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>회원가입</div>
+        <div className="auth-modal-form__intro" style={{ color: C.t3, fontSize: 13, marginBottom: 24 }}>휴대폰 인증 후 계정을 만들어 분석을 시작하세요.</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
           <Input type="text" placeholder="이름 (필명)" value={name} onChange={setName} icon={<User size={15} />} error={errors.name} />
@@ -564,7 +558,7 @@ export default function SSignup() {
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 18 }}>
+        <div className="auth-modal-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 18 }}>
           <button
             type="button"
             aria-label="필수 약관에 동의"
@@ -596,6 +590,7 @@ export default function SSignup() {
         </div>
 
         <button
+          className="auth-modal-primary"
           type="submit"
           disabled={!canSubmit}
           style={{
@@ -604,13 +599,11 @@ export default function SSignup() {
             cursor: canSubmit ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 18,
             opacity: canSubmit ? 1 : 0.5, transition: 'background 0.15s, opacity 0.15s',
           }}
-          onMouseEnter={event => { if (canSubmit) event.currentTarget.style.background = '#6B4EE8'; }}
-          onMouseLeave={event => { event.currentTarget.style.background = C.primary; }}
         >
           {submitting ? '가입 중...' : !isPhoneVerified ? '휴대폰 인증 후 회원가입' : '회원가입'}
         </button>
 
-        <div style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
+        <div className="auth-modal-form__switch" style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
           이미 계정이 있으신가요?{' '}
           <button type="button" onClick={() => switchAuth('/login')} style={{
             background: 'none', border: 'none', color: C.primary, cursor: 'pointer',

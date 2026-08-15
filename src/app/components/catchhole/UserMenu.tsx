@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { LogOut } from 'lucide-react';
-import { C } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { logoutMutation } from '../../api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from '../../lib/auth';
@@ -27,43 +26,32 @@ export function UserMenu() {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="user-menu">
       <button
         type="button"
         aria-label="사용자 메뉴 열기"
         onClick={() => setMenuOpen(o => !o)}
-        style={{
-          width: 32, height: 32, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${C.primary}, #9B7BFD)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          border: 'none', padding: 0, fontFamily: 'inherit',
-        }}
+        className="user-menu__trigger"
       >K</button>
       <AnimatePresence>
         {menuOpen && (
           <>
-            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+            <button
+              type="button"
+              aria-label="사용자 메뉴 닫기"
+              className="user-menu__backdrop"
+              onClick={() => setMenuOpen(false)}
+            />
             <motion.div
+              className="user-menu__popover"
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.12 }}
-              style={{
-                position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 11,
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 160,
-              }}
             >
               <button
+                type="button"
+                className="user-menu__item"
                 onClick={handleLogout}
                 disabled={logoutRequest.isPending}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 14px', background: 'none', border: 'none',
-                  color: C.t1, fontSize: 13, fontFamily: 'inherit', textAlign: 'left',
-                  cursor: logoutRequest.isPending ? 'default' : 'pointer',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.border + '55'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
               >
                 <LogOut size={14} /> {logoutRequest.isPending ? '로그아웃 중...' : '로그아웃'}
               </button>

@@ -20,6 +20,10 @@ CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의
 
 > **2026-08 MVP 노출 범위**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 캐릭터 후보는 같은 이름별 그룹으로 표시하고 `미상`은 마지막에 두며 그룹 안 모든 row를 세계관 검토처럼 세로로 이어서 보여줍니다. row별 설정 내용 수정·제외·단건 연결과 그룹 캐릭터 일괄 연결을 허용하되, 일반 수정에서는 캐릭터 이름을 바꾸지 않고 확정은 남은 대기 후보 전체를 한 요청으로 처리합니다. 기존 캐릭터와 비교된 후보는 기존값·제안값·AI 판단을 함께 표시하고 `현재 설정 반영` 또는 `이력만 저장` 방식을 선택합니다. 비교 처리·기존 캐릭터 연결 대기 상태가 하나라도 있으면 그룹 확정을 잠그고 실패·재비교 필요 상태에는 retry를 제공합니다. 신규 등록 예정인 `UNRESOLVED` 그룹은 한 캐릭터로 함께 확정할 수 있으며, 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 비교 후 재확정합니다. 연결된 레거시 `NOT_REQUIRED` 후보에는 `현재 설정 비교 시작`을 제공합니다. 설정 DB의 기본 진입 탭은 캐릭터 DB입니다. 캐릭터 상세의 현재값이 여러 Fact에서 합성된 경우 출처 회차 탭으로 기존 단건 원문 API를 lazy 조회합니다. `변화 이력`은 상세를 유지한 채 우측 이력 패널을 열며, 처음에는 빈 안내만 표시합니다. 현재 설정이나 종류 전체를 누르면 확정된 `CharacterFact` 이력을 즉시 복수 조회하고, 타임라인의 근거는 기존 원문 패널을 같은 우측 영역에 겹쳐 표시합니다. 설정집 원문 분석과 충돌 분석 리포트·그래프 뷰·챗봇·관계도·작품 전체 사건 타임라인은 업데이트 예정 범위입니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
 
+> **사용자 용어**: 화면에서는 `설정 DB`를 `작품 설정`, `캐릭터 DB`를 `캐릭터 설정`, `세계관 DB`를 `세계관 설정`으로 표현한다. `settingDB` URL 키와 API·코드 식별자는 기존 호환을 위해 유지한다.
+
+> **세계관 설정 진입**: 활성 상태의 탭을 다시 누르는 경우를 포함해 `세계관 설정` 탭을 클릭할 때마다 이전 목록의 `category`·`q`·`page`를 제거하고 종족·세력·장소·몬스터·마법·능력 체계·규칙·역사·중요 아이템·전체 분류 선택 화면을 먼저 표시한다. 분류 선택은 기존 목록 API의 `category` query를 사용하며, `category=ALL`은 API에 분류를 보내지 않는 전체 조회용 화면 값이다. 검색·상세 URL로 직접 진입하면 선택 화면을 건너뛴다.
+
 ## Pencil Workflow Boards
 
 Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍니다. 흐름이 달라질 때는 이 문서의 Mermaid를 먼저 갱신하고, 보드와 PNG를 동기화합니다.
@@ -36,17 +40,19 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
-| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 전 서비스 소개 페이지 |
-| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | 랜딩 위 라우트 모달로 제공하는 이메일·비밀번호 인증과 약관 동의 |
-| 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | 작업할 작품을 고르는 진입점 |
+| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | Theme V2 파일럿을 적용한 로그인 전 서비스 소개 페이지 |
+| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증·휴대폰 인증과 약관 동의 |
+| 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·분석 목록·그래프·원고 허브 |
-| **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인 |
+| **캐릭터 DB 조회** | [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | Theme V2 카드 목록에서 현재 설정 상세·변화 이력·원문 근거를 이어서 조회 |
+| **세계관 DB 조회** | [`/dashboard?nav=settingDB&tab=worldsettings`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) | Theme V2 필터·대상 목록·상세에서 확정 설정과 원문 근거를 조회 |
+| **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | Theme V2 파일럿으로 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인 |
 | 회차 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 선택한 회차 원본을 읽기 전용으로 확인 |
 | AI 챗봇 | [`/chat`](https://catch-hole.vercel.app/chat) | 설정 관련 질의응답 챗봇 |
-| 분석 진행 | [`/loading`](https://catch-hole.vercel.app/loading) | 작업·회차 상태 추적(완료 후 사용자가 결과로 이동) |
+| 분석 진행 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) 내부 `processing` 단계 | Theme V2 상태 카드로 회차별 처리 단계·실패·완료를 추적하고 사용자가 결과로 이동 |
 | 충돌·모순 리포트 | [`/report`](https://catch-hole.vercel.app/report) | 분석 결과(충돌/모순) 리포트 |
-| 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | 방식 선택·입력·선택적 분리 확인·분석 추적 플로우 |
-| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | AI가 회차 원문에서 뽑아낸 **캐릭터·세계관 후보**를 탭별로 확인하고, 캐릭터 후보는 현재 snapshot 비교 제안 또는 이력 저장 방식으로 확정 |
+| 회차 업로드 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) | Theme V2 방식 선택·입력·선택적 분리 확인·분석 추적 플로우 |
+| **설정 후보 검토** | [`/setting-review`](https://catch-hole.vercel.app/setting-review) | 캐릭터·세계관 후보와 수정·연결 모달에 Theme V2를 적용하고 현재값 비교 제안 또는 이력 저장 방식으로 확정 |
 | **회차 검사 결과** | [`/episode-validation-report`](https://catch-hole.vercel.app/episode-validation-report) | 새로 올린 회차가 **기존 설정과 충돌·모순**되는지 검사한 결과 |
 
 ## 범례 (Legend)
@@ -337,6 +343,14 @@ flowchart TD
 
 > 세계관 생성·대상 정보 수정 모달은 브라우저 Back으로 닫혀도 같은 화면 안에서 미저장 draft를 보존해 Forward 또는 재진입 시 복원합니다. 설정 근거는 최신 근거를 먼저 표시하고 과거 이력을 이어 표시하되 같은 후보는 중복하지 않습니다. HTTP 409 중 `WORLD_SETTING_VERSION_CONFLICT`에만 최신값 재조회 동선을 제공하며 대상명·설정명 중복은 입력과 오류 안내를 유지합니다.
 
+> 캐릭터 DB와 세계관 DB의 조회 플로우는 같은 Theme V2 헤더·탭·surface·상태 패턴을 사용합니다. 캐릭터는 카드 → 상세 → 우측 변화 이력 → 원문 근거 순서, 세계관은 필터 → 대상 목록 → 상세 → 펼친 원문 근거 순서를 유지하며, 테마 전환은 URL·API·캐시 경계를 변경하지 않습니다.
+
+> Theme V2 화면에서 여는 상세·수정·연결·삭제·작성 취소 모달은 공통 흰색 overlay shell을 사용합니다. 후보 상세·설정 검색·캐릭터 이력에서 확인하는 원문 근거는 검정 패널 대신 밝은 블루 계열 근거 카드로 통일하며, 로딩·빈 상태·오류 상태도 같은 영역에서 교체합니다. 이 표현 변경은 딥링크와 API 계약을 바꾸지 않습니다.
+
+> 설정 검색의 입력·필터·결과 카드와 설정집의 목록·선택 안내·원문 reader·업로드/삭제 모달도 같은 Theme V2 조회 패턴을 사용합니다. 캐릭터 상세의 비어 있는 설정 그룹은 compact 안내로 줄이고, 로그인·회원가입·약관 라우트 모달은 밝은 overlay와 입력 surface를 공유합니다.
+
+> 캐릭터 상세 수정 행의 동적 prefix와 입력 필드, `/editor`의 회차·설정집 읽기 전용 원문도 Theme V2 밝은 surface를 공유합니다. 설정집을 고르지 않은 우측 원문 영역은 패널 높이의 중앙에 안내를 배치하며 URL·조회 API·원문 데이터는 변경하지 않습니다.
+
 > 사이드바 하단은 API의 `remainingPercent`만 `남은 사용량`으로 표시합니다. 정확한 token 수와 처리 중 예약량은 사용자에게 노출하지 않습니다. 분석 생성·재시도에서 `AI_TOKEN_QUOTA_EXHAUSTED` 응답을 받으면 전역 안내 모달을 열어 기본 사용량 소진과 피드백 연락처를 안내하며, 내부 token 용어와 수치는 표시하지 않습니다.
 
 > 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 캐릭터 설정 후보와 세계관 설정 후보의 검토 완료·대기 수를 분리해 표시하고, 두 종류의 대기 후보를 모두 반영해 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분합니다. 상태에 맞는 `진행 보기`·`실패 확인`·`결과 보기` 중 하나만 제공하며, 분석이 끝난 배치의 `결과 보기`는 설정 후보 검토로 바로 이동합니다.
@@ -401,6 +415,8 @@ flowchart TD
 ```
 
 > 회차 처리 상태: `UPLOADED` → `CHUNKING` → `CHUNKED` → `PREPROCESSING` → `PREPROCESSED` → `ANALYZING` → `ANALYZED`. 실제 진행률을 계산할 수 없으므로 숫자 퍼센트를 표시하지 않습니다.
+
+> 방식 선택부터 분석 완료까지 `/episode-upload` 안에서 같은 Theme V2 워크스페이스를 유지합니다. 업로드 방식·분석 유형·파일 입력은 카드와 form surface로, 회차별 진행 단계는 상태 pill로 표시하며 데이터·mutation·polling 계약은 기존과 같습니다. `/loading`은 이 업로드 분석 진행에 사용하지 않습니다.
 
 > 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 분석 진행 단계와 설정 후보 검토의 뒤로가기는 현재 작품의 `nav=analyses`로 돌아갑니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 후보 조회 결과가 준비됐을 때(후보 0건 포함) `설정 후보 검토`가 활성화됩니다.
 

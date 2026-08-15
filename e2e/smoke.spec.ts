@@ -33,17 +33,17 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^캐릭터 타임라인/ })).toHaveCount(0);
 
-  const sidebarLabels = ['원고 목록', '설정 DB', '분석 목록', '분석 리포트', '그래프 뷰', '챗봇'];
+  const sidebarLabels = ['원고 목록', '작품 설정', '분석 목록', '분석 리포트', '그래프 뷰', '챗봇'];
   for (const label of sidebarLabels) {
     await expect(page.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
   }
   await expect(page.getByText(/이번 달 14\/20회/)).toHaveCount(0);
 
-  await page.getByRole('button', { name: /^캐릭터 DB/ }).click();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^캐릭터/ }).click();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: /^분석 리포트/ }).click();
   await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
@@ -51,12 +51,12 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
 
   await page.getByRole('button', { name: /^관계도/ }).click();
   await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: /^원고 목록/ }).click();
-  await page.getByRole('button', { name: /^설정 DB/ }).click();
+  await page.getByRole('button', { name: /^작품 설정/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('characters');
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
 });
 
 test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
@@ -1027,6 +1027,7 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds'))
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page.getByText('회차를 분석하고 있습니다')).toBeVisible();
+  await expect(page.locator('.episode-upload-spinner svg')).toHaveCSS('color', 'rgb(8, 126, 242)');
   expect(analysisCreateRequestCount).toBe(0);
 });
 
@@ -1113,6 +1114,8 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await page.getByRole('button', { name: '삭제', exact: true }).click();
   let modal = page.getByRole('dialog', { name: '20화를 삭제할까요?' });
   await expect(modal).toBeVisible();
+  await expect(modal).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(modal).toHaveCSS('border-radius', '20px');
   await expect(modal.getByText('20화 · 파일 교체 후 제목')).toBeVisible();
   await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
   await expect(modal.getByText('현재 서비스에서는 직접 복구할 수 없습니다.')).toBeVisible();
@@ -1391,6 +1394,11 @@ test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한�
   await page.goto(`/editor?workId=${workId}&episodeId=${episodeId}`);
 
   const article = page.getByRole('article');
+  await expect(page.locator('.original-reader-page')).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(article).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(article).toHaveCSS('border-radius', '20px');
+  await expect(page.locator('.original-reader-notice')).toHaveCSS('background-color', 'rgb(238, 247, 255)');
+  await expect(page.locator('.original-line__body').first()).toHaveCSS('color', 'rgb(51, 58, 70)');
   await expect(article).toContainText('2026. 7. 20.');
   await expect(article).not.toContainText('2026. 7. 23.');
 });
@@ -1442,7 +1450,7 @@ test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async (
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
 
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 DB', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBe('valid-token');
 });
 
@@ -1451,7 +1459,11 @@ test('Auth 모달은 닫기·배경·Esc·뒤로가기로 랜딩에 복귀한다
 
   await page.getByRole('button', { name: '로그인', exact: true }).first().click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('dialog', { name: '로그인' })).toBeVisible();
+  const themedLoginDialog = page.getByRole('dialog', { name: '로그인' });
+  await expect(themedLoginDialog).toBeVisible();
+  await expect(themedLoginDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(themedLoginDialog).toHaveCSS('border-radius', '24px');
+  await expect(themedLoginDialog.locator('.auth-modal-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.getByRole('button', { name: '로그인 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
 
@@ -1478,6 +1490,7 @@ test('로그인·회원가입 전환과 약관 오버레이는 히스토리를 �
     .getByRole('button', { name: '회원가입', exact: true })
     .click();
   await expect(page).toHaveURL(/\/signup$/);
+  await expect(page.getByRole('dialog', { name: '회원가입' })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
   await page.getByRole('dialog', { name: '회원가입' })
     .getByRole('button', { name: '이용약관', exact: true })
@@ -2111,6 +2124,8 @@ ${evidenceEpilogue}`;
   await expect(listRefetchAlert).toHaveCount(0);
 
   await characterCard.click();
+  await expect(page.locator('.character-detail-header__name')).toHaveCSS('color', 'rgb(25, 30, 38)');
+  await expect(page.locator('.character-detail-header .character-avatar')).toHaveCount(0);
   await expect(page.getByText('기본 정보', { exact: true })).toBeVisible();
   await expect(page.getByText('검사 지망생', { exact: true })).toBeVisible();
   await expect(page.getByText('생존 감각', { exact: true })).toBeVisible();
@@ -2150,7 +2165,7 @@ ${evidenceEpilogue}`;
   expect(secondManualStatBox?.x ?? 0).toBeGreaterThan(firstManualStatBox?.x ?? 0);
 
   const statusPanel = page.getByTestId('character-status-settings');
-  await expect(statusPanel).toHaveCSS('border-color', 'rgb(42, 42, 54)');
+  await expect(statusPanel).toHaveCSS('border-color', 'rgb(225, 229, 236)');
   const statusRow = page.getByText('경상', { exact: true }).locator('..');
   const recoveringStatusRow = page.getByText('회복 중', { exact: true }).locator('..');
   const dormantStatusRow = page.getByText('잠복', { exact: true }).locator('..');
@@ -2283,6 +2298,12 @@ ${evidenceEpilogue}`;
   expect(settingSectionsBox?.y ?? 0).toBeGreaterThan(profileSectionBox?.y ?? 0);
   expect(itemSectionBox?.y ?? 0).toBeGreaterThan(skillSectionBox?.y ?? 0);
   if (desktopViewport) await page.setViewportSize(desktopViewport);
+
+  const editPrefix = page.locator('.character-edit-setting-prefix').first();
+  await expect(editPrefix).toHaveCSS('background-color', 'rgb(238, 247, 255)');
+  await expect(editPrefix).toHaveCSS('color', 'rgb(8, 126, 242)');
+  await expect(page.locator('.character-edit-setting-name input').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.getByLabel('생존 감각 값', { exact: true })).toHaveCSS('color', 'rgb(25, 30, 38)');
 
   const [editAgilityBox, editStrengthBox, editFirstManualStatBox, editSecondManualStatBox] = await Promise.all([
     page.getByLabel('민첩 값', { exact: true }).boundingBox(),
@@ -2522,6 +2543,8 @@ ${evidenceEpilogue}`;
   await expect(page).toHaveURL(/modal=character-archive/);
   const archiveDialog = page.getByRole('dialog', { name: '보관된 캐릭터' });
   await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
+  await expect(archiveDialog.locator('.character-avatar')).toHaveCount(0);
+  await expect(archiveDialog.locator('.character-archive-item__name')).toHaveCSS('color', 'rgb(25, 30, 38)');
   await archiveDialog.getByRole('button', { name: '복구', exact: true }).click();
   await expect(archiveDialog.getByRole('alert')).toContainText('같은 이름의 캐릭터가 이미 존재합니다.');
   await expect(archiveDialog.getByText('수아 수정', { exact: true })).toBeVisible();
@@ -2902,6 +2925,8 @@ test('작품 등록은 입력 오류를 표시하고 실패한 값을 유지한 
   await emptyCreateButton.click();
   await expect(page).toHaveURL(/\/works\?modal=work-create$/);
   const dialog = page.getByRole('dialog', { name: '새 작품 등록' });
+  await expect(dialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(dialog).toHaveCSS('border-radius', '20px');
   const genreOptimizationNotice = '* 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.';
   await expect(dialog.getByText(genreOptimizationNotice, { exact: true })).toBeVisible();
   for (const genre of ['판타지', '로맨스', '추리', '코미디', 'SF', '스포츠', '호러', '무협', '일상', '기타']) {
@@ -3017,6 +3042,8 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
 
   await expect(page).toHaveURL(/\/works\?modal=work-edit&targetWorkId=managed-work$/);
   const editDialog = page.getByRole('dialog', { name: '작품 정보 수정' });
+  await expect(editDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(editDialog).toHaveCSS('border-radius', '20px');
   await expect(editDialog.getByText(
     '* 현재 서비스는 판타지 장르에 최적화되어 있으며, 다른 장르도 순차적으로 최적화할 예정입니다.',
     { exact: true },
@@ -3041,6 +3068,8 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
   await page.getByRole('button', { name: '변경된 작품 삭제' }).click();
 
   const firstDeleteDialog = page.getByRole('dialog', { name: '작품을 삭제하시겠습니까?' });
+  await expect(firstDeleteDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(firstDeleteDialog).toHaveCSS('border-radius', '20px');
   await expect(firstDeleteDialog.getByText('변경된 작품', { exact: true })).toBeVisible();
   await expect(firstDeleteDialog.getByText(/보관이 아닌 영구 삭제/)).toBeVisible();
   await firstDeleteDialog.getByRole('button', { name: '취소' }).click();

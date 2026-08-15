@@ -10174,7 +10174,7 @@
               "type": "text",
               "id": "qe0vL",
               "fill": "$primary",
-              "content": "설정 DB",
+              "content": "작품 설정",
               "fontFamily": "Inter",
               "fontSize": 13,
               "fontWeight": "600"
@@ -12547,7 +12547,7 @@
                           "id": "hPfSg",
                           "name": "Tab Label",
                           "fill": "$primary",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -12744,7 +12744,7 @@
                               "id": "aimuU",
                               "name": "Character List Title",
                               "fill": "#F0F0F5",
-                              "content": "캐릭터 DB",
+                              "content": "캐릭터 설정",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -18887,7 +18887,7 @@
                   "id": "PrtmK",
                   "name": "Section Label",
                   "fill": "$text-2",
-                  "content": "설정 DB",
+                  "content": "작품 설정",
                   "fontFamily": "$font",
                   "fontSize": 11,
                   "fontWeight": "600"
@@ -36292,7 +36292,7 @@
                           "id": "p6MxB",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -37349,7 +37349,7 @@
                           "id": "Nj3uf",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -38759,7 +38759,7 @@
                           "id": "nkZOB",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -44900,7 +44900,7 @@
                           "type": "text",
                           "id": "iun1u",
                           "fill": "$primary",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -48827,7 +48827,7 @@
                                       "id": "YpV35",
                                       "name": "Section Label",
                                       "fill": "$text-2",
-                                      "content": "설정 DB",
+                                      "content": "작품 설정",
                                       "fontFamily": "$font",
                                       "fontSize": 11,
                                       "fontWeight": "600"
@@ -64638,7 +64638,7 @@
                                               "id": "G63dyV",
                                               "name": "Tab Label",
                                               "fill": "$primary",
-                                              "content": "캐릭터 DB",
+                                              "content": "캐릭터 설정",
                                               "fontFamily": "Inter",
                                               "fontSize": 13,
                                               "fontWeight": "600"
@@ -66842,7 +66842,7 @@
                                               "id": "Xsuvu",
                                               "name": "Tab Label",
                                               "fill": "$primary",
-                                              "content": "캐릭터 DB",
+                                              "content": "캐릭터 설정",
                                               "fontFamily": "Inter",
                                               "fontSize": 13,
                                               "fontWeight": "600"
@@ -86520,7 +86520,7 @@
                                               "id": "TMieS",
                                               "name": "Tab Label",
                                               "fill": "$primary",
-                                              "content": "캐릭터 DB",
+                                              "content": "캐릭터 설정",
                                               "fontFamily": "Inter",
                                               "fontSize": 13,
                                               "fontWeight": "600"
@@ -89734,7 +89734,7 @@
                                               "id": "n0uAvM",
                                               "name": "Tab Label",
                                               "fill": "$text-2",
-                                              "content": "캐릭터 DB",
+                                              "content": "캐릭터 설정",
                                               "fontFamily": "Inter",
                                               "fontSize": 13,
                                               "fontWeight": "normal"
@@ -232486,7 +232486,7 @@
                           "id": "gx1k9",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -233966,7 +233966,7 @@
                           "id": "srakd",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -246283,7 +246283,7 @@
                           "id": "ajnkn",
                           "name": "Tab Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -266011,7 +266011,7 @@
                           "id": "MB7JU",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -266128,7 +266128,7 @@
                           "id": "zn4CT",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -266250,7 +266250,7 @@
                               "id": "EXYI7",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -267105,9 +267105,9 @@
                                     {
                                       "type": "text",
                                       "id": "NUvNB",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"
@@ -268250,7 +268250,7 @@
                           "id": "X4uZC",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -268367,7 +268367,7 @@
                           "id": "cWkaN",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -268489,7 +268489,7 @@
                               "id": "W8cH1E",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -269344,9 +269344,9 @@
                                     {
                                       "type": "text",
                                       "id": "t6t79k",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"
@@ -270766,7 +270766,7 @@
                           "id": "dmR4p",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -270883,7 +270883,7 @@
                           "id": "Vlooo",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -271005,7 +271005,7 @@
                               "id": "qDDCE",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -271860,9 +271860,9 @@
                                     {
                                       "type": "text",
                                       "id": "Ci4J4",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"
@@ -273196,7 +273196,7 @@
                           "id": "AFeLw",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -273313,7 +273313,7 @@
                           "id": "KvlGK",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -273435,7 +273435,7 @@
                               "id": "DiC91",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -274290,9 +274290,9 @@
                                     {
                                       "type": "text",
                                       "id": "oaoN0",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"
@@ -280423,7 +280423,7 @@
                           "id": "SVgwN",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -280540,7 +280540,7 @@
                           "id": "F5ARZ",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -280662,7 +280662,7 @@
                               "id": "XweAL",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -281757,9 +281757,9 @@
                                     {
                                       "type": "text",
                                       "id": "up1ti",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"
@@ -282720,7 +282720,7 @@
                           "id": "gKsf9",
                           "name": "Tab 캐릭터 DB Label",
                           "fill": "$text-2",
-                          "content": "캐릭터 DB",
+                          "content": "캐릭터 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -282837,7 +282837,7 @@
                           "id": "VC81u",
                           "name": "Tab 세계관 DB Label",
                           "fill": "$primary",
-                          "content": "세계관 DB",
+                          "content": "세계관 설정",
                           "fontFamily": "$font",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -282959,7 +282959,7 @@
                               "id": "smX2J",
                               "name": "World DB Title",
                               "fill": "$text-1",
-                              "content": "세계관 DB",
+                              "content": "세계관 설정",
                               "fontFamily": "$font",
                               "fontSize": 16,
                               "fontWeight": "700"
@@ -283814,9 +283814,9 @@
                                     {
                                       "type": "text",
                                       "id": "DSCac",
-                                      "name": "World DB Detail Version",
+                                      "name": "World DB Detail Updated At",
                                       "fill": "$text-3",
-                                      "content": "버전 4 · 방금 수정",
+                                      "content": "방금 수정",
                                       "fontFamily": "$font",
                                       "fontSize": 9,
                                       "fontWeight": "500"

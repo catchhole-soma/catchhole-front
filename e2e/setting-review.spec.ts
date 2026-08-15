@@ -435,7 +435,7 @@ test('브라우저 뒤로가기 직후 이전 검토 화면이 클릭을 가로�
   await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
   await page.goBack();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
-  await page.getByRole('button', { name: '설정 DB' }).click({ timeout: 1_500 });
+  await page.getByRole('button', { name: '작품 설정' }).click({ timeout: 1_500 });
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('settingDB');
 
   releaseConfirm?.();
@@ -1130,6 +1130,10 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
   await expect(comparisonPanel.getByText('현재 설정 병합', { exact: true })).toBeVisible();
   await expect(comparisonPanel.getByText('− 기존값', { exact: true })).toBeVisible();
   await expect(comparisonPanel.getByText('+ 제안값', { exact: true })).toBeVisible();
+  const proposedValue = comparisonPanel.locator(
+    '.character-comparison-value--proposed .character-comparison-value__content',
+  );
+  await expect(proposedValue).toHaveCSS('color', 'rgb(25, 30, 38)');
   await expect(comparisonPanel.getByText('기존 눈 색상 설명을 보존하면서 더 구체적인 표현으로 합칩니다.')).toBeVisible();
   await expect(comparisonPanel.getByText('갈색 → 짙은 갈색', { exact: true })).toBeVisible();
   await expect(comparisonPanel.getByText('화면에 직접 노출하지 않을 구조화 값')).toHaveCount(0);
@@ -1291,6 +1295,11 @@ test('검토 완료 후보는 저장된 확정 방식을 추측하지 않고 비
   );
 
   const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
+  const readOnlyNotice = page.getByRole('status')
+    .filter({ hasText: '확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.' });
+  await expect(readOnlyNotice).toBeVisible();
+  await expect(readOnlyNotice).toHaveCSS('color', 'rgb(51, 58, 70)');
+  await expect(page.locator('.setting-candidate-detail.is-read-only')).toHaveCSS('opacity', '1');
   await expect(comparisonPanel.getByText('현재 설정 병합', { exact: true })).toBeVisible();
   await expect(comparisonPanel.getByText('갈색 → 짙은 갈색', { exact: true })).toBeVisible();
   await expect(comparisonPanel.getByText('확정 방식', { exact: true })).toHaveCount(0);

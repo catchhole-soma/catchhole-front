@@ -276,6 +276,8 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 ## 분석 목록 (AnalysisList)
 
+> **Theme V2 파일럿**: 업로드 묶음을 밝은 카드로 표시하고 상태는 Primary Blue에 합치지 않고 진행·주의·실패·완료 의미 색상을 유지한다. 서버 페이지네이션과 각 상태별 후속 액션 계약은 변경하지 않는다.
+
 **URL**: `/dashboard?workId={workId}&nav=analyses&analysisPage={1 이상의 정수}`
 
 사이드 메뉴의 `분석 목록`에서 같은 작품의 분석을 `UploadBatch` 단위로 조회하는 화면이다. 한 번에 함께 올린 회차들의 Job과 설정 후보 검토 상태를 한 카드로 집계하며, `SETTING_EXTRACTION`과 `EPISODE_VALIDATION`이 같은 배치에 있으면 목적별 하위 요약은 유지하되 카드 액션은 배치 상태에 맞는 버튼 하나만 표시한다.

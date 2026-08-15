@@ -8,6 +8,7 @@ export function ModeCard({ icon, title, desc, color, selected, onSelect }: {
   const [hovered, setHovered] = useState(false);
   return (
     <div
+      className={`mode-card${selected ? ' is-selected' : ''}`}
       onClick={onSelect}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

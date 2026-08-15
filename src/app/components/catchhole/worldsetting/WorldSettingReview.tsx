@@ -56,11 +56,11 @@ const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
 
 const CATEGORY_META: Record<WorldCategory, { label: string; description: string; color: string }> = {
-  RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단', color: '#9B7BFF' },
+  RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단', color: '#087EF2' },
   FACTION: { label: '세력', description: '국가·조직·종교·길드처럼 영향력을 가진 집단', color: '#4BB8D9' },
   LOCATION: { label: '장소', description: '반복 등장하거나 세계 구조에 영향을 주는 공간', color: '#00C896' },
   MONSTER: { label: '몬스터', description: '지속적인 특성이나 규칙이 있는 몬스터', color: '#E25C5C' },
-  POWER_SYSTEM: { label: '마법·능력 체계', description: '마법과 능력의 원리·조건·한계', color: '#B48BFF' },
+  POWER_SYSTEM: { label: '마법·능력 체계', description: '마법과 능력의 원리·조건·한계', color: '#3976D4' },
   WORLD_RULE_HISTORY: { label: '규칙·역사', description: '세계의 법칙·제도·관습·역사', color: '#D4A04A' },
   IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구', color: '#F4A261' },
 };
@@ -267,7 +267,7 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
 
 function Badge({ label, color }: { label: string; color: string }) {
   return (
-    <span style={{
+    <span className="review-badge" style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
       padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
       background: `${color}18`, color, fontSize: 10, fontWeight: 750,
@@ -284,15 +284,18 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
       height: 62, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 14,
       padding: '0 28px', borderBottom: `1px solid ${C.border}`, background: C.bg,
     }}>
-      <button type="button" aria-label="이전 화면" onClick={onBack} style={{
+      <button type="button" aria-label="이전 화면" onClick={onBack} className="review-header__back" style={{
         width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
         background: 'transparent', color: C.t2, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <ChevronLeft size={18} />
       </button>
-      <strong style={{ color: C.t1, fontSize: 17 }}>설정 후보 검토</strong>
-      <div style={{ flex: 1 }} />
+      <div className="review-header__title">
+        <small>AI ANALYSIS</small>
+        <strong>세계관 후보 확정</strong>
+      </div>
+      <div className="review-header__spacer" />
       <UserMenu />
     </header>
   );
@@ -319,12 +322,12 @@ function ReviewSummary({
     ['확인 필요', `${attentionRequired}개`, attentionRequired > 0 ? C.warning : C.t1],
   ];
   return (
-    <section aria-label="설정 후보 검토 요약" style={{
+    <section className="setting-review-summary" aria-label="설정 후보 검토 요약" style={{
       padding: '18px 22px', borderRadius: 10, border: `1px solid ${C.border}`,
       background: C.surface, display: 'flex', alignItems: 'center', gap: 38, flexWrap: 'wrap',
     }}>
       {items.map(([label, value, color]) => (
-        <div key={label}>
+        <div className="setting-review-summary__item" key={label}>
           <div style={{ color: C.t3, fontSize: 11, marginBottom: 5 }}>{label}</div>
           <strong style={{ color, fontSize: 15 }}>{value}</strong>
         </div>
@@ -347,7 +350,7 @@ function QueryState({
   action?: ReactNode;
 }) {
   return (
-    <div style={{
+    <div className="setting-review-page" style={{
       minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 10, border: `1px solid ${C.border}`,
       borderRadius: 10, background: C.surface, textAlign: 'center', padding: 24,
@@ -372,7 +375,7 @@ function ActionButton({
   onClick?: () => void;
 }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} style={{
+    <button type="button" className="review-action" disabled={disabled} onClick={onClick} style={{
       minHeight: 38, padding: '0 15px', borderRadius: 7,
       border: `1px solid ${disabled ? C.border : `${tone}88`}`,
       background: disabled ? 'transparent' : `${tone}18`,
@@ -399,9 +402,9 @@ function FilterGroup<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label}>
-      <div style={{ color: C.t3, fontSize: 11, fontWeight: 650, marginBottom: 7 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+    <div className="review-filter" role="group" aria-label={label}>
+      <div className="review-filter__label" style={{ color: C.t3, fontSize: 11, fontWeight: 650, marginBottom: 7 }}>{label}</div>
+      <div className="review-filter__options" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
         {options.map(option => {
           const active = option.value === value;
           return (
@@ -410,6 +413,7 @@ function FilterGroup<T extends string>({
               type="button"
               aria-pressed={active}
               disabled={disabled}
+              className={`review-filter__button${active ? ' is-active' : ''}`}
               onClick={() => onChange(option.value)}
               style={{
                 minHeight: 30, padding: '0 10px', borderRadius: 7,
@@ -459,7 +463,7 @@ function WorldCandidateGroupCard({
   const category = identity.category ? CATEGORY_META[identity.category] : null;
   const status = groupStatusMeta(group);
   return (
-    <button type="button" disabled={disabled} onClick={onClick} style={{
+    <button type="button" disabled={disabled} onClick={onClick} className={`world-candidate-group-card${selected ? ' is-selected' : ''}`} style={{
       width: '100%', padding: '15px 15px 14px', borderRadius: 10,
       border: `1px solid ${selected ? C.primary : C.border}`,
       background: selected ? `${C.primary}14` : C.surface,
@@ -562,7 +566,7 @@ function WorldKeyDiffRow({
     && decision !== null;
   const canExclude = candidate.reviewStatus === 'PENDING_REVIEW';
   return (
-    <section style={{
+    <section className="world-setting-diff-row" style={{
       padding: '18px 22px', borderTop: `1px solid ${C.border}`,
       opacity: candidate.reviewStatus === 'PENDING_REVIEW' ? 1 : 0.68,
     }}>
@@ -671,7 +675,7 @@ function WorldKeyDiffRow({
         </div>
       )}
 
-      <div style={{
+      <div className="theme-evidence world-setting-evidence-card" style={{
         margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
         border: `1px solid ${C.border}`, background: C.bg,
         display: 'flex', alignItems: 'flex-start', gap: 8,
@@ -682,7 +686,7 @@ function WorldKeyDiffRow({
           {evidence.length ? (
             <div style={{ display: 'grid', gap: 7 }}>
               {evidence.map((span, index) => (
-                <div key={`${span.startOffset ?? 'unknown'}-${span.endOffset ?? index}-${span.quote}`} style={{
+                <div className="theme-evidence__quote" key={`${span.startOffset ?? 'unknown'}-${span.endOffset ?? index}-${span.quote}`} style={{
                   color: C.t1, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere',
                 }}>
                   {evidence.length > 1 && (
@@ -693,7 +697,7 @@ function WorldKeyDiffRow({
               ))}
             </div>
           ) : (
-            <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
+            <div className="theme-evidence__empty" style={{ color: C.t3, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
           )}
         </div>
       </div>
@@ -773,7 +777,7 @@ function WorldCandidateGroupDetail({
     && unresolvedConflicts.length === 0
     && !confirmationFiltered;
   return (
-    <article style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
+    <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <strong style={{ color: C.t1, fontSize: 18 }}>
@@ -928,13 +932,13 @@ function CandidateEditModal({
   };
 
   return (
-    <div role="presentation" onMouseDown={event => {
+    <div className="review-modal-layer" role="presentation" onMouseDown={event => {
       if (event.target === event.currentTarget && !pending) onClose();
     }} style={{
       position: 'fixed', inset: 0, zIndex: 200, padding: 20, display: 'flex',
       alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.68)',
     }}>
-      <form onSubmit={submit} style={{
+      <form className="review-modal" onSubmit={submit} style={{
         width: 'min(720px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
         borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
@@ -1548,7 +1552,7 @@ export function WorldSettingReview() {
 
   if (!hasContext) {
     return (
-      <div style={{ width: '100%', height: '100%', background: C.bg }}>
+      <div className="setting-review-screen theme-v2 workspace-v2 world-review-v2">
         <ReviewHeader onBack={backToAnalysisList} />
         <main style={{ maxWidth: 920, margin: '0 auto', padding: '60px 24px' }}>
           <QueryState
@@ -1563,12 +1567,12 @@ export function WorldSettingReview() {
   }
 
   return (
-    <div style={{
+    <div className="setting-review-screen theme-v2 workspace-v2 world-review-v2" style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: C.bg,
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <ReviewHeader onBack={backToAnalysisList} />
-      <main style={{ flex: 1, overflowY: 'auto' }}>
+      <main className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="world-setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           <ReviewSummary
             episodeRange={formatEpisodeRange(listData?.episodeStartNo, listData?.episodeEndNo, listData?.episodeCount ?? 0)}
@@ -1613,7 +1617,7 @@ export function WorldSettingReview() {
                       : confirmedTarget.appliedCount > 0
                         ? confirmedTarget.targetCount > 1
                           ? `${confirmedTarget.targetCount}개 세계관 대상에 설정 ${confirmedTarget.appliedCount}개를 반영했습니다.`
-                          : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 세계관 DB에 반영했습니다.`
+                          : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.appliedCount}개를 세계관 설정에 저장했습니다.`
                         : `${confirmedTarget.subjectName} 설정 ${confirmedTarget.excludedCount}개를 검토 결과 제외했습니다.`}
                   </span>
                   <div style={{ flex: 1 }} />
@@ -1624,7 +1628,7 @@ export function WorldSettingReview() {
                     )} style={{
                       border: 'none', background: 'none', color: C.primary,
                       fontFamily: 'inherit', fontSize: 11, fontWeight: 750, cursor: 'pointer',
-                    }}>세계관 DB에서 보기</button>
+                    }}>세계관 설정에서 보기</button>
                   )}
                   <button type="button" aria-label="확정 안내 닫기" onClick={() => setConfirmedTarget(null)} style={{
                     border: 'none', background: 'none', color: C.t3, cursor: 'pointer', padding: 2,
@@ -1700,12 +1704,12 @@ export function WorldSettingReview() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{
+                      <div className="review-empty-state" style={{
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
                         background: C.surface, textAlign: 'center', color: C.t3, fontSize: 12,
                       }}>
-                        조건에 맞는 세계관 대상이 없습니다.
-                        <button type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
+                        <div className="review-empty-state__title">조건에 맞는 세계관 대상이 없습니다.</div>
+                        <button className="review-empty-state__action" type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
                           display: 'block', margin: '10px auto 0', border: 'none', background: 'none',
                           color: C.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
                         }}>필터 초기화</button>

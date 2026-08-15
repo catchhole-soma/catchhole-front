@@ -420,7 +420,7 @@ const ERROR_DATA: ErrorCardData[] = [
       { chapter: '89화', snippet: '"그 갈색 눈동자에는 슬픔이 가득했다."', status: 'match' },
       { chapter: '159화', snippet: '"그녀의 파란 눈을 가득 채웠다."', status: 'conflict' },
     ],
-    aiSuggestion: '"그녀의 파란 눈" → "그녀의 갈색 눈동자" 로 수정하거나, 콘텍스트상 눈 색이 바뀐 설정이라면 23화 설정 DB를 업데이트하세요.',
+    aiSuggestion: '"그녀의 파란 눈" → "그녀의 갈색 눈동자" 로 수정하거나, 콘텍스트상 눈 색이 바뀐 설정이라면 23화 작품 설정을 수정하세요.',
   },
   {
     id: 2,
@@ -578,7 +578,7 @@ const ERROR_DATA: ErrorCardData[] = [
     changeArrow: { from: '고블린 200마리 처치 (마리당 0.5%)', to: '1레벨업(100%) 미발생' },
     sourceQuote: {
       label: '시스템 설정',
-      chapter: '세계관 설정DB - 레벨링',
+      chapter: '세계관 설정 - 레벨링',
       text: '고블린 처치 시 획득 경험치: 0.5%. 누적 경험치 100% 달성 시 즉시 레벨업 및 스탯 상승 이펙트 발생.',
       highlight: '누적 경험치 100% 달성 시 즉시 레벨업',
       highlightColor: C.success,
@@ -785,8 +785,8 @@ export default function S5Report() {
         }}>
           <AlertTriangle size={13} color={C.t3} />
           <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>
-            분석은 기존 158화 설정 DB 기반으로 수행되었습니다.
-            의도적 설정 변경은 설정 DB를 직접 업데이트하거나, 에디터에서 "의도적 변경"으로 표시할 수 있습니다.
+            분석은 기존 158화 작품 설정을 기준으로 수행되었습니다.
+            의도적 설정 변경은 작품 설정을 직접 수정하거나, 에디터에서 "의도적 변경"으로 표시할 수 있습니다.
           </span>
         </div>
       </div>

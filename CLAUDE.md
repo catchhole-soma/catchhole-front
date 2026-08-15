@@ -80,9 +80,11 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
 
 `src/app/api/generated/`는 생성 전용이므로 직접 고치지 않습니다. 생성 결과가 기대와 다르면 백엔드 Swagger annotation 또는 `openapi-ts.config.ts`를 먼저 수정합니다.
 
-## 디자인 시스템 — "Obsidian Violet"
+## 디자인 시스템
 
-다크 테마 기반. `src/app/components/catchhole/constants.ts`의 `C` 객체가 코드 상의 단일 진실 소스입니다.
+### 기존 화면 — "Obsidian Violet"
+
+아직 Theme V2로 이관하지 않은 화면은 다크 테마 기반이며, `src/app/components/catchhole/constants.ts`의 `C` 객체를 코드 상의 단일 진실 소스로 사용합니다.
 
 | 토큰 | 값 | 용도 |
 | --- | --- | --- |
@@ -95,7 +97,25 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
 | `danger` | `#FF4D4D` | 오류/삭제 |
 | `t1`/`t2`/`t3` | `#F0F0F5`/`#9090A8`/`#55556A` | 텍스트 강조/보조/저강조 |
 
-새 UI를 만들 때는 이 토큰을 그대로 재사용하세요. Tailwind 유틸리티 클래스와 MUI 컴포넌트가 혼용되어 있습니다.
+기존 화면을 수정할 때는 이 토큰을 그대로 재사용하세요. Tailwind 유틸리티 클래스와 MUI 컴포넌트가 혼용되어 있습니다.
+
+### 전환 중인 화면 — "Theme V2"
+
+GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 시각 언어를 참고한 라이트 테마를 파일럿으로 검증합니다. 현재 적용 범위는 `/landing`, `/login`, `/signup`, `/works`, 대시보드의 `manuscripts`·`analyses`·`settingDB`의 캐릭터/세계관 조회·설정집·설정 검색, `/setting-review`의 캐릭터·세계관 후보 검토, `/episode-upload`입니다. 그 밖의 대시보드 탭은 기존 테마를 유지합니다.
+
+- 의미 기반 CSS 변수와 공통 액션·카드 스타일: `src/styles/theme-v2.css`
+- 재사용 React UI: `src/app/components/catchhole/ui-v2/`
+- 랜딩 전용 구성·반응형 스타일: `src/app/components/catchhole/landing-v2.css`
+- 작품·대시보드 공통 셸과 목록 스타일: `src/styles/workspace-v2.css`
+- 설정 후보 검토 스타일: `src/styles/review-v2.css`
+- 회차 업로드·분석 진행 스타일: `src/styles/upload-v2.css`
+- 설정 DB 목록·상세·이력·원문 근거와 공통 조회 상태: `src/styles/database-v2.css`
+- 회차·설정집 읽기 전용 원문 보기: `src/styles/reader-v2.css`
+- Theme V2의 상세·수정·확인 모달과 원문 근거 표면: `src/styles/overlay-v2.css`
+- 로그인·회원가입·약관 모달의 Theme V2 shell과 입력 필드: `src/app/components/catchhole/auth-modal.css`
+- Theme V2는 `.theme-v2` 아래에 범위를 제한해 미이관 화면의 Obsidian Violet 스타일을 변경하지 않습니다.
+- Theme V2 화면에는 임의 색상값과 반복 인라인 스타일을 추가하지 않고 의미 기반 토큰과 공통 UI를 먼저 사용합니다.
+- 성공·경고·오류·AI 제안은 Primary Blue 하나로 합치지 않고 각각의 의미 색상을 유지합니다.
 
 ## 디자인 워크플로우
 

@@ -198,6 +198,7 @@ function SettingBookUploadModal({
 
   return (
     <motion.div
+      className="setting-book-modal-backdrop theme-modal-backdrop"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -216,6 +217,7 @@ function SettingBookUploadModal({
       }}
     >
       <motion.div
+        className="setting-book-upload-modal theme-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="setting-book-upload-title"
@@ -231,8 +233,8 @@ function SettingBookUploadModal({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: 24 }}>
-          <div style={{
+        <div className="setting-book-upload-modal__body theme-modal__body" style={{ padding: 24 }}>
+          <div className="setting-book-upload-modal__header" style={{
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
@@ -294,6 +296,7 @@ function SettingBookUploadModal({
           />
 
           <div
+            className={`setting-book-dropzone${dragging ? ' is-dragging' : ''}${fileError ? ' is-error' : ''}`}
             role="button"
             tabIndex={pending ? -1 : 0}
             aria-disabled={pending}
@@ -352,8 +355,8 @@ function SettingBookUploadModal({
           )}
 
           {file && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{
+            <div className="setting-book-selected-file" style={{ marginTop: 14 }}>
+              <div className="setting-book-selected-file__row" style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
@@ -429,7 +432,7 @@ function SettingBookUploadModal({
             </div>
           )}
 
-          <div style={{
+          <div className="setting-book-upload-note" style={{
             display: 'flex',
             alignItems: 'flex-start',
             gap: 8,
@@ -463,7 +466,7 @@ function SettingBookUploadModal({
           )}
         </div>
 
-        <div className="setting-book-header" style={{
+        <div className="setting-book-header setting-book-upload-modal__footer theme-modal__footer" style={{
           display: 'flex',
           justifyContent: 'flex-end',
           gap: 8,
@@ -503,6 +506,7 @@ function FileListPanel({
 }) {
   return (
     <section
+      className="setting-book-panel setting-book-file-list"
       aria-label="설정집 파일 목록"
       style={{
         minWidth: 0,
@@ -515,7 +519,7 @@ function FileListPanel({
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '16px 18px 13px', borderBottom: `1px solid ${C.border}` }}>
+      <div className="setting-book-panel__header" style={{ padding: '16px 18px 13px', borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: C.t1, fontSize: 14, fontWeight: 700 }}>설정집 파일</span>
@@ -537,9 +541,9 @@ function FileListPanel({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+      <div className="setting-book-panel__body" style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
         {loading ? (
-          <div style={{
+          <div className="setting-book-state is-loading" style={{
             height: '100%',
             minHeight: 180,
             display: 'flex',
@@ -553,7 +557,7 @@ function FileListPanel({
             설정집 파일을 불러오는 중...
           </div>
         ) : failed ? (
-          <div role="alert" style={{
+          <div className="setting-book-state is-error" role="alert" style={{
             height: '100%',
             minHeight: 180,
             display: 'flex',
@@ -573,7 +577,7 @@ function FileListPanel({
             />
           </div>
         ) : rows.length === 0 ? (
-          <div style={{
+          <div className="setting-book-state is-empty" style={{
             height: '100%',
             minHeight: 210,
             display: 'flex',
@@ -613,6 +617,7 @@ function FileListPanel({
               const selected = selectedId === settingBook.id;
               return (
                 <button
+                  className={`setting-book-row${selected ? ' is-selected' : ''}`}
                   key={settingBook.id}
                   type="button"
                   data-testid={`setting-book-row-${settingBook.id}`}
@@ -673,6 +678,7 @@ function FileListPanel({
 function EmptySourcePanel() {
   return (
     <section
+      className="setting-book-panel setting-book-empty-source"
       aria-label="설정집 원문 안내"
       data-testid="setting-book-empty-source"
       style={{
@@ -686,7 +692,7 @@ function EmptySourcePanel() {
         justifyContent: 'center',
       }}
     >
-      <div style={{
+      <div className="setting-book-state is-empty" style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -694,23 +700,25 @@ function EmptySourcePanel() {
         color: C.t3,
         textAlign: 'center',
       }}>
-        <div style={{
-          width: 46,
-          height: 46,
-          borderRadius: 12,
-          background: `${C.primary}12`,
-          color: C.primary,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <FileText size={21} />
-        </div>
-        <div style={{ color: C.t2, fontSize: 13, fontWeight: 700 }}>
-          설정집을 선택해주세요
-        </div>
-        <div style={{ fontSize: 11 }}>
-          왼쪽 파일 목록에서 설정집을 선택하면 전체 원문이 표시됩니다.
+        <div className="setting-book-empty-source__content" data-testid="setting-book-empty-source-content">
+          <div className="setting-book-empty-source__icon" style={{
+            width: 46,
+            height: 46,
+            borderRadius: 12,
+            background: `${C.primary}12`,
+            color: C.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <FileText size={21} />
+          </div>
+          <div className="setting-book-empty-source__title" style={{ color: C.t2, fontSize: 13, fontWeight: 700 }}>
+            설정집을 선택해주세요
+          </div>
+          <div className="setting-book-empty-source__description" style={{ fontSize: 11 }}>
+            왼쪽 파일 목록에서 설정집을 선택하면 전체 원문이 표시됩니다.
+          </div>
         </div>
       </div>
     </section>
@@ -757,6 +765,7 @@ function SourcePanel({
 
   return (
     <section
+      className="setting-book-panel setting-book-source-panel"
       aria-label="선택한 설정집 전체 원문"
       style={{
         minWidth: 0,
@@ -769,7 +778,7 @@ function SourcePanel({
         overflow: 'hidden',
       }}
     >
-      <div style={{
+      <div className="setting-book-panel__header" style={{
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
@@ -871,7 +880,7 @@ function SourcePanel({
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: 0, padding: 14 }}>
+      <div className="setting-book-panel__body setting-book-source-panel__body" style={{ flex: 1, minHeight: 0, padding: 14 }}>
         {loading ? (
           <div style={{
             height: '100%',
@@ -905,6 +914,7 @@ function SourcePanel({
           </div>
         ) : editing ? (
           <textarea
+            className="setting-book-editor"
             data-testid="setting-book-editor"
             aria-label="설정집 전체 원문 편집"
             autoFocus
@@ -930,6 +940,7 @@ function SourcePanel({
           />
         ) : (
           <pre
+            className="setting-book-source"
             data-testid="setting-book-source"
             style={{
               width: '100%',
@@ -1126,6 +1137,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   return (
     <>
       <motion.div
+        className="setting-book-workspace"
         key="setting-books"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1166,7 +1178,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
         </div>
 
         {!enabled ? (
-          <div style={{
+          <div className="setting-book-disabled database-state" style={{
             height: 300,
             borderRadius: 10,
             border: `1px solid ${C.border}`,
