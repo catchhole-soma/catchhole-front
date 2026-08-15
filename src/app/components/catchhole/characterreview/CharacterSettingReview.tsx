@@ -128,6 +128,7 @@ const SETTING_NAME_LABELS: Record<string, string> = {
   'skills.skill': '스킬',
   'items.item': '아이템',
 };
+const DECIMAL_VALUE_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 interface SettingDisplay {
   typeLabel: string;
@@ -164,6 +165,24 @@ function isCharacterComparisonActive(
 function hasCharacterFactComparison(candidate: SettingCandidateResponse): boolean {
   return candidate.candidateKind !== 'CHARACTER_DISCOVERY'
     && candidate.comparisonStatus != null;
+}
+
+function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
+  return candidate.valueValidation?.status === 'INVALID';
+}
+
+function validateCandidateDisplayValue(
+  valueType: SettingCandidateResponse['valueType'],
+  value: string,
+): string | null {
+  const normalized = value.trim();
+  if (valueType === 'NUMBER' && !DECIMAL_VALUE_PATTERN.test(normalized)) {
+    return '숫자 설정값은 숫자만 입력해 주세요. (예: 36, -1.5)';
+  }
+  if (valueType === 'BOOLEAN' && normalized !== 'true' && normalized !== 'false') {
+    return '참/거짓 설정값은 true 또는 false로 입력해 주세요.';
+  }
+  return null;
 }
 
 function splitDynamicSettingName(attributeName: string, dynamicPrefix?: string | null): {
@@ -674,6 +693,7 @@ function CandidateEditModal({
   const [attributeSuffix, setAttributeSuffix] = useState(dynamicName.suffix);
   const [attributeValue, setAttributeValue] = useState(candidate.attributeValue ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const valueFormatError = validateCandidateDisplayValue(candidate.valueType, attributeValue);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -684,6 +704,10 @@ function CandidateEditModal({
     }
     if (editableName && !attributeSuffix.trim()) {
       setValidationError('설정명 뒷부분을 입력해 주세요.');
+      return;
+    }
+    if (valueFormatError) {
+      setValidationError(valueFormatError);
       return;
     }
     setValidationError(null);
@@ -750,22 +774,27 @@ function CandidateEditModal({
             id="candidate-attribute-value"
             value={attributeValue}
             disabled={pending}
-            onChange={event => setAttributeValue(event.target.value)}
+            aria-invalid={Boolean(valueFormatError)}
+            aria-describedby={valueFormatError ? 'candidate-attribute-value-error' : undefined}
+            onChange={event => {
+              setAttributeValue(event.target.value);
+              setValidationError(null);
+            }}
             style={{ ...modalInputStyle, marginTop: 7 }}
           />
         </div>
-        {(validationError || error) && (
-          <div role="alert" style={{
+        {(validationError || valueFormatError || error) && (
+          <div id="candidate-attribute-value-error" role="alert" style={{
             marginTop: 14, padding: '10px 12px', borderRadius: 7,
             border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
             color: C.danger, fontSize: 12,
           }}>
-            {validationError ?? error}
+            {validationError ?? valueFormatError ?? error}
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending} tone={C.primary}>
+          <ActionButton type="submit" disabled={pending || Boolean(valueFormatError)} tone={C.primary}>
             {pending ? '저장 중…' : '저장'}
           </ActionButton>
         </div>
@@ -1029,6 +1058,7 @@ function CandidateDetail({
   const quotes = evidenceQuotes(candidate.evidenceSpans);
   const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
+  const invalidValue = isCandidateValueInvalid(candidate);
   return (
     <section className={`setting-candidate-detail${readOnly ? ' is-read-only' : ''}`} aria-label={`${settingDisplay.nameLabel} 설정 후보`} style={{
       padding: '17px 20px', borderTop: `1px solid ${C.border}`, background: C.surface,
@@ -1080,6 +1110,20 @@ function CandidateDetail({
         }}>
           <AlertCircle size={14} color={C.warning} />
           어떤 캐릭터의 설정인지 확인이 필요합니다.
+        </div>
+      )}
+
+      {invalidValue && (
+        <div role="alert" style={{
+          marginTop: 12, padding: '10px 12px', borderRadius: 7,
+          border: `1px solid ${C.danger}`, background: `${C.danger}12`,
+          display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--ch-text)', fontSize: 11, fontWeight: 650,
+        }}>
+          <AlertCircle size={14} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            {candidate.valueValidation?.message ?? '설정값의 형식과 구조화된 값이 일치하지 않습니다.'}
+            {!readOnly && ' 수정하거나 제외한 뒤 묶음을 확정해 주세요.'}
+          </span>
         </div>
       )}
 
@@ -1759,6 +1803,8 @@ export function CharacterSettingReview() {
     ? '서버 업데이트 전 호환 목록에서는 묶음 전체를 보장할 수 없어 일괄 확정을 지원하지 않습니다.'
     : pendingGroupCandidates.length === 0
     ? '확정할 검토 대기 설정이 없습니다.'
+    : pendingGroupCandidates.some(isCandidateValueInvalid)
+      ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'
     : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
       ? '캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.'
       : pendingGroupCandidates.some(candidate => (
@@ -2115,7 +2161,7 @@ export function CharacterSettingReview() {
                               display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                             }}>
                               <div style={{ flex: 1, minWidth: 220 }}>
-                                <strong style={{ color: C.t1, fontSize: 13 }}>
+                                <strong style={{ color: 'var(--ch-ink)', fontSize: 13 }}>
                                   {selectedGroup.entityName}의 {pendingGroupCandidates.length}개 설정을 함께 확정합니다.
                                 </strong>
                                 <div style={{ color: groupConfirmBlockedReason ? C.warning : C.t3, fontSize: 11, marginTop: 4 }}>
