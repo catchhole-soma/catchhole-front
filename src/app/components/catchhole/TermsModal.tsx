@@ -19,7 +19,7 @@ const TERMS_CONTENT = [
   { title: '제1조 (목적)', body: '이 약관은 CatchHole(이하 "서비스")이 제공하는 웹소설 설정 추출·관리 서비스의 이용 조건 및 절차, 이용자와 서비스 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.' },
   { title: '제2조 (용어의 정의)', body: '"이용자"란 이 약관에 따라 서비스를 이용하는 회원을 말합니다. "콘텐츠"란 이용자가 서비스에 업로드한 원고, 설정 데이터 등 일체의 정보를 말합니다.' },
   { title: '제3조 (약관의 효력 및 변경)', body: '서비스는 이 약관의 내용을 이용자가 쉽게 알 수 있도록 서비스 초기화면에 게시합니다. 서비스는 필요한 경우 약관을 변경할 수 있으며, 변경 시 7일 전 공지합니다.' },
-  { title: '제4조 (서비스의 제공)', body: '서비스는 AI 기반 설정 추출, 캐릭터·설정 데이터베이스 관리, 설정 검색과 원문 근거 확인 기능을 제공합니다. 서비스는 연중무휴 24시간 제공을 원칙으로 하되, 시스템 점검 시 일시 중단될 수 있습니다.' },
+  { title: '제4조 (서비스의 제공)', body: '서비스는 AI 기반 설정 추출, 캐릭터·세계관 설정 관리, 설정 검색과 원문 근거 확인 기능을 제공합니다. 서비스는 연중무휴 24시간 제공을 원칙으로 하되, 시스템 점검 시 일시 중단될 수 있습니다.' },
   { title: '제5조 (저작권)', body: '이용자가 서비스에 업로드한 원고 및 설정 데이터의 저작권은 이용자에게 귀속됩니다. 서비스는 이용자의 콘텐츠를 서비스 제공 목적 외에 사용하지 않습니다.' },
 ];
 
@@ -51,6 +51,7 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
 
   return (
     <motion.div
+      className="terms-modal-backdrop theme-v2 theme-modal-backdrop"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)',
@@ -59,6 +60,7 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
       onClick={onClose}
     >
       <motion.div
+        className="terms-modal theme-modal"
         ref={dialogRef}
         role="dialog"
         tabIndex={-1}
@@ -77,7 +79,7 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
         }}
       >
         {/* 헤더 */}
-        <div style={{ padding: '20px 24px 0', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div className="terms-modal__header theme-modal__header" style={{ padding: '20px 24px 0', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <span id="terms-modal-title" style={{ color: C.t1, fontSize: 16, fontWeight: 700, letterSpacing: '-0.3px' }}>법적 고지</span>
             <button type="button" aria-label="법적 고지 닫기" onClick={onClose} style={{
@@ -89,7 +91,7 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
           </div>
           <div style={{ display: 'flex', gap: 0 }}>
             {TABS.map(t => (
-              <button type="button" key={t.id} onClick={() => setTab(t.id)} style={{
+              <button className={`terms-modal__tab${tab === t.id ? ' is-active' : ''}`} type="button" key={t.id} onClick={() => setTab(t.id)} style={{
                 padding: '8px 16px', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: tab === t.id ? 600 : 400,
                 color: tab === t.id ? C.primary : C.t3,
@@ -103,10 +105,10 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
         </div>
 
         {/* 본문 */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div className="terms-modal__body theme-modal__body" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {content.map((section, i) => (
-              <div key={i}>
+              <div className="terms-modal__section" key={i}>
                 <div style={{ color: C.t1, fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
                   {section.title}
                 </div>
@@ -119,7 +121,7 @@ export function TermsModal({ onClose, initialTab = 'terms' }: Props) {
         </div>
 
         {/* 하단 */}
-        <div style={{
+        <div className="terms-modal__footer theme-modal__footer" style={{
           padding: '16px 24px', borderTop: `1px solid ${C.border}`,
           display: 'flex', justifyContent: 'flex-end', flexShrink: 0,
         }}>

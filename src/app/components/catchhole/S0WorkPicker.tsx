@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useSearchParams } from 'react-router';
 import {
@@ -8,7 +8,6 @@ import {
   Pencil,
   Plus,
   RefreshCw,
-  Shield,
   Tag,
   Trash2,
 } from 'lucide-react';
@@ -16,17 +15,17 @@ import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { useWorks } from '../../hooks/useWorks';
 import type { Work } from '../../lib/worksApi';
-import { C } from './constants';
-import { UserMenu } from './UserMenu';
 import { WorkCreateModal } from './WorkCreateModal';
 import { WorkDeleteModal } from './WorkDeleteModal';
 import { WorkEditModal } from './WorkEditModal';
+import { PageHeading } from './ui-v2/PageHeading';
+import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
 
 const COVER_GRADIENTS = [
-  'linear-gradient(135deg, #1a1030 0%, #2d1b4e 50%, #1a0820 100%)',
-  'linear-gradient(135deg, #0d1a2e 0%, #1a3040 50%, #0d2010 100%)',
-  'linear-gradient(135deg, #26121b 0%, #3a2433 50%, #17151f 100%)',
-  'linear-gradient(135deg, #101d24 0%, #20313b 50%, #171725 100%)',
+  'linear-gradient(145deg, #e8f5ff 0%, #cce8ff 52%, #edf9ff 100%)',
+  'linear-gradient(145deg, #edf4ff 0%, #d8e4ff 52%, #f0f4ff 100%)',
+  'linear-gradient(145deg, #eef9f5 0%, #d4f0e5 52%, #f5fbf8 100%)',
+  'linear-gradient(145deg, #f4efff 0%, #e2d8ff 52%, #f8f5ff 100%)',
 ] as const;
 
 function coverGradient(workId: string): string {
@@ -45,54 +44,25 @@ function WorkCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [actionsFocused, setActionsFocused] = useState(false);
-  const showActions = hovered || actionsFocused;
   const episodeLabel = work.episodeCount > 0
     ? `마지막 회차 ${work.episodeCount}화`
     : '등록된 회차 없음';
 
   return (
     <motion.div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocusCapture={() => setActionsFocused(true)}
-      onBlurCapture={event => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setActionsFocused(false);
-        }
-      }}
+      className="work-card"
       whileHover={{ y: -4 }}
       transition={{ duration: 0.18 }}
-      style={{
-        position: 'relative', borderRadius: 12, overflow: 'hidden',
-        border: `1px solid ${hovered ? C.primary + '66' : C.border}`,
-        background: C.surface, transitionProperty: 'border-color, box-shadow', transitionDuration: '0.18s',
-        boxShadow: hovered ? `0 8px 32px ${C.primary}18` : 'none',
-      }}
     >
       <div
         aria-label={`${work.title} 작품 관리`}
-        style={{
-          position: 'absolute', top: 10, right: 10, zIndex: 2,
-          display: 'flex', alignItems: 'center', gap: 6,
-          opacity: showActions ? 1 : 0,
-          transform: showActions ? 'translateY(0)' : 'translateY(-4px)',
-          pointerEvents: showActions ? 'auto' : 'none',
-          transition: 'opacity 0.15s, transform 0.15s',
-        }}
+        className="work-card__actions"
       >
         <button
           type="button"
           aria-label={`${work.title} 수정`}
           onClick={onEdit}
-          style={{
-            height: 32, padding: '0 10px', borderRadius: 7,
-            border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(15,15,19,0.9)',
-            color: C.t1, display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-          }}
+          className="work-card__action"
         >
           <Pencil size={12} /> 수정
         </button>
@@ -100,13 +70,7 @@ function WorkCard({
           type="button"
           aria-label={`${work.title} 삭제`}
           onClick={onDelete}
-          style={{
-            height: 32, padding: '0 10px', borderRadius: 7,
-            border: `1px solid ${C.danger}55`, background: 'rgba(15,15,19,0.9)',
-            color: C.danger, display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-          }}
+          className="work-card__action work-card__action--danger"
         >
           <Trash2 size={12} /> 삭제
         </button>
@@ -116,43 +80,26 @@ function WorkCard({
         type="button"
         aria-label={`${work.title} 작품 선택`}
         onClick={onClick}
-        style={{
-          width: '100%', padding: 0, border: 'none', background: 'transparent',
-          textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'block',
-        }}
+        className="work-card__select"
       >
-        <div style={{
-          height: 200, background: coverGradient(work.id), position: 'relative',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <BookOpen size={80} color="#fff" style={{ opacity: 0.13 }} />
+        <div className="work-card__cover" style={{ background: coverGradient(work.id) }}>
+          <BookOpen size={74} />
         </div>
-        <div style={{ padding: '15px 16px 16px' }}>
-          <div style={{
-            color: C.t1, fontSize: 16, fontWeight: 700, marginBottom: 5, letterSpacing: '-0.3px',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
+        <div className="work-card__body">
+          <div className="work-card__title">
             {work.title}
           </div>
           <div
             title={work.description ?? undefined}
-            style={{
-              color: work.description ? C.t2 : C.t3,
-              fontSize: 12,
-              lineHeight: 1.5,
-              marginBottom: 9,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
+            className={`work-card__description${work.description ? '' : ' is-empty'}`}
           >
             {work.description || '작품 소개가 없습니다.'}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px 14px', color: C.t3, fontSize: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="work-card__meta">
+            <span>
               <Tag size={11} /> {work.genre}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>
               <Hash size={11} /> {episodeLabel}
             </span>
           </div>
@@ -163,44 +110,29 @@ function WorkCard({
 }
 
 function NewWorkCard({ onClick, compact = false }: { onClick: () => void; compact?: boolean }) {
-  const [hovered, setHovered] = useState(false);
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className={`new-work-card${compact ? ' new-work-card--compact' : ''}`}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.18 }}
-      style={{
-        borderRadius: 12, cursor: 'pointer', border: `1.5px dashed ${hovered ? C.primary + '77' : C.border}`,
-        background: hovered ? C.primary + '08' : 'transparent',
-        width: compact ? 184 : '100%', height: compact ? 184 : undefined, minHeight: compact ? undefined : 288,
-        padding: 16, boxSizing: 'border-box',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
-        transitionProperty: 'border-color, background', transitionDuration: '0.18s', fontFamily: 'inherit',
-      }}
     >
-      <div style={{
-        width: 42, height: 42, borderRadius: 10, background: hovered ? C.primary + '22' : C.border + '66',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.18s',
-      }}>
-        <Plus size={20} color={hovered ? C.primary : C.t3} />
+      <div className="new-work-card__icon">
+        <Plus size={20} />
       </div>
-      <span style={{ color: hovered ? C.primary : C.t3, fontSize: 13, fontWeight: 500 }}>
-        새 작품 등록
-      </span>
+      <span>새 작품 등록</span>
     </motion.button>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div aria-hidden="true" style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
-      <div className="work-skeleton" style={{ height: 200, background: C.surface }} />
-      <div style={{ background: C.surface, padding: '15px 16px 16px', borderTop: `1px solid ${C.border}` }}>
-        <div className="work-skeleton" style={{ height: 16, width: '62%', borderRadius: 4, background: C.border, marginBottom: 11 }} />
-        <div className="work-skeleton" style={{ height: 12, width: '48%', borderRadius: 4, background: C.border }} />
+    <div aria-hidden="true" className="work-skeleton-card">
+      <div className="work-skeleton work-skeleton-card__cover" />
+      <div className="work-skeleton-card__body">
+        <div className="work-skeleton work-skeleton-card__line work-skeleton-card__line--title" />
+        <div className="work-skeleton work-skeleton-card__line" />
       </div>
     </div>
   );
@@ -237,7 +169,7 @@ export default function S0WorkPicker() {
     params.delete('targetWorkId');
     return params;
   }, { replace: true });
-  const selectWork = (work: Work, replace = false) => {
+  const selectWork = (work: Work) => {
     setSelectedWork(work.id);
     setSelectedWorkInfo({
       id: work.id,
@@ -248,94 +180,44 @@ export default function S0WorkPicker() {
     navigate(
       `/dashboard?workId=${encodeURIComponent(work.id)}&nav=manuscripts`,
       'push-right',
-      undefined,
-      { replace },
     );
   };
 
   return (
-    <div className="work-picker-page" style={{
-      background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
-    }}>
-      <header className="app-topbar work-picker-header" style={{
-        height: 56, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex',
-        alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', flexShrink: 0,
-      }}>
-        <button
-          type="button"
-          onClick={() => navigate('/works', 'dissolve')}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}
-        >
-          <div style={{
-            width: 26, height: 26, borderRadius: 6, background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Shield size={14} color="#fff" />
-          </div>
-          <span style={{ color: C.t1, fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>CatchHole</span>
-          <span style={{
-            padding: '2px 7px', borderRadius: 3, background: C.primary + '18', color: C.primary,
-            fontSize: 10, fontWeight: 600, border: `1px solid ${C.primary}33`, marginLeft: 2,
-          }}>BETA</span>
-        </button>
-        <UserMenu />
-      </header>
+    <div className="work-picker-page theme-v2 workspace-v2">
+      <WorkspaceTopbar onBrandClick={() => navigate('/works', 'dissolve')} />
 
-      <main className="work-picker-main" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px' }}>
+      <main className="work-picker-main">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <h1 style={{ color: C.t1, fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px', margin: '0 0 6px' }}>
-            작품 선택
-          </h1>
-          <p style={{ color: C.t3, fontSize: 14, margin: '0 0 36px' }}>
-            분석할 작품을 선택하거나 새 작품을 등록하세요.
-          </p>
+          <PageHeading eyebrow="MY WORKS" title="작품 선택" description="분석할 작품을 선택하거나 새 작품을 등록하세요." />
 
           {error && (
-            <div role="alert" style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderRadius: 8,
-              background: C.danger + '14', border: `1px solid ${C.danger}44`, color: C.danger,
-              fontSize: 13, marginBottom: 20, maxWidth: 960,
-            }}>
+            <div role="alert" className="work-picker-alert">
               <AlertCircle size={16} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>{error}</span>
-              <button type="button" onClick={refetch} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 6,
-                background: 'transparent', border: `1px solid ${C.danger}66`, color: C.danger,
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-              }}>
+              <span>{error}</span>
+              <button type="button" onClick={refetch}>
                 <RefreshCw size={12} /> 다시 시도
               </button>
             </div>
           )}
 
           {loading ? (
-            <div aria-label="작품 목록 불러오는 중" style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
-            }}>
+            <div aria-label="작품 목록 불러오는 중" className="work-picker-skeletons">
               {[0, 1, 2].map(index => <SkeletonCard key={index} />)}
             </div>
           ) : !error && works.length === 0 ? (
-            <div className="work-picker-grid" style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              maxWidth: 480, margin: '40px auto', textAlign: 'center', gap: 16,
-            }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 14, background: C.primary + '14',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <BookOpen size={26} color={C.primary} />
+            <div className="work-picker-empty">
+              <div className="work-picker-empty__icon">
+                <BookOpen size={26} />
               </div>
               <div>
-                <div style={{ color: C.t1, fontSize: 17, fontWeight: 700, marginBottom: 6 }}>등록된 작품이 없습니다</div>
-                <div style={{ color: C.t3, fontSize: 13 }}>첫 작품을 등록하고 AI 설정 분석을 시작해보세요.</div>
+                <h2>등록된 작품이 없습니다</h2>
+                <p>첫 작품을 등록하고 AI 설정 분석을 시작해보세요.</p>
               </div>
               <NewWorkCard compact onClick={openCreateModal} />
             </div>
           ) : !error ? (
-            <div className="work-picker-grid" style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, maxWidth: 960,
-            }}>
+            <div className="work-picker-grid">
               {works.map(work => (
                 <WorkCard
                   key={work.id}
@@ -355,7 +237,10 @@ export default function S0WorkPicker() {
         {modal === 'work-create' && (
           <WorkCreateModal
             onClose={closeModal}
-            onCreated={work => selectWork(work, true)}
+            onCreated={work => {
+              closeModal();
+              window.setTimeout(() => selectWork(work), 0);
+            }}
           />
         )}
         {modal === 'work-edit' && targetWork && (

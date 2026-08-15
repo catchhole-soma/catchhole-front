@@ -106,7 +106,7 @@ export default function S4Loading() {
         letterSpacing: '-0.4px',
         textAlign: 'center',
       }}>
-        설정 DB와 대조 중
+        작품 설정과 대조 중
       </div>
 
       <div style={{

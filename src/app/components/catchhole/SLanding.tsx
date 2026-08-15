@@ -1,203 +1,195 @@
-import React from 'react';
-import { Sparkles, Zap, ShieldCheck, FileText, Lock } from 'lucide-react';
-import { C } from './constants';
+import type { ReactNode } from 'react';
+import {
+  ArrowRight,
+  BookOpenText,
+  CheckCircle2,
+  Database,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  WandSparkles,
+} from 'lucide-react';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
+import { ActionButton } from './ui-v2/ActionButton';
+import { ProductBrand } from './ui-v2/ProductBrand';
+import { SurfaceCard } from './ui-v2/SurfaceCard';
+import { LandingProductDemo } from './LandingProductDemo';
+import './landing-v2.css';
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <div className="landing-feature-card" style={{
-      flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: 24, display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 999, background: C.primary + '24',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {icon}
-      </div>
-      <div style={{ color: C.t1, fontSize: 16, fontWeight: 700 }}>{title}</div>
-      <div style={{ color: C.t2, fontSize: 13, lineHeight: 1.5 }}>{description}</div>
-    </div>
-  );
-}
+type Feature = {
+  description: string;
+  icon: ReactNode;
+  step: string;
+  title: string;
+};
 
-const FEATURES = [
+const QUICK_ACTIONS = [
   {
-    icon: <Zap size={20} color={C.primary} />,
+    icon: <UploadCloud size={23} />,
+    title: '원고 업로드',
+    description: '회차 원고를 올리면 분석 준비가 끝나요.',
+  },
+  {
+    icon: <WandSparkles size={23} />,
     title: 'AI 설정 추출',
-    description: '업로드한 원고에서 캐릭터의 프로필, 스탯, 스킬, 아이템과 상태 설정을 추출합니다.',
+    description: '인물과 세계관 설정을 근거와 함께 찾아요.',
   },
   {
-    icon: <ShieldCheck size={20} color={C.primary} />,
-    title: '설정 DB 관리',
-    description: '추출된 설정 후보를 검토하고 캐릭터별 현재 설정과 변경 이력을 관리합니다.',
+    icon: <Database size={23} />,
+    title: '작품 설정 정리',
+    description: '검토한 설정을 작품별로 안전하게 관리해요.',
   },
-  {
-    icon: <FileText size={20} color={C.primary} />,
-    title: '원문 근거 확인',
-    description: '설정이 추출된 원문 위치를 하이라이트와 함께 확인할 수 있습니다.',
-  },
-];
+] as const;
 
-const TRUST_ITEMS = [
-  { icon: <Zap size={14} color={C.t3} />, label: '실시간 AI 분석' },
-  { icon: <Lock size={14} color={C.t3} />, label: '안전한 데이터 보관' },
+const FEATURES: Feature[] = [
+  {
+    icon: <BookOpenText size={25} />,
+    step: '01',
+    title: '원고를 그대로 올리세요',
+    description: '복잡한 양식 없이 작업 중인 회차 원고를 업로드하면 작품 단위로 차곡차곡 정리됩니다.',
+  },
+  {
+    icon: <Sparkles size={25} />,
+    step: '02',
+    title: 'AI가 설정을 찾아드려요',
+    description: '캐릭터와 세계관 후보를 추출하고, 어떤 문장에서 찾았는지 원문 근거까지 연결합니다.',
+  },
+  {
+    icon: <ShieldCheck size={25} />,
+    step: '03',
+    title: '작가가 확인하고 확정해요',
+    description: 'AI 제안을 검토한 뒤 필요한 내용만 작품 설정에 저장해 작품의 기준을 직접 관리합니다.',
+  },
 ];
 
 export default function SLanding() {
   const { openAuth, openTerms } = usePublicModalNavigation();
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <div className="landing-page" style={{
-      background: C.bg, width: '100%', height: '100%', overflow: 'auto',
-      fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
-    }}>
-      {/* Header */}
-      <div className="landing-header" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 64px', height: 64, borderBottom: `1px solid ${C.border}`,
-      }}>
-        <span style={{ color: C.primary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.4px' }}>CatchHole</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => openAuth('/login')} style={{
-            height: 36, padding: '0 16px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: C.surface, color: C.t2, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            로그인
-          </button>
-          <button onClick={() => openAuth('/signup')} style={{
-            height: 36, padding: '0 16px', borderRadius: 6, border: 'none',
-            background: C.primary, color: '#fff', fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            회원가입
-          </button>
+    <div className="landing-page theme-v2">
+      <header className="landing-header">
+        <div className="landing-header__inner">
+          <ProductBrand compact />
+          <div className="landing-header__right">
+            <nav className="landing-header__nav" aria-label="서비스 소개">
+              <button type="button" onClick={() => scrollTo('features')}>서비스 소개</button>
+              <button type="button" onClick={() => scrollTo('how-it-works')}>이용 방법</button>
+            </nav>
+            <div className="landing-header__actions">
+              <ActionButton size="compact" variant="secondary" onClick={() => openAuth('/login')}>
+                로그인
+              </ActionButton>
+              <ActionButton size="compact" onClick={() => openAuth('/signup')}>
+                무료로 시작하기
+              </ActionButton>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Hero */}
-      <div className="landing-hero" style={{
-        display: 'flex', alignItems: 'center', gap: 48, padding: '64px 64px', background: C.surface,
-      }}>
-        <div className="landing-hero-copy" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-            padding: '4px 10px', borderRadius: 999, background: '#22222C', border: `1px solid ${C.border}`,
-          }}>
-            <Sparkles size={13} color={C.primary} />
-            <span style={{ color: C.t2, fontSize: 11, fontWeight: 600 }}>New: AI Analysis v2.0</span>
-          </div>
-          <div className="landing-hero-title" style={{ color: C.t1, fontSize: 36, fontWeight: 800, lineHeight: 1.3 }}>
-            당신의 이야기가 완벽해지는 순간, CatchHole
-          </div>
-          <div style={{ color: C.t2, fontSize: 15, lineHeight: 1.5 }}>
-            AI가 원고 속 캐릭터 설정을 추출하고 원문 근거와 함께 정리합니다.
-            작품의 설정을 찾고 관리하는 시간을 줄여보세요.
-          </div>
-          <div className="landing-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => openAuth('/signup')} style={{
-              height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
-              background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              지금 무료로 시작하기
-            </button>
-            <button onClick={() => openAuth('/login')} style={{
-              height: 44, padding: '0 20px', borderRadius: 6, border: `1px solid ${C.border}`,
-              background: C.surface, color: C.t2, fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              로그인
-            </button>
-          </div>
-          <div className="landing-trust" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            {TRUST_ITEMS.map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {item.icon}
-                <span style={{ color: C.t3, fontSize: 12 }}>{item.label}</span>
+      <main>
+        <section className="landing-hero" id="features">
+          <div className="landing-section__inner landing-hero__inner">
+            <div className="landing-hero-copy">
+              <div className="landing-eyebrow">
+                <Sparkles size={14} />
+                웹소설 설정 관리 AI
               </div>
-            ))}
+              <h1 className="landing-hero-title">
+                이야기의 빈틈은 줄이고,<br /><em>창작의 몰입은 더하고</em>
+              </h1>
+              <p className="landing-hero-description">
+                원고 속 캐릭터와 세계관 설정을 AI가 찾아 정리해 드려요.
+                작가님은 이야기의 다음 장면에만 집중하세요.
+              </p>
+              <div className="landing-actions">
+                <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
+                  지금 무료로 시작하기
+                </ActionButton>
+                <ActionButton variant="secondary" onClick={() => scrollTo('how-it-works')}>
+                  서비스 둘러보기
+                </ActionButton>
+              </div>
+              <div className="landing-trust">
+                <span className="landing-trust__item"><CheckCircle2 size={14} /> 원문 근거까지 한눈에</span>
+                <span className="landing-trust__item"><CheckCircle2 size={14} /> 작가가 직접 최종 확정</span>
+              </div>
+            </div>
+            <LandingProductDemo />
           </div>
-        </div>
-        <div className="landing-chart" aria-hidden="true" style={{
-          width: 440, height: 340, borderRadius: 10, background: '#22222C', border: `1px solid ${C.border}`,
-          display: 'flex', alignItems: 'flex-end', gap: 8, padding: 24,
-        }}>
-          {[40, 70, 45, 90, 60, 80, 50].map((h, i) => (
-            <div key={i} style={{
-              flex: 1, height: `${h}%`, borderRadius: 4,
-              background: `linear-gradient(180deg, ${C.primary}, ${C.primary}55)`,
-            }} />
+        </section>
+
+        <div className="landing-section__inner landing-quick-actions" aria-label="CatchHole 핵심 기능">
+          {QUICK_ACTIONS.map(item => (
+            <SurfaceCard className="landing-quick-action" key={item.title}>
+              <span className="landing-icon-box">{item.icon}</span>
+              <span className="landing-quick-action__copy">
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+              </span>
+            </SurfaceCard>
           ))}
         </div>
-      </div>
 
-      {/* Features */}
-      <div id="features" className="landing-features" style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, padding: '64px 64px',
-      }}>
-        <div style={{ color: C.t1, fontSize: 26, fontWeight: 800, textAlign: 'center' }}>
-          전문 작가들을 위한 고밀도 기능
-        </div>
-        <div style={{ color: C.t2, fontSize: 14, textAlign: 'center' }}>
-          복잡한 설정과 수많은 인물들, 이제 AI가 당신의 가장 든든한 조력자가 되어드립니다.
-        </div>
-        <div className="landing-feature-grid" style={{ display: 'flex', gap: 20, width: '100%' }}>
-          {FEATURES.map(f => <FeatureCard key={f.title} {...f} />)}
-        </div>
-      </div>
+        <section className="landing-features" id="how-it-works">
+          <div className="landing-section__inner">
+            <div className="landing-section-heading">
+              <h2>복잡한 설정 관리,<br />세 단계면 충분해요</h2>
+              <p>
+                원고 업로드부터 AI 분석, 작가님의 최종 검토까지 하나의 흐름으로 이어집니다.
+                작품의 설정은 자동으로 덮어쓰지 않고 언제나 작가님의 확인을 거칩니다.
+              </p>
+            </div>
+            <div className="landing-feature-grid">
+              {FEATURES.map(feature => (
+                <SurfaceCard className="landing-feature-card" key={feature.step}>
+                  <span className="landing-icon-box">{feature.icon}</span>
+                  <div className="landing-step__label">
+                    <span className="landing-step__number">{feature.step}</span>
+                    STEP
+                  </div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.description}</p>
+                </SurfaceCard>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {/* Bottom CTA */}
-      <div className="landing-bottom-cta" style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
-        padding: '56px 64px', background: '#22222C',
-      }}>
-        <div style={{ color: C.t1, fontSize: 24, fontWeight: 800, textAlign: 'center' }}>
-          지금, 당신의 이야기를 CatchHole로 가져오세요.
-        </div>
-        <div style={{ color: C.t2, fontSize: 14, textAlign: 'center' }}>
-          더 이상 설정 오류에 시간을 낭비하지 마세요. AI가 완벽도를 책임지고, 작가님은 오직 창작의 즐거움에만 몰두하세요.
-        </div>
-        <div className="landing-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => openAuth('/signup')} style={{
-            height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
-            background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            무료로 시작하기
-          </button>
-          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} style={{
-            height: 44, padding: '0 20px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: C.surface, color: C.t2, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            서비스 안내 더보기
-          </button>
-        </div>
-      </div>
+        <section className="landing-bottom-cta">
+          <div className="landing-section__inner">
+            <div className="landing-cta">
+              <div>
+                <h2>당신의 이야기를<br />더 오래, 단단하게</h2>
+                <p>첫 작품을 등록하고 CatchHole의 설정 관리 흐름을 경험해 보세요.</p>
+              </div>
+              <div className="landing-cta__actions">
+                <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
+                  무료로 시작하기
+                </ActionButton>
+                <ActionButton variant="secondary" onClick={() => openAuth('/login')}>
+                  로그인
+                </ActionButton>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <div className="landing-footer" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '24px 64px', borderTop: `1px solid ${C.border}`,
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>CatchHole</span>
-          <span style={{ color: C.t3, fontSize: 12 }}>The future of creative storytelling.</span>
+      <footer className="landing-footer">
+        <div className="landing-footer__inner">
+          <div className="landing-footer__brand">
+            <ProductBrand compact />
+            <span>이야기의 빈틈을 찾는 가장 쉬운 방법</span>
+          </div>
+          <div className="landing-footer__links">
+            <button type="button" onClick={() => openTerms('privacy')}>개인정보 처리방침</button>
+            <button type="button" onClick={() => openTerms('terms')}>이용약관</button>
+            <span>© 2026 CatchHole</span>
+          </div>
         </div>
-        <div className="landing-footer-links" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <button onClick={() => openTerms('privacy')} style={{
-            color: C.t3, fontSize: 12, background: 'none', border: 'none', padding: 0,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>개인정보 처리방침</button>
-          <button onClick={() => openTerms('terms')} style={{
-            color: C.t3, fontSize: 12, background: 'none', border: 'none', padding: 0,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>이용약관</button>
-          <span style={{ color: C.t3, fontSize: 12 }}>Contact</span>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 }

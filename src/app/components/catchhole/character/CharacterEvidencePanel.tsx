@@ -150,6 +150,7 @@ function HighlightedSource({
 
   return (
     <div
+      className="theme-evidence__source"
       data-testid="character-evidence-source"
       style={{
         padding: 20,
@@ -210,6 +211,7 @@ function QuoteFallback({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {spans.map((span, index) => (
           <blockquote
+            className="theme-evidence__quote"
             key={`${span.quote}-${index}`}
             style={{
               margin: 0,
@@ -367,7 +369,7 @@ export function CharacterEvidencePanel({
         )}
 
         {!loading && !error && !evidence && (
-          <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '42px 16px' }}>
+      <div className="theme-evidence__empty" style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '42px 16px' }}>
             원문 근거를 찾을 수 없습니다.
           </div>
         )}

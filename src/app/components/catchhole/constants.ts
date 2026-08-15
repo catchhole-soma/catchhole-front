@@ -2,7 +2,7 @@ export const C = {
   bg: '#0F0F13',
   surface: '#1A1A22',
   border: '#2A2A36',
-  primary: '#7C5CFC',
+  primary: '#087EF2',
   danger: '#FF4D4D',
   warning: '#F4A261',
   success: '#00C896',

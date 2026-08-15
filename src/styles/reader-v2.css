@@ -1,0 +1,176 @@
+/* Read-only episode and setting-book source viewer. */
+.original-reader-v2 {
+  color: var(--ch-text) !important;
+  background: var(--ch-canvas) !important;
+}
+
+.original-reader-v2 .original-reader-header {
+  min-height: 64px;
+  height: 64px !important;
+  box-sizing: border-box;
+  border-color: var(--ch-border) !important;
+  background: rgb(255 255 255 / 96%) !important;
+  box-shadow: 0 4px 18px rgb(31 55 88 / 4%);
+}
+
+.original-reader-v2 .original-reader-back {
+  min-height: 36px;
+  padding: 0 11px !important;
+  border-radius: 9px !important;
+  color: var(--ch-text-muted) !important;
+  font-weight: 700;
+}
+
+.original-reader-v2 .original-reader-back:hover {
+  background: var(--ch-surface-soft) !important;
+  color: var(--ch-primary) !important;
+}
+
+.original-reader-v2 .original-reader-title {
+  max-width: min(54vw, 680px);
+  overflow: hidden;
+  color: var(--ch-text-muted) !important;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.original-reader-v2 .original-reader-notice {
+  min-height: 42px;
+  height: 42px !important;
+  border-color: rgb(8 126 242 / 18%) !important;
+  background: var(--ch-surface-soft) !important;
+}
+
+.original-reader-v2 .original-reader-notice svg,
+.original-reader-v2 .original-reader-notice span {
+  color: var(--ch-primary) !important;
+}
+
+.original-reader-v2 .original-reader-main {
+  padding: 40px 28px 72px !important;
+  background: var(--ch-canvas);
+}
+
+.original-reader-v2 .original-reader-article {
+  max-width: 920px !important;
+  box-sizing: border-box;
+  padding: 38px 42px 48px;
+  border: 1px solid var(--ch-border);
+  border-radius: 20px;
+  background: var(--ch-surface);
+  box-shadow: var(--ch-shadow-card);
+}
+
+.original-reader-v2 .original-reader-article__header {
+  margin-bottom: 30px !important;
+  padding-bottom: 24px !important;
+  border-color: var(--ch-border) !important;
+}
+
+.original-reader-v2 .original-reader-article__eyebrow {
+  color: var(--ch-primary) !important;
+  font-weight: 800;
+}
+
+.original-reader-v2 .original-reader-article__title {
+  color: var(--ch-ink) !important;
+  font-size: 26px !important;
+  font-weight: 820;
+  letter-spacing: -.035em !important;
+}
+
+.original-reader-v2 .original-reader-article__meta {
+  color: var(--ch-text-subtle) !important;
+}
+
+.original-reader-v2 .original-lines {
+  padding: 2px 0;
+}
+
+.original-reader-v2 .original-line {
+  grid-template-columns: 46px minmax(0, 1fr) !important;
+  border-radius: 7px;
+}
+
+.original-reader-v2 .original-line:hover {
+  background: var(--ch-surface-soft);
+}
+
+.original-reader-v2 .original-line__number {
+  color: var(--ch-text-subtle) !important;
+}
+
+.original-reader-v2 .original-line__body {
+  color: var(--ch-text) !important;
+  font-size: 15px;
+}
+
+.original-reader-v2 .original-reader-state {
+  color: var(--ch-text-muted) !important;
+}
+
+.original-reader-v2 .original-reader-state.is-error > span {
+  color: var(--ch-text-muted) !important;
+}
+
+.original-reader-v2 .original-reader-state.is-error > svg {
+  color: var(--ch-danger) !important;
+}
+
+.original-reader-v2 .original-reader-retry {
+  min-height: 38px !important;
+  border-color: var(--ch-border-strong) !important;
+  border-radius: 10px !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text) !important;
+  font-weight: 700;
+}
+
+.original-reader-v2 .original-reader-retry:hover {
+  border-color: var(--ch-primary) !important;
+  color: var(--ch-primary) !important;
+}
+
+@media (max-width: 720px) {
+  .original-reader-v2 .original-reader-header {
+    height: auto !important;
+    min-height: 58px;
+    padding: 0 12px !important;
+  }
+
+  .original-reader-v2 .original-reader-back {
+    padding: 0 7px !important;
+  }
+
+  .original-reader-v2 .original-reader-title {
+    max-width: 42vw;
+    font-size: 12px !important;
+  }
+
+  .original-reader-v2 .original-reader-notice {
+    min-height: 38px;
+    height: 38px !important;
+  }
+
+  .original-reader-v2 .original-reader-main {
+    padding: 18px 12px 44px !important;
+  }
+
+  .original-reader-v2 .original-reader-article {
+    padding: 24px 16px 32px;
+    border-radius: 16px;
+  }
+
+  .original-reader-v2 .original-reader-article__title {
+    font-size: 22px !important;
+  }
+
+  .original-reader-v2 .original-line {
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+  }
+
+  .original-reader-v2 .original-line__number {
+    padding-right: 9px !important;
+  }
+}

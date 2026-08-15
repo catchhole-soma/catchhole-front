@@ -99,6 +99,7 @@ function Chip({
 }) {
   return (
     <button
+      className={`character-fact-chip${active ? ' is-active' : ''}`}
       type="button"
       aria-pressed={active}
       onClick={onClick}
@@ -133,6 +134,7 @@ function StatePanel({
   const error = kind === 'error';
   return (
     <div
+      className={`character-fact-state database-state is-${kind}`}
       role={error ? 'alert' : 'status'}
       style={{
         minHeight: 250,
@@ -333,6 +335,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
   return (
     <>
       <div
+        className={`character-fact-search__field${focused ? ' is-focused' : ''}`}
         style={{
           height: 46,
           padding: '0 15px',
@@ -384,9 +387,9 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 유형</span>
+      <div className="character-fact-search__filters" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+        <div className="character-fact-search__filter-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span className="character-fact-search__filter-label" style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 유형</span>
           {FACT_TYPE_OPTIONS.map(option => (
             <Chip
               key={option.value}
@@ -397,8 +400,8 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
             </Chip>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 시점</span>
+        <div className="character-fact-search__filter-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span className="character-fact-search__filter-label" style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 시점</span>
           {SCOPE_OPTIONS.map(option => (
             <Chip
               key={option.value}
@@ -412,6 +415,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
       </div>
 
       <div
+        className="character-fact-search__summary"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -461,6 +465,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
           >
             {results.map((result, index) => (
               <button
+                className="character-fact-result-card"
                 key={result.characterFactId ?? `${result.characterName}-${index}`}
                 type="button"
                 onClick={() => openDetail(result.characterFactId)}
@@ -478,14 +483,6 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                   gap: 10,
                   color: C.t1,
                   transition: 'border-color 0.15s, transform 0.15s',
-                }}
-                onMouseEnter={event => {
-                  event.currentTarget.style.borderColor = C.primary + '88';
-                  event.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={event => {
-                  event.currentTarget.style.borderColor = C.border;
-                  event.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -550,7 +547,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
 
       {selectedFactId && (
         <motion.div
-          className="fact-detail-modal-backdrop"
+          className="fact-detail-modal-backdrop theme-modal-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           data-testid="fact-detail-modal-backdrop"
@@ -568,7 +565,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
           }}
         >
           <motion.div
-            className="fact-detail-modal"
+            className="fact-detail-modal theme-modal"
             role="dialog"
             aria-label="설정 상세"
             aria-modal="true"
@@ -586,7 +583,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
               overflow: 'hidden',
             }}
           >
-            <div className="fact-detail-header" style={{
+            <div className="fact-detail-header theme-modal__header" style={{
               minHeight: 72,
               padding: '0 28px',
               borderBottom: `1px solid ${C.border}`,
@@ -687,7 +684,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
             )}
 
             {detail && !detailQuery.isPending && !detailQuery.isError && (
-              <div className="fact-detail-content" style={{ padding: '24px 28px 28px', display: 'grid', gap: 18 }}>
+              <div className="fact-detail-content theme-modal__body" style={{ padding: '24px 28px 28px', display: 'grid', gap: 18 }}>
                 <section style={{ display: 'grid', gap: 14 }}>
                   <div>
                     <div style={{ color: C.t2, fontSize: 12, fontWeight: 650, marginBottom: 8 }}>설정명</div>
@@ -781,6 +778,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                     <div style={{ display: 'grid', gap: 9 }}>
                       {(detail.evidenceQuotes ?? []).map((quote, index) => (
                         <blockquote
+                          className="theme-evidence__quote"
                           key={`${quote}-${index}`}
                           style={{
                             margin: 0,
@@ -799,6 +797,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                     </div>
                   ) : (
                     <div
+                      className="theme-evidence theme-evidence__empty"
                       role="status"
                       style={{
                         padding: '14px 16px',

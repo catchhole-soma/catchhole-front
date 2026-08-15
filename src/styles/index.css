@@ -1,6 +1,13 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+@import './theme-v2.css';
+@import './workspace-v2.css';
+@import './review-v2.css';
+@import './upload-v2.css';
+@import './database-v2.css';
+@import './reader-v2.css';
+@import './overlay-v2.css';
 @import './responsive.css';
 
 @keyframes catchhole-spin {

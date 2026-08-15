@@ -334,9 +334,9 @@ function FilterGroup<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label}>
-      <div style={{ color: C.t3, fontSize: 11, fontWeight: 600, marginBottom: 7 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+    <div className="review-filter" role="group" aria-label={label}>
+      <div className="review-filter__label">{label}</div>
+      <div className="review-filter__options">
         {options.map(option => {
           const active = option.value === value;
           return (
@@ -344,16 +344,8 @@ function FilterGroup<T extends string>({
               key={option.value}
               type="button"
               disabled={disabled}
+              className={`review-filter__button${active ? ' is-active' : ''}`}
               onClick={() => onChange(option.value)}
-              style={{
-                minHeight: 30, padding: '0 10px', borderRadius: 7,
-                border: `1px solid ${active ? C.primary : C.border}`,
-                background: active ? `${C.primary}18` : 'transparent',
-                color: active ? C.primary : C.t2,
-                fontSize: 11, fontWeight: active ? 700 : 500,
-                cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                opacity: disabled ? 0.58 : 1,
-              }}
             >
               {option.label}
             </button>
@@ -374,6 +366,7 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
         type="button"
         aria-label="이전 화면"
         onClick={onBack}
+        className="review-header__back"
         style={{
           width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
           background: 'transparent', color: C.t2, cursor: 'pointer',
@@ -382,8 +375,11 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
       >
         <ChevronLeft size={18} />
       </button>
-      <strong style={{ color: C.t1, fontSize: 17 }}>설정 후보 검토</strong>
-      <div style={{ flex: 1 }} />
+      <div className="review-header__title">
+        <small>AI ANALYSIS</small>
+        <strong>캐릭터 후보 확정</strong>
+      </div>
+      <div className="review-header__spacer" />
       <UserMenu />
     </header>
   );
@@ -415,9 +411,9 @@ function ReviewSummary({
       background: C.surface, display: 'flex', alignItems: 'center', gap: 38, flexWrap: 'wrap',
     }}>
       {items.map(([label, value, color]) => (
-        <div key={label}>
-          <div style={{ color: C.t3, fontSize: 11, marginBottom: 5 }}>{label}</div>
-          <strong style={{ color, fontSize: 15 }}>{value}</strong>
+        <div className="setting-review-summary__item" key={label}>
+          <div>{label}</div>
+          <strong style={{ color }}>{value}</strong>
         </div>
       ))}
       <div style={{ flex: 1 }} />
@@ -450,6 +446,7 @@ function CandidateGroupCard({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      className={`candidate-group-card${selected ? ' is-selected' : ''}`}
       style={{
         width: '100%', minHeight: 82, padding: '14px 15px', borderRadius: 9,
         border: `1px solid ${selected ? C.primary : C.border}`,
@@ -502,6 +499,7 @@ function ActionButton({
       disabled={disabled}
       aria-pressed={ariaPressed}
       onClick={onClick}
+      className="review-action"
       title={disabled ? disabledTitle ?? '다음 작업 단위에서 연결됩니다.' : undefined}
       style={{
         minHeight: 38, padding: '0 18px', borderRadius: 7,
@@ -605,6 +603,7 @@ function ModalLayer({
 
   return (
     <div
+      className="review-modal-layer"
       onMouseDown={event => {
         if (event.target === event.currentTarget && !pending) onClose();
       }}
@@ -615,6 +614,7 @@ function ModalLayer({
       }}
     >
       <div
+        className="review-modal"
         ref={dialogRef}
         role="dialog"
         tabIndex={-1}
@@ -697,7 +697,7 @@ function CandidateEditModal({
       pending={pending}
       onClose={onClose}
     >
-      <form onSubmit={submit} noValidate>
+      <form className="review-modal__form" onSubmit={submit} noValidate>
         <div style={{ marginTop: 22 }}>
           <label htmlFor="candidate-attribute-name" style={{ color: C.t2, fontSize: 12 }}>
             설정명
@@ -852,7 +852,7 @@ function CharacterMatchModal({
       pending={pending}
       onClose={onClose}
     >
-      <form onSubmit={submit} noValidate>
+      <form className="review-modal__form" onSubmit={submit} noValidate>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 20 }}>
           {([
             ['MATCH_EXISTING', '기존 캐릭터에 연결'],
@@ -926,6 +926,7 @@ function CharacterMatchModal({
                 <button
                   key={character.id}
                   type="button"
+                  className={`review-modal__choice${selectedCharacterId === character.id ? ' is-selected' : ''}`}
                   disabled={pending || !character.id}
                   aria-pressed={selectedCharacterId === character.id}
                   onClick={() => setSelectedCharacterId(character.id ?? '')}
@@ -1029,9 +1030,9 @@ function CandidateDetail({
   const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   return (
-    <section className="setting-candidate-detail" aria-label={`${settingDisplay.nameLabel} 설정 후보`} style={{
+    <section className={`setting-candidate-detail${readOnly ? ' is-read-only' : ''}`} aria-label={`${settingDisplay.nameLabel} 설정 후보`} style={{
       padding: '17px 20px', borderTop: `1px solid ${C.border}`, background: C.surface,
-      opacity: readOnly ? 0.72 : 1,
+      opacity: 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
         <span style={{ color: C.t3, fontSize: 12 }}>{settingDisplay.typeLabel}</span>
@@ -1083,7 +1084,7 @@ function CandidateDetail({
       )}
 
       {readOnly && (
-        <div role="status" style={{
+        <div className={`setting-candidate-status-notice is-${reviewStatus.toLowerCase()}`} role="status" style={{
           marginTop: 12, padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${reviewColor(reviewStatus)}`,
           background: `${reviewColor(reviewStatus)}12`,
@@ -1115,7 +1116,7 @@ function CandidateDetail({
         </div>
       </div>
 
-      <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg }}>
+      <div className="theme-evidence character-setting-evidence-card" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: quotes.length ? 6 : 0 }}>
           <LockKeyhole size={12} color={C.primary} />
           <span style={{ color: C.primary, fontSize: 10, fontWeight: 750 }}>1차 추출 원문</span>
@@ -1123,7 +1124,7 @@ function CandidateDetail({
         {quotes.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {quotes.map((quote, index) => (
-              <blockquote key={`${quote}-${index}`} style={{
+              <blockquote className="theme-evidence__quote" key={`${quote}-${index}`} style={{
                 margin: 0, color: C.t2, fontSize: 11, lineHeight: 1.6,
               }}>
                 “{quote}”
@@ -1131,7 +1132,7 @@ function CandidateDetail({
             ))}
           </div>
         ) : (
-          <div style={{ color: C.t3, fontSize: 11 }}>표시할 원문 근거가 없습니다.</div>
+          <div className="theme-evidence__empty" style={{ color: C.t3, fontSize: 11 }}>표시할 원문 근거가 없습니다.</div>
         )}
       </div>
 
@@ -1834,7 +1835,7 @@ export function CharacterSettingReview() {
 
   if (!hasContext) {
     return (
-      <div style={{ width: '100%', height: '100%', background: C.bg }}>
+      <div className="setting-review-screen theme-v2 workspace-v2">
         <ReviewHeader onBack={backToAnalysisList} />
         <main style={{ maxWidth: 920, margin: '0 auto', padding: '60px 24px' }}>
           <QueryState
@@ -1849,7 +1850,7 @@ export function CharacterSettingReview() {
   }
 
   return (
-    <div style={{
+    <div className="setting-review-screen theme-v2 workspace-v2" style={{
       width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: C.bg, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
@@ -1992,7 +1993,7 @@ export function CharacterSettingReview() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{
+                      <div className="review-empty-state" style={{
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
                         background: C.surface, textAlign: 'center', color: C.t3, fontSize: 12,
                       }}>

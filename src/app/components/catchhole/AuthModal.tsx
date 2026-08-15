@@ -36,7 +36,7 @@ export function AuthModal({ ariaLabelledBy, children, variant }: AuthModalProps)
 
   return (
     <motion.div
-      className="auth-modal-backdrop"
+      className="auth-modal-backdrop theme-v2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

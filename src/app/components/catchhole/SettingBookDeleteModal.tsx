@@ -32,6 +32,7 @@ export function SettingBookDeleteModal({
 
   return (
     <motion.div
+      className="theme-v2 setting-book-modal-backdrop theme-modal-backdrop"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -50,6 +51,7 @@ export function SettingBookDeleteModal({
       }}
     >
       <motion.div
+        className="setting-book-delete-modal theme-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -65,7 +67,7 @@ export function SettingBookDeleteModal({
           overflow: 'hidden',
         }}
       >
-        <div style={{
+        <div className="theme-modal__header" style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -90,12 +92,12 @@ export function SettingBookDeleteModal({
           </div>
         </div>
 
-        <div style={{ padding: '22px' }}>
+        <div className="theme-modal__body" style={{ padding: '22px' }}>
           <div style={{ color: C.t2, fontSize: 13, marginBottom: 14 }}>
             삭제한 설정집은 설정집 파일 목록에서 사라집니다.
           </div>
 
-          <div style={{
+          <div className="setting-book-delete-modal__file" style={{
             padding: '12px 14px',
             borderRadius: 7,
             background: '#22222C',
@@ -148,7 +150,7 @@ export function SettingBookDeleteModal({
           )}
         </div>
 
-        <div style={{
+        <div className="theme-modal__footer" style={{
           display: 'flex',
           justifyContent: 'flex-end',
           gap: 8,

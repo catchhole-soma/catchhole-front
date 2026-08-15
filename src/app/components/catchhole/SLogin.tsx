@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { C, isValidEmail } from './constants';
 import { AuthModal } from './AuthModal';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -8,6 +8,7 @@ import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { loginMutation } from '../../api/generated/@tanstack/react-query.gen';
 import { saveAuthToken } from '../../lib/auth';
 import { NetworkError, toApiError } from '../../lib/api-errors';
+import { BrandLogo } from './ui-v2/BrandLogo';
 
 function Input({
   type, placeholder, value, onChange, onKeyDown, icon, right, error,
@@ -18,18 +19,19 @@ function Input({
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div>
-      <div style={{
+    <div className="auth-field">
+      <div className={`auth-field__control${focused ? ' is-focused' : ''}${error ? ' is-error' : ''}`} style={{
         display: 'flex', alignItems: 'center', gap: 10,
         background: C.bg, border: `1px solid ${error ? C.danger + '88' : focused ? C.primary + '88' : C.border}`,
         borderRadius: 8, padding: '0 14px', height: 44, transition: 'border-color 0.15s',
       }}>
-        <span style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
+        <span className="auth-field__icon" style={{ color: focused ? C.primary : C.t3, flexShrink: 0, transition: 'color 0.15s' }}>{icon}</span>
         <input
           type={type} placeholder={placeholder} value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          className="auth-field__input"
           style={{
             flex: 1, background: 'none', border: 'none', outline: 'none',
             color: C.t1, fontSize: 14, fontFamily: 'inherit',
@@ -38,7 +40,7 @@ function Input({
         {right}
       </div>
       {error && (
-        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
+        <div className="auth-field__error" style={{ color: C.danger, fontSize: 12, marginTop: 6, paddingLeft: 2 }}>{error}</div>
       )}
     </div>
   );
@@ -90,25 +92,16 @@ export default function SLogin() {
             background: C.primary + '15', filter: 'blur(40px)',
           }} />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: `linear-gradient(135deg, ${C.primary}, #B48BFF)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Shield size={18} color="#fff" />
-              </div>
-              <span style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' }}>CatchHole</span>
-            </div>
-            <div style={{ color: C.t1, fontSize: 22, fontWeight: 700, lineHeight: 1.4, letterSpacing: '-0.5px', marginBottom: 16 }}>
+            <BrandLogo alt="CatchHole" className="auth-modal-brand__logo" />
+            <div className="auth-modal-brand__headline" style={{ color: C.t1, fontSize: 22, fontWeight: 700, lineHeight: 1.4, letterSpacing: '-0.5px', marginBottom: 16 }}>
               원고 속 설정을,<br />한곳에서 관리하세요.
             </div>
-            <div style={{ color: C.t3, fontSize: 13, lineHeight: 1.7 }}>
+            <div className="auth-modal-brand__description" style={{ color: C.t3, fontSize: 13, lineHeight: 1.7 }}>
               AI가 원고에서 캐릭터 설정을 추출하고<br />
               원문 근거와 함께 정리합니다.
             </div>
           </div>
-          <div style={{ color: C.t3, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="auth-modal-brand__footer" style={{ color: C.t3, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span>© 2026 CatchHole</span>
             <div style={{ display: 'flex', gap: 10 }}>
               {(['terms', 'privacy'] as const).map((t, i) => (
@@ -136,8 +129,9 @@ export default function SLogin() {
             void handleLogin();
           }}
         >
-          <div id="login-modal-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>로그인</div>
-          <div style={{ color: C.t3, fontSize: 13, marginBottom: 32 }}>계정에 로그인하여 작품 분석을 시작하세요.</div>
+          <BrandLogo alt="CatchHole" className="auth-modal-form__logo" />
+          <div className="auth-modal-form__title" id="login-modal-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>로그인</div>
+          <div className="auth-modal-form__intro" style={{ color: C.t3, fontSize: 13, marginBottom: 32 }}>계정에 로그인하여 작품 분석을 시작하세요.</div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
             <Input type="email" placeholder="이메일" value={email} onChange={setEmail} icon={<Mail size={15} />} error={errors.email} />
@@ -164,19 +158,17 @@ export default function SLogin() {
             />
           </div>
 
-          <button type="submit" disabled={submitting} style={{
+          <button className="auth-modal-primary" type="submit" disabled={submitting} style={{
             width: '100%', height: 44, borderRadius: 8, border: 'none',
             background: C.primary, color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: submitting ? 'default' : 'pointer', fontFamily: 'inherit', marginBottom: 20,
             transition: 'background 0.15s', opacity: submitting ? 0.7 : 1,
           }}
-            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#6B4EE8'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.primary; }}
           >
             {submitting ? '로그인 중...' : '로그인'}
           </button>
 
-          <div style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
+          <div className="auth-modal-form__switch" style={{ textAlign: 'center', color: C.t3, fontSize: 13 }}>
             계정이 없으신가요?{' '}
             <button type="button" onClick={() => switchAuth('/signup')} style={{
               background: 'none', border: 'none', color: C.primary, cursor: 'pointer',

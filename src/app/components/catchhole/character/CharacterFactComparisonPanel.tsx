@@ -156,6 +156,7 @@ export function CharacterFactComparisonPanel({
   return (
     <section
       aria-label="캐릭터 설정 AI 비교 결과"
+      className="character-comparison-panel"
       style={{
         marginTop: 10,
         padding: '12px 13px',
@@ -272,15 +273,15 @@ export function CharacterFactComparisonPanel({
           display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8,
           marginTop: 10,
         }}>
-          <div style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.danger}33`, background: `${C.danger}0A` }}>
-            <div style={{ color: C.danger, fontSize: 10, fontWeight: 750, marginBottom: 5 }}>− 기존값</div>
-            <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+          <div className="character-comparison-value character-comparison-value--before" style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.danger}33`, background: `${C.danger}0A` }}>
+            <div className="character-comparison-value__label" style={{ color: C.danger, fontSize: 10, fontWeight: 750, marginBottom: 5 }}>− 기존값</div>
+            <div className="character-comparison-value__content" style={{ color: C.t2, fontSize: 12, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
               {beforeValue ?? '없음'}
             </div>
           </div>
-          <div style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.success}66`, background: `${C.success}12`, boxShadow: `inset 3px 0 0 ${C.success}` }}>
-            <div style={{ color: C.success, fontSize: 10, fontWeight: 800, marginBottom: 5 }}>+ 제안값</div>
-            <div style={{ color: C.t1, fontSize: 12, fontWeight: 700, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+          <div className="character-comparison-value character-comparison-value--proposed" style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.success}66`, background: `${C.success}12`, boxShadow: `inset 3px 0 0 ${C.success}` }}>
+            <div className="character-comparison-value__label" style={{ color: C.success, fontSize: 10, fontWeight: 800, marginBottom: 5 }}>+ 제안값</div>
+            <div className="character-comparison-value__content" style={{ color: C.t1, fontSize: 12, fontWeight: 700, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
               {proposedValue ?? '값 없음'}
             </div>
           </div>

@@ -1,0 +1,180 @@
+/*
+ * Theme V2 overlays and evidence surfaces.
+ *
+ * Older screens still use the dark C token object in inline styles. These
+ * hooks intentionally sit on modal/evidence boundaries so Theme V2 can
+ * override presentation without changing the data and interaction logic.
+ */
+
+.theme-v2.theme-modal-backdrop,
+.theme-v2 .theme-modal-backdrop {
+  background: rgb(25 35 50 / 36%) !important;
+  backdrop-filter: blur(6px);
+}
+
+.theme-v2 .theme-modal,
+.theme-v2.theme-modal .theme-modal {
+  border: 1px solid var(--ch-border) !important;
+  border-radius: 20px !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text) !important;
+  box-shadow: var(--ch-shadow-float) !important;
+}
+
+.theme-v2 .theme-modal__header {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-surface) !important;
+}
+
+.theme-v2 .theme-modal__title,
+.theme-v2 .theme-modal__header strong,
+.theme-v2 .theme-modal h2,
+.theme-v2 .theme-modal h3 {
+  color: var(--ch-ink) !important;
+}
+
+.theme-v2 .theme-modal__description,
+.theme-v2 .theme-modal__meta,
+.theme-v2 .theme-modal__body,
+.theme-v2 .theme-modal p,
+.theme-v2 .theme-modal label {
+  color: var(--ch-text-muted) !important;
+}
+
+.theme-v2 .theme-modal__body { background: var(--ch-surface) !important; }
+
+.theme-v2 .theme-modal__summary,
+.theme-v2 .theme-detail-panel {
+  border: 1px solid var(--ch-border) !important;
+  border-radius: 12px !important;
+  background: var(--ch-canvas) !important;
+  color: var(--ch-text) !important;
+}
+
+.theme-v2 .theme-modal__summary > div:first-child,
+.theme-v2 .theme-detail-panel strong { color: var(--ch-ink) !important; }
+.theme-v2 .theme-modal__summary > div:last-child { color: var(--ch-text-muted) !important; }
+
+.theme-v2 .theme-modal__footer {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-surface) !important;
+}
+
+.theme-v2 .theme-modal input,
+.theme-v2 .theme-modal textarea,
+.theme-v2 .theme-modal select {
+  border-color: var(--ch-border-strong) !important;
+  border-radius: 10px !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-ink) !important;
+}
+
+.theme-v2 .theme-modal input:focus,
+.theme-v2 .theme-modal textarea:focus,
+.theme-v2 .theme-modal select:focus {
+  border-color: var(--ch-primary) !important;
+  box-shadow: 0 0 0 3px rgb(8 126 242 / 12%);
+}
+
+/* Extracted manuscript and source-evidence surfaces */
+.theme-v2 .theme-evidence,
+.theme-v2 .theme-evidence__source {
+  border: 1px solid rgb(8 126 242 / 18%) !important;
+  border-radius: 12px !important;
+  background: #f8fbff !important;
+  color: var(--ch-text) !important;
+  box-shadow: inset 3px 0 0 rgb(8 126 242 / 45%);
+}
+
+.setting-review-screen.theme-v2 .setting-review-detail .setting-candidate-detail .theme-evidence.character-setting-evidence-card,
+.setting-review-screen.theme-v2 .world-candidate-detail-card .world-setting-diff-row .theme-evidence.world-setting-evidence-card {
+  border-color: rgb(8 126 242 / 18%) !important;
+  background: #f8fbff !important;
+}
+
+.theme-v2 .theme-evidence > svg,
+.theme-v2 .theme-evidence > div > div:first-child { color: var(--ch-primary) !important; }
+
+.theme-v2 .theme-evidence__quote {
+  color: var(--ch-text) !important;
+}
+
+.theme-v2 blockquote.theme-evidence__quote {
+  border-color: rgb(8 126 242 / 22%) !important;
+  background: var(--ch-surface-soft) !important;
+}
+
+.theme-v2 .theme-evidence__empty {
+  color: var(--ch-text-muted) !important;
+}
+
+.theme-v2 .theme-evidence__source mark {
+  background: rgb(8 126 242 / 18%) !important;
+  color: var(--ch-ink) !important;
+}
+
+/* Setting search detail */
+.database-v2 .fact-detail-modal-backdrop { padding-top: 48px !important; }
+.database-v2 .fact-detail-modal { color: var(--ch-text) !important; }
+.database-v2 .fact-detail-header { border-color: var(--ch-border) !important; }
+.database-v2 .fact-detail-header > strong { color: var(--ch-ink) !important; }
+.database-v2 .fact-detail-header > button {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text-muted) !important;
+}
+.database-v2 .fact-detail-content > section:first-child > div > div:last-child,
+.database-v2 .fact-detail-content > div,
+.database-v2 .fact-detail-owner {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-canvas) !important;
+  color: var(--ch-text) !important;
+}
+.database-v2 .fact-detail-content strong { color: var(--ch-ink) !important; }
+.database-v2 .fact-detail-content .fact-detail-owner button {
+  border-color: var(--ch-border-strong) !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-primary) !important;
+}
+
+/* Work picker and manuscript actions that open inside Theme V2 roots */
+.theme-v2 .work-form-modal,
+.theme-v2 .work-delete-modal {
+  border-color: var(--ch-border) !important;
+  border-radius: 20px !important;
+  background: var(--ch-surface) !important;
+  box-shadow: var(--ch-shadow-float) !important;
+}
+
+.theme-v2 .work-form-modal > div:first-child div[id],
+.theme-v2 .work-delete-modal div[id] { color: var(--ch-ink) !important; }
+.theme-v2 .work-form-modal > div:first-child div:not([id]),
+.theme-v2 .work-delete-modal > div:first-child > div:nth-child(2) > div:last-child { color: var(--ch-text-muted) !important; }
+.theme-v2 .work-form-modal label,
+.theme-v2 .work-form-modal div[id$="-label"] { color: var(--ch-text-muted) !important; }
+.theme-v2 .work-form-modal input,
+.theme-v2 .work-form-modal textarea {
+  border-color: var(--ch-border-strong) !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-ink) !important;
+}
+.theme-v2 .work-genre-grid button[aria-checked="false"] {
+  border-color: var(--ch-border) !important;
+  background: var(--ch-surface) !important;
+  color: var(--ch-text-muted) !important;
+}
+
+/* Review edit/match modals share the same shell as database modals. */
+.setting-review-screen .review-modal__form,
+.setting-review-screen .review-modal > div:nth-last-child(2) { background: var(--ch-surface) !important; }
+.setting-review-screen .review-modal button[type="button"]:not(.review-modal__choice) {
+  border-color: var(--ch-border-strong) !important;
+  color: var(--ch-text-muted) !important;
+}
+
+@media (max-width: 768px) {
+  .theme-v2.theme-modal-backdrop,
+  .theme-v2 .theme-modal-backdrop { padding: 12px !important; }
+  .theme-v2 .theme-modal { border-radius: 16px !important; }
+  .database-v2 .fact-detail-modal-backdrop { padding: 12px !important; }
+}

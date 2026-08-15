@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare, RefreshCw,
 } from 'lucide-react';
-import { C, NavId } from './constants';
+import { NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { getMyAiTokenUsageOptions } from '../../api/generated/@tanstack/react-query.gen';
@@ -15,30 +15,16 @@ export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
 function NavItem({
   icon, label, active, upcoming = false, onClick,
 }: { icon: React.ReactNode; label: string; active?: boolean; upcoming?: boolean; onClick?: () => void }) {
-  const [h, setH] = useState(false);
   return (
-    <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{
-        width: '100%', border: 0, fontFamily: 'inherit', textAlign: 'left',
-        display: 'flex', alignItems: 'center', gap: 9,
-        padding: '9px 16px 9px 20px', cursor: 'pointer',
-        color: active ? C.primary : h ? C.t1 : C.t2,
-        fontSize: 13, fontWeight: active ? 600 : 400,
-        transition: 'color 0.13s', position: 'relative', userSelect: 'none',
-        background: active ? C.primary + '0D' : 'transparent',
-      }}>
-      {active && <div style={{
-        position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-        width: 3, height: 18, background: C.primary, borderRadius: '0 2px 2px 0',
-      }} />}
-      <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>{icon}</span>
-      <span style={{ flex: 1 }}>{label}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`workspace-nav-item${active ? ' is-active' : ''}`}
+    >
+      <span className="workspace-nav-item__icon">{icon}</span>
+      <span className="workspace-nav-item__label">{label}</span>
       {upcoming && (
-        <span style={{
-          padding: '1px 6px', borderRadius: 8, background: C.primary + '12',
-          color: C.t2, fontSize: 9, fontWeight: 600, border: `1px solid ${C.primary}33`,
-          whiteSpace: 'nowrap',
-        }}>업데이트 예정</span>
+        <span className="workspace-nav-item__upcoming">업데이트 예정</span>
       )}
     </button>
   );
@@ -74,42 +60,26 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
   };
 
   return (
-    <div className={`app-sidebar ${className ?? ''}`.trim()} style={{
-      width: 220, background: C.bg, borderRight: `1px solid ${C.border}`,
-      padding: '16px 0', display: 'flex', flexDirection: 'column', flexShrink: 0,
-    }}>
+    <aside className={`app-sidebar workspace-sidebar ${className ?? ''}`.trim()}>
       {/* 현재 작품 */}
-      <div style={{ padding: '0 16px 12px' }}>
-        <div style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>현재 작품</div>
-        <div style={{
-          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
-          padding: '8px 12px', marginBottom: 6,
-        }}>
-          <div style={{ color: C.t1, fontSize: 12, fontWeight: 600, marginBottom: 2, letterSpacing: '-0.2px' }}>
-            {workInfo.title}
-          </div>
-          <div style={{ color: C.t3, fontSize: 11 }}>{workInfo.genre}</div>
+      <div className="workspace-sidebar__work">
+        <div className="workspace-sidebar__label">현재 작품</div>
+        <div className="workspace-sidebar__work-card">
+          <div className="workspace-sidebar__work-title">{workInfo.title}</div>
+          <div className="workspace-sidebar__work-genre">{workInfo.genre}</div>
         </div>
-        <button onClick={() => { onClose?.(); navigate('/works', 'push-left'); }} style={{
-          width: '100%', padding: '5px 0', borderRadius: 5,
-          border: `1px solid ${C.border}`, background: 'transparent',
-          color: C.t2, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-          transition: 'all 0.15s', letterSpacing: '-0.1px',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary + '66'; e.currentTarget.style.color = C.primary; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.t2; }}
-        >
+        <button className="workspace-sidebar__change-work" onClick={() => { onClose?.(); navigate('/works', 'push-left'); }}>
           작품 변경
         </button>
       </div>
 
-      <div style={{ margin: '0 16px 10px', borderTop: `1px solid ${C.border}` }} />
-      <div style={{ padding: '0 20px 10px', color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>워크스페이스</div>
+      <div className="workspace-sidebar__divider" />
+      <div className="workspace-sidebar__label workspace-sidebar__label--nav">워크스페이스</div>
 
       <NavItem icon={<FileText size={14} />} label="원고 목록"
         active={activeNav === 'manuscripts'}
         onClick={() => nav('manuscripts')} />
-      <NavItem icon={<BookOpen size={14} />} label="설정 DB"
+      <NavItem icon={<BookOpen size={14} />} label="작품 설정"
         active={activeNav === 'settingDB'}
         onClick={() => nav('settingDB')} />
       <NavItem icon={<ListChecks size={14} />} label="분석 목록"
@@ -122,12 +92,9 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
       <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
         onClick={() => { onComingSoon?.('챗봇'); onClose?.(); }} />
 
-      <div style={{ marginTop: 'auto', padding: '14px 16px 0' }}>
-        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 13 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 8, color: C.t3, fontSize: 10, fontWeight: 600,
-          }}>
+      <div className="workspace-sidebar__usage">
+        <div className="workspace-sidebar__usage-inner">
+          <div className="workspace-sidebar__usage-heading">
             <span>남은 사용량</span>
             {usageQuery.isError && (
               <button
@@ -135,7 +102,7 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
                 aria-label="남은 사용량 다시 불러오기"
                 onClick={() => void usageQuery.refetch()}
                 disabled={usageQuery.isFetching}
-                style={{ border: 0, padding: 1, background: 'transparent', color: C.t3, cursor: 'pointer' }}
+                className="workspace-sidebar__usage-retry"
               >
                 <RefreshCw size={12} />
               </button>
@@ -143,25 +110,24 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
           </div>
 
           {usageQuery.isPending ? (
-            <div style={{ color: C.t3, fontSize: 10 }}>사용량 확인 중...</div>
+            <div className="workspace-sidebar__usage-message">사용량 확인 중...</div>
           ) : usageQuery.isError ? (
-            <div style={{ color: C.warning, fontSize: 10 }}>사용량을 불러오지 못했습니다.</div>
+            <div className="workspace-sidebar__usage-message is-error">사용량을 불러오지 못했습니다.</div>
           ) : (
             <>
-              <div style={{ height: 4, overflow: 'hidden', borderRadius: 3, background: C.border, marginBottom: 7 }}>
-                <div style={{
-                  width: `${remainingPercent}%`, height: '100%', borderRadius: 3,
-                  background: remainingPercent <= 10 ? C.danger : remainingPercent <= 30 ? C.warning : C.primary,
-                  transition: 'width 0.2s ease',
-                }} />
+              <div className="workspace-sidebar__usage-track">
+                <div
+                  className={`workspace-sidebar__usage-fill${remainingPercent <= 10 ? ' is-danger' : remainingPercent <= 30 ? ' is-warning' : ''}`}
+                  style={{ width: `${remainingPercent}%` }}
+                />
               </div>
-              <div style={{ color: C.t3, fontSize: 10, textAlign: 'right' }}>
+              <div className="workspace-sidebar__usage-value">
                 {remainingPercent.toFixed(1)}%
               </div>
             </>
           )}
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

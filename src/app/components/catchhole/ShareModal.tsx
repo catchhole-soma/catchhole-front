@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 type CollabRole = 'PD' | '편집자' | '각색 작가' | '베타리더';
-type CollabPerm = '전체 열람' | '설정 DB만' | '리포트만' | '댓글만';
+type CollabPerm = '전체 열람' | '작품 설정만' | '리포트만' | '댓글만';
 
 interface Collaborator {
   id: string;
@@ -23,7 +23,7 @@ interface Collaborator {
 const INIT_COLLABS: Collaborator[] = [
   { id: 'c1', name: '김편집', email: 'editor@naver.com',  role: '편집자',    perm: '전체 열람', avatar: '김', status: 'active'  },
   { id: 'c2', name: '박PD',  email: 'pd@kakao.com',       role: 'PD',        perm: '리포트만',  avatar: '박', status: 'active'  },
-  { id: 'c3', name: '이각색', email: 'writer@gmail.com',  role: '각색 작가', perm: '설정 DB만', avatar: '이', status: 'pending' },
+  { id: 'c3', name: '이각색', email: 'writer@gmail.com',  role: '각색 작가', perm: '작품 설정만', avatar: '이', status: 'pending' },
 ];
 
 const ROLE_COLORS: Record<CollabRole, string> = {
@@ -34,9 +34,9 @@ const ROLE_COLORS: Record<CollabRole, string> = {
 };
 
 const PERM_DESC: Record<CollabPerm, string> = {
-  '전체 열람': '설정 DB + 오류 리포트 + 타임라인 모두 열람',
-  '설정 DB만': '캐릭터·세계관 설정집만 열람, 리포트 비공개',
-  '리포트만':  '오류 리포트·충돌 목록만 열람, 설정 DB 비공개',
+  '전체 열람': '작품 설정 + 오류 리포트 + 타임라인 모두 열람',
+  '작품 설정만': '캐릭터·세계관 설정만 열람, 리포트 비공개',
+  '리포트만':  '오류 리포트·충돌 목록만 열람, 작품 설정 비공개',
   '댓글만':    '댓글 작성만 가능, 내용 열람 불가',
 };
 

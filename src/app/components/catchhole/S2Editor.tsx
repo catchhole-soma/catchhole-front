@@ -99,7 +99,7 @@ function S3Modal({ onStart, onCancel }: { onStart: () => void; onCancel: () => v
         <div style={{ color: C.t1, fontSize: 18, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.4px' }}>
           159화 분석 요청
         </div>
-        <div style={{ color: C.t2, fontSize: 14, marginBottom: 24 }}>기존 158개 회차 설정 DB와 대조합니다</div>
+        <div style={{ color: C.t2, fontSize: 14, marginBottom: 24 }}>기존 158개 회차 작품 설정과 대조합니다</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
           {['캐릭터 설정 대조', '타임라인 검증', '관계도 확인'].map((item) => (
             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -219,7 +219,7 @@ function RightPanelContent({
               ))}
             </div>
             <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.5 }}>
-              158화 설정 DB와 대조 중...
+              158화 작품 설정과 대조 중...
             </div>
           </motion.div>
         )}
@@ -239,7 +239,7 @@ function RightPanelContent({
               <span style={{ color: C.t3, fontSize: 13 }}>실시간 감지 대기 중</span>
             </div>
             <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.5 }}>
-              원고가 작성되는 동안 설정 DB와 지속적으로 대조합니다.
+              원고가 작성되는 동안 작품 설정과 지속적으로 대조합니다.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
               {['캐릭터 설정', '타임라인', '관계 상태'].map((item, i) => (
@@ -374,7 +374,7 @@ function RightPanelContent({
             </div>
             <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.65 }}>
               <span style={{ color: C.danger }}>"파란 눈"</span> →{' '}
-              <span style={{ color: C.success }}>"갈색 눈동자"</span>로 수정하거나 설정 DB를 업데이트하세요.
+              <span style={{ color: C.success }}>"갈색 눈동자"</span>로 수정하거나 작품 설정을 수정하세요.
             </div>
           </motion.div>
         )}
@@ -465,11 +465,11 @@ function OriginalLines({ content }: { content: string }) {
   return (
     <div className="original-lines" style={{ fontSize: 15, lineHeight: 1.9, letterSpacing: '-0.1px' }}>
       {content.split('\n').map((line, index) => (
-        <div key={index} style={{ display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)' }}>
-          <span aria-hidden="true" style={{ color: C.t3, fontSize: 12, textAlign: 'right', paddingRight: 14, userSelect: 'none' }}>
+        <div className="original-line" key={index} style={{ display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)' }}>
+          <span className="original-line__number" aria-hidden="true" style={{ color: C.t3, fontSize: 12, textAlign: 'right', paddingRight: 14, userSelect: 'none' }}>
             {index + 1}
           </span>
-          <span style={{ color: C.t1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minHeight: '1.9em' }}>{line || ' '}</span>
+          <span className="original-line__body" style={{ color: C.t1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minHeight: '1.9em' }}>{line || ' '}</span>
         </div>
       ))}
     </div>
@@ -508,7 +508,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
   const episode = episodeQuery.data?.data;
 
   return (
-    <div className="original-reader-page" style={{
+    <div className="original-reader-page original-reader-v2 theme-v2" style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       color: C.t1, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
@@ -516,7 +516,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
         height: 56, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 20px', flexShrink: 0,
       }}>
-        <button type="button" onClick={goBack} style={{
+        <button className="original-reader-back" type="button" onClick={goBack} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
           color: C.t2, cursor: 'pointer', fontSize: 13, padding: '4px 8px', fontFamily: 'inherit',
         }}>
@@ -528,7 +528,7 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
         <UserMenu />
       </header>
 
-      <div style={{
+      <div className="original-reader-notice" style={{
         height: 36, background: `${C.warning}18`, borderBottom: `1px solid ${C.warning}44`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexShrink: 0,
       }}>
@@ -537,14 +537,14 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
       </div>
 
       {episodeQuery.isPending ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3 }}>
+        <div className="original-reader-state is-loading" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3 }}>
           <Loader2 size={18} className="spin" /> 원문을 불러오는 중...
         </div>
       ) : episodeQuery.isError || !episode ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <div className="original-reader-state is-error" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <AlertCircle size={38} color={C.danger} />
           <span style={{ color: C.t2, fontSize: 14 }}>원문을 불러오지 못했습니다.</span>
-          <button type="button" onClick={() => void episodeQuery.refetch()} style={{
+          <button className="original-reader-retry" type="button" onClick={() => void episodeQuery.refetch()} style={{
             height: 36, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`,
             background: 'transparent', color: C.t2, cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 6,
@@ -554,13 +554,13 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
         </div>
       ) : (
         <main className="original-reader-main" style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
-          <article style={{ maxWidth: 820, margin: '0 auto' }}>
-            <div style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>{episode.episodeNo ?? '—'}화</div>
-              <h1 style={{ margin: 0, color: C.t1, fontSize: 24, lineHeight: 1.35, letterSpacing: '-0.5px' }}>
+          <article className="original-reader-article" style={{ maxWidth: 820, margin: '0 auto' }}>
+            <div className="original-reader-article__header" style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
+              <div className="original-reader-article__eyebrow" style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>{episode.episodeNo ?? '—'}화</div>
+              <h1 className="original-reader-article__title" style={{ margin: 0, color: C.t1, fontSize: 24, lineHeight: 1.35, letterSpacing: '-0.5px' }}>
                 {episode.title || '제목 없음'}
               </h1>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, color: C.t3, fontSize: 12 }}>
+              <div className="original-reader-article__meta" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, color: C.t3, fontSize: 12 }}>
                 <span>{(episode.charCount ?? episode.content?.length ?? 0).toLocaleString()}자</span>
                 <span>·</span>
                 <span>{formatOriginalDate(episode.contentUpdatedAt)}</span>
@@ -585,7 +585,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
   const settingBook = settingBookQuery.data?.data;
 
   return (
-    <div className="original-reader-page" style={{
+    <div className="original-reader-page original-reader-v2 theme-v2" style={{
       background: C.bg, width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       color: C.t1, fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
@@ -593,14 +593,14 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
         height: 56, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 20px', flexShrink: 0,
       }}>
-        <button type="button" onClick={goBack} style={{
+        <button className="original-reader-back" type="button" onClick={goBack} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
           color: C.t2, cursor: 'pointer', fontSize: 13, padding: '4px 8px', fontFamily: 'inherit',
         }}><ChevronLeft size={16} /> 원고 목록</button>
         <span className="original-reader-title" style={{ color: C.t2, fontSize: 14 }}>{workTitle} · {settingBook?.originalFilename || '설정집 원문'}</span>
         <UserMenu />
       </header>
-      <div style={{
+      <div className="original-reader-notice" style={{
         height: 36, background: `${C.warning}18`, borderBottom: `1px solid ${C.warning}44`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexShrink: 0,
       }}>
@@ -608,14 +608,14 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
         <span style={{ color: C.warning, fontSize: 12, fontWeight: 600 }}>설정집 원본 · 읽기 전용</span>
       </div>
       {settingBookQuery.isPending ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3 }}>
+        <div className="original-reader-state is-loading" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3 }}>
           <Loader2 size={18} className="spin" /> 원문을 불러오는 중...
         </div>
       ) : settingBookQuery.isError || !settingBook ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <div className="original-reader-state is-error" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <AlertCircle size={38} color={C.danger} />
           <span style={{ color: C.t2, fontSize: 14 }}>설정집 원문을 불러오지 못했습니다.</span>
-          <button type="button" onClick={() => void settingBookQuery.refetch()} style={{
+          <button className="original-reader-retry" type="button" onClick={() => void settingBookQuery.refetch()} style={{
             height: 36, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent',
             color: C.t2, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
           }}><RefreshCw size={13} /> 다시 불러오기</button>
@@ -623,11 +623,11 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
         </div>
       ) : (
         <main className="original-reader-main" style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
-          <article style={{ maxWidth: 820, margin: '0 auto' }}>
-            <div style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>설정집</div>
-              <h1 style={{ margin: 0, color: C.t1, fontSize: 24, lineHeight: 1.35, letterSpacing: '-0.5px' }}>{settingBook.originalFilename}</h1>
-              <div style={{ marginTop: 12, color: C.t3, fontSize: 12 }}>{formatOriginalDate(settingBook.uploadedAt)}</div>
+          <article className="original-reader-article" style={{ maxWidth: 820, margin: '0 auto' }}>
+            <div className="original-reader-article__header" style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
+              <div className="original-reader-article__eyebrow" style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>설정집</div>
+              <h1 className="original-reader-article__title" style={{ margin: 0, color: C.t1, fontSize: 24, lineHeight: 1.35, letterSpacing: '-0.5px' }}>{settingBook.originalFilename}</h1>
+              <div className="original-reader-article__meta" style={{ marginTop: 12, color: C.t3, fontSize: 12 }}>{formatOriginalDate(settingBook.uploadedAt)}</div>
             </div>
             <OriginalLines content={settingBook.content || '원문 내용이 없습니다.'} />
           </article>
@@ -896,7 +896,7 @@ function DemoEditor() {
           padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
           flexShrink: 0, overflowY: 'auto',
         }}>
-          <div style={{ color: C.t2, fontSize: 13, fontWeight: 600, letterSpacing: '-0.2px' }}>설정 DB</div>
+          <div style={{ color: C.t2, fontSize: 13, fontWeight: 600, letterSpacing: '-0.2px' }}>작품 설정</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {['수아', '이레나', '강민준'].map((name) => (
               <button key={name} onClick={() => setActivePill(name)} style={{

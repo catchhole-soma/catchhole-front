@@ -16,8 +16,8 @@ import type {
   AnalysisBatchSummaryResponse,
 } from '../../api/generated/types.gen';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
-import { C } from './constants';
 import { PageNavigation } from './PageNavigation';
+import { PageHeading } from './ui-v2/PageHeading';
 
 const PAGE_SIZE = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -27,37 +27,37 @@ type AnalysisBatchStatus = NonNullable<AnalysisBatchSummaryResponse['status']>;
 const STATUS_VIEW: Record<AnalysisBatchStatus, {
   label: string;
   description: string;
-  color: string;
+  tone: 'primary' | 'warning' | 'danger' | 'success';
   icon: typeof Clock3;
 }> = {
   IN_PROGRESS: {
     label: '분석 중',
     description: '회차별 분석이 진행되고 있습니다.',
-    color: C.primary,
+    tone: 'primary',
     icon: Clock3,
   },
   PARTIALLY_FAILED: {
     label: '일부 실패',
     description: '완료된 회차는 유지되며 실패 회차만 다시 시도할 수 있습니다.',
-    color: C.warning,
+    tone: 'warning',
     icon: TriangleAlert,
   },
   FAILED: {
     label: '분석 실패',
     description: '실패 원인을 확인하고 회차 분석을 다시 시도할 수 있습니다.',
-    color: C.danger,
+    tone: 'danger',
     icon: AlertCircle,
   },
   REVIEW_REQUIRED: {
     label: '후보 검토 필요',
     description: '분석이 끝났으며 추출된 설정 후보를 검토할 차례입니다.',
-    color: C.warning,
+    tone: 'warning',
     icon: FileSearch,
   },
   COMPLETED: {
     label: '분석 완료',
     description: '분석과 설정 후보 검토가 모두 끝났습니다.',
-    color: C.success,
+    tone: 'success',
     icon: CheckCircle2,
   },
 };
@@ -112,10 +112,10 @@ function CandidateReviewCount({
   if (totalCount === 0) return null;
 
   return (
-    <div style={{ color: C.t2, fontSize: 12 }}>
+    <div className="analysis-review-count">
       {label} {reviewedCount}/{totalCount}개 검토 완료
       {pendingCount > 0 && (
-        <span style={{ color: C.warning, marginLeft: 8 }}>
+        <span className="analysis-review-count__pending">
           {pendingCount}개 대기
         </span>
       )}
@@ -228,90 +228,48 @@ export function AnalysisList({ workId }: { workId: string }) {
   };
 
   return (
-    <div className="analysis-list-page" style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ color: C.t3, fontSize: 12, marginBottom: 4 }}>업로드 묶음별 분석 현황</div>
-        <div style={{ color: C.t1, fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
-          분석 목록
-        </div>
-        <div style={{ color: C.t3, fontSize: 12, marginTop: 6 }}>
-          함께 올린 회차의 진행·실패·설정 후보 검토 상태를 한곳에서 확인합니다.
-        </div>
-      </div>
+    <div className="analysis-list-page">
+      <PageHeading
+        eyebrow="AI ANALYSIS"
+        title="분석 목록"
+        description="함께 올린 회차의 진행·실패·설정 후보 검토 상태를 한곳에서 확인합니다."
+      />
 
       {apiEnabled && analysisQuery.isPending && !hasPageData ? (
-        <div style={{
-          height: 280,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          color: C.t3,
-        }}>
+        <div className="analysis-list-state">
           <Loader2 size={18} className="spin" /> 분석 목록을 불러오는 중...
         </div>
       ) : apiEnabled && analysisQuery.isError && !hasPageData ? (
-        <div style={{
-          height: 280,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-          color: C.t3,
-        }}>
-          <AlertCircle size={36} color={C.danger} />
-          <div style={{ color: C.t2, fontSize: 14 }}>분석 목록을 불러오지 못했습니다.</div>
-          <button type="button" onClick={() => void analysisQuery.refetch()} style={{
-            height: 34,
-            padding: '0 14px',
-            borderRadius: 6,
-            border: `1px solid ${C.border}`,
-            background: 'transparent',
-            color: C.t2,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}>
+        <div className="analysis-list-state">
+          <AlertCircle size={36} />
+          <div>분석 목록을 불러오지 못했습니다.</div>
+          <button type="button" className="analysis-card-action analysis-tone--danger" onClick={() => void analysisQuery.refetch()}>
             <RefreshCw size={12} /> 다시 불러오기
           </button>
         </div>
       ) : batches.length === 0 ? (
-        <div style={{
-          height: 280,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          color: C.t3,
-        }}>
+        <div className="analysis-list-state">
           <FileSearch size={38} strokeWidth={1.3} />
-          <div style={{ color: C.t2, fontSize: 14 }}>아직 요청한 분석이 없습니다.</div>
-          <div style={{ fontSize: 12 }}>원고를 올리고 분석을 시작하면 업로드 묶음별로 표시됩니다.</div>
+          <div>아직 요청한 분석이 없습니다.</div>
+          <small>원고를 올리고 분석을 시작하면 업로드 묶음별로 표시됩니다.</small>
         </div>
       ) : (
-        <div style={{ maxWidth: 1120, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="analysis-list-content">
           {analysisQuery.isError && hasPageData && (
-            <div role="alert" style={{
+            <div role="alert" className="work-picker-alert" style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 12,
               padding: '10px 12px',
               borderRadius: 7,
-              border: `1px solid ${C.danger}44`,
-              background: `${C.danger}0D`,
-              color: C.t2,
               fontSize: 12,
             }}>
               <span>최신 분석 상태를 불러오지 못해 이전 목록을 표시합니다.</span>
               <button type="button" onClick={() => void analysisQuery.refetch()} style={{
                 border: 0,
                 background: 'transparent',
-                color: C.danger,
+                color: 'inherit',
                 fontFamily: 'inherit',
                 fontSize: 12,
                 fontWeight: 700,
@@ -337,69 +295,30 @@ export function AnalysisList({ workId }: { workId: string }) {
             const actionEnabled = opensReview
               ? Boolean(batch.batchId)
               : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0;
-            const actionColor = opensReview ? C.primary : view.color;
             return (
-              <article className="analysis-batch-card" key={batch.batchId} style={{
-                padding: '18px 20px',
-                borderRadius: 10,
-                border: `1px solid ${C.border}`,
-                background: C.surface,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <div style={{
-                    width: 38,
-                    height: 38,
-                    flexShrink: 0,
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: view.color,
-                    background: `${view.color}16`,
-                    border: `1px solid ${view.color}33`,
-                  }}>
+              <article className="analysis-batch-card" key={batch.batchId}>
+                <div className="analysis-batch-card__main">
+                  <div className={`analysis-batch-card__icon analysis-tone--${view.tone}`}>
                     <StatusIcon size={19} />
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 16,
-                      marginBottom: 7,
-                    }}>
-                      <div style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>
+                  <div className="analysis-batch-card__body">
+                    <div className="analysis-batch-card__title-row">
+                      <div className="analysis-batch-card__title">
                         {episodeRange(batch)}
-                        <span style={{ color: C.t3, fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
+                        <small>
                           {batch.episodeCount ?? 0}개 회차
-                        </span>
+                        </small>
                       </div>
-                      <span style={{
-                        flexShrink: 0,
-                        color: view.color,
-                        background: `${view.color}14`,
-                        border: `1px solid ${view.color}3D`,
-                        borderRadius: 12,
-                        padding: '3px 9px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}>
+                      <span className={`analysis-status analysis-tone--${view.tone}`}>
                         {view.label}
                       </span>
                     </div>
-                    <div style={{ color: C.t3, fontSize: 12, marginBottom: 12 }}>
+                    <div className="analysis-batch-card__description">
                       {view.description}
                     </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div className="analysis-batch-card__groups">
                       {(batch.jobGroups ?? []).map(group => (
-                        <span key={group.jobType} style={{
-                          padding: '4px 9px',
-                          borderRadius: 5,
-                          background: C.bg,
-                          border: `1px solid ${C.border}`,
-                          color: C.t2,
-                          fontSize: 11,
-                        }}>
+                        <span key={group.jobType} className="analysis-batch-card__group">
                           {jobTypeLabel(group.jobType)}
                           {' · '}
                           {group.succeededJobCount ?? 0}/{group.totalJobCount ?? 0} 완료
@@ -408,7 +327,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                       ))}
                     </div>
                     {hasCandidateCounts && (
-                      <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap' }}>
+                      <div className="analysis-review-counts">
                         <CandidateReviewCount
                           label="캐릭터 설정 후보"
                           totalCount={characterTotalCount}
@@ -426,18 +345,10 @@ export function AnalysisList({ workId }: { workId: string }) {
                   </div>
                 </div>
 
-                <div className="analysis-card-footer" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  paddingTop: 14,
-                  marginTop: 14,
-                  borderTop: `1px solid ${C.border}`,
-                }}>
-                  <span style={{ color: C.t3, fontSize: 11 }}>
+                <div className="analysis-card-footer">
+                  <time>
                     최근 활동 {formatDateTime(batch.lastActivityAt ?? batch.lastRequestedAt)}
-                  </span>
+                  </time>
                   <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
@@ -446,19 +357,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                         if (opensReview) openReview(batch);
                         else if (actionGroup) openProgress(batch, actionGroup);
                       }}
-                      style={{
-                        height: 34,
-                        padding: '0 14px',
-                        borderRadius: 6,
-                        border: `1px solid ${actionColor}`,
-                        background: opensReview ? `${C.primary}18` : 'transparent',
-                        color: actionColor,
-                        fontFamily: 'inherit',
-                        fontSize: 12,
-                        fontWeight: opensReview ? 700 : 400,
-                        cursor: actionEnabled ? 'pointer' : 'default',
-                        opacity: actionEnabled ? 1 : 0.45,
-                      }}
+                      className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}
                     >
                       {actionLabel(status)}
                     </button>

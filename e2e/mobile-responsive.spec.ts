@@ -165,7 +165,7 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
 
   const tabs = page.locator('.dashboard-tabs');
   const [firstTabBox, fourthTabBox] = await Promise.all([
-    tabs.getByRole('button', { name: /^캐릭터 DB/ }).boundingBox(),
+    tabs.getByRole('button', { name: /^캐릭터/ }).boundingBox(),
     tabs.getByRole('button', { name: /^관계도/ }).boundingBox(),
   ]);
   expect(firstTabBox).not.toBeNull();
@@ -182,6 +182,8 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
 
   await page.getByRole('button', { name: /모바일 캐릭터 1/ }).click();
   const detailModal = page.locator('.character-detail-modal');
+  await expect(detailModal.locator('.character-basic-grid > div > div:last-child').first())
+    .toHaveCSS('color', 'rgb(25, 30, 38)');
   const timelineButton = detailModal.getByRole('button', { name: '변화 이력 보기' });
   await expect(timelineButton).toBeVisible();
   const [headerActionsBox, timelineButtonBox] = await Promise.all([
@@ -276,6 +278,16 @@ test('회차 업로드 방식과 원문 리더는 휴대폰 너비에 맞춰 표
 
   await authenticate(page);
   await page.goto(`/episode-upload?workId=${WORK_ID}`);
+
+  const firstStepLabel = page.locator('.episode-upload-step__label').first();
+  const firstStepLine = page.locator('.episode-upload-step__line').first();
+  const [stepLabelBox, stepLineBox] = await Promise.all([
+    firstStepLabel.boundingBox(),
+    firstStepLine.boundingBox(),
+  ]);
+  expect(stepLabelBox).not.toBeNull();
+  expect(stepLineBox).not.toBeNull();
+  expect(stepLineBox!.x).toBeGreaterThanOrEqual(stepLabelBox!.x + stepLabelBox!.width);
 
   const modeCards = page.locator('.episode-upload-mode-grid > *');
   await expect(modeCards).toHaveCount(3);
