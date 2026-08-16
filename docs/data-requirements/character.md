@@ -1176,9 +1176,9 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 > - 그룹 전체 확정은 후보별 `APPLY_PROPOSAL` 또는 `HISTORY_ONLY` 선택을 모아 단일 API로 전달한다. 서버는 요청 ID가 해당 배치·이름의 전체 대기 후보와 정확히 일치하는지 다시 검사한다.
 > - 연결 상태와 관계없이 `PENDING_REVIEW` 후보를 무시할 수 있다. 성공 후 목록·상세·집계를 서버 기준으로 다시 조회하고, `DISMISSED` 상세는 읽기 전용으로 표시한다. 무시 실패 시 현재 후보와 선택 상태를 유지해 같은 화면에서 재시도한다.
 > - 설정 유형 서버 필터, 상태별 세부 집계, 사용자 수정 여부, 목록·상세 DTO 분리는 후속 조회 단위에서 보강한다.
-> - 모든 `PENDING_REVIEW` 후보는 설정명·표시값 수정 모달을 열 수 있다. 캐릭터 이름은 이 모달에서 편집하지 않는다. Backend가 응답한 `attributeNameEditable`과 `attributeNamePrefix`를 기준으로 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 prefix를 잠근 채 suffix만 수정한다.
+> - `PENDING_REVIEW` 후보는 설정명·표시값 수정 모달을 열 수 있지만, `valueValidation.status=INVALID && repairable=false`인 schema 오류 후보는 수정 모달을 잠그고 제외만 허용한다. 캐릭터 이름은 이 모달에서 편집하지 않는다. Backend가 응답한 `attributeNameEditable`과 `attributeNamePrefix`를 기준으로 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 prefix를 잠근 채 suffix만 수정한다.
 > - 상세 header의 `캐릭터 일괄 연결`은 현재 이름 그룹의 모든 대기 후보 ID에 기존 캐릭터 연결 또는 새 캐릭터 등록 예정 결정을 한 요청으로 적용한다. 한 후보만 바꾸려면 각 row의 기존 연결 버튼을 사용한다.
-> - 모든 `PENDING_REVIEW` 후보는 기존 활성 캐릭터 연결 또는 새 캐릭터 등록 예정 상태로 연결을 바꿀 수 있다. `AMBIGUOUS` 후보는 연결을 해소한 뒤 확정한다.
+> - `valueValidation.status`가 `INVALID`가 아닌 `PENDING_REVIEW` 후보는 기존 활성 캐릭터 연결 또는 새 캐릭터 등록 예정 상태로 연결을 바꿀 수 있다. `INVALID` 후보는 값을 복구하거나 제외하기 전까지 단건·일괄 연결을 잠그며, `AMBIGUOUS` 후보는 연결을 해소한 뒤 확정한다.
 > - 후보 수정과 캐릭터 연결 성공 후 목록·상세를 다시 조회한다. 실패하면 모달 입력과 선택을 유지해 같은 화면에서 재시도한다.
 > - 캐릭터 연결이 확정된 후보는 현재 `WorkCharacter` snapshot과 2차 비교한 결과를 상세에 표시한다. 캐릭터 후보용 비교 DTO와 확정 mutation은 세계관 후보 계약과 합치지 않는다.
 > - 비교 상태가 `PENDING`, `PROCESSING`이면 확정을 잠근다. `WAITING_FOR_CHARACTER_MATCH`는 기존 캐릭터 연결이 필요한 경우 잠그되, `matchStatus=UNRESOLVED`인 신규 캐릭터 등록 예정 후보는 확정을 허용한다. 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 연결·비교 Job을 만든 뒤 재확정을 요구한다. 배포 전 후보가 `MATCHED/AUTO_MATCHED_BY_NAME + NOT_REQUIRED`이면 확정을 잠그고 `현재 설정 비교 시작`을 제공한다. `FAILED`, `RECOMPARISON_REQUIRED`이면 현재 상세와 최초 원문 근거를 유지하고 재비교를 제공한다.
