@@ -1702,6 +1702,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
       status: 'INVALID' as const,
       errorCode: 'SETTING_CANDIDATE_VALUE_FORMAT_INVALID',
       message: '설정 후보의 표시값이 NUMBER 형식이 아닙니다.',
+      repairable: true,
     },
     comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' as const,
   };
@@ -1712,6 +1713,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
       status: 'VALID' as const,
       errorCode: null,
       message: null,
+      repairable: false,
     },
   };
 
@@ -1786,6 +1788,73 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
   });
   await expect(candidateDetail.getByRole('alert')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeEnabled();
+});
+
+test('schema 오류 후보는 수정과 재비교를 잠그고 제외만 허용한다', async ({ page }) => {
+  let retryRequestCount = 0;
+  const invalidCandidate = {
+    ...candidates[0],
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'FAILED' as const,
+    comparisonErrorMessage: '이전 비교 실패',
+    valueValidation: {
+      status: 'INVALID' as const,
+      errorCode: 'SETTING_CANDIDATE_SCHEMA_NOT_MATCHED',
+      message: '설정 후보 속성과 일치하는 활성 schema가 없습니다.',
+      repairable: false,
+    },
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [invalidCandidate],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/recompare`) {
+      retryRequestCount += 1;
+      return fulfill(route, invalidCandidate);
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  const candidateDetail = page.getByRole('region', { name: '눈 색깔 설정 후보' });
+  await expect(candidateDetail.getByRole('alert')).toContainText(
+    '현재 화면에서 수정할 수 없어 제외하거나 활성 설정 정의를 복구해야 합니다.',
+  );
+  await expect(candidateDetail.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
+  await expect(candidateDetail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeDisabled();
+  expect(retryRequestCount).toBe(0);
 });
 
 test('고정 설정명은 잠그고 표시값만 두 필드 수정 요청으로 저장한다', async ({ page }) => {

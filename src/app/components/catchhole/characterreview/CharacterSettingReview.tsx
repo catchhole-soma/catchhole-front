@@ -171,6 +171,11 @@ function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
   return candidate.valueValidation?.status === 'INVALID';
 }
 
+function isCandidateValueRepairable(candidate: SettingCandidateResponse): boolean {
+  return isCandidateValueInvalid(candidate)
+    && candidate.valueValidation?.repairable !== false;
+}
+
 function validateCandidateDisplayValue(
   valueType: SettingCandidateResponse['valueType'],
   value: string,
@@ -1059,6 +1064,7 @@ function CandidateDetail({
   const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
+  const invalidValueRepairable = isCandidateValueRepairable(candidate);
   return (
     <section className={`setting-candidate-detail${readOnly ? ' is-read-only' : ''}`} aria-label={`${settingDisplay.nameLabel} 설정 후보`} style={{
       padding: '17px 20px', borderTop: `1px solid ${C.border}`, background: C.surface,
@@ -1080,7 +1086,12 @@ function CandidateDetail({
         {!readOnly && (
           <>
             <ActionButton
-              disabled={!onEdit || actionPending}
+              disabled={!onEdit || actionPending || (invalidValue && !invalidValueRepairable)}
+              disabledTitle={invalidValue && !invalidValueRepairable
+                ? '현재 활성 설정 정의와 연결되지 않아 이 화면에서 수정할 수 없습니다.'
+                : actionPending
+                  ? '다른 후보 작업이 끝난 뒤 시도해 주세요.'
+                  : undefined}
               tone={C.warning}
               onClick={onEdit}
             >
@@ -1122,7 +1133,9 @@ function CandidateDetail({
           <AlertCircle size={14} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
             {candidate.valueValidation?.message ?? '설정값의 형식과 구조화된 값이 일치하지 않습니다.'}
-            {!readOnly && ' 수정하거나 제외한 뒤 묶음을 확정해 주세요.'}
+            {!readOnly && (invalidValueRepairable
+              ? ' 수정하거나 제외한 뒤 묶음을 확정해 주세요.'
+              : ' 현재 화면에서 수정할 수 없어 제외하거나 활성 설정 정의를 복구해야 합니다.')}
           </span>
         </div>
       )}
@@ -1795,7 +1808,8 @@ export function CharacterSettingReview() {
     });
   };
   const retryCandidateComparison = (candidateId: string) => {
-    if (actionPending) return;
+    const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
+    if (actionPending || !candidate || isCandidateValueInvalid(candidate)) return;
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 

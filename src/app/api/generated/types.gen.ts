@@ -853,6 +853,10 @@ export type SettingCandidateValueValidationResponse = {
      * 사용자에게 표시할 검증 실패 메시지. INVALID가 아니면 null입니다.
      */
     message?: string | null;
+    /**
+     * 현재 후보 수정 API로 오류를 복구할 수 있는지 여부
+     */
+    repairable: boolean;
 };
 
 /**

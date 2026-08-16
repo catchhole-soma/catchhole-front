@@ -17,25 +17,30 @@ export interface CharacterFactComparisonPolicy {
 export function getCharacterFactComparisonPolicy(
   candidate: SettingCandidateResponse,
 ): CharacterFactComparisonPolicy {
+  const valueInvalid = candidate.valueValidation?.status === 'INVALID';
   const completed = candidate.comparisonStatus === 'COMPLETED';
   const operation = candidate.suggestedOperation ?? null;
-  const canConfirmNewCharacter = candidate.comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
+  const canConfirmNewCharacter = !valueInvalid
+    && candidate.comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
     && candidate.matchStatus === 'UNRESOLVED';
   const canBootstrapLegacyComparison = candidate.comparisonStatus === 'NOT_REQUIRED'
     && candidate.matchedCharacterId != null
     && (candidate.matchStatus === 'MATCHED' || candidate.matchStatus === 'AUTO_MATCHED_BY_NAME');
-  const canApplyProposal = completed
+  const canApplyProposal = !valueInvalid
+    && completed
     && (operation === 'ADD' || operation === 'UPDATE' || operation === 'MERGE' || operation === 'REMOVE');
-  const canSaveHistory = completed && operation != null && operation !== 'EXCLUDE';
-  const canAcceptExclusion = completed && operation === 'EXCLUDE';
+  const canSaveHistory = !valueInvalid && completed && operation != null && operation !== 'EXCLUDE';
+  const canAcceptExclusion = !valueInvalid && completed && operation === 'EXCLUDE';
 
   return {
     canApplyProposal,
     canSaveHistory,
     canConfirm: canConfirmNewCharacter || canApplyProposal || canSaveHistory || canAcceptExclusion,
-    retryAvailable: canBootstrapLegacyComparison
+    retryAvailable: !valueInvalid && (
+      canBootstrapLegacyComparison
       || candidate.comparisonStatus === 'FAILED'
-      || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED',
+      || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
+    ),
     defaultApplicationMode: canApplyProposal || canConfirmNewCharacter
       ? 'APPLY_PROPOSAL'
       : 'HISTORY_ONLY',
