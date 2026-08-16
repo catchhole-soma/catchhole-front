@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router';
 import {
@@ -16,6 +16,7 @@ import type {
   AnalysisBatchSummaryResponse,
 } from '../../api/generated/types.gen';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { notifyAiTokenQuotaExhausted } from '../../lib/ai-token-quota';
 import { PageNavigation } from './PageNavigation';
 import { PageHeading } from './ui-v2/PageHeading';
 
@@ -92,7 +93,8 @@ function jobTypeLabel(jobType?: AnalysisBatchJobGroupResponse['jobType']): strin
   return jobType === 'SETTING_EXTRACTION' ? '기존 설정 구축' : '신규 회차 검수';
 }
 
-function actionLabel(status: AnalysisBatchStatus): string {
+function actionLabel(status: AnalysisBatchStatus, tokenInterruptedCount: number): string {
+  if (tokenInterruptedCount > 0) return '남은 비교 확인';
   if (status === 'IN_PROGRESS') return '진행 보기';
   if (status === 'FAILED' || status === 'PARTIALLY_FAILED') return '실패 확인';
   return '결과 보기';
@@ -165,7 +167,8 @@ export function AnalysisList({ workId }: { workId: string }) {
     ),
   });
   const pageData = analysisQuery.data?.data;
-  const batches = pageData?.content ?? [];
+  const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
+  const notifiedInterruptedBatchIds = useRef(new Set<string>());
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
 
@@ -177,6 +180,20 @@ export function AnalysisList({ workId }: { workId: string }) {
       return params;
     }, { replace: true });
   }, [page, pageData, setSearchParams, totalPages]);
+
+  useEffect(() => {
+    const interruptedBatch = batches.find(batch => (
+      batch.batchId
+      && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
+      && !notifiedInterruptedBatchIds.current.has(batch.batchId)
+    ));
+    if (!interruptedBatch?.batchId) return;
+    notifiedInterruptedBatchIds.current.add(interruptedBatch.batchId);
+    notifyAiTokenQuotaExhausted({
+      kind: 'analysis-interrupted',
+      interruptedComparisonCount: interruptedBatch.worldSettingTokenInterruptedCandidateCount,
+    });
+  }, [batches]);
 
   const changePage = (nextPage: number) => {
     setSearchParams(params => {
@@ -214,10 +231,14 @@ export function AnalysisList({ workId }: { workId: string }) {
       ?? batch.jobGroups?.[0]?.jobType
       ?? 'SETTING_EXTRACTION';
     const reviewStatus = batch.status === 'COMPLETED' ? '&reviewStatus=ALL' : '';
+    const candidateType = (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
+      ? '&candidateType=world'
+      : '';
     navigate(
       `/setting-review?workId=${encodeURIComponent(workId)}`
       + `&batchId=${encodeURIComponent(batch.batchId)}`
       + `&jobType=${jobType}`
+      + candidateType
       + reviewStatus,
       'dissolve',
       {
@@ -281,7 +302,16 @@ export function AnalysisList({ workId }: { workId: string }) {
           )}
           {batches.map(batch => {
             const status = batch.status ?? 'COMPLETED';
-            const view = STATUS_VIEW[status];
+            const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
+            const hasTokenInterruption = tokenInterruptedCount > 0;
+            const view = hasTokenInterruption
+              ? {
+                  label: '세계관 비교 일부 중단',
+                  description: `${tokenInterruptedCount}개 비교가 사용량 부족으로 중단됐습니다. 완료된 추출과 비교 결과는 유지됩니다.`,
+                  tone: 'warning' as const,
+                  icon: TriangleAlert,
+                }
+              : STATUS_VIEW[status];
             const StatusIcon = view.icon;
             const characterPendingCount = batch.pendingCandidateCount ?? 0;
             const characterReviewedCount = batch.reviewedCandidateCount ?? 0;
@@ -290,7 +320,9 @@ export function AnalysisList({ workId }: { workId: string }) {
             const worldSettingReviewedCount = batch.worldSettingReviewedCandidateCount ?? 0;
             const worldSettingTotalCount = batch.worldSettingTotalCandidateCount ?? 0;
             const hasCandidateCounts = characterTotalCount > 0 || worldSettingTotalCount > 0;
-            const opensReview = status === 'REVIEW_REQUIRED' || status === 'COMPLETED';
+            const opensReview = hasTokenInterruption
+              || status === 'REVIEW_REQUIRED'
+              || status === 'COMPLETED';
             const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
             const actionEnabled = opensReview
               ? Boolean(batch.batchId)
@@ -359,7 +391,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                       }}
                       className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}
                     >
-                      {actionLabel(status)}
+                      {actionLabel(status, tokenInterruptedCount)}
                     </button>
                   </div>
                 </div>

@@ -117,6 +117,20 @@
 .episode-upload-alert--danger button { color: var(--ch-danger) !important; }
 .episode-upload-alert--success { border-color: rgb(15 159 122 / 24%) !important; background: rgb(15 159 122 / 6%) !important; color: var(--ch-success) !important; }
 .episode-upload-alert--success span { color: var(--ch-success) !important; }
+.episode-upload-alert--warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 11px 12px;
+  border: 1px solid rgb(212 160 74 / 32%);
+  background: rgb(212 160 74 / 8%);
+  color: var(--ch-warning);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.episode-upload-alert--warning svg { flex-shrink: 0; margin-top: 2px; }
+.episode-upload-alert--warning span { color: var(--ch-warning) !important; }
 .episode-upload-error { color: var(--ch-danger) !important; }
 .episode-upload-success { color: var(--ch-success) !important; }
 

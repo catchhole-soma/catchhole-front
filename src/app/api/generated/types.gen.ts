@@ -507,6 +507,10 @@ export type WorldSettingCandidateResponse = {
     comparedAt?: string | null;
     comparisonStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'RECOMPARISON_REQUIRED';
     comparisonErrorMessage?: string | null;
+    /**
+     * 기계 판독용 비교 실패 코드
+     */
+    comparisonFailureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
     userModified?: boolean;
     finalOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
@@ -644,6 +648,42 @@ export type Decision = {
 export type WorldSettingCandidateGroupConfirmRequest = {
     batchId: string;
     candidates: Array<Decision>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorldSettingTokenInterruptedResumeResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorldSettingTokenInterruptedResumeResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 토큰 부족으로 중단된 세계관 비교 일괄 재개 결과
+ */
+export type WorldSettingTokenInterruptedResumeResponse = {
+    batchId?: string;
+    resumedCandidateCount?: number;
+    activeCandidateCount?: number;
+    remainingInterruptedCandidateCount?: number;
 };
 
 /**
@@ -1372,6 +1412,14 @@ export type AnalysisJobResponse = {
      */
     errorMessage?: string;
     /**
+     * 기계 판독용 실패 코드
+     */
+    failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
+    /**
+     * 1차 추출 결과를 보존한 세계관 비교 단계 토큰 중단 여부
+     */
+    tokenInterruptedAfterExtraction?: boolean;
+    /**
      * 분석 시작 시각
      */
     startedAt?: string;
@@ -1703,6 +1751,10 @@ export type CommonResponseWorkerWorldSettingCandidatePayload = {
  * Worker 세계관 설정 비교 실패 요청
  */
 export type WorkerWorldSettingComparisonFailRequest = {
+    /**
+     * 기계 판독용 비교 실패 코드
+     */
+    failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     errorMessage: string;
 };
 
@@ -1810,6 +1862,7 @@ export type WorkerWorldSettingComparisonCompleteRequest = {
 };
 
 export type WorkerCharacterFactComparisonFailRequest = {
+    failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     errorMessage: string;
 };
 
@@ -1952,6 +2005,10 @@ export type WorkerAnalysisJobHeartbeatResponse = {
  * AI Worker 분석 작업 실패 요청
  */
 export type WorkerAnalysisJobFailRequest = {
+    /**
+     * 기계 판독용 실패 코드
+     */
+    failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     /**
      * 실패 사유
      */
@@ -3217,6 +3274,8 @@ export type WorldSettingCandidateListResponse = {
     pendingComparisonCount?: number;
     processingComparisonCount?: number;
     failedComparisonCount?: number;
+    tokenInterruptedComparisonCount?: number;
+    canResumeTokenInterruptedComparisons?: boolean;
     recomparisonRequiredCount?: number;
     conflictCandidateCount?: number;
     groups?: PageResponseWorldSettingCandidateGroupResponse;
@@ -4189,6 +4248,14 @@ export type AnalysisBatchSummaryResponse = {
      */
     worldSettingPendingCandidateCount?: number;
     /**
+     * 토큰 부족으로 비교가 중단되어 재개 가능한 세계관 후보 수
+     */
+    worldSettingTokenInterruptedCandidateCount?: number;
+    /**
+     * 토큰 부족으로 중단된 세계관 비교의 일괄 재개 가능 여부
+     */
+    canResumeTokenInterruptedWorldSettingComparisons?: boolean;
+    /**
      * 분석 목적별 최신 작업 집계
      */
     jobGroups?: Array<AnalysisBatchJobGroupResponse>;
@@ -4913,6 +4980,42 @@ export type ConfirmWorldSettingCandidateGroupResponses = {
 };
 
 export type ConfirmWorldSettingCandidateGroupResponse = ConfirmWorldSettingCandidateGroupResponses[keyof ConfirmWorldSettingCandidateGroupResponses];
+
+export type ResumeTokenInterruptedWorldSettingComparisonsData = {
+    body?: never;
+    path: {
+        workId: string;
+        batchId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/world-setting-candidates/batches/{batchId}/resume-token-interrupted';
+};
+
+export type ResumeTokenInterruptedWorldSettingComparisonsErrors = {
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 업로드 묶음을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 최소 비교 예약 토큰 부족
+     */
+    409: CommonErrorResponse;
+};
+
+export type ResumeTokenInterruptedWorldSettingComparisonsError = ResumeTokenInterruptedWorldSettingComparisonsErrors[keyof ResumeTokenInterruptedWorldSettingComparisonsErrors];
+
+export type ResumeTokenInterruptedWorldSettingComparisonsResponses = {
+    /**
+     * 일괄 재개 요청 성공
+     */
+    200: CommonResponseWorldSettingTokenInterruptedResumeResponse;
+};
+
+export type ResumeTokenInterruptedWorldSettingComparisonsResponse = ResumeTokenInterruptedWorldSettingComparisonsResponses[keyof ResumeTokenInterruptedWorldSettingComparisonsResponses];
 
 export type RetrySettingCandidateComparisonData = {
     body?: never;

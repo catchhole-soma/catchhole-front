@@ -24,6 +24,7 @@ import {
   getEpisodesOptions,
   getSettingBooksOptions,
   getWorkOptions,
+  getWorldSettingCandidatesOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
   uploadEpisodesMutation as uploadEpisodesMutationOptions,
   uploadSettingBookMutation as uploadSettingBookMutationOptions,
@@ -39,6 +40,7 @@ import type {
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { toApiError } from '../../lib/api-errors';
+import { notifyAiTokenQuotaExhausted } from '../../lib/ai-token-quota';
 import { validateManuscriptFile } from '../../lib/fileValidation';
 import { C } from './constants';
 import { FileDropArea } from './S1Dashboard';
@@ -735,15 +737,32 @@ export default function SEpisodeUpload() {
   const analysisRunning = currentAnalysisJobs.some(
     job => job.status === 'PENDING' || job.status === 'RUNNING',
   );
+  const tokenInterruptedAnalysisJobs = currentAnalysisJobs.filter(job => (
+    job.status === 'FAILED'
+    && job.failureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+    && job.tokenInterruptedAfterExtraction
+  ));
+  const asyncQuotaFailedAnalysisJobs = currentAnalysisJobs.filter(job => (
+    job.status === 'FAILED' && job.failureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+  ));
   const retryableFailedAnalysisJobIds = currentAnalysisJobs.flatMap(job =>
     job.status === 'FAILED'
       && job.id
+      && !job.tokenInterruptedAfterExtraction
       && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
       ? [job.id]
       : []);
   const analysisFailed = currentAnalysisJobsLoaded
     && !analysisRunning
     && retryableFailedAnalysisJobIds.length > 0;
+  const analysisFailureTitle = progressEpisodes.length <= 1
+    ? '회차 분석에 실패했습니다'
+    : retryableFailedAnalysisJobIds.length === currentAnalysisJobs.length
+      ? '전체 회차 분석에 실패했습니다'
+      : '일부 회차 분석에 실패했습니다';
+  const analysisPartiallyInterrupted = currentAnalysisJobsLoaded
+    && !analysisRunning
+    && tokenInterruptedAnalysisJobs.length > 0;
   const analysisUnavailable = currentAnalysisJobsLoaded
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisSucceeded = currentAnalysisJobsLoaded
@@ -752,6 +771,66 @@ export default function SEpisodeUpload() {
   const analysisEpisodeStateChanged = analysisSucceeded
     && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
   const statusQueryFailed = jobQueries.some(query => query.isError);
+  const worldComparisonSummaryQuery = useQuery({
+    ...getWorldSettingCandidatesOptions({
+      path: { workId },
+      query: {
+        batchId: episodeUploadBatchId ?? '',
+        page: 0,
+        size: 1,
+      },
+    }),
+    enabled: step === 'processing'
+      && UUID_PATTERN.test(workId)
+      && Boolean(episodeUploadBatchId),
+    retry: false,
+    refetchInterval: query => {
+      const data = query.state.data?.data;
+      const activeComparisons = (data?.pendingComparisonCount ?? 0)
+        + (data?.processingComparisonCount ?? 0);
+      return analysisRunning || activeComparisons > 0 ? 3_000 : false;
+    },
+  });
+  const tokenInterruptedComparisonCount = worldComparisonSummaryQuery.data?.data
+    ?.tokenInterruptedComparisonCount ?? 0;
+  const notifiedQuotaJobIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    const awaitsComparisonSummary = tokenInterruptedAnalysisJobs.length > 0
+      && Boolean(episodeUploadBatchId)
+      && worldComparisonSummaryQuery.isPending;
+    if (awaitsComparisonSummary) return;
+
+    const newlyInterruptedIds = asyncQuotaFailedAnalysisJobs.flatMap(job => (
+      job.id && !notifiedQuotaJobIds.current.has(job.id) ? [job.id] : []
+    ));
+    if (newlyInterruptedIds.length === 0) return;
+    newlyInterruptedIds.forEach(jobId => notifiedQuotaJobIds.current.add(jobId));
+    const newlyFailedEpisodeCount = asyncQuotaFailedAnalysisJobs.filter(job => (
+      job.id
+      && newlyInterruptedIds.includes(job.id)
+      && !job.tokenInterruptedAfterExtraction
+    )).length;
+    if (newlyFailedEpisodeCount > 0) {
+      notifyAiTokenQuotaExhausted({
+        kind: 'analysis-failed',
+        failedEpisodeCount: newlyFailedEpisodeCount,
+        totalEpisodeCount: currentAnalysisJobs.length,
+      });
+      return;
+    }
+    notifyAiTokenQuotaExhausted({
+      kind: 'analysis-interrupted',
+      interruptedComparisonCount: tokenInterruptedComparisonCount || undefined,
+    });
+  }, [
+    asyncQuotaFailedAnalysisJobs,
+    currentAnalysisJobs.length,
+    episodeUploadBatchId,
+    tokenInterruptedComparisonCount,
+    tokenInterruptedAnalysisJobs.length,
+    worldComparisonSummaryQuery.isPending,
+  ]);
 
   const labels = uploadType === 'MULTI_EPISODE_SINGLE_FILE'
     ? ['업로드 방식', '원고 파일 입력', '회차 분리 확인', '분석 진행']
@@ -1466,12 +1545,15 @@ export default function SEpisodeUpload() {
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
                   : analysisFailed
                     ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
+                    : analysisPartiallyInterrupted
+                      ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : analysisUnavailable
                       ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
-                    : analysisFailed ? '일부 회차 분석에 실패했습니다'
+                    : analysisFailed ? analysisFailureTitle
+                      : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
                 </div>
@@ -1502,6 +1584,17 @@ export default function SEpisodeUpload() {
               )}
               {analysisFailed && (
                 <ErrorBanner message="분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요." />
+              )}
+              {analysisPartiallyInterrupted && (
+                <div className="episode-upload-alert episode-upload-alert--warning" role="status">
+                  <AlertCircle size={14} />
+                  <span>
+                    {tokenInterruptedComparisonCount > 0
+                      ? `${tokenInterruptedComparisonCount}개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.`
+                      : '세계관 설정 비교 일부가 사용량 부족으로 중단됐습니다.'}
+                    {' '}완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 후보 검토에서 남은 비교만 재개할 수 있습니다.
+                  </span>
+                </div>
               )}
               {analysisUnavailable && (
                 <ErrorBanner message="삭제된 회차는 분석 결과를 열거나 다시 시도할 수 없습니다. 원고 목록에서 현재 회차를 확인해주세요." />
@@ -1573,13 +1666,14 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
-                  {analysisSucceeded ? (
+                  {analysisSucceeded || (analysisPartiallyInterrupted && !analysisFailed) ? (
                     <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
                       if (!episodeUploadBatchId) return;
                       navigate(
                         `/setting-review?workId=${encodeURIComponent(workId)}`
                         + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
-                        + `&jobType=${resolvedAnalysisJobType}`,
+                        + `&jobType=${resolvedAnalysisJobType}`
+                        + (analysisPartiallyInterrupted ? '&candidateType=world' : ''),
                         'dissolve',
                         {
                           returnToAnalysisList: resolvedAnalysisListUrl,
@@ -1590,7 +1684,7 @@ export default function SEpisodeUpload() {
                         },
                       );
                     }}>
-                      설정 후보 검토
+                      {analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton

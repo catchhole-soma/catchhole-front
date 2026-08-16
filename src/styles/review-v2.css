@@ -238,3 +238,38 @@
   .setting-review-screen .setting-review-sidebar { padding: 14px; }
   .setting-review-screen .setting-candidate-detail { padding: 17px 16px !important; }
 }
+.world-token-resume-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--ch-border);
+  border-radius: 10px;
+  background: var(--ch-surface);
+}
+
+.world-token-resume-banner > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.world-token-resume-banner__body {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.world-token-resume-banner__body span { color: var(--ch-text-muted); }
+.world-token-resume-banner--warning { border-color: rgb(212 160 74 / 32%); background: rgb(212 160 74 / 8%); color: var(--ch-warning); }
+.world-token-resume-banner--progress { border-color: rgb(8 126 242 / 28%); background: rgb(8 126 242 / 7%); color: var(--ch-primary); }
+.world-token-resume-banner--success { border-color: rgb(15 159 122 / 28%); background: rgb(15 159 122 / 7%); color: var(--ch-success); }
+.world-token-resume-banner--danger { border-color: rgb(223 77 95 / 28%); background: rgb(223 77 95 / 7%); color: var(--ch-danger); }
+
+@media (max-width: 768px) {
+  .world-token-resume-banner { flex-wrap: wrap; }
+  .world-token-resume-banner .review-action { width: 100%; justify-content: center; }
+}
