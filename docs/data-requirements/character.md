@@ -1170,8 +1170,8 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 > - 검토 화면은 `PENDING_REVIEW`를 기본 필터로 사용한다. 이 기본 검토 흐름에서 확정·무시 후 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하되, 좌측 목록과 화면의 현재 스크롤 위치는 유지한다. 선택 변경을 이유로 카드나 상세 패널까지 자동 스크롤하지 않으며, 남은 대기 후보가 없으면 검토 완료 상태를 표시한다.
 > - 탭·필터·현재 그룹은 필터 요청 중에도 언마운트하지 않는다. 직전 그룹을 표시한 채 새 목록을 받고, 응답에 현재 그룹이 없을 때만 첫 그룹으로 보정하거나 선택을 제거해 연속 클릭 대상을 유지한다.
 > - 저장용 `attributeName`과 `valueType`을 그대로 노출하지 않고 설정 유형·설정명을 사용자용 문구로 변환한다. 후보에서는 `attributeValue`를 표시하며, 확정 후 이 값이 `CharacterFact.factValue`로 사용된다.
-> - 응답의 `valueValidation`은 저장 필드가 아니라 Backend가 `attributeValue`와 `valueJson`으로 매번 계산하는 검증 결과다. `NUMBER`는 숫자로 해석 가능한 표시값과 `valueJson.value`가 수치상 같아야 하고, `BOOLEAN`은 표시값이 정확히 소문자 `true` 또는 `false`이며 JSON 값과 같아야 한다. 그 밖의 타입은 `NOT_APPLICABLE`이다.
-> - `valueValidation.status=INVALID`인 후보는 row에 danger 안내와 서버 메시지를 표시한다. 수정·무시는 계속 허용하지만 비교·개별 확정·그룹 확정은 잠근다.
+> - 응답의 `valueValidation`은 저장 필드가 아니라 Backend가 `attributeValue`와 `valueJson`으로 매번 계산하는 검증 결과다. `NUMBER`는 숫자로 해석 가능한 표시값과 `valueJson.value`가 수치상 같아야 하고, `BOOLEAN`은 표시값이 정확히 소문자 `true` 또는 `false`이며 JSON 값과 같아야 한다. 그 밖의 타입은 `NOT_APPLICABLE`이다. `repairable`은 현재 후보 수정 API로 오류를 복구할 수 있는지를 나타낸다.
+> - `valueValidation.status=INVALID`인 후보는 row에 danger 안내와 서버 메시지를 표시하고 비교 시작·재시도·개별 확정·그룹 확정을 잠근다. `repairable=true`인 값 계약 오류는 수정·무시를 허용하지만, schema 없음·모호성·타입 불일치인 `false`는 수정 버튼을 잠그고 무시만 허용한다.
 > - 같은 이름 그룹의 모든 `PENDING_REVIEW` 후보가 `MATCHED`, `AUTO_MATCHED_BY_NAME` 또는 신규 등록 예정 `UNRESOLVED`이고 값 검증과 비교 정책을 통과해야 그룹 전체를 확정할 수 있다. 하나라도 `INVALID`, `AMBIGUOUS`이거나 비교 처리 중·실패이면 전체 확정을 잠근다.
 > - 그룹 전체 확정은 후보별 `APPLY_PROPOSAL` 또는 `HISTORY_ONLY` 선택을 모아 단일 API로 전달한다. 서버는 요청 ID가 해당 배치·이름의 전체 대기 후보와 정확히 일치하는지 다시 검사한다.
 > - 연결 상태와 관계없이 `PENDING_REVIEW` 후보를 무시할 수 있다. 성공 후 목록·상세·집계를 서버 기준으로 다시 조회하고, `DISMISSED` 상세는 읽기 전용으로 표시한다. 무시 실패 시 현재 후보와 선택 상태를 유지해 같은 화면에서 재시도한다.
@@ -1277,7 +1277,8 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
   - `연결 변경` → 기존 캐릭터에 연결하거나 새 캐릭터 이름 재입력
 - 캐릭터 연결은 확정 전까지 여러 번 변경할 수 있고, 변경 후에도 검토 상태는 `PENDING_REVIEW` 유지
 - 설정값 수정 저장 후에도 `PENDING_REVIEW`를 유지하고 비교 상태를 재비교 필요로 갱신한다. 재비교가 완료될 때까지 확정은 잠그되 수정·무시는 가능하다.
-- `INVALID` scalar 후보 → 서버 메시지를 확인하고 수정 모달에서 형식에 맞게 보정하거나 무시. `NUMBER`·`BOOLEAN`은 저장 전 FE에서도 같은 형식을 검사하고 Backend가 다시 검증한다.
+- `INVALID + repairable=true` scalar 후보 → 서버 메시지를 확인하고 수정 모달에서 형식에 맞게 보정하거나 무시. `NUMBER`·`BOOLEAN`은 저장 전 FE에서도 같은 형식을 검사하고 Backend가 다시 검증한다.
+- `INVALID + repairable=false` schema 오류 후보 → 현재 화면에서는 수정·재비교하지 않고 제외하거나 Backend의 활성 schema를 먼저 복구한다.
 - 비교 실패·기준 snapshot 변경 → `다시 비교`, 연결된 레거시 `NOT_REQUIRED` 후보 → `현재 설정 비교 시작`으로 retry하고 이전 제안·최초 원문 근거는 유지
 - `ADD`·`UPDATE`·`MERGE` → 후보별 현재값 반영 또는 이력 저장 방식을 선택한 뒤 그룹 전체 확정
 - `HISTORY_ONLY`·`REVIEW_REQUIRED` → 현재 snapshot을 바꾸지 않는 이력 저장만 선택 가능
@@ -1303,7 +1304,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 > - 이름과 표시값이 의미상 그대로이거나 캐릭터 연결만 바뀐 후보는 기존 rich `valueJson`을 유지한다. 이때 key의 suffix 공백은 `_`로, 표시값 앞뒤 공백은 제거해 저장 표현만 정규화할 수 있다.
 > - `SettingValueType.JSON` 복합 후보의 설정명 또는 표시값이 실제로 바뀌면 Backend는 현재 후보의 `valueJson`을 name-only JSON으로 축소한다. 숨은 `level`, `effect`, `quantity` 등을 유지하거나 표시값에서 추측하지 않는다.
 > - scalar 후보는 기존 `valueType`을 유지하고 수정한 표시값을 해당 타입으로 검증한다. 중첩 속성별 타입·필수값을 제공하는 구조화 편집 폼은 후속 범위다.
-> - 기존 scalar 후보가 `INVALID`여도 수정 모달은 열 수 있다. 유효한 표시값으로 저장하면 Backend가 타입에 맞는 canonical `valueJson.value`로 고쳐 저장하고 비교를 다시 대기시킨다.
+> - 기존 scalar 후보가 `INVALID + repairable=true`이면 수정 모달을 열 수 있다. 유효한 표시값으로 저장하면 Backend가 타입에 맞는 canonical `valueJson.value`로 고쳐 저장하고 비교를 다시 대기시킨다. `repairable=false`는 현재 수정 API의 범위 밖이므로 모달을 열지 않는다.
 > - 표시값 입력을 비우면 빈 문자열이 아니라 `null`을 전송한다. 따라서 원래 표시값이 `null`인 후보를 그대로 저장해도 실제 수정으로 오인하지 않으며, 내용 미수정 JSON은 축소되지 않는다.
 > - 캐릭터 연결·설정명·설정값을 수정해도 분석 당시의 출처 회차·원문 표현·청크·quote·offset은 변경하거나 삭제하지 않는다.
 > - quote와 offset은 `AI가 추출할 때 참고한 원문`으로 읽기 전용 표시하며 일반 설정 수정 요청에 포함하지 않는다.
@@ -1380,7 +1381,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 | 설정명 | 목록 항목별 문자열·필수 | 없음 |
 | 표시용 설정값 | 목록 항목별 문자열·선택 | 없으면 `null` |
 | 값 유형 | 목록 항목별 단일 값·필수 | 없음 |
-| 값 정합성 | 목록 항목별 객체·필수 | `status`는 `VALID`/`INVALID`/`NOT_APPLICABLE`, 오류가 없으면 `errorCode`·`message`는 `null` |
+| 값 정합성 | 목록 항목별 객체·필수 | `status`는 `VALID`/`INVALID`/`NOT_APPLICABLE`, 오류가 없으면 `errorCode`·`message`는 `null`, `repairable`은 현재 수정 API로 오류를 복구할 수 있는지 표시 |
 | AI 근거 명확도 | 목록 항목별 0~1 값·선택 | 없으면 `null` |
 | 검토 상태 | 목록 항목별 enum·필수 | `PENDING_REVIEW`/`CONFIRMED`/`DISMISSED` |
 | 캐릭터 연결 상태 | 목록 항목별 enum·필수 | `MATCHED`/`AUTO_MATCHED_BY_NAME`/`UNRESOLVED`/`AMBIGUOUS` |
@@ -1400,7 +1401,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 | 연결된 캐릭터 식별자·이름 | 단일 값·선택 | `MATCHED`/`AUTO_MATCHED_BY_NAME`가 아니면 `null` |
 | 새 캐릭터 등록 예정 이름 | 문자열·선택 | `UNRESOLVED`가 아니면 `null` |
 | 구조화된 설정 세부 값 | 객체·선택 | 화면에는 표시하지 않음. 내용 미수정이면 유지하고 JSON 복합 후보의 이름·값 수정 시 name-only로 축소 |
-| 값 정합성 | 객체·필수 | 응답 시점에 파생하며 DB에는 저장하지 않음. `INVALID`면 오류 코드와 사용자 메시지 포함 |
+| 값 정합성 | 객체·필수 | 응답 시점에 파생하며 DB에는 저장하지 않음. `INVALID`면 오류 코드·사용자 메시지·수정 가능 여부 포함 |
 | 출처 청크 식별자 | 단일 값·선택 | 없으면 `null` |
 | 원문 근거 | `quote`, 회차 전체 기준 `startOffset`, `endOffset` 목록·필수 | 근거가 없으면 빈 목록 |
 | 현재 설정 비교 상태 | enum·필수 | 비교 불필요·연결 대기·대기·처리·완료·실패·재비교 필요 |
@@ -1464,7 +1465,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 **6. BE와 협의할 범위·상태값**
 - 후보 내용 수정의 MVP 축소 계약은 확정되었다. 중첩 속성별 타입 정의와 편집 UI, 수정 전후 구조화 값 자체의 별도 이력은 후속 범위다.
 - `attributeValue`는 사용자용 대표값, `valueJson`은 병합·snapshot 조립용 구조화 값으로 역할을 고정한다. 두 값이 의미상 다르거나 `attributeValue`가 부실한 후보는 UI에서 JSON을 대신 노출하지 않고 Worker 추출·Backend 검증 단계에서 정합성을 보장한다.
-- 기존 후보를 일괄 보정하지 않는다. 조회 시 파생한 `valueValidation`으로 레거시 오류를 드러내고, 해당 후보를 사용자가 수정할 때만 canonical scalar 값으로 복구한다.
+- 기존 후보를 일괄 보정하지 않는다. 조회 시 파생한 `valueValidation`으로 레거시 오류를 드러내고, `repairable=true` 후보를 사용자가 수정할 때만 canonical scalar 값으로 복구한다. schema 오류인 `false` 후보는 수정 가능하다고 안내하지 않는다.
 - FE의 한글 문구 변환은 후보 유효성 검사가 아니다. 활성 schema와 맞지 않는 접두어·key·type은 Backend가 확정 전에 거절한다. 허용 pattern 안에서 의미만 잘못 분류된 후보는 Worker prompt·결정적 후처리·추출 테스트를 보강한다.
 - 사용자 수정 배지를 표시하려면 목록·상세 응답에 `contentEdited` 또는 동등한 boolean 계약이 필요하다.
 - `profile.*` 고정 추출 대상·허용 key·예시가 Worker prompt에 빠진 문제는 위 **5-4. 프로필 설정 계약**의 후속 작업으로 추적한다.
