@@ -21947,7 +21947,7 @@
       "id": "f0EDt",
       "x": 63800,
       "y": 14997,
-      "name": "SSettingReview / 설정 후보 검토 (MVP)",
+      "name": "SSettingReview / NUMBER 값 형식 오류 (MVP)",
       "clip": true,
       "width": 1280,
       "height": 1008,
@@ -22024,7 +22024,7 @@
                   "id": "Wwurc",
                   "name": "Label",
                   "fill": "$text-2",
-                  "content": "3/5 검토 완료",
+                  "content": "0/1 검토 완료",
                   "fontFamily": "$font",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -22042,7 +22042,7 @@
                       "type": "frame",
                       "id": "I2o5Z",
                       "name": "Progress Fill",
-                      "width": 60,
+                      "width": 0,
                       "height": 6,
                       "fill": "$primary",
                       "cornerRadius": "$radius-pill"
@@ -22127,7 +22127,7 @@
                       "id": "Z5kKiM",
                       "name": "분석 대상 Value",
                       "fill": "#F0F0F5",
-                      "content": "1–5화 · 5개 회차",
+                      "content": "1화 · 1개 회차",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -22156,7 +22156,7 @@
                       "id": "CKWWS",
                       "name": "전체 후보 Value",
                       "fill": "#F0F0F5",
-                      "content": "5개",
+                      "content": "1개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -22185,7 +22185,7 @@
                       "id": "OVOjw",
                       "name": "검토 완료 Value",
                       "fill": "#F0F0F5",
-                      "content": "3개",
+                      "content": "0개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -22214,7 +22214,7 @@
                       "id": "Txr4P",
                       "name": "검토 대기 Value",
                       "fill": "#F0F0F5",
-                      "content": "2개",
+                      "content": "1개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -22243,7 +22243,7 @@
                       "id": "okJf3",
                       "name": "연결 필요 Value",
                       "fill": "#F4A261",
-                      "content": "1개",
+                      "content": "0개",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -23035,7 +23035,7 @@
                         {
                           "type": "frame",
                           "id": "vGXVp",
-                          "name": "Candidate / 1화 수아 눈 색깔",
+                          "name": "Candidate / 1화 김철수 정신 값 형식 오류",
                           "width": "fill_container",
                           "fill": "#7C5CFC24",
                           "cornerRadius": 8,
@@ -23088,7 +23088,7 @@
                                   "id": "d4u34w",
                                   "name": "Candidate Character",
                                   "fill": "#F0F0F5",
-                                  "content": "수아",
+                                  "content": "김철수",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
                                   "fontWeight": "700"
@@ -23108,7 +23108,7 @@
                                   "id": "IgbvG",
                                   "name": "Candidate Setting",
                                   "fill": "#9090A8",
-                                  "content": "눈 색깔",
+                                  "content": "정신",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
                                   "fontWeight": "normal"
@@ -23124,8 +23124,8 @@
                                   "type": "text",
                                   "id": "NFPeH",
                                   "name": "Candidate Value",
-                                  "fill": "#F0F0F5",
-                                  "content": "갈색",
+                                  "fill": "#FF7676",
+                                  "content": "정신: 37",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
                                   "fontWeight": "600"
@@ -23135,17 +23135,17 @@
                             {
                               "type": "frame",
                               "id": "zcqbT",
-                              "name": "Candidate Status Badges",
+                              "name": "Candidate Status Badges / Invalid NUMBER",
                               "gap": 5,
                               "alignItems": "center",
                               "children": [
                                 {
                                   "type": "frame",
                                   "id": "BanIf",
-                                  "name": "Review Badge / Pending",
-                                  "fill": "#F4A2611A",
+                                  "name": "Review Badge / Invalid Value",
+                                  "fill": "#FF76761A",
                                   "cornerRadius": 999,
-                                  "stroke": "#F4A261",
+                                  "stroke": "#FF7676",
                                   "strokeWidth": 1,
                                   "padding": [
                                     2,
@@ -23157,9 +23157,9 @@
                                     {
                                       "type": "text",
                                       "id": "fqGP6",
-                                      "name": "Review Badge / Pending Label",
-                                      "fill": "#F4A261",
-                                      "content": "검토 대기",
+                                      "name": "Review Badge / Invalid Value Label",
+                                      "fill": "#FF7676",
+                                      "content": "값 형식 오류",
                                       "fontFamily": "Noto Sans KR",
                                       "fontSize": 9,
                                       "fontWeight": "700"
@@ -23169,7 +23169,7 @@
                                 {
                                   "type": "frame",
                                   "id": "e9cfxZ",
-                                  "name": "Match Badge / Matched",
+                                  "name": "Match Badge / New Candidate",
                                   "fill": "#7C5CFC24",
                                   "cornerRadius": 999,
                                   "stroke": "#7C5CFC",
@@ -23184,9 +23184,9 @@
                                     {
                                       "type": "text",
                                       "id": "vwB4U",
-                                      "name": "Match Badge / Matched Label",
+                                      "name": "Match Badge / New Candidate Label",
                                       "fill": "#7C5CFC",
-                                      "content": "기존 캐릭터 연결됨",
+                                      "content": "새 캐릭터 후보",
                                       "fontFamily": "Noto Sans KR",
                                       "fontSize": 9,
                                       "fontWeight": "700"
@@ -23864,7 +23864,7 @@
                 {
                   "type": "frame",
                   "id": "ihgv6",
-                  "name": "Candidate Detail / Default",
+                  "name": "Candidate Detail / Invalid NUMBER",
                   "width": "fill_container",
                   "fill": "#1A1A22",
                   "cornerRadius": 8,
@@ -23912,7 +23912,7 @@
                         {
                           "type": "frame",
                           "id": "R7D5L",
-                          "name": "Detail Match Badge",
+                          "name": "Detail Match Badge / New Candidate",
                           "fill": "#7C5CFC24",
                           "cornerRadius": 999,
                           "stroke": "#7C5CFC",
@@ -23927,9 +23927,9 @@
                             {
                               "type": "text",
                               "id": "mifkg",
-                              "name": "Detail Match Badge Label",
+                              "name": "Detail Match Badge / New Candidate Label",
                               "fill": "#7C5CFC",
-                              "content": "기존 캐릭터 연결됨",
+                              "content": "새 캐릭터 후보",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 9,
                               "fontWeight": "700"
@@ -23956,7 +23956,7 @@
                               "id": "N9C1B",
                               "name": "Detail Type Badge Label",
                               "fill": "#9090A8",
-                              "content": "프로필",
+                              "content": "스탯",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 9,
                               "fontWeight": "700"
@@ -23995,7 +23995,7 @@
                           "id": "QIYt2",
                           "name": "Candidate Name",
                           "fill": "#F0F0F5",
-                          "content": "수아",
+                          "content": "김철수",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 16,
                           "fontWeight": "700"
@@ -24005,7 +24005,7 @@
                           "id": "Wqthc",
                           "name": "Original Mention",
                           "fill": "#55556A",
-                          "content": "원문 표현: “수아”",
+                          "content": "원문 표현: “김철수”",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -24033,7 +24033,7 @@
                           "id": "KAhAa",
                           "name": "Connection Label",
                           "fill": "#55556A",
-                          "content": "연결된 캐릭터",
+                          "content": "신규 등록 예정",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
                           "fontWeight": "600"
@@ -24043,7 +24043,7 @@
                           "id": "yDQhY",
                           "name": "Connected Character",
                           "fill": "#F0F0F5",
-                          "content": "수아",
+                          "content": "김철수",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 12,
                           "fontWeight": "700"
@@ -24072,7 +24072,7 @@
                               "id": "XUa9F",
                               "name": "Change Connection Label",
                               "fill": "#9090A8",
-                              "content": "연결 변경",
+                              "content": "이름 변경",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 10,
                               "fontWeight": "600"
@@ -24111,7 +24111,7 @@
                               "id": "dEb7Z",
                               "name": "설정 유형 Value",
                               "fill": "#F0F0F5",
-                              "content": "프로필",
+                              "content": "스탯",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 13,
                               "fontWeight": "700"
@@ -24141,7 +24141,7 @@
                               "id": "D0fzOU",
                               "name": "설정명 Value",
                               "fill": "#F0F0F5",
-                              "content": "눈 색깔",
+                              "content": "정신",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 13,
                               "fontWeight": "700"
@@ -24170,8 +24170,8 @@
                               "type": "text",
                               "id": "TsIzn",
                               "name": "설정값 Value",
-                              "fill": "#F0F0F5",
-                              "content": "갈색",
+                              "fill": "#FF7676",
+                              "content": "정신: 37",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 18,
                               "fontWeight": "700"
@@ -24183,11 +24183,11 @@
                     {
                       "type": "frame",
                       "id": "W6q7X",
-                      "name": "AI Evidence Clarity",
+                      "name": "Value Validation Warning / Invalid NUMBER",
                       "width": "fill_container",
-                      "fill": "#7C5CFC18",
+                      "fill": "#FF767614",
                       "cornerRadius": 6,
-                      "stroke": "#7C5CFC55",
+                      "stroke": "#FF767666",
                       "strokeWidth": 1,
                       "layout": "vertical",
                       "gap": 6,
@@ -24203,19 +24203,19 @@
                             {
                               "type": "icon",
                               "id": "keulH",
-                              "name": "AI Clarity Icon",
+                              "name": "Value Validation Warning Icon",
                               "width": 14,
                               "height": 14,
-                              "icon": "sparkles",
+                              "icon": "triangle-alert",
                               "library": "lucide",
-                              "fill": "#7C5CFC"
+                              "fill": "#FF7676"
                             },
                             {
                               "type": "text",
                               "id": "Pul1g",
-                              "name": "AI Clarity Title",
-                              "fill": "#7C5CFC",
-                              "content": "AI 근거 명확도 92%",
+                              "name": "Value Validation Warning Title",
+                              "fill": "#FF8D8D",
+                              "content": "NUMBER 값 형식을 확인해 주세요",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 11,
                               "fontWeight": "700"
@@ -24225,9 +24225,9 @@
                         {
                           "type": "text",
                           "id": "z16Ua",
-                          "name": "AI Clarity Description",
-                          "fill": "#9090A8",
-                          "content": "직접적인 수치 또는 설정표 근거",
+                          "name": "Value Validation Warning Description",
+                          "fill": "#C8C8D4",
+                          "content": "‘정신: 37’은 숫자 형식이 아닙니다. 수정하거나 제외한 뒤 묶음을 확정해 주세요.",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -24308,7 +24308,7 @@
                               "id": "Gl7iF",
                               "name": "Evidence Quote Text",
                               "fill": "#9090A8",
-                              "content": "“수아의 눈동자는 햇살 아래 짙은 갈색으로 빛났다.”",
+                              "content": "“정신: 37”",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 12,
                               "fontWeight": "normal"
@@ -24320,7 +24320,7 @@
                     {
                       "type": "frame",
                       "id": "aOKTj",
-                      "name": "Default Review Actions",
+                      "name": "Review Actions / Invalid NUMBER",
                       "width": "fill_container",
                       "gap": 8,
                       "justifyContent": "end",
@@ -24328,7 +24328,7 @@
                         {
                           "type": "frame",
                           "id": "B8Z9f",
-                          "name": "무시 Button",
+                          "name": "제외 Button",
                           "width": 72,
                           "fill": "#0F0F13",
                           "cornerRadius": 6,
@@ -24344,9 +24344,9 @@
                             {
                               "type": "text",
                               "id": "enV4l",
-                              "name": "무시 Label",
+                              "name": "제외 Label",
                               "fill": "#9090A8",
-                              "content": "무시",
+                              "content": "제외",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 11,
                               "fontWeight": "700"
@@ -24384,11 +24384,11 @@
                         {
                           "type": "frame",
                           "id": "CFdxx",
-                          "name": "확정 Button",
-                          "width": 72,
-                          "fill": "#00C8961A",
+                          "name": "묶음 확정 Button / Disabled",
+                          "width": 112,
+                          "fill": "#15151C",
                           "cornerRadius": 6,
-                          "stroke": "#00C896",
+                          "stroke": "#3A3A48",
                           "strokeWidth": 1,
                           "padding": [
                             6,
@@ -24400,9 +24400,9 @@
                             {
                               "type": "text",
                               "id": "p9C0xX",
-                              "name": "확정 Label",
-                              "fill": "#00C896",
-                              "content": "확정",
+                              "name": "묶음 확정 Disabled Label",
+                              "fill": "#66667A",
+                              "content": "묶음 확정 불가",
                               "fontFamily": "Noto Sans KR",
                               "fontSize": 11,
                               "fontWeight": "700"
@@ -24535,7 +24535,7 @@
                       "id": "HI1cd",
                       "name": "Review Complete Disabled Label",
                       "fill": "#55556A",
-                      "content": "검토 완료 · 2개 후보 남음",
+                      "content": "검토 완료 · 1개 후보 남음",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -310488,7 +310488,8 @@
               "fill": "#A7A7B5",
               "content": "재사용 가능한 UI 요소, 상태 및 디자인 토큰",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -310585,7 +310586,8 @@
               "fill": "#A7A7B5",
               "content": "랜딩, 로그인, 회원가입, 약관 및 인증 상태",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -310682,7 +310684,8 @@
               "fill": "#A7A7B5",
               "content": "작품 선택 및 작품 관리 모달",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -310779,7 +310782,8 @@
               "fill": "#A7A7B5",
               "content": "분석 목록, 원고, 설정집, 업로드 및 대시보드 상태",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -310876,7 +310880,8 @@
               "fill": "#A7A7B5",
               "content": "업로드 방식, 검증, 처리, 결과 및 실패 상태",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -310973,7 +310978,8 @@
               "fill": "#A7A7B5",
               "content": "후보 검수, 매칭, 편집, 완료 및 빈 상태",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -311070,7 +311076,8 @@
               "fill": "#A7A7B5",
               "content": "세계관 후보 검수 및 설정 데이터베이스 관리",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -311167,7 +311174,8 @@
               "fill": "#A7A7B5",
               "content": "캐릭터 검색, 상세, 근거 및 변화 이력",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -311264,7 +311272,8 @@
               "fill": "#A7A7B5",
               "content": "에디터, 분석 요청, 근거 보기, 교체 및 삭제 흐름",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -311361,7 +311370,8 @@
               "fill": "#A7A7B5",
               "content": "와이어플로 및 전체 작업 흐름 참고 보드",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -311458,7 +311468,8 @@
               "fill": "#D6B98A",
               "content": "리다이렉트, 레거시, 비활성 기능 및 이전 작업 산출물",
               "fontFamily": "Inter",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             }
           ]
         },

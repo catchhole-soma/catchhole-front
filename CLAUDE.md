@@ -45,6 +45,8 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 
 화면 전환에는 `TransitionType`(`push-right`/`push-left`/`cover-up`/`pop`/`dissolve`, `constants.ts`)을 사용합니다.
 
+`/setting-review`의 캐릭터 row는 Backend가 현재 schema와 저장값에서 파생한 `valueValidation`을 함께 사용합니다. `INVALID`는 row 안에 경고를 표시하고 그룹 확정과 비교 시작·재시도를 잠급니다. `repairable=true`만 수정할 수 있고 schema 해석 오류인 `false`는 제외만 허용합니다. NUMBER/BOOLEAN 수정 모달은 각각 숫자 문자열과 소문자 `true`/`false`를 저장 전에 검증하며, 최종 잠금 해제는 수정 성공 후 재조회한 서버 `VALID` 결과를 따릅니다.
+
 ### 화면 ↔ URL 1:1 매핑 (딥링크) 방침
 
 탭/모달 같은 화면 내부 상태도 쿼리 파라미터로 딥링크화합니다(`?nav=`/`?tab=`/`?modal=` 등).

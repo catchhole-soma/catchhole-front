@@ -1686,6 +1686,294 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
   await expect(page.getByRole('button', { name: /강민준/ }).first()).toBeEnabled();
 });
 
+test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효한 수정으로 복구한다', async ({ page }) => {
+  let submittedBody: unknown;
+  let repaired = false;
+  const invalidCandidate = {
+    ...candidates[0],
+    candidateKind: 'SETTING' as const,
+    matchedCharacterId: null,
+    matchStatus: 'UNRESOLVED' as const,
+    attributeName: 'stats.mental',
+    attributeValue: '정신이 영구적으로 1 상승',
+    valueType: 'NUMBER' as const,
+    valueJson: { value: 36 },
+    valueValidation: {
+      status: 'INVALID' as const,
+      errorCode: 'SETTING_CANDIDATE_VALUE_FORMAT_INVALID',
+      message: '설정 후보의 표시값이 NUMBER 형식이 아닙니다.',
+      repairable: true,
+    },
+    comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' as const,
+  };
+  const repairedCandidate = {
+    ...invalidCandidate,
+    attributeValue: '36',
+    valueValidation: {
+      status: 'VALID' as const,
+      errorCode: null,
+      message: null,
+      repairable: false,
+    },
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath && request.method() === 'GET') {
+      const candidate = repaired ? repairedCandidate : invalidCandidate;
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [candidate],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}` && request.method() === 'PATCH') {
+      submittedBody = request.postDataJSON();
+      repaired = true;
+      return fulfill(route, repairedCandidate);
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  const candidateDetail = page.getByRole('region', { name: '정신 설정 후보' });
+  await expect(candidateDetail.getByRole('alert')).toContainText(
+    '설정 후보의 표시값이 NUMBER 형식이 아닙니다.',
+  );
+  await expect(candidateDetail.getByRole('alert')).toContainText('수정하거나 제외한 뒤');
+  await expect(page.getByText('값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'))
+    .toBeVisible();
+  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeDisabled();
+  await expect(candidateDetail.getByRole('button', { name: '수정', exact: true })).toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '기존 캐릭터에 연결', exact: true }))
+    .toBeDisabled();
+  await expect(candidateDetail.getByRole('button', { name: '새 캐릭터 이름 변경', exact: true }))
+    .toBeDisabled();
+  await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeDisabled();
+
+  await candidateDetail.getByRole('button', { name: '수정', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '설정 후보 수정' });
+  await expect(dialog.getByRole('alert')).toContainText('숫자 설정값은 숫자만 입력해 주세요.');
+  await expect(dialog.getByRole('button', { name: '저장', exact: true })).toBeDisabled();
+
+  await dialog.getByLabel('설정값').fill('36');
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: '저장', exact: true }).click();
+
+  await expect(dialog).toHaveCount(0);
+  await expect.poll(() => submittedBody).toEqual({
+    attributeName: 'stats.mental',
+    attributeValue: '36',
+  });
+  await expect(candidateDetail.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '기존 캐릭터에 연결', exact: true }))
+    .toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '새 캐릭터 이름 변경', exact: true }))
+    .toBeEnabled();
+  await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeEnabled();
+});
+
+test('schema 오류 후보는 수정과 재비교를 잠그고 제외만 허용한다', async ({ page }) => {
+  let retryRequestCount = 0;
+  const invalidCandidate = {
+    ...candidates[0],
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'FAILED' as const,
+    comparisonErrorMessage: '이전 비교 실패',
+    valueValidation: {
+      status: 'INVALID' as const,
+      errorCode: 'SETTING_CANDIDATE_SCHEMA_NOT_MATCHED',
+      message: '설정 후보 속성과 일치하는 활성 schema가 없습니다.',
+      repairable: false,
+    },
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [invalidCandidate],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/recompare`) {
+      retryRequestCount += 1;
+      return fulfill(route, invalidCandidate);
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  const candidateDetail = page.getByRole('region', { name: '눈 색깔 설정 후보' });
+  await expect(candidateDetail.getByRole('alert')).toContainText(
+    '현재 화면에서 수정할 수 없어 제외하거나 활성 설정 정의를 복구해야 합니다.',
+  );
+  await expect(candidateDetail.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
+  await expect(candidateDetail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
+  await expect(candidateDetail.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
+  await expect(candidateDetail.getByRole('button', { name: '기존 캐릭터 변경', exact: true }))
+    .toBeDisabled();
+  await expect(candidateDetail.getByRole('button', { name: '새 캐릭터로 등록', exact: true }))
+    .toBeDisabled();
+  await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeDisabled();
+  expect(retryRequestCount).toBe(0);
+});
+
+test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 일괄 연결 요청을 보내지 않는다', async ({ page }) => {
+  let invalid = false;
+  let candidateMatchRequestCount = 0;
+  let groupMatchRequestCount = 0;
+  const validCandidate = {
+    ...candidates[0],
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'PENDING' as const,
+    valueValidation: {
+      status: 'VALID' as const,
+      errorCode: null,
+      message: null,
+      repairable: false,
+    },
+  };
+  const invalidCandidate = {
+    ...validCandidate,
+    valueValidation: {
+      status: 'INVALID' as const,
+      errorCode: 'SETTING_CANDIDATE_SCHEMA_NOT_MATCHED',
+      message: '설정 후보 속성과 일치하는 활성 schema가 없습니다.',
+      repairable: false,
+    },
+  };
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    if (pathname === listPath && request.method() === 'GET') {
+      const candidate = invalid ? invalidCandidate : validCandidate;
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [candidate],
+          }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}/character-match`) {
+      candidateMatchRequestCount += 1;
+      return fulfill(route, invalidCandidate);
+    }
+    if (pathname === `${listPath}/group-character-match`) {
+      groupMatchRequestCount += 1;
+      return fulfill(route, {
+        groupKey: '수아',
+        entityName: '수아',
+        candidates: [invalidCandidate],
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  const candidateDetail = page.getByRole('region', { name: '눈 색깔 설정 후보' });
+  await candidateDetail.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).click();
+  const candidateMatchDialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
+  await expect(candidateMatchDialog).toBeVisible();
+
+  invalid = true;
+  await expect(candidateDetail.getByRole('alert')).toContainText('활성 schema가 없습니다.');
+  await candidateMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
+  await expect(candidateMatchDialog).toHaveCount(0);
+  expect(candidateMatchRequestCount).toBe(0);
+
+  invalid = false;
+  await expect(candidateDetail.getByRole('alert')).toHaveCount(0);
+  const groupMatchButton = page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true });
+  await expect(groupMatchButton).toBeEnabled();
+  await groupMatchButton.click();
+  const groupMatchDialog = page.getByRole('dialog', { name: '캐릭터 일괄 연결' });
+  await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).first().click();
+
+  invalid = true;
+  await expect(candidateDetail.getByRole('alert')).toContainText('활성 schema가 없습니다.');
+  await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
+  await expect(groupMatchDialog).toHaveCount(0);
+  expect(groupMatchRequestCount).toBe(0);
+});
+
 test('고정 설정명은 잠그고 표시값만 두 필드 수정 요청으로 저장한다', async ({ page }) => {
   let attributeValue = '갈색';
   let submittedBody: unknown;
