@@ -21,6 +21,7 @@ import {
 import {
   confirmWorldSettingCandidateGroupMutation,
   dismissWorldSettingCandidateGroupMutation,
+  getAnalysisBatchesQueryKey,
   getSettingCandidatesOptions,
   getWorldSettingCandidateOptions,
   getWorldSettingCandidatesOptions,
@@ -1073,6 +1074,7 @@ export function WorldSettingReview() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(selectedGroupKey || legacyCandidateId));
   const [legacyResolutionError, setLegacyResolutionError] = useState(false);
   const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
+  const [resumingBatchId, setResumingBatchId] = useState<string | null>(null);
   const selectionGroupRef = useRef<string | null>(null);
   const resolvingLegacyCandidateRef = useRef<string | null>(null);
   const automaticRetryIds = useRef(new Set<string>());
@@ -1255,12 +1257,23 @@ export function WorldSettingReview() {
     setDecisionOverrides({});
     setEditCandidate(null);
     setEditIdentityOnly(false);
+    setResumingBatchId(null);
   }, [batchId, workId]);
 
   const invalidateReviewState = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: getWorldSettingCandidatesQueryKey({ path: { workId }, query: { batchId } }) }),
       queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) }),
+    ]);
+  };
+
+  const invalidateResumeState = async () => {
+    await Promise.all([
+      invalidateReviewState(),
+      queryClient.invalidateQueries({
+        queryKey: getAnalysisBatchesQueryKey({ path: { workId } }),
+        refetchType: 'all',
+      }),
     ]);
   };
 
@@ -1333,11 +1346,15 @@ export function WorldSettingReview() {
   });
   const resumeInterruptedMutation = useMutation({
     ...resumeTokenInterruptedWorldSettingComparisonsMutation(),
+    onMutate: variables => {
+      setResumingBatchId(variables.path.batchId);
+    },
     onSuccess: async () => {
-      await invalidateReviewState();
+      await invalidateResumeState();
     },
     onError: async () => {
-      await invalidateReviewState();
+      setResumingBatchId(null);
+      await invalidateResumeState();
     },
   });
   const updateDecisionMutation = useMutation({
@@ -1388,13 +1405,13 @@ export function WorldSettingReview() {
       setRecomparedIds(previous => new Set([...previous, ...recoveredIds]));
     }
     const retryCandidate = candidates.find(candidate => candidate.id
-      && (candidate.comparisonStatus === 'PENDING'
-        || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED')
+      && (candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
+        || (candidate.comparisonStatus === 'PENDING' && resumingBatchId !== batchId))
       && !automaticRetryIds.current.has(candidate.id));
     if (!retryCandidate?.id || retryMutation.isPending) return;
     automaticRetryIds.current.add(retryCandidate.id);
     retryMutation.mutate({ path: { workId, candidateId: retryCandidate.id } });
-  }, [retryMutation, selectedGroup, workId]);
+  }, [batchId, resumingBatchId, retryMutation, selectedGroup, workId]);
 
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
@@ -1565,13 +1582,24 @@ export function WorldSettingReview() {
   const notifiedInterruptedBatchIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if (tokenInterruptedCount <= 0 || notifiedInterruptedBatchIds.current.has(batchId)) return;
+    if (tokenInterruptedCount <= 0) {
+      notifiedInterruptedBatchIds.current.delete(batchId);
+      return;
+    }
+    if (notifiedInterruptedBatchIds.current.has(batchId)) return;
     notifiedInterruptedBatchIds.current.add(batchId);
     notifyAiTokenQuotaExhausted({
       kind: 'analysis-interrupted',
       interruptedComparisonCount: tokenInterruptedCount,
     });
   }, [batchId, tokenInterruptedCount]);
+
+  useEffect(() => {
+    if (resumingBatchId !== batchId
+        || resumeInterruptedMutation.isPending
+        || activeWorldComparisonCount > 0) return;
+    setResumingBatchId(null);
+  }, [activeWorldComparisonCount, batchId, resumeInterruptedMutation.isPending, resumingBatchId]);
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;
   const characterPending = characterSummary?.pendingCandidateCount ?? 0;
@@ -1649,7 +1677,9 @@ export function WorldSettingReview() {
                 <span>완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.</span>
               </div>
               <ActionButton
-                disabled={!canResumeTokenInterrupted || resumeInterruptedMutation.isPending}
+                disabled={!canResumeTokenInterrupted
+                  || activeWorldComparisonCount > 0
+                  || resumeInterruptedMutation.isPending}
                 tone={C.warning}
                 onClick={() => resumeInterruptedMutation.mutate({ path: { workId, batchId } })}
               >

@@ -793,43 +793,66 @@ export default function SEpisodeUpload() {
   });
   const tokenInterruptedComparisonCount = worldComparisonSummaryQuery.data?.data
     ?.tokenInterruptedComparisonCount ?? 0;
+  const refetchWorldComparisonSummary = worldComparisonSummaryQuery.refetch;
   const notifiedQuotaJobIds = useRef(new Set<string>());
+  const notifyingQuotaJobIds = useRef(new Set<string>());
 
   useEffect(() => {
-    const awaitsComparisonSummary = tokenInterruptedAnalysisJobs.length > 0
-      && Boolean(episodeUploadBatchId)
-      && worldComparisonSummaryQuery.isPending;
-    if (awaitsComparisonSummary) return;
+    if (!currentAnalysisJobsLoaded) return;
 
     const newlyInterruptedIds = asyncQuotaFailedAnalysisJobs.flatMap(job => (
-      job.id && !notifiedQuotaJobIds.current.has(job.id) ? [job.id] : []
+      job.id
+        && !notifiedQuotaJobIds.current.has(job.id)
+        && !notifyingQuotaJobIds.current.has(job.id)
+        ? [job.id]
+        : []
     ));
     if (newlyInterruptedIds.length === 0) return;
-    newlyInterruptedIds.forEach(jobId => notifiedQuotaJobIds.current.add(jobId));
-    const newlyFailedEpisodeCount = asyncQuotaFailedAnalysisJobs.filter(job => (
-      job.id
-      && newlyInterruptedIds.includes(job.id)
-      && !job.tokenInterruptedAfterExtraction
-    )).length;
-    if (newlyFailedEpisodeCount > 0) {
+    newlyInterruptedIds.forEach(jobId => notifyingQuotaJobIds.current.add(jobId));
+
+    const notifyQuotaFailure = async () => {
+      const failedEpisodeCount = asyncQuotaFailedAnalysisJobs
+        .filter(job => !job.tokenInterruptedAfterExtraction)
+        .length;
+      if (failedEpisodeCount > 0) {
+        notifyAiTokenQuotaExhausted({
+          kind: 'analysis-failed',
+          failedEpisodeCount,
+          totalEpisodeCount: currentAnalysisJobs.length,
+        });
+        return;
+      }
+
+      let interruptedComparisonCount = tokenInterruptedComparisonCount;
+      if (tokenInterruptedAnalysisJobs.length > 0 && episodeUploadBatchId) {
+        try {
+          const refreshedSummary = await refetchWorldComparisonSummary();
+          interruptedComparisonCount = refreshedSummary.data?.data
+            ?.tokenInterruptedComparisonCount ?? interruptedComparisonCount;
+        } catch {
+          // 최신 집계를 가져오지 못해도 중단 사실은 기존 응답의 일반 문구로 안내한다.
+        }
+      }
       notifyAiTokenQuotaExhausted({
-        kind: 'analysis-failed',
-        failedEpisodeCount: newlyFailedEpisodeCount,
-        totalEpisodeCount: currentAnalysisJobs.length,
+        kind: 'analysis-interrupted',
+        interruptedComparisonCount: interruptedComparisonCount || undefined,
       });
-      return;
-    }
-    notifyAiTokenQuotaExhausted({
-      kind: 'analysis-interrupted',
-      interruptedComparisonCount: tokenInterruptedComparisonCount || undefined,
+    };
+
+    void notifyQuotaFailure().finally(() => {
+      newlyInterruptedIds.forEach(jobId => {
+        notifyingQuotaJobIds.current.delete(jobId);
+        notifiedQuotaJobIds.current.add(jobId);
+      });
     });
   }, [
     asyncQuotaFailedAnalysisJobs,
+    currentAnalysisJobsLoaded,
     currentAnalysisJobs.length,
     episodeUploadBatchId,
+    refetchWorldComparisonSummary,
     tokenInterruptedComparisonCount,
     tokenInterruptedAnalysisJobs.length,
-    worldComparisonSummaryQuery.isPending,
   ]);
 
   const labels = uploadType === 'MULTI_EPISODE_SINGLE_FILE'
