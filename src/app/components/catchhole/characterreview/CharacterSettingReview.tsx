@@ -1065,6 +1065,11 @@ function CandidateDetail({
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
   const invalidValueRepairable = isCandidateValueRepairable(candidate);
+  const matchDisabledTitle = invalidValue
+    ? '설정값 오류를 수정하거나 후보를 제외한 뒤 캐릭터를 연결해 주세요.'
+    : actionPending
+      ? '다른 후보 작업이 끝난 뒤 시도해 주세요.'
+      : undefined;
   return (
     <section className={`setting-candidate-detail${readOnly ? ' is-read-only' : ''}`} aria-label={`${settingDisplay.nameLabel} 설정 후보`} style={{
       padding: '17px 20px', borderTop: `1px solid ${C.border}`, background: C.surface,
@@ -1212,7 +1217,8 @@ function CandidateDetail({
               {isConnectedMatch(matchStatus) ? `${candidate.entityName}에 연결됨` : `${candidate.entityName || '이름 없음'} 신규 등록 예정`}
             </span>
             <ActionButton
-              disabled={!onMatch || actionPending}
+              disabled={!onMatch || actionPending || invalidValue}
+              disabledTitle={matchDisabledTitle}
               tone={C.primary}
               onClick={() => onMatch?.('MATCH_EXISTING')}
             >
@@ -1221,7 +1227,8 @@ function CandidateDetail({
               </span>
             </ActionButton>
             <ActionButton
-              disabled={!onMatch || actionPending}
+              disabled={!onMatch || actionPending || invalidValue}
+              disabledTitle={matchDisabledTitle}
               tone={C.primary}
               onClick={() => onMatch?.('CREATE_NEW')}
             >
@@ -1390,6 +1397,7 @@ export function CharacterSettingReview() {
   const pendingGroupCandidates = selectedGroupCandidates.filter(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
+  const groupHasInvalidCandidate = pendingGroupCandidates.some(isCandidateValueInvalid);
 
   const worldSummaryQuery = useQuery({
     ...getWorldSettingCandidatesOptions({
@@ -1791,6 +1799,10 @@ export function CharacterSettingReview() {
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
     if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe) return;
+    if (groupHasInvalidCandidate) {
+      setGroupMatchOpen(false);
+      return;
+    }
     groupMatchMutation.mutate({
       path: { workId },
       body: resolution === 'MATCH_EXISTING'
@@ -1800,6 +1812,11 @@ export function CharacterSettingReview() {
   };
   const matchSelectedCandidate = (candidateId: string, resolution: MatchResolution, value: string) => {
     if (actionPending) return;
+    const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
+    if (!candidate || isCandidateValueInvalid(candidate)) {
+      setMatchTarget(null);
+      return;
+    }
     matchMutation.mutate({
       path: { workId, candidateId },
       body: resolution === 'MATCH_EXISTING'
@@ -2108,8 +2125,13 @@ export function CharacterSettingReview() {
                             </div>
                             {pendingGroupCandidates.length > 0 && (
                               <ActionButton
-                                disabled={actionPending || matchFilter !== 'ALL' || legacyGroupedActionsUnsafe}
-                                disabledTitle={legacyGroupedActionsUnsafe
+                                disabled={actionPending
+                                  || groupHasInvalidCandidate
+                                  || matchFilter !== 'ALL'
+                                  || legacyGroupedActionsUnsafe}
+                                disabledTitle={groupHasInvalidCandidate
+                                  ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 일괄 연결해 주세요.'
+                                  : legacyGroupedActionsUnsafe
                                   ? '서버 업데이트 전 호환 목록에서는 그룹 일부만 보일 수 있어 일괄 연결할 수 없습니다.'
                                   : matchFilter !== 'ALL'
                                   ? '연결 상태 필터를 전체로 바꾼 뒤 그룹 전체 연결을 변경해 주세요.'
@@ -2151,6 +2173,7 @@ export function CharacterSettingReview() {
                                   }
                                 : undefined}
                               onMatch={candidate.reviewStatus === 'PENDING_REVIEW'
+                                && !isCandidateValueInvalid(candidate)
                                 ? resolution => {
                                     matchMutation.reset();
                                     setMatchTarget({ candidate, resolution });
