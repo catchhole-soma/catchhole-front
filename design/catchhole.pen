@@ -10502,9 +10502,9 @@
       "name": "AiTokenQuotaModal / 기본 사용량 소진",
       "width": 500,
       "height": 310,
-      "fill": "$surface",
+      "fill": "#FFFFFF",
       "cornerRadius": 12,
-      "stroke": "$border",
+      "stroke": "#E1E5EC",
       "strokeWidth": 1,
       "layout": "vertical",
       "children": [
@@ -10512,7 +10512,7 @@
           "type": "frame",
           "id": "quota-modal-header",
           "width": "fill_container",
-          "stroke": "$border",
+          "stroke": "#E1E5EC",
           "strokeWidth": {
             "bottom": 1
           },
@@ -10536,7 +10536,7 @@
             {
               "type": "text",
               "id": "quota-modal-title",
-              "fill": "$text-1",
+              "fill": "#191E26",
               "content": "기본 사용량을 모두 소진했습니다",
               "fontFamily": "Inter",
               "fontSize": 16,
@@ -10555,7 +10555,7 @@
             {
               "type": "text",
               "id": "quota-modal-description",
-              "fill": "$text-2",
+              "fill": "#657083",
               "content": "서비스를 적극 이용해 주셔서 감사합니다.\n간단한 피드백과 함께 연락해 주시면 추가 사용량 제공을 도와드리겠습니다.",
               "lineHeight": 1.7,
               "fontFamily": "Inter",
@@ -10566,9 +10566,9 @@
               "type": "frame",
               "id": "quota-modal-contact",
               "width": "fill_container",
-              "fill": "#22222C",
+              "fill": "#F5F7FB",
               "cornerRadius": 7,
-              "stroke": "$border",
+              "stroke": "#E1E5EC",
               "strokeWidth": 1,
               "gap": 9,
               "padding": [
@@ -10584,12 +10584,12 @@
                   "height": 15,
                   "icon": "mail",
                   "library": "lucide",
-                  "fill": "$primary"
+                  "fill": "#0062C4"
                 },
                 {
                   "type": "text",
                   "id": "quota-modal-email",
-                  "fill": "$text-1",
+                  "fill": "#0062C4",
                   "content": "aicatchhole@gmail.com",
                   "fontFamily": "Inter",
                   "fontSize": 13,
@@ -10603,7 +10603,7 @@
           "type": "frame",
           "id": "quota-modal-footer",
           "width": "fill_container",
-          "stroke": "$border",
+          "stroke": "#E1E5EC",
           "strokeWidth": {
             "top": 1
           },
@@ -10617,7 +10617,7 @@
             {
               "type": "frame",
               "id": "quota-modal-confirm",
-              "fill": "$primary",
+              "fill": "#0062C4",
               "cornerRadius": 6,
               "padding": [
                 9,
@@ -10636,6 +10636,45 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "quota-modal-a11y-note",
+      "x": 65772,
+      "y": 12141,
+      "name": "Design Comment / 사용량 모달 가독성 규칙",
+      "width": 460,
+      "height": 220,
+      "fill": "#FFF8EC",
+      "cornerRadius": 12,
+      "stroke": "#D98324",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 14,
+      "padding": 22,
+      "children": [
+        {
+          "type": "text",
+          "id": "quota-modal-a11y-note-title",
+          "fill": "#7A3E00",
+          "content": "DESIGN COMMENT · 동일 가독성 오류 재발 방지",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 15,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "quota-modal-a11y-note-contrast",
+          "fill": "#333A46",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Theme V2의 밝은 surface 위 연락처·상태값에는 legacy dark C.t* 색상을 직접 쓰지 않는다. --ch-* 의미 토큰을 사용하고, 일반 크기 텍스트는 실제 렌더링 기준 명암비 4.5:1 이상과 링크 밑줄을 확인한다.",
+          "lineHeight": 1.55,
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 13,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -318414,6 +318453,375 @@
                           "fontSize": 12,
                           "fontWeight": "700"
                         }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qtP124",
+      "x": 72400,
+      "y": 18908,
+      "name": "SEpisodeUpload / 5. 세계관 비교 일부 중단",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "qth124",
+          "name": "Token Interrupted Header",
+          "width": "fill_container",
+          "height": 72,
+          "fill": "$surface",
+          "stroke": "$border",
+          "strokeWidth": {"bottom": 1},
+          "padding": [0, 40],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "qtt124",
+              "name": "Token Interrupted Brand",
+              "fill": "$text-1",
+              "content": "CatchHole · 회차 분석",
+              "fontFamily": "$font",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "qts124",
+              "name": "Token Interrupted Step",
+              "fill": "$text-2",
+              "content": "05 분석 진행",
+              "fontFamily": "$font",
+              "fontSize": 13,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qtc124",
+          "name": "Token Interrupted Content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [48, 96],
+          "children": [
+            {
+              "type": "text",
+              "id": "qtb124",
+              "name": "Token Interrupted Breadcrumb",
+              "fill": "$text-3",
+              "content": "회차 업로드  ›  분석 진행",
+              "fontFamily": "$font",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "qti124",
+              "name": "Token Interrupted Title",
+              "fill": "$text-1",
+              "content": "설정 추출 후 일부 비교가 중단되었습니다",
+              "fontFamily": "$font",
+              "fontSize": 28,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "qtn124",
+              "name": "Token Interrupted Notice",
+              "width": "fill_container",
+              "fill": "$warning-soft",
+              "cornerRadius": "$radius-lg",
+              "stroke": "$warning",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": [20, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qtw124",
+                  "name": "Token Interrupted Notice Title",
+                  "fill": "$warning",
+                  "content": "51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.",
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "qtd124",
+                  "name": "Token Interrupted Notice Description",
+                  "fill": "$text-2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "완료된 1차 추출과 122개 비교 결과는 그대로 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "$font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qtg124",
+              "name": "Token Interrupted Summary",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qta124",
+                  "name": "Completed Comparisons Card",
+                  "width": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": "$radius-lg",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 22,
+                  "children": [
+                    {"type": "text", "id": "qt1a24", "name": "Completed Label", "fill": "$text-3", "content": "완료된 비교", "fontFamily": "$font", "fontSize": 12, "fontWeight": "600"},
+                    {"type": "text", "id": "qt1b24", "name": "Completed Value", "fill": "$success", "content": "122개", "fontFamily": "$font", "fontSize": 26, "fontWeight": "700"}
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qtf124",
+                  "name": "Interrupted Comparisons Card",
+                  "width": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": "$radius-lg",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 22,
+                  "children": [
+                    {"type": "text", "id": "qt2a24", "name": "Interrupted Label", "fill": "$text-3", "content": "재개 가능한 비교", "fontFamily": "$font", "fontSize": 12, "fontWeight": "600"},
+                    {"type": "text", "id": "qt2b24", "name": "Interrupted Value", "fill": "$warning", "content": "51개", "fontFamily": "$font", "fontSize": 26, "fontWeight": "700"}
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qtac24",
+              "name": "Token Interrupted Actions",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qtbt24",
+                  "name": "Review Remaining Button",
+                  "height": 44,
+                  "fill": "$primary",
+                  "cornerRadius": "$radius-sm",
+                  "padding": [0, 20],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {"type": "text", "id": "qtbl24", "name": "Review Remaining Label", "fill": "$white", "content": "남은 비교 확인", "fontFamily": "$font", "fontSize": 13, "fontWeight": "700"}
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qtm124",
+              "name": "Async Quota Modal",
+              "width": 560,
+              "fill": "$surface-high",
+              "cornerRadius": "$radius-lg",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 24,
+              "children": [
+                {"type": "text", "id": "qtm224", "name": "Async Quota Modal Title", "fill": "$text-1", "content": "설정 비교가 일부 중단되었습니다", "fontFamily": "$font", "fontSize": 18, "fontWeight": "700"},
+                {"type": "text", "id": "qtm324", "name": "Async Quota Modal Copy", "fill": "$text-2", "textGrowth": "fixed-width", "width": "fill_container", "content": "사용량과 문의 채널을 확인한 뒤, 보존된 결과에서 남은 비교만 재개할 수 있습니다.", "lineHeight": 1.55, "fontFamily": "$font", "fontSize": 13, "fontWeight": "normal"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "wrP124",
+      "x": 72400,
+      "y": 19988,
+      "name": "SSettingReview / 세계관 비교 일부 중단 · 일괄 재개",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "wrh124",
+          "name": "World Resume Header",
+          "width": "fill_container",
+          "height": 72,
+          "fill": "$surface",
+          "stroke": "$border",
+          "strokeWidth": {"bottom": 1},
+          "padding": [0, 40],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {"type": "text", "id": "wrt124", "name": "World Resume Title", "fill": "$text-1", "content": "설정 후보 검토 · 세계관 후보", "fontFamily": "$font", "fontSize": 18, "fontWeight": "700"},
+            {"type": "text", "id": "wrs124", "name": "World Resume Progress", "fill": "$text-2", "content": "세계관 비교 122 / 174", "fontFamily": "$font", "fontSize": 13, "fontWeight": "600"}
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wrc124",
+          "name": "World Resume Content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [36, 56],
+          "children": [
+            {
+              "type": "frame",
+              "id": "wrn124",
+              "name": "World Resume Banner",
+              "width": "fill_container",
+              "fill": "$warning-soft",
+              "cornerRadius": "$radius-lg",
+              "stroke": "$warning",
+              "strokeWidth": 1,
+              "gap": 20,
+              "padding": [18, 22],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "wrnb24",
+                  "name": "World Resume Banner Copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "children": [
+                    {"type": "text", "id": "wrnt24", "name": "World Resume Banner Title", "fill": "$warning", "content": "51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.", "fontFamily": "$font", "fontSize": 15, "fontWeight": "700"},
+                    {"type": "text", "id": "wrnd24", "name": "World Resume Banner Description", "fill": "$text-2", "content": "완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.", "fontFamily": "$font", "fontSize": 12, "fontWeight": "normal"}
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wrbt24",
+                  "name": "Resume Remaining Button",
+                  "height": 42,
+                  "fill": "$warning",
+                  "cornerRadius": "$radius-sm",
+                  "padding": [0, 18],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {"type": "text", "id": "wrbl24", "name": "Resume Remaining Label", "fill": "$bg", "content": "남은 비교 재개", "fontFamily": "$font", "fontSize": 13, "fontWeight": "700"}
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wrp124",
+              "name": "World Resume Processing Notice",
+              "width": "fill_container",
+              "fill": "$primary-soft",
+              "cornerRadius": "$radius-md",
+              "padding": [12, 16],
+              "children": [
+                {"type": "text", "id": "wrpt24", "name": "World Resume Processing Text", "fill": "$primary", "content": "재개 후: 51개 남은 비교를 진행하고 있습니다. 상태는 자동으로 갱신됩니다.", "fontFamily": "$font", "fontSize": 12, "fontWeight": "600"}
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wrl124",
+              "name": "World Resume Review Layout",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "wrg124",
+                  "name": "Interrupted Group List",
+                  "width": 330,
+                  "height": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": "$radius-lg",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 18,
+                  "children": [
+                    {"type": "text", "id": "wrgl24", "name": "Group List Label", "fill": "$text-3", "content": "세계관 대상", "fontFamily": "$font", "fontSize": 11, "fontWeight": "700"},
+                    {
+                      "type": "frame",
+                      "id": "wrgc24",
+                      "name": "Interrupted Group Card",
+                      "width": "fill_container",
+                      "fill": "$warning-soft",
+                      "cornerRadius": "$radius-md",
+                      "stroke": "$warning",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 16,
+                      "children": [
+                        {"type": "text", "id": "wrg124a", "name": "Interrupted Group Name", "fill": "$text-1", "content": "장소 · 북부 설원", "fontFamily": "$font", "fontSize": 14, "fontWeight": "700"},
+                        {"type": "text", "id": "wrg124b", "name": "Interrupted Group State", "fill": "$warning", "content": "사용량 부족으로 중단 · 3개", "fontFamily": "$font", "fontSize": 12, "fontWeight": "600"}
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wrd124",
+                  "name": "Interrupted Group Detail",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": "$radius-lg",
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "children": [
+                    {"type": "text", "id": "wrdt24", "name": "Interrupted Detail Title", "fill": "$text-1", "content": "북부 설원 · 설정 3개", "fontFamily": "$font", "fontSize": 20, "fontWeight": "700"},
+                    {"type": "text", "id": "wrdd24", "name": "Interrupted Detail Description", "fill": "$text-2", "textGrowth": "fixed-width", "width": "fill_container", "content": "1차 추출 원문과 완료된 비교 결과는 유지됩니다. 중단된 행에는 단건 다시 비교 대신 배치 재개 상태를 표시합니다.", "lineHeight": 1.55, "fontFamily": "$font", "fontSize": 13, "fontWeight": "normal"},
+                    {
+                      "type": "frame",
+                      "id": "wrr124",
+                      "name": "Interrupted Setting Row",
+                      "width": "fill_container",
+                      "fill": "$surface-high",
+                      "cornerRadius": "$radius-md",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 18,
+                      "children": [
+                        {"type": "text", "id": "wrrt24", "name": "Interrupted Setting Name", "fill": "$text-1", "content": "기후 · 일 년 내내 눈보라가 분다", "fontFamily": "$font", "fontSize": 14, "fontWeight": "600"},
+                        {"type": "text", "id": "wrrs24", "name": "Interrupted Setting State", "fill": "$warning", "content": "사용량 부족으로 중단 · 재개 대기", "fontFamily": "$font", "fontSize": 12, "fontWeight": "600"},
+                        {"type": "text", "id": "wrre24", "name": "Interrupted Evidence", "fill": "$text-2", "content": "1차 추출 원문  ·  12화  북부 설원에는 일 년 내내 눈보라가 몰아쳤다.", "fontFamily": "$font", "fontSize": 12, "fontWeight": "normal"}
                       ]
                     }
                   ]

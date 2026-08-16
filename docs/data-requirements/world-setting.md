@@ -147,6 +147,8 @@ Backend의 실제 테이블·컬럼 이름은 Backend 문서가 단일 출처다
 
 FE는 그룹 안에 `PENDING`·`PROCESSING` 후보가 하나라도 있으면 2초 간격으로 다시 조회하고, 모든 row가 완료·실패 같은 terminal 상태에 도달하면 polling을 중단한다. `RECOMPARISON_REQUIRED`의 자동 재비교는 영향받은 후보마다 한 번의 상태 전환에서 한 요청만 보내되, 후보가 해당 상태를 벗어나면 guard를 해제하여 이후 충돌도 다시 자동 처리한다. 한 row라도 비교 대기·처리·실패·재비교 필요이면 해당 그룹의 확정 액션을 잠근다.
 
+`FAILED + comparisonFailureCode=AI_TOKEN_QUOTA_EXHAUSTED`는 영구 비교 실패가 아니라 추가 사용량 뒤 재개 가능한 중단이다. row와 그룹에는 `사용량 부족으로 중단`을 표시하고 단건 `다시 비교`는 숨긴다. 목록 응답의 `tokenInterruptedComparisonCount`와 `canResumeTokenInterruptedComparisons`로 상단에 `51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.` 형태의 정확한 건수와 `남은 비교 재개`를 표시한다. 내부 예외 원문 대신 failure code별 사용자 메시지만 사용한다.
+
 ---
 
 ## 설정 후보 검토 — 세계관 후보 탭
@@ -171,6 +173,7 @@ FE는 그룹 안에 `PENDING`·`PROCESSING` 후보가 하나라도 있으면 2�
 - `JwSBP` — `SSettingReview / 대상 그룹 전체 재비교 중`
 - `JmIgH` — `SSettingReview / 일부 key 재비교 실패`
 - `nZPGE` — `SSettingReview / 일부 key 재비교 완료`
+- `wrP124` — `SSettingReview / 세계관 비교 일부 중단 · 일괄 재개`
 
 ![세계관 대상 그룹 검토 — ab0tz](../screens/ab0tz.png)
 
@@ -202,6 +205,7 @@ FE는 그룹 안에 `PENDING`·`PROCESSING` 후보가 하나라도 있으면 2�
 - `MERGED`는 enum을 노출하지 않고 `여러 내용 정리됨`과 `여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.`로 표시한다.
 - `CONFLICT`는 `내용 확인 필요`로 표시하고 서로 다른 추출값과 각 1차 원문을 모두 보여준다. 사용자가 `수정`에서 하나의 최종 설정값을 저장하기 전에는 `모두 확정`을 잠그되 해당 row의 `제외`는 허용한다.
 - 재비교 중에는 이전 diff를 지우지 않고 muted 처리하며 1차 추출 원문은 그대로 유지한다.
+- 중단 후보 일괄 재개는 `POST /api/v1/works/{workId}/world-setting-candidates/batches/{batchId}/resume-token-interrupted`를 한 번 호출한다. 성공 응답의 재개·활성·잔여 중단 수를 안내하고 목록과 분석 배치 집계를 다시 조회한다. 반복 클릭과 진행 중에는 버튼을 잠그며, 후보별 활성 Job 중복 여부를 FE가 추측하지 않는다.
 
 ### 1. 화면에 표시할 데이터
 

@@ -353,7 +353,9 @@ flowchart TD
 
 > 캐릭터 상세 수정 행의 동적 prefix와 입력 필드, `/editor`의 회차·설정집 읽기 전용 원문도 Theme V2 밝은 surface를 공유합니다. 설정집을 고르지 않은 우측 원문 영역은 패널 높이의 중앙에 안내를 배치하며 URL·조회 API·원문 데이터는 변경하지 않습니다.
 
-> 사이드바 하단은 API의 `remainingPercent`만 `남은 사용량`으로 표시합니다. 정확한 token 수와 처리 중 예약량은 사용자에게 노출하지 않습니다. 분석 생성·재시도에서 `AI_TOKEN_QUOTA_EXHAUSTED` 응답을 받으면 전역 안내 모달을 열어 기본 사용량 소진과 피드백 연락처를 안내하며, 내부 token 용어와 수치는 표시하지 않습니다.
+> 사이드바 하단은 API의 `remainingPercent`만 `남은 사용량`으로 표시합니다. 정확한 token 수와 처리 중 예약량은 사용자에게 노출하지 않습니다. 분석 생성·재시도에서 `AI_TOKEN_QUOTA_EXHAUSTED` 응답을 받으면 전역 안내 모달을 열어 기본 사용량 소진과 피드백 연락처를 안내하며, 내부 token 용어와 수치는 표시하지 않습니다. 밝은 모달 surface의 연락 이메일은 의미 색상과 밑줄을 사용하고 실제 렌더링 명암비 4.5:1 이상을 유지합니다.
+
+> 분석 시작 뒤 비동기 Job에서 같은 failure code가 확인돼도 전역 안내 모달을 엽니다. 1차 추출 전 실패는 대상 수에 따라 `회차 분석`, `전체 회차 분석`, `일부 회차 분석` 중단으로 구분하고 실패 회차 재시도를 안내합니다. 1차 추출 뒤 세계관 비교가 중단된 경우에는 `51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.`처럼 건수를 표시하고, 완료된 추출·비교가 보존됐음을 안내합니다. 이때 전체 분석 재시도는 제공하지 않고 `남은 비교 확인`으로 세계관 후보 검토에 이동합니다. Pencil 기준 프레임은 `qtP124`(`SEpisodeUpload / 5. 세계관 비교 일부 중단`)입니다.
 
 > 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 캐릭터 설정 후보와 세계관 설정 후보의 검토 완료·대기 수를 분리해 표시하고, 두 종류의 대기 후보를 모두 반영해 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분합니다. 상태에 맞는 `진행 보기`·`실패 확인`·`결과 보기` 중 하나만 제공하며, 분석이 끝난 배치의 `결과 보기`는 설정 후보 검토로 바로 이동합니다.
 
@@ -399,6 +401,8 @@ flowchart TD
 
   proc --> state{"회차별 Job·Episode 상태"}:::decision
   state -- "활성 Job 종료 후<br/>일부·전체 FAILED" --> retry["사용자용 실패 안내<br/>실패 회차만 새 Job으로 재시도"]:::modal --> proc
+  state -- "WORLD_CANDIDATES_PUBLISHED 뒤<br/>AI_TOKEN_QUOTA_EXHAUSTED" --> interrupted["세계관 비교 일부 중단<br/>완료 추출·비교 보존"]:::modal
+  interrupted --> review
   state -- "조회 실패" --> reload["마지막 성공 데이터 유지<br/>다시 불러오기"]:::modal --> proc
   state -- "모든 현재 Job SUCCEEDED" --> success["분석 완료<br/>현재 회차 상태 불일치 시 재분석 안내"]
 
@@ -422,6 +426,8 @@ flowchart TD
 
 > 분석 화면을 벗어나도 서버 작업은 취소되지 않습니다. 분석 진행 단계와 설정 후보 검토의 뒤로가기는 현재 작품의 `nav=analyses`로 돌아갑니다. 완료 후 자동 이동하지 않으며, 모든 대상 회차가 성공하고 후보 조회 결과가 준비됐을 때(후보 0건 포함) `설정 후보 검토`가 활성화됩니다.
 
+> 토큰 부분 중단은 예외적으로 Job이 `FAILED`여도 대상 회차와 1차 추출 결과를 완료 상태로 보존합니다. 업로드 진행·분석 목록은 `tokenInterruptedAfterExtraction`과 배치의 중단 건수로 이 상태를 판별하며 일반 실패 회차 재시도 목록에서 제외합니다.
+
 ---
 
 ## 6. 검토 · 리포트 흐름
@@ -440,6 +446,7 @@ flowchart TD
   purpose{"업로드 분석 목적"}:::decision
   review -. "검토 완료 후 다음 단계<br/>후속 구현" .-> purpose
   review -- "세계관 DB에서 보기" --> worldDB
+  review -- "사용량 부족 중단 후보 존재" --> resume["남은 비교 재개<br/>배치 mutation 1회 · 진행 polling"]:::modal --> review
   purpose -. "기존 설정 구축" .-> settingDB
   settingDB -- "원고 목록" --> manuscripts
 
@@ -464,5 +471,7 @@ flowchart TD
 > ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&group=<group-key>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&group=<group-key>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)). 구형 `candidate=<id>` 딥링크는 진입 후 해당 그룹으로 정규화한다.
 
 > 세계관 후보가 `PENDING`·`PROCESSING`이면 목록과 선택 상세를 2초 간격으로 갱신하고 terminal 상태에서 멈춥니다. 확정 충돌의 자동 재비교는 상태 전환마다 한 번만 보내며, 회복 뒤 같은 후보가 다시 충돌하면 새 전환으로 다시 자동 재비교합니다.
+
+> `FAILED + AI_TOKEN_QUOTA_EXHAUSTED` 후보는 단건 재비교 대신 상단 배치 배너에서 정확한 중단 건수와 `남은 비교 재개`를 제공합니다. 버튼은 토큰 중단 후보만 재사용하고 완료·확정·제외·다른 실패 후보를 건드리지 않으며, 요청 뒤 기존 polling으로 `PENDING → PROCESSING → COMPLETED/FAILED`를 갱신합니다. Pencil 기준 프레임은 `wrP124`(`SSettingReview / 세계관 비교 일부 중단 · 일괄 재개`)입니다.
 
 > 세계관 후보 목록의 최초 조회가 실패해도 공통 캐릭터·세계관 후보 탭은 오류 상태 위에 유지하여 정상 조회 가능한 다른 후보 종류로 이동할 수 있습니다.
