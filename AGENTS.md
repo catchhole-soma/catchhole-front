@@ -25,9 +25,9 @@ npm run test:e2e
 - 회차 감지 결과는 `detectedEpisodes`/`detectionOrder`, 사용자가 편집해 최종 전송하는 값은 `episodeConfirmations`/`confirmation`으로 구분합니다. 감지값과 확정값을 모두 `episodes`나 `drafts`로 부르지 않아 API 단계가 코드에서 드러나게 합니다.
 - 최종 업로드에서 `SINGLE_EPISODE`는 `singleEpisodeNo`만 확정값으로 보내고 `episodeConfirmations`를 보내지 않습니다. 두 다회차 방식은 단일 회차 전용 필드 없이 감지 결과 전체와 대응하는 `episodeConfirmations`를 반드시 전송합니다.
 - 분석 작업 생성 응답은 회차별 `AnalysisJobResponse[]`입니다. `UploadBatch`를 대표 Job 하나로 축약하지 말고 반환된 모든 Job ID를 저장·URL 복원·polling 대상으로 사용합니다.
-- 신규 `AnalysisJob` 하나는 단일 회차 상태만 나타냅니다. 업로드 진행 화면의 전체 성공·일부 실패·진행 중 표시는 같은 batch의 현재 Job 목록을 집계해 계산하고, 다른 Job이 아직 진행 중이면 실패 재시도나 세계관 중단 알림·검토 이동을 먼저 열지 않습니다.
+- 신규 `AnalysisJob` 하나는 단일 회차 상태만 나타냅니다. 업로드 진행 화면의 전체 성공·일부 실패·진행 중 표시는 같은 batch의 현재 Job 목록을 집계해 계산하고, 다른 Job이 아직 진행 중이면 실패 재시도나 세계관 중단 알림·검토 이동을 먼저 열지 않습니다. 모든 Job 종료 뒤 일반 실패와 세계관 토큰 중단이 함께 남으면 `실패 확인`을 먼저 제공하고, 실패 회차 복구 뒤 `남은 비교 확인`으로 전환합니다.
 - 실패 재시도 응답도 새 회차별 Job 목록입니다. 전체 과거 Job ID는 추적 이력으로 유지하되, 현재 polling 목록에서는 재시도 대상 실패 ID만 새 ID로 교체하고 기존 성공·복구 불가 current ID는 유지합니다.
-- 비동기 Job의 `failureCode=AI_TOKEN_QUOTA_EXHAUSTED`도 전역 사용량 안내 이벤트를 발생시킨다. `tokenInterruptedAfterExtraction=true`이면 전체 회차 실패 재시도에 포함하지 않고, 보존된 결과와 세계관 중단 건수를 안내한 뒤 `candidateType=world` 검토로 이동시킨다.
+- 비동기 Job의 `failureCode=AI_TOKEN_QUOTA_EXHAUSTED`도 전역 사용량 안내 이벤트를 발생시킨다. `tokenInterruptedAfterExtraction=true`이면 전체 회차 실패 재시도에 포함하지 않고, 보존된 결과와 세계관 중단 건수를 안내한 뒤 `candidateType=world` 검토로 이동시킨다. 분석 목록의 한 갱신에서 여러 배치가 함께 종료되면 새 중단 건수를 합산해 한 번 안내하며 첫 배치만 소비하지 않습니다.
 - 실패 원문은 화면에 직접 표시하지 않는다. Job과 후보의 typed failure code 및 Backend가 정규화한 사용자 메시지만 사용하고 내부 URL, `Client error 409`, stack trace를 렌더링하지 않는다.
 - 분석 목록은 생성 SDK의 배치 조회를 사용해 `UploadBatch` 단위로 10개씩 서버 페이지네이션하고, URL의 1-based `analysisPage`를 API의 0-based `page`로 변환합니다. 진행·실패·결과 재진입에는 목적별 `currentAnalysisJobIds`를 그대로 사용합니다.
 - 설정 검색은 URL에 `q`, `factType`, `scope`, 1-based `page`, 고정 `size=20`을 유지하고 API 호출에서만 `page`를 0-based로 변환합니다. 검색어·필터 변경은 URL 페이지를 1로 되돌리고, Fact 상세 모달을 닫을 때는 `modal`과 `factId`만 제거합니다.
@@ -86,7 +86,7 @@ npm run test:e2e
 - 후보 종류를 바꿀 때 캐릭터·세계관 탭 모두 선택 그룹을 `group`으로 보관하고 각 탭의 `reviewStatus`, `page`를 탭별 URL 보조 값에 저장해 돌아올 때 복원한다. 이전 `candidate` 딥링크는 후보가 속한 그룹을 찾은 뒤 canonical `group`으로 교체한다. 세계관 필터 `worldCategory`, `operation`과 캐릭터 `matchStatus`도 탭 전환 시 함께 보관·제거해 서로의 URL과 API 요청에 섞지 않는다.
 - 세계관 후보의 MVP 출처는 회차 원문뿐이다. `worldrules` 설정집 원문을 분석 후보로 추측하거나 자동 병합하지 않는다.
 - 세계관 후보 목록·상세는 같은 `batchId`의 `분류 + 대상` 그룹과 `scopeName › settingName` diff row로 표시하되 후보 ID·비교 상태는 row별로 유지한다. 범위가 없는 row는 설정명만 표시한다. 그룹 확정·제외는 전용 단일 요청을 사용하고 기존 단일 후보 mutation을 반복 호출하지 않는다.
-- `AI_TOKEN_QUOTA_EXHAUSTED`로 중단된 세계관 후보는 일반 `다시 비교` 대상에서 제외하고 상단에 정확한 중단 건수와 `남은 비교 재개` 배치 액션을 표시한다. 재개는 생성 SDK의 배치 mutation을 한 번 호출하고 응답 뒤 목록·배치 집계를 무효화해 polling으로 진행 상태를 갱신한다. 새로고침 후에도 목록의 `activeComparisonJobCount > 0`인 동안은 재개된 `PENDING` 후보를 단건 재시도하지 않고, 값이 0인 고아 `PENDING` 후보만 자동 복구한다.
+- `AI_TOKEN_QUOTA_EXHAUSTED`로 중단된 세계관 후보는 일반 `다시 비교` 대상에서 제외하고 상단에 정확한 중단 건수와 `남은 비교 재개` 배치 액션을 표시한다. 재개는 생성 SDK의 배치 mutation을 한 번 호출하고 응답 뒤 목록·배치 집계를 무효화해 polling으로 진행 상태를 갱신한다. 새로고침 후에도 목록의 `activeComparisonJobCount > 0`인 동안은 재개된 `PENDING` 후보를 단건 재시도하거나 최종 중단 알림을 먼저 표시하지 않고, 값이 0인 고아 `PENDING` 후보만 자동 복구한다. 재개 완료는 `failedComparisonCount`와 `recomparisonRequiredCount`도 모두 0일 때만 성공으로 표시합니다.
 - 세계관 검토의 검토 상태·세계관 분류·제안된 반영 방식 필터는 캐릭터 검토와 같은 버튼 선택 그룹으로 표시하며, 활성값은 URL query 계약을 그대로 사용한다.
 - 그룹 안 한 row라도 비교 대기·처리·실패·재비교 필요이면 그룹 확정을 잠근다. 재비교 중에도 이전 diff와 1차 추출 원문 근거를 유지하고, 2차 비교 응답으로 quote·회차·offset을 덮어쓰지 않는다.
 - 같은 범위+설정명의 여러 1차 추출값은 AI가 후보 하나로 통합하고 `SINGLE/MERGED/CONFLICT` 상태를 반환한다. Front는 `MERGED`를 `여러 내용 정리됨`, `CONFLICT`를 `내용 확인 필요`로 표현하고 내부 enum을 노출하지 않는다. 세계관 row는 선택 체크박스를 사용하지 않고 각 row의 `제외`로 해당 후보 하나만 즉시 제외한다. 하단은 남은 검토 대기 row 전체를 처리하는 `모두 확정`만 두며 선택 항목 제외 버튼을 두지 않는다. 이 흐름에서 일부 row만 확정한 뒤 남은 row를 재비교하는 구형 체크박스 시나리오는 만들지 않는다. `CONFLICT` row는 최종값을 저장하기 전에는 모두 확정을 잠그되 row 제외은 허용한다. 모든 `evidenceSpans` quote는 생략 없이 표시한다.

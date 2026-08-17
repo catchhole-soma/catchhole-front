@@ -1581,13 +1581,14 @@ export function WorldSettingReview() {
       notifiedInterruptedBatchIds.current.delete(batchId);
       return;
     }
+    if (activeComparisonJobCount > 0) return;
     if (notifiedInterruptedBatchIds.current.has(batchId)) return;
     notifiedInterruptedBatchIds.current.add(batchId);
     notifyAiTokenQuotaExhausted({
       kind: 'analysis-interrupted',
       interruptedComparisonCount: tokenInterruptedCount,
     });
-  }, [batchId, tokenInterruptedCount]);
+  }, [activeComparisonJobCount, batchId, tokenInterruptedCount]);
 
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;
@@ -1602,6 +1603,8 @@ export function WorldSettingReview() {
   const combinedReviewed = characterReviewed + worldReviewed;
   const combinedPending = characterPending + worldPending;
   const combinedAttention = characterAttention + worldAttention;
+  const remainingWorldComparisonIssueCount = (listData?.failedComparisonCount ?? 0)
+    + (listData?.recomparisonRequiredCount ?? 0);
   const summaryUnavailable = characterSummaryQuery.isError;
   const reviewComplete = combinedTotal > 0 && combinedPending === 0 && combinedAttention === 0
     && !summaryUnavailable && !characterSummaryQuery.isPending;
@@ -1681,19 +1684,31 @@ export function WorldSettingReview() {
 
           {resumeResult && tokenInterruptedCount === 0 && (
             <div
-              className={`world-token-resume-banner world-token-resume-banner--${activeWorldComparisonCount > 0 ? 'progress' : 'success'}`}
+              className={`world-token-resume-banner world-token-resume-banner--${activeWorldComparisonCount > 0
+                ? 'progress'
+                : remainingWorldComparisonIssueCount > 0
+                  ? 'warning'
+                  : 'success'}`}
               role="status"
             >
               {activeWorldComparisonCount > 0
                 ? <Loader2 size={17} className="spin" />
-                : <Check size={17} />}
+                : remainingWorldComparisonIssueCount > 0
+                  ? <AlertCircle size={17} />
+                  : <Check size={17} />}
               <div className="world-token-resume-banner__body">
                 <strong>
                   {activeWorldComparisonCount > 0
                     ? `${activeWorldComparisonCount}개 남은 비교를 진행하고 있습니다.`
-                    : `${resumeResult.resumedCandidateCount ?? 0}개 남은 비교를 모두 처리했습니다.`}
+                    : remainingWorldComparisonIssueCount > 0
+                      ? `${remainingWorldComparisonIssueCount}개 비교 결과를 추가로 확인해 주세요.`
+                      : `${resumeResult.resumedCandidateCount ?? 0}개 남은 비교를 모두 처리했습니다.`}
                 </strong>
-                <span>후보 상태는 이 화면에서 자동으로 갱신됩니다.</span>
+                <span>
+                  {activeWorldComparisonCount === 0 && remainingWorldComparisonIssueCount > 0
+                    ? '실패하거나 재비교가 필요한 후보에서 다시 비교해 주세요.'
+                    : '후보 상태는 이 화면에서 자동으로 갱신됩니다.'}
+                </span>
               </div>
             </div>
           )}

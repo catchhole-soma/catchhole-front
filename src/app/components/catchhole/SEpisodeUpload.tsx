@@ -798,7 +798,7 @@ export default function SEpisodeUpload() {
   const notifyingQuotaJobIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!currentAnalysisJobsLoaded) return;
+    if (!currentAnalysisJobsLoaded || analysisRunning) return;
 
     const newlyInterruptedIds = asyncQuotaFailedAnalysisJobs.flatMap(job => (
       job.id
@@ -849,6 +849,7 @@ export default function SEpisodeUpload() {
     });
   }, [
     asyncQuotaFailedAnalysisJobs,
+    analysisRunning,
     currentAnalysisJobsLoaded,
     currentAnalysisJobs.length,
     episodeUploadBatchId,

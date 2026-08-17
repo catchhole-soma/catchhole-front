@@ -105,6 +105,12 @@ function hasSettledTokenInterruption(batch: AnalysisBatchSummaryResponse): boole
     && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0;
 }
 
+function hasAnalysisFailure(batch: AnalysisBatchSummaryResponse): boolean {
+  return (batch.jobGroups ?? []).some(group => (
+    group.status === 'FAILED' || group.status === 'PARTIALLY_FAILED'
+  ));
+}
+
 function CandidateReviewCount({
   label,
   totalCount,
@@ -192,16 +198,21 @@ export function AnalysisList({ workId }: { workId: string }) {
         notifiedInterruptedBatchIds.current.delete(batch.batchId);
       }
     });
-    const interruptedBatch = batches.find(batch => (
+    const interruptedBatches = batches.filter(batch => (
       batch.batchId
       && hasSettledTokenInterruption(batch)
       && !notifiedInterruptedBatchIds.current.has(batch.batchId)
     ));
-    if (!interruptedBatch?.batchId) return;
-    notifiedInterruptedBatchIds.current.add(interruptedBatch.batchId);
+    if (interruptedBatches.length === 0) return;
+    interruptedBatches.forEach(batch => {
+      if (batch.batchId) notifiedInterruptedBatchIds.current.add(batch.batchId);
+    });
     notifyAiTokenQuotaExhausted({
       kind: 'analysis-interrupted',
-      interruptedComparisonCount: interruptedBatch.worldSettingTokenInterruptedCandidateCount,
+      interruptedComparisonCount: interruptedBatches.reduce(
+        (total, batch) => total + (batch.worldSettingTokenInterruptedCandidateCount ?? 0),
+        0,
+      ),
     });
   }, [batches]);
 
@@ -314,7 +325,9 @@ export function AnalysisList({ workId }: { workId: string }) {
             const status = batch.status ?? 'COMPLETED';
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
             const hasTokenInterruption = hasSettledTokenInterruption(batch);
-            const view = hasTokenInterruption
+            const analysisFailure = hasAnalysisFailure(batch);
+            const prioritizesTokenInterruption = hasTokenInterruption && !analysisFailure;
+            const view = prioritizesTokenInterruption
               ? {
                   label: '세계관 비교 일부 중단',
                   description: `${tokenInterruptedCount}개 비교가 사용량 부족으로 중단됐습니다. 완료된 추출과 비교 결과는 유지됩니다.`,
@@ -330,9 +343,11 @@ export function AnalysisList({ workId }: { workId: string }) {
             const worldSettingReviewedCount = batch.worldSettingReviewedCandidateCount ?? 0;
             const worldSettingTotalCount = batch.worldSettingTotalCandidateCount ?? 0;
             const hasCandidateCounts = characterTotalCount > 0 || worldSettingTotalCount > 0;
-            const opensReview = hasTokenInterruption
+            const opensReview = !analysisFailure && (
+              hasTokenInterruption
               || status === 'REVIEW_REQUIRED'
-              || status === 'COMPLETED';
+              || status === 'COMPLETED'
+            );
             const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
             const actionEnabled = opensReview
               ? Boolean(batch.batchId)
@@ -401,7 +416,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                       }}
                       className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}
                     >
-                      {actionLabel(status, hasTokenInterruption ? tokenInterruptedCount : 0)}
+                      {actionLabel(status, prioritizesTokenInterruption ? tokenInterruptedCount : 0)}
                     </button>
                   </div>
                 </div>
