@@ -402,7 +402,7 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
       return success(route, {
         content: [{
           batchId,
-          status: 'REVIEW_REQUIRED',
+          status: 'IN_PROGRESS',
           episodeStartNo: 12,
           episodeEndNo: 12,
           episodeCount: 1,
@@ -475,12 +475,25 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
     return success(route, []);
   });
 
+  await page.clock.install();
   await authenticate(page);
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
   const listQuotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(listQuotaDialog).toBeVisible();
   await listQuotaDialog.getByRole('button', { name: '확인' }).click();
+
+  phase = 'ACTIVE';
+  await page.clock.fastForward(10_000);
+  await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(0);
+
+  phase = 'REINTERRUPTED';
+  await page.clock.fastForward(10_000);
+  await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(1);
+  await expect(listQuotaDialog).toBeVisible();
+  await listQuotaDialog.getByRole('button', { name: '확인' }).click();
+  await page.clock.resume();
+
   await page.getByRole('button', { name: '남은 비교 확인' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
 

@@ -182,6 +182,11 @@ export function AnalysisList({ workId }: { workId: string }) {
   }, [page, pageData, setSearchParams, totalPages]);
 
   useEffect(() => {
+    batches.forEach(batch => {
+      if (batch.batchId && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) <= 0) {
+        notifiedInterruptedBatchIds.current.delete(batch.batchId);
+      }
+    });
     const interruptedBatch = batches.find(batch => (
       batch.batchId
       && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
