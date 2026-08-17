@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Check,
@@ -28,6 +28,7 @@ import {
   getWorldSettingCandidatesQueryKey,
   getWorldSettingsQueryKey,
   resumeTokenInterruptedWorldSettingComparisonsMutation,
+  resumeTokenInterruptedWorldSettingComparisonsMutationKey,
   retryWorldSettingCandidateComparisonMutation,
   updateWorldSettingCandidateDecisionsMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
@@ -1365,7 +1366,7 @@ export function WorldSettingReview() {
     },
   });
   const resumeInterruptedMutation = useMutation({
-    ...resumeTokenInterruptedWorldSettingComparisonsMutation(),
+    ...resumeTokenInterruptedWorldSettingComparisonsMutation({ path: { workId, batchId } }),
     onSuccess: async () => {
       await invalidateResumeState();
     },
@@ -1373,6 +1374,11 @@ export function WorldSettingReview() {
       await invalidateResumeState();
     },
   });
+  const activeResumeRequestCount = useIsMutating({
+    mutationKey: resumeTokenInterruptedWorldSettingComparisonsMutationKey({ path: { workId, batchId } }),
+    exact: true,
+  });
+  const resumeRequestPending = resumeInterruptedMutation.isPending || activeResumeRequestCount > 0;
   const updateDecisionMutation = useMutation({
     ...updateWorldSettingCandidateDecisionsMutation(),
     onSuccess: async (response, variables) => {
@@ -1432,7 +1438,7 @@ export function WorldSettingReview() {
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
     || retryMutation.isPending
-    || resumeInterruptedMutation.isPending
+    || resumeRequestPending
     || updateDecisionMutation.isPending;
   const resetActionsIfSettled = () => {
     // 네트워크 요청이 살아 있는 mutation은 유지하고, 이전 완료·오류 표시만 탐색 시 정리한다.
@@ -1692,11 +1698,11 @@ export function WorldSettingReview() {
               <ActionButton
                 disabled={!canResumeTokenInterrupted
                   || activeWorldComparisonCount > 0
-                  || resumeInterruptedMutation.isPending}
+                  || resumeRequestPending}
                 tone={C.warning}
                 onClick={() => resumeInterruptedMutation.mutate({ path: { workId, batchId } })}
               >
-                {resumeInterruptedMutation.isPending
+                {resumeRequestPending
                   ? <><Loader2 size={13} className="spin" /> 재개 요청 중…</>
                   : <><RefreshCw size={13} /> 남은 비교 재개</>}
               </ActionButton>

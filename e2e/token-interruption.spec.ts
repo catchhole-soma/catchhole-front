@@ -92,7 +92,7 @@ function aiUsage() {
   };
 }
 
-type ComparisonStatus = 'FAILED' | 'PENDING' | 'PROCESSING';
+type ComparisonStatus = 'FAILED' | 'PENDING' | 'PROCESSING' | 'COMPLETED';
 type ComparisonFailureCode = 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_NETWORK_ERROR';
 
 function worldCandidate(
@@ -144,6 +144,7 @@ function worldCandidateList(
   const interrupted = failed && comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED';
   const pending = comparisonStatus === 'PENDING';
   const candidate = worldCandidate(comparisonStatus, comparisonFailureCode);
+  const groupStatus = comparisonStatus === 'COMPLETED' ? 'READY' : comparisonStatus;
   return {
     batchId,
     episodeStartNo: 12,
@@ -171,7 +172,7 @@ function worldCandidateList(
         mergeCount: 0,
         excludeCount: 0,
         evidenceEpisodeNos: [12],
-        status: comparisonStatus,
+        status: groupStatus,
         candidates: [candidate],
       }],
       page: 0,
@@ -732,6 +733,188 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
   expect(phase).toBe('REMAINDER_ONLY');
   expect(resumeRequestCount).toBe(1);
   expect(singleRetryRequestCount).toBe(0);
+});
+
+test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 실행하지 않는다', async ({ page }) => {
+  let phase: 'INTERRUPTED' | 'ACTIVE_WITH_REMAINDER' = 'INTERRUPTED';
+  let resumeRequestCount = 0;
+  let completeResumeRequest!: () => void;
+  const resumeRequestCompleted = new Promise<void>(resolve => {
+    completeResumeRequest = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
+      && request.method() === 'GET') {
+      return success(route, phase === 'INTERRUPTED'
+        ? worldCandidateList('FAILED', 1)
+        : worldCandidateList('PENDING', 2, {
+          pendingComparisonCount: 1,
+          activeComparisonJobCount: 1,
+          failedComparisonCount: 1,
+          tokenInterruptedComparisonCount: 1,
+          canResumeTokenInterruptedComparisons: true,
+        }));
+    }
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates/batches/${batchId}/resume-token-interrupted`
+      && request.method() === 'POST') {
+      resumeRequestCount += 1;
+      await resumeRequestCompleted;
+      phase = 'ACTIVE_WITH_REMAINDER';
+      return success(route, {
+        batchId,
+        resumedCandidateCount: 1,
+        activeCandidateCount: 1,
+        remainingInterruptedCandidateCount: 1,
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+  await expect.poll(() => resumeRequestCount).toBe(1);
+
+  await page.getByRole('button', { name: /캐릭터 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBeNull();
+  await page.getByRole('button', { name: /세계관 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+  await expect(page.getByText(
+    '1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
+    { exact: true },
+  )).toBeVisible();
+  if (await quotaDialog.isVisible()) await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  const remountedResumeButton = page.locator('.world-token-resume-banner--warning .review-action');
+  try {
+    await expect(remountedResumeButton).toBeDisabled();
+    await expect(remountedResumeButton).toContainText('재개 요청 중');
+  } finally {
+    completeResumeRequest();
+  }
+
+  await expect(remountedResumeButton).toBeDisabled();
+  await expect(remountedResumeButton).toContainText('남은 비교 재개');
+  expect(resumeRequestCount).toBe(1);
+});
+
+test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', async ({ page }) => {
+  let phase: 'INTERRUPTED' | 'PROCESSING' | 'COMPLETED' = 'INTERRUPTED';
+  let resumeRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
+      && request.method() === 'GET') {
+      if (phase === 'PROCESSING') {
+        return success(route, worldCandidateList('PROCESSING', 1, { activeComparisonJobCount: 1 }));
+      }
+      return success(route, phase === 'COMPLETED'
+        ? worldCandidateList('COMPLETED', 1)
+        : worldCandidateList('FAILED', 1));
+    }
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates/batches/${batchId}/resume-token-interrupted`
+      && request.method() === 'POST') {
+      resumeRequestCount += 1;
+      if (resumeRequestCount > 1) {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            data: null,
+            error: { code: 'SERVER_ERROR', message: '남은 비교 재개 요청을 처리하지 못했습니다.' },
+          }),
+        });
+      }
+      phase = 'PROCESSING';
+      return success(route, {
+        batchId,
+        resumedCandidateCount: 1,
+        activeCandidateCount: 1,
+        remainingInterruptedCandidateCount: 0,
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+
+  const progressBanner = page.locator('.world-token-resume-banner--progress');
+  const progressHeading = progressBanner.locator('strong');
+  await expect(progressHeading).toHaveCSS('color', 'rgb(0, 90, 175)');
+  expect(await computedContrastRatio(
+    progressHeading,
+    progressBanner,
+    page.locator('.setting-review-screen'),
+  )).toBeGreaterThanOrEqual(4.5);
+
+  phase = 'COMPLETED';
+  const successBanner = page.locator('.world-token-resume-banner--success');
+  const successHeading = successBanner.locator('strong');
+  await expect(successHeading).toHaveCSS('color', 'rgb(6, 105, 71)', { timeout: 5_000 });
+  expect(await computedContrastRatio(
+    successHeading,
+    successBanner,
+    page.locator('.setting-review-screen'),
+  )).toBeGreaterThanOrEqual(4.5);
+
+  phase = 'INTERRUPTED';
+  await page.reload();
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+
+  const dangerBanner = page.locator('.world-token-resume-banner--danger');
+  const dangerHeading = dangerBanner.locator('strong');
+  await expect(dangerHeading).toHaveCSS('color', 'rgb(161, 38, 58)');
+  expect(await computedContrastRatio(
+    dangerHeading,
+    dangerBanner,
+    page.locator('.setting-review-screen'),
+  )).toBeGreaterThanOrEqual(4.5);
 });
 
 test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 경로를 함께 안내한다', async ({ page }) => {
