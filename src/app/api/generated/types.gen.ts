@@ -851,6 +851,10 @@ export type SettingCandidateResponse = {
      */
     comparisonErrorMessage?: string | null;
     /**
+     * 기계 판독용 비교 실패 코드
+     */
+    comparisonFailureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
+    /**
      * 비교 문맥을 만든 당시 캐릭터 snapshot version
      */
     comparisonBaseSnapshotVersion?: number | null;
@@ -3273,6 +3277,10 @@ export type WorldSettingCandidateListResponse = {
     pendingCandidateCount?: number;
     pendingComparisonCount?: number;
     processingComparisonCount?: number;
+    /**
+     * PENDING 또는 RUNNING 상태인 세계관 후보 비교 Job 수
+     */
+    activeComparisonJobCount?: number;
     failedComparisonCount?: number;
     tokenInterruptedComparisonCount?: number;
     canResumeTokenInterruptedComparisons?: boolean;

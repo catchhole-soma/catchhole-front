@@ -78,6 +78,7 @@ function worldCandidateList(
     pendingCandidateCount: number;
     pendingComparisonCount: number;
     processingComparisonCount: number;
+    activeComparisonJobCount: number;
     failedComparisonCount: number;
     tokenInterruptedComparisonCount: number;
     canResumeTokenInterruptedComparisons: boolean;
@@ -96,6 +97,7 @@ function worldCandidateList(
     pendingCandidateCount: count,
     pendingComparisonCount: pending ? count : 0,
     processingComparisonCount: comparisonStatus === 'PROCESSING' ? count : 0,
+    activeComparisonJobCount: 0,
     failedComparisonCount: interrupted ? count : 0,
     tokenInterruptedComparisonCount: interrupted ? count : 0,
     canResumeTokenInterruptedComparisons: interrupted,
@@ -293,10 +295,102 @@ test('다중 회차 토큰 실패 알림은 모든 작업을 불러온 뒤 일�
   await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toBeVisible();
 });
 
-test('배치 재개로 PENDING이 된 후보는 단건 재시도하지 않고 활성 비교 중에는 추가 재개를 막는다', async ({ page }) => {
+test('추출 전 회차 실패와 추출 후 비교 중단을 한 알림에 함께 안내한다', async ({ page }) => {
+  let summaryRequestCount = 0;
+  let markInitialSummaryLoaded!: () => void;
+  const initialSummaryLoaded = new Promise<void>(resolve => {
+    markInitialSummaryLoaded = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}`) {
+      return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 13 });
+    }
+    if (pathname === `/api/v1/works/${workId}/episodes`) return success(route, []);
+    if (pathname === `/api/v1/works/${workId}/analysis-jobs/${analysisJobId}`) {
+      await initialSummaryLoaded;
+      return success(route, {
+        id: analysisJobId,
+        workId,
+        workTitle: '설원 연대기',
+        batchId,
+        episodeId,
+        episodes: [{
+          id: episodeId,
+          episodeNo: 12,
+          title: '끝없는 눈보라',
+          status: 'FAILED',
+          updatedAt: '2026-08-16T10:00:00',
+        }],
+        jobType: 'SETTING_EXTRACTION',
+        status: 'FAILED',
+        currentStep: 'SETTING_EXTRACTION',
+        failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED',
+        tokenInterruptedAfterExtraction: false,
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/analysis-jobs/${secondAnalysisJobId}`) {
+      await initialSummaryLoaded;
+      return success(route, {
+        id: secondAnalysisJobId,
+        workId,
+        workTitle: '설원 연대기',
+        batchId,
+        episodeId: secondEpisodeId,
+        episodes: [{
+          id: secondEpisodeId,
+          episodeNo: 13,
+          title: '해돋이 오는 자리',
+          status: 'ANALYZED',
+          updatedAt: '2026-08-16T10:00:00',
+        }],
+        jobType: 'SETTING_EXTRACTION',
+        status: 'FAILED',
+        currentStep: 'WORLD_SETTING_COMPARISON',
+        failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED',
+        tokenInterruptedAfterExtraction: true,
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      summaryRequestCount += 1;
+      const response = success(
+        route,
+        worldCandidateList('FAILED', summaryRequestCount === 1 ? 0 : 7),
+      );
+      if (summaryRequestCount === 1) {
+        await response;
+        markInitialSummaryLoaded();
+        return;
+      }
+      return response;
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId},${secondAnalysisJobId}`
+    + `&currentAnalysisJobIds=${analysisJobId},${secondAnalysisJobId}`
+    + '&jobType=SETTING_EXTRACTION',
+  );
+
+  const quotaDialog = page.getByRole('dialog', {
+    name: '회차 분석과 설정 비교가 중단되었습니다',
+  });
+  await expect(quotaDialog).toBeVisible();
+  await expect.poll(() => summaryRequestCount).toBeGreaterThanOrEqual(2);
+  await expect(quotaDialog).toContainText('1개 회차 분석이 사용량 부족으로 중단됐습니다.');
+  await expect(quotaDialog).toContainText('7개 세계관 설정 비교도 중단됐지만');
+  await expect(quotaDialog).toContainText('검토 화면에서 남은 비교만 재개할 수 있습니다.');
+});
+
+test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도하지 않는다', async ({ page }) => {
   let phase: 'INTERRUPTED' | 'ACTIVE_WITH_REMAINDER' | 'REMAINDER_ONLY' = 'INTERRUPTED';
   let resumeRequestCount = 0;
-  let postResumeListRequestCount = 0;
   let singleRetryRequestCount = 0;
 
   await page.route('**/api/v1/**', route => {
@@ -307,16 +401,15 @@ test('배치 재개로 PENDING이 된 후보는 단건 재시도하지 않고 �
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       if (phase === 'INTERRUPTED') return success(route, worldCandidateList('FAILED', 1));
-      postResumeListRequestCount += 1;
-      if (postResumeListRequestCount === 1) {
+      if (phase === 'ACTIVE_WITH_REMAINDER') {
         return success(route, worldCandidateList('PENDING', 2, {
           pendingComparisonCount: 1,
+          activeComparisonJobCount: 1,
           failedComparisonCount: 1,
           tokenInterruptedComparisonCount: 1,
           canResumeTokenInterruptedComparisons: true,
         }));
       }
-      phase = 'REMAINDER_ONLY';
       return success(route, worldCandidateList('FAILED', 1));
     }
     if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
@@ -370,14 +463,25 @@ test('배치 재개로 PENDING이 된 후보는 단건 재시도하지 않고 �
   }));
   expect(singleRetryRequestCount).toBe(0);
 
+  await page.reload();
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await expect(page.getByText('비교 대기', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '남은 비교 재개' })).toBeDisabled();
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  expect(singleRetryRequestCount).toBe(0);
+
+  phase = 'REMAINDER_ONLY';
   await expect(resumeButton).toBeEnabled({ timeout: 5_000 });
   expect(phase).toBe('REMAINDER_ONLY');
   expect(resumeRequestCount).toBe(1);
   expect(singleRetryRequestCount).toBe(0);
 });
 
-test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단을 다시 알린다', async ({ page }) => {
-  let phase: 'INTERRUPTED' | 'ACTIVE' | 'REINTERRUPTED' = 'INTERRUPTED';
+test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 재개한다', async ({ page }) => {
+  let phase: 'RUNNING' | 'INTERRUPTED' | 'ACTIVE' | 'REINTERRUPTED' = 'RUNNING';
   let resumeRequestCount = 0;
   let singleRetryRequestCount = 0;
   let analysisBatchRequestCount = 0;
@@ -398,11 +502,19 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
     if (pathname === `/api/v1/works/${workId}/analysis-jobs/batches`
       && request.method() === 'GET') {
       analysisBatchRequestCount += 1;
-      latestAnalysisBatchInterruptedCount = phase === 'ACTIVE' ? 0 : 1;
+      latestAnalysisBatchInterruptedCount = phase === 'RUNNING'
+        ? 1
+        : phase === 'INTERRUPTED'
+          ? 2
+          : phase === 'ACTIVE'
+            ? 0
+            : 1;
       return success(route, {
         content: [{
           batchId,
-          status: 'IN_PROGRESS',
+          status: phase === 'RUNNING' || phase === 'ACTIVE'
+            ? 'IN_PROGRESS'
+            : 'PARTIALLY_FAILED',
           episodeStartNo: 12,
           episodeEndNo: 12,
           episodeCount: 1,
@@ -437,11 +549,12 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
       return success(
         route,
         phase === 'ACTIVE'
-          ? worldCandidateList('PENDING', 1, {
+          ? worldCandidateList('PENDING', 2, {
+              activeComparisonJobCount: 2,
               tokenInterruptedComparisonCount: 0,
               canResumeTokenInterruptedComparisons: false,
             })
-          : worldCandidateList('FAILED', 1),
+          : worldCandidateList('FAILED', phase === 'INTERRUPTED' ? 2 : 1),
       );
     }
     if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
@@ -462,8 +575,8 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
       phase = 'ACTIVE';
       return success(route, {
         batchId,
-        resumedCandidateCount: 1,
-        activeCandidateCount: 1,
+        resumedCandidateCount: 2,
+        activeCandidateCount: 2,
         remainingInterruptedCandidateCount: 0,
       });
     }
@@ -480,17 +593,15 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
 
   const listQuotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
-  await expect(listQuotaDialog).toBeVisible();
-  await listQuotaDialog.getByRole('button', { name: '확인' }).click();
+  await expect(listQuotaDialog).toHaveCount(0);
+  await expect(page.getByText('분석 중', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '진행 보기' })).toBeVisible();
 
-  phase = 'ACTIVE';
+  phase = 'INTERRUPTED';
   await page.clock.fastForward(10_000);
-  await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(0);
-
-  phase = 'REINTERRUPTED';
-  await page.clock.fastForward(10_000);
-  await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(1);
+  await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(2);
   await expect(listQuotaDialog).toBeVisible();
+  await expect(listQuotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
   await listQuotaDialog.getByRole('button', { name: '확인' }).click();
   await page.clock.resume();
 
@@ -499,12 +610,14 @@ test('배치 재개는 분석 목록 집계를 갱신하고 0 이후 재중단�
 
   const reviewQuotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(reviewQuotaDialog).toBeVisible();
+  await expect(reviewQuotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
   await reviewQuotaDialog.getByRole('button', { name: '확인' }).click();
+  const analysisBatchRequestsBeforeResume = analysisBatchRequestCount;
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   await expect.poll(() => resumeRequestCount).toBe(1);
-  await expect(page.getByText('1개 남은 비교를 진행하고 있습니다.')).toBeVisible();
-  await expect.poll(() => analysisBatchRequestCount).toBeGreaterThanOrEqual(2);
+  await expect(page.getByText('2개 남은 비교를 진행하고 있습니다.')).toBeVisible();
+  await expect.poll(() => analysisBatchRequestCount).toBeGreaterThan(analysisBatchRequestsBeforeResume);
   expect(latestAnalysisBatchInterruptedCount).toBe(0);
   expect(singleRetryRequestCount).toBe(0);
 

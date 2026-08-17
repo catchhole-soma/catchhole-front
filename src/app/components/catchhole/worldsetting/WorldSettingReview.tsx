@@ -1074,7 +1074,6 @@ export function WorldSettingReview() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(selectedGroupKey || legacyCandidateId));
   const [legacyResolutionError, setLegacyResolutionError] = useState(false);
   const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
-  const [resumingBatchId, setResumingBatchId] = useState<string | null>(null);
   const selectionGroupRef = useRef<string | null>(null);
   const resolvingLegacyCandidateRef = useRef<string | null>(null);
   const automaticRetryIds = useRef(new Set<string>());
@@ -1107,6 +1106,7 @@ export function WorldSettingReview() {
     },
   });
   const listData = listQuery.data?.data;
+  const activeComparisonJobCount = listData?.activeComparisonJobCount ?? 0;
   const legacyCandidateQuery = useQuery({
     ...getWorldSettingCandidateOptions({
       path: { workId, candidateId: legacyCandidateId ?? '' },
@@ -1257,7 +1257,6 @@ export function WorldSettingReview() {
     setDecisionOverrides({});
     setEditCandidate(null);
     setEditIdentityOnly(false);
-    setResumingBatchId(null);
   }, [batchId, workId]);
 
   const invalidateReviewState = async () => {
@@ -1346,14 +1345,10 @@ export function WorldSettingReview() {
   });
   const resumeInterruptedMutation = useMutation({
     ...resumeTokenInterruptedWorldSettingComparisonsMutation(),
-    onMutate: variables => {
-      setResumingBatchId(variables.path.batchId);
-    },
     onSuccess: async () => {
       await invalidateResumeState();
     },
     onError: async () => {
-      setResumingBatchId(null);
       await invalidateResumeState();
     },
   });
@@ -1406,12 +1401,12 @@ export function WorldSettingReview() {
     }
     const retryCandidate = candidates.find(candidate => candidate.id
       && (candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
-        || (candidate.comparisonStatus === 'PENDING' && resumingBatchId !== batchId))
+        || (candidate.comparisonStatus === 'PENDING' && activeComparisonJobCount === 0))
       && !automaticRetryIds.current.has(candidate.id));
     if (!retryCandidate?.id || retryMutation.isPending) return;
     automaticRetryIds.current.add(retryCandidate.id);
     retryMutation.mutate({ path: { workId, candidateId: retryCandidate.id } });
-  }, [batchId, resumingBatchId, retryMutation, selectedGroup, workId]);
+  }, [activeComparisonJobCount, retryMutation, selectedGroup, workId]);
 
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
@@ -1594,12 +1589,6 @@ export function WorldSettingReview() {
     });
   }, [batchId, tokenInterruptedCount]);
 
-  useEffect(() => {
-    if (resumingBatchId !== batchId
-        || resumeInterruptedMutation.isPending
-        || activeWorldComparisonCount > 0) return;
-    setResumingBatchId(null);
-  }, [activeWorldComparisonCount, batchId, resumeInterruptedMutation.isPending, resumingBatchId]);
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;
   const characterPending = characterSummary?.pendingCandidateCount ?? 0;

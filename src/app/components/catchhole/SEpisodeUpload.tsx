@@ -814,17 +814,9 @@ export default function SEpisodeUpload() {
       const failedEpisodeCount = asyncQuotaFailedAnalysisJobs
         .filter(job => !job.tokenInterruptedAfterExtraction)
         .length;
-      if (failedEpisodeCount > 0) {
-        notifyAiTokenQuotaExhausted({
-          kind: 'analysis-failed',
-          failedEpisodeCount,
-          totalEpisodeCount: currentAnalysisJobs.length,
-        });
-        return;
-      }
-
-      let interruptedComparisonCount = tokenInterruptedComparisonCount;
+      let interruptedComparisonCount: number | undefined;
       if (tokenInterruptedAnalysisJobs.length > 0 && episodeUploadBatchId) {
+        interruptedComparisonCount = tokenInterruptedComparisonCount;
         try {
           const refreshedSummary = await refetchWorldComparisonSummary();
           interruptedComparisonCount = refreshedSummary.data?.data
@@ -833,9 +825,19 @@ export default function SEpisodeUpload() {
           // 최신 집계를 가져오지 못해도 중단 사실은 기존 응답의 일반 문구로 안내한다.
         }
       }
+      if (failedEpisodeCount > 0) {
+        notifyAiTokenQuotaExhausted({
+          kind: 'analysis-failed',
+          failedEpisodeCount,
+          totalEpisodeCount: currentAnalysisJobs.length,
+          interruptedComparisonCount,
+        });
+        return;
+      }
+
       notifyAiTokenQuotaExhausted({
         kind: 'analysis-interrupted',
-        interruptedComparisonCount: interruptedComparisonCount || undefined,
+        interruptedComparisonCount,
       });
     };
 

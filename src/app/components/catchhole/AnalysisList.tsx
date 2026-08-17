@@ -100,6 +100,11 @@ function actionLabel(status: AnalysisBatchStatus, tokenInterruptedCount: number)
   return '결과 보기';
 }
 
+function hasSettledTokenInterruption(batch: AnalysisBatchSummaryResponse): boolean {
+  return batch.status !== 'IN_PROGRESS'
+    && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0;
+}
+
 function CandidateReviewCount({
   label,
   totalCount,
@@ -189,7 +194,7 @@ export function AnalysisList({ workId }: { workId: string }) {
     });
     const interruptedBatch = batches.find(batch => (
       batch.batchId
-      && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
+      && hasSettledTokenInterruption(batch)
       && !notifiedInterruptedBatchIds.current.has(batch.batchId)
     ));
     if (!interruptedBatch?.batchId) return;
@@ -308,7 +313,7 @@ export function AnalysisList({ workId }: { workId: string }) {
           {batches.map(batch => {
             const status = batch.status ?? 'COMPLETED';
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
-            const hasTokenInterruption = tokenInterruptedCount > 0;
+            const hasTokenInterruption = hasSettledTokenInterruption(batch);
             const view = hasTokenInterruption
               ? {
                   label: '세계관 비교 일부 중단',
@@ -396,7 +401,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                       }}
                       className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}
                     >
-                      {actionLabel(status, tokenInterruptedCount)}
+                      {actionLabel(status, hasTokenInterruption ? tokenInterruptedCount : 0)}
                     </button>
                   </div>
                 </div>

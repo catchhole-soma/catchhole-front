@@ -44,19 +44,23 @@ export function AiTokenQuotaModal() {
   const totalEpisodeCount = notice.totalEpisodeCount ?? 0;
   const analysisFailed = notice.kind === 'analysis-failed';
   const analysisInterrupted = notice.kind === 'analysis-interrupted';
+  const mixedAnalysisInterruption = analysisFailed
+    && notice.interruptedComparisonCount !== undefined;
   const title = analysisInterrupted
     ? '설정 비교가 일부 중단되었습니다'
     : analysisFailed
-      ? totalEpisodeCount > 1 && failedEpisodeCount >= totalEpisodeCount
-        ? '전체 회차 분석이 중단되었습니다'
-        : totalEpisodeCount > 1
-          ? '일부 회차 분석이 중단되었습니다'
-          : '회차 분석이 중단되었습니다'
+      ? mixedAnalysisInterruption
+        ? '회차 분석과 설정 비교가 중단되었습니다'
+        : totalEpisodeCount > 1 && failedEpisodeCount >= totalEpisodeCount
+          ? '전체 회차 분석이 중단되었습니다'
+          : totalEpisodeCount > 1
+            ? '일부 회차 분석이 중단되었습니다'
+            : '회차 분석이 중단되었습니다'
       : '기본 사용량을 모두 소진했습니다';
   const description = analysisInterrupted
     ? `${interruptedCount > 0 ? `${interruptedCount}개 ` : ''}세계관 설정 비교가 사용량 부족으로 중단됐습니다. 이미 완료된 추출과 비교 결과는 유지되며, 추가 사용량을 받은 뒤 검토 화면에서 남은 비교만 재개할 수 있습니다.`
     : analysisFailed
-      ? `${failedEpisodeCount > 0 ? `${failedEpisodeCount}개 ` : ''}회차 분석이 사용량 부족으로 중단됐습니다. 추가 사용량을 받은 뒤 실패한 회차만 다시 시도해 주세요.`
+      ? `${failedEpisodeCount > 0 ? `${failedEpisodeCount}개 ` : ''}회차 분석이 사용량 부족으로 중단됐습니다. 추가 사용량을 받은 뒤 실패한 회차만 다시 시도해 주세요.${mixedAnalysisInterruption ? ` ${interruptedCount > 0 ? `${interruptedCount}개 ` : '일부 '}세계관 설정 비교도 중단됐지만 완료된 추출과 비교 결과는 유지됩니다. 검토 화면에서 남은 비교만 재개할 수 있습니다.` : ''}`
       : '서비스를 적극 이용해 주셔서 감사합니다. 간단한 피드백과 함께 연락해 주시면 추가 사용량 제공을 도와드리겠습니다.';
 
   return (
