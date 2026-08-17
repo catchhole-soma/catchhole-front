@@ -1608,6 +1608,7 @@ export function WorldSettingReview() {
   const interruptionNoticeStates = useRef(new Map<string, InterruptionNoticeState>());
 
   useEffect(() => {
+    if (resumeRequestPending) return;
     const previousState = interruptionNoticeStates.current.get(batchId) ?? {
       activeBaselineCount: null,
       lastSettledCount: null,
@@ -1637,7 +1638,7 @@ export function WorldSettingReview() {
       kind: 'analysis-interrupted',
       interruptedComparisonCount: tokenInterruptedCount,
     });
-  }, [activeComparisonJobCount, batchId, tokenInterruptedCount]);
+  }, [activeComparisonJobCount, batchId, resumeRequestPending, tokenInterruptedCount]);
 
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;

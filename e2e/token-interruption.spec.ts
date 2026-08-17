@@ -815,7 +815,7 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
     '1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
     { exact: true },
   )).toBeVisible();
-  if (await quotaDialog.isVisible()) await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await expect(quotaDialog).toHaveCount(0);
 
   const remountedResumeButton = page.locator('.world-token-resume-banner--warning .review-action');
   try {
@@ -827,6 +827,7 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
 
   await expect(remountedResumeButton).toBeDisabled();
   await expect(remountedResumeButton).toContainText('남은 비교 재개');
+  await expect(quotaDialog).toHaveCount(0);
   expect(resumeRequestCount).toBe(1);
 });
 
