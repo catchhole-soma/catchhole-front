@@ -436,17 +436,28 @@ function FilterGroup<T extends string>({
   );
 }
 
-function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
-  const tokenInterrupted = group.candidates?.some(candidate => (
+function groupFailureKind(group: WorldSettingCandidateGroupResponse) {
+  const failedCandidates = group.candidates?.filter(candidate => (
     candidate.comparisonStatus === 'FAILED'
-    && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
-  ));
+  )) ?? [];
+  const tokenInterruptedCount = failedCandidates.filter(candidate => (
+    candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+  )).length;
+  if (tokenInterruptedCount === 0) return 'FAILURE';
+  if (tokenInterruptedCount === failedCandidates.length) return 'TOKEN_INTERRUPTED';
+  return 'MIXED';
+}
+
+function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
+  const failureKind = groupFailureKind(group);
   switch (group.status) {
     case 'PENDING': return { label: '비교 대기', color: C.t3 };
     case 'PROCESSING': return { label: '비교 중', color: C.primary };
-    case 'FAILED': return tokenInterrupted
+    case 'FAILED': return failureKind === 'TOKEN_INTERRUPTED'
       ? { label: '사용량 부족으로 중단', color: C.warning }
-      : { label: '비교 실패', color: C.danger };
+      : failureKind === 'MIXED'
+        ? { label: '비교 중단·실패 혼합', color: C.danger }
+        : { label: '비교 실패', color: C.danger };
     case 'RECOMPARISON_REQUIRED': return {
       label: group.recomparisonScope === 'GROUP' ? '그룹 재비교 필요' : '일부 재비교 필요',
       color: C.warning,
@@ -501,15 +512,14 @@ function WorldCandidateGroupCard({
 function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupResponse }) {
   if (group.status === 'READY') return null;
   const status = groupStatusMeta(group);
-  const tokenInterrupted = group.candidates?.some(candidate => (
-    candidate.comparisonStatus === 'FAILED'
-    && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
-  ));
+  const failureKind = groupFailureKind(group);
   const reason = group.candidates?.find(candidate => candidate.comparisonErrorMessage)?.comparisonErrorMessage;
   const description = group.status === 'FAILED'
-    ? tokenInterrupted
+    ? failureKind === 'TOKEN_INTERRUPTED'
       ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
-      : '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
+      : failureKind === 'MIXED'
+        ? '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.'
+        : '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
     : group.status === 'RECOMPARISON_REQUIRED'
       ? reason || (group.recomparisonScope === 'GROUP'
         ? '대상의 생성·이름·분류가 바뀌어 이 대상의 모든 설정 항목을 다시 비교합니다.'

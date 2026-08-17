@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
@@ -8,6 +8,7 @@ const secondAnalysisJobId = '33333333-3333-4333-8333-333333333334';
 const episodeId = '44444444-4444-4444-8444-444444444444';
 const secondEpisodeId = '44444444-4444-4444-8444-444444444445';
 const candidateId = '55555555-5555-4555-8555-555555555555';
+const secondCandidateId = '55555555-5555-4555-8555-555555555556';
 
 const member = {
   id: 1,
@@ -30,6 +31,31 @@ function success(route: Route, data: unknown) {
 async function authenticate(page: Page) {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'token-interruption-token'));
+}
+
+async function computedContrastRatio(locator: Locator) {
+  return locator.evaluate(element => {
+    const parseRgb = (value: string) => {
+      const channels = value.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number);
+      if (!channels || channels.length !== 3) throw new Error(`RGB 색상을 해석할 수 없습니다: ${value}`);
+      return channels as [number, number, number];
+    };
+    const luminance = (color: string) => {
+      const channels = parseRgb(color).map(channel => {
+        const normalized = channel / 255;
+        return normalized <= 0.03928
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const style = getComputedStyle(element);
+    const foreground = luminance(style.color);
+    const background = luminance(style.backgroundColor);
+    const lighter = Math.max(foreground, background);
+    const darker = Math.min(foreground, background);
+    return (lighter + 0.05) / (darker + 0.05);
+  });
 }
 
 function aiUsage() {
@@ -212,6 +238,58 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await page.getByRole('button', { name: '남은 비교 확인' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+});
+
+test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}`) {
+      return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
+    }
+    if (pathname === `/api/v1/works/${workId}/episodes`) return success(route, []);
+    if (pathname === `/api/v1/works/${workId}/analysis-jobs/${analysisJobId}`) {
+      return success(route, {
+        id: analysisJobId,
+        workId,
+        workTitle: '설원 연대기',
+        batchId,
+        episodeId,
+        episodes: [{
+          id: episodeId,
+          episodeNo: 12,
+          title: '보관된 눈보라',
+          status: 'ARCHIVED',
+          updatedAt: '2026-08-16T10:00:00',
+        }],
+        jobType: 'SETTING_EXTRACTION',
+        status: 'FAILED',
+        currentStep: 'WORLD_SETTING_COMPARISON',
+        failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED',
+        tokenInterruptedAfterExtraction: true,
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, worldCandidateList('FAILED', 1));
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
+    + '&jobType=SETTING_EXTRACTION',
+  );
+
+  const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  await expect(page.getByText('사용할 수 없음', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '남은 비교 확인' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '분석 결과를 열 수 없습니다' })).toBeDisabled();
 });
 
 test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일부 실패로 집계한다', async ({ page }) => {
@@ -535,7 +613,10 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
   await expect(page.getByText('1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '다시 비교' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+  const initialResumeButton = page.getByRole('button', { name: '남은 비교 재개' });
+  await expect(initialResumeButton).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(initialResumeButton)).toBeGreaterThanOrEqual(4.5);
+  await initialResumeButton.click();
 
   await expect.poll(() => resumeRequestCount).toBe(1);
   const resumeButton = page.getByRole('button', { name: '남은 비교 재개' });
@@ -560,6 +641,62 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
   expect(phase).toBe('REMAINDER_ONLY');
   expect(resumeRequestCount).toBe(1);
   expect(singleRetryRequestCount).toBe(0);
+});
+
+test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 경로를 함께 안내한다', async ({ page }) => {
+  const mixedFailureList = worldCandidateList('FAILED', 2, {
+    failedComparisonCount: 2,
+    tokenInterruptedComparisonCount: 1,
+    canResumeTokenInterruptedComparisons: true,
+  });
+  mixedFailureList.groups.content[0].changeCount = 2;
+  mixedFailureList.groups.content[0].candidates = [
+    worldCandidate('FAILED'),
+    {
+      ...worldCandidate('FAILED', 'LLM_NETWORK_ERROR'),
+      id: secondCandidateId,
+      settingName: '통행 규칙',
+      extractedValue: '겨울에는 북문을 폐쇄한다.',
+      evidenceSpans: [{ quote: '겨울이 오자 북문은 굳게 닫혔다.' }],
+    },
+  ];
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, mixedFailureList);
+    }
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  const mixedFailureNotice = page.getByRole('status').filter({ hasText: '비교 중단·실패 혼합' });
+  await expect(mixedFailureNotice).toBeVisible();
+  await expect(mixedFailureNotice).toContainText(
+    '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.',
+  );
+  await expect(page.getByRole('button', { name: '남은 비교 재개' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '다시 비교' })).toBeEnabled();
 });
 
 test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요를 표시한다', async ({ page }) => {

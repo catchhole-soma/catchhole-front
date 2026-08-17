@@ -1692,7 +1692,9 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
-                  {analysisSucceeded || (analysisPartiallyInterrupted && !analysisFailed) ? (
+                  {analysisSucceeded || (analysisPartiallyInterrupted
+                    && !analysisFailed
+                    && !analysisUnavailable) ? (
                     <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
                       if (!episodeUploadBatchId) return;
                       navigate(
