@@ -295,6 +295,10 @@ test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL
               totalCandidateCount: 0,
               reviewedCandidateCount: 0,
               pendingCandidateCount: 0,
+              worldSettingTotalCandidateCount: 1,
+              worldSettingReviewedCandidateCount: 0,
+              worldSettingPendingCandidateCount: 1,
+              worldSettingTokenInterruptedCandidateCount: 1,
               jobGroups: [{
                 jobType: 'SETTING_EXTRACTION',
                 status: 'IN_PROGRESS',
@@ -363,6 +367,9 @@ test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-history-token'));
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('분석 중', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '남은 비교 확인' })).toHaveCount(0);
   await page.getByRole('button', { name: '진행 보기' }).click();
   await page.getByRole('button', { name: '설정 후보 검토' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');

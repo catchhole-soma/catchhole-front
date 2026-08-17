@@ -221,6 +221,7 @@ test('분석 실패 화면은 내부 오류 원문 대신 사용자용 안내를
     '분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요.',
     { exact: true },
   )).toBeVisible();
+  await expect(page.getByText('회차 분석에 실패했습니다', { exact: true })).toBeVisible();
   await expect(page.getByText(internalError, { exact: true })).toHaveCount(0);
   await expect(page.getByText(/마지막 실패 사유/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toBeVisible();

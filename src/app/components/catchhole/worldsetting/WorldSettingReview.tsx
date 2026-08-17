@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Check,
@@ -21,11 +21,14 @@ import {
 import {
   confirmWorldSettingCandidateGroupMutation,
   dismissWorldSettingCandidateGroupMutation,
+  getAnalysisBatchesQueryKey,
   getSettingCandidatesOptions,
   getWorldSettingCandidateOptions,
   getWorldSettingCandidatesOptions,
   getWorldSettingCandidatesQueryKey,
   getWorldSettingsQueryKey,
+  resumeTokenInterruptedWorldSettingComparisonsMutation,
+  resumeTokenInterruptedWorldSettingComparisonsMutationKey,
   retryWorldSettingCandidateComparisonMutation,
   updateWorldSettingCandidateDecisionsMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
@@ -37,6 +40,10 @@ import type {
 import { useAppNavigate } from '../../../hooks/useAppNavigate';
 import { returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
+import {
+  notifyAiTokenQuotaExhausted,
+  observeAnalysisInterruption,
+} from '../../../lib/ai-token-quota';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
@@ -51,6 +58,7 @@ type ReviewFilter = ReviewStatus | 'ALL';
 type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
 type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
+type StatusPresentation = { label: string; color: string; textColor?: string };
 
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
@@ -265,12 +273,20 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
     .replace(/\bEXCLUDE\b/g, '반영하지 않음');
 }
 
-function Badge({ label, color }: { label: string; color: string }) {
+function Badge({
+  label,
+  color,
+  textColor = color,
+}: {
+  label: string;
+  color: string;
+  textColor?: string;
+}) {
   return (
     <span className="review-badge" style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
       padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
-      background: `${color}18`, color, fontSize: 10, fontWeight: 750,
+      background: `${color}18`, color: textColor, fontSize: 10, fontWeight: 750,
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -433,11 +449,28 @@ function FilterGroup<T extends string>({
   );
 }
 
-function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
+function groupFailureKind(group: WorldSettingCandidateGroupResponse) {
+  const failedCandidates = group.candidates?.filter(candidate => (
+    candidate.comparisonStatus === 'FAILED'
+  )) ?? [];
+  const tokenInterruptedCount = failedCandidates.filter(candidate => (
+    candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+  )).length;
+  if (tokenInterruptedCount === 0) return 'FAILURE';
+  if (tokenInterruptedCount === failedCandidates.length) return 'TOKEN_INTERRUPTED';
+  return 'MIXED';
+}
+
+function groupStatusMeta(group: WorldSettingCandidateGroupResponse): StatusPresentation {
+  const failureKind = groupFailureKind(group);
   switch (group.status) {
     case 'PENDING': return { label: '비교 대기', color: C.t3 };
     case 'PROCESSING': return { label: '비교 중', color: C.primary };
-    case 'FAILED': return { label: '비교 실패', color: C.danger };
+    case 'FAILED': return failureKind === 'TOKEN_INTERRUPTED'
+      ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
+      : failureKind === 'MIXED'
+        ? { label: '비교 중단·실패 혼합', color: C.danger, textColor: 'var(--ch-danger-ink)' }
+        : { label: '비교 실패', color: C.danger };
     case 'RECOMPARISON_REQUIRED': return {
       label: group.recomparisonScope === 'GROUP' ? '그룹 재비교 필요' : '일부 재비교 필요',
       color: C.warning,
@@ -483,7 +516,7 @@ function WorldCandidateGroupCard({
       <div style={{ color: C.t2, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
         <Badge label={episodeEvidenceLabel(group.evidenceEpisodeNos)} color={C.t2} />
-        <Badge label={status.label} color={status.color} />
+        <Badge label={status.label} color={status.color} textColor={status.textColor} />
       </div>
     </button>
   );
@@ -492,9 +525,14 @@ function WorldCandidateGroupCard({
 function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupResponse }) {
   if (group.status === 'READY') return null;
   const status = groupStatusMeta(group);
+  const failureKind = groupFailureKind(group);
   const reason = group.candidates?.find(candidate => candidate.comparisonErrorMessage)?.comparisonErrorMessage;
   const description = group.status === 'FAILED'
-    ? '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
+    ? failureKind === 'TOKEN_INTERRUPTED'
+      ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
+      : failureKind === 'MIXED'
+        ? '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.'
+        : '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
     : group.status === 'RECOMPARISON_REQUIRED'
       ? reason || (group.recomparisonScope === 'GROUP'
         ? '대상의 생성·이름·분류가 바뀌어 이 대상의 모든 설정 항목을 다시 비교합니다.'
@@ -506,7 +544,7 @@ function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupRespon
     <div role="status" style={{
       margin: '0 22px 16px', padding: '12px 14px', borderRadius: 8,
       border: `1px solid ${status.color}55`, background: `${status.color}12`,
-      color: status.color, fontSize: 12, lineHeight: 1.6,
+      color: status.textColor ?? status.color, fontSize: 12, lineHeight: 1.6,
       display: 'flex', alignItems: 'flex-start', gap: 8,
     }}>
       {group.status === 'PROCESSING' || group.status === 'PENDING'
@@ -539,7 +577,10 @@ function WorldKeyDiffRow({
   const hasConflict = consolidationStatus === 'CONFLICT';
   const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
   const operationMeta = operation ? OPERATION_META[operation] : null;
-  const comparison = COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
+  const comparison: StatusPresentation = candidate.comparisonStatus === 'FAILED'
+    && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+    ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
+    : COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
   const evidence = evidenceSpans(candidate.evidenceSpans);
   const scopeName = decision
     ? decision.scopeName ?? null
@@ -582,7 +623,9 @@ function WorldKeyDiffRow({
           label={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화 근거`}
           color={C.t2}
         />
-        {candidate.comparisonStatus !== 'COMPLETED' && <Badge label={comparison.label} color={comparison.color} />}
+        {candidate.comparisonStatus !== 'COMPLETED' && (
+          <Badge label={comparison.label} color={comparison.color} textColor={comparison.textColor} />
+        )}
         {recompared && <Badge label="재비교됨" color={C.success} />}
         {candidate.reviewStatus && candidate.reviewStatus !== 'PENDING_REVIEW' && (
           <Badge label={REVIEW_META[candidate.reviewStatus].label} color={REVIEW_META[candidate.reviewStatus].color} />
@@ -767,8 +810,10 @@ function WorldCandidateGroupDetail({
     && !resolvedConflictIds.has(candidate.id)
     && !candidate.userModified
     && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
-  const retryAvailable = candidates.some(candidate => candidate.comparisonStatus === 'FAILED'
-    || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED');
+  const retryAvailable = candidates.some(candidate => (
+    candidate.comparisonStatus === 'FAILED'
+      && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
+  ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED');
   const confirmable = pendingCandidates.length > 0 && pendingCandidates
     .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW'
       && candidate.comparisonStatus === 'COMPLETED'
@@ -1086,6 +1131,7 @@ export function WorldSettingReview() {
     },
   });
   const listData = listQuery.data?.data;
+  const activeComparisonJobCount = listData?.activeComparisonJobCount ?? 0;
   const legacyCandidateQuery = useQuery({
     ...getWorldSettingCandidateOptions({
       path: { workId, candidateId: legacyCandidateId ?? '' },
@@ -1245,6 +1291,16 @@ export function WorldSettingReview() {
     ]);
   };
 
+  const invalidateResumeState = async () => {
+    await Promise.all([
+      invalidateReviewState(),
+      queryClient.invalidateQueries({
+        queryKey: getAnalysisBatchesQueryKey({ path: { workId } }),
+        refetchType: 'all',
+      }),
+    ]);
+  };
+
   const confirmMutation = useMutation({
     ...confirmWorldSettingCandidateGroupMutation(),
     onSuccess: async (response, variables) => {
@@ -1312,6 +1368,20 @@ export function WorldSettingReview() {
       await invalidateReviewState();
     },
   });
+  const resumeInterruptedMutation = useMutation({
+    ...resumeTokenInterruptedWorldSettingComparisonsMutation({ path: { workId, batchId } }),
+    onSuccess: async () => {
+      await invalidateResumeState();
+    },
+    onError: async () => {
+      await invalidateResumeState();
+    },
+  });
+  const activeResumeRequestCount = useIsMutating({
+    mutationKey: resumeTokenInterruptedWorldSettingComparisonsMutationKey({ path: { workId, batchId } }),
+    exact: true,
+  });
+  const resumeRequestPending = resumeInterruptedMutation.isPending || activeResumeRequestCount > 0;
   const updateDecisionMutation = useMutation({
     ...updateWorldSettingCandidateDecisionsMutation(),
     onSuccess: async (response, variables) => {
@@ -1360,17 +1430,18 @@ export function WorldSettingReview() {
       setRecomparedIds(previous => new Set([...previous, ...recoveredIds]));
     }
     const retryCandidate = candidates.find(candidate => candidate.id
-      && (candidate.comparisonStatus === 'PENDING'
-        || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED')
+      && (candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
+        || (candidate.comparisonStatus === 'PENDING' && activeComparisonJobCount === 0))
       && !automaticRetryIds.current.has(candidate.id));
     if (!retryCandidate?.id || retryMutation.isPending) return;
     automaticRetryIds.current.add(retryCandidate.id);
     retryMutation.mutate({ path: { workId, candidateId: retryCandidate.id } });
-  }, [retryMutation, selectedGroup, workId]);
+  }, [activeComparisonJobCount, retryMutation, selectedGroup, workId]);
 
   const actionPending = confirmMutation.isPending
     || dismissMutation.isPending
     || retryMutation.isPending
+    || resumeRequestPending
     || updateDecisionMutation.isPending;
   const resetActionsIfSettled = () => {
     // 네트워크 요청이 살아 있는 mutation은 유지하고, 이전 완료·오류 표시만 탐색 시 정리한다.
@@ -1470,7 +1541,11 @@ export function WorldSettingReview() {
   const retryGroup = () => {
     if (!selectedGroup || actionPending) return;
     const candidate = selectedGroup.candidates?.find(item => item.id
-      && (item.comparisonStatus === 'FAILED' || item.comparisonStatus === 'RECOMPARISON_REQUIRED'));
+      && (
+        (item.comparisonStatus === 'FAILED'
+          && item.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED')
+        || item.comparisonStatus === 'RECOMPARISON_REQUIRED'
+      ));
     if (!candidate?.id) return;
     automaticRetryIds.current.add(candidate.id);
     retryMutation.mutate({ path: { workId, candidateId: candidate.id } });
@@ -1518,6 +1593,39 @@ export function WorldSettingReview() {
   const worldTotal = listData?.totalCandidateCount ?? 0;
   const worldReviewed = listData?.reviewedCandidateCount ?? 0;
   const worldPending = listData?.pendingCandidateCount ?? 0;
+  const worldSummaryLoaded = listData !== undefined;
+  const tokenInterruptedCount = listData?.tokenInterruptedComparisonCount ?? 0;
+  const activeWorldComparisonCount = (listData?.pendingComparisonCount ?? 0)
+    + (listData?.processingComparisonCount ?? 0);
+  const canResumeTokenInterrupted = Boolean(listData?.canResumeTokenInterruptedComparisons)
+    && tokenInterruptedCount > 0;
+  const resumeResult = resumeInterruptedMutation.data?.data?.batchId === batchId
+    ? resumeInterruptedMutation.data.data
+    : undefined;
+  const resumeError = resumeInterruptedMutation.variables?.path.batchId === batchId
+    ? resumeInterruptedMutation.error
+    : null;
+  useEffect(() => {
+    if (!worldSummaryLoaded || resumeRequestPending) return;
+    const shouldNotify = observeAnalysisInterruption({
+      batchId,
+      interruptedComparisonCount: tokenInterruptedCount,
+      active: activeComparisonJobCount > 0,
+    });
+    if (!shouldNotify) return;
+
+    notifyAiTokenQuotaExhausted({
+      kind: 'analysis-interrupted',
+      interruptedComparisonCount: tokenInterruptedCount,
+    });
+  }, [
+    activeComparisonJobCount,
+    batchId,
+    resumeRequestPending,
+    tokenInterruptedCount,
+    worldSummaryLoaded,
+  ]);
+
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;
   const characterPending = characterSummary?.pendingCandidateCount ?? 0;
@@ -1531,6 +1639,8 @@ export function WorldSettingReview() {
   const combinedReviewed = characterReviewed + worldReviewed;
   const combinedPending = characterPending + worldPending;
   const combinedAttention = characterAttention + worldAttention;
+  const remainingWorldComparisonIssueCount = (listData?.failedComparisonCount ?? 0)
+    + (listData?.recomparisonRequiredCount ?? 0);
   const summaryUnavailable = characterSummaryQuery.isError;
   const reviewComplete = combinedTotal > 0 && combinedPending === 0 && combinedAttention === 0
     && !summaryUnavailable && !characterSummaryQuery.isPending;
@@ -1586,6 +1696,68 @@ export function WorldSettingReview() {
             character={{ reviewed: characterReviewed, total: characterTotal }}
             world={{ reviewed: worldReviewed, total: worldTotal }}
           />
+
+          {tokenInterruptedCount > 0 && (
+            <div className="world-token-resume-banner world-token-resume-banner--warning" role="status">
+              <AlertCircle size={17} />
+              <div className="world-token-resume-banner__body">
+                <strong>{tokenInterruptedCount}개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.</strong>
+                <span>완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.</span>
+              </div>
+              <ActionButton
+                disabled={!canResumeTokenInterrupted
+                  || activeWorldComparisonCount > 0
+                  || resumeRequestPending}
+                tone={C.warning}
+                onClick={() => resumeInterruptedMutation.mutate({ path: { workId, batchId } })}
+              >
+                {resumeRequestPending
+                  ? <><Loader2 size={13} className="spin" /> 재개 요청 중…</>
+                  : <><RefreshCw size={13} /> 남은 비교 재개</>}
+              </ActionButton>
+            </div>
+          )}
+
+          {resumeResult && tokenInterruptedCount === 0 && (
+            <div
+              className={`world-token-resume-banner world-token-resume-banner--${activeWorldComparisonCount > 0
+                ? 'progress'
+                : remainingWorldComparisonIssueCount > 0
+                  ? 'warning'
+                  : 'success'}`}
+              role="status"
+            >
+              {activeWorldComparisonCount > 0
+                ? <Loader2 size={17} className="spin" />
+                : remainingWorldComparisonIssueCount > 0
+                  ? <AlertCircle size={17} />
+                  : <Check size={17} />}
+              <div className="world-token-resume-banner__body">
+                <strong>
+                  {activeWorldComparisonCount > 0
+                    ? `${activeWorldComparisonCount}개 남은 비교를 진행하고 있습니다.`
+                    : remainingWorldComparisonIssueCount > 0
+                      ? `${remainingWorldComparisonIssueCount}개 비교 결과를 추가로 확인해 주세요.`
+                      : `${resumeResult.resumedCandidateCount ?? 0}개 남은 비교를 모두 처리했습니다.`}
+                </strong>
+                <span>
+                  {activeWorldComparisonCount === 0 && remainingWorldComparisonIssueCount > 0
+                    ? '실패하거나 재비교가 필요한 후보에서 다시 비교해 주세요.'
+                    : '후보 상태는 이 화면에서 자동으로 갱신됩니다.'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {resumeError && (
+            <div className="world-token-resume-banner world-token-resume-banner--danger" role="alert">
+              <AlertCircle size={17} />
+              <div className="world-token-resume-banner__body">
+                <strong>남은 비교를 재개하지 못했습니다.</strong>
+                <span>{errorMessage(resumeError, '추가 사용량을 확인한 뒤 다시 시도해 주세요.')}</span>
+              </div>
+            </div>
+          )}
 
           {listQuery.isPending && !listQuery.data ? (
             <QueryState

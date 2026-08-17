@@ -119,7 +119,10 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
   });
 
   await expect(page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'feedback@catchhole.com' })).toBeVisible();
+  const contactLink = page.getByRole('link', { name: 'feedback@catchhole.com' });
+  await expect(contactLink).toBeVisible();
+  await expect(contactLink).toHaveCSS('color', 'rgb(0, 98, 196)');
+  await expect(contactLink).toHaveCSS('text-decoration-line', 'underline');
 });
 
 test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {

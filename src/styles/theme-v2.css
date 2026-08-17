@@ -12,11 +12,15 @@
   --ch-primary: #087ef2;
   --ch-primary-hover: #006fdc;
   --ch-primary-pressed: #0062c4;
+  --ch-primary-ink: #005aaf;
   --ch-primary-contrast: #ffffff;
   --ch-ai: #087ef2;
   --ch-success: #0f9f7a;
+  --ch-success-ink: #066947;
   --ch-warning: #d98324;
+  --ch-warning-ink: #8a4b00;
   --ch-danger: #df4d5f;
+  --ch-danger-ink: #a1263a;
   --ch-shadow-card: 0 10px 32px rgb(31 55 88 / 7%);
   --ch-shadow-float: 0 24px 64px rgb(31 55 88 / 13%);
   --ch-radius-sm: 10px;

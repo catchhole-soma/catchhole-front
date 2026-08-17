@@ -55,6 +55,12 @@
 .theme-v2 .theme-detail-panel strong { color: var(--ch-ink) !important; }
 .theme-v2 .theme-modal__summary > div:last-child { color: var(--ch-text-muted) !important; }
 
+.theme-v2 .ai-token-quota-modal__contact {
+  color: var(--ch-primary-pressed) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .theme-v2 .theme-modal__footer {
   border-color: var(--ch-border) !important;
   background: var(--ch-surface) !important;

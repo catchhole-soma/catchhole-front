@@ -34,6 +34,8 @@
 > - 충돌 의심 결과는 확정 오류가 아니다. 화면에서는 `오류`보다 `충돌 의심`, `검토 필요` 표현을 우선 사용한다.
 > - 원고는 화면에서 직접 수정하지 않는다. 회차 파일 교체 후 사용자가 요청하는 재분석은 해당 회차의 `SETTING_EXTRACTION`으로 실행하며, 충돌 검수용 `EPISODE_VALIDATION`과 구분한다.
 > - Job·Episode의 상세 실패 문자열은 개발·운영 진단 정보로 취급하며 사용자 화면에 원문을 표시하지 않는다. 화면은 실패 상태, 간단한 사용자용 안내와 재시도 액션을 제공한다.
+> - 비동기 Job의 `failureCode=AI_TOKEN_QUOTA_EXHAUSTED`에서도 전역 사용량·연락 안내 모달을 연다. 같은 배치의 현재 Job이 모두 종료된 뒤 1차 추출 전 실패는 단일·전체·일부 실패 문구와 재시도를, 1차 추출 뒤 중단은 보존 결과와 남은 비교 재개를 안내하며 내부 URL과 `Client error 409` 원문은 표시하지 않는다.
+> - `tokenInterruptedAfterExtraction=true`는 전체 회차 실패가 아니라 1차 추출 뒤 세계관 비교 일부 중단이다. 완료된 추출·비교를 보존하고 정확한 중단 건수와 `남은 비교 확인`을 표시하며 전체 분석 재시도 버튼을 제공하지 않는다. 단, 현재 대상 회차가 `ARCHIVED`이면 보존 결과 진입보다 이용 불가 상태를 우선하고 검토 이동도 제공하지 않는다.
 
 ## 목차
 
@@ -288,6 +290,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 > - 재시도 전 실패 Job은 이력으로 유지하되 목록의 현재 상태·개수·`currentAnalysisJobIds`는 회차별 최신 유효 Job을 기준으로 집계한다.
 > - 완료·실패 분석 묶음을 덮어쓰거나 삭제하지 않으며, 사용자가 이력을 삭제하는 기능은 MVP에서 제공하지 않는다.
 > - `UploadBatch`는 업로드 출처와 목록 카드 단위이고 실제 실행·재시도 단위는 회차별 `AnalysisJob`이다.
+> - `worldSettingTokenInterruptedCandidateCount > 0`이어도 배치가 `IN_PROGRESS`이면 최종 건수가 확정될 때까지 `분석 중`·`진행 보기`를 유지한다. 모든 현재 Job이 종료된 뒤 `세계관 비교 일부 중단`과 최종 건수를 알리고 `candidateType=world` 설정 검토로 연결한다. 같은 조회에서 여러 배치가 함께 종료되면 새 중단 건수를 합산해 한 모달로 안내한다.
 
 **1. 화면에 표시할 데이터**
 
@@ -297,6 +300,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
   - 분석 목적별 `SETTING_EXTRACTION`/`EPISODE_VALIDATION` 사용자용 명칭
   - 목적별 전체·대기·진행·성공·실패 Job 수
   - 설정 후보 전체 수, 검토 완료 수와 검토 대기 수
+  - 사용량 부족으로 중단된 세계관 비교 수와 재개 가능 여부
   - 최근 활동 시각
 - 한 페이지 10개의 서버 페이지네이션
 
@@ -304,7 +308,8 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 - 각 배치 카드는 현재 상태에 맞는 액션 버튼 하나만 표시
 - `IN_PROGRESS` 배치의 `진행 보기` → 진행 중인 목적의 `currentAnalysisJobIds`로 업로드 분석 진행 화면을 열고 폴링 재개
-- `PARTIALLY_FAILED` 또는 `FAILED` 배치의 `실패 확인` → 실패한 목적의 현재 작업으로 같은 화면을 열어 실패 회차 확인·재시도
+- `PARTIALLY_FAILED` 또는 `FAILED` 배치의 `실패 확인` → 실패한 목적의 현재 작업으로 같은 화면을 열어 실패 회차 확인·재시도. 세계관 비교 중단이 함께 있으면 일반 실패 복구를 먼저 제공한다.
+- 일반 실패 복구가 남지 않고 세계관 비교 중단 후보가 있는 배치의 `남은 비교 확인` → `/setting-review?candidateType=world`로 이동해 보존 결과와 일괄 재개 액션 확인
 - `REVIEW_REQUIRED` 배치의 `결과 보기` → `PENDING_REVIEW` 기본 필터로 [설정 검토](./character.md#설정-검토-ssettingreview)에 바로 이동
 - `COMPLETED` 배치의 `결과 보기` → `ALL` 필터로 설정 검토 결과를 읽기 전용 조회
 - `IN_PROGRESS` 배치가 있으면 화면 활성 상태에서 10초 간격으로 목록을 갱신하고, 모두 종료되면 자동 갱신 중단
@@ -350,6 +355,7 @@ GET /api/v1/works/{workId}/analysis-jobs/batches?page={page}&size=10
 | 배치 집계 상태 | `status` | 진행·부분 실패·실패·검토 필요·완료 표시 |
 | 대상 회차 범위·수 | `episodeStartNo`, `episodeEndNo`, `episodeCount` | 카드 대상 요약 |
 | 후보 검토 집계 | `totalCandidateCount`, `reviewedCandidateCount`, `pendingCandidateCount` | 검토 진행과 `REVIEW_REQUIRED` 액션 |
+| 토큰 부분 중단 | `worldSettingTokenInterruptedCandidateCount`, `canResumeTokenInterruptedWorldSettingComparisons` | 전체 실패와 구분한 중단 건수·세계관 검토 이동 |
 | 분석 목적별 집계 | `jobGroups[]` | 목적별 상태·개수 요약과 진행·실패 시 이동 대상 선택 |
 | 분석 요청·활동 시각 | `firstRequestedAt`, `lastRequestedAt`, `lastActivityAt` | 최근 활동 표시와 최근 분석 요청 기준 서버 정렬 |
 
