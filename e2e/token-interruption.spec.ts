@@ -270,6 +270,31 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
 });
 
+test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽을 수 있다', async ({ page }) => {
+  await page.route('**/api/v1/ai-token-usages/me', route => route.fulfill({
+    status: 500,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+  }));
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const retryAction = quotaDialog.getByRole('button', {
+    name: '문의 정보를 불러오지 못했습니다. 다시 시도',
+  });
+  await expect(retryAction).toBeVisible();
+  await expect(retryAction).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(
+    retryAction,
+    retryAction.locator('xpath=..'),
+    quotaDialog,
+  )).toBeGreaterThanOrEqual(4.5);
+});
+
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -645,6 +670,39 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
   await quotaDialog.getByRole('button', { name: '확인' }).click();
   await expect(page.getByText('1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '다시 비교' })).toHaveCount(0);
+
+  const resumeBanner = page.locator('.world-token-resume-banner--warning');
+  const resumeHeading = resumeBanner.locator('strong');
+  await expect(resumeHeading).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(
+    resumeHeading,
+    resumeBanner,
+    page.locator('.setting-review-screen'),
+  )).toBeGreaterThanOrEqual(4.5);
+
+  const groupQuotaBadge = page.locator('.world-candidate-group-card .review-badge')
+    .filter({ hasText: '사용량 부족으로 중단' });
+  const rowQuotaBadge = page.locator('.world-setting-diff-row .review-badge')
+    .filter({ hasText: '사용량 부족으로 중단' });
+  const quotaDetailNotice = page.locator('.world-candidate-detail-card').getByRole('status');
+  for (const label of [groupQuotaBadge, rowQuotaBadge, quotaDetailNotice]) {
+    await expect(label).toHaveCSS('color', 'rgb(138, 75, 0)');
+  }
+  expect(await computedContrastRatio(
+    groupQuotaBadge,
+    groupQuotaBadge,
+    page.locator('.world-candidate-group-card.is-selected'),
+  )).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(
+    rowQuotaBadge,
+    rowQuotaBadge,
+    page.locator('.world-setting-diff-row'),
+  )).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(
+    quotaDetailNotice,
+    quotaDetailNotice,
+    page.locator('.world-candidate-detail-card'),
+  )).toBeGreaterThanOrEqual(4.5);
 
   const initialResumeButton = page.getByRole('button', { name: '남은 비교 재개' });
   await expect(initialResumeButton).toHaveCSS('color', 'rgb(138, 75, 0)');

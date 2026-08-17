@@ -54,6 +54,7 @@ type ReviewFilter = ReviewStatus | 'ALL';
 type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
 type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
+type StatusPresentation = { label: string; color: string; textColor?: string };
 
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
@@ -268,12 +269,20 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
     .replace(/\bEXCLUDE\b/g, '반영하지 않음');
 }
 
-function Badge({ label, color }: { label: string; color: string }) {
+function Badge({
+  label,
+  color,
+  textColor = color,
+}: {
+  label: string;
+  color: string;
+  textColor?: string;
+}) {
   return (
     <span className="review-badge" style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
       padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
-      background: `${color}18`, color, fontSize: 10, fontWeight: 750,
+      background: `${color}18`, color: textColor, fontSize: 10, fontWeight: 750,
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -448,13 +457,13 @@ function groupFailureKind(group: WorldSettingCandidateGroupResponse) {
   return 'MIXED';
 }
 
-function groupStatusMeta(group: WorldSettingCandidateGroupResponse) {
+function groupStatusMeta(group: WorldSettingCandidateGroupResponse): StatusPresentation {
   const failureKind = groupFailureKind(group);
   switch (group.status) {
     case 'PENDING': return { label: '비교 대기', color: C.t3 };
     case 'PROCESSING': return { label: '비교 중', color: C.primary };
     case 'FAILED': return failureKind === 'TOKEN_INTERRUPTED'
-      ? { label: '사용량 부족으로 중단', color: C.warning }
+      ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
       : failureKind === 'MIXED'
         ? { label: '비교 중단·실패 혼합', color: C.danger }
         : { label: '비교 실패', color: C.danger };
@@ -503,7 +512,7 @@ function WorldCandidateGroupCard({
       <div style={{ color: C.t2, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
         <Badge label={episodeEvidenceLabel(group.evidenceEpisodeNos)} color={C.t2} />
-        <Badge label={status.label} color={status.color} />
+        <Badge label={status.label} color={status.color} textColor={status.textColor} />
       </div>
     </button>
   );
@@ -531,7 +540,7 @@ function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupRespon
     <div role="status" style={{
       margin: '0 22px 16px', padding: '12px 14px', borderRadius: 8,
       border: `1px solid ${status.color}55`, background: `${status.color}12`,
-      color: status.color, fontSize: 12, lineHeight: 1.6,
+      color: status.textColor ?? status.color, fontSize: 12, lineHeight: 1.6,
       display: 'flex', alignItems: 'flex-start', gap: 8,
     }}>
       {group.status === 'PROCESSING' || group.status === 'PENDING'
@@ -564,9 +573,9 @@ function WorldKeyDiffRow({
   const hasConflict = consolidationStatus === 'CONFLICT';
   const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
   const operationMeta = operation ? OPERATION_META[operation] : null;
-  const comparison = candidate.comparisonStatus === 'FAILED'
+  const comparison: StatusPresentation = candidate.comparisonStatus === 'FAILED'
     && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
-    ? { label: '사용량 부족으로 중단', color: C.warning }
+    ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
     : COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
   const evidence = evidenceSpans(candidate.evidenceSpans);
   const scopeName = decision
@@ -610,7 +619,9 @@ function WorldKeyDiffRow({
           label={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화 근거`}
           color={C.t2}
         />
-        {candidate.comparisonStatus !== 'COMPLETED' && <Badge label={comparison.label} color={comparison.color} />}
+        {candidate.comparisonStatus !== 'COMPLETED' && (
+          <Badge label={comparison.label} color={comparison.color} textColor={comparison.textColor} />
+        )}
         {recompared && <Badge label="재비교됨" color={C.success} />}
         {candidate.reviewStatus && candidate.reviewStatus !== 'PENDING_REVIEW' && (
           <Badge label={REVIEW_META[candidate.reviewStatus].label} color={REVIEW_META[candidate.reviewStatus].color} />

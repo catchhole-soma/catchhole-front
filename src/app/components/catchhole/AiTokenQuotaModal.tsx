@@ -130,7 +130,7 @@ export function AiTokenQuotaModal() {
               <button
                 type="button"
                 onClick={() => void usageQuery.refetch()}
-                style={{ border: 0, padding: 0, color: 'var(--ch-warning)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ border: 0, padding: 0, color: 'var(--ch-warning-ink)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 문의 정보를 불러오지 못했습니다. 다시 시도
               </button>
