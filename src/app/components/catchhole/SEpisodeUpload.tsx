@@ -760,11 +760,12 @@ export default function SEpisodeUpload() {
     : retryableFailedAnalysisJobIds.length === currentAnalysisJobs.length
       ? '전체 회차 분석에 실패했습니다'
       : '일부 회차 분석에 실패했습니다';
-  const analysisPartiallyInterrupted = currentAnalysisJobsLoaded
-    && !analysisRunning
-    && tokenInterruptedAnalysisJobs.length > 0;
   const analysisUnavailable = currentAnalysisJobsLoaded
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
+  const analysisPartiallyInterrupted = currentAnalysisJobsLoaded
+    && !analysisRunning
+    && !analysisUnavailable
+    && tokenInterruptedAnalysisJobs.length > 0;
   const analysisSucceeded = currentAnalysisJobsLoaded
     && !analysisUnavailable
     && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED');

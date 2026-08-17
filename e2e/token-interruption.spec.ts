@@ -33,29 +33,51 @@ async function authenticate(page: Page) {
   await page.evaluate(() => localStorage.setItem('accessToken', 'token-interruption-token'));
 }
 
-async function computedContrastRatio(locator: Locator) {
-  return locator.evaluate(element => {
-    const parseRgb = (value: string) => {
-      const channels = value.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number);
-      if (!channels || channels.length !== 3) throw new Error(`RGB 색상을 해석할 수 없습니다: ${value}`);
-      return channels as [number, number, number];
-    };
-    const luminance = (color: string) => {
-      const channels = parseRgb(color).map(channel => {
-        const normalized = channel / 255;
-        return normalized <= 0.03928
-          ? normalized / 12.92
-          : ((normalized + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-    };
-    const style = getComputedStyle(element);
-    const foreground = luminance(style.color);
-    const background = luminance(style.backgroundColor);
-    const lighter = Math.max(foreground, background);
-    const darker = Math.min(foreground, background);
-    return (lighter + 0.05) / (darker + 0.05);
-  });
+async function computedContrastRatio(
+  locator: Locator,
+  backgroundLocator: Locator = locator,
+  backdropLocator?: Locator,
+) {
+  const [foregroundValue, backgroundValue, backdropValue] = await Promise.all([
+    locator.evaluate(element => getComputedStyle(element).color),
+    backgroundLocator.evaluate(element => getComputedStyle(element).backgroundColor),
+    backdropLocator
+      ? backdropLocator.evaluate(element => getComputedStyle(element).backgroundColor)
+      : Promise.resolve('rgb(255, 255, 255)'),
+  ]);
+  type Rgba = [number, number, number, number];
+  const parseRgba = (value: string): Rgba => {
+    const channels = value.match(/\d+(?:\.\d+)?/g)?.map(Number);
+    if (!channels || channels.length < 3) throw new Error(`RGB 색상을 해석할 수 없습니다: ${value}`);
+    return [channels[0], channels[1], channels[2], channels[3] ?? 1];
+  };
+  const composite = (foreground: Rgba, background: Rgba): Rgba => {
+    const alpha = foreground[3] + background[3] * (1 - foreground[3]);
+    if (alpha === 0) return [0, 0, 0, 0];
+    return [
+      (foreground[0] * foreground[3]
+        + background[0] * background[3] * (1 - foreground[3])) / alpha,
+      (foreground[1] * foreground[3]
+        + background[1] * background[3] * (1 - foreground[3])) / alpha,
+      (foreground[2] * foreground[3]
+        + background[2] * background[3] * (1 - foreground[3])) / alpha,
+      alpha,
+    ];
+  };
+  const luminance = (color: Rgba) => {
+    const channels = color.slice(0, 3).map(channel => {
+      const normalized = channel / 255;
+      return normalized <= 0.03928
+        ? normalized / 12.92
+        : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const background = composite(parseRgba(backgroundValue), parseRgba(backdropValue));
+  const foreground = composite(parseRgba(foregroundValue), background);
+  const lighter = Math.max(luminance(foreground), luminance(background));
+  const darker = Math.min(luminance(foreground), luminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 function aiUsage() {
@@ -232,7 +254,15 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await quotaDialog.getByRole('button', { name: '확인' }).click();
 
   await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toBeVisible();
-  await expect(page.getByText(/51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다/)).toBeVisible();
+  const interruptionAlert = page.locator('.episode-upload-alert--warning');
+  const interruptionText = interruptionAlert.locator('span');
+  await expect(interruptionText).toContainText('51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
+  await expect(interruptionText).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(
+    interruptionText,
+    interruptionAlert,
+    page.locator('.episode-upload-page'),
+  )).toBeGreaterThanOrEqual(4.5);
   await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toHaveCount(0);
 
   await page.getByRole('button', { name: '남은 비교 확인' }).click();
@@ -287,6 +317,9 @@ test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 �
   await expect(quotaDialog).toBeVisible();
   await quotaDialog.getByRole('button', { name: '확인' }).click();
 
+  await expect(page.getByText('삭제되어 사용할 수 없는 회차가 있습니다', { exact: true })).toBeVisible();
+  await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.episode-upload-alert--warning')).toHaveCount(0);
   await expect(page.getByText('사용할 수 없음', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '남은 비교 확인' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '분석 결과를 열 수 없습니다' })).toBeDisabled();
