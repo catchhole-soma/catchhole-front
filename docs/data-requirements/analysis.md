@@ -290,7 +290,7 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 > - 재시도 전 실패 Job은 이력으로 유지하되 목록의 현재 상태·개수·`currentAnalysisJobIds`는 회차별 최신 유효 Job을 기준으로 집계한다.
 > - 완료·실패 분석 묶음을 덮어쓰거나 삭제하지 않으며, 사용자가 이력을 삭제하는 기능은 MVP에서 제공하지 않는다.
 > - `UploadBatch`는 업로드 출처와 목록 카드 단위이고 실제 실행·재시도 단위는 회차별 `AnalysisJob`이다.
-> - `worldSettingTokenInterruptedCandidateCount > 0`이면 서버 배치 상태와 별개로 `세계관 비교 일부 중단`을 우선 표시한다. 액션은 전체 실패 확인이 아니라 `candidateType=world` 설정 검토로 연결한다.
+> - `worldSettingTokenInterruptedCandidateCount > 0`이어도 배치가 `IN_PROGRESS`이면 최종 건수가 확정될 때까지 `분석 중`·`진행 보기`를 유지한다. 모든 현재 Job이 종료된 뒤 `세계관 비교 일부 중단`과 최종 건수를 알리고 `candidateType=world` 설정 검토로 연결한다.
 
 **1. 화면에 표시할 데이터**
 

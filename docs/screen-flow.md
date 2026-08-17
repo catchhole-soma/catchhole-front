@@ -472,6 +472,6 @@ flowchart TD
 
 > 세계관 후보가 `PENDING`·`PROCESSING`이면 목록과 선택 상세를 2초 간격으로 갱신하고 terminal 상태에서 멈춥니다. 확정 충돌의 자동 재비교는 상태 전환마다 한 번만 보내며, 회복 뒤 같은 후보가 다시 충돌하면 새 전환으로 다시 자동 재비교합니다.
 
-> `FAILED + AI_TOKEN_QUOTA_EXHAUSTED` 후보는 단건 재비교 대신 상단 배치 배너에서 정확한 중단 건수와 `남은 비교 재개`를 제공합니다. 버튼은 토큰 중단 후보만 재사용하고 완료·확정·제외·다른 실패 후보를 건드리지 않으며, 요청 뒤 기존 polling으로 `PENDING → PROCESSING → COMPLETED/FAILED`를 갱신합니다. Pencil 기준 프레임은 `wrP124`(`SSettingReview / 세계관 비교 일부 중단 · 일괄 재개`)입니다.
+> `FAILED + AI_TOKEN_QUOTA_EXHAUSTED` 후보는 단건 재비교 대신 상단 배치 배너에서 정확한 중단 건수와 `남은 비교 재개`를 제공합니다. 버튼은 토큰 중단 후보만 재사용하고 완료·확정·제외·다른 실패 후보를 건드리지 않으며, 요청 뒤 기존 polling으로 `PENDING → PROCESSING → COMPLETED/FAILED`를 갱신합니다. 목록의 활성 비교 Job 수가 0이 될 때까지 재개된 `PENDING`의 단건 재시도를 막아 탭 전환·새로고침에서도 배치 재개 흐름을 유지합니다. Pencil 기준 프레임은 `wrP124`(`SSettingReview / 세계관 비교 일부 중단 · 일괄 재개`)입니다.
 
 > 세계관 후보 목록의 최초 조회가 실패해도 공통 캐릭터·세계관 후보 탭은 오류 상태 위에 유지하여 정상 조회 가능한 다른 후보 종류로 이동할 수 있습니다.

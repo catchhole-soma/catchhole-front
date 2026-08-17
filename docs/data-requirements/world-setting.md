@@ -205,7 +205,7 @@ FE는 그룹 안에 `PENDING`·`PROCESSING` 후보가 하나라도 있으면 2�
 - `MERGED`는 enum을 노출하지 않고 `여러 내용 정리됨`과 `여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.`로 표시한다.
 - `CONFLICT`는 `내용 확인 필요`로 표시하고 서로 다른 추출값과 각 1차 원문을 모두 보여준다. 사용자가 `수정`에서 하나의 최종 설정값을 저장하기 전에는 `모두 확정`을 잠그되 해당 row의 `제외`는 허용한다.
 - 재비교 중에는 이전 diff를 지우지 않고 muted 처리하며 1차 추출 원문은 그대로 유지한다.
-- 중단 후보 일괄 재개는 `POST /api/v1/works/{workId}/world-setting-candidates/batches/{batchId}/resume-token-interrupted`를 한 번 호출한다. 성공 응답의 재개·활성·잔여 중단 수를 안내하고 목록과 분석 배치 집계를 다시 조회한다. 반복 클릭과 진행 중에는 버튼을 잠그며, 후보별 활성 Job 중복 여부를 FE가 추측하지 않는다.
+- 중단 후보 일괄 재개는 `POST /api/v1/works/{workId}/world-setting-candidates/batches/{batchId}/resume-token-interrupted`를 한 번 호출한다. 성공 응답의 재개·활성·잔여 중단 수를 안내하고 목록과 분석 배치 집계를 다시 조회한다. 반복 클릭과 진행 중에는 버튼을 잠그며, 목록의 `activeComparisonJobCount > 0`인 동안은 화면 재진입 후에도 `PENDING` 후보를 단건 재시도하지 않는다. 해당 값이 0이면서 `PENDING`인 후보만 활성 Job이 사라진 복구 대상으로 처리한다.
 
 ### 1. 화면에 표시할 데이터
 
