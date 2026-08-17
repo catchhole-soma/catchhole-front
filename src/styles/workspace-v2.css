@@ -153,6 +153,7 @@
 .analysis-status { flex-shrink: 0; padding: 4px 10px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: 800; }
 .analysis-tone--primary { color: var(--ch-primary); background: rgb(8 126 242 / 8%); }
 .analysis-tone--warning { color: var(--ch-warning); background: rgb(217 131 36 / 8%); }
+.analysis-status.analysis-tone--warning { border-color: var(--ch-warning); color: var(--ch-warning-ink); }
 .analysis-tone--danger { color: var(--ch-danger); background: rgb(223 77 95 / 8%); }
 .analysis-tone--success { color: var(--ch-success); background: rgb(15 159 122 / 8%); }
 .analysis-batch-card__description { margin-bottom: 12px; color: var(--ch-text-muted); font-size: 12px; }

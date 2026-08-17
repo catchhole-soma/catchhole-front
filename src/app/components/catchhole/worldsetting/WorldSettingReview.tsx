@@ -56,6 +56,10 @@ type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
 type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
 type StatusPresentation = { label: string; color: string; textColor?: string };
+type InterruptionNoticeState = {
+  activeBaselineCount: number | null;
+  lastSettledCount: number | null;
+};
 
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
@@ -466,7 +470,7 @@ function groupStatusMeta(group: WorldSettingCandidateGroupResponse): StatusPrese
     case 'FAILED': return failureKind === 'TOKEN_INTERRUPTED'
       ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
       : failureKind === 'MIXED'
-        ? { label: '비교 중단·실패 혼합', color: C.danger }
+        ? { label: '비교 중단·실패 혼합', color: C.danger, textColor: 'var(--ch-danger-ink)' }
         : { label: '비교 실패', color: C.danger };
     case 'RECOMPARISON_REQUIRED': return {
       label: group.recomparisonScope === 'GROUP' ? '그룹 재비교 필요' : '일부 재비교 필요',
@@ -1601,16 +1605,34 @@ export function WorldSettingReview() {
   const resumeError = resumeInterruptedMutation.variables?.path.batchId === batchId
     ? resumeInterruptedMutation.error
     : null;
-  const notifiedInterruptedBatchIds = useRef(new Set<string>());
+  const interruptionNoticeStates = useRef(new Map<string, InterruptionNoticeState>());
 
   useEffect(() => {
-    if (tokenInterruptedCount <= 0) {
-      notifiedInterruptedBatchIds.current.delete(batchId);
+    const previousState = interruptionNoticeStates.current.get(batchId) ?? {
+      activeBaselineCount: null,
+      lastSettledCount: null,
+    };
+    if (activeComparisonJobCount > 0) {
+      const activeBaselineCount = previousState.activeBaselineCount === null
+        ? tokenInterruptedCount
+        : Math.min(previousState.activeBaselineCount, tokenInterruptedCount);
+      interruptionNoticeStates.current.set(batchId, { ...previousState, activeBaselineCount });
       return;
     }
-    if (activeComparisonJobCount > 0) return;
-    if (notifiedInterruptedBatchIds.current.has(batchId)) return;
-    notifiedInterruptedBatchIds.current.add(batchId);
+    if (tokenInterruptedCount <= 0) {
+      interruptionNoticeStates.current.delete(batchId);
+      return;
+    }
+
+    const comparisonBaseline = previousState.activeBaselineCount ?? previousState.lastSettledCount;
+    const shouldNotify = previousState.lastSettledCount === null
+      || (comparisonBaseline !== null && tokenInterruptedCount > comparisonBaseline);
+    interruptionNoticeStates.current.set(batchId, {
+      activeBaselineCount: null,
+      lastSettledCount: tokenInterruptedCount,
+    });
+    if (!shouldNotify) return;
+
     notifyAiTokenQuotaExhausted({
       kind: 'analysis-interrupted',
       interruptedComparisonCount: tokenInterruptedCount,

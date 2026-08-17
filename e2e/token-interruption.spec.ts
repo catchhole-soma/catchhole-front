@@ -505,6 +505,17 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
   await expect(quotaDialog).toContainText('3개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
   await quotaDialog.getByRole('button', { name: '확인' }).click();
 
+  const interruptedOnlyCard = page.getByRole('article').filter({ hasText: '14화' });
+  const interruptedStatus = interruptedOnlyCard.getByText('세계관 비교 일부 중단', { exact: true });
+  await expect(interruptedStatus).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(
+    interruptedStatus,
+    interruptedStatus,
+    interruptedOnlyCard,
+  )).toBeGreaterThanOrEqual(4.5);
+  await expect(interruptedOnlyCard.locator('.analysis-batch-card__icon.analysis-tone--warning'))
+    .toHaveCSS('color', 'rgb(217, 131, 36)');
+
   const mixedFailureCard = page.getByRole('article').filter({ hasText: '12~13화' });
   await expect(mixedFailureCard.getByText('일부 실패', { exact: true })).toBeVisible();
   await expect(mixedFailureCard.getByRole('button', { name: '실패 확인' })).toBeVisible();
@@ -965,12 +976,117 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
   await quotaDialog.getByRole('button', { name: '확인' }).click();
 
   const mixedFailureNotice = page.getByRole('status').filter({ hasText: '비교 중단·실패 혼합' });
+  const mixedFailureBadge = page.locator('.world-candidate-group-card .review-badge')
+    .filter({ hasText: '비교 중단·실패 혼합' });
   await expect(mixedFailureNotice).toBeVisible();
   await expect(mixedFailureNotice).toContainText(
     '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.',
   );
+  for (const label of [mixedFailureBadge, mixedFailureNotice]) {
+    await expect(label).toHaveCSS('color', 'rgb(161, 38, 58)');
+  }
+  expect(await computedContrastRatio(
+    mixedFailureBadge,
+    mixedFailureBadge,
+    page.locator('.world-candidate-group-card.is-selected'),
+  )).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(
+    mixedFailureNotice,
+    mixedFailureNotice,
+    page.locator('.world-candidate-detail-card'),
+  )).toBeGreaterThanOrEqual(4.5);
   await expect(page.getByRole('button', { name: '남은 비교 재개' })).toBeEnabled();
   await expect(page.getByRole('button', { name: '다시 비교' })).toBeEnabled();
+});
+
+test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', async ({ page }) => {
+  let phase: 'INTERRUPTED' | 'ACTIVE_WITH_REMAINDER' | 'REINTERRUPTED' | 'SETTLED_REMAINDER'
+    = 'INTERRUPTED';
+  let resumeRequestCount = 0;
+  let worldCandidateRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
+      && request.method() === 'GET') {
+      worldCandidateRequestCount += 1;
+      if (phase === 'ACTIVE_WITH_REMAINDER') {
+        return success(route, worldCandidateList('PENDING', 2, {
+          pendingComparisonCount: 1,
+          activeComparisonJobCount: 1,
+          failedComparisonCount: 1,
+          tokenInterruptedComparisonCount: 1,
+          canResumeTokenInterruptedComparisons: true,
+        }));
+      }
+      return success(route, worldCandidateList(
+        'FAILED',
+        phase === 'SETTLED_REMAINDER' ? 1 : 2,
+      ));
+    }
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates/batches/${batchId}/resume-token-interrupted`
+      && request.method() === 'POST') {
+      resumeRequestCount += 1;
+      phase = 'ACTIVE_WITH_REMAINDER';
+      return success(route, {
+        batchId,
+        resumedCandidateCount: 1,
+        activeCandidateCount: 1,
+        remainingInterruptedCandidateCount: 1,
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+  await expect.poll(() => resumeRequestCount).toBe(1);
+  await expect(page.getByText(
+    '1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
+    { exact: true },
+  )).toBeVisible();
+  await expect(quotaDialog).toHaveCount(0);
+
+  const requestsBeforeReinterruption = worldCandidateRequestCount;
+  phase = 'REINTERRUPTED';
+  await expect.poll(() => worldCandidateRequestCount).toBeGreaterThan(requestsBeforeReinterruption);
+  await expect(quotaDialog).toBeVisible({ timeout: 5_000 });
+  await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
+  await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  await page.getByRole('button', { name: '남은 비교 재개' }).click();
+  await expect.poll(() => resumeRequestCount).toBe(2);
+  await expect(quotaDialog).toHaveCount(0);
+
+  const requestsBeforeSuccessfulSettlement = worldCandidateRequestCount;
+  phase = 'SETTLED_REMAINDER';
+  await expect.poll(() => worldCandidateRequestCount).toBeGreaterThan(requestsBeforeSuccessfulSettlement);
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect(quotaDialog).toHaveCount(0);
 });
 
 test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요를 표시한다', async ({ page }) => {
