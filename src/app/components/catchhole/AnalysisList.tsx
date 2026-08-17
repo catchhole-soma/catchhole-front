@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router';
 import {
@@ -16,7 +16,10 @@ import type {
   AnalysisBatchSummaryResponse,
 } from '../../api/generated/types.gen';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
-import { notifyAiTokenQuotaExhausted } from '../../lib/ai-token-quota';
+import {
+  notifyAiTokenQuotaExhausted,
+  observeAnalysisInterruption,
+} from '../../lib/ai-token-quota';
 import { PageNavigation } from './PageNavigation';
 import { PageHeading } from './ui-v2/PageHeading';
 
@@ -179,7 +182,6 @@ export function AnalysisList({ workId }: { workId: string }) {
   });
   const pageData = analysisQuery.data?.data;
   const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
-  const notifiedInterruptedBatchIds = useRef(new Set<string>());
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
 
@@ -193,20 +195,16 @@ export function AnalysisList({ workId }: { workId: string }) {
   }, [page, pageData, setSearchParams, totalPages]);
 
   useEffect(() => {
-    batches.forEach(batch => {
-      if (batch.batchId && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) <= 0) {
-        notifiedInterruptedBatchIds.current.delete(batch.batchId);
-      }
+    const interruptedBatches = batches.filter(batch => {
+      if (!batch.batchId) return false;
+      const shouldNotify = observeAnalysisInterruption({
+        batchId: batch.batchId,
+        interruptedComparisonCount: batch.worldSettingTokenInterruptedCandidateCount ?? 0,
+        active: batch.status === 'IN_PROGRESS',
+      });
+      return hasSettledTokenInterruption(batch) && shouldNotify;
     });
-    const interruptedBatches = batches.filter(batch => (
-      batch.batchId
-      && hasSettledTokenInterruption(batch)
-      && !notifiedInterruptedBatchIds.current.has(batch.batchId)
-    ));
     if (interruptedBatches.length === 0) return;
-    interruptedBatches.forEach(batch => {
-      if (batch.batchId) notifiedInterruptedBatchIds.current.add(batch.batchId);
-    });
     notifyAiTokenQuotaExhausted({
       kind: 'analysis-interrupted',
       interruptedComparisonCount: interruptedBatches.reduce(

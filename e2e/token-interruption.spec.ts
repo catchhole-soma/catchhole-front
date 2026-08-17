@@ -269,6 +269,15 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await page.getByRole('button', { name: '남은 비교 확인' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+  await expect(page.locator('.setting-review-screen')).toBeVisible();
+  await expect(page.getByText(
+    '51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
+    { exact: true },
+  )).toBeVisible();
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect(quotaDialog).toHaveCount(0);
 });
 
 test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽을 수 있다', async ({ page }) => {
@@ -804,6 +813,20 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
   await quotaDialog.getByRole('button', { name: '확인' }).click();
+
+  await page.getByRole('button', { name: /캐릭터 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBeNull();
+  await page.getByRole('button', { name: /세계관 후보/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
+  await expect(page.getByText(
+    '1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
+    { exact: true },
+  )).toBeVisible();
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect(quotaDialog).toHaveCount(0);
+
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
   await expect.poll(() => resumeRequestCount).toBe(1);
 
@@ -1287,9 +1310,14 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
   await expect.poll(() => new URL(page.url()).pathname).toBe('/setting-review');
 
   const reviewQuotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
-  await expect(reviewQuotaDialog).toBeVisible();
-  await expect(reviewQuotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await reviewQuotaDialog.getByRole('button', { name: '확인' }).click();
+  await expect(page.getByText(
+    '2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.',
+    { exact: true },
+  )).toBeVisible();
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect(reviewQuotaDialog).toHaveCount(0);
   const analysisBatchRequestsBeforeResume = analysisBatchRequestCount;
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 

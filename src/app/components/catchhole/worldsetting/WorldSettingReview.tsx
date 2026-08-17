@@ -40,7 +40,10 @@ import type {
 import { useAppNavigate } from '../../../hooks/useAppNavigate';
 import { returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
-import { notifyAiTokenQuotaExhausted } from '../../../lib/ai-token-quota';
+import {
+  notifyAiTokenQuotaExhausted,
+  observeAnalysisInterruption,
+} from '../../../lib/ai-token-quota';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
@@ -56,10 +59,6 @@ type CategoryFilter = WorldCategory | 'ALL';
 type OperationFilter = WorldOperation | 'ALL';
 type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
 type StatusPresentation = { label: string; color: string; textColor?: string };
-type InterruptionNoticeState = {
-  activeBaselineCount: number | null;
-  lastSettledCount: number | null;
-};
 
 const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
@@ -1594,6 +1593,7 @@ export function WorldSettingReview() {
   const worldTotal = listData?.totalCandidateCount ?? 0;
   const worldReviewed = listData?.reviewedCandidateCount ?? 0;
   const worldPending = listData?.pendingCandidateCount ?? 0;
+  const worldSummaryLoaded = listData !== undefined;
   const tokenInterruptedCount = listData?.tokenInterruptedComparisonCount ?? 0;
   const activeWorldComparisonCount = (listData?.pendingComparisonCount ?? 0)
     + (listData?.processingComparisonCount ?? 0);
@@ -1605,32 +1605,12 @@ export function WorldSettingReview() {
   const resumeError = resumeInterruptedMutation.variables?.path.batchId === batchId
     ? resumeInterruptedMutation.error
     : null;
-  const interruptionNoticeStates = useRef(new Map<string, InterruptionNoticeState>());
-
   useEffect(() => {
-    if (resumeRequestPending) return;
-    const previousState = interruptionNoticeStates.current.get(batchId) ?? {
-      activeBaselineCount: null,
-      lastSettledCount: null,
-    };
-    if (activeComparisonJobCount > 0) {
-      const activeBaselineCount = previousState.activeBaselineCount === null
-        ? tokenInterruptedCount
-        : Math.min(previousState.activeBaselineCount, tokenInterruptedCount);
-      interruptionNoticeStates.current.set(batchId, { ...previousState, activeBaselineCount });
-      return;
-    }
-    if (tokenInterruptedCount <= 0) {
-      interruptionNoticeStates.current.delete(batchId);
-      return;
-    }
-
-    const comparisonBaseline = previousState.activeBaselineCount ?? previousState.lastSettledCount;
-    const shouldNotify = previousState.lastSettledCount === null
-      || (comparisonBaseline !== null && tokenInterruptedCount > comparisonBaseline);
-    interruptionNoticeStates.current.set(batchId, {
-      activeBaselineCount: null,
-      lastSettledCount: tokenInterruptedCount,
+    if (!worldSummaryLoaded || resumeRequestPending) return;
+    const shouldNotify = observeAnalysisInterruption({
+      batchId,
+      interruptedComparisonCount: tokenInterruptedCount,
+      active: activeComparisonJobCount > 0,
     });
     if (!shouldNotify) return;
 
@@ -1638,7 +1618,13 @@ export function WorldSettingReview() {
       kind: 'analysis-interrupted',
       interruptedComparisonCount: tokenInterruptedCount,
     });
-  }, [activeComparisonJobCount, batchId, resumeRequestPending, tokenInterruptedCount]);
+  }, [
+    activeComparisonJobCount,
+    batchId,
+    resumeRequestPending,
+    tokenInterruptedCount,
+    worldSummaryLoaded,
+  ]);
 
   const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterReviewed = characterSummary?.reviewedCandidateCount ?? 0;

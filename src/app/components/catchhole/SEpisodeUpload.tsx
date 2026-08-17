@@ -40,7 +40,10 @@ import type {
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { toApiError } from '../../lib/api-errors';
-import { notifyAiTokenQuotaExhausted } from '../../lib/ai-token-quota';
+import {
+  notifyAiTokenQuotaExhausted,
+  observeAnalysisInterruption,
+} from '../../lib/ai-token-quota';
 import { validateManuscriptFile } from '../../lib/fileValidation';
 import { C } from './constants';
 import { FileDropArea } from './S1Dashboard';
@@ -826,6 +829,15 @@ export default function SEpisodeUpload() {
           // 최신 집계를 가져오지 못해도 중단 사실은 기존 응답의 일반 문구로 안내한다.
         }
       }
+      const shouldNotifyInterruption = episodeUploadBatchId
+        && interruptedComparisonCount !== undefined
+        && interruptedComparisonCount > 0
+        ? observeAnalysisInterruption({
+            batchId: episodeUploadBatchId,
+            interruptedComparisonCount,
+            active: false,
+          })
+        : true;
       if (failedEpisodeCount > 0) {
         notifyAiTokenQuotaExhausted({
           kind: 'analysis-failed',
@@ -835,6 +847,7 @@ export default function SEpisodeUpload() {
         });
         return;
       }
+      if (!shouldNotifyInterruption) return;
 
       notifyAiTokenQuotaExhausted({
         kind: 'analysis-interrupted',
