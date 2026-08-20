@@ -282,6 +282,10 @@ GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
 
 **URL**: `/dashboard?workId={workId}&nav=analyses&analysisPage={1 이상의 정수}`
 
+![분석 목록](../screens/nXmxb.png)
+
+모바일: [분석 목록](../screens/Pu7UQ.png)
+
 사이드 메뉴의 `분석 목록`에서 같은 작품의 분석을 `UploadBatch` 단위로 조회하는 화면이다. 한 번에 함께 올린 회차들의 Job과 설정 후보 검토 상태를 한 카드로 집계하며, `SETTING_EXTRACTION`과 `EPISODE_VALIDATION`이 같은 배치에 있으면 목적별 하위 요약은 유지하되 카드 액션은 배치 상태에 맞는 버튼 하나만 표시한다.
 
 > **목록·보존 정책**

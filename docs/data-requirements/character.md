@@ -26,7 +26,9 @@
 
 **URL**: [`/dashboard?nav=settingDB&tab=characters`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters)
 
-![설정DB - 캐릭터 탭](../screens/qdK5y.png)
+![작품 설정 - 캐릭터 탭](../screens/qwIxE.png)
+
+상태 화면: [빈 화면](../screens/gzJ1t.png) · [모바일 목록](../screens/vcZ0l.png) · [모바일 빈 화면](../screens/HEOL8.png)
 
 작품에 확정 등록된 캐릭터의 현재 대표 설정을 카드로 확인하고, 캐릭터 상세 정보로 진입하는 화면.
 
@@ -74,7 +76,7 @@
 
 **4. 데이터 없음 / 실패 표시**
 - 목록 조회 중 로딩
-- 등록된 캐릭터가 없으면 빈 상태 표시 ([빈 상태](../screens/VFxs5.png))
+- 등록된 캐릭터가 없으면 빈 상태 표시 ([빈 상태](../screens/gzJ1t.png))
   - 안내 문구: `등록된 캐릭터가 없습니다`
   - 설명 문구: `원고를 분석하여 캐릭터를 추출해 보세요!`
   - 회차 업로드로 이동하는 `원고 분석하기` 버튼 제공
@@ -136,9 +138,11 @@
 
 캐릭터 DB 상세에서 현재 설정을 확인한 뒤 관심 있는 현재 설정 또는 설정 종류 전체의 `CharacterFact` 이력을 회차별로 확인하는 읽기 전용 화면이다. 독립된 캐릭터 타임라인 탭과 중복 캐릭터 목록은 두지 않는다.
 
-**Pencil 디자인 원본**: `CharDetailModal / 변화 이력 분할 탐색 (MVP)` (`aOsEn`)
+**Pencil 디자인 원본**: `Active / Dashboard / Character / Timeline` (`U1NvMI`)
 
-![캐릭터 상세와 우측 변화 이력 분할 탐색](../screens/aOsEn.png)
+![캐릭터 상세와 우측 변화 이력 분할 탐색](../screens/U1NvMI.png)
+
+원문 근거와 모바일 상태: [원문 근거](../screens/L9X98.png) · [모바일 변화 이력](../screens/iTKWY.png) · [모바일 원문 근거](../screens/avQr2.png)
 
 > **MVP 범위 메모**
 > - 설정DB의 기본 진입은 `캐릭터 DB`이며 캐릭터 상세 헤더의 강조된 `변화 이력 보기`로 진입한다.
@@ -503,7 +507,9 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 **URL**: [`/dashboard?nav=settingDB&tab=worldrules`](https://www.catchhole.com/dashboard?nav=settingDB&tab=worldrules)
 
-![설정DB - 설정집 목록 탭](../screens/Y1Sha3.png)
+![작품 설정 - 설정집 목록 탭](../screens/K6GRx.png)
+
+상태 화면: [목록 오류](../screens/Sd1Ta.png) · [모바일 목록](../screens/aHv0p.png) · [모바일 오류](../screens/pF816.png)
 
 사용자가 작품에 업로드한 설정집 목록을 확인하고, 선택한 설정집의 전체 원문을 조회하는 화면.
 
@@ -603,7 +609,9 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 사용자가 회차 원고 없이 설정집 파일만 작품에 업로드하는 모달.
 
-![설정집 업로드 모달](../screens/dMyKy.png)
+![설정집 업로드 모달](../screens/q9943P.png)
+
+관련 상태: [설정집 원문](../screens/EKMej.png) · [설정집 수정](../screens/M9yHf.png) · [설정집 삭제](../screens/HvXB9.png) · [모바일 원문](../screens/d7udl.png) · [모바일 업로드](../screens/zs7vW.png) · [모바일 수정](../screens/V1eDie.png) · [모바일 삭제](../screens/xE0mn.png)
 
 > **MVP 범위 메모**: 한 번에 설정집 파일 하나를 업로드한다. 설정집 이름을 별도로 입력하지 않고 원본 파일명을 화면 표시명으로 사용한다. 같은 작품에 동일한 파일명의 설정집을 다시 업로드해도 기존 파일을 덮어쓰지 않고 새 파일로 누적한다.
 
@@ -654,7 +662,9 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 **URL**: [`/dashboard?nav=settingDB&tab=search`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search)
 
-![설정DB - 검색 탭 MVP](../screens/C37O20.png)
+![작품 설정 - 검색 탭](../screens/ReWhO.png)
+
+상태 화면: [검색 결과](../screens/L1od3L.png) · [모바일 검색](../screens/i5MSr.png) · [모바일 검색 결과](../screens/mEXrW.png)
 
 작품에 확정 등록된 캐릭터 설정의 현재값과 과거 이력을 키워드로 검색하는 화면. 검색 결과의 기준 데이터는 `CharacterFact`이며, 캐릭터 자체를 별도의 검색 결과로 만들지 않는다. 캐릭터 탭이 캐릭터별 현재 대표 설정을 보여준다면, 검색 탭은 개별 설정이 어느 캐릭터에게 속하고 언제 확인되었는지 작품 전체에서 탐색하는 역할을 한다.
 
@@ -785,7 +795,9 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 **URL**: [`/dashboard?nav=settingDB&tab=search&modal=fact-detail&factId={characterFactId}`](https://www.catchhole.com/dashboard?nav=settingDB&tab=search&modal=fact-detail)
 
-![설정DB 검색 결과 상세 모달 MVP](../screens/XVvBu.png)
+![설정DB 검색 결과 상세 모달](../screens/fcHt3.png)
+
+모바일: [검색 결과 상세 모달](../screens/lQbKU.png)
 
 검색 결과로 선택한 하나의 `CharacterFact`를 현재 snapshot 기여 여부와 무관하게 동일한 형식으로 조회하는 모달. 캐릭터 상세 모달을 재사용하지 않으며, `CharacterFact`의 사용자용 값과 해당 설정이 추출된 원문 근거를 함께 보여준다.
 
@@ -890,19 +902,21 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 **현재 MVP 범위 화면**
 
-![캐릭터 상세 모달 MVP](../screens/nvylp.png)
+![캐릭터 상세 모달 MVP](../screens/tj8LW.png)
 
 **수정 상태**
 
-![캐릭터 상세 수정](../screens/r1XIT.png)
+![캐릭터 상세 수정](../screens/I5Fso.png)
 
 **삭제 확인 상태**
 
-![캐릭터 삭제 확인](../screens/ZDc0T.png)
+![캐릭터 삭제 확인](../screens/Xf3Ke.png)
 
 **원문 근거 상태**
 
-![캐릭터 설정 원문 근거](../screens/dHtfw.png)
+![캐릭터 설정 원문 근거](../screens/L9X98.png)
+
+모바일 상태: [상세](../screens/OJ8U3.png) · [수정](../screens/F7DM8x.png) · [삭제](../screens/BPzS2.png) · [원문 근거](../screens/avQr2.png)
 
 **원문 청크 Fallback 참고 상태 — MVP 이후**
 
@@ -970,7 +984,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 - 편집 중 저장 선택 → 수정 영향 경고 확인 후 변경된 전체 데이터를 한 번에 저장
 - 저장·삭제 성공 안내는 카드 목록의 높이와 반응형 페이지 크기를 바꾸지 않도록 화면 우측 상단의 고정 토스트로 표시하고 3초 뒤 자동으로 닫는다.
 - 편집 중 취소 선택 → 저장하지 않고 조회 상태로 복귀
-- 삭제 선택 → [삭제 확인 상태](../screens/ZDc0T.png)에서 영향 안내 후 soft delete 실행
+- 삭제 선택 → [삭제 확인 상태](../screens/Xf3Ke.png)에서 영향 안내 후 soft delete 실행
 - 삭제 완료 → 상세 모달을 닫고 캐릭터 목록 새로고침
 - 보관된 캐릭터 선택 → 보관함 목록 열기
 - 보관함에서 복구 선택 → 캐릭터를 `ACTIVE` 상태로 복구하고 활성 목록과 보관함 목록 새로고침
@@ -1132,23 +1146,27 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 
 **URL**: [`/setting-review`](https://www.catchhole.com/setting-review)
 
-![설정 후보 검토](../screens/f0EDt.png)
+![설정 후보 검토](../screens/GEwV9.png)
 
 **캐릭터 연결 필요 상태**
 
-![설정 후보 캐릭터 연결 필요](../screens/N4Py2r.png)
+![설정 후보 캐릭터 연결 필요](../screens/tkzUG.png)
 
 **캐릭터 연결 모달**
 
-![설정 후보 캐릭터 연결 모달](../screens/P178Ug.png)
+![설정 후보 캐릭터 연결 모달](../screens/CLEWm.png)
 
 **후보 수정 상태**
 
-![설정 후보 수정](../screens/CKQtd.png)
+![설정 후보 수정](../screens/y45NnK.png)
+
+비교·처리 상태: [기존값 비교](../screens/bRWx4.png) · [잘못된 값](../screens/j1NtXh.png) · [확정](../screens/t8RwO.png) · [무시](../screens/Sq2dV.png)
 
 **검토 완료 상태**
 
-![설정 후보 검토 완료](../screens/VkfXH.png)
+![설정 후보 검토 완료](../screens/Tlo6V.png)
+
+모바일 상태: [후보 목록](../screens/tWOIq.png) · [후보 상세](../screens/cL04l.png) · [연결 필요](../screens/oOlBk.png) · [연결 모달](../screens/NMf3n.png) · [수정](../screens/b6aDbe.png) · [비교](../screens/YNGIx.png) · [잘못된 값](../screens/VTSqu.png) · [확정](../screens/jrDrl.png) · [무시](../screens/azPDc.png) · [완료](../screens/q9BUCW.png)
 
 회차 업로드 후 하나의 업로드 묶음에 속한 회차별 설정 추출 Job들이 만든 캐릭터 후보를 원문 근거와 함께 검토하는 화면. 이 문단은 캐릭터 연결·설정값 보정·확정·무시 계약을 다룬다. 같은 라우트의 `세계관 후보` 탭 계약은 [세계관 설정 요구사항](./world-setting.md#설정-후보-검토--세계관-후보-탭)을 따른다.
 

@@ -37,9 +37,9 @@ MVP 이후 설정집 분석·추출을 지원하면, 설정집을 포함한 업�
 
 ### 1. 업로드 방식 선택
 
-![업로드 방식 선택](../screens/fREKM.png)
+![업로드 방식 선택](../screens/jVn52.png)
 
-상태 화면: [작품 정보 로딩](../screens/bLnuy.png) · [작품 없음·접근 실패](../screens/z2zFht.png)
+모바일: [업로드 방식 선택](../screens/Wmbk0.png)
 
 **1. 화면에 표시할 데이터**
 
@@ -103,9 +103,9 @@ MVP 이후 설정집 분석·추출을 지원하면, 설정집을 포함한 업�
 
 ### 2A. 단일 회차 입력
 
-![단일 회차 입력](../screens/Yr63L.png)
+![단일 회차 입력](../screens/tjfyu.png)
 
-상태 화면: [설정집 동반 업로드](../screens/l7ThWN.png) · [입력 검증 오류](../screens/oy2N6.png) · [제출 중](../screens/XQUqV.png) · [전체 저장 실패](../screens/MwTeh.png) · [설정집 저장 부분 실패](../screens/a4PuBU.png) · [분석 시작 실패](../screens/ylHJO.png)
+상태 화면: [제출 오류](../screens/OUTlR.png) · [저장 오류](../screens/J8ntVe.png) · [분석 시작 오류](../screens/CaTUO.png) · [모바일 단일 회차](../screens/gQ59w.png) · [모바일 제출 오류](../screens/NXgym.png) · [모바일 저장 오류](../screens/T3NgR1.png) · [모바일 분석 시작 오류](../screens/uaEWq.png)
 
 **1. 화면에 표시할 데이터**
 
@@ -304,9 +304,9 @@ BE가 각 작업 응답으로 제공하거나 FE가 다시 조회해 다음 최�
 
 ### 2B. 다회차 단일 파일 입력
 
-![다회차 단일 파일 업로드](../screens/geQNP.png)
+![다회차 단일 파일 업로드](../screens/PPLI2.png)
 
-상태 화면: [파일 선택 전](../screens/fuMQf.png) · [회차 표기 감지 중](../screens/o7G4rR.png) · [파일 수정 필요](../screens/k5bZG.png) · [감지 처리 실패·재시도](../screens/Rrr2Y.png) · [설정집 동반 업로드](../screens/DvXMi.png)
+상태 화면: [회차 감지](../screens/ovaQg.png) · [감지 결과 수정](../screens/B5prq7.png) · [감지 결과 확정](../screens/upMSP.png) · [모바일 다회차 단일 파일](../screens/FcCp1.png)
 
 **1. 화면에 표시할 데이터**
 
@@ -485,9 +485,9 @@ BE가 각 작업 응답으로 제공하거나 FE가 다시 조회해 다음 최�
 
 ### 2C. 다회차 여러 파일
 
-![다회차 여러 파일 업로드](../screens/uBFUN.png)
+![다회차 여러 파일 업로드](../screens/TpNgS.png)
 
-상태 화면: [파일 부족](../screens/QRoWj.png) · [파일별 감지 중](../screens/Rl55g.png) · [파일 매핑 오류](../screens/zn57U.png) · [제출 중](../screens/MB9fo.png) · [회차 묶음 저장 실패](../screens/I9lwP.png) · [설정집 동반 업로드](../screens/rviD9.png) · [설정집 저장 부분 실패](../screens/FBHjx.png) · [분석 시작 실패](../screens/O59oE.png)
+상태 화면: [회차 감지](../screens/ovaQg.png) · [감지 결과 수정](../screens/B5prq7.png) · [감지 결과 확정](../screens/upMSP.png) · [모바일 다회차 여러 파일](../screens/SHRff.png) · [모바일 감지](../screens/UnbrS.png) · [모바일 수정](../screens/I1iSW7.png) · [모바일 확정](../screens/g5Z2J6.png)
 
 **1. 화면에 표시할 데이터**
 
@@ -709,9 +709,9 @@ BE가 각 작업 응답으로 제공하거나 FE가 다시 조회해 다음 최�
 
 ### 3. 회차 분리 확인
 
-![회차 분리 확인](../screens/lTe6i.png)
+![회차 분리 확인](../screens/upMSP.png)
 
-상태 화면: [번호 검증 오류](../screens/D9but.png) · [원문 미리보기 실패](../screens/sdY7e.png) · [확정 중](../screens/Qs9Pe.png) · [회차 묶음 저장 실패](../screens/JtOgg.png) · [설정집 저장 부분 실패](../screens/G2LBO.png) · [분석 시작 실패](../screens/SidGN.png)
+상태 화면: [감지 결과](../screens/ovaQg.png) · [회차 수정](../screens/B5prq7.png) · [제출 오류](../screens/OUTlR.png) · [저장 오류](../screens/J8ntVe.png) · [분석 시작 오류](../screens/CaTUO.png)
 
 > 2B(다회차 단일 파일)에서 정상 감지된 회차가 2개 이상일 때만 거치는 단계. 감지 결과와 원본 파일은 서버가 아닌 현재 FE 메모리에만 유지한다. MVP에서는 감지된 원문 경계를 합치거나 나누거나 제외하지 않고, 회차 번호·제목을 보정한 뒤 전체 원문을 회차 묶음으로 확정한다.
 
@@ -942,9 +942,11 @@ Pencil 화면도 `Post-MVP` 범위로 표시하며, MVP 진행 단계와 Workflo
 
 ### 5. 분석 진행
 
-![분석 진행 중](../screens/zbVd6.png)
+![분석 진행 중](../screens/rPfF6.png)
 
-상태 화면: [분석 대기](../screens/VqDrM.png) · [신규 회차 검수 성공](../screens/OMNgq.png) · [기존 설정 구축 성공](../screens/Qh8iV.png) · [일부 회차 실패](../screens/t5QRh.png) · [전체 분석 실패](../screens/uA6hL.png) · [상태 조회 실패](../screens/msuRC.png) · [실패 회차 재시도 중](../screens/sWguu.png) · [결과 준비 중](../screens/UbGMS.png) · [회차별 목록 조회 실패](../screens/z6f3CA.png) · [작업 없음·접근 실패](../screens/UYw6G.png)
+상태 화면: [분석 대기](../screens/mKUiF.png) · [성공](../screens/q7i9sY.png) · [일부 실패](../screens/EpcUf.png) · [전체 실패](../screens/FdtXC.png) · [재시도 중](../screens/IKvpG.png) · [토큰 중단](../screens/rPbgJ.png) · [토큰 재개](../screens/U1n9lr.png)
+
+모바일 상태: [진행](../screens/b76AT.png) · [대기](../screens/bWQAd.png) · [성공](../screens/GX0tY.png) · [일부 실패](../screens/MTIPX.png) · [전체 실패](../screens/Z4gLj.png) · [재시도](../screens/eegE7.png) · [토큰 중단](../screens/TiKhg.png) · [토큰 재개](../screens/aSWn5.png)
 
 앞 단계에서 회차와 선택 설정집 원본을 저장하고 회차별 분석 작업을 시작한 뒤, 생성된 Job 목록의 진행 상태를 집계하는 업로드 전용 단계다. `UploadBatch`는 재진입 문맥과 업로드 출처를 묶고, 실제 실행·실패 단위는 회차별 `AnalysisJob`이다. 이 화면에서 회차를 새로 만들거나 오류를 검토하지 않는다.
 
