@@ -1,177 +1,125 @@
-# Pencil 마이그레이션 트래킹
+# Pencil 활성 화면 동기화 트래킹
 
-`design/catchhole.pen`에 CatchHole-front의 모든 화면·모달을 Figma 와이어프레임 대체 수준으로 옮기기 위한 진행 상황 문서입니다. **매 세션 시작 시 이 문서를 먼저 읽고, 다음에 무엇을 할지 정하세요.**
+`design/catchhole.pen`은 CatchHole Front의 실제 브라우저 화면을 기준으로 유지하는 디자인 기준 파일이다. 활성 화면은 `Active / ...` 루트 프레임으로 구분하고, 현재 Front에 연결되지 않은 Post-MVP 시안은 별도 Presentation 영역에 그대로 보존한다.
 
-## 네이밍 규칙
+## 기준과 범위
 
-Pencil 노드 이름은 `<코드 컴포넌트명> / <화면-상태>` 형식을 따릅니다.
+- 기준 브랜치: `design/sync-front-pen`
+- 기준 화면 크기: 데스크톱 `1440×900`, 모바일 `390×844`
+- 동기화 대상: `/landing`, `/login`, `/signup`, `/works`, `/dashboard`, `/editor`, `/episode-upload`, `/setting-review`
+- 함께 관리하는 상태: 접근 가능한 모달·서랍·토스트, 로딩·빈 화면·오류, 제출·저장·분석·재시도, 토큰 중단·재개
+- 제외 대상: `/chat`, `/loading`, `/report`, `/episode-validation-report` 및 현재 `/works`로 리다이렉트되는 미래 화면
+- Front 코드와 API는 이 작업에서 변경하지 않는다.
 
-- 그룹명(`<코드 컴포넌트명>`)은 `src/app/components/catchhole/` 아래의 화면 컴포넌트 파일명을 그대로 사용합니다 (예: `SEpisodeUpload`, `SLogin`, `SSignup`).
-- `/` 뒤에는 해당 화면 내부의 단계/상태를 적습니다 (예: `02B Mode B 입력`, `로그인`).
-- 전역 모달(여러 화면에서 공통으로 뜨는 모달)은 `<모달 컴포넌트명> / <한글 설명>` 형식을 사용합니다 (예: `TermsModal / 약관·개인정보 모달`). 모달 컴포넌트명은 실제 코드에 존재하는 이름을 그대로 써야 합니다 — 코드에 없는 이름(예: 컨텍스트만 있고 컴포넌트가 없는 경우)을 지어내지 않습니다 (예: `BackendStatus`는 `BackendStatusProvider`/`useBackendStatus`만 존재하므로 `BackendStatusModal`이 아니라 `BackendStatus`로 표기).
-- 재사용 컴포넌트(`reusable: true`)는 `<카테고리>/<이름>` 형식을 그대로 유지합니다 (예: `Button/Primary`, `Input/Auth Field`).
+## 보존된 Post-MVP 시안
 
-각 항목의 상태는 ✅ 완료 / 🚧 진행중 / ⬜ 미착수 세 가지로만 표시합니다. 담당 세션 날짜나 커밋 해시는 적지 않습니다(금방 stale해지므로) — 이력은 `git log`로 추적하세요.
+아래 프레임은 활성 화면 동기화 대상이 아니며 내용과 구조를 변경하지 않는다.
 
-## 재사용 컴포넌트
-
-| 컴포넌트 | 상태 | 설명 |
+| 프레임 | ID | 상태 |
 | --- | --- | --- |
-| `Button/Primary` | ✅ | 주요 액션 버튼 |
-| `Button/Ghost` | ✅ | 보조/취소 버튼 |
-| `Header Bar` | ✅ | 화면 상단 헤더 (뒤로가기 + 제목) |
-| `Input/Text Field` | ✅ | 라벨 + 입력값 2단 구성 입력 필드 |
-| `Input/Auth Field` | ✅ | 아이콘 + placeholder, 로그인/회원가입용 입력 필드 |
-| `Mode Card` | ✅ | 업로드 방식(A/B/C) 선택 카드 |
-| `Status Badge` | ✅ | 상태 배지 — 기본(완료) + 진행중/대기/오류 색상 variant |
-| `Checkbox Row` | ✅ | 체크박스 + 라벨 행 |
-| `File Drop Area` | ✅ | 파일 드롭 영역 (정상/에러/선택됨 상태 참고 프레임) |
-| `Feature Card` | ✅ | 아이콘 + 제목 + 설명, 랜딩 페이지 기능 소개 카드 |
+| 오류 리포트 | `i8TgH` | ✅ 렌더·레이아웃 확인 |
+| AI 챗봇 | `N0gSOX` | ✅ 렌더·레이아웃 확인 |
+| 인물 관계도·해시태그 그래프 | `XQkp1` | ✅ 렌더·레이아웃 확인 |
 
-## 화면 그룹
+## 의미 토큰과 공통 컴포넌트
 
-### SEpisodeUpload — ✅ 완료
+`theme-v2.css`의 `--ch-*` 의미를 Pen 변수로 대응했다. 핵심 변수는 `ch-canvas`, `ch-surface`, `ch-surface-soft`, `ch-border`, `ch-text`, `ch-text-muted`, `ch-primary`, `ch-success`, `ch-warning`, `ch-danger`이며, 상호작용 색·반경·그림자 토큰도 함께 유지한다.
 
-회차 업로드 플로우 6단계 전부 마이그레이션 완료.
+| 공통 요소 | Pencil ID | 상태 |
+| --- | --- | --- |
+| Primary / Secondary / Ghost 버튼 | `T8pUh`, `j3kQPk`, `mtajb` | ✅ |
+| 입력 / 카드 / 상태 배지 | `N9E7hl`, `Kp23S`, `Idg2H` | ✅ |
+| 업데이트 예정 토스트 / 공통 모달 | `xRFAE`, `R3eJi2` | ✅ |
+| 데스크톱 / 모바일 상단 바 | `V3TEEV`, `c05VS` | ✅ |
+| 데스크톱 사이드바 | `l5cdMk`(기본), `QEAkQ`(대시보드) | ✅ |
+| 데스크톱 / 모바일 셸 | `apls8`(기본), `ZbKLd`(대시보드), `jbaEV`(모바일) | ✅ |
+| 모바일 서랍 오버레이 | `bxT30`(기본), `OYbvG`(대시보드) | ✅ |
 
-- `SEpisodeUpload / 1. 업로드 방식 선택` ✅
-- `SEpisodeUpload / 2A. 단일 회차 업로드` ✅
-- `SEpisodeUpload / 2B. 다회차 단일 파일 업로드 (AI 자동 분리)` ✅
-- `SEpisodeUpload / 2C. 다회차 여러 파일 업로드 (파일당 1회차)` ✅
-- `SEpisodeUpload / 3. 회차 분리 확인` ✅
-- `SEpisodeUpload / 4. 설정 확인` ✅
-- `SEpisodeUpload / 5. 분석 진행중` ✅ — `step==='processing'` 분기, `PROCESSING_SEQUENCE` 7단계 칩(원문 저장 완료→원문 청킹 중→청크 저장 완료→LLM 전처리 중→LLM 전처리 완료→AI 설정 추출 중→설정 후보 생성 완료) + 회차별 진행 카드 2개(실행 중/완료) + 비활성 "분석 진행 중..." 버튼
+공통 시스템의 캔버스 구역은 `X5NAI`이다. Hover, focus, disabled는 전체 화면 복제가 아니라 공통 상태 보드 `UWUJD`와 컴포넌트 variant로 표현한다.
 
-### SLanding — ✅ 완료
+## 활성 캔버스 구역
 
-- `SLanding / 랜딩` ✅ — 로그인 이전 단계의 마케팅 랜딩 페이지. Header(로고 + 로그인/회원가입 버튼) + Hero(배지 + 헤드라인 + 서브카피 + CTA 버튼 2개 + 신뢰 항목 2종 + 우측 대시보드 목업 이미지) + Features 섹션(`Feature Card` 컴포넌트 3개 인스턴스: 초고속 AI 대조 분석/일관성 체크/직관적인 리포트) + 하단 CTA 섹션 + Footer
+활성 화면은 기능 단위로 찾을 수 있도록 좌측 기존 캔버스와 같은 2열 구조로 배치한다. 왼쪽 열은 공통 시스템·작품·업로드·캐릭터/설정집 기능을, 오른쪽 열은 진입·인증·대시보드 공통·세계관·에디터·설정 검토를 쌓는다. 화면 내용이나 구조는 바꾸지 않고, 각 섹션 안에서 데스크톱 화면을 가로 4개까지 놓은 뒤 모바일과 의미 있는 상태 프레임을 다음 행에 이어서 관리한다.
 
-### SLogin — ✅ 완료
+| 캔버스 열 | 순서 | 섹션 | Pencil ID |
+| --- | ---: | --- | --- |
+| 왼쪽 (`x=76540`) | 10 | 활성 화면 동기화 공통 시스템 | `X5NAI` |
+| 왼쪽 (`x=76540`) | 14 | `/works` · 작품 관리 | `k53NoP` |
+| 왼쪽 (`x=76540`) | 20 | `/episode-upload` · 업로드 | `cwR3W` |
+| 왼쪽 (`x=76540`) | 21 | `/episode-upload` · 분석 상태 | `u7dwvT` |
+| 왼쪽 (`x=76540`) | 16 | `/dashboard` · 캐릭터 설정 | `LFNii` |
+| 왼쪽 (`x=76540`) | 18 | `/dashboard` · 설정집·검색 | `p40m6e` |
+| 오른쪽 (`x=84140`) | 11 | `/landing` · 제품 데모 | `j6KjY` |
+| 오른쪽 (`x=84140`) | 12 | `/login` · 로그인 상태 | `TRlEr` |
+| 오른쪽 (`x=84140`) | 13 | `/signup` · 회원가입·약관·인증 확인 | `iIpPd` |
+| 오른쪽 (`x=84140`) | 15 | `/dashboard` · 셸·원고·분석 | `EFXTg` |
+| 오른쪽 (`x=84140`) | 17 | `/dashboard` · 세계관 설정 | `h45eTZ` |
+| 오른쪽 (`x=84140`) | 19 | `/editor` · 원문 보기 | `QIrnO` |
+| 오른쪽 (`x=84140`) | 22 | `/setting-review` · 캐릭터 후보 | `QWUxR` |
+| 오른쪽 (`x=84140`) | 23 | `/setting-review` · 세계관 후보 | `w4ntpW` |
 
-- `SLogin / 로그인` ✅ — 좌측 브랜딩 패널(로고/헤드라인/설명/카피라이트+약관 링크) + 우측 폼(이메일/비밀번호, 로그인 버튼, 소셜 로그인, 회원가입 링크)
-- 비밀번호 필드의 show/hide(눈모양) 토글 아이콘 ✅ — `Input/Auth Field` 공용 컴포넌트는 그대로 두고, 이 화면의 Password Field 인스턴스만 우측에 eye-off 아이콘이 있는 인라인 프레임으로 교체
-- `SLogin / 에러·제출중 상태` ✅ — `handleLogin()` 검증/인증 실패 로직 반영: 비밀번호 필드 테두리 `$danger` + "이메일 또는 비밀번호가 올바르지 않습니다." + 로그인 버튼 "로그인 중..."(opacity 0.7)
+## 활성 화면 현황
 
-### SSignup — ✅ 완료
+활성 루트 프레임은 총 188개이며 모두 `Active / ...` 이름을 사용한다.
 
-- `SSignup / 회원가입` ✅ — 좌측 브랜딩 패널(헤드라인/설명/카피라이트만, 링크 없음) + 우측 폼(이름/이메일/휴대폰번호/비밀번호/비밀번호 확인 5개 입력, 약관 동의 체크박스, 회원가입 버튼, 소셜 로그인, 로그인 링크)
-- `SSignup / 에러·제출중 상태` ✅ — `handleSignup()` 검증 로직 반영: 휴대폰 번호/비밀번호 확인 필드 테두리 `$danger` + 에러 문구 + 회원가입 버튼 "가입 중..."(opacity 0.7)
+| 화면군 | 루트 수 | 포함 상태 | 대표 ID |
+| --- | ---: | --- | --- |
+| 랜딩·인증·작품 관리 | 46 | 랜딩 데모 1–8, 로그인, 휴대폰 인증 회원가입, 약관/개인정보, 인증 확인/오류, 작품 목록/모달 | `y2tKZo`, `u2KiIK`, `R9BLkK`, `tMALM`, `lMEt9`, `MZhgx` |
+| 대시보드 | 56 | 원고·분석, 모바일 서랍, 캐릭터, 세계관, 설정집, 설정 검색, 업데이트 예정 토스트 | `RnXjQ`, `DY6xk`, `qwIxE`, `RSX1d`, `K6GRx`, `ReWhO` |
+| 원문·회차 업로드 | 46 | 원문 조회/오류, 업로드 방식 3종, 회차 감지/수정/확정, 저장 오류, 분석·토큰 상태 | `q4eLeC`, `jVn52`, `ovaQg`, `rPfF6`, `rPbgJ` |
+| 설정 검토 | 40 | 캐릭터 연결/수정/비교/확정/무시, 세계관 일괄·개별 수정/충돌/재비교/토큰 중단/완료 | `GEwV9`, `CLEWm`, `la0t2`, `OqOrE`, `S3QmB` |
 
-### TermsModal — ✅ 완료
+### 진입·인증·작품 관리
 
-- `TermsModal / 약관·개인정보 모달` ✅ — 반투명 backdrop + 600px 모달(헤더: 제목+X+탭 2개, 본문: 대표 섹션 3개, 하단: 확인 버튼). 와이어프레임 목적상 약관/개인정보 전체 5개 섹션이 아닌 대표 3개만 포함.
+- 랜딩은 자동 재생되는 제품 데모 8단계를 각각 고정 프레임으로 두고 모바일 구조를 별도 프레임으로 유지한다.
+- 로그인은 기본·검증 오류·제출 중, 회원가입은 기본·인증번호 입력·재전송 대기·인증 완료·오류를 데스크톱과 모바일로 구분한다.
+- 법적 고지는 이용약관과 개인정보 처리방침 탭을 각각 보존한다.
+- 작품 관리는 목록·로딩·빈 화면·조회 실패와 생성·수정·영구 삭제 모달을 데스크톱/모바일로 구분한다.
 
-### S0WorkPicker — ✅ 완료
+### 대시보드
 
-- `S0WorkPicker / 작품 목록 (MVP)` (`Mhex8`) ✅ — 제목·장르·마지막 회차와 새 작품 등록 카드만 표시
-- `S0WorkPicker / 로딩 중 (Loading)` ✅
-- `S0WorkPicker / 작품 없음 (Empty)` ✅
+- 공통 상단 영역, 사이드바, 남은 사용량과 모바일 서랍을 공통 셸에서 재사용한다.
+- 원고 목록은 목록·빈 화면·오류, 분석 목록은 완료·진행·대기·부분 실패·실패 상태를 포함한다.
+- 캐릭터는 목록·빈 화면·상세·수정·삭제·변화 이력·원문 근거를 포함한다.
+- 세계관은 분류 선택, 목록/상세, 생성/수정, 충돌, 미저장 변경을 포함한다.
+- 설정집은 목록·원문·업로드·수정·삭제·오류를 포함한다.
+- 설정 검색은 기본·결과·상세 모달을 포함하며, 접근 가능한 미래 기능은 `업데이트 예정` 토스트로만 표현한다.
 
-### WorkCreateModal — ✅ 완료
+### 원문·회차 업로드
 
-- `WorkCreateModal / 작품 등록 (MVP)` (`U011GD`) ✅ — 작품 제목과 필수 장르만 입력하며 원고·설정집·커버 이미지는 받지 않음
+- `/editor`는 원문 조회·로딩·조회 오류·변환 오류·접근 오류를 포함한다.
+- `/episode-upload`는 업로드 방식 선택, 단일 회차, 다회차 단일 파일, 다회차 여러 파일, 회차 감지·수정·확정을 포함한다.
+- 제출·저장·분석 시작 오류는 작성 데이터 유지와 다음 행동이 다르므로 별도 프레임으로 둔다.
+- 분석은 진행·대기·성공·부분 실패·전체 실패·재시도, 토큰 중단·재개를 별도 프레임으로 둔다.
 
-### S1Dashboard — ✅ 완료
+### 설정 검토
 
-- `S1Dashboard / 설정DB 탭 - 캐릭터 (MVP)` (`qdK5y`) ✅ — 이름·나이·장르별 대표 설정·첫 등장 회차를 표시하고 카드 선택으로 상세 모달 진입
-- `S1Dashboard / 설정DB 탭 - 타임라인` ✅ — `TimelineView()` 기반: 필터 칩 5종(전체/인물별/사건별/아이템별/오류별) + 가로 타임라인 트랙 대표 5노드(1화~159화, 시간흐름 오류/설정 충돌 표시) + 범례
-- `S1Dashboard / 설정DB 탭 - 설정집 원문 (MVP)` (`Y1Sha3`) ✅ — 세계관 규칙 추출 대신 설정집 파일 목록과 선택한 원문을 조회
-- `SettingBookUploadModal / 설정집 업로드 (MVP)` (`dMyKy`) ✅ — 설정집 원본 파일 하나를 별도 업로드
-- `S1Dashboard / 설정DB 탭 - 검색 (MVP)` (`C37O20`) ✅ — 현재·이전 `CharacterFact`를 유형·시점 필터와 함께 검색
-- `S1Dashboard / 설정DB 검색 상세 모달 (MVP)` (`XVvBu`) ✅ — 선택한 설정값·소유 캐릭터·출처 회차·근거 문장을 조회
-- `S1Dashboard / 분석 리포트 탭` ✅
-- `S1Dashboard / 업로드된 원고 탭` ✅
-- `S1Dashboard / 업로드된 원고 탭 - Empty 상태` ✅ — `selectedWork==='murim'` 분기: FileText 아이콘 + "아직 업로드된 원고가 없습니다." + "회차 올리기로 첫 원고를 추가하세요."
-- `S1Dashboard / 관계도 그래프뷰 - Empty 상태 (디자인 제안, 코드 미구현)` ✅ — `GraphView.tsx`에 전용 empty 분기는 없음(노드 데이터 하드코딩). 필터 전부 OFF 시나리오를 추론해 제안: Graph Canvas를 "표시할 노드가 없습니다" 안내로, Top Tags Box를 "표시할 데이터가 없습니다"로 교체
-- `Legacy / 캐릭터 상세 관계도·타임라인` (`dVhGD`) ✅ — MVP에서는 사용하지 않는 기존 참고 화면
-- `CharDetailModal / 기본 (MVP)` (`nvylp`) ✅
-- `CharDetailModal / 수정 (MVP)` (`r1XIT`) ✅ — 현재 대표 정보와 현재 설정을 일괄 편집
-- `CharDetailModal / 삭제 확인 (MVP)` (`ZDc0T`) ✅ — hard delete가 아니라 `ARCHIVED` 전환을 확인
-- `CharDetailModal / 원문 근거 (MVP)` (`dHtfw`) ✅ — 전체 회차 원문과 quote 하이라이트를 우선 표시
-- `CharDetailModal / 원문 청크 Fallback (mvp 이후)` (`OZzxl`) ✅ — 전체 원문 위치를 확정할 수 없을 때 청크 안에서 근거를 표시하는 후속 상태
-- `S1Dashboard / 관계도 그래프뷰` ✅ — `GraphView.tsx` 기반: 좌측 필터 패널(통계 + 태그 유형 필터 5종 + 관계 유형 필터 7종 + 확대/축소/초기화 컨트롤), 중앙 그래프 캔버스(샘플 노드 8개 + 충돌 회차 강조 + 범례), 우측 패널(사용 방법 가이드 + 가장 연결된 태그 Top5)
-- `UploadModal / 회차·설정집 업로드 모달` ✅ — 500px 모달(제목 "회차 올리기" + 2단계 Step Row + 작품 선택/회차 번호 입력 + 파일 드롭 + 설정집 동시 업로드 체크박스 + 뒤로/다음 버튼)
-- `SettingsBuilderModal / 캐릭터 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
-- `SettingsBuilderModal / 직접 입력 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
-- `WorldBuilderModal / 세계관 설정 빌더 모달` ✅ — Post-MVP 참고 시안이며 MVP 동선에는 연결하지 않음
+- 캐릭터 후보는 검토, 연결 필요, 연결 모달, 수정, 비교, 잘못된 값, 확정, 무시, 완료를 포함한다.
+- 세계관 후보는 검토, 일괄 수정, 개별 수정, 충돌, 재비교 필요/중/성공/실패, 토큰 중단, 완료를 포함한다.
+- 모바일은 후보 목록과 상세를 별도 프레임으로 분리하여 실제 전환 구조를 표현한다.
 
-### SourceViewer — ✅ 완료
+## 상태 분리 기준
 
-- `SourceViewer / 회차 원본` ✅ — `/editor` 라우트에서 회차 메타데이터와 원문을 읽기 전용으로 표시
-- `SourceViewer / 설정집 원본` ✅ — 기존 구현 참고 화면. MVP 목표 동선은 설정DB 설정집 탭의 목록·원문 2열 화면(`Y1Sha3`)을 사용
-- `SourceViewer / 원문 조회 중` ✅ — 메타데이터·원문 로딩 상태
-- `SourceViewer / 조회·변환·접근 오류` ✅ — 네트워크 조회 실패, TXT·DOCX 변환 실패, 삭제·접근 불가 상태와 원고 목록 복귀
-- 기존 `S2Editor` 편집·분석 화면과 `S3Modal` 분석 요청 모달은 레거시 디자인 참고용이며 MVP 라우트·Workflow Board에는 사용하지 않음
+- 레이아웃, 정보 계층, 사용자 액션, 상태 의미, 모달·서랍 또는 모바일 구조가 달라지면 별도 루트 프레임을 사용한다.
+- 샘플 데이터, 서버 내부 원인, 페이지 번호만 다르고 UI와 다음 행동이 같으면 대표 프레임으로 통합한다.
+- 브라우저 렌더러의 사소한 픽셀 차이는 복제하지 않고 의미 토큰, 문구, 액션, 상태 전이를 우선한다.
+- 실제 사용자 데이터 대신 기존 Playwright API mock의 대표 데이터를 사용한다.
 
-### S3Chat — ✅ 완료
+## 이미지와 Workflow Board
 
-- `S3Chat / 빈 화면 (Empty)` ✅
-- `S3Chat / 대화 진행 중 (With Messages)` ✅
+- 모든 활성 루트 프레임 PNG는 `docs/screens/<Pencil-node-id>.png`에 내보낸다.
+- 이번 동기화에서 활성 PNG 188개를 갱신했다.
+- 원본 화면의 라우트나 이동 설명은 변경되지 않았으므로 Workflow Board와 `docs/workflows/WF-*.png`는 갱신하지 않는다.
 
-### S4Loading — ✅ 완료
+## 검증
 
-- `S4Loading / 분석 진행 중` ✅
+- 각 화면군 생성 직후 `TakeScreenshot`으로 렌더를 확인했다.
+- 각 루트에서 `SnapshotLayout(problemsOnly: true)`와 동일한 문제 방문 검사를 수행했다.
+- 감지된 텍스트 잘림, 상태 배지 잘림, 모바일 비교/편집 화면 넘침은 즉시 보정하고 다시 렌더했다.
+- 실제 Front 캡처와 대표 Pen PNG를 비교해 워드마크 크기, 대시보드 사이드바 활성 항목, 작품 장르 표기도 최종 보정했다.
+- 최종 코드 검증은 `npm run lint`, `npm run build`, `npm run test:e2e` 순서로 실행한다.
 
-### S5Report — ✅ 완료
+## 실제 Front UI·접근성 문제
 
-- `S5Report / 단일 회차 검수` ✅ — Header(뒤로/제목/공유·원고 목록으로·아바타) + Body(요약 통계 바 + 필터 탭 + ErrorCard 3종(확장된 danger/접힌 warning/무시된 카드) + 수정 제안 복사·원문 보기 액션 + 하단 안내 바)
-- `S5Report / 발행 전 전체 검수` ✅ — 위 화면을 복제해 제목을 "발행 전 전체 검수"로, 헤더 버튼을 "리포트로 돌아가기"로 변경하고, Body 상단에 "검수 범위"(빛나는 검사 로맨스 · 전체 158화 + 범위 변경 버튼) 바와 "발행 전 체크리스트" 안내 바를 추가
-- `S5Report / 발행 전 전체 검수 - 충돌 없음 (디자인 제안, 코드 미구현)` ✅ — `S5Report.tsx`엔 0건 분기가 없음(`ERROR_DATA` 8개 하드코딩). `SEpisodeValidationReport`의 성공 패턴을 차용해 제안: 통계 0건 + Error Cards List를 성공 메시지로 교체
-- 모달: `ShareModal / 공유·협업 모달` ✅
-
-### SSettingReview — ✅ 완료
-
-- `SSettingReview / 설정 후보 검토 (MVP)` (`f0EDt`) ✅ — 검색 없이 검토·연결·설정 유형 필터와 좌측 요약/우측 상세 분리
-- `SSettingReview / 캐릭터 연결 필요 (MVP)` (`N4Py2r`) ✅ — 연결 전에도 무시 가능, 수정·확정은 연결 후 활성화
-- `SSettingReview / 캐릭터 연결 모달 (MVP)` (`P178Ug`) ✅ — 기존 캐릭터 연결 또는 새 캐릭터 이름 지정
-- `SSettingReview / 후보 수정 (MVP)` (`CKQtd`) ✅ — 근거 원문은 유지한 채 사용자용 설정값 수정
-- `SSettingReview / 검토 완료 (MVP)` (`VkfXH`) ✅ — 모든 후보를 확정·무시한 뒤 다음 분석 단계로 이동
-- `SSettingReview / 설정 후보 검토 - 후보 없음` ✅ — `filtered.length===0` + 미선택 상태 결합, "0 / 0 검토 완료" + "해당하는 설정 후보가 없습니다." 안내
-
-### SEpisodeValidationReport — ✅ 완료
-
-- `SEpisodeValidationReport / 회차 검사 결과` ✅ — Header(뒤로/제목/충돌·모순 배지/아바타) + Body(InfoBar + SplitPane: 좌측 검색·카테고리탭·이슈 리스트, 우측 ErrorCard(S5Report의 확장 danger 카드를 재사용/복제) + 하단 버튼 행)
-- `SEpisodeValidationReport / 회차 검사 결과 - 충돌 없음` ✅ — `issues.length===0` 분기: CircleCheckBig 아이콘 + "충돌/모순이 발견되지 않았습니다" + 배지 "충돌 0건"/"모순 0건"
-
-### BackendStatus — ✅ 완료
-
-- `BackendStatus / 네트워크 끊김 데모 전환 모달` ✅ — WifiOff 아이콘($warning) + "백엔드 서버에 연결할 수 없습니다" + 설명 + 닫기/데모 버전으로 전환 버튼
-- `BackendStatus / 업로드 파일 없음 데모 전환 모달` ✅ — FileQuestion 아이콘($primary) + "업로드할 파일이 없으신가요?" + 설명 + 동일 버튼 구성
-
-### ShareModal — ✅ 완료
-
-- `ShareModal / 공유·협업 모달` ✅ — 580px, 탭 3개(협업자/링크/내보내기) 중 "협업자 관리" 탭을 기본 상태로 구현. 초대 폼(이메일 입력 + 역할 선택 + 초대 버튼 + 공유 범위) + 협업자 리스트 3명(아바타/이름/역할 배지/이메일·권한/권한 변경/삭제)
-
-### 공용 컴포넌트 — ✅ 완료
-
-- `AppSidebar` ✅
-- `GraphView` ✅ — `S1Dashboard / 관계도 그래프뷰`로 마이그레이션
-- `ReviewLayout` 계열(ModeCard, InfoBar, SplitPane, SearchInput, CategoryTabs, ListItemCard) ✅ — `SSettingReview`/`SEpisodeValidationReport` 화면에 인라인으로 반영됨
-
-## 컴포넌트 상태 variant 보강
-
-- `File Drop Area`의 "선택됨" 상태 (체크 아이콘 + "N개 파일 선택됨") ✅
-- `Status Badge`의 다른 상태 색상 (진행중/대기/오류) ✅
-
-## Workflow Boards
-
-라우트와 분기의 기준 문서는 `docs/screen-flow.md`입니다. Workflow Board는 실제 화면 복제본, 번호 마커, 전환 설명을 한곳에 모은 시각적 리뷰 자료이며 파일럿 `M7oaU`의 구성을 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거하고 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 통합했습니다.
-
-| Workflow | 상태 | Pencil Board ID | 리뷰 PNG |
-| --- | --- | --- | --- |
-| WF-01 / 인증·작품 진입 | ✅ 완료 | `q7BIt` | `docs/workflows/WF-01.png` |
-| WF-02 / 작품·대시보드 | ✅ 완료 | `xuHzb` | `docs/workflows/WF-02.png` |
-| WF-03 / 원고 관리·원문·분석 | ✅ 완료 | `XqFyi` | `docs/workflows/WF-03.png` |
-| WF-04 / 회차 업로드 | ✅ 완료 | `RLw7i` | `docs/workflows/WF-04.png` |
-| WF-05 / 검토·리포트 | ✅ 완료 | `i7MrrQ` | `docs/workflows/WF-05.png` |
-
-### Workflow Board 유지보수 체크리스트
-
-- `docs/screen-flow.md`, `src/app/App.tsx`, 실제 `navigate(...)` 호출을 대조해 모든 전환과 분기를 확인합니다.
-- 화면 내용은 화면 원본 영역에서만 수정합니다. Workflow 복제본에는 `sourceNodeId` 메타데이터를 기록하고 내부 내용은 직접 수정하지 않습니다.
-- 원본 변경 시 해당 복제본을 다시 생성하고 번호 마커와 Description을 재적용합니다.
-- 전환 색상은 사용자 이동 `primary`, 모달·조건 분기 `warning`, 자동 완료 `success`, 실패 `danger`를 사용합니다.
-- 각 보드에 `snapshot_layout(problemsOnly: true)`를 실행해 겹침과 잘림이 없는지 확인합니다.
-- 보드 변경 후 `docs/workflows/WF-01.png`~`WF-05.png`를 다시 내보내고 문서 링크와 화면 가독성을 확인합니다.
-- Pencil 저장 후 `git status`에서 `design/catchhole.pen` 변경 여부를 확인합니다.
-- `design/images/현동멘토님 와이어프레임 예시.png`는 로컬 참고용으로만 사용하며 커밋하지 않습니다.
+- 현재 동기화 과정에서 제품 문제로 확정해 기록할 재현 항목은 없다.
+- 자동 캡처 과정에서 생성된 빈 검정 PNG는 페이지 UI 문제가 아니라 캡처 실패 자료이므로 이 목록에 포함하지 않는다.

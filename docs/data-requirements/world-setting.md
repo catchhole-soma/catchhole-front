@@ -163,25 +163,28 @@ FE는 그룹 안에 `PENDING`·`PROCESSING` 후보가 하나라도 있으면 2�
 
 대상 그룹 key diff 검토와 상태 프레임:
 
-- `ab0tz` — `SSettingReview / 세계관 대상 그룹 key diff 검토`
-- `TpVPY` — `SSettingReview / 세계관 분류·대상 일괄 수정`
-- `GeCDt` — `SSettingReview / 세계관 개별 설정 수정`
-- `KHyUs` — `SSettingReview / 세계관 추출 내용 충돌 검토`
-- `mKuQu` — `SSettingReview / 신규 세계관 대상 key 묶음 확정`
-- `MRO54` — `SSettingReview / 일부 key 재비교 필요`
-- `kcVIQ` — `SSettingReview / 일부 key 재비교 중`
-- `JwSBP` — `SSettingReview / 대상 그룹 전체 재비교 중`
-- `JmIgH` — `SSettingReview / 일부 key 재비교 실패`
-- `nZPGE` — `SSettingReview / 일부 key 재비교 완료`
-- `wrP124` — `SSettingReview / 세계관 비교 일부 중단 · 일괄 재개`
+- `la0t2` — `Active / Setting Review / World / Review`
+- `cimsU` — `Active / Setting Review / World / Bulk Edit`
+- `fUQx8` — `Active / Setting Review / World / Individual Edit`
+- `Glo9r` — `Active / Setting Review / World / Conflict`
+- `OqOrE` — `Active / Setting Review / World / Recomparison Needed`
+- `ziGva` — `Active / Setting Review / World / Recomparison In Progress`
+- `W8TBkt` — `Active / Setting Review / World / Recomparison Success`
+- `Q7O3QH` — `Active / Setting Review / World / Recomparison Failure`
+- `S3QmB` — `Active / Setting Review / World / Token Interrupted`
+- `LKJu9` — `Active / Setting Review / World / Complete`
 
-![세계관 대상 그룹 검토 — ab0tz](../screens/ab0tz.png)
+![세계관 대상 그룹 검토](../screens/la0t2.png)
 
-![세계관 분류·대상 일괄 수정 — TpVPY](../screens/TpVPY.png)
+![세계관 분류·대상 일괄 수정](../screens/cimsU.png)
 
-![세계관 개별 설정 수정 — GeCDt](../screens/GeCDt.png)
+![세계관 개별 설정 수정](../screens/fUQx8.png)
 
-> **디자인 원본**: `design/catchhole.pen`의 `SSettingReview / 세계관 대상 그룹 key diff 검토`와 위 상태별 프레임을 그룹 검토 UX의 기준으로 사용한다. 기존 단일 후보 화면은 그룹 화면으로 대체하며 별도 보존을 계약으로 요구하지 않는다.
+상태 화면: [내용 충돌](../screens/Glo9r.png) · [재비교 필요](../screens/OqOrE.png) · [재비교 중](../screens/ziGva.png) · [재비교 성공](../screens/W8TBkt.png) · [재비교 실패](../screens/Q7O3QH.png) · [토큰 중단](../screens/S3QmB.png) · [완료](../screens/LKJu9.png)
+
+모바일 상태: [후보 목록](../screens/LMSXA.png) · [후보 상세](../screens/xKtUj.png) · [일괄 수정](../screens/VUTJ3.png) · [개별 수정](../screens/j7UEH.png) · [충돌](../screens/vJsUs.png) · [재비교 필요](../screens/u6MXAG.png) · [재비교 중](../screens/rrY0O.png) · [재비교 성공](../screens/uQ9Vq.png) · [재비교 실패](../screens/pPzy7.png) · [토큰 중단](../screens/H89KXg.png) · [완료](../screens/J5c9yj.png)
+
+> **디자인 원본**: `design/catchhole.pen`의 `Active / Setting Review / World / ...` 데스크톱·모바일 프레임을 그룹 검토 UX의 기준으로 사용한다.
 
 > **MVP 범위 메모**
 > - 현재 `batchId`의 회차 원문 분석에서 생성된 세계관 후보만 조회한다.
@@ -383,19 +386,19 @@ LLM 원본 응답은 디버깅 저장 대상이지만 사용자 화면에는 노
 
 **Pencil 시안**
 
-![세계관 DB 조회 — TloYI](../screens/TloYI.png)
+![세계관 분류 선택](../screens/RSX1d.png)
 
-![버튼형 분류 필터 — SKDDm](../screens/SKDDm.png)
+![세계관 목록과 상세](../screens/d1Aj0p.png)
 
-![새 세계관 대상 추가 — t7ogaF](../screens/t7ogaF.png)
+![새 세계관 대상 추가](../screens/T4oXP.png)
 
-![미저장 변경사항 확인 다이얼로그 — I7onh](../screens/I7onh.png)
+![세계관 대상·설정 수정](../screens/ZnZsd.png)
 
-![세계관 대상 정보 수정 — eVEPI](../screens/eVEPI.png)
+상태 화면: [버전 충돌](../screens/o1nj68.png) · [미저장 변경사항](../screens/pcXn3.png)
 
-![세계관 설정 인라인 수정 — iRZSJ](../screens/iRZSJ.png)
+모바일 상태: [분류 선택](../screens/JezJo.png) · [목록](../screens/V0wXQL.png) · [상세](../screens/E9zwO.png) · [대상 추가](../screens/zXlDB.png) · [수정](../screens/IMYnN.png) · [충돌](../screens/XR0BZ.png) · [미저장 변경사항](../screens/plLnj.png)
 
-> **디자인 원본**: `design/catchhole.pen`의 `S1Dashboard / 세계관 DB 버튼형 분류 필터`, `S1Dashboard / 세계관 DB 미저장 변경 확인` 프레임을 변경 UX의 기준으로 사용한다.
+> **디자인 원본**: `design/catchhole.pen`의 `Active / Dashboard / World / ...` 데스크톱·모바일 프레임을 변경 UX의 기준으로 사용한다.
 
 > **Theme V2 화면 계약**: 검색·정렬·분류 필터는 하나의 밝은 filter surface로 묶고 모든 분류 버튼의 높이·padding·활성 색을 동일하게 유지한다. 왼쪽 대상 목록과 오른쪽 상세·설정 행·펼친 원문 근거는 흰색 또는 연한 회색 surface를 사용하며 선택 항목만 연한 파란색으로 강조한다. 최초 로딩, 전체 빈 상태, 검색 결과 없음, 목록/상세 오류는 캐릭터 DB와 같은 `database-state` 시각 규격을 쓰되 문구와 후속 액션은 각 데이터 계약을 유지한다.
 

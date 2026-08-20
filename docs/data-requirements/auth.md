@@ -13,6 +13,8 @@
 
 ### 보호 라우트 세션 확인
 
+상태 화면: [인증 확인 중](../screens/Rxd2k.png) · [인증 서버 오류·재시도](../screens/Yj7td.png) · [모바일 확인 중](../screens/zMv34.png) · [모바일 서버 오류](../screens/A8vua.png)
+
 - access token이 있는 상태로 보호 화면에 진입하면 `GET /api/v1/auth/me`로 현재 세션을 확인한다.
 - 세계관 후보 검토(`/setting-review?candidateType=world`)와 세계관 DB(`/dashboard?nav=settingDB&tab=worldsettings`)도 같은 보호 라우트 게이트를 통과한 뒤에만 목록·상세 요청과 비교 상태 polling을 시작한다.
 - 401은 인증 만료로 처리해 토큰을 제거하고 로그인 화면으로 이동한다.
@@ -36,11 +38,13 @@
 
 **URL**: [`/landing`](https://www.catchhole.com/landing)
 
-![랜딩 화면](../screens/k7pzFp.png)
+![랜딩 화면과 제품 데모 1단계](../screens/y2tKZo.png)
+
+제품 데모 고정 단계: [2단계](../screens/EySqw.png) · [3단계](../screens/BlkIV.png) · [4단계](../screens/cK7by.png) · [5단계](../screens/E2RsD.png) · [6단계](../screens/BAC3B.png) · [7단계](../screens/k32SB.png) · [8단계](../screens/eCbQ8.png) · [모바일](../screens/u2KiIK.png)
 
 비로그인 사용자에게 CatchHole의 핵심 가치를 소개하고 로그인·회원가입으로 유도하는 진입 화면.
 
-> **Theme V2 파일럿**: GitHub Issue #128의 첫 적용 화면입니다. 밝은 회색 캔버스·흰색 카드·Primary Blue를 사용하며, `theme-v2.css`의 의미 기반 토큰과 `ui-v2` 공통 컴포넌트를 후속 대시보드·설정 검토 화면에서도 재사용합니다. 위 이미지는 기존 Pencil 원본 캡처이며 Theme V2 Pencil 원본을 갱신한 뒤 교체합니다.
+> **Theme V2 활성 화면**: 밝은 회색 캔버스·흰색 카드·Primary Blue를 사용하며, `theme-v2.css`의 의미 기반 토큰과 `ui-v2` 공통 컴포넌트를 후속 대시보드·설정 검토 화면에서도 재사용합니다. 위 이미지는 실제 Front를 기준으로 동기화한 `Active / Landing` Pencil 프레임입니다.
 
 **1. 화면에 표시할 데이터**
 - 상단 헤더: CatchHole 로고, 서비스 소개·이용 방법 앵커, 로그인·무료 시작 버튼
@@ -87,7 +91,9 @@
 
 **URL**: [`/login`](https://www.catchhole.com/login)
 
-![로그인 화면](../screens/tNdOk.png)
+![로그인 기본 화면](../screens/R9BLkK.png)
+
+상태 화면: [검증·인증 오류](../screens/m4bw7K.png) · [제출 중](../screens/q8pKvU.png) · [모바일 기본](../screens/sfZTz.png) · [모바일 오류](../screens/n1d7BZ.png)
 
 가입한 사용자가 이메일과 비밀번호로 인증하고 작품 목록에 진입하는 라우트 모달. 데스크톱에서는 랜딩 위 중앙 모달로 표시하고, 모바일에서는 전체 화면으로 표시한다.
 
@@ -124,10 +130,9 @@
 
 
 **4. 데이터 없음 / 실패 표시**
-- 이메일 미입력·이메일 형식 오류·비밀번호 미입력 ([입력 검증 오류](../screens/m3vaC0.png))
-- 이메일 또는 비밀번호 불일치 ([인증 실패](../screens/w5lmQO.png))
-- 네트워크 오류 ([네트워크 오류](../screens/l4QKr.png))
-- 로그인 제출 중 로딩·중복 제출 방지 ([제출 중](../screens/bRQzK.png))
+- 이메일 미입력·이메일 형식 오류·비밀번호 미입력 ([검증 오류 대표 화면](../screens/m4bw7K.png))
+- 이메일 또는 비밀번호 불일치와 네트워크 오류도 같은 오류 영역에서 사용자용 문구로 구분
+- 로그인 제출 중 로딩·중복 제출 방지 ([제출 중](../screens/q8pKvU.png))
 
 **5. 화면 데이터 요구사항**
 
@@ -159,17 +164,19 @@
 
 **URL**: [`/signup`](https://www.catchhole.com/signup)
 
-![인증번호 발송 전 회원가입 화면](../screens/VI8zP.png)
+![인증번호 발송 전 회원가입 화면](../screens/tMALM.png)
 
-![인증번호 입력·재전송 대기 화면](../screens/Nv6nG.png)
+![인증번호 입력 화면](../screens/VzawP.png)
 
-![휴대폰 인증 완료 화면](../screens/ySykQ.png)
+![휴대폰 인증 완료 화면](../screens/j1BByU.png)
+
+상태 화면: [재전송 대기](../screens/MF1bl.png) · [가입 오류](../screens/RXyHs.png) · [모바일 기본](../screens/HDeLo.png) · [모바일 인증번호 입력](../screens/P0YjRs.png) · [모바일 재전송 대기](../screens/MaREr.png) · [모바일 인증 완료](../screens/Gmae3.png) · [모바일 오류](../screens/BKd2a.png)
 
 신규 사용자가 계정을 생성하고 자동 로그인 후 작품 목록에 진입하는 라우트 모달. 데스크톱에서는 랜딩 위 중앙 모달로 표시하고, 모바일에서는 긴 입력 폼을 스크롤할 수 있는 전체 화면으로 표시한다.
 
 > **MVP 범위 메모**: 이메일·비밀번호 가입에 SOLAPI 휴대폰 번호 인증을 결합한다. 이는 PASS 같은 실명·CI/DI 본인인증이 아니라, 가입 시점에 해당 번호로 수신한 6자리 번호를 확인하는 소유 인증이다. 소셜 로그인·CAPTCHA·마케팅 수신 동의는 제외한다.
 
-> **디자인 원본**: `design/catchhole.pen`의 `SSignup / 회원가입`, `SSignup / 인증번호 입력·재전송 대기`, `SSignup / 휴대폰 인증 완료` 프레임을 구현 상태의 기준으로 사용한다.
+> **디자인 원본**: `design/catchhole.pen`의 `Active / Signup / ...` 데스크톱·모바일 프레임을 구현 상태의 기준으로 사용한다.
 
 > **입력 정책**
 > - 이름(필명): 필수, 최대 20자, 중복 허용. 화면에는 `이름 (필명)`, 문서와 전달 데이터에는 필명(`displayName`)으로 표기
@@ -222,7 +229,7 @@
 
 **4. 데이터 없음 / 실패 표시**
 - 필명 미입력·길이 초과
-- 이메일 미입력·형식 오류·중복 ([입력·중복 오류](../screens/ThXIG.png))
+- 이메일 미입력·형식 오류·중복 ([가입 오류 대표 화면](../screens/RXyHs.png))
 - 휴대폰 번호 미입력·형식 오류·중복
 - 잘못된 인증번호와 남은 흐름 유지
 - 인증번호 5회 오입력 잠금과 새 번호 발송 안내
@@ -233,8 +240,8 @@
 - 비밀번호 미입력·정책 불충족
 - 비밀번호 확인 미입력·불일치
 - 휴대폰 미인증 또는 필수 약관 미동의 시 회원가입 버튼 비활성
-- 네트워크 오류와 입력값 유지 ([네트워크 오류](../screens/f7oz8.png))
-- 제출·자동 로그인 중 로딩과 중복 제출 방지 ([제출 중](../screens/tfhIa.png))
+- 네트워크 오류와 입력값 유지 ([가입 오류 대표 화면](../screens/RXyHs.png))
+- 제출·자동 로그인 중 로딩과 중복 제출 방지
 
 
 **5. 화면 데이터 요구사항**
@@ -298,9 +305,11 @@
 
 **URL 상태**: 호출 화면(`/landing`, `/login`, `/signup`) + `?terms=terms|privacy`
 
-![이용약관 탭](../screens/BQqMv.png)
+![이용약관 탭](../screens/U7bWrQ.png)
 
-![개인정보 처리방침 탭](../screens/vZNPo.png)
+![개인정보 처리방침 탭](../screens/nCP5n.png)
+
+모바일 상태: [이용약관](../screens/DUEj5.png) · [개인정보 처리방침](../screens/q9aYS.png)
 
 비로그인 사용자가 서비스 이용약관과 개인정보 처리방침을 확인하는 공통 모달. Auth 라우트 모달에서 열면 그 위에 한 단계 더 쌓인다.
 

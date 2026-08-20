@@ -18,9 +18,9 @@
 
 **URL**: [`/dashboard?nav=manuscripts`](https://www.catchhole.com/dashboard?nav=manuscripts)
 
-![대시보드 - 원고 탭](../screens/pUaEk.png)
+![대시보드 - 원고 탭](../screens/RnXjQ.png)
 
-상태·관리 화면: [목록 로딩](../screens/zq2mP.png) · [원고 없음](../screens/v4hg9.png) · [목록 조회 실패](../screens/GWwkS.png) · [제목 인라인 수정](../screens/u6jby.png) · [직접 관리 액션](../screens/ovC3I.png) · [액션 실패·목록 유지](../screens/mGVGj.png)
+상태 화면: [원고 없음](../screens/C59NO.png) · [목록 조회 실패](../screens/s45C2z.png) · [모바일 목록](../screens/viplG.png) · [모바일 원고 없음](../screens/KJxhe.png) · [모바일 조회 실패](../screens/n7a4E.png)
 
 > **Theme V2 파일럿**: 작품 선택·분석 목록과 같은 밝은 워크스페이스 셸, 사이드바, 목록 카드 규칙을 사용한다. 기존 회차 정렬·페이지네이션·제목 수정·원문·파일 변경·삭제·재분석 동작은 유지한다.
 
@@ -76,14 +76,14 @@
 
 **4. 데이터 없음 / 실패 표시**
 
-- 최초 목록 조회 중에는 로딩 안내 표시 ([목록 로딩](../screens/zq2mP.png))
-- 원고가 없으면 `아직 업로드된 원고가 없습니다`와 회차 업로드 액션 표시 ([빈 상태](../screens/v4hg9.png))
-- 목록 조회 실패 시 오류 안내와 `다시 시도` 표시 ([목록 조회 실패](../screens/GWwkS.png))
+- 최초 목록 조회 중에는 기존 목록 영역을 대체하는 로딩 안내 표시
+- 원고가 없으면 `아직 업로드된 원고가 없습니다`와 회차 업로드 액션 표시 ([빈 상태](../screens/C59NO.png))
+- 목록 조회 실패 시 오류 안내와 `다시 시도` 표시 ([목록 조회 실패](../screens/s45C2z.png))
 - 변경 액션은 서버 성공 후에만 화면에 반영
   - 삭제 실패: 행 유지
   - 파일 변경 실패: 기존 파일·분석 상태 유지
   - 제목 저장 실패: 기존 제목 유지 후 오류 안내
-- 분석 요청·파일 변경·삭제 등 행 액션 실패 시 현재 목록을 유지하고 상단에 오류 안내 표시 ([액션 실패·목록 유지](../screens/mGVGj.png))
+- 분석 요청·파일 변경·삭제 등 행 액션 실패 시 현재 목록을 유지하고 상단에 오류 안내 표시
 - 분석 상태 자동 갱신 실패 시 현재 상태를 유지하고 다음 갱신을 다시 시도
 
 **5. 화면 데이터 요구사항**
@@ -162,9 +162,9 @@ BE가 작업 응답으로 제공하거나 FE가 다시 조회해 다음 최신 �
 
 **진입**: [원고 목록](#원고-목록-대시보드-원고-탭)의 회차 `원문 보기`
 
-![회차 원문 보기](../screens/FrYW0.png)
+![회차 원문 보기](../screens/q4eLeC.png)
 
-상태 화면: [원문 조회 중](../screens/KYpxM.png) · [조회·변환·접근 오류](../screens/vx47i.png)
+상태 화면: [원문 조회 중](../screens/rnB2Z.png) · [조회 오류](../screens/O1Hvxj.png) · [변환 오류](../screens/TIx2g.png) · [접근 오류](../screens/u1f4y.png) · [모바일 원문](../screens/q4eHgR.png) · [모바일 로딩](../screens/mn2OT.png) · [모바일 조회 오류](../screens/c6z2jS.png) · [모바일 변환 오류](../screens/K6YNO.png) · [모바일 접근 오류](../screens/sjsPM.png)
 
 회차의 현재 원문을 읽기 전용으로 확인한다.
 

@@ -83,7 +83,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 
 ## 도메인별 문서
 
-- [auth](./auth.md) — 랜딩 · 로그인 · 회원가입 · 약관
+- [auth](./auth.md) — 랜딩 · 로그인 · 회원가입 · 약관 · 보호 라우트 인증 확인
 - [work](./work.md) — 작품 목록 · 작품 등록 · 대시보드
 - [upload](./upload.md) — 회차 업로드 (SEpisodeUpload)
 - [episode](./episode.md) — 원고 목록
@@ -101,14 +101,17 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 | 약관·개인정보 모달 | [`/login?terms=terms`](https://www.catchhole.com/login?terms=terms) | [auth](./auth.md#약관개인정보-모달-termsmodal) |
 | 작품 목록 | [`/works`](https://www.catchhole.com/works) | [work](./work.md#작품-목록-s0workpicker) |
 | 작품 등록 모달 | — | [work](./work.md#작품-등록-모달-workcreatemodal) |
-| 대시보드 | [`/dashboard`](https://www.catchhole.com/dashboard) | [work](./work.md#대시보드-s1dashboard) |
+| 대시보드 | [`/dashboard`](https://www.catchhole.com/dashboard) | [원고](./episode.md#원고-목록-대시보드-원고-탭) · [분석](./analysis.md#분석-목록-analysislist) · [캐릭터·설정집·검색](./character.md#작품-설정-캐릭터-탭) · [세계관](./world-setting.md#작품-설정-세계관-탭) |
 | 회차 업로드 | [`/episode-upload`](https://www.catchhole.com/episode-upload) | [upload](./upload.md#회차-업로드-sepisodeupload) |
+| 회차 원문 보기 | [`/editor`](https://www.catchhole.com/editor) | [episode](./episode.md#회차-원문-보기) |
 | 원고 목록 | [`/dashboard?nav=manuscripts`](https://www.catchhole.com/dashboard?nav=manuscripts) | [episode](./episode.md#원고-목록-대시보드-원고-탭) |
 | 설정DB | [`/dashboard?nav=settingDB`](https://www.catchhole.com/dashboard?nav=settingDB&tab=characters) | [character](./character.md#설정db-캐릭터-탭) |
 | 세계관 DB | [`/dashboard?nav=settingDB&tab=worldsettings`](https://www.catchhole.com/dashboard?nav=settingDB&tab=worldsettings) | [world-setting](./world-setting.md#설정db-세계관-db-탭) |
 | 설정 검토 | [`/setting-review`](https://www.catchhole.com/setting-review) | [캐릭터 후보](./character.md#설정-검토-ssettingreview) · [세계관 후보](./world-setting.md#설정-후보-검토--세계관-후보-탭) |
-| 분석 진행 | [`/loading`](https://www.catchhole.com/loading) | [analysis](./analysis.md#분석-진행-s4loading) |
-| 오류 리포트 | [`/report`](https://www.catchhole.com/report) | [analysis](./analysis.md#오류-리포트-s5report) |
-| 회차 검사 결과 | [`/episode-validation-report`](https://www.catchhole.com/episode-validation-report) | [analysis](./analysis.md#회차-검사-결과-sepisodevalidationreport) |
+| 분석 진행 (Post-MVP 전체 화면) | [`/loading`](https://www.catchhole.com/loading) | [analysis](./analysis.md#분석-진행-s4loading) |
+| 오류 리포트 (Post-MVP) | [`/report`](https://www.catchhole.com/report) | [analysis](./analysis.md#오류-리포트-s5report) |
+| 회차 검사 결과 (Post-MVP) | [`/episode-validation-report`](https://www.catchhole.com/episode-validation-report) | [analysis](./analysis.md#회차-검사-결과-sepisodevalidationreport) |
 
-> 캡처 이미지(`../screens/*.png`)는 Pencil 노드 id를 파일명으로 씁니다. 시각 디자인 원본은 `design/catchhole.pen`.
+대시보드 공통 UI 상태: [모바일 메뉴 서랍](../screens/DY6xk.png) · [업데이트 예정 토스트](../screens/rXnD6.png) · [모바일 업데이트 예정 토스트](../screens/T0B8WR.png). 이 상태들은 별도 서버 데이터 계약을 추가하지 않는다.
+
+> 캡처 이미지(`../screens/*.png`)는 Pencil 노드 id를 파일명으로 씁니다. 현재 활성 범위는 `Active / ...` 프레임의 PNG를 사용하고, Post-MVP 전체 화면은 보존 프레임을 계속 참조합니다. 시각 디자인 원본은 `design/catchhole.pen`입니다.
