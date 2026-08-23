@@ -37,6 +37,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | WF-03 / 원고 관리·원문·분석 | `XqFyi` | [WF-03.png](workflows/WF-03.png) |
 | WF-04 / 회차 업로드 | `RLw7i` | [WF-04.png](workflows/WF-04.png) |
 | WF-05 / 검토·리포트 | `i7MrrQ` | [WF-05.png](workflows/WF-05.png) |
+| WF-06 / 인터랙티브 데모 | `BE15b` | [WF-06.png](workflows/WF-06.png) |
 
 ## 화면 한눈에 보기
 
@@ -44,6 +45,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | --- | --- | --- |
 | 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | Theme V2 파일럿을 적용한 로그인 전 서비스 소개 페이지 |
 | 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증·휴대폰 인증과 약관 동의 |
+| **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·분석 목록·그래프·원고 허브 |
 | **캐릭터 DB 조회** | [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | Theme V2 카드 목록에서 현재 설정 상세·변화 이력·원문 근거를 이어서 조회 |
@@ -89,10 +91,14 @@ flowchart TD
     landing["랜딩 페이지<br/>/landing"]
     login["로그인 라우트 모달<br/>/login"]
     signup["회원가입 라우트 모달<br/>/signup"]
+    demo["인터랙티브 데모<br/>/demo"]
   end
 
   landing -- "모달 열기" --> login
   landing -- "모달 열기" --> signup
+  landing -- "로그인 없이 체험" --> demo
+  demo -- "체험 나가기" --> landing
+  demo -- "체험 완료 후 시작" --> signup
   login <-->|"현재 항목 대체"| signup
   login -- "닫기 · Esc · 뒤로" --> landing
   signup -- "닫기 · Esc · 뒤로" --> landing
@@ -121,9 +127,41 @@ flowchart TD
   classDef private fill:#1A1A22,stroke:#7C5CFC,stroke-width:1.5px,color:#F0F0F5;
   classDef decision fill:#0F0F13,stroke:#F4A261,color:#F0F0F5;
 
-  class landing,login,signup public;
+  class landing,login,signup,demo public;
   class works,dashboard,editor,chat,loading,report,upload,review,valreport private;
 ```
+
+---
+
+### 1.1 공개 인터랙티브 데모 흐름
+
+`/demo`의 10문단 원고·분석·후보 데이터는 고정 fixture이며, 상태는 React 메모리에만 둡니다. 결과 탐색은 데모 전용 화면을 복제하지 않고 배포 화면의 `CharacterDatabase`, `CharacterTimelineModal`, `WorldSettingDatabase`에 fixture를 주입합니다. 코치마크는 화면 전체를 회색으로 덮지 않고 한 번에 하나의 실제 서비스 행동을 안내하며, 타깃 바깥 윤곽선은 글자를 가리지 않고 코치마크 아래의 실제 클릭도 막지 않습니다. 현재 안내와 무관한 캐릭터·근거·이력을 열어도 안내 문구와 완료 상태는 바뀌지 않습니다. 에단 렌 상세에서는 현재 직업의 6화 근거를 확인한 뒤 변화 이력을 열고, 현재 설정의 `직업`을 선택해 실제 타임라인에서 1화와 6화 원문을 조회합니다. 이어 실제 세계관 설정 DB의 설정 행에서 수정한 값과 6화 근거를 확인해야 체험을 마칠 수 있습니다.
+
+```mermaid
+flowchart LR
+  landing["랜딩<br/>/landing"]:::public -->|"로그인 없이 체험"| manuscript["가상 원고 확인<br/>AI 분석 시작"]:::public
+  manuscript --> analysis["fixture 분석 시뮬레이션<br/>자동 진행"]:::modal
+  analysis --> character["캐릭터 후보<br/>1개 설정 모두 확정"]:::public
+  character --> world["세계관 후보<br/>수정 → 수정안 적용 → 모두 확정"]:::public
+  world --> unsupported["근거 부족 후보<br/>제외"]:::public
+  unsupported --> characterDb["캐릭터 설정 DB<br/>에단 렌 카드 선택"]:::public
+  characterDb --> characterDetail["캐릭터 상세<br/>직업 설정 선택"]:::modal
+  characterDetail --> characterEvidence["6화 원문 근거 확인"]:::public
+  characterEvidence --> characterTimeline["실제 캐릭터 변화 이력<br/>현재 설정에서 직업 선택"]:::modal
+  characterTimeline --> timelineEvidence["6화 직업 이력<br/>원문 근거 확인"]:::public
+  timelineEvidence -->|"세계관 설정 탭"| worldDb["세계관 설정 DB<br/>거꾸로숲 대상·설정 확인"]:::public
+  worldDb --> worldEvidence["귀환문의 조건<br/>6화 원문 근거 펼치기"]:::public
+  worldEvidence --> complete["체험 완료"]:::public
+  complete -->|"다시 체험하기"| manuscript
+  complete -->|"내 작품으로 시작하기"| signup["회원가입<br/>/signup"]:::public
+  signup -. "X 닫기" .-> landing
+  manuscript -. "체험 나가기" .-> landing
+
+  classDef public fill:#1A1A22,stroke:#00C896,stroke-width:1.5px,color:#F0F0F5;
+  classDef modal fill:#0F0F13,stroke:#9090A8,stroke-dasharray:4 3,color:#F0F0F5;
+```
+
+> 직접 URL 진입과 모바일·키보드 조작을 지원합니다. 실제 Backend/LLM 요청과 브라우저 저장은 없고, 새로고침하면 원고 확인부터 다시 시작합니다. 캐릭터와 세계관 결과 화면은 실제 배포 컴포넌트를 사용하며 fixture 주입 경계에서만 API를 비활성화합니다. 완료 후 `/signup`은 데모 히스토리를 대체하므로 X를 누르면 `/landing`으로 돌아갑니다. 모든 전환 애니메이션은 `prefers-reduced-motion`에서 정적으로 바뀝니다.
 
 ---
 

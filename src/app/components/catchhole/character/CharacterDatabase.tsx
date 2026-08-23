@@ -31,6 +31,7 @@ import {
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
   CharacterDetailResponse,
+  CharacterFactEvidenceResponse,
   CharacterFactReferenceResponse,
   CharacterSettingPropertyRequest,
   CharacterSettingResponse,
@@ -101,6 +102,8 @@ interface Props {
   archiveOpen: boolean;
   demoCharacters: CharacterDetailResponse[];
   demoArchivedCharacters: CharacterDetailResponse[];
+  demoEvidence?: Record<string, CharacterFactEvidenceResponse>;
+  persistDemoState?: boolean;
   setDemoCharacters: Dispatch<SetStateAction<CharacterDetailResponse[]>>;
   setDemoArchivedCharacters: Dispatch<SetStateAction<CharacterDetailResponse[]>>;
   onOpen: (characterId: string, edit: boolean) => void;
@@ -550,6 +553,7 @@ function CharacterCard({
   return (
     <button
       type="button"
+      aria-label={`${character.name || '이름 없음'} 캐릭터 상세 보기`}
       className={`character-card${selected ? ' is-selected' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
@@ -1108,6 +1112,8 @@ export function CharacterDatabase({
   archiveOpen,
   demoCharacters,
   demoArchivedCharacters,
+  demoEvidence,
+  persistDemoState = true,
   setDemoCharacters,
   setDemoArchivedCharacters,
   onOpen,
@@ -1313,7 +1319,7 @@ export function CharacterDatabase({
   const detail = demoMode ? demoDetail : detailQuery.data?.data;
   const evidence = selectedEvidenceFactId
     ? demoMode
-      ? getDemoCharacterEvidence(selectedEvidenceFactId)
+      ? demoEvidence?.[selectedEvidenceFactId] ?? getDemoCharacterEvidence(selectedEvidenceFactId)
       : evidenceQuery.data?.data ?? null
     : null;
   const currentSnapshotEvidenceSelection = useMemo(
@@ -1497,7 +1503,7 @@ export function CharacterDatabase({
           character.id === selectedCharacterId ? draftToDemoDetail(character, draft) : character
         ));
         setDemoCharacters(nextCharacters);
-        saveDemoCharacterState(workId, nextCharacters, demoArchivedCharacters);
+        if (persistDemoState) saveDemoCharacterState(workId, nextCharacters, demoArchivedCharacters);
         setConfirming(null);
         setActionError(null);
         setFeedback('캐릭터 설정을 저장했습니다.');
@@ -1520,7 +1526,7 @@ export function CharacterDatabase({
       const nextArchivedCharacters = [archivedCharacter, ...demoArchivedCharacters];
       setDemoCharacters(nextCharacters);
       setDemoArchivedCharacters(nextArchivedCharacters);
-      saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
+      if (persistDemoState) saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
       setConfirming(null);
       setFeedback('캐릭터를 삭제했습니다. 보관함에서 복구할 수 있습니다.');
       onClose();
@@ -1543,7 +1549,7 @@ export function CharacterDatabase({
       const nextCharacters = [restoredCharacter, ...demoCharacters];
       setDemoArchivedCharacters(nextArchivedCharacters);
       setDemoCharacters(nextCharacters);
-      saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
+      if (persistDemoState) saveDemoCharacterState(workId, nextCharacters, nextArchivedCharacters);
       setRestoringCharacterId(null);
       setFeedback('캐릭터를 복구했습니다.');
       return;
@@ -1728,6 +1734,9 @@ export function CharacterDatabase({
         >
           <motion.div
             initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${detail?.name ?? '캐릭터'} 캐릭터 상세`}
             onClick={event => event.stopPropagation()}
             className={`character-detail-modal${selectedEvidenceFactId ? ' character-detail-modal--with-evidence' : ''}${isEditing ? ' character-detail-modal--editing' : ''}${timelineOpen ? ' character-detail-modal--timeline-open' : ''}`}
             style={{ width: selectedEvidenceFactId ? 1640 : 1000, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}

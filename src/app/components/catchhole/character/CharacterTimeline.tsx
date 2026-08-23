@@ -20,7 +20,9 @@ import {
 } from '../../../api/generated/@tanstack/react-query.gen';
 import { getCharacterTimeline } from '../../../api/generated/sdk.gen';
 import type {
+  CharacterFactEvidenceResponse,
   CharacterTimelineFactResponse,
+  CharacterTimelineSummaryResponse,
   GetCharacterTimelineData,
   GetCharacterTimelineSummaryData,
 } from '../../../api/generated/types.gen';
@@ -42,10 +44,17 @@ import './character-timeline.css';
 type TimelineFactFilter = 'ALL' | TimelineFactType;
 type TimelineViewMode = 'types' | 'all';
 
+export interface CharacterTimelineDemoData {
+  summary: CharacterTimelineSummaryResponse;
+  facts: CharacterTimelineFactResponse[];
+  evidenceByFactId: Record<string, CharacterFactEvidenceResponse>;
+}
+
 interface CharacterTimelineModalProps {
   workId: string;
   characterId: string;
   demoMode: boolean;
+  demoData?: CharacterTimelineDemoData;
   onClose: () => void;
 }
 
@@ -58,6 +67,7 @@ interface TimelineModalProps {
   fromEpisodeNo: number | null;
   selectedFactId: string | null;
   demoMode: boolean;
+  demoData?: CharacterTimelineDemoData;
   onViewModeChange: (viewMode: TimelineViewMode) => void;
   onSelectionApply: (selection: TimelineSelection) => void;
   onFactTypeChange: (factType: TimelineFactFilter) => void;
@@ -116,6 +126,7 @@ function TimelineModal({
   fromEpisodeNo,
   selectedFactId,
   demoMode,
+  demoData,
   onViewModeChange,
   onSelectionApply,
   onFactTypeChange,
@@ -215,7 +226,7 @@ function TimelineModal({
     ),
   });
 
-  const summary = summaryQuery.data?.data;
+  const summary = demoData?.summary ?? summaryQuery.data?.data;
   const selectionItems = useMemo(() => {
     const facets = summary?.factFacets ?? [];
     const parentItems = selection.factTypes.map(type => {
@@ -243,7 +254,7 @@ function TimelineModal({
     });
     return [...parentItems, ...childItems];
   }, [selection.factKeys, selection.factTypes, summary?.factFacets]);
-  const facts = useMemo(() => {
+  const queriedFacts = useMemo(() => {
     const seen = new Set<string>();
     return (timelineQuery.data?.pages ?? [])
       .flatMap(page => page.data?.content ?? [])
@@ -253,11 +264,25 @@ function TimelineModal({
         return true;
       });
   }, [timelineQuery.data?.pages]);
+  const facts = useMemo(() => {
+    if (!demoData) return queriedFacts;
+    if (!timelineEnabled) return [];
+
+    return demoData.facts.filter(fact => {
+      const matchesSelection = viewMode === 'types'
+        ? selection.factTypes.includes(fact.factType as TimelineFactType)
+          || Boolean(fact.factKey && selection.factKeys.includes(fact.factKey))
+        : factType === 'ALL' || fact.factType === factType;
+      const matchesEpisode = fromEpisodeNo == null
+        || (fact.sourceEpisodeNo != null && fact.sourceEpisodeNo >= fromEpisodeNo);
+      return matchesSelection && matchesEpisode;
+    });
+  }, [demoData, factType, fromEpisodeNo, queriedFacts, selection.factKeys, selection.factTypes, timelineEnabled, viewMode]);
   const selectedFact = facts.find(fact => fact.characterFactId === selectedFactId) ?? null;
   const fetchNextPage = timelineQuery.fetchNextPage;
-  const hasNextPage = timelineQuery.hasNextPage;
-  const isFetchingNextPage = timelineQuery.isFetchingNextPage;
-  const isFetchNextPageError = timelineQuery.isFetchNextPageError;
+  const hasNextPage = demoData ? false : timelineQuery.hasNextPage;
+  const isFetchingNextPage = demoData ? false : timelineQuery.isFetchingNextPage;
+  const isFetchNextPageError = demoData ? false : timelineQuery.isFetchNextPageError;
 
   const groups = useMemo(() => {
     const result: Array<{ key: string; episodeNo: number | null; facts: CharacterTimelineFactResponse[] }> = [];
@@ -326,12 +351,13 @@ function TimelineModal({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose, onEvidenceClose, selectedFactId]);
 
-  const initialError = !demoMode && (
+  const initialError = !demoData && !demoMode && (
     summaryQuery.isError
     || (timelineEnabled && timelineQuery.isLoadingError)
   );
-  const initialLoading = summaryQuery.isPending
-    || (timelineEnabled && timelineQuery.isPending);
+  const initialLoading = !demoData && (
+    summaryQuery.isPending || (timelineEnabled && timelineQuery.isPending)
+  );
   const emptyMessage = viewMode === 'all' && factType === 'ALL'
     ? '아직 확정된 설정 이력이 없습니다.'
     : '선택한 종류의 설정 이력이 없습니다.';
@@ -431,7 +457,7 @@ function TimelineModal({
           </div>
         )}
 
-        {demoMode ? (
+        {demoMode && !demoData ? (
           <div className="character-timeline-state">
             <Clock3 size={28} />
             <strong>데모 캐릭터에는 확정 이력이 없습니다.</strong>
@@ -531,6 +557,7 @@ function TimelineModal({
                           <button
                             type="button"
                             className="timeline-evidence-button"
+                            aria-label={`${fact.sourceEpisodeNo == null ? '사용자 입력' : `${fact.sourceEpisodeNo}화`} ${fact.displayName ?? '설정'} 원문 근거 보기`}
                             disabled={!fact.hasEvidence || !fact.characterFactId}
                             title={fact.hasEvidence ? '원문 근거 보기' : '저장된 원문 근거가 없습니다.'}
                             onClick={() => fact.characterFactId && onEvidenceOpen(fact.characterFactId)}
@@ -544,7 +571,7 @@ function TimelineModal({
                 </section>
               ))}
 
-              {timelineQuery.isFetchNextPageError && (
+              {isFetchNextPageError && (
                 <div className="character-timeline-load-error" role="alert">
                   다음 설정을 불러오지 못했습니다.
                   {toApiError(timelineQuery.error)?.status === 400 ? (
@@ -560,10 +587,10 @@ function TimelineModal({
                 </div>
               )}
               <div ref={loadMoreRef} className="character-timeline-load-more">
-                {timelineQuery.isFetchingNextPage && <><Loader2 className="spin" size={15} /> 다음 설정을 불러오는 중입니다.</>}
-                {!timelineQuery.hasNextPage && facts.length > 0 && <span>모든 설정 이력을 확인했습니다.</span>}
-                {timelineQuery.hasNextPage && !timelineQuery.isFetchingNextPage && (
-                  <button type="button" onClick={() => timelineQuery.fetchNextPage()}>더 불러오기</button>
+                {isFetchingNextPage && <><Loader2 className="spin" size={15} /> 다음 설정을 불러오는 중입니다.</>}
+                {!hasNextPage && facts.length > 0 && <span>모든 설정 이력을 확인했습니다.</span>}
+                {hasNextPage && !isFetchingNextPage && (
+                  <button type="button" onClick={() => fetchNextPage()}>더 불러오기</button>
                 )}
               </div>
             </main>
@@ -571,9 +598,11 @@ function TimelineModal({
             {selectedFactId && (
               <div className="character-timeline-evidence">
                 <CharacterEvidencePanel
-                  evidence={evidenceQuery.data?.data ?? null}
-                  loading={evidenceQuery.isPending}
-                  error={evidenceQuery.isError
+                  evidence={selectedFactId && demoData
+                    ? demoData.evidenceByFactId[selectedFactId] ?? null
+                    : evidenceQuery.data?.data ?? null}
+                  loading={!demoData && evidenceQuery.isPending}
+                  error={!demoData && evidenceQuery.isError
                     ? queryErrorMessage(evidenceQuery.error, '원문 근거를 불러오지 못했습니다.')
                     : null}
                   context={selectedFact ? {
@@ -581,7 +610,9 @@ function TimelineModal({
                     displayName: selectedFact.displayName ?? '설정명 없음',
                     factValue: selectedFact.factValue ?? null,
                   } : undefined}
-                  onRetry={() => evidenceQuery.refetch()}
+                  onRetry={() => {
+                    if (!demoData) void evidenceQuery.refetch();
+                  }}
                   onClose={onEvidenceClose}
                 />
               </div>
@@ -597,6 +628,7 @@ export function CharacterTimelineModal({
   workId,
   characterId,
   demoMode,
+  demoData,
   onClose,
 }: CharacterTimelineModalProps) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -623,6 +655,7 @@ export function CharacterTimelineModal({
       fromEpisodeNo={fromEpisodeNo}
       selectedFactId={selectedFactId}
       demoMode={demoMode}
+      demoData={demoData}
       onViewModeChange={nextViewMode => updateTimelineParams(params => {
         if (nextViewMode === 'all') {
           params.set('timelineView', 'all');

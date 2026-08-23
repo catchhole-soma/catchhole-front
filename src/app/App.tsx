@@ -7,6 +7,7 @@ import { BackendStatusProvider } from './context/BackendStatusContext';
 import SLogin from './components/catchhole/SLogin';
 import SSignup from './components/catchhole/SSignup';
 import SLanding from './components/catchhole/SLanding';
+import SInteractiveDemo from './components/catchhole/SInteractiveDemo';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
 import S2Editor from './components/catchhole/S2Editor';
@@ -217,6 +218,7 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
         <Route path="/login" element={<SLogin />} />
         <Route path="/signup" element={<SSignup />} />
       </Route>
+      <Route path="/demo" element={<SInteractiveDemo />} />
       <Route element={<PrivateRoute />}>
         <Route path="/works" element={<S0WorkPicker />} />
         <Route path="/dashboard" element={<S1Dashboard />} />

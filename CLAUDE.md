@@ -20,7 +20,8 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
   - `S0WorkPicker`, `S1Dashboard`: 작품 선택과 설정·원고 관리 화면
   - `AnalysisList`, `SEpisodeUpload`, `SSettingReview`: 업로드 묶음별 분석 목록/회차 업로드/설정 검토 플로우
   - `worldsetting/`: 세계관 후보 탭 전환·검토와 확정 세계관 DB 조회·직접 편집 UI
-  - `SLogin`, `SSignup`, `AppSidebar`, `ReviewLayout` 등 공용 UI
+  - `SLanding`, `SInteractiveDemo`, `SLogin`, `SSignup`: 공개 랜딩·fixture 체험·인증 UI
+  - `AppSidebar`, `ReviewLayout` 등 공용 UI
   - `constants.ts` — 디자인 토큰(`C` 객체)과 공용 타입
 - `src/app/context/` — `AppContext`(전역 UI 상태), `BackendStatusContext`(인증 만료 전역 처리)
 - `src/app/api/generated/` — 백엔드 OpenAPI에서 Hey API로 생성한 타입·SDK·TanStack Query 옵션 (직접 수정 금지)
@@ -29,13 +30,14 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 
 ## 라우팅
 
-라우트는 `src/app/App.tsx`에서 정의합니다. `/landing`, `/login`, `/signup`은 공개 라우트이며, `/login`과 `/signup`은 랜딩을 배경으로 유지하는 라우트 모달입니다. 그 외 화면은 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login` 모달로 리다이렉트됩니다.
+라우트는 `src/app/App.tsx`에서 정의합니다. `/landing`, `/login`, `/signup`, `/demo`는 공개 라우트이며, `/login`과 `/signup`은 랜딩을 배경으로 유지하는 라우트 모달입니다. `/demo`는 독립된 전체 화면으로 렌더링하고, 그 외 화면은 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login` 모달로 리다이렉트됩니다.
 
 | 경로 | 화면 | 설명 |
 | --- | --- | --- |
 | `/landing` | `SLanding` | 비로그인 서비스 소개 화면과 Auth 모달의 공통 배경 |
 | `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
+| `/demo` | `SInteractiveDemo` | 10문단 fixture 원고 분석 → 캐릭터 후보 일괄 확정 → 세계관 수정안 적용·대상 확정 → 근거 부족 후보 제외 → 배포 화면의 `CharacterDatabase`·`CharacterTimelineModal`·`WorldSettingDatabase`에 fixture를 주입해 현재 설정·원문 근거·회차별 변화 이력을 확인 → 회원가입/재체험을 코치마크로 안내하는 공개 체험. 코치마크는 화면을 어둡게 덮지 않고 타깃 바깥 윤곽선으로 다음 행동을 표시하며, 관련 없는 근거를 열어도 안내 단계는 진행하지 않는다. API·브라우저 저장소를 사용하지 않고 새로고침 시 초기화한다. 완료 후 회원가입은 현재 데모 히스토리를 대체하며 회원가입 X는 `/landing`으로 이동한다. |
 | `/works` | `S0WorkPicker` | 작품 선택 (보호 화면 진입점) |
 | `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=manuscripts\|settingDB\|analyses`로 실제 제공 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. 설정DB 하위 탭은 `?tab=characters\|worldsettings\|worldrules\|search`이며, 지원하지 않는 값과 이전 `timeline` 링크는 `characters`로 대체한다. 캐릭터 상세의 변화 이력은 `modal=char-detail&mode=timeline`, `charId`로 상세와 우측 이력 패널을 함께 유지한다. 반복 가능한 `timelineFactTypes`·`timelineFactKeys`는 현재 설정 클릭 즉시 반영하고, 전체 보기용 `timelineView`·`timelineFactType`, `timelineEpisodeNo`, 타임라인 근거용 `timelineFactId`를 URL에 보존하며 기존 상세·타임라인·원문 근거 API를 재사용한다. 현재 snapshot 설정은 단일 Fact ID가 아니라 `sourceFacts` 복수 출처를 가질 수 있고, 선택한 출처의 기존 단건 evidence API만 lazy 조회한다. `worldsettings`는 확정 세계관 대상의 조회·검색·직접 추가·수정을 제공하고, `worldrules`는 별도 업로드한 설정집 원문을 다룬다. 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존하며 호환 enum `CURRENT/HISTORICAL`을 화면에서는 `현재값 근거/그 외 이력`으로 표시한다. 관계도·작품 전체 사건 타임라인·분석 리포트·그래프 뷰·챗봇은 업데이트 예정 범위다. |
 | `/episode-upload` | `SEpisodeUpload` | 회차 업로드와 기존 설정 구축. 신규 회차 검수는 업데이트 예정으로 비활성화한다. |
@@ -103,11 +105,12 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
 
 ### 전환 중인 화면 — "Theme V2"
 
-GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 시각 언어를 참고한 라이트 테마를 파일럿으로 검증합니다. 현재 적용 범위는 `/landing`, `/login`, `/signup`, `/works`, 대시보드의 `manuscripts`·`analyses`·`settingDB`의 캐릭터/세계관 조회·설정집·설정 검색, `/setting-review`의 캐릭터·세계관 후보 검토, `/episode-upload`입니다. 그 밖의 대시보드 탭은 기존 테마를 유지합니다.
+GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 시각 언어를 참고한 라이트 테마를 파일럿으로 검증합니다. 현재 적용 범위는 `/landing`, `/login`, `/signup`, `/demo`, `/works`, 대시보드의 `manuscripts`·`analyses`·`settingDB`의 캐릭터/세계관 조회·설정집·설정 검색, `/setting-review`의 캐릭터·세계관 후보 검토, `/episode-upload`입니다. 그 밖의 대시보드 탭은 기존 테마를 유지합니다.
 
 - 의미 기반 CSS 변수와 공통 액션·카드 스타일: `src/styles/theme-v2.css`
 - 재사용 React UI: `src/app/components/catchhole/ui-v2/`
 - 랜딩 전용 구성·반응형 스타일: `src/app/components/catchhole/landing-v2.css`
+- 인터랙티브 데모 전용 구성·반응형·코치마크 스타일: `src/app/components/catchhole/interactive-demo.css`
 - 작품·대시보드 공통 셸과 목록 스타일: `src/styles/workspace-v2.css`
 - 설정 후보 검토 스타일: `src/styles/review-v2.css`
 - 회차 업로드·분석 진행 스타일: `src/styles/upload-v2.css`
@@ -130,7 +133,7 @@ GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 
    - 원본 화면은 `<컴포넌트> / <상태>`, 보드는 `Workflow Board / WF-XX <이름>` 형식으로 이름을 붙입니다.
    - Workflow 복제본에는 `sourceNodeId` 메타데이터를 기록하고 복제본 내부 내용은 직접 수정하지 않습니다. 원본이 바뀌면 복제본을 다시 만든 뒤 번호 마커와 Description만 재적용합니다.
    - 전환 색상은 사용자 이동 `primary`, 모달·조건 분기 `warning`, 자동 완료 `success`, 실패 `danger`로 통일합니다.
-   - 리뷰용 PNG는 `docs/workflows/WF-01.png`부터 `WF-05.png`까지 관리하며, 보드 변경 후 함께 다시 내보냅니다.
+   - 리뷰용 PNG는 `docs/workflows/WF-01.png`부터 `WF-06.png`까지 관리하며, 보드 변경 후 함께 다시 내보냅니다.
    - 파일럿 보드 `M7oaU`의 구성을 보드 템플릿으로 사용합니다. 중복 보기 화면 `EyLZo`는 제거했으며 `FrYW0`를 공통 읽기 전용 원문 보기 원본으로 사용합니다.
 
 ## 상태 관리 & 서버 데이터 원칙
@@ -138,6 +141,7 @@ GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 
 - **`AppContext`** — 화면 간 공유되는 작품 선택과 전환 상태를 관리합니다. 인증·서버 연결 상태와는 분리합니다.
 - **`BackendStatusContext`** — 보호 API의 인증 실패 이벤트를 받아 토큰과 Query 캐시를 지우고 로그인으로 이동합니다.
 - **서버 데이터 원칙**: 작품·회차·분석·캐릭터 화면은 생성 SDK와 TanStack Query를 통해 실제 API 데이터만 사용합니다. 연결 실패나 파일 미선택을 목 데이터 전환 조건으로 사용하지 않습니다.
+- **공개 체험 예외**: `/demo`만 `interactiveDemoFixture.ts`의 공개 fixture와 컴포넌트 메모리 상태를 사용합니다. 생성 SDK·API·localStorage·sessionStorage에 연결하지 않으며, 새로고침과 재체험은 처음 상태를 복원합니다.
 - **NVM-260 세계관 데이터 원칙**: 세계관 후보는 회차 분석 배치의 독립 검토 단위이며, 확정 세계관은 `분류 + 대상` 하나에 문자열 key/value 설정 객체를 묶어 표시합니다. 캐릭터 후보 API나 설정집 원문 데이터를 세계관 후보로 추측·변환하지 않습니다.
 
 ## 참고 문서
