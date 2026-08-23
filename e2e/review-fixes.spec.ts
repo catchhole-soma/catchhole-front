@@ -231,6 +231,7 @@ test('작품 삭제로 취소된 분석은 종료 안내를 표시하고 polling
 
 test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시한다', async ({ page }) => {
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  const completedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
 
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -245,6 +246,16 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
               episodeEndNo: 20,
               episodeCount: 1,
               jobGroups: [{
+                jobType: 'SETTING_EXTRACTION',
+                status: 'COMPLETED',
+                totalJobCount: 1,
+                pendingJobCount: 0,
+                runningJobCount: 0,
+                succeededJobCount: 1,
+                failedJobCount: 0,
+                canceledJobCount: 0,
+                currentAnalysisJobIds: [completedAnalysisJobId],
+              }, {
                 jobType: 'EPISODE_VALIDATION',
                 status: 'CANCELED',
                 totalJobCount: 1,
@@ -273,10 +284,20 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
               status: 'CANCELED',
               episodes: [{ id: episodeId, episodeNo: 20, title: '취소된 회차', status: 'UPLOADED' }],
             }
+          : pathname.endsWith(`/${workId}/analysis-jobs/${completedAnalysisJobId}`)
+            ? {
+                id: completedAnalysisJobId,
+                workId,
+                workTitle: '현재 작품',
+                batchId,
+                jobType: 'SETTING_EXTRACTION',
+                status: 'SUCCEEDED',
+                episodes: [{ id: episodeId, episodeNo: 20, title: '완료된 회차', status: 'ANALYZED' }],
+              }
           : pathname.endsWith(`/works/${workId}`)
-            ? { id: workId, title: '삭제 중인 작품', genre: '판타지', lifecycleStatus: 'PURGING' }
+            ? { id: workId, title: '현재 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' }
             : pathname.endsWith('/works')
-              ? [{ id: workId, title: '삭제 중인 작품', genre: '판타지', lifecycleStatus: 'PURGING' }]
+              ? [{ id: workId, title: '현재 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' }]
               : [];
     return fulfill(route, data);
   });
@@ -287,7 +308,60 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
   await expect(page.getByText('분석 취소', { exact: true })).toBeVisible();
   await expect(page.getByText(/0\/1 완료 · 1 취소/)).toBeVisible();
   await page.getByRole('button', { name: '취소 확인' }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds'))
+    .toBe(analysisJobId);
   await expect(page.getByText('작품 삭제로 분석이 취소되었습니다', { exact: true })).toBeVisible();
+});
+
+test('영구 삭제 중인 작품의 대시보드와 새 업로드 딥링크는 삭제 상태로 보낸다', async ({ page }) => {
+  const purgeRequestId = '66666666-6666-4666-8666-666666666666';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/purge-request`)
+        ? {
+            requestId: purgeRequestId,
+            workId,
+            status: 'REQUESTED',
+            requestedAt: '2026-08-23T12:00:00',
+            attemptCount: 0,
+            retryable: false,
+            slaBreached: false,
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? {
+              id: workId,
+              title: '삭제 중인 작품',
+              genre: '판타지',
+              latestEpisodeNo: 20,
+              lifecycleStatus: 'PURGING',
+            }
+          : pathname.endsWith('/works')
+            ? [{
+                id: workId,
+                title: '삭제 중인 작품',
+                genre: '판타지',
+                latestEpisodeNo: 20,
+                lifecycleStatus: 'PURGING',
+              }]
+            : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'purging-deep-link-token');
+  const expectedUrl = new RegExp(
+    `/works\\?modal=work-delete&targetWorkId=${workId}$`,
+  );
+
+  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await expect(page).toHaveURL(expectedUrl);
+  await expect(page.getByRole('dialog', { name: '작품 영구 삭제 상태' })).toBeVisible();
+
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await expect(page).toHaveURL(expectedUrl);
+  await expect(page.getByRole('dialog', { name: '작품 영구 삭제 상태' })).toBeVisible();
 });
 
 test('분석 실패 화면은 내부 오류 원문 대신 사용자용 안내를 표시한다', async ({ page }) => {

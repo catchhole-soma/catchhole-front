@@ -2806,6 +2806,16 @@ export default function S1Dashboard() {
   }, [demoMode, effectiveWorkId, navigate]);
 
   useEffect(() => {
+    if (apiWork?.lifecycleStatus !== 'PURGING') return;
+    navigate(
+      `/works?modal=work-delete&targetWorkId=${encodeURIComponent(apiWork.id)}`,
+      'dissolve',
+      undefined,
+      { replace: true },
+    );
+  }, [apiWork?.id, apiWork?.lifecycleStatus, navigate]);
+
+  useEffect(() => {
     if (!apiWork) return;
     if (
       selectedWorkInfo?.id !== apiWork.id

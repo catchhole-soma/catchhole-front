@@ -1131,6 +1131,27 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
   await expect(modal.getByText(/원고 청크와 미확정 분석 후보가 영구 삭제됩니다/)).toBeVisible();
   await expect(modal.getByText(/원문 근거는 더 이상 볼 수 없습니다/)).toBeVisible();
+  const confirmationPhrase = modal.locator('.episode-delete-confirmation-phrase');
+  await expect(confirmationPhrase).toHaveCSS('color', 'rgb(25, 30, 38)');
+  const confirmationContrast = await confirmationPhrase.evaluate(element => {
+    const channels = (color: string) => (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    const luminance = (color: string) => {
+      const rgb = channels(color).map(channel => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    };
+    const foreground = luminance(getComputedStyle(element).color);
+    const dialog = element.closest('[role="dialog"]');
+    if (!dialog) return 0;
+    const background = luminance(getComputedStyle(dialog).backgroundColor);
+    return (Math.max(foreground, background) + 0.05)
+      / (Math.min(foreground, background) + 0.05);
+  });
+  expect(confirmationContrast).toBeGreaterThanOrEqual(4.5);
   await expect(modal.getByRole('button', { name: '영구 삭제' })).toBeDisabled();
   expect(nativeDialogCount).toBe(0);
 

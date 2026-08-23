@@ -524,6 +524,7 @@ export default function SEpisodeUpload() {
   const workId = routeWorkId ?? selectedWork;
   const initialTrackedAnalysisJobIds = (searchParams.get('analysisJobIds') ?? '').split(',').filter(Boolean);
   const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
+  const viewingExistingAnalysis = initialTrackedAnalysisJobIds.length > 0;
 
   const [step, setStep] = useState<UploadStep>(
     initialTrackedAnalysisJobIds.length > 0 ? 'processing' : 'select-mode',
@@ -628,7 +629,22 @@ export default function SEpisodeUpload() {
   const routeWork = workQuery.data?.data;
 
   useEffect(() => {
-    if (!routeWorkId || !routeWork?.id || !routeWork.title) return;
+    if (routeWork?.lifecycleStatus !== 'PURGING' || viewingExistingAnalysis) return;
+    navigate(
+      `/works?modal=work-delete&targetWorkId=${encodeURIComponent(routeWork.id)}`,
+      'dissolve',
+      undefined,
+      { replace: true },
+    );
+  }, [navigate, routeWork?.id, routeWork?.lifecycleStatus, viewingExistingAnalysis]);
+
+  useEffect(() => {
+    if (
+      !routeWorkId
+      || !routeWork?.id
+      || !routeWork.title
+      || routeWork.lifecycleStatus === 'PURGING'
+    ) return;
     const nextGenre = routeWork.genre ?? '';
     if (
       selectedWork === routeWork.id
@@ -649,6 +665,7 @@ export default function SEpisodeUpload() {
     routeWork?.genre,
     routeWork?.id,
     routeWork?.latestEpisodeNo,
+    routeWork?.lifecycleStatus,
     routeWork?.title,
     selectedWork,
     selectedWorkInfo,

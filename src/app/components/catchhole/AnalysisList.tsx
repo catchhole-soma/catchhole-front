@@ -153,11 +153,13 @@ function findActionJobGroup(
   const groups = batch.jobGroups ?? [];
   const preferredStatuses = status === 'IN_PROGRESS'
     ? ['IN_PROGRESS']
-    : status === 'PARTIALLY_FAILED'
-      ? ['PARTIALLY_FAILED', 'FAILED']
-      : status === 'FAILED'
-        ? ['FAILED', 'PARTIALLY_FAILED']
-        : [];
+    : status === 'CANCELED'
+      ? ['CANCELED']
+      : status === 'PARTIALLY_FAILED'
+        ? ['PARTIALLY_FAILED', 'FAILED']
+        : status === 'FAILED'
+          ? ['FAILED', 'PARTIALLY_FAILED']
+          : [];
 
   return preferredStatuses
     .map(preferredStatus => groups.find(group => (

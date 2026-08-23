@@ -158,7 +158,10 @@ export function EpisodeDeleteModal({
             확정된 캐릭터·세계관 설정은 유지되지만, 이 회차의 원문 근거는 더 이상 볼 수 없습니다.
           </p>
           <label style={{ display: 'block', color: C.t2, fontSize: 12 }}>
-            계속하려면 <strong style={{ color: C.t1 }}>영구 삭제</strong>를 입력해주세요.
+            계속하려면 <strong
+              className="episode-delete-confirmation-phrase"
+              style={{ color: 'var(--ch-ink, #191e26)' }}
+            >영구 삭제</strong>를 입력해주세요.
             <input
               autoComplete="off"
               disabled={submitting}
