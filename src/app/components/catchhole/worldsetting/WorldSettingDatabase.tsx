@@ -32,6 +32,7 @@ import type {
   PropertyEvidence,
   WorldSettingDetailResponse,
   WorldSettingListItemResponse,
+  WorldSettingListResponse,
   WorldSettingPropertyResponse,
 } from '../../../api/generated/types.gen';
 import { toApiError } from '../../../lib/api-errors';
@@ -45,6 +46,18 @@ type WorldSort = 'CATEGORY_SUBJECT_ASC' | 'UPDATED_DESC';
 interface WorldSettingPropertyGroup {
   scopeName: string | null;
   properties: WorldSettingPropertyResponse[];
+}
+
+export interface WorldSettingDatabaseFixture {
+  settings: WorldSettingDetailResponse[];
+  onSelectionChange?: (worldSettingId: string, subjectName: string) => void;
+  onEvidenceToggle?: (event: {
+    worldSettingId: string;
+    subjectName: string;
+    scopeName: string | null;
+    settingName: string;
+    expanded: boolean;
+  }) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -252,6 +265,7 @@ function ListItem({
     <button
       className={`world-setting-list-item${selected ? ' is-selected' : ''}`}
       type="button"
+      aria-label={`${item.subjectName || '이름 없는 대상'} 세계관 대상 보기`}
       disabled={disabled}
       onClick={onClick}
       style={{
@@ -634,7 +648,12 @@ function WorldSettingDetail({
                         <div style={{ color: C.t3, fontSize: 9, marginBottom: 5 }}>설정값</div>
                         <span style={{ color: C.t1, fontSize: 12, lineHeight: 1.55 }}>{value}</span>
                       </div>
-                      <button type="button" onClick={() => onToggleEvidence(scopeName, name)} style={{
+                      <button
+                        type="button"
+                        aria-label={`${scopeName ? `${scopeName} ` : ''}${name} 원문 근거 보기`}
+                        aria-expanded={expandedEvidence === pathKey}
+                        onClick={() => onToggleEvidence(scopeName, name)}
+                        style={{
                         border: 'none', background: 'none', textAlign: 'left', padding: 0,
                         color: evidence ? C.primary : C.t3, fontFamily: 'inherit', cursor: 'pointer',
                       }}>
@@ -1004,22 +1023,25 @@ export function WorldSettingDatabase({
   workId,
   enabled,
   onAnalyze,
+  fixture,
 }: {
   workId: string;
   enabled: boolean;
   onAnalyze: () => void;
+  fixture?: WorldSettingDatabaseFixture;
 }) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const fixtureMode = fixture != null;
   const q = searchParams.get('q')?.trim() ?? '';
-  const categoryParam = searchParams.get('category');
+  const categoryParam = searchParams.get('category') ?? (fixtureMode ? 'ALL' : null);
   const category = parseCategory(categoryParam);
   const sort = parseSort(searchParams.get('sort'));
   const page = parsePage(searchParams.get('page'));
   const apiPage = page - 1;
   const selectedId = searchParams.get('settingId');
   const modal = searchParams.get('modal');
-  const categoryOverview = categoryParam === null && !q && !selectedId;
+  const categoryOverview = !fixtureMode && categoryParam === null && !q && !selectedId;
   const [searchDraft, setSearchDraft] = useState(q);
   const [createDraft, setCreateDraft] = useState<CreateWorldSettingDraft>(emptyCreateDraft);
   const [identityDraft, setIdentityDraft] = useState<IdentityDraft | null>(null);
@@ -1053,21 +1075,66 @@ export function WorldSettingDatabase({
       path: { workId },
       query: { q: q || undefined, category, sort, page: apiPage, size: PAGE_SIZE },
     }),
-    enabled: enabled && !categoryOverview,
+    enabled: enabled && !fixtureMode && !categoryOverview,
     retry: shouldRetryQuery,
   });
-  const listData = listQuery.data?.data;
+  const fixtureListData = useMemo<WorldSettingListResponse | undefined>(() => {
+    if (!fixture) return undefined;
+    const normalizedQuery = q.toLocaleLowerCase('ko-KR');
+    const filtered = fixture.settings.filter(setting => {
+      if (category && setting.category !== category) return false;
+      if (!normalizedQuery) return true;
+      const searchable = [
+        setting.subjectName,
+        ...(setting.properties ?? []).flatMap(property => [
+          property.scopeName,
+          property.settingName,
+          property.value,
+        ]),
+      ].filter(Boolean).join('\u0000').toLocaleLowerCase('ko-KR');
+      return searchable.includes(normalizedQuery);
+    }).sort((left, right) => {
+      if (sort === 'UPDATED_DESC') {
+        return String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''));
+      }
+      const categoryOrder = String(left.category ?? '').localeCompare(String(right.category ?? ''));
+      return categoryOrder || String(left.subjectName ?? '').localeCompare(String(right.subjectName ?? ''), 'ko-KR');
+    });
+    const start = apiPage * PAGE_SIZE;
+    const content = filtered.slice(start, start + PAGE_SIZE).map(setting => ({
+      id: setting.id,
+      category: setting.category,
+      subjectName: setting.subjectName,
+      propertyCount: setting.properties?.length ?? 0,
+      version: setting.version,
+      updatedAt: setting.updatedAt,
+    } satisfies WorldSettingListItemResponse));
+    return {
+      totalWorldSettingCount: fixture.settings.length,
+      worldSettings: {
+        content,
+        page: apiPage,
+        size: PAGE_SIZE,
+        totalElements: filtered.length,
+        totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+        hasNext: start + PAGE_SIZE < filtered.length,
+      },
+    };
+  }, [apiPage, category, fixture, q, sort]);
+  const listData = fixtureListData ?? listQuery.data?.data;
   const worldSettingPage = listData?.worldSettings;
   const items = useMemo(() => worldSettingPage?.content ?? [], [worldSettingPage?.content]);
+  const listReady = fixtureMode || listQuery.isSuccess;
+  const listFetching = fixtureMode ? false : listQuery.isFetching;
 
   useEffect(() => {
-    if (categoryOverview || mobileViewport || modal || !listQuery.isSuccess || listQuery.isFetching || selectedId || !items[0]?.id) return;
+    if (categoryOverview || mobileViewport || modal || !listReady || listFetching || selectedId || !items[0]?.id) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('settingId', items[0].id!);
       return next;
     }, { replace: true });
-  }, [categoryOverview, items, listQuery.isFetching, listQuery.isSuccess, mobileViewport, modal, selectedId, setSearchParams]);
+  }, [categoryOverview, items, listFetching, listReady, mobileViewport, modal, selectedId, setSearchParams]);
 
   useEffect(() => {
     const totalPages = worldSettingPage?.totalPages;
@@ -1082,11 +1149,13 @@ export function WorldSettingDatabase({
 
   const detailQuery = useQuery({
     ...getWorldSettingOptions({ path: { workId, worldSettingId: selectedId ?? '' } }),
-    enabled: enabled && Boolean(selectedId),
+    enabled: enabled && !fixtureMode && Boolean(selectedId),
     retry: (failureCount, error) => toApiError(error)?.status !== 404
       && shouldRetryQuery(failureCount, error),
   });
-  const detail = detailQuery.data?.data;
+  const detail = fixtureMode
+    ? fixture?.settings.find(setting => setting.id === selectedId)
+    : detailQuery.data?.data;
 
   const invalidateWorldSettings = async (worldSettingId?: string) => {
     await Promise.all([
@@ -1183,6 +1252,8 @@ export function WorldSettingDatabase({
   const selectSetting = (id: string) => {
     requestPropertyDraftDiscard(() => {
       setExpandedEvidence(null);
+      const selectedFixture = fixture?.settings.find(setting => setting.id === id);
+      if (selectedFixture) fixture?.onSelectionChange?.(id, selectedFixture.subjectName ?? '');
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
         next.set('settingId', id);
@@ -1217,6 +1288,11 @@ export function WorldSettingDatabase({
 
   const saveProperty = () => {
     if (!propertyDraft || !selectedId || !detail || propertyPending) return;
+    if (fixtureMode) {
+      setPropertyDraft(null);
+      setSuccessMessage('인터랙티브 데모에서는 설정 조회와 원문 근거 확인만 지원합니다.');
+      return;
+    }
     const scopeName = propertyDraft.scopeName.trim() || undefined;
     const settingName = propertyDraft.settingName.trim();
     const settingValue = propertyDraft.settingValue.trim();
@@ -1256,7 +1332,11 @@ export function WorldSettingDatabase({
     });
   };
 
-  if (!enabled) {
+  const explainFixtureReadOnly = () => {
+    setSuccessMessage('인터랙티브 데모에서는 설정 조회와 원문 근거 확인만 지원합니다.');
+  };
+
+  if (!enabled && !fixtureMode) {
     return (
       <PanelState
         icon={<Database size={28} color={C.t3} />}
@@ -1295,6 +1375,10 @@ export function WorldSettingDatabase({
           color: C.t2, display: 'inline-flex', alignItems: 'center', fontSize: 11,
         }}>총 {total}개 대상</span>}
         <Button primary onClick={() => {
+          if (fixtureMode) {
+            explainFixtureReadOnly();
+            return;
+          }
           requestPropertyDraftDiscard(() => {
             createMutation.reset();
             setSearchParams(previous => {
@@ -1386,14 +1470,14 @@ export function WorldSettingDatabase({
         </div>
       </div>
 
-      {listQuery.isPending && !listQuery.data ? (
+      {!fixtureMode && listQuery.isPending && !listQuery.data ? (
         <PanelState
           icon={<Loader2 size={27} color={C.primary} className="spin" />}
           title="세계관 설정을 불러오고 있습니다."
           description="분류와 대상별 설정을 정리하고 있습니다."
           minHeight={460}
         />
-      ) : listQuery.isError && !listQuery.data ? (
+      ) : !fixtureMode && listQuery.isError && !listQuery.data ? (
         <PanelState
           icon={<AlertCircle size={27} color={C.danger} />}
           title="세계관 설정을 불러오지 못했습니다."
@@ -1408,11 +1492,17 @@ export function WorldSettingDatabase({
           description="회차를 분석해 세계관 설정을 추출하거나 직접 추가해 보세요."
           action={<div style={{ display: 'flex', gap: 8 }}>
             <Button onClick={onAnalyze}>회차 분석하기</Button>
-            <Button primary onClick={() => setSearchParams(previous => {
-              const next = new URLSearchParams(previous);
-              next.set('modal', 'world-setting-create');
-              return next;
-            })}><Plus size={12} /> 새 대상 추가</Button>
+            <Button primary onClick={() => {
+              if (fixtureMode) {
+                explainFixtureReadOnly();
+                return;
+              }
+              setSearchParams(previous => {
+                const next = new URLSearchParams(previous);
+                next.set('modal', 'world-setting-create');
+                return next;
+              });
+            }}><Plus size={12} /> 새 대상 추가</Button>
           </div>}
           minHeight={460}
         />
@@ -1442,7 +1532,7 @@ export function WorldSettingDatabase({
               <div style={{ flex: 1 }} />
               <span style={{ color: C.t3, fontSize: 10 }}>{PAGE_SIZE}개씩</span>
             </div>
-            {listQuery.isError && listQuery.data && (
+            {!fixtureMode && listQuery.isError && listQuery.data && (
               <div className="database-inline-alert is-error" role="alert" style={{ color: C.danger, fontSize: 10, marginBottom: 3 }}>
                 최신 목록 조회 실패 · 이전 결과 표시 중
               </div>
@@ -1460,7 +1550,7 @@ export function WorldSettingDatabase({
             <PageNavigation
               page={currentPage}
               totalPages={totalPages}
-              disabled={listQuery.isFetching || propertyPending}
+              disabled={listFetching || propertyPending}
               onPageChange={changePage}
             />
           </aside>
@@ -1481,14 +1571,14 @@ export function WorldSettingDatabase({
                 description="왼쪽 목록에서 대상을 선택하면 설정을 확인하고 수정할 수 있습니다."
                 minHeight={540}
               />
-            ) : detailQuery.isPending ? (
+            ) : !fixtureMode && detailQuery.isPending ? (
               <PanelState
                 icon={<Loader2 size={26} color={C.primary} className="spin" />}
                 title="세계관 상세를 불러오고 있습니다."
                 description="현재 설정과 연결된 원문 근거를 확인하고 있습니다."
                 minHeight={540}
               />
-            ) : detailQuery.isError || !detail ? (
+            ) : (!fixtureMode && detailQuery.isError) || !detail ? (
               <PanelState
                 icon={<AlertCircle size={27} color={C.danger} />}
                 title="세계관 상세를 불러오지 못했습니다."
@@ -1505,6 +1595,10 @@ export function WorldSettingDatabase({
                 propertyConflict={isVersionConflict(propertyMutationError)}
                 expandedEvidence={expandedEvidence}
                 onEditIdentity={() => {
+                  if (fixtureMode) {
+                    explainFixtureReadOnly();
+                    return;
+                  }
                   identityMutation.reset();
                   setIdentityDraft(current => current?.worldSettingId === selectedId ? current : {
                     worldSettingId: selectedId,
@@ -1518,6 +1612,10 @@ export function WorldSettingDatabase({
                   });
                 }}
                 onStartAdd={() => {
+                  if (fixtureMode) {
+                    explainFixtureReadOnly();
+                    return;
+                  }
                   resetPropertyMutations();
                   setPropertyDraft({
                     mode: 'add', scopeName: '', settingName: '', settingValue: '',
@@ -1526,6 +1624,10 @@ export function WorldSettingDatabase({
                   });
                 }}
                 onStartEdit={(scopeName, name, value) => {
+                  if (fixtureMode) {
+                    explainFixtureReadOnly();
+                    return;
+                  }
                   resetPropertyMutations();
                   setPropertyDraft({
                     mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
@@ -1541,7 +1643,19 @@ export function WorldSettingDatabase({
                 onReload={() => void detailQuery.refetch()}
                 onToggleEvidence={(scopeName, name) => {
                   const key = propertyPathKey(scopeName, name);
-                  setExpandedEvidence(current => current === key ? null : key);
+                  setExpandedEvidence(current => {
+                    const next = current === key ? null : key;
+                    if (fixture && selectedId) {
+                      fixture.onEvidenceToggle?.({
+                        worldSettingId: selectedId,
+                        subjectName: detail.subjectName ?? '',
+                        scopeName,
+                        settingName: name,
+                        expanded: next === key,
+                      });
+                    }
+                    return next;
+                  });
                 }}
               />
             )}
@@ -1550,7 +1664,7 @@ export function WorldSettingDatabase({
       )}
       </>}
 
-      {modal === 'world-setting-create' && (
+      {!fixtureMode && modal === 'world-setting-create' && (
         <CreateWorldSettingModal
           draft={createDraft}
           pending={createMutation.isPending}
@@ -1570,7 +1684,7 @@ export function WorldSettingDatabase({
           })}
         />
       )}
-      {modal === 'world-setting-edit' && detail && selectedId && activeIdentityDraft && (
+      {!fixtureMode && modal === 'world-setting-edit' && detail && selectedId && activeIdentityDraft && (
         <EditIdentityModal
           key={detail.id}
           detail={detail}

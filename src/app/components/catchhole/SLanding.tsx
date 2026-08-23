@@ -9,6 +9,7 @@ import {
   UploadCloud,
   WandSparkles,
 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
@@ -63,8 +64,10 @@ const FEATURES: Feature[] = [
 ];
 
 export default function SLanding() {
+  const navigate = useNavigate();
   const { openAuth, openTerms } = usePublicModalNavigation();
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const openDemo = () => navigate('/demo', { state: { transition: 'dissolve' } });
 
   return (
     <div className="landing-page theme-v2">
@@ -75,6 +78,7 @@ export default function SLanding() {
             <nav className="landing-header__nav" aria-label="서비스 소개">
               <button type="button" onClick={() => scrollTo('features')}>서비스 소개</button>
               <button type="button" onClick={() => scrollTo('how-it-works')}>이용 방법</button>
+              <button type="button" onClick={openDemo}>데모 체험</button>
             </nav>
             <div className="landing-header__actions">
               <ActionButton size="compact" variant="secondary" onClick={() => openAuth('/login')}>
@@ -107,8 +111,8 @@ export default function SLanding() {
                 <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
                   지금 무료로 시작하기
                 </ActionButton>
-                <ActionButton variant="secondary" onClick={() => scrollTo('how-it-works')}>
-                  서비스 둘러보기
+                <ActionButton variant="secondary" onClick={openDemo}>
+                  로그인 없이 체험하기
                 </ActionButton>
               </div>
               <div className="landing-trust">
@@ -168,8 +172,8 @@ export default function SLanding() {
                 <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
                   무료로 시작하기
                 </ActionButton>
-                <ActionButton variant="secondary" onClick={() => openAuth('/login')}>
-                  로그인
+                <ActionButton variant="secondary" onClick={openDemo}>
+                  먼저 체험해 보기
                 </ActionButton>
               </div>
             </div>

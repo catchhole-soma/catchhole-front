@@ -371,7 +371,7 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   await expect.poll(() => new URL(page.url()).searchParams.get('timelineFactType')).toBe('STATUS');
   await expect.poll(() => timelineRequests.some(request => request.factType === 'STATUS')).toBe(true);
 
-  await dialog.getByRole('button', { name: '2화' }).click();
+  await dialog.getByRole('button', { name: '2화 1개', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('timelineEpisodeNo')).toBe('2');
   await expect.poll(() => timelineRequests.some(request => request.fromEpisodeNo === '2')).toBe(true);
 
