@@ -51,6 +51,7 @@ import { UserMenu } from './UserMenu';
 import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
+import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -1251,7 +1252,11 @@ export default function SEpisodeUpload() {
       />
       <Stepper labels={labels} current={currentStep} />
       <main className="episode-upload-main" style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="episode-upload-content" style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
+        <div className="episode-upload-content" style={{
+          maxWidth: step === 'boundary-preview' ? 900 : 720,
+          margin: '0 auto',
+          padding: step === 'select-mode' && uploadType ? '28px 20px 28px' : '28px 20px 64px',
+        }}>
           {step === 'select-mode' && (
             <>
               <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
@@ -1751,6 +1756,11 @@ export default function SEpisodeUpload() {
             </div>
           )}
         </div>
+        {step === 'select-mode' && uploadType && (
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px 64px' }}>
+            <ManuscriptProcessingNotice appearance="light" />
+          </div>
+        )}
       </main>
     </div>
   );

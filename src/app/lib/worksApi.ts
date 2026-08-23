@@ -11,6 +11,7 @@ export interface Work {
   genre: string | null;
   description: string | null;
   episodeCount: number;
+  lifecycleStatus: 'ACTIVE' | 'PURGING';
 }
 
 export const DEMO_CHARACTER_STATE_KEY = 'catchhole_demo_character_state';
@@ -51,6 +52,7 @@ interface WorkResponse {
   genre: string | null;
   description?: string | null;
   latestEpisodeNo: number;
+  lifecycleStatus: 'ACTIVE' | 'PURGING';
 }
 
 export function toWork(res: GeneratedWorkResponse): Work | null {
@@ -61,6 +63,7 @@ export function toWork(res: GeneratedWorkResponse): Work | null {
     genre: res.genre ?? '',
     description: res.description ?? null,
     episodeCount: res.latestEpisodeNo,
+    lifecycleStatus: res.lifecycleStatus,
   };
 }
 
@@ -72,6 +75,7 @@ export async function getWorks(): Promise<Work[]> {
     genre: res.genre,
     description: res.description ?? null,
     episodeCount: res.latestEpisodeNo,
+    lifecycleStatus: res.lifecycleStatus,
   }));
 }
 

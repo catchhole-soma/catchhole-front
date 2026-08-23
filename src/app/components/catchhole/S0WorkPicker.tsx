@@ -44,6 +44,7 @@ function WorkCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const purging = work.lifecycleStatus === 'PURGING';
   const episodeLabel = work.episodeCount > 0
     ? `마지막 회차 ${work.episodeCount}화`
     : '등록된 회차 없음';
@@ -62,17 +63,18 @@ function WorkCard({
           type="button"
           aria-label={`${work.title} 수정`}
           onClick={onEdit}
+          disabled={purging}
           className="work-card__action"
         >
           <Pencil size={12} /> 수정
         </button>
         <button
           type="button"
-          aria-label={`${work.title} 삭제`}
+          aria-label={`${work.title} ${purging ? '삭제 상태' : '삭제'}`}
           onClick={onDelete}
           className="work-card__action work-card__action--danger"
         >
-          <Trash2 size={12} /> 삭제
+          <Trash2 size={12} /> {purging ? '삭제 상태' : '삭제'}
         </button>
       </div>
 
@@ -80,6 +82,7 @@ function WorkCard({
         type="button"
         aria-label={`${work.title} 작품 선택`}
         onClick={onClick}
+        disabled={purging}
         className="work-card__select"
       >
         <div className="work-card__cover" style={{ background: coverGradient(work.id) }}>
@@ -89,6 +92,11 @@ function WorkCard({
           <div className="work-card__title">
             {work.title}
           </div>
+          {purging && (
+            <div role="status" style={{ color: '#D4A04A', fontSize: 11, fontWeight: 700, marginTop: 6 }}>
+              영구 삭제 진행 중 · 선택과 수정 불가
+            </div>
+          )}
           <div
             title={work.description ?? undefined}
             className={`work-card__description${work.description ? '' : ' is-empty'}`}
@@ -170,6 +178,7 @@ export default function S0WorkPicker() {
     return params;
   }, { replace: true });
   const selectWork = (work: Work) => {
+    if (work.lifecycleStatus === 'PURGING') return;
     setSelectedWork(work.id);
     setSelectedWorkInfo({
       id: work.id,
@@ -266,8 +275,14 @@ export default function S0WorkPicker() {
             key={targetWork.id}
             work={targetWork}
             onClose={closeModal}
-            onDeleted={deletedWorkId => {
-              if (selectedWork === deletedWorkId || selectedWorkInfo?.id === deletedWorkId) {
+            onPurgeStarted={purgingWorkId => {
+              if (selectedWork === purgingWorkId || selectedWorkInfo?.id === purgingWorkId) {
+                setSelectedWork('');
+                setSelectedWorkInfo(null);
+              }
+            }}
+            onCompleted={completedWorkId => {
+              if (selectedWork === completedWorkId || selectedWorkInfo?.id === completedWorkId) {
                 setSelectedWork('');
                 setSelectedWorkInfo(null);
               }

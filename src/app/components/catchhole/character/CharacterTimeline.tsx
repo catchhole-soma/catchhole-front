@@ -559,7 +559,7 @@ function TimelineModal({
                             className="timeline-evidence-button"
                             aria-label={`${fact.sourceEpisodeNo == null ? '사용자 입력' : `${fact.sourceEpisodeNo}화`} ${fact.displayName ?? '설정'} 원문 근거 보기`}
                             disabled={!fact.hasEvidence || !fact.characterFactId}
-                            title={fact.hasEvidence ? '원문 근거 보기' : '저장된 원문 근거가 없습니다.'}
+                            title={fact.hasEvidence ? '원문 근거 보기' : '원문이 삭제되었거나 저장된 근거가 없습니다.'}
                             onClick={() => fact.characterFactId && onEvidenceOpen(fact.characterFactId)}
                           >
                             <FileText size={13} /> 근거

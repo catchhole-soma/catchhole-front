@@ -747,7 +747,6 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
       body: JSON.stringify({ success: true, data, error: null }),
     });
   });
-
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'episode-flow-token'));
   await page.goto(`/episode-upload?workId=${workId}`);
@@ -760,6 +759,13 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   });
 
   await expect(page.getByText('2개 회차 감지됨', { exact: true })).toBeVisible();
+  await expect(page.getByText('AI 분석을 실행하면 원고의 필요한 구간이 OpenAI API로 처리됩니다.')).toBeVisible();
+  await page.getByRole('button', { name: '자세히 보기' }).click();
+  const privacyDialog = page.getByRole('dialog', { name: '법적 고지' });
+  await expect(privacyDialog).toBeVisible();
+  await expect(privacyDialog.getByText('5. 외부 AI 처리')).toBeVisible();
+  await expect(page.locator('.terms-modal-backdrop')).toHaveCSS('z-index', '400');
+  await privacyDialog.getByRole('button', { name: '법적 고지 닫기' }).click();
   expect(detectionMultipartBody).toContain('name="metadata"');
   expect(detectionMultipartBody).not.toContain('name="data"');
   expect(detectionMultipartBody).toContain('"uploadType":"MULTI_EPISODE_SINGLE_FILE"');
@@ -781,6 +787,8 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   expect(uploadMultipartBody).toContain('"episodeNo":10');
   expect(uploadMultipartBody).toContain('"detectionOrder":1');
   expect(uploadMultipartBody).toContain('"episodeNo":11');
+  expect(uploadMultipartBody).not.toContain('policyVersion');
+  expect(uploadMultipartBody).not.toContain('requiredProcessingConsent');
   expect(uploadMultipartBody).not.toContain('"episodes"');
   await expect.poll(() => new URL(page.url()).searchParams.get('analysisJobIds'))
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
@@ -1121,7 +1129,9 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(modal).toHaveCSS('border-radius', '20px');
   await expect(modal.getByText('20화 · 파일 교체 후 제목')).toBeVisible();
   await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
-  await expect(modal.getByText('현재 서비스에서는 직접 복구할 수 없습니다.')).toBeVisible();
+  await expect(modal.getByText(/원고 청크와 미확정 분석 후보가 영구 삭제됩니다/)).toBeVisible();
+  await expect(modal.getByText(/원문 근거는 더 이상 볼 수 없습니다/)).toBeVisible();
+  await expect(modal.getByRole('button', { name: '영구 삭제' })).toBeDisabled();
   expect(nativeDialogCount).toBe(0);
 
   await modal.getByRole('button', { name: '취소' }).click();
@@ -1130,15 +1140,16 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
 
   await page.getByRole('button', { name: '삭제', exact: true }).click();
   modal = page.getByRole('dialog', { name: '20화를 삭제할까요?' });
-  await modal.getByRole('button', { name: '삭제', exact: true }).click();
+  await modal.getByLabel('회차 영구 삭제 확인 문구').fill('영구 삭제');
+  await modal.getByRole('button', { name: '영구 삭제', exact: true }).click();
 
   await expect.poll(() => deleteRequestCount).toBe(1);
   await expect(modal.getByRole('alert')).toHaveText(
-    '삭제에 실패했습니다. 회차는 목록에 그대로 유지됩니다.',
+    '영구 삭제를 완료하지 못했습니다. 잠시 후 다시 시도해주세요.',
   );
   await expect(page.getByRole('button', { name: '파일 교체 후 제목' })).toBeVisible();
 
-  await modal.getByRole('button', { name: '다시 시도' }).click();
+  await modal.getByRole('button', { name: '영구 삭제 다시 시도' }).click();
 
   await expect.poll(() => deleteRequestCount).toBe(2);
   await expect(modal).not.toBeVisible();
@@ -1197,6 +1208,16 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
             charCount: 100,
             analysisStatus: 'REANALYSIS_REQUIRED',
             unresolvedFindingCount: null,
+          }, {
+            id: '55555555-5555-4555-8555-555555555555',
+            batchId: '66666666-6666-4666-8666-666666666666',
+            episodeNo: 2,
+            title: '후속 분석 회차',
+            originalFilename: 'episode-2.txt',
+            contentUpdatedAt: '2026-07-24T12:00:00',
+            charCount: 120,
+            analysisStatus: 'COMPLETED',
+            unresolvedFindingCount: null,
           }]
         : pathname.endsWith(`/works/${workId}`)
           ? { id: workId, title: '현재 작품', genre: '판타지' }
@@ -1218,16 +1239,24 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   const reanalysisButton = page.getByRole('button', { name: '재분석', exact: true });
   await reanalysisButton.click();
 
+  const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
+  await expect(reanalysisDialog).toBeVisible();
+  await expect(reanalysisDialog.getByText(/중복되거나 시간 순서가 맞지 않는 후보/)).toBeVisible();
+  await expect(reanalysisDialog.getByText(/후속 회차가/)).toContainText('1개');
+  const confirmReanalysis = reanalysisDialog.getByRole('button', { name: '이해하고 재분석' });
+  await confirmReanalysis.click();
+
   await expect.poll(() => analysisRequestCount).toBe(1);
   await expect.poll(() => analysisRequestBody).toEqual({
     jobType: 'SETTING_EXTRACTION',
     batchId,
     episodeId,
   });
-  await expect(reanalysisButton).toBeDisabled();
-  await reanalysisButton.click({ force: true });
+  const pendingReanalysis = reanalysisDialog.getByRole('button', { name: '재분석 요청 중...' });
+  await expect(pendingReanalysis).toBeDisabled();
+  await pendingReanalysis.evaluate(button => (button as HTMLButtonElement).click());
 
-  await page.getByText('분석 목록', { exact: true }).click();
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   releaseAnalysisRequest();
   await page.waitForTimeout(500);
@@ -1499,7 +1528,9 @@ test('로그인·회원가입 전환과 약관 오버레이는 히스토리를 �
     .getByRole('button', { name: '이용약관', exact: true })
     .click();
   await expect(page).toHaveURL(/\/signup\?terms=terms$/);
-  await expect(page.getByRole('dialog', { name: '법적 고지' })).toBeVisible();
+  const legalDialog = page.getByRole('dialog', { name: '법적 고지' });
+  await expect(legalDialog).toBeVisible();
+  await expect(legalDialog.getByText('문서 버전 2026-08-23 · 시행일 2026년 8월 23일')).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/signup$/);
@@ -2982,8 +3013,10 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
     genre: '판타지',
     description: '기존 작품 설명',
     latestEpisodeNo: 4,
+    lifecycleStatus: 'ACTIVE',
   }];
   let updatePayload: Record<string, unknown> | null = null;
+  let deletePayload: Record<string, unknown> | null = null;
 
   await page.route('**/api/v1/auth/me', route => route.fulfill({
     status: 200,
@@ -3018,14 +3051,46 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
       });
     }
     if (route.request().method() === 'DELETE') {
-      works = [];
+      deletePayload = route.request().postDataJSON() as Record<string, unknown>;
+      works = [{ ...works[0], lifecycleStatus: 'PURGING' }];
       return route.fulfill({
-        status: 200,
+        status: 202,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: null, error: null }),
+        body: JSON.stringify({
+          success: true,
+          data: {
+            requestId: 'purge-request-1',
+            workId: 'managed-work',
+            status: 'REQUESTED',
+            requestedAt: '2026-08-22T00:00:00Z',
+            retryable: false,
+          },
+          error: null,
+        }),
       });
     }
     return route.fallback();
+  });
+  await page.route('**/api/v1/works/managed-work/purge-request', route => {
+    works = [];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          requestId: 'purge-request-1',
+          workId: 'managed-work',
+          status: 'COMPLETED',
+          requestedAt: '2026-08-22T00:00:00Z',
+          completedAt: '2026-08-22T00:00:01Z',
+          retryable: false,
+          objectStorage: { targetCount: 3, deletedCount: 3, failedCount: 0 },
+          database: { targetCount: 8, deletedCount: 8, failedCount: 0 },
+        },
+        error: null,
+      }),
+    });
   });
   await page.route('**/api/v1/works', route => route.fulfill({
     status: 200,
@@ -3070,22 +3135,117 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
   await updatedCard.hover();
   await page.getByRole('button', { name: '변경된 작품 삭제' }).click();
 
-  const firstDeleteDialog = page.getByRole('dialog', { name: '작품을 삭제하시겠습니까?' });
+  const firstDeleteDialog = page.getByRole('dialog', { name: '작품을 영구 삭제할까요?' });
   await expect(firstDeleteDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(firstDeleteDialog).toHaveCSS('border-radius', '20px');
   await expect(firstDeleteDialog.getByText('변경된 작품', { exact: true })).toBeVisible();
-  await expect(firstDeleteDialog.getByText(/보관이 아닌 영구 삭제/)).toBeVisible();
+  await expect(firstDeleteDialog.getByText(/삭제한 자료는 복구할 수 없습니다/)).toBeVisible();
+  await expect(firstDeleteDialog.getByRole('button', { name: '영구 삭제 요청' })).toBeDisabled();
   await firstDeleteDialog.getByRole('button', { name: '취소' }).click();
   await expect(page.getByRole('button', { name: '변경된 작품 작품 선택' })).toBeVisible();
 
   await updatedCard.hover();
   await page.getByRole('button', { name: '변경된 작품 삭제' }).click();
-  await page.getByRole('dialog', { name: '작품을 삭제하시겠습니까?' })
-    .getByRole('button', { name: '영구 삭제' })
-    .click();
+  const deleteDialog = page.getByRole('dialog', { name: '작품을 영구 삭제할까요?' });
+  await deleteDialog.getByLabel('영구 삭제 확인 문구').fill('영구삭제');
+  await expect(deleteDialog.getByRole('button', { name: '영구 삭제 요청' })).toBeDisabled();
+  await deleteDialog.getByLabel('영구 삭제 확인 문구').fill('영구 삭제');
+  await deleteDialog.getByRole('button', { name: '영구 삭제 요청' }).click();
 
   await expect(page).toHaveURL(/\/works$/);
   await expect(page.getByText('등록된 작품이 없습니다', { exact: true })).toBeVisible();
+  expect(deletePayload).toEqual({ confirmation: '영구 삭제' });
+});
+
+test('새로고침한 PURGING 작품은 선택을 막고 실패한 영구 삭제를 재시도한다', async ({ page }) => {
+  let retryRequested = false;
+  let works = [{
+    id: 'purging-work',
+    title: '삭제 재시도 작품',
+    genre: '판타지',
+    description: null,
+    latestEpisodeNo: 2,
+    lifecycleStatus: 'PURGING',
+  }];
+
+  await page.route('**/api/v1/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        id: 1,
+        email: 'purge-retry@example.com',
+        displayName: '삭제 재시도',
+        phoneNumber: '01012345678',
+        phoneVerified: false,
+        role: 'AUTHOR',
+        status: 'ACTIVE',
+      },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/works/purging-work/purge-request', route => {
+    if (retryRequested) works = [];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          requestId: 'purge-failed',
+          workId: 'purging-work',
+          status: retryRequested ? 'COMPLETED' : 'FAILED',
+          requestedAt: '2026-08-22T00:00:00Z',
+          completedAt: retryRequested ? '2026-08-22T00:01:00Z' : null,
+          attemptCount: retryRequested ? 2 : 1,
+          retryable: !retryRequested,
+          lastErrorCode: retryRequested ? null : 'OBJECT_STORAGE_PURGE_FAILED',
+        },
+        error: null,
+      }),
+    });
+  });
+  await page.route('**/api/v1/works/purge-requests/purge-failed/retry', route => {
+    retryRequested = true;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          requestId: 'purge-failed',
+          workId: 'purging-work',
+          status: 'REQUESTED',
+          requestedAt: '2026-08-22T00:00:00Z',
+          attemptCount: 2,
+          retryable: false,
+        },
+        error: null,
+      }),
+    });
+  });
+  await page.route('**/api/v1/works', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: works, error: null }),
+  }));
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'purge-retry-token'));
+  await page.goto('/works');
+
+  await expect(page.getByRole('button', { name: '삭제 재시도 작품 작품 선택' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '삭제 재시도 작품 수정' })).toBeDisabled();
+  await page.locator('.work-card').hover();
+  await page.getByRole('button', { name: '삭제 재시도 작품 삭제 상태' }).click();
+
+  const dialog = page.getByRole('dialog', { name: '작품 영구 삭제 상태' });
+  await expect(dialog.getByText('영구 삭제를 완료하지 못했습니다.', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: '삭제 재시도' }).click();
+
+  await expect(page.getByText('등록된 작품이 없습니다', { exact: true })).toBeVisible();
+  expect(retryRequested).toBe(true);
 });
 
 test('작품 목록 조회 오류는 화면 안에서 재시도해 복구한다', async ({ page }) => {

@@ -236,7 +236,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await expect(dialog.getByText('Lv.3', { exact: true })).toBeVisible();
   await expect(dialog.getByText('설정 키', { exact: true })).toHaveCount(0);
   await expect(dialog.getByText('skill.moonlight_sword', { exact: true })).toHaveCount(0);
-  await expect(dialog.getByText('저장된 원문 근거가 없습니다.', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('원문이 삭제되었거나 저장된 근거가 없습니다.', { exact: true })).toBeVisible();
   await expect(dialog.locator('.theme-evidence__empty'))
     .toHaveCSS('background-color', 'rgb(248, 251, 255)');
   expect(new URL(page.url()).searchParams.get('modal')).toBe('fact-detail');

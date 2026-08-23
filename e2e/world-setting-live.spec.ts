@@ -180,7 +180,10 @@ test.describe('세계관 DB 실제 연동', () => {
     } finally {
       const deleteWorkResponse = await request.delete(
         `${apiBaseUrl}/api/v1/works/${session.workId}`,
-        { headers: { Authorization: session.authorization } },
+        {
+          headers: { Authorization: session.authorization },
+          data: { confirmation: '영구 삭제' },
+        },
       );
       expect.soft(
         deleteWorkResponse.ok(),

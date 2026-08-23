@@ -347,6 +347,7 @@ test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를
       await firstRetryGate;
       return fulfill(route, [{ id: retriedJobId, jobType: 'EPISODE_VALIDATION' }]);
     }
+
     if (
       request.method() === 'POST'
       && pathname.endsWith(`/${workId}/analysis-jobs/${secondFailedJobId}/retry`)
@@ -622,7 +623,7 @@ test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 
   });
   await expect(page.locator('input[type="number"]')).toHaveValue('21');
 
-  await page.getByRole('checkbox').check();
+  await page.getByRole('checkbox', { name: '설정집도 함께 업로드 (원본만 저장)' }).check();
   await page.locator('input[type="file"]').nth(1).setInputFiles({
     name: duplicateSettingBookName,
     mimeType: 'text/plain',
@@ -950,6 +951,7 @@ test('설정집 업로드 요청 중에는 선택 파일과 드롭 영역을 변
   await expect(page.getByText(/setting-a\.txt/)).toBeVisible();
   await expect(page.getByText(/setting-b\.txt/)).toHaveCount(0);
   expect(uploadBody).toContain('setting-a.txt');
+  expect(uploadBody).not.toContain('requiredProcessingConsent');
   expect(uploadBody).not.toContain('setting-b.txt');
 
   releaseUploadRequest();

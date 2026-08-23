@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { AlertCircle, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
@@ -19,6 +19,9 @@ export function EpisodeDeleteModal({
   onClose,
   onDelete,
 }: Props) {
+  const [confirmation, setConfirmation] = useState('');
+  const confirmed = confirmation === '영구 삭제';
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !submitting) onClose();
@@ -94,7 +97,7 @@ export function EpisodeDeleteModal({
 
         <div className="theme-modal__body" style={{ padding: '22px' }}>
           <div className="theme-modal__description" style={{ color: C.t2, fontSize: 13, marginBottom: 14 }}>
-            삭제한 회차는 원고 목록에서 사라집니다.
+            삭제한 회차는 원고 목록에서 사라지며 직접 복구할 수 없습니다.
           </div>
 
           <div className="theme-modal__summary" style={{
@@ -131,7 +134,7 @@ export function EpisodeDeleteModal({
               boxSizing: 'border-box',
             }}>
               <AlertCircle size={14} />
-              삭제에 실패했습니다. 회차는 목록에 그대로 유지됩니다.
+              영구 삭제를 완료하지 못했습니다. 잠시 후 다시 시도해주세요.
             </div>
           ) : (
             <div style={{
@@ -147,9 +150,30 @@ export function EpisodeDeleteModal({
               boxSizing: 'border-box',
             }}>
               <AlertTriangle size={14} />
-              현재 서비스에서는 직접 복구할 수 없습니다.
+              회차 원문·업로드 파일, 원고 청크와 미확정 분석 후보가 영구 삭제됩니다.
             </div>
           )}
+
+          <p style={{ margin: '12px 0 8px', color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
+            확정된 캐릭터·세계관 설정은 유지되지만, 이 회차의 원문 근거는 더 이상 볼 수 없습니다.
+          </p>
+          <label style={{ display: 'block', color: C.t2, fontSize: 12 }}>
+            계속하려면 <strong style={{ color: C.t1 }}>영구 삭제</strong>를 입력해주세요.
+            <input
+              autoComplete="off"
+              disabled={submitting}
+              value={confirmation}
+              onChange={event => setConfirmation(event.target.value)}
+              placeholder="영구 삭제"
+              aria-label="회차 영구 삭제 확인 문구"
+              style={{
+                width: '100%', height: 38, marginTop: 7, padding: '0 11px', boxSizing: 'border-box',
+                borderRadius: 6, border: `1px solid ${confirmed ? C.danger : C.border}`,
+                background: C.bg, color: C.t1, fontFamily: 'inherit', fontSize: 12,
+                outline: 'none', opacity: submitting ? 0.6 : 1,
+              }}
+            />
+          </label>
         </div>
 
         <div className="theme-modal__footer" style={{
@@ -181,7 +205,7 @@ export function EpisodeDeleteModal({
           </button>
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || !confirmed}
             onClick={onDelete}
             style={{
               minWidth: failed ? 76 : 58,
@@ -194,8 +218,8 @@ export function EpisodeDeleteModal({
               fontFamily: 'inherit',
               fontSize: 12,
               fontWeight: 700,
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.7 : 1,
+              cursor: submitting || !confirmed ? 'not-allowed' : 'pointer',
+              opacity: submitting || !confirmed ? 0.45 : 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -203,7 +227,7 @@ export function EpisodeDeleteModal({
             }}
           >
             {submitting && <Loader2 size={13} className="spin" />}
-            {submitting ? '삭제 중...' : failed ? '다시 시도' : '삭제'}
+            {submitting ? '삭제 중...' : failed ? '영구 삭제 다시 시도' : '영구 삭제'}
           </button>
         </div>
       </motion.div>
