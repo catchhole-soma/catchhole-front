@@ -1,0 +1,102 @@
+{
+  "checks": {
+    "assets_fonts_licenses": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "bound_system_authority": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "component_state_coverage": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "contrast": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "implementation_contract_complete": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "opaque_extension_preservation": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "portable_core_structure": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "reduced_motion": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "responsive_320_200": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "token_reference_closure": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    },
+    "unknown_absence": {
+      "method": "controller-computed-system-graph-v2",
+      "pass": true
+    }
+  },
+  "design_md_sha256": "6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca",
+  "graph_sha256": "09577f96dad331ccaa35c2a6f7c083b2b949867df841920796ce1eda4558dc09",
+  "groups": {
+    "components-states": {
+      "evidence": [
+        "DESIGN.md#components-states",
+        "src/app/components/catchhole/LandingProductDemo.tsx"
+      ],
+      "status": "covered"
+    },
+    "content-locales": {
+      "evidence": [
+        "DESIGN.md#content-locales",
+        "src/app/components/catchhole/SLanding.tsx"
+      ],
+      "status": "covered"
+    },
+    "experience": {
+      "evidence": [
+        "DESIGN.md#experience",
+        ".omd/preferences.md#pref_mt5r2vut_2fded35a"
+      ],
+      "status": "covered"
+    },
+    "foundations": {
+      "evidence": [
+        "DESIGN.md#foundations",
+        "e2e/landing-demo.spec.ts"
+      ],
+      "status": "covered"
+    },
+    "governance": {
+      "evidence": [
+        "DESIGN.md#governance",
+        ".omd/preferences.md"
+      ],
+      "status": "covered"
+    },
+    "layout-platforms": {
+      "evidence": [
+        "DESIGN.md#layout-platforms",
+        "e2e/mobile-responsive.spec.ts"
+      ],
+      "status": "covered"
+    },
+    "typography-assets": {
+      "evidence": [
+        "DESIGN.md#typography-assets",
+        "src/assets/landing/catchhole-hero-editorial-v2.webp"
+      ],
+      "status": "covered"
+    }
+  },
+  "schema_version": "2.0.0"
+}

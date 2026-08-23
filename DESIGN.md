@@ -1,196 +1,196 @@
-# NHN Cloud Reference Design System
+# CatchHole Landing Design System
 
 <!-- design-md:section experience -->
 ## 1. Experience
 
 <!-- design-md:claim scope kind=product-surface lang=en -->
-### Product Surface Scope
+### Scope
 
-CatchHole's `/landing` is the public marketing surface for web-novel authors and editors evaluating a React product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract is scoped to that landing surface; `/login`, `/signup`, `/demo`, and authenticated workspace routes retain their existing behavior and product-specific systems.
+CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract applies only to the landing surface.
 <!-- design-md:claim-end -->
 
 <!-- design-md:claim primary-tasks kind=user-outcomes count=2 lang=en -->
-### Primary Tasks
+### Primary tasks
 
-- Experience CatchHole's manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.
-- Move to free sign-up as a secondary path when ready to register a work and use the full service.
+- Experience the manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.
+
+- Move to free sign-up as the secondary path when ready to register a work and use the full service.
 <!-- design-md:claim-end -->
 
-### Visual Theme & Atmosphere
+### Design direction
 
-NHN Cloud is a cloud and IT-service company whose public platform describes a broad set of infrastructure and platform services for business operations and service development. Its corporate history traces the cloud service to a 2014 OpenStack launch and records NHN Cloud Corp.'s 2022 establishment, while the current company site frames the role as enabling customers' next technical challenge. On the captured corporate marketing route, that promise is expressed with a narrow, high-contrast action system: a bright `#125DE6` blue on fully rounded CTAs, white labels, dark resource menus, and the loaded `Pretendard Variable` face. The company’s official symbol describes three dots as both cloud and connection; the visual interface does not literalize that story with a broad decorative palette. It instead uses blue as a deliberate conversion signal. [NHN Cloud Company](https://company.nhncloud.com/about?lang=en) and the public [cloud platform](https://www.nhncloud.com/kr) are distinct from the developer-facing TOAST UI catalog and from the documentation chrome captured below.
+- Make reference-led landing redesigns visibly distinct through a strong first-screen hero and meaningful section hierarchy; CTA styling alone is not sufficient.
 
-### Do's and Don'ts
+- Use purpose-built, visually distinct images for the hero and each product-flow panel instead of reusing one generic image through repeated crops.
 
-### Do
+- Present the implemented eight-stage manuscript workflow as one animated exploratory accordion with a clear active step and reduced-motion fallback.
 
-- Use `#125DE6` and a 30px radius only for the captured corporate marketing CTA pattern.
-- Use loaded `Pretendard Variable` for corporate-marketing reproductions.
-- Keep the 6px trigger and 8px expanded-menu geometry tied to their observed resource control.
-- Treat TOAST UI and NHN Cloud docs as separately evidenced developer/documentation surfaces.
-
-### Don't
-
-- Do not merge TOAST UI catalog chrome or documentation-chrome colors into the corporate marketing token set.
-- Do not substitute `Noto Sans KR`, `Noto Sans CJK KR`, or a system font for the verified corporate `Pretendard Variable` role.
-- Do not invent grid, editor, calendar, error, hover, disabled, or responsive variants from TOAST UI’s product list.
-- Do not generalize the menu overlay shadow into a broad elevation ladder.
-
-### Brand Narrative
-
-NHN Cloud's official history records an OpenStack public-cloud launch in 2014, a cloud-center build in Pangyo in 2015, and the launch of NHN Cloud in April 2022. The company now describes itself as a cloud and IT-service business, with current growth efforts spanning data/AI services, private and global markets, and regional data centers. Its official logo explanation centres connection and boundless possibility; the three-dot symbol is described as a cloud and as a prompt for easy, flexible collaboration.
-
-The developer-facing counterpart is TOAST UI: its own site calls it a JavaScript UI library and free open-source project constantly managed by NHN Cloud, listing applications such as Grid, Editor, Calendar, Chart, and Image Editor alongside smaller components and front-end guides. The catalog is informative evidence of the developer ecosystem, not proof that its catalog-page typography or any unobserved component value is the NHN Cloud corporate design system.
+- Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile.
 
 ### Principles
 
-1. **Enable a customer’s technical journey.**
-   *UI implication:* Prefer a clear capability and an unambiguous next action over decorative language.
+- Use NHN Cloud as reference evidence while CatchHole repository facts and explicit owner decisions define product behavior.
 
-2. **Connection is a brand idea, not a license to invent a token system.**
-   *UI implication:* Keep the action lane focused; do not turn the corporate logo story into unsupported visual rules.
+- Keep capability claims aligned with shipped product behavior and label relationship maps, chatbot, and error reports as upcoming until implemented.
 
-3. **Corporate marketing and developer catalog are distinct public domains.**
-   *UI implication:* Attribute each token and component to its captured route before reuse.
+### Avoid
 
-4. **Open-source developer tools need precise boundaries.**
-   *UI implication:* Describe TOAST UI's documented applications and components without claiming unseen states or styles.
+- Do not apply this landing-only contract to authenticated workspace routes.
 
-### Personas
-
-- **Enterprise technical evaluator:** visits the public cloud marketing route to understand services and a next step; the verified CTA values belong to this route.
-- **Developer evaluating a UI utility:** visits TOAST UI’s catalog for applications, components, and guides; this is a developer/documentation journey, not the NHN Cloud console.
-- **Cloud documentation reader:** uses `docs.nhncloud.com` for reference material; its loaded Noto Sans KR documentation chrome remains surface-local.
+- Do not reduce the redesign to generic cards, decorative gradients, or repeated crops that obscure the actual product flow.
 
 <!-- design-md:section foundations -->
 ## 2. Foundations
 
 <!-- design-md:claim foundations kind=rules-or-constraints lang=en -->
-### Color Palette & Roles
+### Semantic tokens
 
-**Corporate marketing route — selector-backed machine tokens**
+- **color.control-border**: `#51565F` — Verified NHN Cloud resource-control border evidence.
+- **color.menu-surface**: `#111111` — Reference-only dark expanded menu surface; do not generalize it into the CatchHole workspace palette.
+- **color.menu-text**: `#FFFFFF` — Reference-only text color on the dark expanded menu surface.
+- **color.muted-control**: `#727781` — Verified NHN Cloud resource-control text and border evidence.
+- **color.on-primary**: `#FFFFFF` — Text and icon color on the primary action surface.
+- **color.primary**: `#125DE6` — Primary landing conversion and active-step blue, derived from the verified NHN Cloud marketing reference.
 
-- Primary action: `#125DE6` — observed as the filled CTA background and border.
-- On primary: `#FFFFFF` — observed CTA label color.
-- Dark menu surface: `#111111` — observed expanded menu background.
-- Muted control text: `#727781` — observed resource-menu trigger text and menu border.
-- Control border: `#51565F` — observed resource-menu trigger border.
+### Contrast pairs
 
-The capture also records `#E9F1FF` in documentation chrome. It is not promoted as a corporate marketing or TOAST UI token: the page is a separate documentation shell.
+- color.on-primary on color.primary: minimum 4.5:1
+- color.menu-text on color.menu-surface: minimum 4.5:1
+
+### Reduced motion
+
+Required.
+
+### Foundation rules
+
+- Reserve `#125DE6` for primary conversion, active workflow steps, and focused brand emphasis on `/landing`.
+
+- Keep the verified 30px pill geometry scoped to landing CTAs; resource controls retain their separately evidenced 6px trigger and 8px panel geometry.
+
+- Accordion motion must communicate the active product step and collapse to an immediate state change when reduced motion is requested.
 <!-- design-md:claim-end -->
-
-### Depth & Elevation
-
-The captured corporate CTA samples have no shadow. The expanded resource menu alone records an overlay shadow of `0px 4px 8px rgba(0, 0, 0, 0.06)` behind a `#111111` panel and `#727781` hairline. Do not turn that one menu observation into a general card-elevation system.
-
-### Motion & Easing
-
-No computed duration, easing curve, or motion sequence was supplied as a reliable token. The menu-open capture establishes the resulting expanded panel only. Treat motion values as unresolved until a relevant public surface is captured with explicit computed transition evidence.
-
-**Proof:** see .verification.md (## Proof — Tier 1 live inspect)
 
 <!-- design-md:section typography-assets -->
 ## 3. Typography & Assets
 
-### Typography Rules
+### Type roles
 
-- **Live corporate computed use:** `Pretendard Variable` is the only general corporate UI family promoted here. It has 480 visible uses across the corporate marketing capture and a loaded FontFace/source match at `https://www.nhncloud.com/fonts/PretendardVariable.woff2`.
-- **Live documentation-chrome use:** `Noto Sans KR` is loaded/high confidence with 203 visible uses on `docs.nhncloud.com`, from Google Fonts sources. It is documentation chrome evidence, not a replacement for the corporate token family.
-- **Unresolved catalog use:** the TOAST UI catalog computes `Noto Sans CJK KR` on 122 visible samples, but the collector found no matching loaded FontFace or source. It remains unresolved.
-- **Declared-only assets:** `common`, `Noto Sans`, `Noto Sans JP`, `swiper-icons`, and `tui-calendar-font-icon` have declaration/source evidence but zero visible observed use. They are not promoted or substituted.
-- **Font licence boundary:** Pretendard’s upstream project distributes the family under SIL Open Font License 1.1. The licence describes the family; the corporate FontFaceSet/source evidence above is what establishes current NHN Cloud web use.
+| Role | Usage | Family | Weight |
+|---|---|---|---|
+| landing-display | Hero and major landing section headings with a compact, high-impact hierarchy. | Pretendard Variable | 700–800 |
+| landing-ui | Landing navigation, CTA, product-step labels, catalog titles, and supporting copy. | Pretendard Variable | 400–700 |
+
+### Assets
+
+| Asset | Kind | Source status | License status | Source | Notes |
+|---|---|---|---|---|---|
+| pretendard-variable | font | official | verified | https://www.nhncloud.com/fonts/PretendardVariable.woff2 | Corporate marketing reference use is verified; upstream Pretendard is distributed under SIL Open Font License 1.1. |
+| landing-generated-images | image | generated-original | not-required | src/assets/landing/ | One dedicated hero composition and eight purpose-built workflow panel images created for CatchHole. |
+
+### Rules
+
+- Use the landing display role for first-screen impact and the landing UI role for compact product explanation.
+
+- Keep image purpose explicit: the hero explains manuscript-to-setting connection, while each workflow image represents one distinct product stage.
 
 <!-- design-md:section components-states -->
 ## 4. Components & States
 
-### Component Stylings
+### Component: landing-primary-action
 
-### Corporate Header CTA
+**Semantics:** Navigates directly to the login-free interactive demo and remains the primary landing conversion.
 
-**40px primary action**
-- Background: #125DE6
-- Text: #FFFFFF
-- Border: 1px solid #125DE6
-- Radius: 30px
-- Padding: 8px 19px
-- Height: 40px
-- Font: 15px / 400 / Pretendard Variable
-- Use: Corporate-marketing header CTA; `home::[captured element]`.
+- Anatomy: label, optional directional icon
+- Variants: 40px header action, 48px hero and closing action
+- States: default, hover, focus-visible
+- Token references: color.primary, color.on-primary
 
-### Corporate Section CTA
+- Interaction kind: interactive
 
-**48px primary action**
-- Background: #125DE6
-- Text: #FFFFFF
-- Border: 1px solid #125DE6
-- Radius: 30px
-- Padding: 10px 27px
-- Height: 48px
-- Font: 17px / 500 / Pretendard Variable
-- Use: Corporate-marketing section CTA; `home::[captured element]`.
+#### State applicability
 
-### Resource Menu Trigger
+| State | Applicability | Reason |
+|---|---|---|
+| default | applicable |  |
+| hover | applicable |  |
+| focus-visible | applicable |  |
+| disabled | not-applicable | The public demo route is always available from the landing page. |
+| loading | not-applicable | Navigation does not expose an asynchronous loading state in this control. |
+| error | not-applicable | Route-level failures are not rendered as a button state. |
+| success | not-applicable | Successful navigation replaces the landing route instead of changing the button state. |
 
-**Expanded trigger**
-- Text: #727781
-- Border: 1px solid #51565F
-- Radius: 6px
-- Padding: 10px 16px
-- Height: 42px
-- Font: 16px / 400 / Pretendard Variable
-- Use: Corporate-marketing resource/menu trigger; `home::[captured element]`; expanded/menu-open was observed.
+### Component: landing-product-accordion
 
-### Resource Menu
+**Semantics:** Explores the real eight-stage CatchHole workflow within one showcase instead of displaying eight isolated screens.
 
-**Expanded panel**
-- Background: #111111
-- Text: #FFFFFF
-- Border: 1px solid #727781
-- Radius: 8px
-- Padding: 8px 0px
-- Shadow: 0px 4px 8px rgba(0, 0, 0, 0.06)
-- Font: 16px / 400 / Pretendard Variable
-- Use: Expanded corporate-marketing menu panel; `home::[captured element]`.
+- Anatomy: step trigger, step number, step label, purpose-built panel image, active panel content
+- Variants: desktop vertical rails, tablet and mobile horizontal step strip
+- States: default, hover, focus-visible, expanded
 
-No TOAST widget, input, grid, editor, hover color, error treatment, or responsive variant is specified here without a captured selector/value pair on an actual relevant surface.
+- Interaction kind: interactive
 
-### States
+#### State applicability
 
-- Corporate header and section CTA selectors carry collector markers for hover and pressed, but no separate computed state values are promoted.
-- The corporate resource trigger was observed expanded/menu-open with the 42px, 6px-radius trigger values above.
-- The expanded corporate menu panel was observed at `#111111`, with a 1px `#727781` border, 8px radius, and the recorded overlay shadow.
-- A documentation-chrome CTA was observed separately at `surface-3::[captured element]`: `#125DE6`, white text, 30px radius, `9px 20px` padding, and Noto Sans KR 15px/300. It is not promoted as the corporate CTA token.
-- No focus, disabled, error, success, loading, empty, toast, dialog, or form-validation state is asserted.
+| State | Applicability | Reason |
+|---|---|---|
+| default | applicable |  |
+| hover | applicable |  |
+| focus-visible | applicable |  |
+| disabled | not-applicable | Every workflow step remains selectable. |
+| loading | not-applicable | All panel assets are bundled with the landing page. |
+| error | not-applicable | The showcase does not call product APIs. |
+| success | not-applicable | Selecting a step is represented by the expanded state. |
+
+### Rules
+
+- Keep the verified NHN Cloud CTA geometry as landing evidence rather than a universal application button system.
+
+- Use `로그인 없이 체험하기` as the primary action in the header, hero, and closing CTA; free sign-up remains secondary.
+
+- Accordion transitions must preserve keyboard focus, expose the active step, and honor reduced-motion preferences.
 
 <!-- design-md:section layout-platforms -->
 ## 5. Layout & Platforms
 
-### Layout Principles
+### Responsive constraints
 
-The corporate marketing capture pairs a 40px header action with 48px section actions, keeping the bright blue lane intentionally limited. The 30px CTA radius belongs to this marketing surface; the observed 6px trigger and 8px menu panel are a separate resource-control cluster. The source artifact does not establish a universal grid, app-shell spacing scale, or layout rule for the cloud console, TOAST UI applications, or documentation pages.
+- Minimum supported width: 320px
+- Reflow target: 200% zoom
 
-### Responsive Behavior
+### Layout rules
 
-The supplied capture is 1440×900 only. It establishes 40px and 48px CTA examples and a 42px resource trigger at that viewport, but it does not establish a mobile breakpoint, responsive menu geometry, or touch-target policy. Preserve the observed values only where the same surface is being recreated; validate any responsive implementation separately.
+- Keep a strong split hero at wide viewports, then stack copy before imagery on narrower screens without horizontal overflow.
+
+- Render the service catalog in two columns on desktop and one column on mobile, preserving the same capability order and upcoming labels.
+
+- Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile.
+
+### Platform: web
+
+- Support 320px-wide viewports and reflow at 200% zoom without horizontal scrolling.
+- Keep the primary CTA reachable before the showcase and again after the service catalog.
 
 <!-- design-md:section content-locales -->
 ## 6. Content & Locales
 
-### Voice & Tone
+### Voice
 
-The official company statement is business-enabling and practical: it positions NHN Cloud as technology support for customers' new journeys. Keep corporate copy direct, capability-led, and concrete about the operational outcome. The TOAST UI catalog has a different, developer-oriented voice: it presents applications, components, tools, and front-end guidance. That public catalog voice is useful context for developers, but it does not turn documentation labels into corporate-marketing microcopy. [Company statement](https://company.nhncloud.com/about?lang=en) · [TOAST UI](https://ui.toast.com/)
+- Write Korean landing copy in a direct, capability-led style that explains what the author can inspect, compare, or confirm.
+
+- Use concrete product nouns such as 원고, 회차, 캐릭터, 세계관, 원문 근거, and 설정 이력 instead of abstract AI claims.
+
+### Locale: ko-KR (supported)
+
+- Keep CTA labels short and action-oriented.
+- Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available.
 
 <!-- design-md:section governance -->
 ## 7. Governance
 
-### Agent Prompt Guide
-
-For a corporate NHN Cloud marketing treatment, use `Pretendard Variable`, a white-on-`#125DE6` 30px pill CTA, and choose either the 40px / `8px 19px` / 15px-400 header sample or the 48px / `10px 27px` / 17px-500 section sample. For the captured resource menu, use a transparent `#727781` / `#51565F` 6px trigger and an expanded `#111111` panel with an 8px radius and the observed light overlay shadow. Do not use this small marketing sample to synthesize a cloud-console UI or TOAST UI widget library.
-
-<!-- design-md:claim authority kind=evidence-backed-reconstruction lang=en -->
+<!-- design-md:claim authority kind=project-system lang=en -->
 ### Authority
 
-This document is an evidence-backed reconstruction, not authority for an unrelated target project.
+This document is the project design contract for the declared scope.
 <!-- design-md:claim-end -->
 
 <!-- design-md:claim application-priority order=prompt-fact,repository-fact,system-contract,reference-inspiration lang=en -->
@@ -213,3 +213,19 @@ Omit only the smallest unresolved value or group. Do not replace it with a plaus
 
 Record, review, and validate changes before adoption.
 <!-- design-md:claim-end -->
+
+### Project priority details
+
+1. Direct project-owner instructions for the requested landing scope.
+
+2. CatchHole repository facts and verified implementation behavior.
+
+3. This adopted landing system contract.
+
+4. NHN Cloud reference inspiration within its captured evidence boundary.
+
+### Additional change rules
+
+- Record new owner corrections in `.omd/preferences.md`, review them, and fold them through the Core v2 graph before clearing pending status.
+
+- Update operational docs and the Pencil source whenever an approved landing flow or capability description changes.

@@ -13,7 +13,9 @@ timestamp: 2026-08-23T10:09:10.182Z
 scope: components.button
 signal: user-statement
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-08-23T13:38:46Z
+applied_design_md_hash: 6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca
 source_agent: codex
 source_context: "src/app/components/catchhole/SLanding.tsx"
 ```
@@ -28,7 +30,9 @@ timestamp: 2026-08-23T11:04:21.048Z
 scope: layout
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-08-23T13:38:46Z
+applied_design_md_hash: 6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca
 source_agent: codex
 source_context: "src/app/components/catchhole/SLanding.tsx"
 ```
@@ -43,7 +47,9 @@ timestamp: 2026-08-23T11:27:57.000Z
 scope: layout.hero
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-08-23T13:38:46Z
+applied_design_md_hash: 6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca
 source_agent: codex
 source_context: "src/app/components/catchhole/SLanding.tsx"
 ```
@@ -58,7 +64,9 @@ timestamp: 2026-08-23T12:07:34.849Z
 scope: visualTheme
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-08-23T13:38:46Z
+applied_design_md_hash: 6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca
 source_agent: codex
 source_context: "src/app/components/catchhole/landing-v2.css"
 ```
@@ -73,7 +81,9 @@ timestamp: 2026-08-23T12:45:02.771Z
 scope: layout
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-08-23T13:38:46Z
+applied_design_md_hash: 6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca
 source_agent: codex
 source_context: "src/app/components/catchhole/SLanding.tsx"
 ```
