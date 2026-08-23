@@ -137,7 +137,7 @@ export function EpisodeDeleteModal({
               영구 삭제를 완료하지 못했습니다. 잠시 후 다시 시도해주세요.
             </div>
           ) : (
-            <div style={{
+            <div className="episode-delete-permanent-warning" style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -145,7 +145,7 @@ export function EpisodeDeleteModal({
               padding: '8px 11px',
               borderRadius: 6,
               background: C.warning + '12',
-              color: C.warning,
+              color: 'var(--ch-warning-ink, #8A4B00)',
               fontSize: 12,
               boxSizing: 'border-box',
             }}>

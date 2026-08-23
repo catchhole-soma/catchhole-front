@@ -1136,7 +1136,8 @@ export default function SEpisodeUpload() {
 
   const retryFailedAnalysisJobs = async () => {
     if (
-      retryableFailedAnalysisJobIds.length === 0
+      routeWork?.lifecycleStatus === 'PURGING'
+      || retryableFailedAnalysisJobIds.length === 0
       || !episodeUploadBatchId
       || batchRetryInFlight.current
     ) return;
@@ -1770,10 +1771,12 @@ export default function SEpisodeUpload() {
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton
-                      disabled={batchRetryPending}
+                      disabled={batchRetryPending || routeWork?.lifecycleStatus === 'PURGING'}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
-                      {batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                      {routeWork?.lifecycleStatus === 'PURGING'
+                        ? '작품 삭제 중에는 재시도할 수 없습니다'
+                        : batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>

@@ -201,7 +201,10 @@ export function WorkDeleteModal({ work, onClose, onPurgeStarted, onCompleted }: 
               이 작품의 원본 파일, 회차, 분석 결과를 모두 삭제합니다. 삭제한 자료는 복구할 수 없습니다.
             </div>
             <label htmlFor="work-purge-confirmation" style={{ display: 'block', marginTop: 18, color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
-              계속하려면 <strong style={{ color: C.t1 }}>{PURGE_CONFIRMATION}</strong>를 정확히 입력해주세요.
+              계속하려면 <strong
+                className="work-delete-confirmation-phrase"
+                style={{ color: 'var(--ch-ink, #191e26)' }}
+              >{PURGE_CONFIRMATION}</strong>를 정확히 입력해주세요.
             </label>
             <input
               id="work-purge-confirmation"

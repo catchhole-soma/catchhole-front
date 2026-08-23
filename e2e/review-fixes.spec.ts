@@ -229,6 +229,54 @@ test('작품 삭제로 취소된 분석은 종료 안내를 표시하고 polling
   expect(analysisRequestCount).toBe(terminalRequestCount);
 });
 
+test('삭제 중인 작품의 기존 실패 분석은 열람만 허용하고 재시도하지 않는다', async ({ page }) => {
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+  let retryRequestCount = 0;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (request.method() === 'POST' && pathname.endsWith(`/analysis-jobs/${analysisJobId}/retry`)) {
+      retryRequestCount += 1;
+      return fulfill(route, []);
+    }
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '삭제 중인 작품',
+            batchId,
+            jobType: 'EPISODE_VALIDATION',
+            status: 'FAILED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 20,
+              title: '실패한 분석 회차',
+              status: 'FAILED',
+            }],
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '삭제 중인 작품', genre: '판타지', lifecycleStatus: 'PURGING' }
+          : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'purging-failed-analysis-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
+    + '&jobType=EPISODE_VALIDATION',
+  );
+
+  await expect(page.getByText('회차 분석에 실패했습니다', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', {
+    name: '작품 삭제 중에는 재시도할 수 없습니다',
+  })).toBeDisabled();
+  expect(retryRequestCount).toBe(0);
+});
+
 test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시한다', async ({ page }) => {
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   const completedAnalysisJobId = '55555555-5555-4555-8555-555555555555';

@@ -1,6 +1,29 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
+
+async function expectReadableDialogText(locator: Locator, expectedColor: string) {
+  await expect(locator).toHaveCSS('color', expectedColor);
+  const contrast = await locator.evaluate(element => {
+    const channels = (color: string) => (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    const luminance = (color: string) => {
+      const rgb = channels(color).map(channel => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    };
+    const foreground = luminance(getComputedStyle(element).color);
+    const dialog = element.closest('[role="dialog"]');
+    if (!dialog) return 0;
+    const background = luminance(getComputedStyle(dialog).backgroundColor);
+    return (Math.max(foreground, background) + 0.05)
+      / (Math.min(foreground, background) + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+}
 
 // 실제 로그인/작품선택(백엔드 연동)은 검증하지 않음 — accessToken을 직접 주입해
 // "이미 인증된 상태"만 흉내 내고, 그 상태에서 /dashboard 렌더링이 깨지지 않는지만 확인한다.
@@ -1130,28 +1153,13 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(modal.getByText('20화 · 파일 교체 후 제목')).toBeVisible();
   await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
   await expect(modal.getByText(/원고 청크와 미확정 분석 후보가 영구 삭제됩니다/)).toBeVisible();
+  await expectReadableDialogText(
+    modal.locator('.episode-delete-permanent-warning'),
+    'rgb(138, 75, 0)',
+  );
   await expect(modal.getByText(/원문 근거는 더 이상 볼 수 없습니다/)).toBeVisible();
   const confirmationPhrase = modal.locator('.episode-delete-confirmation-phrase');
-  await expect(confirmationPhrase).toHaveCSS('color', 'rgb(25, 30, 38)');
-  const confirmationContrast = await confirmationPhrase.evaluate(element => {
-    const channels = (color: string) => (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
-    const luminance = (color: string) => {
-      const rgb = channels(color).map(channel => {
-        const normalized = channel / 255;
-        return normalized <= 0.04045
-          ? normalized / 12.92
-          : ((normalized + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-    };
-    const foreground = luminance(getComputedStyle(element).color);
-    const dialog = element.closest('[role="dialog"]');
-    if (!dialog) return 0;
-    const background = luminance(getComputedStyle(dialog).backgroundColor);
-    return (Math.max(foreground, background) + 0.05)
-      / (Math.min(foreground, background) + 0.05);
-  });
-  expect(confirmationContrast).toBeGreaterThanOrEqual(4.5);
+  await expectReadableDialogText(confirmationPhrase, 'rgb(25, 30, 38)');
   await expect(modal.getByRole('button', { name: '영구 삭제' })).toBeDisabled();
   expect(nativeDialogCount).toBe(0);
 
@@ -3170,6 +3178,10 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
   await expect(firstDeleteDialog).toHaveCSS('border-radius', '20px');
   await expect(firstDeleteDialog.getByText('변경된 작품', { exact: true })).toBeVisible();
   await expect(firstDeleteDialog.getByText(/삭제한 자료는 복구할 수 없습니다/)).toBeVisible();
+  await expectReadableDialogText(
+    firstDeleteDialog.locator('.work-delete-confirmation-phrase'),
+    'rgb(25, 30, 38)',
+  );
   await expect(firstDeleteDialog.getByRole('button', { name: '영구 삭제 요청' })).toBeDisabled();
   await firstDeleteDialog.getByRole('button', { name: '취소' }).click();
   await expect(page.getByRole('button', { name: '변경된 작품 작품 선택' })).toBeVisible();
