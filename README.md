@@ -47,7 +47,7 @@ CATCHHOLE_E2E_PASSWORD='<password>' \
 npx playwright test e2e/setting-book-live.spec.ts
 ```
 
-백엔드 연결이 안 되거나 `.env`가 없어도, 앱이 **데모 모드**로 전환되어 목 데이터로 화면을 둘러볼 수 있습니다 (자세한 동작은 `CLAUDE.md`의 "상태 관리 & 데모 모드" 참고).
+비로그인 사용자는 백엔드 연결이나 `.env` 없이도 `/demo`에서 10문단 가상 원고를 이용한 fixture 기반 단일 시나리오를 체험할 수 있습니다. 후보 검토 뒤 실제 형식의 캐릭터·세계관 설정 DB에서 5명의 캐릭터 카드와 설정 행을 눌러 상세·회차별 변화 이력·원문 근거까지 확인합니다. 이 공개 데모만 API를 호출하지 않으며, 보호 화면은 연결 실패를 목 데이터 전환 조건으로 사용하지 않습니다.
 
 ## 주요 라우트
 
@@ -56,6 +56,7 @@ npx playwright test e2e/setting-book-live.spec.ts
 | `/landing` | SLanding | 비로그인 서비스 소개와 Auth 모달 공통 배경 (공개) |
 | `/login` | SLogin | 랜딩 위 로그인 라우트 모달 (공개) |
 | `/signup` | SSignup | 랜딩 위 회원가입 라우트 모달 (공개) |
+| `/demo` | SInteractiveDemo | 딤 없이 타깃 바깥의 고정 여백 윤곽선이 중앙 기준으로 나타나고 호흡하는 코치마크로 후보 검토와 캐릭터·세계관 상세/변화 이력/원문 근거를 확인하는 fixture 단일 시나리오 (공개, API 호출 없음) |
 | `/` | S0WorkPicker | 작품 선택 (진입점) |
 | `/dashboard` | S1Dashboard | 선택된 작품의 대시보드 |
 | `/editor` | S2Editor | 원고 에디터 |
@@ -66,7 +67,7 @@ npx playwright test e2e/setting-book-live.spec.ts
 | `/setting-review` | SSettingReview | 추출된 설정 후보 검토 |
 | `/episode-validation-report` | SEpisodeValidationReport | 회차 검사(충돌/모순) 결과 |
 
-`/landing`, `/login`, `/signup`을 제외한 모든 라우트는 인증(accessToken)이 필요합니다.
+`/landing`, `/login`, `/signup`, `/demo`를 제외한 모든 라우트는 인증(accessToken)이 필요합니다.
 
 ## 프로젝트 구조
 

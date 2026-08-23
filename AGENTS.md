@@ -37,6 +37,8 @@ npm run test:e2e
 ## 인증과 세션
 
 - `/login`과 `/signup`은 랜딩 위에 표시하는 라우트 모달로 유지합니다. 랜딩에서 열 때만 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 연 경우 닫을 때 `/landing`으로 대체 이동합니다. 로그인↔회원가입 전환과 인증 성공에는 `replace`를 사용하며, 로그아웃은 `/landing`으로 대체 이동합니다.
+- `/demo`는 `PrivateRoute`와 Auth용 `PublicLayout` 밖의 독립 공개 라우트로 유지합니다. `interactiveDemoFixture.ts`와 컴포넌트 메모리만 사용하고 생성 SDK·API·localStorage·sessionStorage에 연결하지 않으며, 새로고침과 `다시 체험하기`는 첫 단계로 초기화합니다.
+- `/demo`의 결과 탐색 화면은 배포 화면의 `CharacterDatabase`, `CharacterTimelineModal`, `WorldSettingDatabase`를 fixture 주입으로 그대로 재사용합니다. 같은 화면을 데모 전용 JSX·CSS로 복제하지 않습니다.
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
 - 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
@@ -52,6 +54,7 @@ npm run test:e2e
 ## 변경 원칙
 
 - 회원가입을 포함한 화면 디자인·상태·흐름을 바꾸면 `design/catchhole.pen`, `docs/data-requirements/auth.md`, `docs/screen-flow.md`를 구현과 함께 갱신하고 기존 Obsidian Violet 토큰을 재사용합니다.
+- `/demo`의 단계·코치마크·CTA 흐름을 바꾸면 `design/catchhole.pen`, `docs/screen-flow.md`, `design/PENCIL_MIGRATION.md`의 대표 프레임과 Workflow 정보를 함께 갱신합니다.
 - Theme V2의 밝은 modal·card surface 안에서는 legacy dark `C.t*` 색상을 인라인으로 지정하지 않고 `--ch-*` 의미 토큰을 사용합니다. 연락처·액션 같은 일반 크기 텍스트는 실제 브라우저에서 4.5:1 이상 명암비와 식별 수단을 검증하고 E2E 스타일 assertion을 남겨, CSS override와 인라인 색상 조합으로 글자가 사라지는 회귀를 막습니다. 밝은 surface의 작은 경고 텍스트·액션에는 장식용 `--ch-warning` 대신 명암비를 보장한 `--ch-warning-ink`를 사용합니다.
 - 사용자 입력 제약은 프론트 검증과 OpenAPI DTO 계약을 일치시킵니다.
 - 민감한 토큰, 쿠키, 비밀번호를 테스트 출력·문서·커밋에 남기지 않습니다.
