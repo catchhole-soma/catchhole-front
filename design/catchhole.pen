@@ -33882,7 +33882,7 @@
                           "id": "omdL033",
                           "name": "Demo Button / Primary Label",
                           "fill": "$ch-primary-contrast",
-                          "content": "데모 체험",
+                          "content": "로그인 없이 체험하기",
                           "fontFamily": "$ch-font",
                           "fontSize": 15,
                           "fontWeight": "600"
@@ -35884,7 +35884,7 @@
                       "id": "omdL178",
                       "name": "Try First / Primary Label",
                       "fill": "$ch-primary-contrast",
-                      "content": "먼저 체험해 보기",
+                      "content": "로그인 없이 체험하기",
                       "fontFamily": "$ch-font",
                       "fontSize": 15,
                       "fontWeight": "600"
