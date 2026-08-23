@@ -198,7 +198,7 @@ flowchart TD
   confirmCode -- "5회 초과·만료: 새 발송 필요" --> signup
   confirmCode -- "성공: 10분 가입 토큰<br/>메모리에만 보관" --> verified["휴대폰 인증 완료"]:::public
   verified -- "인증된 번호 수정<br/>토큰·진행 상태 폐기" --> signup
-  verified --> agree{"필수 약관·개인정보<br/>모두 동의했나?"}:::decision
+  verified --> agree{"이용약관 동의·개인정보<br/>처리방침을 확인했나?"}:::decision
   agree -- "아니오: 가입 버튼 비활성" --> signup
   agree -- "예: 회원가입 제출" --> signupReq{"회원가입 결과"}:::decision
   signupReq -- "성공 = 자동 로그인" --> ok
@@ -221,7 +221,7 @@ flowchart TD
 
 > `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
 >
-> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
+> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. 한 체크박스로 이용약관 동의와 개인정보처리방침 확인을 함께 받고 Backend가 당시 문서 버전과 기록 시각을 저장합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
 
 ---
@@ -359,7 +359,7 @@ flowchart TD
     source_viewer["회차 원문 보기<br/>읽기 전용"]:::private
     title_edit["회차 제목 인라인 수정"]:::modal
     file_replace["회차 파일 변경 모달<br/>성공 전 기존 원문·분석 유지"]:::modal
-    delete_confirm["회차 삭제 확인<br/>soft delete"]:::modal
+    delete_confirm["회차 원문 영구 삭제 확인<br/>ARCHIVED tombstone 유지"]:::modal
   end
 
   nav_manuscripts --> episode_list
@@ -397,7 +397,7 @@ flowchart TD
 
 > 분석 목록은 `UploadBatch` 단위로 최근 분석 요청순 10개씩 서버 페이지네이션합니다. 각 카드에서 캐릭터 설정 후보와 세계관 설정 후보의 검토 완료·대기 수를 분리해 표시하고, 두 종류의 대기 후보를 모두 반영해 분석 중·일부 실패·실패·검토 필요·완료 상태를 구분합니다. 일반 실패와 세계관 비교 중단이 함께 남으면 `실패 확인`을 먼저 제공하고 복구 뒤 `남은 비교 확인`으로 전환합니다. 같은 갱신에서 여러 배치가 함께 종료되면 새 중단 건수를 합산해 한 번 안내합니다.
 
-> 원고 목록 행에는 분석 `진행 보기`·`결과 보기`·`다시 시도`와 `미처리` 열을 두지 않습니다. 진행·부분 실패·실패·설정 후보 검토 필요 상태는 목록 위 배너에서 알리고, 실제 후속 액션은 업로드 묶음별 분석 목록에서 제공합니다. 원문 변경으로 `재분석 필요`가 된 회차의 `재분석` 액션은 유지하며, 분석 중인 회차의 파일 변경·삭제·중복 분석 요청은 비활성화합니다.
+> 원고 목록 행에는 분석 `진행 보기`·`결과 보기`·`다시 시도`와 `미처리` 열을 두지 않습니다. 진행·부분 실패·실패·설정 후보 검토 필요 상태는 목록 위 배너에서 알리고, 실제 후속 액션은 업로드 묶음별 분석 목록에서 제공합니다. 원문 변경으로 `재분석 필요`가 된 회차의 `재분석` 액션은 유지하되, 해당 회차만 다시 분석하고 후속 회차에서 축적된 설정 때문에 후보의 시간 순서가 섞일 수 있다는 확인 모달을 먼저 표시합니다. 분석 중인 회차의 파일 변경·삭제·중복 분석 요청은 비활성화합니다.
 
 > 딥링크 (클릭 시 이동):
 > - 사이드바 — [설정 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [그래프 뷰](https://catch-hole.vercel.app/dashboard?nav=graph) · [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts)

@@ -40,6 +40,12 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
     tone: 'primary',
     icon: Clock3,
   },
+  CANCELED: {
+    label: '분석 취소',
+    description: '작품 영구 삭제가 시작되어 분석 작업이 취소되었습니다.',
+    tone: 'warning',
+    icon: AlertCircle,
+  },
   PARTIALLY_FAILED: {
     label: '일부 실패',
     description: '완료된 회차는 유지되며 실패 회차만 다시 시도할 수 있습니다.',
@@ -99,6 +105,7 @@ function jobTypeLabel(jobType?: AnalysisBatchJobGroupResponse['jobType']): strin
 function actionLabel(status: AnalysisBatchStatus, tokenInterruptedCount: number): string {
   if (tokenInterruptedCount > 0) return '남은 비교 확인';
   if (status === 'IN_PROGRESS') return '진행 보기';
+  if (status === 'CANCELED') return '취소 확인';
   if (status === 'FAILED' || status === 'PARTIALLY_FAILED') return '실패 확인';
   return '결과 보기';
 }
@@ -146,11 +153,13 @@ function findActionJobGroup(
   const groups = batch.jobGroups ?? [];
   const preferredStatuses = status === 'IN_PROGRESS'
     ? ['IN_PROGRESS']
-    : status === 'PARTIALLY_FAILED'
-      ? ['PARTIALLY_FAILED', 'FAILED']
-      : status === 'FAILED'
-        ? ['FAILED', 'PARTIALLY_FAILED']
-        : [];
+    : status === 'CANCELED'
+      ? ['CANCELED']
+      : status === 'PARTIALLY_FAILED'
+        ? ['PARTIALLY_FAILED', 'FAILED']
+        : status === 'FAILED'
+          ? ['FAILED', 'PARTIALLY_FAILED']
+          : [];
 
   return preferredStatuses
     .map(preferredStatus => groups.find(group => (
@@ -378,6 +387,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                           {' · '}
                           {group.succeededJobCount ?? 0}/{group.totalJobCount ?? 0} 완료
                           {(group.failedJobCount ?? 0) > 0 ? ` · ${group.failedJobCount} 실패` : ''}
+                          {(group.canceledJobCount ?? 0) > 0 ? ` · ${group.canceledJobCount} 취소` : ''}
                         </span>
                       ))}
                     </div>

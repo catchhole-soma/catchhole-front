@@ -17,6 +17,11 @@ interface UseWorksResult {
 export function useWorks(): UseWorksResult {
   const serverQuery = useQuery({
     ...getMyWorksOptions(),
+    refetchInterval: query => (
+      query.state.data?.data?.some(work => work.lifecycleStatus === 'PURGING')
+        ? 3_000
+        : false
+    ),
   });
   const works = (serverQuery.data?.data ?? []).flatMap(work => {
     const mapped = toWork(work);

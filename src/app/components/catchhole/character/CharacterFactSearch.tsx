@@ -808,7 +808,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                         fontSize: 13,
                       }}
                     >
-                      저장된 원문 근거가 없습니다.
+                      원문이 삭제되었거나 저장된 근거가 없습니다.
                     </div>
                   )}
                 </section>

@@ -19,6 +19,7 @@ import {
 import { GraphView } from './GraphView';
 import { ShareModal } from './ShareModal';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
+import { EpisodeReanalysisModal } from './EpisodeReanalysisModal';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { CharacterTimelineModal } from './character/CharacterTimeline';
@@ -50,6 +51,7 @@ import {
 import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
 import { WORK_GENRES } from '../../lib/work-contract';
+import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 import { WorkId } from './constants';
 interface Props { onPrePublish?: () => void; }
@@ -670,6 +672,8 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
               </div>
             )}
 
+            <ManuscriptProcessingNotice />
+
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button
                 onClick={() => uploadType === 'fresh' ? setUploadType(null) : onClose()}
@@ -804,6 +808,8 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
                 {submitError}
               </div>
             )}
+
+            <ManuscriptProcessingNotice />
 
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button
@@ -2800,6 +2806,16 @@ export default function S1Dashboard() {
   }, [demoMode, effectiveWorkId, navigate]);
 
   useEffect(() => {
+    if (apiWork?.lifecycleStatus !== 'PURGING') return;
+    navigate(
+      `/works?modal=work-delete&targetWorkId=${encodeURIComponent(apiWork.id)}`,
+      'dissolve',
+      undefined,
+      { replace: true },
+    );
+  }, [apiWork?.id, apiWork?.lifecycleStatus, navigate]);
+
+  useEffect(() => {
     if (!apiWork) return;
     if (
       selectedWorkInfo?.id !== apiWork.id
@@ -2843,6 +2859,7 @@ export default function S1Dashboard() {
   const [episodeDeleteTarget, setEpisodeDeleteTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [episodeDeleteSubmitting, setEpisodeDeleteSubmitting] = useState(false);
   const [episodeDeleteFailed, setEpisodeDeleteFailed] = useState(false);
+  const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
 
   useEffect(() => {
     if (!demoMode || !effectiveWorkId) return;
@@ -2979,6 +2996,7 @@ export default function S1Dashboard() {
       if (!isCurrentRequestContext()) return;
       if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
       const analysisJobIdParam = analysisJobIds.join(',');
+      setEpisodeReanalysisTarget(null);
       navigate(
         `/episode-upload?workId=${encodeURIComponent(requestWorkId)}&batchId=${episode.batchId}&analysisJobIds=${analysisJobIdParam}&currentAnalysisJobIds=${analysisJobIdParam}&jobType=${jobType}`,
         'push-right',
@@ -3459,7 +3477,10 @@ export default function S1Dashboard() {
                                         small
                                         disabled={createEpisodeAnalysisRequest.isPending}
                                         label="재분석"
-                                        onClick={() => void startEpisodeReanalysis(episode)}
+                                        onClick={() => {
+                                          setEpisodeActionError(null);
+                                          setEpisodeReanalysisTarget(episode);
+                                        }}
                                       />
                                     )}
                                     <BtnG small label="원문" onClick={() => {
@@ -3528,7 +3549,7 @@ export default function S1Dashboard() {
           title="회차 파일 변경"
           description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
           currentFilename={replaceEpisodeTarget.originalFilename}
-          warning="파일을 변경하면 기존 분석 결과는 현재 원고에 적용되지 않으며 재분석이 필요합니다."
+          warning="파일을 변경하면 이전 원문·청크·미확정 후보가 영구 삭제됩니다. 확정 설정은 유지되며 새 원문은 재분석이 필요합니다."
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}
@@ -3560,6 +3581,23 @@ export default function S1Dashboard() {
             setEpisodeDeleteFailed(false);
           }}
           onDelete={() => void removeEpisode()}
+        />
+      )}
+      {episodeReanalysisTarget && (
+        <EpisodeReanalysisModal
+          episode={episodeReanalysisTarget}
+          laterAnalyzedEpisodeCount={episodeRows.filter(candidate => (
+            (candidate.episodeNo ?? 0) > (episodeReanalysisTarget.episodeNo ?? 0)
+            && candidate.analysisStatus === 'COMPLETED'
+          )).length}
+          submitting={createEpisodeAnalysisRequest.isPending}
+          error={episodeActionError}
+          onClose={() => {
+            if (createEpisodeAnalysisRequest.isPending) return;
+            setEpisodeReanalysisTarget(null);
+            setEpisodeActionError(null);
+          }}
+          onConfirm={() => void startEpisodeReanalysis(episodeReanalysisTarget)}
         />
       )}
         {editTarget && (

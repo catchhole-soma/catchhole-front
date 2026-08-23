@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { purgeWorkAndWait } from './live-work-purge';
 
 const apiBaseUrl = process.env.CATCHHOLE_E2E_API_BASE_URL;
 const e2eEmail = process.env.CATCHHOLE_E2E_EMAIL;
@@ -164,14 +165,7 @@ test.describe('설정집 실제 연동', () => {
           }));
         }
       } finally {
-        const deleteWorkResponse = await request.delete(
-          `${apiBaseUrl}/api/v1/works/${session.workId}`,
-          { headers: { Authorization: session.authorization } },
-        );
-        expect(
-          deleteWorkResponse.ok(),
-          `E2E 작품 정리 실패: ${deleteWorkResponse.status()} ${await deleteWorkResponse.text()}`,
-        ).toBeTruthy();
+        await purgeWorkAndWait(request, apiBaseUrl!, session.authorization, session.workId);
       }
     }
   });

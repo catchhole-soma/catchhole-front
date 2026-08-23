@@ -51,6 +51,7 @@ import { UserMenu } from './UserMenu';
 import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
+import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -523,6 +524,7 @@ export default function SEpisodeUpload() {
   const workId = routeWorkId ?? selectedWork;
   const initialTrackedAnalysisJobIds = (searchParams.get('analysisJobIds') ?? '').split(',').filter(Boolean);
   const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
+  const viewingExistingAnalysis = initialTrackedAnalysisJobIds.length > 0;
 
   const [step, setStep] = useState<UploadStep>(
     initialTrackedAnalysisJobIds.length > 0 ? 'processing' : 'select-mode',
@@ -627,7 +629,22 @@ export default function SEpisodeUpload() {
   const routeWork = workQuery.data?.data;
 
   useEffect(() => {
-    if (!routeWorkId || !routeWork?.id || !routeWork.title) return;
+    if (routeWork?.lifecycleStatus !== 'PURGING' || viewingExistingAnalysis) return;
+    navigate(
+      `/works?modal=work-delete&targetWorkId=${encodeURIComponent(routeWork.id)}`,
+      'dissolve',
+      undefined,
+      { replace: true },
+    );
+  }, [navigate, routeWork?.id, routeWork?.lifecycleStatus, viewingExistingAnalysis]);
+
+  useEffect(() => {
+    if (
+      !routeWorkId
+      || !routeWork?.id
+      || !routeWork.title
+      || routeWork.lifecycleStatus === 'PURGING'
+    ) return;
     const nextGenre = routeWork.genre ?? '';
     if (
       selectedWork === routeWork.id
@@ -648,6 +665,7 @@ export default function SEpisodeUpload() {
     routeWork?.genre,
     routeWork?.id,
     routeWork?.latestEpisodeNo,
+    routeWork?.lifecycleStatus,
     routeWork?.title,
     selectedWork,
     selectedWorkInfo,
@@ -704,7 +722,9 @@ export default function SEpisodeUpload() {
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
         const status = query.state.data?.data?.status;
-        return status === 'SUCCEEDED' || status === 'FAILED' ? false : 3_000;
+        return status === 'SUCCEEDED' || status === 'FAILED' || status === 'CANCELED'
+          ? false
+          : 3_000;
       },
     })),
   });
@@ -755,8 +775,12 @@ export default function SEpisodeUpload() {
       && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
       ? [job.id]
       : []);
+  const analysisCanceled = currentAnalysisJobsLoaded
+    && !analysisRunning
+    && currentAnalysisJobs.some(job => job.status === 'CANCELED');
   const analysisFailed = currentAnalysisJobsLoaded
     && !analysisRunning
+    && !analysisCanceled
     && retryableFailedAnalysisJobIds.length > 0;
   const analysisFailureTitle = progressEpisodes.length <= 1
     ? '회차 분석에 실패했습니다'
@@ -767,6 +791,7 @@ export default function SEpisodeUpload() {
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisPartiallyInterrupted = currentAnalysisJobsLoaded
     && !analysisRunning
+    && !analysisCanceled
     && !analysisUnavailable
     && tokenInterruptedAnalysisJobs.length > 0;
   const analysisSucceeded = currentAnalysisJobsLoaded
@@ -1111,7 +1136,8 @@ export default function SEpisodeUpload() {
 
   const retryFailedAnalysisJobs = async () => {
     if (
-      retryableFailedAnalysisJobIds.length === 0
+      routeWork?.lifecycleStatus === 'PURGING'
+      || retryableFailedAnalysisJobIds.length === 0
       || !episodeUploadBatchId
       || batchRetryInFlight.current
     ) return;
@@ -1251,7 +1277,11 @@ export default function SEpisodeUpload() {
       />
       <Stepper labels={labels} current={currentStep} />
       <main className="episode-upload-main" style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="episode-upload-content" style={{ maxWidth: step === 'boundary-preview' ? 900 : 720, margin: '0 auto', padding: '28px 20px 64px' }}>
+        <div className="episode-upload-content" style={{
+          maxWidth: step === 'boundary-preview' ? 900 : 720,
+          margin: '0 auto',
+          padding: step === 'select-mode' && uploadType ? '28px 20px 28px' : '28px 20px 64px',
+        }}>
           {step === 'select-mode' && (
             <>
               <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
@@ -1583,6 +1613,8 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
                 {analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
+                  : analysisCanceled
+                    ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                   : analysisFailed
                     ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
                     : analysisPartiallyInterrupted
@@ -1592,6 +1624,7 @@ export default function SEpisodeUpload() {
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
+                    : analysisCanceled ? '작품 삭제로 분석이 취소되었습니다'
                     : analysisFailed ? analysisFailureTitle
                       : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
@@ -1625,6 +1658,9 @@ export default function SEpisodeUpload() {
               {analysisFailed && (
                 <ErrorBanner message="분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요." />
               )}
+              {analysisCanceled && (
+                <ErrorBanner message="작품 영구 삭제가 시작되어 분석이 취소되었습니다. 이 분석은 다시 시도할 수 없습니다." />
+              )}
               {analysisPartiallyInterrupted && (
                 <div className="episode-upload-alert episode-upload-alert--warning" role="status">
                   <AlertCircle size={14} />
@@ -1652,6 +1688,7 @@ export default function SEpisodeUpload() {
               {progressEpisodes.length === 0
                 && currentAnalysisJobIds.length > 0
                 && !statusQueryFailed
+                && !analysisCanceled
                 && !analysisSucceeded && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
               )}
@@ -1709,31 +1746,41 @@ export default function SEpisodeUpload() {
                   {analysisSucceeded || (analysisPartiallyInterrupted
                     && !analysisFailed
                     && !analysisUnavailable) ? (
-                    <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
-                      if (!episodeUploadBatchId) return;
-                      navigate(
-                        `/setting-review?workId=${encodeURIComponent(workId)}`
-                        + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
-                        + `&jobType=${resolvedAnalysisJobType}`
-                        + (analysisPartiallyInterrupted ? '&candidateType=world' : ''),
-                        'dissolve',
-                        {
-                          returnToAnalysisList: resolvedAnalysisListUrl,
-                          // 분석 목록에서 진행 화면을 거쳐 왔다면 review -> progress -> list 두 칸을 되돌린다.
-                          // 새 업로드처럼 명시적 목록 진입점이 없으면 review helper가 저장 URL로 대체한다.
-                          returnHistoryDelta: reviewReturnState?.returnHistoryDelta === -1
-                            ? -2 : undefined,
-                        },
-                      );
-                    }}>
-                      {analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
+                    <PrimaryButton
+                      disabled={!episodeUploadBatchId || routeWork?.lifecycleStatus === 'PURGING'}
+                      onClick={() => {
+                        if (!episodeUploadBatchId || routeWork?.lifecycleStatus === 'PURGING') return;
+                        navigate(
+                          `/setting-review?workId=${encodeURIComponent(workId)}`
+                          + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
+                          + `&jobType=${resolvedAnalysisJobType}`
+                          + (analysisPartiallyInterrupted ? '&candidateType=world' : ''),
+                          'dissolve',
+                          {
+                            returnToAnalysisList: resolvedAnalysisListUrl,
+                            // 분석 목록에서 진행 화면을 거쳐 왔다면 review -> progress -> list 두 칸을 되돌린다.
+                            // 새 업로드처럼 명시적 목록 진입점이 없으면 review helper가 저장 URL로 대체한다.
+                            returnHistoryDelta: reviewReturnState?.returnHistoryDelta === -1
+                              ? -2 : undefined,
+                          },
+                        );
+                      }}>
+                      {routeWork?.lifecycleStatus === 'PURGING'
+                        ? '작품 삭제 중에는 후보를 검토할 수 없습니다'
+                        : analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
+                    </PrimaryButton>
+                  ) : analysisCanceled ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      분석이 취소되었습니다
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton
-                      disabled={batchRetryPending}
+                      disabled={batchRetryPending || routeWork?.lifecycleStatus === 'PURGING'}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
-                      {batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                      {routeWork?.lifecycleStatus === 'PURGING'
+                        ? '작품 삭제 중에는 재시도할 수 없습니다'
+                        : batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>
@@ -1751,6 +1798,11 @@ export default function SEpisodeUpload() {
             </div>
           )}
         </div>
+        {step === 'select-mode' && uploadType && (
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px 64px' }}>
+            <ManuscriptProcessingNotice appearance="light" />
+          </div>
+        )}
       </main>
     </div>
   );

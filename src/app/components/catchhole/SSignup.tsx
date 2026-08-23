@@ -363,6 +363,8 @@ export default function SSignup() {
           email: email.trim(),
           password,
           displayName: name.trim(),
+          termsAccepted: agreed,
+          privacyPolicyAcknowledged: agreed,
           phoneVerificationToken,
         },
       });
@@ -561,7 +563,7 @@ export default function SSignup() {
         <div className="auth-modal-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 18 }}>
           <button
             type="button"
-            aria-label="필수 약관에 동의"
+            aria-label="이용약관 동의 및 개인정보 처리방침 확인"
             aria-pressed={agreed}
             onClick={() => setAgreed(current => !current)}
             style={{
@@ -575,17 +577,17 @@ export default function SSignup() {
             {agreed && <Check size={13} color="#fff" />}
           </button>
           <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>
-            가입하면{' '}
+            {' '}
             <button type="button" onClick={() => openTerms('terms')} style={{
               color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
               border: 'none', padding: 0, font: 'inherit',
             }}>이용약관</button>
-            {' '}및{' '}
+            에 동의하고{' '}
             <button type="button" onClick={() => openTerms('privacy')} style={{
               color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
               border: 'none', padding: 0, font: 'inherit',
             }}>개인정보 처리방침</button>
-            에 동의합니다.
+            을 확인했습니다.
           </span>
         </div>
 

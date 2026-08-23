@@ -32,7 +32,7 @@ npm run test:e2e
 - 분석 목록은 생성 SDK의 배치 조회를 사용해 `UploadBatch` 단위로 10개씩 서버 페이지네이션하고, URL의 1-based `analysisPage`를 API의 0-based `page`로 변환합니다. 진행·실패·결과 재진입에는 목적별 `currentAnalysisJobIds`를 그대로 사용합니다.
 - 설정 검색은 URL에 `q`, `factType`, `scope`, 1-based `page`, 고정 `size=20`을 유지하고 API 호출에서만 `page`를 0-based로 변환합니다. 검색어·필터 변경은 URL 페이지를 1로 되돌리고, Fact 상세 모달을 닫을 때는 `modal`과 `factId`만 제거합니다.
 - 원고 목록은 행별 진행·결과·실패 재시도 대신 최근 배치 상태 배너에서 분석 목록으로 안내합니다. 원문 변경으로 `REANALYSIS_REQUIRED`가 된 회차의 새 분석 시작 액션은 별도로 유지합니다.
-- 파일을 교체한 회차의 `재분석`은 원문 청킹과 캐릭터·세계관 후보 재추출이 목적이므로 `episodeId`를 지정한 `SETTING_EXTRACTION` Job을 생성합니다. 구현되지 않은 충돌 검수용 `EPISODE_VALIDATION`으로 보내지 않되 과거 검수 Job의 진행 화면 조회 호환은 유지합니다.
+- 파일을 교체한 회차의 `재분석`은 원문 청킹과 캐릭터·세계관 후보 재추출이 목적이므로 `episodeId`를 지정한 `SETTING_EXTRACTION` Job을 생성합니다. 시작 전에는 해당 회차만 다시 분석하고 후속 회차에서 축적된 현재 설정 때문에 중복·시간 순서 불일치 후보가 생길 수 있음을 안내하며, 확정 설정은 자동 변경되지 않는다고 명시합니다. 구현되지 않은 충돌 검수용 `EPISODE_VALIDATION`으로 보내지 않되 과거 검수 Job의 진행 화면 조회 호환은 유지합니다.
 
 ## 인증과 세션
 
@@ -44,6 +44,7 @@ npm run test:e2e
 - 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
 - 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
 - 회원가입 전 `phone-verifications` 발송·확인을 완료하고, 가입 요청에는 전화번호 대신 발급된 `phoneVerificationToken`을 보냅니다. 인증된 번호가 바뀌면 토큰과 진행 상태를 즉시 폐기합니다.
+- 회원가입 화면은 한 체크박스로 이용약관 동의와 개인정보처리방침 확인을 함께 표시하되 가입 요청에는 `termsAccepted`, `privacyPolicyAcknowledged`를 각각 `true`로 보냅니다. 현재 서비스 화면 문서 버전·시행일은 `2026-08-23`이며 문구가 바뀌면 Front 표시 버전과 Backend 기록 버전을 함께 올립니다. 기록 시각은 Backend가 정하고, AI 원고 처리는 별도 가입 동의나 업로드별 동의 필드로 보내지 않습니다.
 - 휴대폰 인증 진행 복원에는 `verificationId`, 전화번호, 인증 만료 시각, 재전송 가능 시각만 sessionStorage에 보관합니다. `phoneVerificationToken`은 컴포넌트 메모리에만 두고 localStorage/sessionStorage/로그에 남기지 않습니다.
 - 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.

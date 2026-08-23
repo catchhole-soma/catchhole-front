@@ -95,7 +95,7 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   await page.getByPlaceholder('인증번호 6자리').fill('123456');
   await dialog.getByRole('button', { name: '인증', exact: true }).click();
   await expect(page.getByText('휴대폰 인증이 완료되었습니다.', { exact: true })).toBeVisible();
-  await dialog.getByRole('button', { name: '필수 약관에 동의' }).click();
+  await dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' }).click();
   await expect(dialog.getByRole('button', { name: '회원가입', exact: true })).toBeEnabled();
 
   const persistedAfterConfirm = await page.evaluate(() => (
@@ -110,6 +110,8 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
     email: 'verified@example.com',
     password: 'Password1234',
     displayName: '인증 테스트',
+    termsAccepted: true,
+    privacyPolicyAcknowledged: true,
     phoneVerificationToken: 'memory-only-signup-token',
   });
   expect(signupBody).not.toHaveProperty('phoneNumber');
@@ -297,7 +299,7 @@ test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐�
   await dialog.getByRole('button', { name: '인증번호 받기' }).click();
   await page.getByPlaceholder('인증번호 6자리').fill('123456');
   await dialog.getByRole('button', { name: '인증', exact: true }).click();
-  await dialog.getByRole('button', { name: '필수 약관에 동의' }).click();
+  await dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' }).click();
   await dialog.getByRole('button', { name: '회원가입', exact: true }).click();
 
   await expect(page.getByText(

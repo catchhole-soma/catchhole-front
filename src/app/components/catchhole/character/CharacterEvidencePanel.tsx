@@ -198,7 +198,7 @@ function QuoteFallback({
   if (spans.length === 0) {
     return (
       <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '42px 16px' }}>
-        저장된 원문 근거가 없습니다.
+        원문이 삭제되었거나 저장된 근거가 없습니다.
       </div>
     );
   }

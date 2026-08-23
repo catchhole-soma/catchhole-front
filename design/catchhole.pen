@@ -51172,7 +51172,7 @@
           "fill": "#52525B",
           "textGrowth": "fixed-width",
           "width": 8620,
-          "content": "랜딩 → 이메일 인증 → 필수 약관 동의 → 자동 로그인 → 작품 목록 · 소셜 로그인은 MVP 비활성",
+          "content": "랜딩 → 이메일 인증 → 이용약관 동의·개인정보 처리방침 확인 → 자동 로그인 → 작품 목록 · 소셜 로그인은 MVP 비활성",
           "lineHeight": 1.35,
           "fontFamily": "Noto Sans KR",
           "fontSize": 21,
@@ -259736,7 +259736,7 @@
                   "id": "LAFpS",
                   "name": "Delete Modal Title",
                   "fill": "#F0F0F5",
-                  "content": "작품을 삭제하시겠습니까?",
+                  "content": "작품을 영구 삭제할까요?",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 19,
                   "fontWeight": "700"
@@ -259822,7 +259822,7 @@
                   "fill": "#9090A8",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "현재 작품 삭제는 보관이 아닌 영구 삭제이며, 삭제한 작품은 복구할 수 없습니다.",
+                  "content": "원본·회차·분석 결과를 복구할 수 없게 삭제합니다. '영구 삭제'를 입력해야 요청할 수 있습니다.",
                   "lineHeight": 1.55,
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 12,
@@ -259896,7 +259896,7 @@
                       "id": "f2jvt",
                       "name": "Permanent Delete Label",
                       "fill": "#FFFFFF",
-                      "content": "영구 삭제",
+                      "content": "영구 삭제 요청",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
                       "fontWeight": "700"
@@ -337373,7 +337373,7 @@
                       "fill": "$ch-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                      "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                       "fontFamily": "$ch-font",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -337927,7 +337927,7 @@
                       "fill": "$ch-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                      "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                       "fontFamily": "$ch-font",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -338481,7 +338481,7 @@
                       "fill": "$ch-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                      "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                       "fontFamily": "$ch-font",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -339035,7 +339035,7 @@
                       "fill": "$ch-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                      "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                       "fontFamily": "$ch-font",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -339613,7 +339613,7 @@
                       "fill": "$ch-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                      "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                       "fontFamily": "$ch-font",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -340012,7 +340012,7 @@
                   "fill": "$ch-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                  "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                   "fontFamily": "$ch-font",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -340468,7 +340468,7 @@
                   "fill": "$ch-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                  "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                   "fontFamily": "$ch-font",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -340924,7 +340924,7 @@
                   "fill": "$ch-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                  "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                   "fontFamily": "$ch-font",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -341380,7 +341380,7 @@
                   "fill": "$ch-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                  "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                   "fontFamily": "$ch-font",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -341860,7 +341860,7 @@
                   "fill": "$ch-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "이용약관 및 개인정보 처리방침에 동의합니다.",
+                  "content": "이용약관에 동의하고 개인정보 처리방침을 확인했습니다.",
                   "fontFamily": "$ch-font",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -346341,7 +346341,7 @@
                       "id": "UHVTQ",
                       "name": "Works Delete Title",
                       "fill": "$ch-ink",
-                      "content": "작품을 삭제하시겠습니까?",
+                      "content": "작품을 영구 삭제할까요?",
                       "fontFamily": "$ch-font",
                       "fontSize": 22,
                       "fontWeight": "800"
@@ -346390,7 +346390,7 @@
                   "fill": "$ch-danger",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "현재 작품 삭제는 보관이 아닌 영구 삭제이며, 삭제한 작품은 복구할 수 없습니다.",
+                  "content": "원본·회차·분석 결과를 복구할 수 없게 삭제합니다. '영구 삭제'를 입력해야 요청할 수 있습니다.",
                   "lineHeight": 1.55,
                   "fontFamily": "$ch-font",
                   "fontSize": 12,
@@ -346453,7 +346453,7 @@
                       "id": "S6KZBJ",
                       "name": "Works Delete Confirm Label",
                       "fill": "#FFFFFF",
-                      "content": "영구 삭제",
+                      "content": "영구 삭제 요청",
                       "fontFamily": "$ch-font",
                       "fontSize": 13,
                       "fontWeight": "700"
@@ -347874,7 +347874,7 @@
                       "id": "jed33",
                       "name": "Mobile Works Delete Title",
                       "fill": "$ch-ink",
-                      "content": "작품을 삭제하시겠습니까?",
+                      "content": "작품을 영구 삭제할까요?",
                       "fontFamily": "$ch-font",
                       "fontSize": 20,
                       "fontWeight": "800"
@@ -347923,7 +347923,7 @@
                   "fill": "$ch-danger",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "현재 작품 삭제는 보관이 아닌 영구 삭제이며, 삭제한 작품은 복구할 수 없습니다.",
+                  "content": "원본·회차·분석 결과를 복구할 수 없게 삭제합니다. '영구 삭제'를 입력해야 요청할 수 있습니다.",
                   "lineHeight": 1.55,
                   "fontFamily": "$ch-font",
                   "fontSize": 12,
@@ -347986,7 +347986,7 @@
                       "id": "TbYd8",
                       "name": "Mobile Works Delete Confirm Label",
                       "fill": "#FFFFFF",
-                      "content": "영구 삭제",
+                      "content": "영구 삭제 요청",
                       "fontFamily": "$ch-font",
                       "fontSize": 13,
                       "fontWeight": "700"
