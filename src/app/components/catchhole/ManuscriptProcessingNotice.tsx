@@ -59,6 +59,7 @@ export function ManuscriptProcessingNotice({ appearance = 'dark' }: Props) {
         {detailsOpen && (
           <TermsModal
             initialTab="privacy"
+            initialSection="external-ai"
             zIndex={400}
             onClose={() => setDetailsOpen(false)}
           />

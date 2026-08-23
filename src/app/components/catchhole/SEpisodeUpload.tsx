@@ -705,7 +705,9 @@ export default function SEpisodeUpload() {
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
         const status = query.state.data?.data?.status;
-        return status === 'SUCCEEDED' || status === 'FAILED' ? false : 3_000;
+        return status === 'SUCCEEDED' || status === 'FAILED' || status === 'CANCELED'
+          ? false
+          : 3_000;
       },
     })),
   });
@@ -756,8 +758,12 @@ export default function SEpisodeUpload() {
       && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
       ? [job.id]
       : []);
+  const analysisCanceled = currentAnalysisJobsLoaded
+    && !analysisRunning
+    && currentAnalysisJobs.some(job => job.status === 'CANCELED');
   const analysisFailed = currentAnalysisJobsLoaded
     && !analysisRunning
+    && !analysisCanceled
     && retryableFailedAnalysisJobIds.length > 0;
   const analysisFailureTitle = progressEpisodes.length <= 1
     ? '회차 분석에 실패했습니다'
@@ -768,6 +774,7 @@ export default function SEpisodeUpload() {
     && progressEpisodes.some(episode => episode.status === 'ARCHIVED');
   const analysisPartiallyInterrupted = currentAnalysisJobsLoaded
     && !analysisRunning
+    && !analysisCanceled
     && !analysisUnavailable
     && tokenInterruptedAnalysisJobs.length > 0;
   const analysisSucceeded = currentAnalysisJobsLoaded
@@ -1588,6 +1595,8 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
                 {analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
+                  : analysisCanceled
+                    ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                   : analysisFailed
                     ? <AlertCircle size={52} color={C.danger} style={{ marginBottom: 12 }} />
                     : analysisPartiallyInterrupted
@@ -1597,6 +1606,7 @@ export default function SEpisodeUpload() {
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
                   {analysisSucceeded ? '분석이 완료되었습니다'
+                    : analysisCanceled ? '작품 삭제로 분석이 취소되었습니다'
                     : analysisFailed ? analysisFailureTitle
                       : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
@@ -1630,6 +1640,9 @@ export default function SEpisodeUpload() {
               {analysisFailed && (
                 <ErrorBanner message="분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요." />
               )}
+              {analysisCanceled && (
+                <ErrorBanner message="작품 영구 삭제가 시작되어 분석이 취소되었습니다. 이 분석은 다시 시도할 수 없습니다." />
+              )}
               {analysisPartiallyInterrupted && (
                 <div className="episode-upload-alert episode-upload-alert--warning" role="status">
                   <AlertCircle size={14} />
@@ -1657,6 +1670,7 @@ export default function SEpisodeUpload() {
               {progressEpisodes.length === 0
                 && currentAnalysisJobIds.length > 0
                 && !statusQueryFailed
+                && !analysisCanceled
                 && !analysisSucceeded && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
               )}
@@ -1732,6 +1746,10 @@ export default function SEpisodeUpload() {
                       );
                     }}>
                       {analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
+                    </PrimaryButton>
+                  ) : analysisCanceled ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      분석이 취소되었습니다
                     </PrimaryButton>
                   ) : analysisFailed ? (
                     <PrimaryButton

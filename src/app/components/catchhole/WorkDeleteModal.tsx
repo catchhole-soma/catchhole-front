@@ -45,8 +45,9 @@ export function WorkDeleteModal({ work, onClose, onPurgeStarted, onCompleted }: 
   const [confirmation, setConfirmation] = useState('');
   const [acceptedPurge, setAcceptedPurge] = useState<WorkPurgeResponse | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const purgeQueryOptions = getWorkPurgeRequestByWorkOptions({ path: { workId: work.id } });
   const purgeQuery = useQuery({
-    ...getWorkPurgeRequestByWorkOptions({ path: { workId: work.id } }),
+    ...purgeQueryOptions,
     enabled: work.lifecycleStatus === 'PURGING' || acceptedPurge !== null,
     retry: false,
     refetchInterval: query => {
@@ -108,8 +109,10 @@ export function WorkDeleteModal({ work, onClose, onPurgeStarted, onCompleted }: 
     setSubmitError(null);
     try {
       const response = await retryRequest.mutateAsync({ path: { requestId: purge.requestId } });
-      if (response.data) setAcceptedPurge(response.data);
-      await purgeQuery.refetch();
+      if (response.data) {
+        setAcceptedPurge(response.data);
+        queryClient.setQueryData(purgeQueryOptions.queryKey, response);
+      }
     } catch (error) {
       setSubmitError(errorMessage(error));
     }
@@ -168,23 +171,23 @@ export function WorkDeleteModal({ work, onClose, onPurgeStarted, onCompleted }: 
 
         {purge ? (
           <div style={{ marginTop: 22 }}>
-            <div role="status" style={{
+            <div className="work-delete-status" role="status" style={{
               display: 'flex', gap: 9, alignItems: 'center', padding: '14px 16px', borderRadius: 9,
               background: purge.status === 'COMPLETED' ? `${C.success}12` : `${C.primary}0D`,
               border: `1px solid ${purge.status === 'COMPLETED' ? `${C.success}44` : C.border}`,
-              color: C.t2, fontSize: 13, lineHeight: 1.6,
+              color: 'var(--ch-text, #333A46)', fontSize: 13, lineHeight: 1.6,
             }}>
               {inProgress && <Loader2 size={16} className="spin" color={C.primary} />}
               <span>{STATUS_TEXT[purge.status]}</span>
             </div>
             {(purge.objectStorage || purge.database) && (
-              <div style={{ marginTop: 12, color: C.t3, fontSize: 12, lineHeight: 1.65 }}>
+              <div className="work-delete-metrics" style={{ marginTop: 12, color: 'var(--ch-text-muted, #657083)', fontSize: 12, lineHeight: 1.65 }}>
                 {purge.objectStorage && <div>원본 저장소: {purge.objectStorage.deletedCount ?? 0}건 삭제 / {purge.objectStorage.failedCount ?? 0}건 실패</div>}
                 {purge.database && <div>서비스 데이터: {purge.database.deletedCount ?? 0}건 삭제 / {purge.database.failedCount ?? 0}건 실패</div>}
               </div>
             )}
             {purge.slaBreached && (
-              <div role="alert" style={{ marginTop: 12, color: C.warning, fontSize: 12 }}>
+              <div className="work-delete-sla" role="alert" style={{ marginTop: 12, color: 'var(--ch-warning-ink, #8A4B00)', fontSize: 12 }}>
                 24시간 처리 목표를 초과했습니다. 재시도해도 완료되지 않으면 문의해주세요.
               </div>
             )}

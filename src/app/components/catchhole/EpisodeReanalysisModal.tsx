@@ -78,9 +78,9 @@ export function EpisodeReanalysisModal({
           <p style={{ margin: '0 0 10px', color: C.t2, fontSize: 13, lineHeight: 1.65 }}>
             변경된 원고를 기준으로 {episode.episodeNo}화만 다시 분석합니다.
           </p>
-          <div style={{
+          <div className="episode-reanalysis-warning" style={{
             display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 12px', borderRadius: 7,
-            background: `${C.warning}12`, color: C.warning, fontSize: 12, lineHeight: 1.6,
+            background: 'rgb(217 131 36 / 10%)', color: 'var(--ch-warning-ink, #8A4B00)', fontSize: 12, lineHeight: 1.6,
           }}>
             <AlertTriangle size={15} style={{ marginTop: 2, flexShrink: 0 }} />
             <span>
@@ -93,7 +93,7 @@ export function EpisodeReanalysisModal({
               현재 분석 완료 상태인 후속 회차가 <strong style={{ color: C.t1 }}>{laterAnalyzedEpisodeCount}개</strong> 있습니다.
             </p>
           )}
-          <ManuscriptProcessingNotice />
+          <ManuscriptProcessingNotice appearance="light" />
           {error && (
             <div role="alert" style={{
               display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '9px 11px',

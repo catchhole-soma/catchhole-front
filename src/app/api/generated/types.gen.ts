@@ -4316,7 +4316,7 @@ export type AnalysisBatchJobGroupResponse = {
     /**
      * 분석 목적별 집계 상태
      */
-    status?: 'IN_PROGRESS' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
+    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
     /**
      * 현재 유효한 전체 작업 수
      */
@@ -4337,6 +4337,10 @@ export type AnalysisBatchJobGroupResponse = {
      * 분석 실패 작업 수
      */
     failedJobCount?: number;
+    /**
+     * 작품 영구 삭제로 취소된 작업 수
+     */
+    canceledJobCount?: number;
     /**
      * 진행·결과 화면에서 조회할 현재 유효 작업 ID
      */
@@ -4362,7 +4366,7 @@ export type AnalysisBatchSummaryResponse = {
     /**
      * 배치 전체 집계 상태
      */
-    status?: 'IN_PROGRESS' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
+    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
     /**
      * 분석 대상 시작 회차
      */

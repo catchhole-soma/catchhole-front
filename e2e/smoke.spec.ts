@@ -1242,7 +1242,16 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
   await expect(reanalysisDialog).toBeVisible();
   await expect(reanalysisDialog.getByText(/중복되거나 시간 순서가 맞지 않는 후보/)).toBeVisible();
+  await expect(reanalysisDialog.locator('.episode-reanalysis-warning')).toHaveCSS('color', 'rgb(138, 75, 0)');
   await expect(reanalysisDialog.getByText(/후속 회차가/)).toContainText('1개');
+  await reanalysisDialog.getByRole('button', { name: '자세히 보기' }).click();
+  const legalDialog = page.getByRole('dialog', { name: '법적 고지' });
+  const externalAiSection = legalDialog.locator('[data-legal-section="external-ai"]');
+  await expect(externalAiSection).toBeVisible();
+  await expect(externalAiSection).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(legalDialog).not.toBeVisible();
+  await expect(reanalysisDialog).toBeVisible();
   const confirmReanalysis = reanalysisDialog.getByRole('button', { name: '이해하고 재분석' });
   await confirmReanalysis.click();
 
@@ -3157,9 +3166,10 @@ test('작품 카드는 hover 액션으로 정보를 수정하고 확인 후 영�
   expect(deletePayload).toEqual({ confirmation: '영구 삭제' });
 });
 
-test('새로고침한 PURGING 작품은 선택을 막고 실패한 영구 삭제를 재시도한다', async ({ page }) => {
+test('새로고침한 PURGING 작품은 선택을 막고 재시도 응답을 실패한 이전 캐시보다 우선한다', async ({ page }) => {
   let retryRequested = false;
-  let works = [{
+  let statusRequestsAfterRetry = 0;
+  const works = [{
     id: 'purging-work',
     title: '삭제 재시도 작품',
     genre: '판타지',
@@ -3186,7 +3196,18 @@ test('새로고침한 PURGING 작품은 선택을 막고 실패한 영구 삭제
     }),
   }));
   await page.route('**/api/v1/works/purging-work/purge-request', route => {
-    if (retryRequested) works = [];
+    if (retryRequested) {
+      statusRequestsAfterRetry += 1;
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          data: null,
+          error: { code: 'SERVICE_UNAVAILABLE', status: 503, details: [] },
+        }),
+      });
+    }
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -3201,6 +3222,9 @@ test('새로고침한 PURGING 작품은 선택을 막고 실패한 영구 삭제
           attemptCount: retryRequested ? 2 : 1,
           retryable: !retryRequested,
           lastErrorCode: retryRequested ? null : 'OBJECT_STORAGE_PURGE_FAILED',
+          slaBreached: true,
+          objectStorage: { targetCount: 3, deletedCount: 2, failedCount: 1 },
+          database: { targetCount: 0, deletedCount: 0, failedCount: 0 },
         },
         error: null,
       }),
@@ -3242,9 +3266,14 @@ test('새로고침한 PURGING 작품은 선택을 막고 실패한 영구 삭제
 
   const dialog = page.getByRole('dialog', { name: '작품 영구 삭제 상태' });
   await expect(dialog.getByText('영구 삭제를 완료하지 못했습니다.', { exact: true })).toBeVisible();
+  await expect(dialog.locator('.work-delete-status')).toHaveCSS('color', 'rgb(51, 58, 70)');
+  await expect(dialog.locator('.work-delete-metrics')).toHaveCSS('color', 'rgb(101, 112, 131)');
+  await expect(dialog.locator('.work-delete-sla')).toHaveCSS('color', 'rgb(138, 75, 0)');
   await dialog.getByRole('button', { name: '삭제 재시도' }).click();
 
-  await expect(page.getByText('등록된 작품이 없습니다', { exact: true })).toBeVisible();
+  await expect.poll(() => statusRequestsAfterRetry).toBeGreaterThan(0);
+  await expect(dialog.getByText('영구 삭제 요청을 접수했습니다.', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: '삭제 재시도' })).toHaveCount(0);
   expect(retryRequested).toBe(true);
 });
 
