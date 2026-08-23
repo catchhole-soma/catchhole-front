@@ -99,7 +99,7 @@
 }
 
 .theme-v2 .theme-evidence > svg,
-.theme-v2 .theme-evidence > div > div:first-child { color: var(--ch-primary) !important; }
+.theme-v2 .theme-evidence > div > div:first-child { color: var(--ch-primary-ink) !important; }
 
 .theme-v2 .theme-evidence__quote {
   color: var(--ch-text) !important;
@@ -140,7 +140,7 @@
 .database-v2 .fact-detail-content .fact-detail-owner button {
   border-color: var(--ch-border-strong) !important;
   background: var(--ch-surface) !important;
-  color: var(--ch-primary) !important;
+  color: var(--ch-primary-ink) !important;
 }
 
 /* Work picker and manuscript actions that open inside Theme V2 roots */

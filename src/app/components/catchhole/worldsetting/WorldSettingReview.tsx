@@ -47,6 +47,7 @@ import {
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
+import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import { SettingReviewTabs } from './SettingReviewTabs';
 
@@ -276,7 +277,7 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
 function Badge({
   label,
   color,
-  textColor = color,
+  textColor = reviewToneInk(color),
 }: {
   label: string;
   color: string;
@@ -302,7 +303,7 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
     }}>
       <button type="button" aria-label="이전 화면" onClick={onBack} className="review-header__back" style={{
         width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
-        background: 'transparent', color: C.t2, cursor: 'pointer',
+        background: 'transparent', color: REVIEW_TEXT.text, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <ChevronLeft size={18} />
@@ -344,8 +345,8 @@ function ReviewSummary({
     }}>
       {items.map(([label, value, color]) => (
         <div className="setting-review-summary__item" key={label}>
-          <div style={{ color: C.t3, fontSize: 11, marginBottom: 5 }}>{label}</div>
-          <strong style={{ color, fontSize: 15 }}>{value}</strong>
+          <div style={{ color: REVIEW_TEXT.muted, fontSize: 11, marginBottom: 5 }}>{label}</div>
+          <strong style={{ color: reviewToneInk(color), fontSize: 15 }}>{value}</strong>
         </div>
       ))}
       <div style={{ flex: 1 }} />
@@ -372,8 +373,8 @@ function QueryState({
       borderRadius: 10, background: C.surface, textAlign: 'center', padding: 24,
     }}>
       {icon}
-      <strong style={{ color: C.t1, fontSize: 15 }}>{title}</strong>
-      <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>{description}</span>
+      <strong style={{ color: REVIEW_TEXT.ink, fontSize: 15 }}>{title}</strong>
+      <span style={{ color: REVIEW_TEXT.muted, fontSize: 12, lineHeight: 1.6 }}>{description}</span>
       {action}
     </div>
   );
@@ -395,7 +396,7 @@ function ActionButton({
       minHeight: 38, padding: '0 15px', borderRadius: 7,
       border: `1px solid ${disabled ? C.border : `${tone}88`}`,
       background: disabled ? 'transparent' : `${tone}18`,
-      color: disabled ? C.t3 : tone, fontFamily: 'inherit', fontSize: 12,
+      color: disabled ? REVIEW_TEXT.muted : reviewToneInk(tone), fontFamily: 'inherit', fontSize: 12,
       fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     }}>
@@ -419,7 +420,7 @@ function FilterGroup<T extends string>({
 }) {
   return (
     <div className="review-filter" role="group" aria-label={label}>
-      <div className="review-filter__label" style={{ color: C.t3, fontSize: 11, fontWeight: 650, marginBottom: 7 }}>{label}</div>
+      <div className="review-filter__label" style={{ color: REVIEW_TEXT.muted, fontSize: 11, fontWeight: 650, marginBottom: 7 }}>{label}</div>
       <div className="review-filter__options" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
         {options.map(option => {
           const active = option.value === value;
@@ -435,7 +436,7 @@ function FilterGroup<T extends string>({
                 minHeight: 30, padding: '0 10px', borderRadius: 7,
                 border: `1px solid ${active ? C.primary : C.border}`,
                 background: active ? `${C.primary}18` : 'transparent',
-                color: active ? C.primary : C.t2,
+                color: active ? REVIEW_TEXT.primary : REVIEW_TEXT.text,
                 fontFamily: 'inherit', fontSize: 11, fontWeight: active ? 700 : 500,
                 cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.58 : 1,
               }}
@@ -506,14 +507,14 @@ function WorldCandidateGroupCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         {category && <Badge label={category.label} color={category.color} />}
         <strong style={{
-          color: C.t1, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          color: REVIEW_TEXT.ink, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {identity.subjectName || '대상명 없음'}
         </strong>
         <div style={{ flex: 1 }} />
         <Badge label={`${group.changeCount ?? 0}개 설정`} color={C.primary} />
       </div>
-      <div style={{ color: C.t2, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
+      <div style={{ color: REVIEW_TEXT.text, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
         <Badge label={episodeEvidenceLabel(group.evidenceEpisodeNos)} color={C.t2} />
         <Badge label={status.label} color={status.color} textColor={status.textColor} />
@@ -544,7 +545,7 @@ function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupRespon
     <div role="status" style={{
       margin: '0 22px 16px', padding: '12px 14px', borderRadius: 8,
       border: `1px solid ${status.color}55`, background: `${status.color}12`,
-      color: status.textColor ?? status.color, fontSize: 12, lineHeight: 1.6,
+      color: status.textColor ?? reviewToneInk(status.color), fontSize: 12, lineHeight: 1.6,
       display: 'flex', alignItems: 'flex-start', gap: 8,
     }}>
       {group.status === 'PROCESSING' || group.status === 'PENDING'
@@ -612,7 +613,7 @@ function WorldKeyDiffRow({
       opacity: candidate.reviewStatus === 'PENDING_REVIEW' ? 1 : 0.68,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <strong style={{ color: C.t1, fontSize: 14, overflowWrap: 'anywhere' }}>{propertyPath}</strong>
+        <strong style={{ color: REVIEW_TEXT.ink, fontSize: 14, overflowWrap: 'anywhere' }}>{propertyPath}</strong>
         <div style={{ flex: 1 }} />
         {operationMeta && <Badge label={operationMeta.label} color={operationMeta.color} />}
         {consolidationStatus === 'MERGED' && <Badge label="여러 내용 정리됨" color={C.primary} />}
@@ -632,14 +633,14 @@ function WorldKeyDiffRow({
         )}
         <button type="button" disabled={disabled || !canEdit} onClick={onEdit} style={{
           minHeight: 28, padding: '0 8px', borderRadius: 6, border: `1px solid ${C.border}`,
-          background: 'transparent', color: disabled || !canEdit ? C.t3 : C.t2,
+          background: 'transparent', color: disabled || !canEdit ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
           fontFamily: 'inherit', fontSize: 10, cursor: disabled || !canEdit ? 'not-allowed' : 'pointer',
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}><Pencil size={10} /> 수정</button>
         {canExclude && (
           <button type="button" disabled={disabled} onClick={onExclude} aria-label={`${propertyPath} 제외`} style={{
             minHeight: 28, padding: '0 9px', borderRadius: 6, border: `1px solid ${C.danger}66`,
-            background: `${C.danger}0D`, color: disabled ? C.t3 : C.danger,
+            background: `${C.danger}0D`, color: disabled ? REVIEW_TEXT.muted : REVIEW_TEXT.danger,
             fontFamily: 'inherit', fontSize: 10, fontWeight: 750,
             cursor: disabled ? 'not-allowed' : 'pointer',
           }}>제외</button>
@@ -655,8 +656,8 @@ function WorldKeyDiffRow({
           border: `1px solid ${preservesExistingValue ? C.border : `${C.danger}2F`}`,
           background: preservesExistingValue ? `${C.t2}08` : `${C.danger}0B`,
         }}>
-          <div style={{ color: beforeTone, fontSize: 10, fontWeight: 750, marginBottom: 7 }}>{beforeLabel}</div>
-          <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+          <div style={{ color: reviewToneInk(beforeTone), fontSize: 10, fontWeight: 750, marginBottom: 7 }}>{beforeLabel}</div>
+          <div style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
             {beforeValue}
           </div>
         </div>
@@ -665,18 +666,18 @@ function WorldKeyDiffRow({
           border: `1px solid ${proposedTone}77`, background: `${proposedTone}16`,
           boxShadow: `inset 3px 0 0 ${proposedTone}`,
         }}>
-          <div style={{ color: proposedTone, fontSize: 10, fontWeight: 800, marginBottom: 7 }}>{proposedLabel}</div>
+          <div style={{ color: reviewToneInk(proposedTone), fontSize: 10, fontWeight: 800, marginBottom: 7 }}>{proposedLabel}</div>
           {hasConflict && !conflictResolved && sourceValues.length > 1 ? (
             <div style={{ display: 'grid', gap: 7 }}>
               {sourceValues.map((value, index) => (
-                <div key={`${index}-${value}`} style={{ color: C.t1, fontSize: 12, fontWeight: 700, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-                  <span style={{ color: C.warning, fontSize: 9, marginRight: 7 }}>추출 {index + 1}</span>
+                <div key={`${index}-${value}`} style={{ color: REVIEW_TEXT.ink, fontSize: 12, fontWeight: 700, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+                  <span style={{ color: REVIEW_TEXT.warning, fontSize: 9, marginRight: 7 }}>추출 {index + 1}</span>
                   {value}
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ color: C.t1, fontSize: 13, fontWeight: 750, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+            <div style={{ color: REVIEW_TEXT.ink, fontSize: 13, fontWeight: 750, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
               {proposedValue || '값 없음'}
             </div>
           )}
@@ -687,7 +688,7 @@ function WorldKeyDiffRow({
         <div style={{
           margin: '10px 0 0', padding: '9px 12px', borderRadius: 7,
           border: `1px solid ${C.primary}3D`, background: `${C.primary}0A`,
-          color: C.t2, fontSize: 11, lineHeight: 1.6,
+          color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.6,
         }}>
           여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.
         </div>
@@ -696,22 +697,22 @@ function WorldKeyDiffRow({
         <div role="alert" style={{
           margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          color: C.warning, fontSize: 11, lineHeight: 1.6,
+          color: REVIEW_TEXT.warning, fontSize: 11, lineHeight: 1.6,
         }}>
           원문 내용이 서로 달라 자동으로 하나로 합치지 않았습니다. 수정에서 최종 설정값을 정해 주세요.
         </div>
       )}
 
       {comparisonReason && (
-        <div style={{
+        <div className="world-setting-comparison-reason" style={{
           margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.primary}44`, background: `${C.primary}0C`,
           display: 'flex', alignItems: 'flex-start', gap: 8,
         }}>
           <Sparkles size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ color: C.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>AI 비교 판단</div>
-            <div style={{ color: C.t2, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+            <div style={{ color: REVIEW_TEXT.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>AI 비교 판단</div>
+            <div className="world-setting-comparison-reason__text" style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
               {comparisonReason}
             </div>
           </div>
@@ -725,22 +726,22 @@ function WorldKeyDiffRow({
       }}>
         <FileText size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ color: C.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>1차 추출 원문</div>
+          <div style={{ color: REVIEW_TEXT.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>1차 추출 원문</div>
           {evidence.length ? (
             <div style={{ display: 'grid', gap: 7 }}>
               {evidence.map((span, index) => (
                 <div className="theme-evidence__quote" key={`${span.startOffset ?? 'unknown'}-${span.endOffset ?? index}-${span.quote}`} style={{
-                  color: C.t1, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere',
+                  color: REVIEW_TEXT.ink, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere',
                 }}>
                   {evidence.length > 1 && (
-                    <span style={{ color: C.t3, fontSize: 9, marginRight: 7 }}>근거 {index + 1}</span>
+                    <span style={{ color: REVIEW_TEXT.muted, fontSize: 9, marginRight: 7 }}>근거 {index + 1}</span>
                   )}
                   “{span.quote}”
                 </div>
               ))}
             </div>
           ) : (
-            <div className="theme-evidence__empty" style={{ color: C.t3, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
+            <div className="theme-evidence__empty" style={{ color: REVIEW_TEXT.muted, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
           )}
         </div>
       </div>
@@ -825,20 +826,20 @@ function WorldCandidateGroupDetail({
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <strong style={{ color: C.t1, fontSize: 18 }}>
+          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 18 }}>
             {category?.label ?? '세계관'} · {identity.subjectName || '대상명 없음'}
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
           <button type="button" disabled={actionPending || pendingCandidates.length === 0} onClick={onEditIdentity} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: 'transparent', color: actionPending || pendingCandidates.length === 0 ? C.t3 : C.t2,
+            background: 'transparent', color: actionPending || pendingCandidates.length === 0 ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
             cursor: actionPending || pendingCandidates.length === 0 ? 'not-allowed' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
           }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
         </div>
-        <p style={{ margin: '7px 0 0', color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
+        <p style={{ margin: '7px 0 0', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
           같은 대상에서 추출된 설정을 항목별로 검토합니다.
         </p>
       </header>
@@ -861,7 +862,7 @@ function WorldCandidateGroupDetail({
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          color: C.warning, fontSize: 12, lineHeight: 1.55,
+          color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
         }}>
           같은 대상 안에서 같은 범위와 설정명 ‘{duplicatePropertyPaths.join('’, ‘')}’이 여러 번 있습니다.
           내용을 하나로 합치거나 중복 항목을 제외해 주세요.
@@ -872,7 +873,7 @@ function WorldCandidateGroupDetail({
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          color: C.warning, fontSize: 12, lineHeight: 1.55,
+          color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
         }}>
           원문마다 내용이 다른 설정입니다. 수정에서 최종 내용을 정하거나 해당 항목을 제외해 주세요.
         </div>
@@ -882,7 +883,7 @@ function WorldCandidateGroupDetail({
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-          color: C.danger, fontSize: 12, lineHeight: 1.55,
+          color: REVIEW_TEXT.danger, fontSize: 12, lineHeight: 1.55,
         }}>
           {actionError}
         </div>
@@ -892,7 +893,7 @@ function WorldCandidateGroupDetail({
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          color: C.warning, fontSize: 12, lineHeight: 1.55,
+          color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
         }}>
           반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.
         </div>
@@ -911,7 +912,7 @@ function WorldCandidateGroupDetail({
         <button type="button" disabled={actionPending || !confirmable} onClick={onConfirm} style={{
           minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
           background: actionPending || !confirmable ? C.border : C.primary,
-          color: actionPending || !confirmable ? C.t3 : '#fff', fontFamily: 'inherit',
+          color: actionPending || !confirmable ? REVIEW_TEXT.muted : '#fff', fontFamily: 'inherit',
           fontSize: 12, fontWeight: 800, cursor: actionPending || !confirmable ? 'not-allowed' : 'pointer',
           display: 'inline-flex', alignItems: 'center', gap: 6,
         }}>
@@ -973,7 +974,7 @@ function CandidateEditModal({
   const inputStyle = {
     width: '100%', height: 40, padding: '0 11px', boxSizing: 'border-box' as const,
     borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg,
-    color: C.t1, fontFamily: 'inherit', fontSize: 12, outline: 'none',
+    color: REVIEW_TEXT.ink, fontFamily: 'inherit', fontSize: 12, outline: 'none',
   };
 
   return (
@@ -989,21 +990,21 @@ function CandidateEditModal({
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
       }}>
         <div style={{ padding: '19px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
-          <strong style={{ color: C.t1, fontSize: 16 }}>
+          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 16 }}>
             {identityOnly
               ? '분류·대상 일괄 수정'
               : `${initialDecision.scopeName ? `${initialDecision.scopeName} › ` : ''}${initialDecision.settingName || '설정 항목'} 반영 내용 수정`}
           </strong>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={pending} aria-label="닫기" onClick={onClose} style={{
-            border: 'none', background: 'none', color: C.t3, cursor: pending ? 'not-allowed' : 'pointer', padding: 4,
+            border: 'none', background: 'none', color: REVIEW_TEXT.muted, cursor: pending ? 'not-allowed' : 'pointer', padding: 4,
           }}><X size={18} /></button>
         </div>
         <div style={{ padding: 22 }}>
           <div style={{
             marginBottom: 18, padding: '12px 14px', borderRadius: 8,
             background: `${C.warning}12`, border: `1px solid ${C.warning}44`,
-            color: C.warning, fontSize: 11, lineHeight: 1.6,
+            color: REVIEW_TEXT.warning, fontSize: 11, lineHeight: 1.6,
           }}>
             {identityOnly
               ? '이 묶음의 모든 미확정 설정에 분류와 대상을 함께 적용합니다. 범위·설정명·반영 방식·최종값은 그대로 유지하며 LLM 재비교는 호출하지 않습니다.'
@@ -1012,19 +1013,19 @@ function CandidateEditModal({
           <div className="world-setting-edit-identity" style={{
             display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10,
           }}>
-            <label style={{ color: C.t3, fontSize: 11 }}>분류
+            <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>분류
               <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
                 {CATEGORY_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <label style={{ color: C.t3, fontSize: 11 }}>대상
+            <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>대상
               <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
           </div>
           {!identityOnly && (
             <>
               <div className="world-setting-edit-property" style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10, marginTop: 16 }}>
-                <label style={{ color: C.t3, fontSize: 11 }}>범위 (선택)
+                <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>범위 (선택)
                   <input
                     value={scopeName}
                     onChange={event => setScopeName(event.target.value)}
@@ -1032,17 +1033,17 @@ function CandidateEditModal({
                     style={{ ...inputStyle, marginTop: 7 }}
                   />
                 </label>
-                <label style={{ color: C.t3, fontSize: 11 }}>설정명
+                <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>설정명
                   <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
                 </label>
               </div>
               <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
-                <label style={{ color: C.t3, fontSize: 11 }}>반영 방식
+                <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>반영 방식
                   <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
                     {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
-                <label style={{ color: C.t3, fontSize: 11 }}>최종 설정값
+                <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>최종 설정값
                   <textarea value={value} onChange={event => setValue(event.target.value)} style={{
                     ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
                   }} />
@@ -1050,7 +1051,7 @@ function CandidateEditModal({
               </div>
             </>
           )}
-          {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: C.danger, fontSize: 12 }}>{validationError ?? error}</div>}
+          {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: REVIEW_TEXT.danger, fontSize: 12 }}>{validationError ?? error}</div>}
         </div>
         <div style={{ padding: '15px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
@@ -1781,7 +1782,7 @@ export function WorldSettingReview() {
                   display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
                 }}>
                   <Check size={14} color={C.success} />
-                  <span style={{ color: C.success, fontSize: 12, fontWeight: 700 }}>
+                  <span style={{ color: REVIEW_TEXT.success, fontSize: 12, fontWeight: 700 }}>
                     {confirmedTarget.appliedCount > 0 && confirmedTarget.excludedCount > 0
                       ? confirmedTarget.targetCount > 1
                         ? `${confirmedTarget.targetCount}개 세계관 대상에 설정 ${confirmedTarget.appliedCount}개를 반영하고 ${confirmedTarget.excludedCount}개를 제외했습니다.`
@@ -1798,12 +1799,12 @@ export function WorldSettingReview() {
                       `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB&tab=worldsettings&settingId=${encodeURIComponent(confirmedTarget.id!)}`,
                       'push-left',
                     )} style={{
-                      border: 'none', background: 'none', color: C.primary,
+                      border: 'none', background: 'none', color: REVIEW_TEXT.primary,
                       fontFamily: 'inherit', fontSize: 11, fontWeight: 750, cursor: 'pointer',
                     }}>세계관 설정에서 보기</button>
                   )}
                   <button type="button" aria-label="확정 안내 닫기" onClick={() => setConfirmedTarget(null)} style={{
-                    border: 'none', background: 'none', color: C.t3, cursor: 'pointer', padding: 2,
+                    border: 'none', background: 'none', color: REVIEW_TEXT.muted, cursor: 'pointer', padding: 2,
                   }}><X size={14} /></button>
                 </div>
               )}
@@ -1811,13 +1812,13 @@ export function WorldSettingReview() {
               {summaryUnavailable && (
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
-                  border: `1px solid ${C.warning}55`, background: `${C.warning}12`, color: C.warning, fontSize: 12,
+                  border: `1px solid ${C.warning}55`, background: `${C.warning}12`, color: REVIEW_TEXT.warning, fontSize: 12,
                 }}>캐릭터 후보 집계를 불러오지 못해 전체 완료 여부를 확인할 수 없습니다.</div>
               )}
               {listQuery.isError && listQuery.data && (
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
-                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`, color: C.danger, fontSize: 12,
+                  border: `1px solid ${C.danger}55`, background: `${C.danger}12`, color: REVIEW_TEXT.danger, fontSize: 12,
                 }}>최신 후보를 불러오지 못해 마지막으로 확인한 대상 그룹을 표시합니다.</div>
               )}
 
@@ -1825,7 +1826,7 @@ export function WorldSettingReview() {
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
                   border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-                  color: C.danger, fontSize: 12,
+                  color: REVIEW_TEXT.danger, fontSize: 12,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                 }}>
                   <span>공유된 세계관 후보의 묶음 위치를 찾지 못했습니다.</span>
@@ -1836,7 +1837,7 @@ export function WorldSettingReview() {
                   }} style={{
                     minHeight: 32, padding: '0 11px', borderRadius: 6,
                     border: `1px solid ${C.danger}88`, background: 'transparent',
-                    color: C.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    color: REVIEW_TEXT.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                   }}>다시 시도</button>
                 </div>
               )}
@@ -1861,7 +1862,7 @@ export function WorldSettingReview() {
                       onChange={value => updateFilters(reviewFilter, value, operationFilter)} />
                     <FilterGroup label="제안된 반영 방식" value={operationFilter} options={OPERATION_FILTERS} disabled={false}
                       onChange={value => updateFilters(reviewFilter, categoryFilter, value)} />
-                    <div style={{ color: C.t3, fontSize: 11 }}>대상별 변경 묶음 · 생성 순</div>
+                    <div style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>대상별 변경 묶음 · 생성 순</div>
                     {groups.length ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {groups.map(group => group.groupKey && (
@@ -1878,12 +1879,12 @@ export function WorldSettingReview() {
                     ) : (
                       <div className="review-empty-state" style={{
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
-                        background: C.surface, textAlign: 'center', color: C.t3, fontSize: 12,
+                        background: C.surface, textAlign: 'center', color: REVIEW_TEXT.muted, fontSize: 12,
                       }}>
                         <div className="review-empty-state__title">조건에 맞는 세계관 대상이 없습니다.</div>
                         <button className="review-empty-state__action" type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
                           display: 'block', margin: '10px auto 0', border: 'none', background: 'none',
-                          color: C.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+                          color: REVIEW_TEXT.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
                         }}>필터 초기화</button>
                       </div>
                     )}
@@ -1894,7 +1895,7 @@ export function WorldSettingReview() {
                   <section className="world-setting-review-detail">
                     <button type="button" className="world-setting-review-mobile-back" onClick={() => setMobileDetailOpen(false)} style={{
                       display: 'none', marginBottom: 10, border: 'none', background: 'none',
-                      color: C.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
+                      color: REVIEW_TEXT.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
                     }}><ChevronLeft size={15} /> 대상 목록으로</button>
                     {!selectedGroup ? (
                       <QueryState

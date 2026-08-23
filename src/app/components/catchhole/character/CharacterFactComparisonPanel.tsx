@@ -2,6 +2,7 @@ import { AlertCircle, Check, History, Loader2, RefreshCw, Sparkles } from 'lucid
 import type { ReactNode } from 'react';
 import type { SettingCandidateResponse } from '../../../api/generated/types.gen';
 import { C } from '../constants';
+import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import {
   getCharacterFactComparisonPolicy,
   type CharacterFactApplicationMode,
@@ -99,9 +100,9 @@ function DecisionButton({
         minHeight: 58,
         padding: '9px 11px',
         borderRadius: 8,
-        border: `1px solid ${active ? C.primary : C.border}`,
-        background: active ? C.primary + '16' : C.bg,
-        color: disabled ? C.t3 : C.t1,
+        border: `1px solid ${active ? C.primary : 'var(--ch-border, #dce2eb)'}`,
+        background: active ? 'rgb(8 126 242 / 8%)' : 'var(--ch-surface, #fff)',
+        color: disabled ? REVIEW_TEXT.muted : REVIEW_TEXT.ink,
         cursor: disabled ? 'not-allowed' : 'pointer',
         textAlign: 'left',
         display: 'flex',
@@ -111,10 +112,10 @@ function DecisionButton({
         opacity: disabled ? 0.62 : 1,
       }}
     >
-      <span style={{ color: active ? C.primary : C.t3, lineHeight: 0 }}>{icon}</span>
+      <span style={{ color: active ? REVIEW_TEXT.primary : REVIEW_TEXT.muted, lineHeight: 0 }}>{icon}</span>
       <span>
         <strong style={{ display: 'block', fontSize: 11, marginBottom: 3 }}>{title}</strong>
-        <span style={{ color: C.t3, fontSize: 10, lineHeight: 1.45 }}>{description}</span>
+        <span style={{ color: REVIEW_TEXT.muted, fontSize: 10, lineHeight: 1.45 }}>{description}</span>
       </span>
     </button>
   );
@@ -167,7 +168,7 @@ export function CharacterFactComparisonPanel({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <Sparkles size={15} color={C.primary} />
-        <strong style={{ color: C.t1, fontSize: 13 }}>
+        <strong style={{ color: REVIEW_TEXT.ink, fontSize: 13 }}>
           {comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH' && candidate.matchStatus === 'UNRESOLVED'
             ? '신규 캐릭터 설정 반영 안내'
             : 'AI 현재 설정 비교'}
@@ -176,7 +177,7 @@ export function CharacterFactComparisonPanel({
           padding: '3px 8px',
           borderRadius: 10,
           border: `1px solid ${statusMeta.color}`,
-          color: statusMeta.color,
+          color: reviewToneInk(statusMeta.color),
           fontSize: 10,
           fontWeight: 700,
           display: 'inline-flex',
@@ -187,25 +188,25 @@ export function CharacterFactComparisonPanel({
           {statusMeta.label}
         </span>
         {operationMeta && (
-          <span style={{ color: operationMeta.color, fontSize: 11, fontWeight: 700 }}>
+          <span style={{ color: reviewToneInk(operationMeta.color), fontSize: 11, fontWeight: 700 }}>
             {operationMeta.label}
           </span>
         )}
         {candidate.temporalScope && (
-          <span style={{ color: C.t3, fontSize: 11 }}>
+          <span style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>
             {TEMPORAL_SCOPE_LABELS[candidate.temporalScope]}
           </span>
         )}
       </div>
 
       {active && (
-        <div role="status" style={{ color: C.t2, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
+        <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
           현재 캐릭터 설정과 비교하고 있습니다. 비교가 끝나기 전에는 후보를 확정할 수 없습니다.
         </div>
       )}
 
       {comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH' && (
-        <div role="status" style={{ color: C.t2, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
+        <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
           {candidate.matchStatus === 'UNRESOLVED'
             ? '새 캐릭터로 확정하면 이 설정을 현재값으로 바로 반영합니다. 같은 이름의 기존 캐릭터가 확인되면 현재 설정 비교 후 다시 확정하게 됩니다.'
             : '비교할 캐릭터를 먼저 연결해 주세요. 연결이 완료되면 현재 설정 비교를 시작합니다.'}
@@ -213,14 +214,14 @@ export function CharacterFactComparisonPanel({
       )}
 
       {comparisonStatus === 'NOT_REQUIRED' && (
-        <div role="status" style={{ color: C.t2, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
+        <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
           현재 설정에 적용할 비교 제안이 준비되지 않았습니다. 후보를 확정하지 않고 상태를 확인해 주세요.
         </div>
       )}
 
       {retryAvailable && (
         <div style={{ marginTop: 12 }}>
-          <div role="alert" style={{ color: comparisonStatus === 'FAILED' ? C.danger : C.warning, fontSize: 12, lineHeight: 1.65 }}>
+          <div role="alert" style={{ color: comparisonStatus === 'FAILED' ? REVIEW_TEXT.danger : REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.65 }}>
             {comparisonStatus === 'FAILED'
               ? '현재 설정과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
               : comparisonStatus === 'NOT_REQUIRED'
@@ -239,7 +240,7 @@ export function CharacterFactComparisonPanel({
                 borderRadius: 6,
                 border: `1px solid ${C.primary}`,
                 background: 'transparent',
-                color: C.primary,
+                color: REVIEW_TEXT.primary,
                 fontFamily: 'inherit',
                 fontSize: 11,
                 fontWeight: 700,
@@ -256,13 +257,13 @@ export function CharacterFactComparisonPanel({
             </button>
           )}
           {retryError && (
-            <div role="alert" style={{ color: C.danger, fontSize: 11, marginTop: 8 }}>{retryError}</div>
+            <div role="alert" style={{ color: REVIEW_TEXT.danger, fontSize: 11, marginTop: 8 }}>{retryError}</div>
           )}
         </div>
       )}
 
       {completed && operation === 'EXCLUDE' && (
-        <div role="status" style={{ color: C.t2, fontSize: 12, lineHeight: 1.65, marginTop: 12, display: 'flex', gap: 7 }}>
+        <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12, display: 'flex', gap: 7 }}>
           <AlertCircle size={15} color={C.danger} style={{ flexShrink: 0, marginTop: 2 }} />
           새 설정이나 이력에는 저장하지 않는 제안입니다. 아래의 ‘모두 확정’을 누르면 이 항목은 자동으로 제외 처리됩니다.
         </div>
@@ -274,14 +275,14 @@ export function CharacterFactComparisonPanel({
           marginTop: 10,
         }}>
           <div className="character-comparison-value character-comparison-value--before" style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.danger}33`, background: `${C.danger}0A` }}>
-            <div className="character-comparison-value__label" style={{ color: C.danger, fontSize: 10, fontWeight: 750, marginBottom: 5 }}>− 기존값</div>
-            <div className="character-comparison-value__content" style={{ color: C.t2, fontSize: 12, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+            <div className="character-comparison-value__label" style={{ color: REVIEW_TEXT.danger, fontSize: 10, fontWeight: 750, marginBottom: 5 }}>− 기존값</div>
+            <div className="character-comparison-value__content" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
               {beforeValue ?? '없음'}
             </div>
           </div>
           <div className="character-comparison-value character-comparison-value--proposed" style={{ padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.success}66`, background: `${C.success}12`, boxShadow: `inset 3px 0 0 ${C.success}` }}>
-            <div className="character-comparison-value__label" style={{ color: C.success, fontSize: 10, fontWeight: 800, marginBottom: 5 }}>+ 제안값</div>
-            <div className="character-comparison-value__content" style={{ color: C.t1, fontSize: 12, fontWeight: 700, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+            <div className="character-comparison-value__label" style={{ color: REVIEW_TEXT.success, fontSize: 10, fontWeight: 800, marginBottom: 5 }}>+ 제안값</div>
+            <div className="character-comparison-value__content" style={{ color: REVIEW_TEXT.ink, fontSize: 12, fontWeight: 700, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
               {proposedValue ?? '값 없음'}
             </div>
           </div>
@@ -295,7 +296,7 @@ export function CharacterFactComparisonPanel({
 
       {completed && additionalChanges.length > 0 && (
         <div style={{ marginTop: 13 }}>
-          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>{additionalChangesLabel}</div>
+          <div style={{ color: REVIEW_TEXT.muted, fontSize: 10, marginBottom: 7 }}>{additionalChangesLabel}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {additionalChanges.map((change, index) => (
               <div
@@ -304,20 +305,20 @@ export function CharacterFactComparisonPanel({
                   padding: '9px 11px',
                   borderRadius: 6,
                   border: `1px solid ${change.action === 'REMOVE' ? C.danger + '66' : C.success + '66'}`,
-                  background: C.bg,
+                  background: 'var(--ch-surface, #fff)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: C.t2,
+                  color: REVIEW_TEXT.text,
                   fontSize: 11,
                   flexWrap: 'wrap',
                 }}
               >
-                <span style={{ color: change.action === 'REMOVE' ? C.danger : C.success, fontWeight: 700 }}>
+                <span style={{ color: change.action === 'REMOVE' ? REVIEW_TEXT.danger : REVIEW_TEXT.success, fontWeight: 700 }}>
                   {change.action === 'REMOVE' ? '현재값에서 종료' : '현재값 반영'}
                 </span>
                 <span>{change.factKey || change.factType || '설정'}</span>
-                <span style={{ marginLeft: 'auto', color: C.t3, overflowWrap: 'anywhere' }}>
+                <span style={{ marginLeft: 'auto', color: REVIEW_TEXT.muted, overflowWrap: 'anywhere' }}>
                   {change.action === 'REMOVE'
                     ? preferredFactValue(change.beforeFactValue, change.beforeValueJson)
                     : [
@@ -332,15 +333,15 @@ export function CharacterFactComparisonPanel({
       )}
 
       {completed && candidate.comparisonReason && (
-        <div style={{ marginTop: 13, color: C.t2, fontSize: 12, lineHeight: 1.65 }}>
-          <strong style={{ color: C.primary, fontSize: 10, display: 'block', marginBottom: 4 }}>AI 판단 근거</strong>
+        <div style={{ marginTop: 13, color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65 }}>
+          <strong style={{ color: REVIEW_TEXT.primary, fontSize: 10, display: 'block', marginBottom: 4 }}>AI 판단 근거</strong>
           {candidate.comparisonReason}
         </div>
       )}
 
       {completed && pendingReview && operation !== 'EXCLUDE' && (
         <div style={{ marginTop: 15 }}>
-          <div style={{ color: C.t3, fontSize: 10, marginBottom: 7 }}>확정 방식</div>
+          <div style={{ color: REVIEW_TEXT.muted, fontSize: 10, marginBottom: 7 }}>확정 방식</div>
           <div className="character-comparison-decisions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
             <DecisionButton
               active={applicationMode === 'APPLY_PROPOSAL'}
@@ -360,7 +361,7 @@ export function CharacterFactComparisonPanel({
             />
           </div>
           {operation === 'REVIEW_REQUIRED' && (
-            <div style={{ color: C.warning, fontSize: 11, lineHeight: 1.55, marginTop: 8 }}>
+            <div style={{ color: REVIEW_TEXT.warning, fontSize: 11, lineHeight: 1.55, marginTop: 8 }}>
               AI가 현재 설정 변경을 안전하게 결정하지 못했습니다. 이력에만 저장하거나 후보를 수정한 뒤 다시 비교해 주세요.
             </div>
           )}
