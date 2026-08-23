@@ -324,6 +324,10 @@
   opacity: 1;
 }
 
+.landing-demo-panel.is-active .landing-demo-panel__trigger:focus-visible {
+  opacity: 1;
+}
+
 .landing-demo-panel__trigger > span {
   color: rgb(255 255 255 / 68%);
   font-size: 10px;
@@ -346,7 +350,7 @@
   z-index: 1;
   inset: 0;
   display: grid;
-  min-width: 746px;
+  min-width: 0;
   grid-template-rows: 48px minmax(0, 1fr);
   overflow: hidden;
   background: var(--ch-surface);
@@ -2235,14 +2239,14 @@
     padding: 3px 1px;
     border-radius: 7px;
     background: transparent;
-    color: var(--ch-text-subtle);
+    color: var(--ch-text-muted);
     opacity: 1;
     pointer-events: auto;
   }
 
   .landing-demo-panel.is-active .landing-demo-panel__trigger {
     background: var(--ch-surface-soft);
-    color: var(--ch-primary);
+    color: var(--ch-primary-ink);
     opacity: 1;
     pointer-events: auto;
   }

@@ -126,7 +126,7 @@ export default function SLanding() {
                 무료로 시작하기
               </ActionButton>
               <ActionButton className="landing-primary-action" size="compact" onClick={openDemo}>
-                데모 체험
+                로그인 없이 체험하기
               </ActionButton>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function SLanding() {
               </div>
               <div className="landing-cta__actions">
                 <ActionButton className="landing-primary-action" icon={<ArrowRight size={16} />} onClick={openDemo}>
-                  먼저 체험해 보기
+                  로그인 없이 체험하기
                 </ActionButton>
                 <ActionButton variant="secondary" onClick={() => openAuth('/signup')}>
                   무료로 시작하기

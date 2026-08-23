@@ -8,9 +8,9 @@ test('랜딩의 주 CTA는 로그인 없이 체험하기다', async ({ page }) =
   const headerActions = page.locator('.landing-header__actions');
   const heroActions = page.locator('.landing-actions');
   const bottomActions = page.locator('.landing-cta__actions');
-  const headerDemo = headerActions.getByRole('button', { name: '데모 체험' });
+  const headerDemo = headerActions.getByRole('button', { name: '로그인 없이 체험하기' });
   const heroDemo = heroActions.getByRole('button', { name: '로그인 없이 체험하기' });
-  const bottomDemo = bottomActions.getByRole('button', { name: '먼저 체험해 보기' });
+  const bottomDemo = bottomActions.getByRole('button', { name: '로그인 없이 체험하기' });
 
   await expect(headerDemo).toHaveClass(/ch-action--primary/);
   await expect(heroDemo).toHaveClass(/ch-action--primary/);
@@ -50,7 +50,13 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
     name: '원고가 작품 설정이 되는 과정을 직접 확인하세요',
   })).toBeVisible();
 
-  const demoTrack = page.locator('.landing-demo-accordion__track');
+  const demo = page.locator('.landing-demo-accordion');
+  const firstTab = demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' });
+  await firstTab.focus();
+  await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+  await expect(firstTab).toHaveCSS('opacity', '1');
+
+  const demoTrack = demo.locator('.landing-demo-accordion__track');
   const demoPanels = page.locator('.landing-demo-panel');
   await expect(demoTrack).toHaveCSS('display', 'flex');
   await expect(demoTrack).toHaveCSS('height', '520px');
@@ -141,6 +147,11 @@ test('랜딩 데모의 모든 장면은 휴대폰에서도 가려지거나 가�
   const demo = page.locator('.landing-demo-accordion');
   await demo.getByRole('button', { name: '자동 재생 일시정지' }).click();
 
+  const activeStepTab = demo.locator('.landing-demo-panel.is-active .landing-demo-panel__trigger');
+  const inactiveStepTab = demo.locator('.landing-demo-panel:not(.is-active) .landing-demo-panel__trigger').first();
+  expect(await computedContrastRatio(activeStepTab)).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(inactiveStepTab)).toBeGreaterThanOrEqual(4.5);
+
   for (let index = 1; index <= 8; index += 1) {
     await demo.getByRole('tab', { name: new RegExp(`^${index}단계`) }).click();
     await expect.poll(() => demo.locator('.landing-demo-panel.is-active .landing-demo__viewport').evaluate(element => ({
@@ -152,6 +163,23 @@ test('랜딩 데모의 모든 장면은 휴대폰에서도 가려지거나 가�
   await expect.poll(() => page.locator('.landing-page').evaluate(element => (
     element.scrollWidth <= element.clientWidth + 1
   ))).toBe(true);
+});
+
+test('랜딩 데모는 중간 폭에서도 활성 장면을 자르지 않는다', async ({ page }) => {
+  await page.setViewportSize({ width: 1025, height: 900 });
+  await page.goto('/landing');
+
+  const demo = page.locator('.landing-demo-accordion');
+  const firstTab = demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' });
+  await firstTab.focus();
+  await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+
+  await expect.poll(() => demo.locator('.landing-demo-panel.is-active').evaluate(panel => {
+    const content = panel.querySelector<HTMLElement>('.landing-demo-panel__content');
+    if (!content) return false;
+    return content.getBoundingClientRect().width <= panel.getBoundingClientRect().width + 1
+      && content.scrollWidth <= content.clientWidth + 1;
+  })).toBe(true);
 });
 
 test('랜딩 주 CTA는 320px와 200% 확대에서도 잘리거나 가로로 넘치지 않는다', async ({ page }) => {
@@ -167,7 +195,7 @@ test('랜딩 주 CTA는 320px와 200% 확대에서도 잘리거나 가로로 넘
       element.style.zoom = String(zoom);
     }, condition.zoom);
 
-    const headerDemo = page.locator('.landing-header__actions').getByRole('button', { name: '데모 체험' });
+    const headerDemo = page.locator('.landing-header__actions').getByRole('button', { name: '로그인 없이 체험하기' });
     await expect(headerDemo).toBeVisible();
     await expect.poll(() => headerDemo.evaluate(element => (
       element.scrollWidth <= element.clientWidth + 1
