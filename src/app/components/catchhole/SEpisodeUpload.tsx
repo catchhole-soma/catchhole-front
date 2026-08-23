@@ -1746,24 +1746,28 @@ export default function SEpisodeUpload() {
                   {analysisSucceeded || (analysisPartiallyInterrupted
                     && !analysisFailed
                     && !analysisUnavailable) ? (
-                    <PrimaryButton disabled={!episodeUploadBatchId} onClick={() => {
-                      if (!episodeUploadBatchId) return;
-                      navigate(
-                        `/setting-review?workId=${encodeURIComponent(workId)}`
-                        + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
-                        + `&jobType=${resolvedAnalysisJobType}`
-                        + (analysisPartiallyInterrupted ? '&candidateType=world' : ''),
-                        'dissolve',
-                        {
-                          returnToAnalysisList: resolvedAnalysisListUrl,
-                          // 분석 목록에서 진행 화면을 거쳐 왔다면 review -> progress -> list 두 칸을 되돌린다.
-                          // 새 업로드처럼 명시적 목록 진입점이 없으면 review helper가 저장 URL로 대체한다.
-                          returnHistoryDelta: reviewReturnState?.returnHistoryDelta === -1
-                            ? -2 : undefined,
-                        },
-                      );
-                    }}>
-                      {analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
+                    <PrimaryButton
+                      disabled={!episodeUploadBatchId || routeWork?.lifecycleStatus === 'PURGING'}
+                      onClick={() => {
+                        if (!episodeUploadBatchId || routeWork?.lifecycleStatus === 'PURGING') return;
+                        navigate(
+                          `/setting-review?workId=${encodeURIComponent(workId)}`
+                          + `&batchId=${encodeURIComponent(episodeUploadBatchId)}`
+                          + `&jobType=${resolvedAnalysisJobType}`
+                          + (analysisPartiallyInterrupted ? '&candidateType=world' : ''),
+                          'dissolve',
+                          {
+                            returnToAnalysisList: resolvedAnalysisListUrl,
+                            // 분석 목록에서 진행 화면을 거쳐 왔다면 review -> progress -> list 두 칸을 되돌린다.
+                            // 새 업로드처럼 명시적 목록 진입점이 없으면 review helper가 저장 URL로 대체한다.
+                            returnHistoryDelta: reviewReturnState?.returnHistoryDelta === -1
+                              ? -2 : undefined,
+                          },
+                        );
+                      }}>
+                      {routeWork?.lifecycleStatus === 'PURGING'
+                        ? '작품 삭제 중에는 후보를 검토할 수 없습니다'
+                        : analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
                     </PrimaryButton>
                   ) : analysisCanceled ? (
                     <PrimaryButton disabled onClick={() => undefined}>

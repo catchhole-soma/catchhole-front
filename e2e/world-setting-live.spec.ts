@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { purgeWorkAndWait } from './live-work-purge';
 
 const apiBaseUrl = process.env.CATCHHOLE_E2E_API_BASE_URL;
 const e2eEmail = process.env.CATCHHOLE_E2E_EMAIL;
@@ -178,17 +179,7 @@ test.describe('세계관 DB 실제 연동', () => {
       await expect(page.getByText('동쪽과 남쪽에서 고블린이 출몰한다.', { exact: true })).toBeVisible();
       await expect(page.getByText('중앙부에서 언데드가 출몰한다.', { exact: true })).toBeVisible();
     } finally {
-      const deleteWorkResponse = await request.delete(
-        `${apiBaseUrl}/api/v1/works/${session.workId}`,
-        {
-          headers: { Authorization: session.authorization },
-          data: { confirmation: '영구 삭제' },
-        },
-      );
-      expect.soft(
-        deleteWorkResponse.ok(),
-        `E2E 작품 정리 실패: ${deleteWorkResponse.status()} ${await deleteWorkResponse.text()}`,
-      ).toBeTruthy();
+      await purgeWorkAndWait(request, apiBaseUrl!, session.authorization, session.workId);
     }
   });
 });

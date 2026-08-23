@@ -1272,6 +1272,10 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   await expect(reanalysisDialog).toBeVisible();
   await expect(reanalysisDialog.getByText(/중복되거나 시간 순서가 맞지 않는 후보/)).toBeVisible();
   await expect(reanalysisDialog.locator('.episode-reanalysis-warning')).toHaveCSS('color', 'rgb(138, 75, 0)');
+  await expectReadableDialogText(
+    reanalysisDialog.getByRole('button', { name: '취소' }),
+    'rgb(25, 30, 38)',
+  );
   await expect(reanalysisDialog.getByText(/후속 회차가/)).toContainText('1개');
   await reanalysisDialog.getByRole('button', { name: '자세히 보기' }).click();
   const legalDialog = page.getByRole('dialog', { name: '법적 고지' });

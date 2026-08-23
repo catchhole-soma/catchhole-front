@@ -110,7 +110,7 @@ export function EpisodeReanalysisModal({
         }}>
           <button type="button" autoFocus disabled={submitting} onClick={onClose} style={{
             height: 36, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: 'transparent', color: C.t2, fontFamily: 'inherit', fontSize: 12,
+            background: 'transparent', color: 'var(--ch-ink, #191E26)', fontFamily: 'inherit', fontSize: 12,
             cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1,
           }}>취소</button>
           <button type="button" disabled={submitting} onClick={onConfirm} style={{

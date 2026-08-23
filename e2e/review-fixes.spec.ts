@@ -277,6 +277,52 @@ test('삭제 중인 작품의 기존 실패 분석은 열람만 허용하고 재
   expect(retryRequestCount).toBe(0);
 });
 
+test('삭제 중인 작품의 완료 분석은 열람하되 후보 검토 진입은 차단한다', async ({ page }) => {
+  const analysisJobId = '33333333-3333-4333-8333-333333333333';
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith('/auth/me')
+      ? member
+      : pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)
+        ? {
+            id: analysisJobId,
+            workId,
+            workTitle: '삭제 중인 작품',
+            batchId,
+            jobType: 'SETTING_EXTRACTION',
+            status: 'SUCCEEDED',
+            episodes: [{
+              id: episodeId,
+              episodeNo: 20,
+              title: '분석 완료 회차',
+              status: 'UPLOADED',
+            }],
+          }
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '삭제 중인 작품', genre: '판타지', lifecycleStatus: 'PURGING' }
+          : [];
+    return fulfill(route, data);
+  });
+
+  await authenticate(page, 'purging-succeeded-analysis-token');
+  await page.goto(
+    `/episode-upload?workId=${workId}&batchId=${batchId}`
+    + `&analysisJobIds=${analysisJobId}&currentAnalysisJobIds=${analysisJobId}`
+    + '&jobType=SETTING_EXTRACTION',
+  );
+
+  await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', {
+    name: '작품 삭제 중에는 후보를 검토할 수 없습니다',
+  })).toBeDisabled();
+
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/works');
+  expect(new URL(page.url()).searchParams.get('modal')).toBe('work-delete');
+  expect(new URL(page.url()).searchParams.get('targetWorkId')).toBe(workId);
+});
+
 test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시한다', async ({ page }) => {
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   const completedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
