@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
@@ -979,6 +980,8 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
     ...candidates[0],
     matchedCharacterId: null,
     matchStatus: 'AMBIGUOUS' as const,
+    candidateKind: 'SETTING' as const,
+    comparisonStatus: 'NOT_REQUIRED' as const,
   };
 
   await page.route('**/api/v1/**', route => {
@@ -1033,7 +1036,25 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
   );
 
   const dismissButton = page.getByRole('button', { name: '제외', exact: true });
-  await expect(page.getByText('어떤 캐릭터의 설정인지 확인이 필요합니다.')).toBeVisible();
+  const candidateDetail = page.locator('.setting-candidate-detail').first();
+  const matchNotice = candidateDetail.locator('.setting-candidate-match-notice');
+  const comparisonPanel = candidateDetail.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
+  const comparisonMessage = comparisonPanel.getByText(
+    '현재 설정에 적용할 비교 제안이 준비되지 않았습니다. 후보를 확정하지 않고 상태를 확인해 주세요.',
+    { exact: true },
+  );
+  const blockedReason = page.getByText('캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.', { exact: true });
+
+  await expect(matchNotice).toHaveCSS('color', 'rgb(138, 75, 0)');
+  await expect(comparisonMessage).toHaveCSS('color', 'rgb(51, 58, 70)');
+  await expect(blockedReason).toHaveCSS('color', 'rgb(138, 75, 0)');
+  expect(await computedContrastRatio(matchNotice)).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(comparisonMessage, comparisonPanel, candidateDetail))
+    .toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(
+    blockedReason,
+    page.locator('.setting-review-detail article > footer'),
+  )).toBeGreaterThanOrEqual(4.5);
   await expect(dismissButton).toBeEnabled();
   await dismissButton.click();
 

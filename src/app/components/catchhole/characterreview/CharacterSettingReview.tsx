@@ -42,6 +42,7 @@ import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
+import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import {
   CharacterFactComparisonPanel,
@@ -337,7 +338,7 @@ function StatusBadge({ label, color }: { label: string; color: string }) {
   return (
     <span style={{
       padding: '3px 9px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-      color, background: `${color}18`, border: `1px solid ${color}66`, whiteSpace: 'nowrap',
+      color: reviewToneInk(color), background: `${color}18`, border: `1px solid ${color}66`, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
@@ -393,7 +394,7 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
         className="review-header__back"
         style={{
           width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`,
-          background: 'transparent', color: C.t2, cursor: 'pointer',
+          background: 'transparent', color: REVIEW_TEXT.text, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -437,7 +438,7 @@ function ReviewSummary({
       {items.map(([label, value, color]) => (
         <div className="setting-review-summary__item" key={label}>
           <div>{label}</div>
-          <strong style={{ color }}>{value}</strong>
+          <strong style={{ color: reviewToneInk(color) }}>{value}</strong>
         </div>
       ))}
       <div style={{ flex: 1 }} />
@@ -475,7 +476,7 @@ function CandidateGroupCard({
         width: '100%', minHeight: 82, padding: '14px 15px', borderRadius: 9,
         border: `1px solid ${selected ? C.primary : C.border}`,
         background: selected ? `${C.primary}14` : C.surface,
-        color: C.t1, textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
+        color: REVIEW_TEXT.ink, textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit', opacity: disabled ? 0.68 : 1,
       }}
     >
@@ -485,9 +486,9 @@ function CandidateGroupCard({
         </strong>
         <StatusBadge label={`${group.candidateCount ?? candidates.length}개 설정`} color={C.primary} />
       </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: 10, color: C.t3, fontSize: 11 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, color: REVIEW_TEXT.muted, fontSize: 11 }}>
         <span>{episodes.length > 0 ? `${episodes.join(', ')}화` : '출처 회차 없음'}</span>
-        {attentionCount > 0 && <span style={{ color: C.warning }}>· {attentionCount}개 확인 필요</span>}
+        {attentionCount > 0 && <span style={{ color: REVIEW_TEXT.warning }}>· {attentionCount}개 확인 필요</span>}
       </div>
       {matchStatuses.length > 0 && (
         <div style={{ display: 'flex', gap: 5, marginTop: 9, flexWrap: 'wrap' }}>
@@ -529,7 +530,7 @@ function ActionButton({
         minHeight: 38, padding: '0 18px', borderRadius: 7,
         border: `1px solid ${disabled ? C.border : tone}`,
         background: disabled ? C.bg : `${tone}12`,
-        color: disabled ? C.t3 : tone, fontFamily: 'inherit',
+        color: disabled ? REVIEW_TEXT.muted : reviewToneInk(tone), fontFamily: 'inherit',
         fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.58 : 1,
       }}
@@ -546,7 +547,7 @@ const modalInputStyle = {
   borderRadius: 7,
   border: `1px solid ${C.border}`,
   background: C.bg,
-  color: C.t1,
+  color: REVIEW_TEXT.ink,
   padding: '0 12px',
   fontFamily: 'inherit',
   fontSize: 13,
@@ -652,10 +653,10 @@ function ModalLayer({
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <h2 id={titleId} style={{ color: C.t1, fontSize: 18, margin: 0 }}>
+            <h2 id={titleId} style={{ color: REVIEW_TEXT.ink, fontSize: 18, margin: 0 }}>
               {title}
             </h2>
-            <p style={{ color: C.t3, fontSize: 12, lineHeight: 1.6, margin: '6px 0 0' }}>
+            <p style={{ color: REVIEW_TEXT.muted, fontSize: 12, lineHeight: 1.6, margin: '6px 0 0' }}>
               {description}
             </p>
           </div>
@@ -665,7 +666,7 @@ function ModalLayer({
             disabled={pending}
             onClick={onClose}
             style={{
-              border: 'none', background: 'transparent', color: C.t3,
+              border: 'none', background: 'transparent', color: REVIEW_TEXT.muted,
               padding: 4, lineHeight: 0, cursor: pending ? 'default' : 'pointer',
             }}
           >
@@ -728,7 +729,7 @@ function CandidateEditModal({
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
         <div style={{ marginTop: 22 }}>
-          <label htmlFor="candidate-attribute-name" style={{ color: C.t2, fontSize: 12 }}>
+          <label htmlFor="candidate-attribute-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
             설정명
           </label>
           {!editableName ? (
@@ -738,9 +739,9 @@ function CandidateEditModal({
                 value={toSettingDisplay(originalName).nameLabel}
                 readOnly
                 aria-describedby="candidate-attribute-name-help"
-                style={{ ...modalInputStyle, marginTop: 7, color: C.t3 }}
+                style={{ ...modalInputStyle, marginTop: 7, color: REVIEW_TEXT.muted }}
               />
-              <div id="candidate-attribute-name-help" style={{ color: C.t3, fontSize: 11, marginTop: 6 }}>
+              <div id="candidate-attribute-name-help" style={{ color: REVIEW_TEXT.muted, fontSize: 11, marginTop: 6 }}>
                 이 설정명은 변경할 수 없습니다.
               </div>
             </>
@@ -749,7 +750,7 @@ function CandidateEditModal({
               <span style={{
                 minHeight: 40, padding: '0 11px', borderRadius: '7px 0 0 7px',
                 border: `1px solid ${C.border}`, borderRight: 'none', background: C.bg,
-                color: C.t3, display: 'inline-flex', alignItems: 'center', fontSize: 13,
+                color: REVIEW_TEXT.muted, display: 'inline-flex', alignItems: 'center', fontSize: 13,
                 flexShrink: 0, whiteSpace: 'nowrap',
               }}>
                 {SETTING_TYPE_LABELS[dynamicName.prefix.slice(0, -1)] ?? '설정'}
@@ -772,7 +773,7 @@ function CandidateEditModal({
           )}
         </div>
         <div style={{ marginTop: 18 }}>
-          <label htmlFor="candidate-attribute-value" style={{ color: C.t2, fontSize: 12 }}>
+          <label htmlFor="candidate-attribute-value" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
             설정값
           </label>
           <input
@@ -792,7 +793,7 @@ function CandidateEditModal({
           <div id="candidate-attribute-value-error" role="alert" style={{
             marginTop: 14, padding: '10px 12px', borderRadius: 7,
             border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-            color: C.danger, fontSize: 12,
+            color: REVIEW_TEXT.danger, fontSize: 12,
           }}>
             {validationError ?? valueFormatError ?? error}
           </div>
@@ -909,7 +910,7 @@ function CharacterMatchModal({
 
         {resolution === 'MATCH_EXISTING' ? (
           <div style={{ marginTop: 18 }}>
-            <label htmlFor="character-page-search" style={{ color: C.t2, fontSize: 12 }}>
+            <label htmlFor="character-page-search" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
               현재 페이지에서 검색
             </label>
             <div style={{ position: 'relative', marginTop: 7 }}>
@@ -936,11 +937,11 @@ function CharacterMatchModal({
               display: 'flex', flexDirection: 'column', gap: 7, marginTop: 12,
             }}>
               {charactersQuery.isPending ? (
-                <div style={{ color: C.t3, fontSize: 12, padding: 20, textAlign: 'center' }}>
+                <div style={{ color: REVIEW_TEXT.muted, fontSize: 12, padding: 20, textAlign: 'center' }}>
                   <Loader2 size={15} className="spin" /> 캐릭터를 불러오는 중입니다.
                 </div>
               ) : charactersQuery.isError ? (
-                <div role="alert" style={{ color: C.danger, fontSize: 12, padding: 20, textAlign: 'center' }}>
+                <div role="alert" style={{ color: REVIEW_TEXT.danger, fontSize: 12, padding: 20, textAlign: 'center' }}>
                   <div>{errorMessage(charactersQuery.error, '캐릭터 목록을 불러오지 못했습니다.')}</div>
                   <div style={{ marginTop: 10 }}>
                     <ActionButton
@@ -953,7 +954,7 @@ function CharacterMatchModal({
                   </div>
                 </div>
               ) : characters.length === 0 ? (
-                <div style={{ color: C.t3, fontSize: 12, padding: 20, textAlign: 'center' }}>
+                <div style={{ color: REVIEW_TEXT.muted, fontSize: 12, padding: 20, textAlign: 'center' }}>
                   현재 페이지에 조건과 맞는 캐릭터가 없습니다.
                 </div>
               ) : characters.map((character: CharacterSummaryResponse) => (
@@ -968,12 +969,12 @@ function CharacterMatchModal({
                     minHeight: 48, borderRadius: 7, padding: '9px 12px',
                     border: `1px solid ${selectedCharacterId === character.id ? C.primary : C.border}`,
                     background: selectedCharacterId === character.id ? `${C.primary}14` : C.bg,
-                    color: C.t1, textAlign: 'left', fontFamily: 'inherit',
+                    color: REVIEW_TEXT.ink, textAlign: 'left', fontFamily: 'inherit',
                     cursor: pending ? 'default' : 'pointer',
                   }}
                 >
                   <strong style={{ fontSize: 13 }}>{character.name || '이름 없음'}</strong>
-                  <span style={{ color: C.t3, fontSize: 11, marginLeft: 8 }}>
+                  <span style={{ color: REVIEW_TEXT.muted, fontSize: 11, marginLeft: 8 }}>
                     {character.representativeAttributeLabel && character.representativeAttributeValue
                       ? `${character.representativeAttributeLabel} · ${character.representativeAttributeValue}`
                       : character.firstAppearanceEpisodeNo == null
@@ -996,7 +997,7 @@ function CharacterMatchModal({
           </div>
         ) : (
           <div style={{ marginTop: 18 }}>
-            <label htmlFor="new-character-name" style={{ color: C.t2, fontSize: 12 }}>
+            <label htmlFor="new-character-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
               새 캐릭터 이름
             </label>
             <input
@@ -1013,7 +1014,7 @@ function CharacterMatchModal({
           <div role="alert" style={{
             marginTop: 14, padding: '10px 12px', borderRadius: 7,
             border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-            color: C.danger, fontSize: 12,
+            color: REVIEW_TEXT.danger, fontSize: 12,
           }}>
             {validationError ?? error}
           </div>
@@ -1076,16 +1077,16 @@ function CandidateDetail({
       opacity: 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-        <span style={{ color: C.t3, fontSize: 12 }}>{settingDisplay.typeLabel}</span>
-        <span style={{ color: C.t3, fontSize: 11 }}>·</span>
-        <strong style={{ color: C.t1, fontSize: 14 }}>{settingDisplay.nameLabel}</strong>
+        <span style={{ color: REVIEW_TEXT.muted, fontSize: 12 }}>{settingDisplay.typeLabel}</span>
+        <span style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>·</span>
+        <strong style={{ color: REVIEW_TEXT.ink, fontSize: 14 }}>{settingDisplay.nameLabel}</strong>
         <StatusBadge label={REVIEW_LABELS[reviewStatus]} color={reviewColor(reviewStatus)} />
         <StatusBadge label={MATCH_LABELS[matchStatus]} color={matchColor(matchStatus)} />
-        <span style={{ color: confidence.color, fontSize: 10, fontWeight: 700 }}>
+        <span style={{ color: reviewToneInk(confidence.color), fontSize: 10, fontWeight: 700 }}>
           근거 명확도 {confidence.percent}
         </span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: C.t3, fontSize: 12 }}>
+        <span style={{ color: REVIEW_TEXT.muted, fontSize: 12 }}>
           {candidate.episodeNo == null ? '출처 회차 없음' : `${candidate.episodeNo}화`}
         </span>
         {!readOnly && (
@@ -1119,10 +1120,10 @@ function CandidateDetail({
       </div>
 
       {matchStatus === 'AMBIGUOUS' && !readOnly && (
-        <div role="status" style={{
+        <div className="setting-candidate-match-notice" role="status" style={{
           marginTop: 12, padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.warning}`, background: `${C.warning}12`,
-          display: 'flex', alignItems: 'center', gap: 8, color: C.t1, fontSize: 11, fontWeight: 650,
+          display: 'flex', alignItems: 'center', gap: 8, color: REVIEW_TEXT.warning, fontSize: 11, fontWeight: 650,
         }}>
           <AlertCircle size={14} color={C.warning} />
           어떤 캐릭터의 설정인지 확인이 필요합니다.
@@ -1150,7 +1151,7 @@ function CandidateDetail({
           marginTop: 12, padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${reviewColor(reviewStatus)}`,
           background: `${reviewColor(reviewStatus)}12`,
-          display: 'flex', alignItems: 'center', gap: 8, color: C.t1, fontSize: 11, fontWeight: 650,
+          display: 'flex', alignItems: 'center', gap: 8, color: REVIEW_TEXT.ink, fontSize: 11, fontWeight: 650,
         }}>
           {reviewStatus === 'CONFIRMED' ? <CheckCircle2 size={14} color={C.success} /> : <LockKeyhole size={14} color={C.t3} />}
           {reviewStatus === 'CONFIRMED'
@@ -1165,14 +1166,14 @@ function CandidateDetail({
         display: 'grid', gridTemplateColumns: 'minmax(110px, 0.35fr) minmax(0, 1fr)', gap: 12,
       }}>
         <div>
-          <div style={{ color: C.t3, fontSize: 10, marginBottom: 4 }}>원문 표현</div>
-          <div style={{ color: C.t2, fontSize: 11, overflowWrap: 'anywhere' }}>
+          <div style={{ color: REVIEW_TEXT.muted, fontSize: 10, marginBottom: 4 }}>원문 표현</div>
+          <div style={{ color: REVIEW_TEXT.text, fontSize: 11, overflowWrap: 'anywhere' }}>
             {candidate.rawEntityMention || candidate.entityName || '정보 없음'}
           </div>
         </div>
         <div>
-          <div style={{ color: C.t3, fontSize: 10, marginBottom: 4 }}>추출된 설정값</div>
-          <strong style={{ color: C.t1, fontSize: 13, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+          <div style={{ color: REVIEW_TEXT.muted, fontSize: 10, marginBottom: 4 }}>추출된 설정값</div>
+          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 13, lineHeight: 1.55, overflowWrap: 'anywhere' }}>
             {candidate.attributeValue || '값 없음'}
           </strong>
         </div>
@@ -1181,20 +1182,20 @@ function CandidateDetail({
       <div className="theme-evidence character-setting-evidence-card" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: quotes.length ? 6 : 0 }}>
           <LockKeyhole size={12} color={C.primary} />
-          <span style={{ color: C.primary, fontSize: 10, fontWeight: 750 }}>1차 추출 원문</span>
+          <span style={{ color: REVIEW_TEXT.primary, fontSize: 10, fontWeight: 750 }}>1차 추출 원문</span>
         </div>
         {quotes.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {quotes.map((quote, index) => (
               <blockquote className="theme-evidence__quote" key={`${quote}-${index}`} style={{
-                margin: 0, color: C.t2, fontSize: 11, lineHeight: 1.6,
+                margin: 0, color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.6,
               }}>
                 “{quote}”
               </blockquote>
             ))}
           </div>
         ) : (
-          <div className="theme-evidence__empty" style={{ color: C.t3, fontSize: 11 }}>표시할 원문 근거가 없습니다.</div>
+          <div className="theme-evidence__empty" style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>표시할 원문 근거가 없습니다.</div>
         )}
       </div>
 
@@ -1213,7 +1214,7 @@ function CandidateDetail({
       {!readOnly && (
         <>
           <div className="setting-candidate-match-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            <span style={{ color: C.t3, fontSize: 10, marginRight: 'auto', alignSelf: 'center' }}>
+            <span style={{ color: REVIEW_TEXT.muted, fontSize: 10, marginRight: 'auto', alignSelf: 'center' }}>
               {isConnectedMatch(matchStatus) ? `${candidate.entityName}에 연결됨` : `${candidate.entityName || '이름 없음'} 신규 등록 예정`}
             </span>
             <ActionButton
@@ -1239,7 +1240,7 @@ function CandidateDetail({
             <div role="alert" style={{
               marginTop: 10, padding: '10px 13px', borderRadius: 7,
               border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-              color: C.danger, fontSize: 12, lineHeight: 1.55,
+              color: REVIEW_TEXT.danger, fontSize: 12, lineHeight: 1.55,
             }}>
               {actionError}
             </div>
@@ -1269,8 +1270,8 @@ function QueryState({
       textAlign: 'center', padding: 24,
     }}>
       {icon}
-      <strong style={{ color: C.t1, fontSize: 15 }}>{title}</strong>
-      <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>{description}</span>
+      <strong style={{ color: REVIEW_TEXT.ink, fontSize: 15 }}>{title}</strong>
+      <span style={{ color: REVIEW_TEXT.muted, fontSize: 12, lineHeight: 1.6 }}>{description}</span>
       {action}
     </div>
   );
@@ -1971,7 +1972,7 @@ export function CharacterSettingReview() {
                   style={{
                     minHeight: 36, padding: '0 14px', borderRadius: 7,
                     border: `1px solid ${C.primary}`, background: `${C.primary}12`,
-                    color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    color: REVIEW_TEXT.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1986,7 +1987,7 @@ export function CharacterSettingReview() {
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
                   border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-                  color: C.warning, fontSize: 12,
+                  color: REVIEW_TEXT.warning, fontSize: 12,
                 }}>
                   세계관 후보 집계를 불러오지 못해 전체 완료 여부를 확인할 수 없습니다.
                 </div>
@@ -1996,7 +1997,7 @@ export function CharacterSettingReview() {
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
                   border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-                  color: C.danger, fontSize: 12,
+                  color: REVIEW_TEXT.danger, fontSize: 12,
                 }}>
                   최신 후보를 불러오지 못해 마지막으로 확인한 목록을 표시합니다.
                 </div>
@@ -2006,7 +2007,7 @@ export function CharacterSettingReview() {
                 <div role="alert" style={{
                   marginTop: 12, padding: '10px 13px', borderRadius: 7,
                   border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-                  color: C.danger, fontSize: 12,
+                  color: REVIEW_TEXT.danger, fontSize: 12,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                 }}>
                   <span>공유된 후보의 묶음 위치를 찾지 못했습니다.</span>
@@ -2020,7 +2021,7 @@ export function CharacterSettingReview() {
                     style={{
                       minHeight: 32, padding: '0 11px', borderRadius: 6,
                       border: `1px solid ${C.danger}88`, background: 'transparent',
-                      color: C.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      color: REVIEW_TEXT.danger, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     다시 시도
@@ -2055,7 +2056,7 @@ export function CharacterSettingReview() {
                       options={MATCH_FILTERS}
                       onChange={value => updateFilters(reviewFilter, value)}
                     />
-                    <div style={{ color: C.t3, fontSize: 11 }}>↑ 회차 번호 · 생성 순</div>
+                    <div style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>↑ 회차 번호 · 생성 순</div>
 
                     {groups.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2072,7 +2073,7 @@ export function CharacterSettingReview() {
                     ) : (
                       <div className="review-empty-state" style={{
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
-                        background: C.surface, textAlign: 'center', color: C.t3, fontSize: 12,
+                        background: C.surface, textAlign: 'center', color: REVIEW_TEXT.muted, fontSize: 12,
                       }}>
                         {reviewComplete
                           ? '모든 설정 후보 검토를 완료했습니다.'
@@ -2115,10 +2116,10 @@ export function CharacterSettingReview() {
                           <header style={{ padding: '18px 20px 15px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <div style={{ flex: 1, minWidth: 180 }}>
-                              <div style={{ color: C.t3, fontSize: 11 }}>같은 캐릭터 후보</div>
-                              <h2 style={{ color: C.t1, fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
+                              <div style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>같은 캐릭터 후보</div>
+                              <h2 style={{ color: REVIEW_TEXT.ink, fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
                                 {selectedGroup.entityName || '이름 없는 캐릭터'}
-                                <span style={{ color: C.t3, fontSize: 12, fontWeight: 500, marginLeft: 8 }}>
+                                <span style={{ color: REVIEW_TEXT.muted, fontSize: 12, fontWeight: 500, marginLeft: 8 }}>
                                   {selectedGroupCandidates.length}개 설정
                                 </span>
                               </h2>
@@ -2146,7 +2147,7 @@ export function CharacterSettingReview() {
                               </ActionButton>
                             )}
                             </div>
-                            <p style={{ margin: '7px 0 0', color: C.t2, fontSize: 12, lineHeight: 1.6 }}>
+                            <p style={{ margin: '7px 0 0', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
                               같은 캐릭터에서 추출된 설정을 아래로 이어서 검토하고 남은 항목을 함께 확정합니다.
                             </p>
                           </header>
@@ -2201,7 +2202,7 @@ export function CharacterSettingReview() {
                                 <strong style={{ color: 'var(--ch-ink)', fontSize: 13 }}>
                                   {selectedGroup.entityName}의 {pendingGroupCandidates.length}개 설정을 함께 확정합니다.
                                 </strong>
-                                <div style={{ color: groupConfirmBlockedReason ? C.warning : C.t3, fontSize: 11, marginTop: 4 }}>
+                                <div style={{ color: groupConfirmBlockedReason ? REVIEW_TEXT.warning : REVIEW_TEXT.muted, fontSize: 11, marginTop: 4 }}>
                                   {matchFilter !== 'ALL'
                                     ? '그룹 전체를 안전하게 확정하려면 연결 상태 필터를 전체로 바꿔 주세요.'
                                     : groupConfirmBlockedReason
@@ -2221,7 +2222,7 @@ export function CharacterSettingReview() {
                                   : `${pendingGroupCandidates.length}개 설정 모두 확정`}
                               </ActionButton>
                               {groupConfirmError && (
-                                <div role="alert" style={{ width: '100%', color: C.danger, fontSize: 12 }}>
+                                <div role="alert" style={{ width: '100%', color: REVIEW_TEXT.danger, fontSize: 12 }}>
                                   {groupConfirmError}
                                 </div>
                               )}

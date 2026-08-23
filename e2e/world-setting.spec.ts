@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
@@ -357,9 +358,11 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   await expect(summary).toContainText('전체 후보');
   await expect(summary).toContainText('3개');
   await expect(page.getByText('종족 · 바바리안')).toBeVisible();
-  await expect(
-    page.getByRole('button').filter({ hasText: '바바리안' }).getByText('종족', { exact: true }).first(),
-  ).toHaveCSS('color', 'rgb(8, 126, 242)');
+  const selectedGroupCard = page.getByRole('button').filter({ hasText: '바바리안' }).first();
+  const categoryBadge = selectedGroupCard.getByText('종족', { exact: true }).first();
+  await expect(categoryBadge).toHaveCSS('color', 'rgb(0, 90, 175)');
+  expect(await computedContrastRatio(categoryBadge, categoryBadge, selectedGroupCard))
+    .toBeGreaterThanOrEqual(4.5);
   await expect(page.getByText('2개 설정').first()).toBeVisible();
   await expect(page.getByText('바바리안 부족은 북부 설원의 혹한 속에서 살아왔다.')).toBeVisible();
   await expect(page.getByText('혹한의 땅은 바바리안의 오랜 터전이었다.')).toBeVisible();
@@ -375,13 +378,22 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
     .toHaveCSS('color', 'rgb(51, 58, 70)');
   await expect(page.getByText('여러 내용 정리됨')).toBeVisible();
   await expect(page.getByText('여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.')).toBeVisible();
+  const comparisonReasonPanel = page.locator('.world-setting-comparison-reason').first();
+  const comparisonReason = comparisonReasonPanel.locator('.world-setting-comparison-reason__text');
+  await expect(comparisonReason).toHaveCSS('color', 'rgb(51, 58, 70)');
+  expect(await computedContrastRatio(
+    comparisonReason,
+    comparisonReasonPanel,
+    page.locator('.world-setting-diff-row').first(),
+  )).toBeGreaterThanOrEqual(4.5);
 
   const worldCategoryFilter = page.getByRole('group', { name: '세계관 분류' });
   const worldReviewFilter = page.getByRole('group', { name: '검토 상태' });
   const worldPendingFilter = worldReviewFilter.getByRole('button', { name: '검토 대기', exact: true });
   await expect(worldPendingFilter).toHaveCSS('min-height', '34px');
   await expect(worldPendingFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
-  await expect(worldPendingFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
+  await expect(worldPendingFilter).toHaveCSS('color', 'rgb(0, 90, 175)');
+  expect(await computedContrastRatio(worldPendingFilter)).toBeGreaterThanOrEqual(4.5);
   await expect(worldCategoryFilter.getByRole('button', { name: '전체 분류', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   await worldCategoryFilter.getByRole('button', { name: '종족', exact: true }).click();
@@ -402,7 +414,8 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
     .getByRole('button', { name: '검토 대기', exact: true });
   await expect(characterPendingFilter).toHaveCSS('min-height', '34px');
   await expect(characterPendingFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
-  await expect(characterPendingFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
+  await expect(characterPendingFilter).toHaveCSS('color', 'rgb(0, 90, 175)');
+  expect(await computedContrastRatio(characterPendingFilter)).toBeGreaterThanOrEqual(4.5);
 
   await page.getByRole('button', { name: /세계관 후보/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
@@ -520,13 +533,13 @@ test('세계관 필터 결과 없음은 밝은 공통 안내 카드로 표시한
     .getByRole('button', { name: '장소', exact: true });
   await expect(locationFilter).toHaveCSS('min-height', '34px');
   await expect(locationFilter).toHaveCSS('border-color', 'rgb(8, 126, 242)');
-  await expect(locationFilter).toHaveCSS('color', 'rgb(8, 126, 242)');
+  await expect(locationFilter).toHaveCSS('color', 'rgb(0, 90, 175)');
 
   const emptyState = page.locator('.review-empty-state');
   await expect(emptyState).toContainText('조건에 맞는 세계관 대상이 없습니다.');
   await expect(emptyState).toHaveCSS('background-color', 'rgb(245, 247, 251)');
   await expect(emptyState.getByRole('button', { name: '필터 초기화', exact: true }))
-    .toHaveCSS('color', 'rgb(8, 126, 242)');
+    .toHaveCSS('color', 'rgb(0, 90, 175)');
 });
 
 test('세계관 후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 쓰지 않는다', async ({ page }) => {
