@@ -2429,6 +2429,12 @@
   }
 }
 
+@media (max-width: 640px) {
+  .landing-header__actions .ch-action--secondary {
+    display: none;
+  }
+}
+
 @media (max-width: 520px) {
   .landing-header__inner,
   .landing-section__inner,
@@ -2437,10 +2443,6 @@
   }
 
   .landing-page .product-brand__wordmark { width: 136px; height: 25px; }
-
-  .landing-header__actions .ch-action--secondary {
-    display: none;
-  }
 
   .landing-header__actions .ch-action:not(.landing-primary-action) {
     min-height: 38px;

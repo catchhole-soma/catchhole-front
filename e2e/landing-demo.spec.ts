@@ -182,6 +182,23 @@ test('랜딩 데모는 중간 폭에서도 활성 장면을 자르지 않는다'
   })).toBe(true);
 });
 
+test('랜딩 헤더는 중간 너비에서도 주 CTA를 자르지 않는다', async ({ page }) => {
+  for (const width of [521, 640]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/landing');
+
+    const header = page.locator('.landing-header__inner');
+    const primary = page.locator('.landing-header__actions').getByRole('button', { name: '로그인 없이 체험하기' });
+    await expect(primary).toBeVisible();
+    await expect.poll(async () => {
+      const [headerBox, primaryBox] = await Promise.all([header.boundingBox(), primary.boundingBox()]);
+      if (!headerBox || !primaryBox) return false;
+      return primaryBox.x >= headerBox.x - 1
+        && primaryBox.x + primaryBox.width <= headerBox.x + headerBox.width + 1;
+    }).toBe(true);
+  }
+});
+
 test('랜딩 주 CTA는 320px와 200% 확대에서도 잘리거나 가로로 넘치지 않는다', async ({ page }) => {
   const conditions = [
     { height: 844, width: 320, zoom: 1 },
