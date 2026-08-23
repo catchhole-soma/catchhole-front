@@ -18,6 +18,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 async function expectGuideCenteredOn(page: Page, target: Locator) {
   const focusBox = page.locator('.interactive-demo-guide-focus-box.is-visible');
   await expect(target).toHaveAttribute('data-demo-focus', 'true');
+  await expect(target).toBeFocused();
   await expect(focusBox).toBeVisible();
   await expect.poll(() => target.evaluate(element => {
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible');
@@ -30,21 +31,31 @@ async function expectGuideCenteredOn(page: Page, target: Locator) {
     const overlayCenterY = (overlayBounds.top + overlayBounds.bottom) / 2;
     return overlay.style.transformOrigin === 'center center'
       && Math.abs(targetCenterX - overlayCenterX) <= 1
-      && Math.abs(targetCenterY - overlayCenterY) <= 1;
+      && Math.abs(targetCenterY - overlayCenterY) <= 1
+      && overlayBounds.left < targetBounds.left
+      && overlayBounds.top < targetBounds.top
+      && overlayBounds.right > targetBounds.right
+      && overlayBounds.bottom > targetBounds.bottom;
   })).toBe(true);
 }
 
 async function expectGuideTracksPageScroll(page: Page, target: Locator) {
   const demoPage = page.locator('.interactive-demo-page');
   await expectGuideCenteredOn(page, target);
-  const originalScrollTop = await demoPage.evaluate(element => element.scrollTop);
-  const movedScrollTop = await demoPage.evaluate(element => {
-    element.scrollTop = Math.min(element.scrollTop + 80, element.scrollHeight - element.clientHeight);
+  const scrollState = await demoPage.evaluate(element => ({
+    maximum: element.scrollHeight - element.clientHeight,
+    original: element.scrollTop,
+  }));
+  expect(scrollState.maximum).toBeGreaterThan(0);
+  const movedScrollTop = await demoPage.evaluate((element, { maximum, original }) => {
+    element.scrollTop = original < maximum
+      ? Math.min(original + 80, maximum)
+      : Math.max(original - 80, 0);
     return element.scrollTop;
-  });
-  expect(movedScrollTop).toBeGreaterThan(originalScrollTop);
+  }, scrollState);
+  expect(movedScrollTop).not.toBe(scrollState.original);
   await expectGuideCenteredOn(page, target);
-  await demoPage.evaluate((element, scrollTop) => { element.scrollTop = scrollTop; }, originalScrollTop);
+  await demoPage.evaluate((element, scrollTop) => { element.scrollTop = scrollTop; }, scrollState.original);
   await expectGuideCenteredOn(page, target);
 }
 
@@ -85,8 +96,6 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible')!;
     const layer = overlay.parentElement as HTMLElement;
     const visual = getComputedStyle(overlay, '::before');
-    const targetBounds = element.getBoundingClientRect();
-    const overlayBounds = overlay.getBoundingClientRect();
     return {
       boxShadow: getComputedStyle(element).boxShadow,
       borderRadius: visual.borderTopLeftRadius,
@@ -103,8 +112,6 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
       layerIsPageChild: layer.parentElement === document.querySelector('.interactive-demo-page'),
       layerTop: Number.parseFloat(getComputedStyle(layer).top),
       motion: visual.animationName,
-      overlayBounds: { bottom: overlayBounds.bottom, left: overlayBounds.left, right: overlayBounds.right, top: overlayBounds.top },
-      targetBounds: { bottom: targetBounds.bottom, left: targetBounds.left, right: targetBounds.right, top: targetBounds.top },
       transform: visual.transform,
     };
   });
@@ -119,10 +126,6 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   expect(targetHighlight.transform).toBe('none');
   expect(targetHighlight.layerIsPageChild).toBe(true);
   expect(targetHighlight.layerTop).toBeCloseTo(targetHighlight.headerBottom, 0);
-  expect(targetHighlight.overlayBounds.left).toBeLessThan(targetHighlight.targetBounds.left);
-  expect(targetHighlight.overlayBounds.top).toBeLessThan(targetHighlight.targetBounds.top);
-  expect(targetHighlight.overlayBounds.right).toBeGreaterThan(targetHighlight.targetBounds.right);
-  expect(targetHighlight.overlayBounds.bottom).toBeGreaterThan(targetHighlight.targetBounds.bottom);
   const stackingOrder = await page.evaluate(() => ({
     header: Number.parseInt(getComputedStyle(document.querySelector('.interactive-demo-header')!).zIndex, 10),
     target: Number.parseInt(getComputedStyle(document.querySelector('[data-demo-focus="true"]')!).zIndex, 10),
@@ -279,21 +282,13 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await activate(guidedWorldEvidenceButton, keyboard);
   await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
   await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
-  const worldEvidenceHighlight = await guidedWorldEvidenceButton.evaluate(element => {
+  const worldEvidenceHighlight = await guidedWorldEvidenceButton.evaluate(() => {
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible')!;
-    const targetBounds = element.getBoundingClientRect();
-    const overlayBounds = overlay.getBoundingClientRect();
     return {
       borderRadius: getComputedStyle(overlay, '::before').borderTopLeftRadius,
-      overlayBounds: { bottom: overlayBounds.bottom, left: overlayBounds.left, right: overlayBounds.right, top: overlayBounds.top },
-      targetBounds: { bottom: targetBounds.bottom, left: targetBounds.left, right: targetBounds.right, top: targetBounds.top },
     };
   });
   expect(worldEvidenceHighlight.borderRadius).toBe('14px');
-  expect(worldEvidenceHighlight.overlayBounds.left).toBeLessThan(worldEvidenceHighlight.targetBounds.left);
-  expect(worldEvidenceHighlight.overlayBounds.top).toBeLessThan(worldEvidenceHighlight.targetBounds.top);
-  expect(worldEvidenceHighlight.overlayBounds.right).toBeGreaterThan(worldEvidenceHighlight.targetBounds.right);
-  expect(worldEvidenceHighlight.overlayBounds.bottom).toBeGreaterThan(worldEvidenceHighlight.targetBounds.bottom);
   const finishButton = page.getByRole('button', { name: '체험 마치기' });
   await expect(finishButton).toBeEnabled();
   await checkLayout();
