@@ -108,32 +108,17 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
   }
 });
 
-test('랜딩 Hero는 넓은 화면에서 분할되고 좁은 화면에서 카피 다음에 이미지가 쌓인다', async ({ page }) => {
+test('랜딩 Hero는 승인 프레임처럼 전용 이미지를 전체 배경으로 사용한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/landing');
 
-  const heroInner = page.locator('.landing-hero__inner');
+  const hero = page.locator('.landing-hero');
   const heroCopy = page.locator('.landing-hero-copy');
-  const heroVisual = page.locator('.landing-hero__visual');
-  await expect(heroInner).toHaveCSS('display', 'grid');
-  await expect(heroVisual.locator('img')).toBeVisible();
-
-  const [desktopCopyBox, desktopVisualBox] = await Promise.all([
-    heroCopy.boundingBox(),
-    heroVisual.boundingBox(),
-  ]);
-  expect(desktopCopyBox).not.toBeNull();
-  expect(desktopVisualBox).not.toBeNull();
-  expect(desktopCopyBox!.x + desktopCopyBox!.width).toBeLessThanOrEqual(desktopVisualBox!.x + 1);
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const [mobileCopyBox, mobileVisualBox] = await Promise.all([
-    heroCopy.boundingBox(),
-    heroVisual.boundingBox(),
-  ]);
-  expect(mobileCopyBox).not.toBeNull();
-  expect(mobileVisualBox).not.toBeNull();
-  expect(mobileCopyBox!.y + mobileCopyBox!.height).toBeLessThanOrEqual(mobileVisualBox!.y + 1);
+  await expect(hero).toHaveCSS('background-size', /cover/);
+  await expect(hero).toHaveCSS('background-position', /50% 50%/);
+  await expect(hero).toHaveCSS('background-image', /catchhole-hero-editorial-v2\.webp/);
+  await expect(page.locator('.landing-hero__visual')).toHaveCount(0);
+  await expect(heroCopy).toHaveCSS('text-align', 'center');
 });
 
 test('랜딩 데모는 전체 설정 관리 흐름을 직접 탐색하고 재생을 제어할 수 있다', async ({ page }) => {
