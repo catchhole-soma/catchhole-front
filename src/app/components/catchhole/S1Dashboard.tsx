@@ -51,7 +51,6 @@ import {
 import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
 import { WORK_GENRES } from '../../lib/work-contract';
-import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 import { WorkId } from './constants';
 interface Props { onPrePublish?: () => void; }
@@ -672,8 +671,6 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
               </div>
             )}
 
-            <ManuscriptProcessingNotice />
-
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button
                 onClick={() => uploadType === 'fresh' ? setUploadType(null) : onClose()}
@@ -808,8 +805,6 @@ export function UploadModal({ onClose, mode, initialWorkId, initialChapters, wor
                 {submitError}
               </div>
             )}
-
-            <ManuscriptProcessingNotice />
 
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button

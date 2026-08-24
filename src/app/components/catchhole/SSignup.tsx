@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Check,
   CheckCircle2,
@@ -18,6 +18,7 @@ import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import {
   confirmPhoneVerificationMutation,
+  getCurrentLegalDocumentsOptions,
   requestPhoneVerificationMutation,
   signupMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
@@ -41,6 +42,8 @@ interface SignupErrors {
   verificationCode?: string;
   password?: string;
   passwordConfirm?: string;
+  legal?: string;
+  age?: string;
 }
 
 function readPersistedPhoneVerification(): PersistedPhoneVerification | null {
@@ -151,13 +154,36 @@ export default function SSignup() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<{
+    termsDocumentId: number;
+    privacyPolicyDocumentId: number;
+  } | null>(null);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [verificationMessage, setVerificationMessage] = useState('가입 전 휴대폰 번호 인증이 필요합니다.');
 
   const requestVerification = useMutation(requestPhoneVerificationMutation());
   const confirmVerification = useMutation(confirmPhoneVerificationMutation());
   const signupRequest = useMutation(signupMutation());
+  const legalDocumentsQuery = useQuery({
+    ...getCurrentLegalDocumentsOptions({ query: { locale: 'ko-KR' } }),
+    retry: 2,
+    staleTime: 5 * 60_000,
+  });
+  const legalDocuments = legalDocumentsQuery.data?.data;
+  const termsDocumentId = legalDocuments?.termsOfService?.id;
+  const privacyPolicyDocumentId = legalDocuments?.privacyPolicy?.id;
+  const legalDocumentsReady = Boolean(
+    legalDocumentsQuery.isSuccess
+    && !legalDocumentsQuery.isFetching
+    && termsDocumentId
+    && privacyPolicyDocumentId,
+  );
+  const agreed = Boolean(
+    legalDocumentsReady
+    && acceptedLegalDocumentIds?.termsDocumentId === termsDocumentId
+    && acceptedLegalDocumentIds?.privacyPolicyDocumentId === privacyPolicyDocumentId,
+  );
   const submitting = signupRequest.isPending;
   const verificationRemaining = verificationExpiresAt
     ? Math.max(0, Math.ceil((verificationExpiresAt - now) / 1_000))
@@ -171,7 +197,7 @@ export default function SSignup() {
     && tokenExpiresAt
     && tokenExpiresAt > now,
   );
-  const canSubmit = agreed && isPhoneVerified && !submitting;
+  const canSubmit = agreed && ageConfirmed && legalDocumentsReady && isPhoneVerified && !submitting;
 
   useEffect(() => {
     const persisted = readPersistedPhoneVerification();
@@ -353,9 +379,13 @@ export default function SSignup() {
     else if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) nextErrors.password = '비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다.';
     if (!passwordConfirm) nextErrors.passwordConfirm = '비밀번호 확인을 입력해주세요.';
     else if (password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
+    if (!agreed) nextErrors.legal = '이용약관에 동의하고 개인정보처리방침을 확인해주세요.';
+    if (!ageConfirmed) nextErrors.age = '만 14세 이상임을 확인해주세요.';
+    if (!legalDocumentsReady) nextErrors.legal = '법률 문서를 불러온 뒤 가입할 수 있습니다.';
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0 || !agreed || !phoneVerificationToken) return;
+    if (Object.keys(nextErrors).length > 0 || !phoneVerificationToken) return;
+    if (!legalDocumentsReady || !termsDocumentId || !privacyPolicyDocumentId) return;
 
     try {
       const response = await signupRequest.mutateAsync({
@@ -365,6 +395,9 @@ export default function SSignup() {
           displayName: name.trim(),
           termsAccepted: agreed,
           privacyPolicyAcknowledged: agreed,
+          age14OrOlderConfirmed: ageConfirmed,
+          termsDocumentId,
+          privacyPolicyDocumentId,
           phoneVerificationToken,
         },
       });
@@ -382,9 +415,20 @@ export default function SSignup() {
         } else if (apiError.code === 'AUTH_PHONE_VERIFICATION_TOKEN_INVALID') {
           resetPhoneVerification();
           setErrors({ phoneNumber: '휴대폰 인증이 만료되었거나 이미 사용되었습니다. 다시 인증해주세요.' });
+        } else if (apiError.code === 'LEGAL_DOCUMENT_NOT_CURRENT') {
+          setAcceptedLegalDocumentIds(null);
+          await legalDocumentsQuery.refetch();
+          setErrors({ legal: '가입 중 법률 문서가 변경되었습니다. 최신 내용을 다시 확인해주세요.' });
+        } else if (apiError.code === 'LEGAL_DOCUMENTS_UNAVAILABLE') {
+          setAcceptedLegalDocumentIds(null);
+          setErrors({ legal: '현재 법률 문서를 사용할 수 없습니다. 다시 불러온 뒤 확인해주세요.' });
+          await legalDocumentsQuery.refetch();
         } else if (apiError.code === 'REQUEST_VALIDATION_FAILED' && apiError.details.length > 0) {
           const fieldMap: Record<string, keyof SignupErrors> = {
             displayName: 'name', email: 'email', password: 'password', phoneVerificationToken: 'phoneNumber',
+            termsAccepted: 'legal', privacyPolicyAcknowledged: 'legal',
+            termsDocumentId: 'legal', privacyPolicyDocumentId: 'legal',
+            age14OrOlderConfirmed: 'age',
           };
           const fieldErrors: SignupErrors = {};
           apiError.details.forEach(detail => {
@@ -560,35 +604,65 @@ export default function SSignup() {
           />
         </div>
 
-        <div className="auth-modal-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 18 }}>
-          <button
-            type="button"
-            aria-label="이용약관 동의 및 개인정보 처리방침 확인"
-            aria-pressed={agreed}
-            onClick={() => setAgreed(current => !current)}
-            style={{
-              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-              border: `1px solid ${agreed ? C.primary : C.border}`,
-              background: agreed ? C.primary : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s, border-color 0.15s', cursor: 'pointer', padding: 0,
-            }}
-          >
-            {agreed && <Check size={13} color="#fff" />}
-          </button>
-          <span style={{ color: C.t3, fontSize: 12, lineHeight: 1.6 }}>
-            {' '}
-            <button type="button" onClick={() => openTerms('terms')} style={{
-              color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
-              border: 'none', padding: 0, font: 'inherit',
-            }}>이용약관</button>
-            에 동의하고{' '}
-            <button type="button" onClick={() => openTerms('privacy')} style={{
-              color: C.t2, textDecoration: 'underline', cursor: 'pointer', background: 'none',
-              border: 'none', padding: 0, font: 'inherit',
-            }}>개인정보 처리방침</button>
-            을 확인했습니다.
-          </span>
+        <div className="auth-modal-consents">
+          {legalDocumentsQuery.isError && (
+            <div className="auth-modal-consents__load-error" role="alert">
+              <span>법률 문서를 불러오지 못했습니다.</span>
+              <button type="button" onClick={() => void legalDocumentsQuery.refetch()} disabled={legalDocumentsQuery.isFetching}>
+                {legalDocumentsQuery.isFetching ? '다시 불러오는 중' : '다시 불러오기'}
+              </button>
+            </div>
+          )}
+          <div className="auth-modal-consent">
+            <button
+              type="button"
+              aria-label="이용약관 동의 및 개인정보 처리방침 확인"
+              aria-pressed={agreed}
+              disabled={!legalDocumentsReady}
+              onClick={() => {
+                if (agreed) {
+                  setAcceptedLegalDocumentIds(null);
+                } else if (termsDocumentId && privacyPolicyDocumentId) {
+                  setAcceptedLegalDocumentIds({ termsDocumentId, privacyPolicyDocumentId });
+                }
+                setErrors(current => ({ ...current, legal: undefined }));
+              }}
+              className={`auth-modal-consent__checkbox${agreed ? ' is-checked' : ''}`}
+            >
+              {agreed && <Check size={13} color="#fff" />}
+            </button>
+            <span>
+              <strong>[필수]</strong>{' '}
+              <button type="button" onClick={() => openTerms('terms')}>이용약관</button>
+              에 동의하고{' '}
+              <button type="button" onClick={() => openTerms('privacy')}>개인정보처리방침</button>
+              을 확인했습니다.
+              {legalDocumentsReady && (
+                <small>현재 문서 {legalDocuments?.termsOfService?.documentVersion}</small>
+              )}
+              {legalDocumentsQuery.isPending && <small>게시 문서를 불러오는 중입니다.</small>}
+            </span>
+          </div>
+          <div className="auth-modal-consent">
+            <button
+              type="button"
+              aria-label="만 14세 이상 확인"
+              aria-pressed={ageConfirmed}
+              onClick={() => {
+                setAgeConfirmed(current => !current);
+                setErrors(current => ({ ...current, age: undefined }));
+              }}
+              className={`auth-modal-consent__checkbox${ageConfirmed ? ' is-checked' : ''}`}
+            >
+              {ageConfirmed && <Check size={13} color="#fff" />}
+            </button>
+            <span><strong>[필수]</strong> 만 14세 이상입니다.</span>
+          </div>
+          {(errors.legal || errors.age) && (
+            <div className="auth-modal-consents__error" role="alert">
+              {errors.legal ?? errors.age}
+            </div>
+          )}
         </div>
 
         <button

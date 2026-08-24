@@ -51,7 +51,6 @@ import { UserMenu } from './UserMenu';
 import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
-import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -800,6 +799,7 @@ export default function SEpisodeUpload() {
   const analysisEpisodeStateChanged = analysisSucceeded
     && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
   const statusQueryFailed = jobQueries.some(query => query.isError);
+
   const worldComparisonSummaryQuery = useQuery({
     ...getWorldSettingCandidatesOptions({
       path: { workId },
@@ -1798,11 +1798,6 @@ export default function SEpisodeUpload() {
             </div>
           )}
         </div>
-        {step === 'select-mode' && uploadType && (
-          <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px 64px' }}>
-            <ManuscriptProcessingNotice appearance="light" />
-          </div>
-        )}
       </main>
     </div>
   );

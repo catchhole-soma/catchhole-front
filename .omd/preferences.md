@@ -104,3 +104,18 @@ source_context: "design/catchhole.pen#omdLandingFullPageActive"
 ```
 
 The approved landing hero uses its purpose-built artwork as a full-section background with centered copy; do not replace it with a cropped standalone split-column image.
+
+## 2026-08-24T08:44:27.699Z — for-korean-service-analytics-and-adverti
+
+```omd-meta
+id: pref_mt6zpfas_0a223f5f
+timestamp: 2026-08-24T08:44:27.699Z
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/TrackingConsentManager.tsx"
+```
+
+For Korean service analytics and advertising disclosures, prefer a clear privacy-policy notice over a separate cookie-consent banner or signup checkbox.

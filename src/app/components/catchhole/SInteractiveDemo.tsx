@@ -858,6 +858,7 @@ export default function SInteractiveDemo() {
   const [analysisPhase, setAnalysisPhase] = useState(0);
   const analysisComplete = analysisPhase >= INTERACTIVE_DEMO_ANALYSIS_PHASES.length;
   const timelineSelection = useMemo(() => readTimelineSelection(searchParams), [searchParams]);
+
   const timelineFactId = searchParams.get('timelineFactId');
 
   useEffect(() => {

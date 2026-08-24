@@ -30,7 +30,7 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 
 ## 라우팅
 
-라우트는 `src/app/App.tsx`에서 정의합니다. `/landing`, `/login`, `/signup`, `/demo`는 공개 라우트이며, `/login`과 `/signup`은 랜딩을 배경으로 유지하는 라우트 모달입니다. `/demo`는 독립된 전체 화면으로 렌더링하고, 그 외 화면은 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login` 모달로 리다이렉트됩니다.
+라우트는 `src/app/App.tsx`에서 정의합니다. `/landing`, `/login`, `/signup`, `/demo`, `/terms`, `/privacy`는 공개 라우트이며, `/login`과 `/signup`은 랜딩을 배경으로 유지하는 라우트 모달입니다. `/demo`와 두 법률 문서 라우트는 독립된 전체 화면으로 렌더링하고, 그 외 화면은 `PrivateRoute`로 감싸져 있어 accessToken이 없으면 `/login` 모달로 리다이렉트됩니다.
 
 | 경로 | 화면 | 설명 |
 | --- | --- | --- |
@@ -38,6 +38,7 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 | `/login` | `SLogin` | 랜딩 위 로그인 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/signup` | `SSignup` | 랜딩 위 회원가입 라우트 모달(공개). `?terms=terms\|privacy`로 약관/개인정보 모달 딥링크 |
 | `/demo` | `SInteractiveDemo` | 10문단 fixture 원고 분석 → 캐릭터 후보 일괄 확정 → 세계관 수정안 적용·대상 확정 → 근거 부족 후보 제외 → 배포 화면의 `CharacterDatabase`·`CharacterTimelineModal`·`WorldSettingDatabase`에 fixture를 주입해 현재 설정·원문 근거·회차별 변화 이력을 확인 → 회원가입/재체험을 코치마크로 안내하는 공개 체험. 코치마크는 화면을 어둡게 덮지 않고 타깃 바깥 윤곽선으로 다음 행동을 표시하며, 관련 없는 근거를 열어도 안내 단계는 진행하지 않는다. API·브라우저 저장소를 사용하지 않고 새로고침 시 초기화한다. 완료 후 회원가입은 현재 데모 히스토리를 대체하며 회원가입 X는 `/landing`으로 이동한다. |
+| `/terms`, `/privacy` | `LegalDocumentPage` | Backend의 현재 `PUBLISHED` 이용약관·개인정보처리방침 Markdown을 조회해 표시하는 공개 전체 화면. 로딩·재시도·문서 없음 상태를 제공한다. |
 | `/works` | `S0WorkPicker` | 작품 선택 (보호 화면 진입점) |
 | `/dashboard` | `S1Dashboard` | 선택된 작품의 대시보드. `?nav=manuscripts\|settingDB\|analyses`로 실제 제공 섹션을 구분한다. `nav=analyses`는 업로드 묶음별 분석 현황을 서버 페이지네이션으로 조회하고 `analysisPage`로 현재 페이지를 복원한다. 설정DB 하위 탭은 `?tab=characters\|worldsettings\|worldrules\|search`이며, 지원하지 않는 값과 이전 `timeline` 링크는 `characters`로 대체한다. 캐릭터 상세의 변화 이력은 `modal=char-detail&mode=timeline`, `charId`로 상세와 우측 이력 패널을 함께 유지한다. 반복 가능한 `timelineFactTypes`·`timelineFactKeys`는 현재 설정 클릭 즉시 반영하고, 전체 보기용 `timelineView`·`timelineFactType`, `timelineEpisodeNo`, 타임라인 근거용 `timelineFactId`를 URL에 보존하며 기존 상세·타임라인·원문 근거 API를 재사용한다. 현재 snapshot 설정은 단일 Fact ID가 아니라 `sourceFacts` 복수 출처를 가질 수 있고, 선택한 출처의 기존 단건 evidence API만 lazy 조회한다. `worldsettings`는 확정 세계관 대상의 조회·검색·직접 추가·수정을 제공하고, `worldrules`는 별도 업로드한 설정집 원문을 다룬다. 검색 탭은 `q`, `factType`, `scope`, 1-based `page`, `size=20`을 URL에 보존하며 호환 enum `CURRENT/HISTORICAL`을 화면에서는 `현재값 근거/그 외 이력`으로 표시한다. 관계도·작품 전체 사건 타임라인·분석 리포트·그래프 뷰·챗봇은 업데이트 예정 범위다. |
 | `/episode-upload` | `SEpisodeUpload` | 회차 업로드와 기존 설정 구축. 신규 회차 검수는 업데이트 예정으로 비활성화한다. |
@@ -63,6 +64,9 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 API 호출은 `src/app/api/generated/`의 Hey API SDK와 TanStack Query 옵션을 사용합니다. 세션 저장은 `src/app/lib/auth.ts`, access token 자동 갱신은 `src/app/lib/auth-fetch.ts`에서 담당합니다.
 
 - 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다.
+- 회원가입 법률 문서: `GET /api/v1/legal-documents/current?locale=ko-KR`로 현재 게시본을 조회하고, 이용약관·개인정보처리방침을 한 체크로 확인하며 만 14세 이상은 별도 필수 체크로 받습니다. 가입 요청에는 두 동의 boolean, `age14OrOlderConfirmed`, 사용자가 본 두 문서 ID를 보내고, 게시본 교체 오류에서는 법률 체크를 해제한 뒤 최신 문서를 다시 조회합니다.
+- Backend가 정확한 문서 FK·종류·버전·행위와 한 번의 서버 기록 시각을 저장합니다. 원문·현재 버전을 Front에 하드코딩하거나 AI 원고 처리 고지를 업로드·재분석 때 반복하지 않습니다.
+- GA4·Meta Pixel 관련 자동 수집은 개인정보처리방침에 항목·목적·보유기간·국외 처리·거부방법을 공개하고, 별도 쿠키 배너나 회원가입 선택 체크박스를 두지 않습니다. 실제 설치는 NVM-308·NVM-309에서 방침과 일치하도록 진행합니다.
 - Auth 모달 히스토리: 랜딩에서 열면 한 개의 히스토리 항목을 추가해 브라우저 뒤로가기로 닫습니다. 로그인↔회원가입 전환은 현재 항목을 교체하고, 직접 진입·보호 화면 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 항목을 교체합니다.
 - 인증 요청: `credentials: include`를 사용하며, 보호 API가 401을 반환하면 refresh를 한 번 수행한 뒤 원래 요청을 재시도합니다. 동시에 발생한 401은 하나의 refresh 요청을 공유합니다.
 - 인증 확인: `PrivateRoute`는 저장된 토큰 존재 여부뿐 아니라 `GET /api/v1/auth/me` 성공 여부를 TanStack Query로 확인합니다. 401에서만 세션을 제거하며, 5xx나 네트워크 오류는 토큰을 유지하고 화면 진입을 보류한 채 재시도를 제공합니다.
@@ -105,7 +109,7 @@ CATCHHOLE_OPENAPI_INPUT=http://localhost:18080/v3/api-docs npm run api:generate
 
 ### 전환 중인 화면 — "Theme V2"
 
-GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 시각 언어를 참고한 라이트 테마를 파일럿으로 검증합니다. 현재 적용 범위는 `/landing`, `/login`, `/signup`, `/demo`, `/works`, 대시보드의 `manuscripts`·`analyses`·`settingDB`의 캐릭터/세계관 조회·설정집·설정 검색, `/setting-review`의 캐릭터·세계관 후보 검토, `/episode-upload`입니다. 그 밖의 대시보드 탭은 기존 테마를 유지합니다.
+GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 시각 언어를 참고한 라이트 테마를 파일럿으로 검증합니다. 현재 적용 범위는 `/landing`, `/login`, `/signup`, `/demo`, `/terms`, `/privacy`, `/works`, 대시보드의 `manuscripts`·`analyses`·`settingDB`의 캐릭터/세계관 조회·설정집·설정 검색, `/setting-review`의 캐릭터·세계관 후보 검토, `/episode-upload`입니다. 그 밖의 대시보드 탭은 기존 테마를 유지합니다.
 
 - 의미 기반 CSS 변수와 공통 액션·카드 스타일: `src/styles/theme-v2.css`
 - 재사용 React UI: `src/app/components/catchhole/ui-v2/`
@@ -118,6 +122,7 @@ GitHub Issue #128에서 동양생명 수호천사 사이트의 밝고 친근한 
 - 회차·설정집 읽기 전용 원문 보기: `src/styles/reader-v2.css`
 - Theme V2의 상세·수정·확인 모달과 원문 근거 표면: `src/styles/overlay-v2.css`
 - 로그인·회원가입·약관 모달의 Theme V2 shell과 입력 필드: `src/app/components/catchhole/auth-modal.css`
+- 공개 법률 문서 페이지와 Markdown 본문: `src/app/components/catchhole/legal-documents.css`
 - Theme V2는 `.theme-v2` 아래에 범위를 제한해 미이관 화면의 Obsidian Violet 스타일을 변경하지 않습니다.
 - Theme V2 화면에는 임의 색상값과 반복 인라인 스타일을 추가하지 않고 의미 기반 토큰과 공통 UI를 먼저 사용합니다.
 - 성공·경고·오류·AI 제안은 Primary Blue 하나로 합치지 않고 각각의 의미 색상을 유지합니다.

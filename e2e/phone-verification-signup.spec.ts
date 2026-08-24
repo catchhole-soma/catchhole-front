@@ -20,7 +20,37 @@ const failure = (code: string, status: number) => ({
   error: { code, status, details: [] },
 });
 
+const currentLegalDocuments = {
+  termsOfService: {
+    id: 31,
+    documentType: 'TERMS_OF_SERVICE',
+    locale: 'ko-KR',
+    documentVersion: '2026-08-24',
+    title: 'CatchHole 이용약관',
+    contentMarkdown: '# CatchHole 이용약관\n\n테스트 약관 원문입니다.',
+    contentHash: 'a'.repeat(64),
+    status: 'PUBLISHED',
+    effectiveDate: '2026-08-24',
+    publishedAt: '2026-08-24T18:00:00',
+  },
+  privacyPolicy: {
+    id: 32,
+    documentType: 'PRIVACY_POLICY',
+    locale: 'ko-KR',
+    documentVersion: '2026-08-24',
+    title: 'CatchHole 개인정보처리방침',
+    contentMarkdown: '# CatchHole 개인정보처리방침\n\n테스트 처리방침 원문입니다.',
+    contentHash: 'b'.repeat(64),
+    status: 'PUBLISHED',
+    effectiveDate: '2026-08-24',
+    publishedAt: '2026-08-24T18:00:00',
+  },
+};
+
 async function openSignup(page: Page) {
+  await page.route('**/api/v1/legal-documents/current*', route => (
+    response(route, success(currentLegalDocuments))
+  ));
   await page.goto('/signup');
   return page.getByRole('dialog', { name: '회원가입' });
 }
@@ -96,6 +126,7 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   await dialog.getByRole('button', { name: '인증', exact: true }).click();
   await expect(page.getByText('휴대폰 인증이 완료되었습니다.', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' }).click();
+  await dialog.getByRole('button', { name: '만 14세 이상 확인' }).click();
   await expect(dialog.getByRole('button', { name: '회원가입', exact: true })).toBeEnabled();
 
   const persistedAfterConfirm = await page.evaluate(() => (
@@ -112,6 +143,9 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
     displayName: '인증 테스트',
     termsAccepted: true,
     privacyPolicyAcknowledged: true,
+    age14OrOlderConfirmed: true,
+    termsDocumentId: 31,
+    privacyPolicyDocumentId: 32,
     phoneVerificationToken: 'memory-only-signup-token',
   });
   expect(signupBody).not.toHaveProperty('phoneNumber');
@@ -300,6 +334,7 @@ test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐�
   await page.getByPlaceholder('인증번호 6자리').fill('123456');
   await dialog.getByRole('button', { name: '인증', exact: true }).click();
   await dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' }).click();
+  await dialog.getByRole('button', { name: '만 14세 이상 확인' }).click();
   await dialog.getByRole('button', { name: '회원가입', exact: true }).click();
 
   await expect(page.getByText(

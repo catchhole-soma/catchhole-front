@@ -21,6 +21,7 @@ import { NetworkError, toApiError } from './lib/api-errors';
 import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
+import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -219,6 +220,8 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
         <Route path="/signup" element={<SSignup />} />
       </Route>
       <Route path="/demo" element={<SInteractiveDemo />} />
+      <Route path="/terms" element={<LegalDocumentPage type="terms" />} />
+      <Route path="/privacy" element={<LegalDocumentPage type="privacy" />} />
       <Route element={<PrivateRoute />}>
         <Route path="/works" element={<S0WorkPicker />} />
         <Route path="/dashboard" element={<S1Dashboard />} />

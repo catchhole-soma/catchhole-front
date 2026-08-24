@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { AlertCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { C } from './constants';
-import { ManuscriptProcessingNotice } from './ManuscriptProcessingNotice';
 
 interface Props {
   episode: EpisodeSummaryResponse;
@@ -93,7 +92,6 @@ export function EpisodeReanalysisModal({
               현재 분석 완료 상태인 후속 회차가 <strong style={{ color: C.t1 }}>{laterAnalyzedEpisodeCount}개</strong> 있습니다.
             </p>
           )}
-          <ManuscriptProcessingNotice appearance="light" />
           {error && (
             <div role="alert" style={{
               display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '9px 11px',
@@ -120,7 +118,7 @@ export function EpisodeReanalysisModal({
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
             {submitting && <Loader2 size={13} className="spin" />}
-            {submitting ? '재분석 요청 중...' : '이해하고 재분석'}
+            {submitting ? '재분석 요청 중...' : '재분석 시작'}
           </button>
         </div>
       </motion.div>
