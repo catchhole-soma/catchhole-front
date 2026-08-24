@@ -173,7 +173,12 @@ export default function SSignup() {
   const legalDocuments = legalDocumentsQuery.data?.data;
   const termsDocumentId = legalDocuments?.termsOfService?.id;
   const privacyPolicyDocumentId = legalDocuments?.privacyPolicy?.id;
-  const legalDocumentsReady = Boolean(termsDocumentId && privacyPolicyDocumentId);
+  const legalDocumentsReady = Boolean(
+    legalDocumentsQuery.isSuccess
+    && !legalDocumentsQuery.isFetching
+    && termsDocumentId
+    && privacyPolicyDocumentId,
+  );
   const agreed = Boolean(
     legalDocumentsReady
     && acceptedLegalDocumentIds?.termsDocumentId === termsDocumentId
@@ -376,11 +381,11 @@ export default function SSignup() {
     else if (password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
     if (!agreed) nextErrors.legal = '이용약관에 동의하고 개인정보처리방침을 확인해주세요.';
     if (!ageConfirmed) nextErrors.age = '만 14세 이상임을 확인해주세요.';
-    if (!termsDocumentId || !privacyPolicyDocumentId) nextErrors.legal = '법률 문서를 불러온 뒤 가입할 수 있습니다.';
+    if (!legalDocumentsReady) nextErrors.legal = '법률 문서를 불러온 뒤 가입할 수 있습니다.';
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !phoneVerificationToken) return;
-    if (!termsDocumentId || !privacyPolicyDocumentId) return;
+    if (!legalDocumentsReady || !termsDocumentId || !privacyPolicyDocumentId) return;
 
     try {
       const response = await signupRequest.mutateAsync({
@@ -414,6 +419,10 @@ export default function SSignup() {
           setAcceptedLegalDocumentIds(null);
           await legalDocumentsQuery.refetch();
           setErrors({ legal: '가입 중 법률 문서가 변경되었습니다. 최신 내용을 다시 확인해주세요.' });
+        } else if (apiError.code === 'LEGAL_DOCUMENTS_UNAVAILABLE') {
+          setAcceptedLegalDocumentIds(null);
+          setErrors({ legal: '현재 법률 문서를 사용할 수 없습니다. 다시 불러온 뒤 확인해주세요.' });
+          await legalDocumentsQuery.refetch();
         } else if (apiError.code === 'REQUEST_VALIDATION_FAILED' && apiError.details.length > 0) {
           const fieldMap: Record<string, keyof SignupErrors> = {
             displayName: 'name', email: 'email', password: 'password', phoneVerificationToken: 'phoneNumber',

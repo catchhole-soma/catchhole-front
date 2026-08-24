@@ -153,6 +153,64 @@ test('회원가입 중 문서가 교체되면 동의를 해제하고 최신 문�
   await expect(signupButton).toBeDisabled();
 });
 
+test('회원가입 중 현재 법률 문서를 사용할 수 없으면 동의를 해제하고 가입을 잠근다', async ({ page }) => {
+  let legalDocumentsUnavailable = false;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === '/api/v1/legal-documents/current') {
+      if (legalDocumentsUnavailable) {
+        return respond(route, failure('LEGAL_DOCUMENTS_UNAVAILABLE', 503), 503);
+      }
+      return respond(route, success(legalBundle()));
+    }
+    if (pathname === '/api/v1/auth/phone-verifications') {
+      return respond(route, success({
+        verificationId: 'legal-unavailable-verification',
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
+      }));
+    }
+    if (pathname.endsWith('/legal-unavailable-verification/confirm')) {
+      return respond(route, success({
+        phoneVerificationToken: 'legal-unavailable-signup-token',
+        expiresInSeconds: 600,
+      }));
+    }
+    if (pathname === '/api/v1/auth/signup') {
+      legalDocumentsUnavailable = true;
+      return respond(route, failure('LEGAL_DOCUMENTS_UNAVAILABLE', 503), 503);
+    }
+    return respond(route, success([]));
+  });
+
+  await page.goto('/signup');
+  const dialog = page.getByRole('dialog', { name: '회원가입' });
+  await page.getByPlaceholder('이름 (필명)').fill('문서 장애 테스트');
+  await page.getByPlaceholder('이메일').fill('legal-unavailable@example.com');
+  await page.getByPlaceholder('휴대폰 번호 (예: 01012345678)').fill('01012345678');
+  await dialog.getByRole('button', { name: '인증번호 받기' }).click();
+  await page.getByPlaceholder('인증번호 6자리').fill('123456');
+  await dialog.getByRole('button', { name: '인증', exact: true }).click();
+  await expect(page.getByText('휴대폰 인증이 완료되었습니다.', { exact: true })).toBeVisible();
+  await page.getByPlaceholder('비밀번호', { exact: true }).fill('Password1234');
+  await page.getByPlaceholder('비밀번호 확인').fill('Password1234');
+  const consent = dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' });
+  await consent.click();
+  await dialog.getByRole('button', { name: '만 14세 이상 확인' }).click();
+  const signupButton = dialog.getByRole('button', { name: '회원가입', exact: true });
+  await expect(signupButton).toBeEnabled();
+  await signupButton.click();
+
+  await expect(page.getByText('현재 법률 문서를 사용할 수 없습니다. 다시 불러온 뒤 확인해주세요.')).toBeVisible();
+  await expect(page.getByText('법률 문서를 불러오지 못했습니다.')).toBeVisible();
+  await expect(consent).toHaveAttribute('aria-pressed', 'false');
+  await expect(consent).toBeDisabled();
+  await expect(signupButton).toBeDisabled();
+  await expect(page.getByText('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')).toHaveCount(0);
+});
+
 test('동의 후 현재 게시 문서가 갱신되면 이전 문서 동의를 즉시 무효화한다', async ({ page }) => {
   let latest = false;
 
