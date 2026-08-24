@@ -43,7 +43,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
-| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | Theme V2 파일럿을 적용한 로그인 전 서비스 소개 페이지 |
+| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 없는 공개 데모를 주 CTA로 안내하고, 카피·이미지 분할 Hero와 8단계 실제 제품 아코디언, 2열 서비스 카탈로그로 기능 범위를 소개하는 Theme V2 페이지. 모바일에서도 로그인 진입점을 유지한다. |
 | 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증·휴대폰 인증과 약관 동의 |
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
@@ -96,7 +96,7 @@ flowchart TD
 
   landing -- "모달 열기" --> login
   landing -- "모달 열기" --> signup
-  landing -- "로그인 없이 체험" --> demo
+  landing -- "주 CTA · 로그인 없이 체험" --> demo
   demo -- "체험 나가기" --> landing
   demo -- "체험 완료 후 시작" --> signup
   login <-->|"현재 항목 대체"| signup

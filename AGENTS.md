@@ -56,6 +56,7 @@ npm run test:e2e
 
 - 회원가입을 포함한 화면 디자인·상태·흐름을 바꾸면 `design/catchhole.pen`, `docs/data-requirements/auth.md`, `docs/screen-flow.md`를 구현과 함께 갱신하고 기존 Obsidian Violet 토큰을 재사용합니다.
 - `/demo`의 단계·코치마크·CTA 흐름을 바꾸면 `design/catchhole.pen`, `docs/screen-flow.md`, `design/PENCIL_MIGRATION.md`의 대표 프레임과 Workflow 정보를 함께 갱신합니다.
+- OmD 스킬은 저장소의 `.cursor/skills/`에 복제하지 않고 각 에이전트의 전역 설치본을 사용합니다. Cursor 규칙에는 저장소에 존재하지 않는 로컬 스킬 경로나 slash command를 안내하지 않습니다.
 - Theme V2의 밝은 modal·card surface 안에서는 legacy dark `C.t*` 색상을 인라인으로 지정하지 않고 `--ch-*` 의미 토큰을 사용합니다. 연락처·액션 같은 일반 크기 텍스트는 실제 브라우저에서 4.5:1 이상 명암비와 식별 수단을 검증하고 E2E 스타일 assertion을 남겨, CSS override와 인라인 색상 조합으로 글자가 사라지는 회귀를 막습니다. 밝은 surface의 작은 경고 텍스트·액션에는 장식용 `--ch-warning` 대신 명암비를 보장한 `--ch-warning-ink`를 사용합니다.
 - 사용자 입력 제약은 프론트 검증과 OpenAPI DTO 계약을 일치시킵니다.
 - 민감한 토큰, 쿠키, 비밀번호를 테스트 출력·문서·커밋에 남기지 않습니다.
@@ -114,3 +115,11 @@ npm run test:e2e
 ## GitHub 협업
 
 - PR 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 개요·작업 내용·Jira 이슈·PR 유형·확인 사항·참고 사항 구조를 유지하고 실제 변경과 검증 결과로 채웁니다.
+
+<!-- omd:start v=1 hash=fcd83d14cd18 -->
+## Design System (oh-my-design)
+
+**Before any UI, styling, copy, or motion change, open and read `./DESIGN.md` in full.** It is the standalone design contract. If an exact valid adopted Core v2 manifest exists, its hash-bound System Graph is machine authority and DESIGN.md is the projection. A migration candidate remains non-authoritative.
+
+If present, read `./.omd/preferences.md` — pending explicit corrections override the current contract until atomically folded into the graph/projection. Apply them and flag conflicts.
+<!-- omd:end -->

@@ -42,14 +42,20 @@ test('랜딩은 휴대폰과 태블릿에서 세로로 재배치되고 가로로
     await page.goto('/landing');
 
     await expectNoHorizontalOverflow(page, '.landing-page');
-    const [copyBox, chartBox] = await Promise.all([
-      page.locator('.landing-hero-copy').boundingBox(),
-      page.locator('.landing-chart').boundingBox(),
+    const services = page.locator('.landing-feature-card');
+    const [heroBox, demoBox, firstServiceBox, secondServiceBox] = await Promise.all([
+      page.locator('.landing-hero').boundingBox(),
+      page.locator('.landing-demo-section').boundingBox(),
+      services.first().boundingBox(),
+      services.nth(1).boundingBox(),
     ]);
-    expect(copyBox).not.toBeNull();
-    expect(chartBox).not.toBeNull();
-    expect(Math.abs((copyBox?.x ?? 0) - (chartBox?.x ?? 0))).toBeLessThanOrEqual(1);
-    expect(chartBox?.y ?? 0).toBeGreaterThan((copyBox?.y ?? 0) + (copyBox?.height ?? 0));
+    expect(heroBox).not.toBeNull();
+    expect(demoBox).not.toBeNull();
+    expect(firstServiceBox).not.toBeNull();
+    expect(secondServiceBox).not.toBeNull();
+    expect(demoBox?.y ?? 0).toBeGreaterThan((heroBox?.y ?? 0) + (heroBox?.height ?? 0) - 1);
+    expect(Math.abs((firstServiceBox?.x ?? 0) - (secondServiceBox?.x ?? 0))).toBeLessThanOrEqual(1);
+    expect(secondServiceBox?.y ?? 0).toBeGreaterThan(firstServiceBox?.y ?? 0);
   }
 });
 

@@ -3,10 +3,15 @@ import {
   ArrowRight,
   BookOpenText,
   CheckCircle2,
-  Database,
+  FileWarning,
+  GitBranch,
+  Globe2,
+  MessageSquareText,
+  Quote,
   ShieldCheck,
   Sparkles,
   UploadCloud,
+  UsersRound,
   WandSparkles,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -15,51 +20,86 @@ import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
 import { SurfaceCard } from './ui-v2/SurfaceCard';
 import { LandingProductDemo } from './LandingProductDemo';
+import landingHeroImage from '../../../assets/landing/catchhole-hero-editorial-v2.webp';
 import './landing-v2.css';
 
-type Feature = {
+type Service = {
+  category: string;
   description: string;
   icon: ReactNode;
-  step: string;
+  status?: 'upcoming';
   title: string;
 };
 
 const QUICK_ACTIONS = [
   {
-    icon: <UploadCloud size={23} />,
-    title: '원고 업로드',
-    description: '회차 원고를 올리면 분석 준비가 끝나요.',
-  },
-  {
     icon: <WandSparkles size={23} />,
-    title: 'AI 설정 추출',
-    description: '인물과 세계관 설정을 근거와 함께 찾아요.',
+    title: '캐릭터·세계관 후보',
+    description: '원고에서 인물과 세계관 설정 후보를 구분해 보여드려요.',
   },
   {
-    icon: <Database size={23} />,
-    title: '작품 설정 정리',
-    description: '검토한 설정을 작품별로 안전하게 관리해요.',
+    icon: <BookOpenText size={23} />,
+    title: '원문 근거 연결',
+    description: '어떤 문장에서 찾았는지 후보마다 함께 확인해요.',
+  },
+  {
+    icon: <ShieldCheck size={23} />,
+    title: '작가 최종 확정',
+    description: '검토한 내용만 작품 설정으로 저장해요.',
   },
 ] as const;
 
-const FEATURES: Feature[] = [
+const SERVICES: Service[] = [
   {
-    icon: <BookOpenText size={25} />,
-    step: '01',
-    title: '원고를 그대로 올리세요',
-    description: '복잡한 양식 없이 작업 중인 회차 원고를 업로드하면 작품 단위로 차곡차곡 정리됩니다.',
+    icon: <UploadCloud size={25} />,
+    category: '원고 관리',
+    title: '작품 업로드',
+    description: '단일 회차, 다회차 단일 파일, 다회차 여러 파일 중 원하는 방식으로 올리고 감지된 회차 번호와 제목을 확인합니다.',
   },
   {
-    icon: <Sparkles size={25} />,
-    step: '02',
-    title: 'AI가 설정을 찾아드려요',
-    description: '캐릭터와 세계관 후보를 추출하고, 어떤 문장에서 찾았는지 원문 근거까지 연결합니다.',
+    icon: <WandSparkles size={25} />,
+    category: 'AI 분석',
+    title: '캐릭터·세계관 자동 추출',
+    description: '회차 원고를 분석해 캐릭터와 세계관 설정 후보를 구분하고, 작가가 확인할 검토 목록으로 정리합니다.',
   },
   {
-    icon: <ShieldCheck size={25} />,
-    step: '03',
-    title: '작가가 확인하고 확정해요',
-    description: 'AI 제안을 검토한 뒤 필요한 내용만 작품 설정에 저장해 작품의 기준을 직접 관리합니다.',
+    icon: <Globe2 size={25} />,
+    category: '세계관',
+    title: '세계관 DB',
+    description: '장소·세력·규칙 등 확정된 세계관 설정을 분류와 대상별로 정리하고 검색하거나 직접 수정합니다.',
+  },
+  {
+    icon: <UsersRound size={25} />,
+    category: '캐릭터',
+    title: '캐릭터 DB',
+    description: '확정된 인물 설정과 회차별 변화 이력을 모아보고, 현재 설정값이 만들어진 출처까지 이어서 확인합니다.',
+  },
+  {
+    icon: <Quote size={25} />,
+    category: '원문 연결',
+    title: '원문 근거',
+    description: '각 설정이 어느 회차의 어떤 문장에서 나왔는지 원문 인용과 함께 확인하고 판단의 근거로 사용합니다.',
+  },
+  {
+    icon: <GitBranch size={25} />,
+    category: '관계 분석',
+    title: '캐릭터 관계도',
+    description: '캐릭터 사이의 관계를 관점별 그래프로 살펴보는 기능을 준비하고 있습니다.',
+    status: 'upcoming',
+  },
+  {
+    icon: <MessageSquareText size={25} />,
+    category: 'AI 도우미',
+    title: '설정 챗봇',
+    description: '작품 설정을 자연어로 묻고 원문 근거와 함께 답을 확인하는 기능을 준비하고 있습니다.',
+    status: 'upcoming',
+  },
+  {
+    icon: <FileWarning size={25} />,
+    category: '설정 검수',
+    title: '오류 리포트',
+    description: '설정 충돌과 회차 사이의 불일치를 찾아 한곳에서 검토하는 리포트 기능을 준비하고 있습니다.',
+    status: 'upcoming',
   },
 ];
 
@@ -77,15 +117,17 @@ export default function SLanding() {
           <div className="landing-header__right">
             <nav className="landing-header__nav" aria-label="서비스 소개">
               <button type="button" onClick={() => scrollTo('features')}>서비스 소개</button>
-              <button type="button" onClick={() => scrollTo('how-it-works')}>이용 방법</button>
-              <button type="button" onClick={openDemo}>데모 체험</button>
+              <button type="button" onClick={() => scrollTo('services')}>주요 서비스</button>
             </nav>
             <div className="landing-header__actions">
-              <ActionButton size="compact" variant="secondary" onClick={() => openAuth('/login')}>
+              <ActionButton className="landing-header__login-action" size="compact" variant="secondary" onClick={() => openAuth('/login')}>
                 로그인
               </ActionButton>
-              <ActionButton size="compact" onClick={() => openAuth('/signup')}>
+              <ActionButton className="landing-header__signup-action" size="compact" variant="secondary" onClick={() => openAuth('/signup')}>
                 무료로 시작하기
+              </ActionButton>
+              <ActionButton className="landing-primary-action" size="compact" onClick={openDemo}>
+                로그인 없이 체험하기
               </ActionButton>
             </div>
           </div>
@@ -98,27 +140,40 @@ export default function SLanding() {
             <div className="landing-hero-copy">
               <div className="landing-eyebrow">
                 <Sparkles size={14} />
-                웹소설 설정 관리 AI
+                웹소설 원고에서 작품 설정까지
               </div>
               <h1 className="landing-hero-title">
-                이야기의 빈틈은 줄이고,<br /><em>창작의 몰입은 더하고</em>
+                원고 속 캐릭터와 세계관을,<br /><em>근거와 함께 정리하세요</em>
               </h1>
               <p className="landing-hero-description">
-                원고 속 캐릭터와 세계관 설정을 AI가 찾아 정리해 드려요.
-                작가님은 이야기의 다음 장면에만 집중하세요.
+                AI가 설정 후보와 원문 근거를 연결해 보여드려요.
+                작가님이 확인한 내용만 작품 설정으로 확정합니다.
               </p>
               <div className="landing-actions">
-                <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
-                  지금 무료로 시작하기
-                </ActionButton>
-                <ActionButton variant="secondary" onClick={openDemo}>
+                <ActionButton className="landing-primary-action" icon={<ArrowRight size={16} />} onClick={openDemo}>
                   로그인 없이 체험하기
+                </ActionButton>
+                <ActionButton variant="secondary" onClick={() => openAuth('/signup')}>
+                  지금 무료로 시작하기
                 </ActionButton>
               </div>
               <div className="landing-trust">
                 <span className="landing-trust__item"><CheckCircle2 size={14} /> 원문 근거까지 한눈에</span>
                 <span className="landing-trust__item"><CheckCircle2 size={14} /> 작가가 직접 최종 확정</span>
               </div>
+            </div>
+            <div className="landing-hero__visual" aria-hidden="true">
+              <img src={landingHeroImage} alt="" />
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-demo-section" aria-labelledby="landing-demo-heading">
+          <div className="landing-demo-section__inner">
+            <div className="landing-demo-section__heading">
+              <span>8단계 제품 흐름</span>
+              <h2 id="landing-demo-heading">원고가 작품 설정이 되는 과정을<br />직접 확인하세요</h2>
+              <p>단계에 마우스를 올리거나 선택하면 실제 CatchHole 화면이 넓게 펼쳐집니다.</p>
             </div>
             <LandingProductDemo />
           </div>
@@ -136,25 +191,29 @@ export default function SLanding() {
           ))}
         </div>
 
-        <section className="landing-features" id="how-it-works">
+        <section className="landing-features" id="services">
           <div className="landing-section__inner">
             <div className="landing-section-heading">
-              <h2>복잡한 설정 관리,<br />세 단계면 충분해요</h2>
+              <h2>주요 서비스</h2>
               <p>
-                원고 업로드부터 AI 분석, 작가님의 최종 검토까지 하나의 흐름으로 이어집니다.
-                작품의 설정은 자동으로 덮어쓰지 않고 언제나 작가님의 확인을 거칩니다.
+                원고를 올리는 순간부터 설정을 확정하고 다시 찾는 과정까지,
+                CatchHole의 기능을 한눈에 확인해 보세요.
               </p>
             </div>
             <div className="landing-feature-grid">
-              {FEATURES.map(feature => (
-                <SurfaceCard className="landing-feature-card" key={feature.step}>
-                  <span className="landing-icon-box">{feature.icon}</span>
-                  <div className="landing-step__label">
-                    <span className="landing-step__number">{feature.step}</span>
-                    STEP
+              {SERVICES.map(service => (
+                <SurfaceCard className="landing-feature-card" key={service.title}>
+                  <span className="landing-icon-box">{service.icon}</span>
+                  <div className="landing-service-card__copy">
+                    <div className="landing-service-card__meta">
+                      <span>{service.category}</span>
+                      {service.status === 'upcoming' && (
+                        <span className="landing-service-card__status">업데이트 예정</span>
+                      )}
+                    </div>
+                    <h3>{service.title}</h3>
+                    <p>{service.description}</p>
                   </div>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.description}</p>
                 </SurfaceCard>
               ))}
             </div>
@@ -165,15 +224,15 @@ export default function SLanding() {
           <div className="landing-section__inner">
             <div className="landing-cta">
               <div>
-                <h2>당신의 이야기를<br />더 오래, 단단하게</h2>
-                <p>첫 작품을 등록하고 CatchHole의 설정 관리 흐름을 경험해 보세요.</p>
+                <h2>회원가입 없이<br />설정 관리 흐름을 확인하세요</h2>
+                <p>가상 원고로 후보 추출부터 원문 근거, 작가 확정까지 직접 체험할 수 있어요.</p>
               </div>
               <div className="landing-cta__actions">
-                <ActionButton icon={<ArrowRight size={16} />} onClick={() => openAuth('/signup')}>
-                  무료로 시작하기
+                <ActionButton className="landing-primary-action" icon={<ArrowRight size={16} />} onClick={openDemo}>
+                  로그인 없이 체험하기
                 </ActionButton>
-                <ActionButton variant="secondary" onClick={openDemo}>
-                  먼저 체험해 보기
+                <ActionButton variant="secondary" onClick={() => openAuth('/signup')}>
+                  무료로 시작하기
                 </ActionButton>
               </div>
             </div>
@@ -185,7 +244,7 @@ export default function SLanding() {
         <div className="landing-footer__inner">
           <div className="landing-footer__brand">
             <ProductBrand compact />
-            <span>이야기의 빈틈을 찾는 가장 쉬운 방법</span>
+            <span>원문 근거와 함께 관리하는 작품 설정</span>
           </div>
           <div className="landing-footer__links">
             <button type="button" onClick={() => openTerms('privacy')}>개인정보 처리방침</button>

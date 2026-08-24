@@ -316,14 +316,14 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   await expect(page.getByRole('dialog', { name: '회원가입' })).toBeVisible();
   await page.getByRole('button', { name: '회원가입 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
-  await expect(page.getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
+  await expect(page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
   expect(dataRequests).toEqual([]);
 });
 
 test('데모 상태는 저장되지 않으며 새로고침과 재체험으로 처음부터 초기화된다', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/landing');
-  await page.getByRole('button', { name: '로그인 없이 체험하기' }).click();
+  await page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' }).click();
   await expect(page).toHaveURL(/\/demo$/);
 
   const startButton = page.getByRole('button', { name: 'AI 분석 시작' });

@@ -1,0 +1,336 @@
+{
+  "decisions": [
+    {
+      "evidence": [
+        "src/app/components/catchhole/SLanding.tsx"
+      ],
+      "path": "/experience/summary",
+      "source_class": "repository-fact",
+      "value": "CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract applies only to the landing surface."
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mt5naiay_6861179c"
+      ],
+      "path": "/experience/primary_tasks",
+      "source_class": "prompt-fact",
+      "value": [
+        "Experience the manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.",
+        "Move to free sign-up as the secondary path when ready to register a work and use the full service."
+      ]
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mt5p9gzf_d79ac96b",
+        ".omd/preferences.md#pref_mt5r2vut_2fded35a",
+        ".omd/preferences.md#pref_mt5risax_9312dae3",
+        ".omd/preferences.md#pref_mt5suyt0_62f9b360"
+      ],
+      "path": "/experience/design_direction",
+      "source_class": "prompt-fact",
+      "value": [
+        "Make reference-led landing redesigns visibly distinct through a strong first-screen hero and meaningful section hierarchy; CTA styling alone is not sufficient.",
+        "Use purpose-built, visually distinct images for the hero and each product-flow panel instead of reusing one generic image through repeated crops.",
+        "Present the implemented eight-stage manuscript workflow as one animated exploratory accordion with a clear active step and reduced-motion fallback.",
+        "Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile."
+      ]
+    },
+    {
+      "evidence": [
+        "DESIGN.md#foundations"
+      ],
+      "path": "/foundations/tokens",
+      "source_class": "verified-reference-inspiration",
+      "value": {
+        "color.control-border": {
+          "$description": "Verified NHN Cloud resource-control border evidence.",
+          "$type": "color",
+          "$value": "#51565F"
+        },
+        "color.menu-surface": {
+          "$description": "Reference-only dark expanded menu surface; do not generalize it into the CatchHole workspace palette.",
+          "$type": "color",
+          "$value": "#111111"
+        },
+        "color.menu-text": {
+          "$description": "Reference-only text color on the dark expanded menu surface.",
+          "$type": "color",
+          "$value": "#FFFFFF"
+        },
+        "color.muted-control": {
+          "$description": "Verified NHN Cloud resource-control text and border evidence.",
+          "$type": "color",
+          "$value": "#727781"
+        },
+        "color.on-primary": {
+          "$description": "Text and icon color on the primary action surface.",
+          "$type": "color",
+          "$value": "#FFFFFF"
+        },
+        "color.primary": {
+          "$description": "Primary landing conversion and active-step blue, derived from the verified NHN Cloud marketing reference.",
+          "$type": "color",
+          "$value": "#125DE6"
+        }
+      }
+    },
+    {
+      "evidence": [
+        "e2e/landing-demo.spec.ts"
+      ],
+      "path": "/foundations/contrast_pairs",
+      "source_class": "repository-fact",
+      "value": [
+        {
+          "background": "color.primary",
+          "foreground": "color.on-primary",
+          "minimum_ratio": 4.5
+        },
+        {
+          "background": "color.menu-surface",
+          "foreground": "color.menu-text",
+          "minimum_ratio": 4.5
+        }
+      ]
+    },
+    {
+      "evidence": [
+        "src/app/components/catchhole/landing-v2.css"
+      ],
+      "path": "/foundations/reduced_motion",
+      "source_class": "repository-fact",
+      "value": true
+    },
+    {
+      "evidence": [
+        "DESIGN.md#typography-assets",
+        "src/assets/landing/catchhole-hero-editorial-v2.webp"
+      ],
+      "path": "/typography_assets",
+      "source_class": "verified-reference-inspiration",
+      "value": {
+        "assets": [
+          {
+            "id": "pretendard-variable",
+            "kind": "font",
+            "license_status": "verified",
+            "notes": "Corporate marketing reference use is verified; upstream Pretendard is distributed under SIL Open Font License 1.1.",
+            "source": "https://www.nhncloud.com/fonts/PretendardVariable.woff2",
+            "source_status": "official"
+          },
+          {
+            "id": "landing-generated-images",
+            "kind": "image",
+            "license_status": "not-required",
+            "notes": "One dedicated hero composition and eight purpose-built workflow panel images created for CatchHole.",
+            "source": "src/assets/landing/",
+            "source_status": "generated-original"
+          }
+        ],
+        "roles": [
+          {
+            "family": "Pretendard Variable",
+            "id": "landing-display",
+            "usage": "Hero and major landing section headings with a compact, high-impact hierarchy.",
+            "weight": "700–800"
+          },
+          {
+            "family": "Pretendard Variable",
+            "id": "landing-ui",
+            "usage": "Landing navigation, CTA, product-step labels, catalog titles, and supporting copy.",
+            "weight": "400–700"
+          }
+        ],
+        "rules": [
+          "Use the landing display role for first-screen impact and the landing UI role for compact product explanation.",
+          "Keep image purpose explicit: the hero explains manuscript-to-setting connection, while each workflow image represents one distinct product stage."
+        ]
+      }
+    },
+    {
+      "evidence": [
+        "src/app/components/catchhole/SLanding.tsx",
+        "src/app/components/catchhole/LandingProductDemo.tsx"
+      ],
+      "path": "/components_states/components",
+      "source_class": "repository-fact",
+      "value": [
+        {
+          "anatomy": [
+            "label",
+            "optional directional icon"
+          ],
+          "id": "landing-primary-action",
+          "interaction": {
+            "kind": "interactive",
+            "state_applicability": {
+              "default": {
+                "applicability": "applicable"
+              },
+              "disabled": {
+                "applicability": "not-applicable",
+                "reason": "The public demo route is always available from the landing page."
+              },
+              "error": {
+                "applicability": "not-applicable",
+                "reason": "Route-level failures are not rendered as a button state."
+              },
+              "focus-visible": {
+                "applicability": "applicable"
+              },
+              "hover": {
+                "applicability": "applicable"
+              },
+              "loading": {
+                "applicability": "not-applicable",
+                "reason": "Navigation does not expose an asynchronous loading state in this control."
+              },
+              "success": {
+                "applicability": "not-applicable",
+                "reason": "Successful navigation replaces the landing route instead of changing the button state."
+              }
+            }
+          },
+          "semantics": "Navigates directly to the login-free interactive demo and remains the primary landing conversion.",
+          "states": [
+            "default",
+            "hover",
+            "focus-visible"
+          ],
+          "token_refs": [
+            "color.primary",
+            "color.on-primary"
+          ],
+          "variants": [
+            "40px header action",
+            "48px hero and closing action"
+          ]
+        },
+        {
+          "anatomy": [
+            "step trigger",
+            "step number",
+            "step label",
+            "purpose-built panel image",
+            "active panel content"
+          ],
+          "id": "landing-product-accordion",
+          "interaction": {
+            "kind": "interactive",
+            "state_applicability": {
+              "default": {
+                "applicability": "applicable"
+              },
+              "disabled": {
+                "applicability": "not-applicable",
+                "reason": "Every workflow step remains selectable."
+              },
+              "error": {
+                "applicability": "not-applicable",
+                "reason": "The showcase does not call product APIs."
+              },
+              "focus-visible": {
+                "applicability": "applicable"
+              },
+              "hover": {
+                "applicability": "applicable"
+              },
+              "loading": {
+                "applicability": "not-applicable",
+                "reason": "All panel assets are bundled with the landing page."
+              },
+              "success": {
+                "applicability": "not-applicable",
+                "reason": "Selecting a step is represented by the expanded state."
+              }
+            }
+          },
+          "semantics": "Explores the real eight-stage CatchHole workflow within one showcase instead of displaying eight isolated screens.",
+          "states": [
+            "default",
+            "hover",
+            "focus-visible",
+            "expanded"
+          ],
+          "variants": [
+            "desktop vertical rails",
+            "tablet and mobile horizontal step strip"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mt5naiay_6861179c"
+      ],
+      "path": "/components_states/rules/1",
+      "source_class": "prompt-fact",
+      "value": "Use `로그인 없이 체험하기` as the primary action in the header, hero, and closing CTA; free sign-up remains secondary."
+    },
+    {
+      "evidence": [
+        "src/app/components/catchhole/landing-v2.css",
+        "e2e/mobile-responsive.spec.ts"
+      ],
+      "path": "/layout_platforms",
+      "source_class": "repository-fact",
+      "value": {
+        "minimum_width_px": 320,
+        "platforms": [
+          {
+            "id": "web",
+            "rules": [
+              "Support 320px-wide viewports and reflow at 200% zoom without horizontal scrolling.",
+              "Keep the primary CTA reachable before the showcase and again after the service catalog."
+            ]
+          }
+        ],
+        "reflow_zoom_percent": 200,
+        "rules": [
+          "Keep a strong split hero at wide viewports, then stack copy before imagery on narrower screens without horizontal overflow.",
+          "Render the service catalog in two columns on desktop and one column on mobile, preserving the same capability order and upcoming labels.",
+          "Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile."
+        ]
+      }
+    },
+    {
+      "evidence": [
+        "src/app/components/catchhole/SLanding.tsx"
+      ],
+      "path": "/content_locales",
+      "source_class": "repository-fact",
+      "value": {
+        "locales": [
+          {
+            "locale": "ko-KR",
+            "rules": [
+              "Keep CTA labels short and action-oriented.",
+              "Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available."
+            ],
+            "status": "supported"
+          }
+        ],
+        "voice": [
+          "Write Korean landing copy in a direct, capability-led style that explains what the author can inspect, compare, or confirm.",
+          "Use concrete product nouns such as 원고, 회차, 캐릭터, 세계관, 원문 근거, and 설정 이력 instead of abstract AI claims."
+        ]
+      }
+    },
+    {
+      "evidence": [
+        "DESIGN.md#governance"
+      ],
+      "path": "/governance/priority",
+      "source_class": "prompt-fact",
+      "value": [
+        "Direct project-owner instructions for the requested landing scope.",
+        "CatchHole repository facts and verified implementation behavior.",
+        "This adopted landing system contract.",
+        "NHN Cloud reference inspiration within its captured evidence boundary."
+      ]
+    }
+  ],
+  "design_md_sha256": "6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca",
+  "graph_sha256": "09577f96dad331ccaa35c2a6f7c083b2b949867df841920796ce1eda4558dc09",
+  "schema_version": "2.0.0"
+}
