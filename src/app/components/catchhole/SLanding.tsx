@@ -20,6 +20,7 @@ import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
 import { SurfaceCard } from './ui-v2/SurfaceCard';
 import { LandingProductDemo } from './LandingProductDemo';
+import landingHeroImage from '../../../assets/landing/catchhole-hero-editorial-v2.webp';
 import './landing-v2.css';
 
 type Service = {
@@ -119,10 +120,10 @@ export default function SLanding() {
               <button type="button" onClick={() => scrollTo('services')}>주요 서비스</button>
             </nav>
             <div className="landing-header__actions">
-              <ActionButton size="compact" variant="secondary" onClick={() => openAuth('/login')}>
+              <ActionButton className="landing-header__login-action" size="compact" variant="secondary" onClick={() => openAuth('/login')}>
                 로그인
               </ActionButton>
-              <ActionButton size="compact" variant="secondary" onClick={() => openAuth('/signup')}>
+              <ActionButton className="landing-header__signup-action" size="compact" variant="secondary" onClick={() => openAuth('/signup')}>
                 무료로 시작하기
               </ActionButton>
               <ActionButton className="landing-primary-action" size="compact" onClick={openDemo}>
@@ -160,6 +161,9 @@ export default function SLanding() {
                 <span className="landing-trust__item"><CheckCircle2 size={14} /> 원문 근거까지 한눈에</span>
                 <span className="landing-trust__item"><CheckCircle2 size={14} /> 작가가 직접 최종 확정</span>
               </div>
+            </div>
+            <div className="landing-hero__visual" aria-hidden="true">
+              <img src={landingHeroImage} alt="" />
             </div>
           </div>
         </section>

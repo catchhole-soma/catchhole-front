@@ -89,6 +89,12 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
     await expect(workflowRows.getByRole('heading', { level: 3, name: service })).toBeVisible();
   }
 
+  const serviceCategories = page.locator('.landing-service-card__meta > span:first-child');
+  await expect(serviceCategories).toHaveCount(8);
+  for (const category of await serviceCategories.all()) {
+    expect(await computedContrastRatio(category, page.locator('.landing-features'))).toBeGreaterThanOrEqual(4.5);
+  }
+
   const finalCta = page.locator('.landing-cta');
   await expect(finalCta).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(finalCta).toHaveCSS('background-image', 'none');
@@ -100,6 +106,34 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
   for (const trustItem of await trustItems.all()) {
     expect(await computedContrastRatio(trustItem, hero)).toBeGreaterThanOrEqual(4.5);
   }
+});
+
+test('랜딩 Hero는 넓은 화면에서 분할되고 좁은 화면에서 카피 다음에 이미지가 쌓인다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/landing');
+
+  const heroInner = page.locator('.landing-hero__inner');
+  const heroCopy = page.locator('.landing-hero-copy');
+  const heroVisual = page.locator('.landing-hero__visual');
+  await expect(heroInner).toHaveCSS('display', 'grid');
+  await expect(heroVisual.locator('img')).toBeVisible();
+
+  const [desktopCopyBox, desktopVisualBox] = await Promise.all([
+    heroCopy.boundingBox(),
+    heroVisual.boundingBox(),
+  ]);
+  expect(desktopCopyBox).not.toBeNull();
+  expect(desktopVisualBox).not.toBeNull();
+  expect(desktopCopyBox!.x + desktopCopyBox!.width).toBeLessThanOrEqual(desktopVisualBox!.x + 1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const [mobileCopyBox, mobileVisualBox] = await Promise.all([
+    heroCopy.boundingBox(),
+    heroVisual.boundingBox(),
+  ]);
+  expect(mobileCopyBox).not.toBeNull();
+  expect(mobileVisualBox).not.toBeNull();
+  expect(mobileCopyBox!.y + mobileCopyBox!.height).toBeLessThanOrEqual(mobileVisualBox!.y + 1);
 });
 
 test('랜딩 데모는 전체 설정 관리 흐름을 직접 탐색하고 재생을 제어할 수 있다', async ({ page }) => {
@@ -213,13 +247,36 @@ test('랜딩 주 CTA는 320px와 200% 확대에서도 잘리거나 가로로 넘
     }, condition.zoom);
 
     const headerDemo = page.locator('.landing-header__actions').getByRole('button', { name: '로그인 없이 체험하기' });
+    const headerLogin = page.locator('.landing-header__actions').getByRole('button', { name: '로그인', exact: true });
+    const headerSignup = page.locator('.landing-header__actions').getByRole('button', { name: '무료로 시작하기' });
+    const header = page.locator('.landing-header__inner');
     await expect(headerDemo).toBeVisible();
+    await expect(headerLogin).toBeVisible();
+    await expect(headerSignup).toBeHidden();
     await expect.poll(() => headerDemo.evaluate(element => (
       element.scrollWidth <= element.clientWidth + 1
     ))).toBe(true);
+    await expect.poll(async () => {
+      const [headerBox, demoBox, loginBox] = await Promise.all([
+        header.boundingBox(),
+        headerDemo.boundingBox(),
+        headerLogin.boundingBox(),
+      ]);
+      if (!headerBox || !demoBox || !loginBox) return false;
+      return loginBox.x >= headerBox.x - 1
+        && demoBox.x + demoBox.width <= headerBox.x + headerBox.width + 1;
+    }).toBe(true);
     await expect.poll(() => page.evaluate(() => ({
       body: document.body.scrollWidth <= document.body.clientWidth + 1,
       document: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
     }))).toEqual({ body: true, document: true });
   }
+});
+
+test('모바일 헤더의 로그인 버튼은 로그인 라우트 모달을 연다', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto('/landing');
+
+  await page.locator('.landing-header__actions').getByRole('button', { name: '로그인', exact: true }).click();
+  await expect(page).toHaveURL('/login');
 });
