@@ -207,6 +207,7 @@ flowchart TD
   agree -- "예: 문서 ID와 함께 제출" --> signupReq{"회원가입 결과"}:::decision
   signupReq -- "성공 = 자동 로그인" --> ok
   signupReq -- "게시본 교체 409<br/>법률 체크 해제·최신본 재조회" --> signup
+  signupReq -- "게시본 사용 불가 503<br/>법률 체크 해제·재조회 성공까지 가입 잠금" --> signup
   signupReq -- "입력·중복·네트워크 오류" --> signup
   signupReq -. "제출 중: 입력·중복 요청 잠금" .-> signup
 
