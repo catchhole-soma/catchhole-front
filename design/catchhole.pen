@@ -33933,20 +33933,33 @@
               "id": "omdL038",
               "name": "Hero Backdrop",
               "children": [],
-              "width": "fill_container",
-              "height": 640,
+              "x": 0,
+              "y": 0,
+              "width": 1440,
+              "height": 720,
               "fill": {
                 "type": "image",
                 "enabled": true,
                 "url": "../src/assets/landing/catchhole-hero-editorial-v2.webp",
                 "mode": "fill"
-              },
-              "cornerRadius": "$ch-radius-lg"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "omdL038O",
+              "name": "Hero Backdrop Overlay",
+              "x": 0,
+              "y": 0,
+              "width": 1440,
+              "height": 720,
+              "fill": "#020B285C"
             },
             {
               "type": "frame",
               "id": "omdL056",
               "name": "Hero Content",
+              "x": 240,
+              "y": 190,
               "children": [
                 {
                   "type": "frame",
@@ -34147,9 +34160,7 @@
           "width": "fill_container",
           "height": 720,
           "fill": "#020B28",
-          "padding": 40,
-          "justifyContent": "center",
-          "alignItems": "center"
+          "layout": "none"
         },
         {
           "type": "frame",
