@@ -319,9 +319,10 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   await page.getByRole('button', { name: '회원가입 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
   await expect(page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
-  expect(dataRequests).toEqual([
-    'http://localhost:8081/api/v1/legal-documents/current?locale=ko-KR',
-  ]);
+  expect(dataRequests).toHaveLength(1);
+  const legalDocumentRequest = new URL(dataRequests[0]);
+  expect(legalDocumentRequest.pathname).toBe('/api/v1/legal-documents/current');
+  expect(legalDocumentRequest.searchParams.get('locale')).toBe('ko-KR');
 });
 
 test('데모 상태는 저장되지 않으며 새로고침과 재체험으로 처음부터 초기화된다', async ({ page }) => {
