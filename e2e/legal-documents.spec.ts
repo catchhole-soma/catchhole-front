@@ -152,3 +152,30 @@ test('회원가입 중 문서가 교체되면 동의를 해제하고 최신 문�
   await expect(dialog.getByText('현재 문서 2026-08-24.2')).toBeVisible();
   await expect(signupButton).toBeDisabled();
 });
+
+test('동의 후 현재 게시 문서가 갱신되면 이전 문서 동의를 즉시 무효화한다', async ({ page }) => {
+  let latest = false;
+
+  await page.route('**/api/v1/legal-documents/current*', route => (
+    respond(route, success(latest
+      ? legalBundle('2026-08-24.2', 41, 42)
+      : legalBundle('2026-08-24', 31, 32)))
+  ));
+
+  await page.goto('/signup');
+  const dialog = page.getByRole('dialog', { name: '회원가입' });
+  const consent = dialog.getByRole('button', { name: '이용약관 동의 및 개인정보 처리방침 확인' });
+
+  await consent.click();
+  await expect(consent).toHaveAttribute('aria-pressed', 'true');
+
+  latest = true;
+  await page.evaluate(async () => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    await queryClient.invalidateQueries();
+  });
+
+  await expect(dialog.getByText('현재 문서 2026-08-24.2')).toBeVisible();
+  await expect(consent).toHaveAttribute('aria-pressed', 'false');
+  await expect(dialog.getByRole('button', { name: '휴대폰 인증 후 회원가입' })).toBeDisabled();
+});

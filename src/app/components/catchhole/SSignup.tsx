@@ -154,7 +154,10 @@ export default function SSignup() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<{
+    termsDocumentId: number;
+    privacyPolicyDocumentId: number;
+  } | null>(null);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [verificationMessage, setVerificationMessage] = useState('가입 전 휴대폰 번호 인증이 필요합니다.');
@@ -171,6 +174,11 @@ export default function SSignup() {
   const termsDocumentId = legalDocuments?.termsOfService?.id;
   const privacyPolicyDocumentId = legalDocuments?.privacyPolicy?.id;
   const legalDocumentsReady = Boolean(termsDocumentId && privacyPolicyDocumentId);
+  const agreed = Boolean(
+    legalDocumentsReady
+    && acceptedLegalDocumentIds?.termsDocumentId === termsDocumentId
+    && acceptedLegalDocumentIds?.privacyPolicyDocumentId === privacyPolicyDocumentId,
+  );
   const submitting = signupRequest.isPending;
   const verificationRemaining = verificationExpiresAt
     ? Math.max(0, Math.ceil((verificationExpiresAt - now) / 1_000))
@@ -403,7 +411,7 @@ export default function SSignup() {
           resetPhoneVerification();
           setErrors({ phoneNumber: '휴대폰 인증이 만료되었거나 이미 사용되었습니다. 다시 인증해주세요.' });
         } else if (apiError.code === 'LEGAL_DOCUMENT_NOT_CURRENT') {
-          setAgreed(false);
+          setAcceptedLegalDocumentIds(null);
           await legalDocumentsQuery.refetch();
           setErrors({ legal: '가입 중 법률 문서가 변경되었습니다. 최신 내용을 다시 확인해주세요.' });
         } else if (apiError.code === 'REQUEST_VALIDATION_FAILED' && apiError.details.length > 0) {
@@ -603,7 +611,11 @@ export default function SSignup() {
               aria-pressed={agreed}
               disabled={!legalDocumentsReady}
               onClick={() => {
-                setAgreed(current => !current);
+                if (agreed) {
+                  setAcceptedLegalDocumentIds(null);
+                } else if (termsDocumentId && privacyPolicyDocumentId) {
+                  setAcceptedLegalDocumentIds({ termsDocumentId, privacyPolicyDocumentId });
+                }
                 setErrors(current => ({ ...current, legal: undefined }));
               }}
               className={`auth-modal-consent__checkbox${agreed ? ' is-checked' : ''}`}
