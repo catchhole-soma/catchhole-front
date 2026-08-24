@@ -89,3 +89,18 @@ source_context: "src/app/components/catchhole/SLanding.tsx"
 ```
 
 Landing capability sections should present the product's diverse service surface in a structured two-column catalog instead of reducing it to a generic sequential workflow.
+
+## 2026-08-24T04:50:04.000Z — approved-landing-hero-uses-full-section-ba
+
+```omd-meta
+id: pref_mt6rbzpu_23bdaa61
+timestamp: 2026-08-24T04:50:04.000Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/catchhole.pen#omdLandingFullPageActive"
+```
+
+The approved landing hero uses its purpose-built artwork as a full-section background with centered copy; do not replace it with a cropped standalone split-column image.
