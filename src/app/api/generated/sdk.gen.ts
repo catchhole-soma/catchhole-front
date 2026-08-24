@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddWorldSettingPropertyData, AddWorldSettingPropertyErrors, AddWorldSettingPropertyResponses, ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponses, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponses, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupResponses, ConfirmSettingCandidateResponses, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateErrors, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupErrors, ConfirmWorldSettingCandidateGroupResponses, ConfirmWorldSettingCandidateResponses, ConflictData, ConflictResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, CreateWorldSettingData, CreateWorldSettingErrors, CreateWorldSettingResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, DismissWorldSettingCandidateData, DismissWorldSettingCandidateErrors, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupErrors, DismissWorldSettingCandidateGroupResponses, DismissWorldSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponses, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetCharacterTimelineData, GetCharacterTimelineErrors, GetCharacterTimelineResponses, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryErrors, GetCharacterTimelineSummaryResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponses, GetWorkErrors, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponses, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponses, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkResponses, GetWorkPurgeRequestData, GetWorkPurgeRequestResponses, GetWorkResponses, GetWorldSettingCandidateData, GetWorldSettingCandidateErrors, GetWorldSettingCandidateResponses, GetWorldSettingCandidatesData, GetWorldSettingCandidatesErrors, GetWorldSettingCandidatesResponses, GetWorldSettingData, GetWorldSettingErrors, GetWorldSettingResponses, GetWorldSettingsData, GetWorldSettingsErrors, GetWorldSettingsResponses, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, NotFoundData, NotFoundResponses, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponses, RateLimitedData, RateLimitedResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsErrors, ResumeTokenInterruptedWorldSettingComparisonsResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonResponses, RetryWorkPurgeRequestData, RetryWorkPurgeRequestResponses, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonErrors, RetryWorldSettingCandidateComparisonResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, SuccessData, SuccessResponses, UnknownErrorData, UnknownErrorResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchResponses, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsErrors, UpdateWorldSettingCandidateDecisionsResponses, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityErrors, UpdateWorldSettingIdentityResponses, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyErrors, UpdateWorldSettingPropertyResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses, UploadTooLargeData, UploadTooLargeResponses, ValidationData, ValidationResponses } from './types.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyErrors, AddWorldSettingPropertyResponses, ClaimAnalysisJobData, ClaimAnalysisJobErrors, ClaimAnalysisJobResponses, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponses, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponses, CompleteAnalysisJobData, CompleteAnalysisJobErrors, CompleteAnalysisJobResponses, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponses, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponses, ConfirmPhoneVerificationData, ConfirmPhoneVerificationErrors, ConfirmPhoneVerificationResponses, ConfirmSettingCandidateData, ConfirmSettingCandidateErrors, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupResponses, ConfirmSettingCandidateResponses, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateErrors, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupErrors, ConfirmWorldSettingCandidateGroupResponses, ConfirmWorldSettingCandidateResponses, CreateAnalysisJobData, CreateAnalysisJobErrors, CreateAnalysisJobResponses, CreateWorkData, CreateWorkErrors, CreateWorkResponses, CreateWorldSettingData, CreateWorldSettingErrors, CreateWorldSettingResponses, DeleteCharacterData, DeleteCharacterErrors, DeleteCharacterResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteSettingBookData, DeleteSettingBookErrors, DeleteSettingBookResponses, DeleteWorkData, DeleteWorkErrors, DeleteWorkResponses, DetectEpisodesData, DetectEpisodesErrors, DetectEpisodesResponses, DismissSettingCandidateData, DismissSettingCandidateErrors, DismissSettingCandidateResponses, DismissWorldSettingCandidateData, DismissWorldSettingCandidateErrors, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupErrors, DismissWorldSettingCandidateGroupResponses, DismissWorldSettingCandidateResponses, FailAnalysisJobData, FailAnalysisJobErrors, FailAnalysisJobResponses, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponses, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponses, GetAnalysisBatchesData, GetAnalysisBatchesErrors, GetAnalysisBatchesResponses, GetAnalysisJobData, GetAnalysisJobErrors, GetAnalysisJobResponses, GetAnalysisJobsData, GetAnalysisJobsErrors, GetAnalysisJobsResponses, GetArchivedCharactersData, GetArchivedCharactersErrors, GetArchivedCharactersResponses, GetCharacterData, GetCharacterErrors, GetCharacterFactData, GetCharacterFactErrors, GetCharacterFactEvidenceData, GetCharacterFactEvidenceErrors, GetCharacterFactEvidenceResponses, GetCharacterFactResponses, GetCharacterResponses, GetCharactersData, GetCharactersErrors, GetCharactersResponses, GetCharacterTimelineData, GetCharacterTimelineErrors, GetCharacterTimelineResponses, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryErrors, GetCharacterTimelineSummaryResponses, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsErrors, GetCurrentLegalDocumentsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetEpisodesData, GetEpisodesErrors, GetEpisodesResponses, GetLegalDocumentData, GetLegalDocumentErrors, GetLegalDocumentResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyAiTokenUsageData, GetMyAiTokenUsageErrors, GetMyAiTokenUsageResponses, GetMyWorksData, GetMyWorksErrors, GetMyWorksResponses, GetSettingBookData, GetSettingBookErrors, GetSettingBookResponses, GetSettingBooksData, GetSettingBooksErrors, GetSettingBooksResponses, GetSettingCandidateData, GetSettingCandidateErrors, GetSettingCandidateResponses, GetSettingCandidatesData, GetSettingCandidatesErrors, GetSettingCandidatesResponses, GetWorkData, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponses, GetWorkErrors, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponses, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponses, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkErrors, GetWorkPurgeRequestByWorkResponses, GetWorkPurgeRequestData, GetWorkPurgeRequestErrors, GetWorkPurgeRequestResponses, GetWorkResponses, GetWorldSettingCandidateData, GetWorldSettingCandidateErrors, GetWorldSettingCandidateResponses, GetWorldSettingCandidatesData, GetWorldSettingCandidatesErrors, GetWorldSettingCandidatesResponses, GetWorldSettingData, GetWorldSettingErrors, GetWorldSettingResponses, GetWorldSettingsData, GetWorldSettingsErrors, GetWorldSettingsResponses, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponses, RefreshData, RefreshErrors, RefreshResponses, ReleaseAiTokensData, ReleaseAiTokensErrors, ReleaseAiTokensResponses, ReplaceEpisodeFileData, ReplaceEpisodeFileResponses, RequestPhoneVerificationData, RequestPhoneVerificationErrors, RequestPhoneVerificationResponses, ReserveAiTokensData, ReserveAiTokensErrors, ReserveAiTokensResponses, RestoreCharacterData, RestoreCharacterErrors, RestoreCharacterResponses, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsErrors, ResumeTokenInterruptedWorldSettingComparisonsResponses, RetryAnalysisJobData, RetryAnalysisJobErrors, RetryAnalysisJobResponses, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonResponses, RetryWorkPurgeRequestData, RetryWorkPurgeRequestErrors, RetryWorkPurgeRequestResponses, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonErrors, RetryWorldSettingCandidateComparisonResponses, SearchCharacterFactsData, SearchCharacterFactsErrors, SearchCharacterFactsResponses, SettleAiTokensData, SettleAiTokensErrors, SettleAiTokensResponses, SignupData, SignupErrors, SignupResponses, UpdateCharacterData, UpdateCharacterErrors, UpdateCharacterResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateEpisodeTitleData, UpdateEpisodeTitleErrors, UpdateEpisodeTitleResponses, UpdateProgressData, UpdateProgressErrors, UpdateProgressResponses, UpdateSettingBookData, UpdateSettingBookErrors, UpdateSettingBookResponses, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchErrors, UpdateSettingCandidateCharacterMatchResponses, UpdateSettingCandidateData, UpdateSettingCandidateErrors, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchResponses, UpdateSettingCandidateResponses, UpdateWorkData, UpdateWorkErrors, UpdateWorkResponses, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsErrors, UpdateWorldSettingCandidateDecisionsResponses, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityErrors, UpdateWorldSettingIdentityResponses, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyErrors, UpdateWorldSettingPropertyResponses, UploadEpisodesData, UploadEpisodesErrors, UploadEpisodesResponses, UploadSettingBookData, UploadSettingBookErrors, UploadSettingBookResponses, WithdrawMeData, WithdrawMeErrors, WithdrawMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -40,15 +40,6 @@ export const replaceEpisodeFile = <ThrowOnError extends boolean = true>(options:
 export const publishWorkerWorldSettingCandidates = <ThrowOnError extends boolean = true>(options: Options<PublishWorkerWorldSettingCandidatesData, ThrowOnError>): RequestResult<PublishWorkerWorldSettingCandidatesResponses, unknown, ThrowOnError> => (options.client ?? client).put<PublishWorkerWorldSettingCandidatesResponses, unknown, ThrowOnError>({
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-candidates',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const validation = <ThrowOnError extends boolean = true>(options: Options<ValidationData, ThrowOnError>): RequestResult<ValidationResponses, unknown, ThrowOnError> => (options.client ?? client).post<ValidationResponses, unknown, ThrowOnError>({
-    url: '/test/validation',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -382,7 +373,7 @@ export const retryAnalysisJob = <ThrowOnError extends boolean = true>(options: O
  *
  * FAILED 또는 PARTIAL_FAILED 상태인 본인의 영구 삭제 요청을 다시 대기 상태로 전환합니다.
  */
-export const retryWorkPurgeRequest = <ThrowOnError extends boolean = true>(options: Options<RetryWorkPurgeRequestData, ThrowOnError>): RequestResult<RetryWorkPurgeRequestResponses, unknown, ThrowOnError> => (options.client ?? client).post<RetryWorkPurgeRequestResponses, unknown, ThrowOnError>({
+export const retryWorkPurgeRequest = <ThrowOnError extends boolean = true>(options: Options<RetryWorkPurgeRequestData, ThrowOnError>): RequestResult<RetryWorkPurgeRequestResponses, RetryWorkPurgeRequestErrors, ThrowOnError> => (options.client ?? client).post<RetryWorkPurgeRequestResponses, RetryWorkPurgeRequestErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/purge-requests/{requestId}/retry',
     ...options
@@ -808,7 +799,7 @@ export const updateSettingBook = <ThrowOnError extends boolean = true>(options: 
 /**
  * 회차 원문 영구 삭제
  *
- * 로그인한 사용자가 본인 작품에 등록한 회차를 보관 상태로 전환해 활성 목록에서 숨깁니다.
+ * 로그인한 사용자가 본인 작품의 회차를 즉시 보관 처리한 뒤 원문과 업로드 원본의 모든 저장 버전, 원고 청크 및 미확정 분석 후보를 영구 삭제하며 실패 시 자동 재시도합니다. 회차 식별 행과 사용자가 확정한 설정은 참조 무결성을 위해 보존하며 복구는 지원하지 않습니다.
  */
 export const deleteEpisode = <ThrowOnError extends boolean = true>(options: Options<DeleteEpisodeData, ThrowOnError>): RequestResult<DeleteEpisodeResponses, DeleteEpisodeErrors, ThrowOnError> => (options.client ?? client).delete<DeleteEpisodeResponses, DeleteEpisodeErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -918,18 +909,6 @@ export const updateProgress = <ThrowOnError extends boolean = true>(options: Opt
     }
 });
 
-export const uploadTooLarge = <ThrowOnError extends boolean = true>(options?: Options<UploadTooLargeData, ThrowOnError>): RequestResult<UploadTooLargeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UploadTooLargeResponses, unknown, ThrowOnError>({ url: '/test/upload-too-large', ...options });
-
-export const unknownError = <ThrowOnError extends boolean = true>(options?: Options<UnknownErrorData, ThrowOnError>): RequestResult<UnknownErrorResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UnknownErrorResponses, unknown, ThrowOnError>({ url: '/test/unknown-error', ...options });
-
-export const success = <ThrowOnError extends boolean = true>(options?: Options<SuccessData, ThrowOnError>): RequestResult<SuccessResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SuccessResponses, unknown, ThrowOnError>({ url: '/test/success', ...options });
-
-export const rateLimited = <ThrowOnError extends boolean = true>(options?: Options<RateLimitedData, ThrowOnError>): RequestResult<RateLimitedResponses, unknown, ThrowOnError> => (options?.client ?? client).get<RateLimitedResponses, unknown, ThrowOnError>({ url: '/test/rate-limited', ...options });
-
-export const notFound = <ThrowOnError extends boolean = true>(options?: Options<NotFoundData, ThrowOnError>): RequestResult<NotFoundResponses, unknown, ThrowOnError> => (options?.client ?? client).get<NotFoundResponses, unknown, ThrowOnError>({ url: '/test/not-found', ...options });
-
-export const conflict = <ThrowOnError extends boolean = true>(options?: Options<ConflictData, ThrowOnError>): RequestResult<ConflictResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ConflictResponses, unknown, ThrowOnError>({ url: '/test/conflict', ...options });
-
 /**
  * 세계관 대상 상세 조회
  */
@@ -975,7 +954,7 @@ export const getSettingCandidates = <ThrowOnError extends boolean = true>(option
  *
  * 새로고침 후에도 PURGING 작품의 기존 영구 삭제 요청과 재시도 가능 여부를 조회합니다.
  */
-export const getWorkPurgeRequestByWork = <ThrowOnError extends boolean = true>(options: Options<GetWorkPurgeRequestByWorkData, ThrowOnError>): RequestResult<GetWorkPurgeRequestByWorkResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetWorkPurgeRequestByWorkResponses, unknown, ThrowOnError>({
+export const getWorkPurgeRequestByWork = <ThrowOnError extends boolean = true>(options: Options<GetWorkPurgeRequestByWorkData, ThrowOnError>): RequestResult<GetWorkPurgeRequestByWorkResponses, GetWorkPurgeRequestByWorkErrors, ThrowOnError> => (options.client ?? client).get<GetWorkPurgeRequestByWorkResponses, GetWorkPurgeRequestByWorkErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/{workId}/purge-request',
     ...options
@@ -1085,11 +1064,25 @@ export const getAnalysisBatches = <ThrowOnError extends boolean = true>(options:
  *
  * 작품 행이 삭제된 뒤에도 본인이 요청한 영구 삭제 진행 상태와 삭제 건수를 조회합니다.
  */
-export const getWorkPurgeRequest = <ThrowOnError extends boolean = true>(options: Options<GetWorkPurgeRequestData, ThrowOnError>): RequestResult<GetWorkPurgeRequestResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetWorkPurgeRequestResponses, unknown, ThrowOnError>({
+export const getWorkPurgeRequest = <ThrowOnError extends boolean = true>(options: Options<GetWorkPurgeRequestData, ThrowOnError>): RequestResult<GetWorkPurgeRequestResponses, GetWorkPurgeRequestErrors, ThrowOnError> => (options.client ?? client).get<GetWorkPurgeRequestResponses, GetWorkPurgeRequestErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/works/purge-requests/{requestId}',
     ...options
 });
+
+/**
+ * 공개 법률 문서 원문 조회
+ *
+ * PUBLISHED 또는 RETIRED 문서를 식별자로 조회합니다. DRAFT 문서는 공개하지 않습니다.
+ */
+export const getLegalDocument = <ThrowOnError extends boolean = true>(options: Options<GetLegalDocumentData, ThrowOnError>): RequestResult<GetLegalDocumentResponses, GetLegalDocumentErrors, ThrowOnError> => (options.client ?? client).get<GetLegalDocumentResponses, GetLegalDocumentErrors, ThrowOnError>({ url: '/api/v1/legal-documents/{documentId}', ...options });
+
+/**
+ * 현재 법률 문서 조회
+ *
+ * 회원가입과 공개 화면에서 사용할 현재 PUBLISHED 이용약관과 개인정보처리방침을 함께 조회합니다.
+ */
+export const getCurrentLegalDocuments = <ThrowOnError extends boolean = true>(options?: Options<GetCurrentLegalDocumentsData, ThrowOnError>): RequestResult<GetCurrentLegalDocumentsResponses, GetCurrentLegalDocumentsErrors, ThrowOnError> => (options?.client ?? client).get<GetCurrentLegalDocumentsResponses, GetCurrentLegalDocumentsErrors, ThrowOnError>({ url: '/api/v1/legal-documents/current', ...options });
 
 /**
  * 현재 사용자 조회
@@ -1120,4 +1113,19 @@ export const getWorkerWorldSettingSubjects = <ThrowOnError extends boolean = tru
     security: [{ name: 'X-Internal-Api-Key', type: 'apiKey' }],
     url: '/api/internal/v1/analysis-jobs/{analysisJobId}/world-setting-subjects',
     ...options
+});
+
+/**
+ * 회원 즉시 탈퇴 요청
+ *
+ * 현재 비밀번호와 고정 확인 문구를 검증한 뒤 계정을 즉시 PURGING 상태로 전환합니다. 이후 인증을 차단하고 기존 작품 영구 삭제 파이프라인으로 모든 작품을 비동기 파기한 뒤 회원 행을 복구 불가능하게 삭제합니다.
+ */
+export const withdrawMe = <ThrowOnError extends boolean = true>(options: Options<WithdrawMeData, ThrowOnError>): RequestResult<WithdrawMeResponses, WithdrawMeErrors, ThrowOnError> => (options.client ?? client).delete<WithdrawMeResponses, WithdrawMeErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/members/me',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });

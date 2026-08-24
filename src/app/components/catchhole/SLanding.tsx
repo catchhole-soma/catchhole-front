@@ -104,9 +104,11 @@ const SERVICES: Service[] = [
 
 export default function SLanding() {
   const navigate = useNavigate();
-  const { openAuth, openTerms } = usePublicModalNavigation();
+  const { openAuth } = usePublicModalNavigation();
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  const openDemo = () => navigate('/demo', { state: { transition: 'dissolve' } });
+  const openDemo = () => {
+    navigate('/demo', { state: { transition: 'dissolve' } });
+  };
 
   return (
     <div className="landing-page theme-v2">
@@ -243,8 +245,8 @@ export default function SLanding() {
             <span>원문 근거와 함께 관리하는 작품 설정</span>
           </div>
           <div className="landing-footer__links">
-            <button type="button" onClick={() => openTerms('privacy')}>개인정보 처리방침</button>
-            <button type="button" onClick={() => openTerms('terms')}>이용약관</button>
+            <button type="button" onClick={() => navigate('/privacy')}>개인정보 처리방침</button>
+            <button type="button" onClick={() => navigate('/terms')}>이용약관</button>
             <span>© 2026 CatchHole</span>
           </div>
         </div>

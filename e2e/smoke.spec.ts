@@ -1,4 +1,4 @@
-import { test, expect, type Locator } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -23,6 +23,43 @@ async function expectReadableDialogText(locator: Locator, expectedColor: string)
       / (Math.min(foreground, background) + 0.05);
   });
   expect(contrast).toBeGreaterThanOrEqual(4.5);
+}
+
+async function mockCurrentLegalDocuments(page: Page) {
+  await page.route('**/api/v1/legal-documents/current*', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        termsOfService: {
+          id: 31,
+          documentType: 'TERMS_OF_SERVICE',
+          locale: 'ko-KR',
+          documentVersion: '2026-08-24',
+          title: 'CatchHole 이용약관',
+          contentMarkdown: '# CatchHole 이용약관\n\n현재 게시된 이용약관입니다.',
+          contentHash: 'a'.repeat(64),
+          status: 'PUBLISHED',
+          effectiveDate: '2026-08-24',
+          publishedAt: '2026-08-24T18:00:00',
+        },
+        privacyPolicy: {
+          id: 32,
+          documentType: 'PRIVACY_POLICY',
+          locale: 'ko-KR',
+          documentVersion: '2026-08-24',
+          title: 'CatchHole 개인정보처리방침',
+          contentMarkdown: '# CatchHole 개인정보처리방침\n\n현재 게시된 개인정보처리방침입니다.',
+          contentHash: 'b'.repeat(64),
+          status: 'PUBLISHED',
+          effectiveDate: '2026-08-24',
+          publishedAt: '2026-08-24T18:00:00',
+        },
+      },
+      error: null,
+    }),
+  }));
 }
 
 // 실제 로그인/작품선택(백엔드 연동)은 검증하지 않음 — accessToken을 직접 주입해
@@ -782,13 +819,7 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   });
 
   await expect(page.getByText('2개 회차 감지됨', { exact: true })).toBeVisible();
-  await expect(page.getByText('AI 분석을 실행하면 원고의 필요한 구간이 OpenAI API로 처리됩니다.')).toBeVisible();
-  await page.getByRole('button', { name: '자세히 보기' }).click();
-  const privacyDialog = page.getByRole('dialog', { name: '법적 고지' });
-  await expect(privacyDialog).toBeVisible();
-  await expect(privacyDialog.getByText('5. 외부 AI 처리')).toBeVisible();
-  await expect(page.locator('.terms-modal-backdrop')).toHaveCSS('z-index', '400');
-  await privacyDialog.getByRole('button', { name: '법적 고지 닫기' }).click();
+  await expect(page.getByLabel('AI 원고 처리 안내')).toHaveCount(0);
   expect(detectionMultipartBody).toContain('name="metadata"');
   expect(detectionMultipartBody).not.toContain('name="data"');
   expect(detectionMultipartBody).toContain('"uploadType":"MULTI_EPISODE_SINGLE_FILE"');
@@ -1277,15 +1308,8 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
     'rgb(25, 30, 38)',
   );
   await expect(reanalysisDialog.getByText(/후속 회차가/)).toContainText('1개');
-  await reanalysisDialog.getByRole('button', { name: '자세히 보기' }).click();
-  const legalDialog = page.getByRole('dialog', { name: '법적 고지' });
-  const externalAiSection = legalDialog.locator('[data-legal-section="external-ai"]');
-  await expect(externalAiSection).toBeVisible();
-  await expect(externalAiSection).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(legalDialog).not.toBeVisible();
-  await expect(reanalysisDialog).toBeVisible();
-  const confirmReanalysis = reanalysisDialog.getByRole('button', { name: '이해하고 재분석' });
+  await expect(reanalysisDialog.getByLabel('AI 원고 처리 안내')).toHaveCount(0);
+  const confirmReanalysis = reanalysisDialog.getByRole('button', { name: '재분석 시작' });
   await confirmReanalysis.click();
 
   await expect.poll(() => analysisRequestCount).toBe(1);
@@ -1557,6 +1581,7 @@ test('Auth 모달은 닫기·배경·Esc·뒤로가기로 랜딩에 복귀한다
 });
 
 test('로그인·회원가입 전환과 약관 오버레이는 히스토리를 일관되게 유지한다', async ({ page }) => {
+  await mockCurrentLegalDocuments(page);
   await page.goto('/landing');
   await page.getByRole('button', { name: '로그인', exact: true }).first().click();
 
@@ -1572,7 +1597,8 @@ test('로그인·회원가입 전환과 약관 오버레이는 히스토리를 �
   await expect(page).toHaveURL(/\/signup\?terms=terms$/);
   const legalDialog = page.getByRole('dialog', { name: '법적 고지' });
   await expect(legalDialog).toBeVisible();
-  await expect(legalDialog.getByText('문서 버전 2026-08-23 · 시행일 2026년 8월 23일')).toBeVisible();
+  await expect(legalDialog.getByText('문서 버전 2026-08-24')).toBeVisible();
+  await expect(legalDialog.getByText('2026년 8월 24일 시행')).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/signup$/);
@@ -1583,6 +1609,7 @@ test('로그인·회원가입 전환과 약관 오버레이는 히스토리를 �
 });
 
 test('약관 딥링크를 닫으면 Auth 딥링크를 유지한다', async ({ page }) => {
+  await mockCurrentLegalDocuments(page);
   await page.goto('/signup?terms=privacy');
 
   await expect(page.getByRole('dialog', { name: '법적 고지' })).toBeVisible();

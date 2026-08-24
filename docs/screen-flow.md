@@ -44,7 +44,8 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
 | 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 없는 공개 데모를 주 CTA로 안내하고, 전용 에디토리얼 배경 Hero와 8단계 실제 제품 아코디언, 2열 서비스 카탈로그로 기능 범위를 소개하는 Theme V2 페이지. 모바일에서도 로그인 진입점을 유지한다. |
-| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증·휴대폰 인증과 약관 동의 |
+| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증, 휴대폰 인증, 현재 게시 법률 문서 확인과 만 14세 이상 확인 |
+| 이용약관 / 개인정보처리방침 | [`/terms`](https://catch-hole.vercel.app/terms) · [`/privacy`](https://catch-hole.vercel.app/privacy) | Backend의 현재 `PUBLISHED` Markdown 원문·버전·시행일을 표시하는 공개 Theme V2 전체 화면 |
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·분석 목록·그래프·원고 허브 |
@@ -172,6 +173,7 @@ flowchart TD
   landing["랜딩 페이지<br/>/landing"]:::public
   landing -- "로그인" --> login
   landing -- "회원가입" --> signup
+  landing -. "Footer 법률 문서" .-> legalPage["이용약관 / 개인정보처리방침<br/>/terms · /privacy"]:::public
 
   login["로그인 라우트 모달<br/>/login"]:::public
   signup["회원가입 라우트 모달<br/>/signup"]:::public
@@ -183,6 +185,8 @@ flowchart TD
 
   login -- "회원가입 링크<br/>(history replace)" --> signup
   signup -- "로그인 링크<br/>(history replace)" --> login
+  signup -. "현재 게시본 조회" .-> legalDocs{"이용약관·개인정보처리방침<br/>모두 PUBLISHED인가?"}:::decision
+  legalDocs -- "아니오: 가입 잠금·재시도" --> signup
 
   login -- "이메일·비밀번호 제출" --> loginReq{"로그인 결과"}:::decision
   loginReq -- "성공" --> ok["로그인 토큰 저장"]:::private
@@ -198,10 +202,11 @@ flowchart TD
   confirmCode -- "5회 초과·만료: 새 발송 필요" --> signup
   confirmCode -- "성공: 10분 가입 토큰<br/>메모리에만 보관" --> verified["휴대폰 인증 완료"]:::public
   verified -- "인증된 번호 수정<br/>토큰·진행 상태 폐기" --> signup
-  verified --> agree{"이용약관 동의·개인정보<br/>처리방침을 확인했나?"}:::decision
+  verified --> agree{"현재 문서 동의·확인과<br/>만 14세 이상 확인을 마쳤나?"}:::decision
   agree -- "아니오: 가입 버튼 비활성" --> signup
-  agree -- "예: 회원가입 제출" --> signupReq{"회원가입 결과"}:::decision
+  agree -- "예: 문서 ID와 함께 제출" --> signupReq{"회원가입 결과"}:::decision
   signupReq -- "성공 = 자동 로그인" --> ok
+  signupReq -- "게시본 교체 409<br/>법률 체크 해제·최신본 재조회" --> signup
   signupReq -- "입력·중복·네트워크 오류" --> signup
   signupReq -. "제출 중: 입력·중복 요청 잠금" .-> signup
 
@@ -221,8 +226,10 @@ flowchart TD
 
 > `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
 >
-> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. 한 체크박스로 이용약관 동의와 개인정보처리방침 확인을 함께 받고 Backend가 당시 문서 버전과 기록 시각을 저장합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
+> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. Backend의 현재 게시 이용약관·개인정보처리방침을 한 체크박스로 동의·확인하고 만 14세 이상을 별도 필수 체크로 확인합니다. 가입 요청에는 사용자가 본 두 문서 ID를 보내며 Backend가 현재 게시본 여부를 원자적으로 검증한 뒤 정확한 문서 FK·버전·행위와 한 번의 서버 기록 시각을 저장합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
+>
+> AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에서 고지합니다. 가입 이후 업로드·재시도·재분석마다 AI 동의를 반복하지 않고, GA4·Meta용 별도 쿠키 배너나 회원가입 체크박스를 두지 않습니다. 실제 측정 설치는 NVM-308·NVM-309 범위입니다.
 
 ---
 
