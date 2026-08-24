@@ -33926,23 +33926,8 @@
         {
           "type": "frame",
           "id": "omdL057",
-          "name": "Hero / Editorial",
+          "name": "Hero / Split Editorial",
           "children": [
-            {
-              "type": "frame",
-              "id": "omdL038",
-              "name": "Hero Backdrop",
-              "children": [],
-              "width": "fill_container",
-              "height": 640,
-              "fill": {
-                "type": "image",
-                "enabled": true,
-                "url": "../src/assets/landing/catchhole-hero-editorial-v2.webp",
-                "mode": "fill"
-              },
-              "cornerRadius": "$ch-radius-lg"
-            },
             {
               "type": "frame",
               "id": "omdL056",
@@ -33987,9 +33972,9 @@
                   "fontSize": 48,
                   "fontWeight": "800",
                   "textGrowth": "fixed-width",
-                  "width": 800,
+                  "width": 580,
                   "lineHeight": 1.18,
-                  "textAlign": "center"
+                  "textAlign": "left"
                 },
                 {
                   "type": "text",
@@ -34001,9 +33986,9 @@
                   "fontSize": 17,
                   "fontWeight": "normal",
                   "textGrowth": "fixed-width",
-                  "width": 720,
+                  "width": 580,
                   "lineHeight": 1.55,
-                  "textAlign": "center"
+                  "textAlign": "left"
                 },
                 {
                   "type": "frame",
@@ -34138,16 +34123,31 @@
                   "alignItems": "center"
                 }
               ],
-              "width": 960,
+              "width": 580,
               "layout": "vertical",
               "gap": 22,
-              "alignItems": "center"
+              "alignItems": "start"
+            },
+            {
+              "type": "frame",
+              "id": "omdL038",
+              "name": "Hero Visual / Editorial Image",
+              "children": [],
+              "width": 620,
+              "height": 560,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../src/assets/landing/catchhole-hero-editorial-v2.webp",
+                "mode": "fill"
+              }
             }
           ],
           "width": "fill_container",
           "height": 720,
           "fill": "#020B28",
           "padding": 40,
+          "gap": 48,
           "justifyContent": "center",
           "alignItems": "center"
         },
