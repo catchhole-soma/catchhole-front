@@ -96,18 +96,27 @@ export function AiTokenQuotaModal() {
   const normalizedFeedback = feedback.trim();
   const feedbackLength = countCharacters(normalizedFeedback);
   const submitting = extensionRequest.isPending;
-  const existingPendingRequest = pendingRequestQuery.data?.data?.pending
-    ? pendingRequestQuery.data.data.request
-    : undefined;
-  const pendingRequest = submittedRequest ?? existingPendingRequest;
-  const hasPendingRequest = Boolean(pendingRequest);
-  const canSubmit = feedbackLength >= MIN_FEEDBACK_LENGTH
+  const pendingRequestStatus = pendingRequestQuery.data?.data?.pending;
+  const checkingPendingRequest = !submittedRequest
+    && (pendingRequestQuery.isPending || pendingRequestQuery.isFetching);
+  const pendingRequestCheckSucceeded = !submittedRequest
+    && !checkingPendingRequest
+    && pendingRequestQuery.isSuccess
+    && typeof pendingRequestStatus === 'boolean';
+  const pendingRequestCheckFailed = !submittedRequest
+    && !checkingPendingRequest
+    && !pendingRequestCheckSucceeded;
+  const hasPendingRequest = Boolean(submittedRequest)
+    || (pendingRequestCheckSucceeded && pendingRequestStatus === true);
+  const canShowFeedbackForm = pendingRequestCheckSucceeded && pendingRequestStatus === false;
+  const canSubmit = canShowFeedbackForm
+    && feedbackLength >= MIN_FEEDBACK_LENGTH
     && feedbackLength <= MAX_FEEDBACK_LENGTH
     && !submitting;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submitting || hasPendingRequest) return;
+    if (submitting || hasPendingRequest || !canShowFeedbackForm) return;
 
     if (feedbackLength < MIN_FEEDBACK_LENGTH) {
       setFeedbackError(`조금 더 구체적으로 ${MIN_FEEDBACK_LENGTH}자 이상 작성해 주세요.`);
@@ -176,7 +185,7 @@ export function AiTokenQuotaModal() {
         <Dialog.Content
           className="ai-token-quota-modal theme-v2"
           onOpenAutoFocus={event => {
-            if (hasPendingRequest || pendingRequestQuery.isPending) return;
+            if (!canShowFeedbackForm) return;
             event.preventDefault();
             feedbackRef.current?.focus();
           }}
@@ -208,12 +217,29 @@ export function AiTokenQuotaModal() {
           </div>
 
           <div className="ai-token-quota-modal__body">
-            {pendingRequestQuery.isPending && !submittedRequest ? (
+            {checkingPendingRequest ? (
               <div className="ai-token-quota-modal__status" aria-live="polite">
                 <LoaderCircle className="ai-token-quota-modal__spinner" size={22} aria-hidden="true" />
                 <div>
                   <strong>이전 요청을 확인하고 있어요</strong>
                   <p>잠시만 기다려 주세요.</p>
+                </div>
+              </div>
+            ) : pendingRequestCheckFailed ? (
+              <div className="ai-token-quota-modal__status" role="alert">
+                <AlertTriangle size={22} aria-hidden="true" />
+                <div>
+                  <strong>이전 요청을 확인하지 못했어요</strong>
+                  <p>현재 요청 상태를 확인한 뒤 추가 사용량을 요청할 수 있습니다.</p>
+                  <div className="ai-token-quota-modal__actions">
+                    <button
+                      type="button"
+                      className="ai-token-quota-modal__secondary"
+                      onClick={() => void pendingRequestQuery.refetch()}
+                    >
+                      다시 시도
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : hasPendingRequest ? (
@@ -231,7 +257,7 @@ export function AiTokenQuotaModal() {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : canShowFeedbackForm ? (
               <form className="ai-token-quota-modal__form" onSubmit={handleSubmit} noValidate>
                 <div className="ai-token-quota-modal__field-header">
                   <label htmlFor="ai-token-extension-feedback">피드백과 사용 계획</label>
@@ -291,7 +317,7 @@ export function AiTokenQuotaModal() {
                   </button>
                 </div>
               </form>
-            )}
+            ) : null}
 
             <div className="ai-token-quota-modal__contact-row">
               <Mail size={16} aria-hidden="true" />

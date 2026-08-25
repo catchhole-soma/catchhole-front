@@ -92,6 +92,10 @@ function aiUsage() {
   };
 }
 
+function noPendingExtensionRequest(route: Route) {
+  return success(route, { pending: false, request: null });
+}
+
 type ComparisonStatus = 'FAILED' | 'PENDING' | 'PROCESSING' | 'COMPLETED';
 type ComparisonFailureCode = 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_NETWORK_ERROR';
 
@@ -197,6 +201,9 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -309,11 +316,78 @@ test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽
   )).toBeGreaterThanOrEqual(4.5);
 });
 
+test('추가 사용량 요청 폼은 현재 미처리 요청 조회가 성공한 뒤에만 표시한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let releaseReopenLookup!: () => void;
+  const reopenLookupGate = new Promise<void>(resolve => {
+    releaseReopenLookup = resolve;
+  });
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (pendingLookupCount === 1) {
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+      });
+    }
+    if (pendingLookupCount === 2) {
+      return success(route, { pending: false, request: null });
+    }
+
+    await reopenLookupGate;
+    return success(route, {
+      pending: true,
+      request: {
+        id: '88888888-8888-4888-8888-888888888888',
+        feedback: '다른 화면에서 먼저 제출해 현재 검토 중인 추가 사용량 요청입니다.',
+        context: 'REQUEST_BLOCKED',
+        status: 'PENDING',
+        createdAt: '2026-08-25T20:00:00',
+      },
+    });
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await expect(quotaDialog.getByText('이전 요청을 확인하지 못했어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  await quotaDialog.getByRole('button', { name: '다시 시도', exact: true }).click();
+  await expect(feedbackInput).toBeVisible();
+
+  await quotaDialog.getByRole('button', { name: '사용량 안내 닫기' }).click();
+  await expect(quotaDialog).toHaveCount(0);
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(3);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releaseReopenLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+});
+
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -372,6 +446,9 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -454,6 +531,9 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === '/api/v1/works') {
       return success(route, [{ id: workId, title: '설원 연대기', genre: '판타지', episodeCount: 14 }]);
     }
@@ -550,6 +630,9 @@ test('추출 전 회차 실패와 추출 후 비교 중단을 한 알림에 함�
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 13 });
     }
@@ -642,6 +725,9 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       if (phase === 'INTERRUPTED') return success(route, worldCandidateList('FAILED', 1));
@@ -772,6 +858,9 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       return success(route, phase === 'INTERRUPTED'
@@ -867,6 +956,9 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       if (phase === 'PROCESSING') {
@@ -978,6 +1070,9 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
       return success(route, mixedFailureList);
     }
@@ -1038,6 +1133,9 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       worldCandidateRequestCount += 1;
@@ -1125,6 +1223,9 @@ test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       return success(
@@ -1186,6 +1287,9 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === '/api/v1/works') {
       return success(route, [{ id: workId, title: '설원 연대기', genre: '판타지', episodeCount: 12 }]);
     }
