@@ -100,6 +100,7 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 | 회원가입 | [`/signup`](https://www.catchhole.com/signup) | [auth](./auth.md#회원가입-ssignup) |
 | 약관·개인정보 모달 | [`/login?terms=terms`](https://www.catchhole.com/login?terms=terms) | [auth](./auth.md#약관개인정보-모달-termsmodal) |
 | 작품 목록 | [`/works`](https://www.catchhole.com/works) | [work](./work.md#작품-목록-s0workpicker) |
+| 사용자 메뉴·회원 탈퇴 | 보호 화면 공통 · 별도 경로 없음 | [auth](./auth.md#사용자-메뉴회원-탈퇴-usermenu) |
 | 작품 등록 모달 | — | [work](./work.md#작품-등록-모달-workcreatemodal) |
 | 대시보드 | [`/dashboard`](https://www.catchhole.com/dashboard) | [원고](./episode.md#원고-목록-대시보드-원고-탭) · [분석](./analysis.md#분석-목록-analysislist) · [캐릭터·설정집·검색](./character.md#작품-설정-캐릭터-탭) · [세계관](./world-setting.md#작품-설정-세계관-탭) |
 | 회차 업로드 | [`/episode-upload`](https://www.catchhole.com/episode-upload) | [upload](./upload.md#회차-업로드-sepisodeupload) |

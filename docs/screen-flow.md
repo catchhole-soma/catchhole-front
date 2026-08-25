@@ -48,6 +48,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 이용약관 / 개인정보처리방침 | [`/terms`](https://catch-hole.vercel.app/terms) · [`/privacy`](https://catch-hole.vercel.app/privacy) | Backend의 현재 `PUBLISHED` Markdown 원문·버전·시행일을 표시하는 공개 Theme V2 전체 화면 |
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
+| 사용자 메뉴 / 회원 탈퇴 | 별도 경로 없음 | 보호 화면 상단에서 필명·이메일, 로그아웃, 구분된 회원 탈퇴 진입점을 제공하고 현재 비밀번호·고정 문구 확인 모달을 표시 |
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품의 설정DB·리포트·분석 목록·그래프·원고 허브 |
 | **캐릭터 DB 조회** | [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | Theme V2 카드 목록에서 현재 설정 상세·변화 이력·원문 근거를 이어서 조회 |
 | **세계관 DB 조회** | [`/dashboard?nav=settingDB&tab=worldsettings`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) | Theme V2 필터·대상 목록·상세에서 확정 설정과 원문 근거를 조회 |
@@ -217,7 +218,14 @@ flowchart TD
   terms -. "닫기 · Esc · 뒤로" .-> signup
 
   ok --> works["작품 선택<br/>/works"]:::private
-  works -- "로그아웃" --> landing
+  works -- "상단 아바타" --> userMenu["사용자 메뉴<br/>필명 · 이메일 · 액션"]:::modal
+  userMenu -- "로그아웃" --> landing
+  userMenu -- "회원 탈퇴" --> withdrawal["회원 탈퇴 확인 모달<br/>현재 비밀번호 · ‘회원 탈퇴’"]:::modal
+  withdrawal -- "취소 · Esc · 배경" --> works
+  withdrawal -- "두 입력 검증 완료" --> withdrawalReq{"DELETE /api/v1/members/me<br/>요청 결과"}:::decision
+  withdrawalReq -- "비밀번호·검증·네트워크 오류<br/>입력과 세션 유지" --> withdrawal
+  withdrawalReq -- "202 Accepted" --> sessionEnd["refresh 무효화<br/>token · Query/Mutation 캐시 삭제"]:::modal
+  sessionEnd -->|"history replace · 1회 안내"| landing
 
   classDef public fill:#1A1A22,stroke:#00C896,stroke-width:1.5px,color:#F0F0F5;
   classDef private fill:#1A1A22,stroke:#7C5CFC,stroke-width:1.5px,color:#F0F0F5;
@@ -226,6 +234,8 @@ flowchart TD
 ```
 
 > `/login`과 `/signup`은 독립된 전체 화면 대신 랜딩을 배경으로 유지하는 라우트 모달입니다. 데스크톱은 중앙 모달, 모바일은 전체 화면으로 표시합니다. 랜딩에서 연 모달은 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 열린 모달은 닫을 때 `/landing`으로 대체 이동합니다. 인증 성공은 `/works`, 로그아웃은 `/landing`으로 현재 히스토리 항목을 대체합니다.
+>
+> 회원 탈퇴는 별도 계정 관리 라우트 없이 모든 보호 화면의 사용자 메뉴에서 시작합니다. `202 Accepted` 전에 오류가 나면 모달과 입력값·세션을 유지하고, 접수된 경우에만 로컬 인증 상태와 캐시를 제거한 뒤 `/landing`으로 대체 이동합니다. 랜딩의 접수 안내는 history state를 즉시 소비해 새로고침·뒤로가기에서 반복하지 않습니다. 복구·삭제 진행 상태 조회는 현재 범위가 아닙니다.
 >
 > MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. Backend의 현재 게시 이용약관·개인정보처리방침을 한 체크박스로 동의·확인하고 만 14세 이상을 별도 필수 체크로 확인합니다. 가입 요청에는 사용자가 본 두 문서 ID를 보내며 Backend가 현재 게시본 여부를 원자적으로 검증한 뒤 정확한 문서 FK·버전·행위와 한 번의 서버 기록 시각을 저장합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
