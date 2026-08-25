@@ -92,6 +92,10 @@ function aiUsage() {
   };
 }
 
+function noPendingExtensionRequest(route: Route) {
+  return success(route, { pending: false, request: null });
+}
+
 type ComparisonStatus = 'FAILED' | 'PENDING' | 'PROCESSING' | 'COMPLETED';
 type ComparisonFailureCode = 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_NETWORK_ERROR';
 
@@ -197,6 +201,9 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -252,7 +259,7 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await expect.poll(() => summaryRequestCount).toBeGreaterThanOrEqual(2);
   await expect(quotaDialog).toContainText('51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
   await expect(quotaDialog).not.toContainText('http');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toBeVisible();
   const interruptionAlert = page.locator('.episode-upload-alert--warning');
@@ -286,6 +293,10 @@ test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽
     contentType: 'application/json',
     body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
   }));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', route => success(route, {
+    pending: false,
+    request: null,
+  }));
   await page.goto('/landing');
   await page.evaluate(async () => {
     const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
@@ -305,11 +316,292 @@ test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽
   )).toBeGreaterThanOrEqual(4.5);
 });
 
+test('추가 사용량 요청 폼은 현재 미처리 요청 조회가 성공한 뒤에만 표시한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let releaseReopenLookup!: () => void;
+  const reopenLookupGate = new Promise<void>(resolve => {
+    releaseReopenLookup = resolve;
+  });
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (pendingLookupCount === 1) {
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+      });
+    }
+    if (pendingLookupCount === 2) {
+      return success(route, { pending: false, request: null });
+    }
+
+    await reopenLookupGate;
+    return success(route, {
+      pending: true,
+      request: {
+        id: '88888888-8888-4888-8888-888888888888',
+        feedback: '다른 화면에서 먼저 제출해 현재 검토 중인 추가 사용량 요청입니다.',
+        context: 'REQUEST_BLOCKED',
+        status: 'PENDING',
+        createdAt: '2026-08-25T20:00:00',
+      },
+    });
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await expect(quotaDialog.getByText('이전 요청을 확인하지 못했어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  await quotaDialog.getByRole('button', { name: '다시 시도', exact: true }).click();
+  await expect(feedbackInput).toBeVisible();
+
+  await quotaDialog.getByRole('button', { name: '사용량 안내 닫기' }).click();
+  await expect(quotaDialog).toHaveCount(0);
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(3);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releaseReopenLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+});
+
+test('모달을 다시 열면 진행 중이던 조회를 취소하고 현재 미처리 요청을 새로 확인한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let releaseFirstLookup!: () => void;
+  const firstLookupGate = new Promise<void>(resolve => {
+    releaseFirstLookup = resolve;
+  });
+  const pendingRequest = {
+    id: '88888888-8888-4888-8888-888888888891',
+    feedback: '다른 탭에서 먼저 제출해 현재 검토 중인 추가 사용량 요청입니다.',
+    context: 'REQUEST_BLOCKED',
+    status: 'PENDING',
+    createdAt: '2026-08-25T21:30:00',
+  };
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (pendingLookupCount === 1) {
+      await firstLookupGate;
+      try {
+        await success(route, { pending: false, request: null });
+      } catch {
+        // 재오픈 시 취소된 첫 요청은 응답을 전달할 대상이 없다.
+      }
+      return;
+    }
+
+    return success(route, { pending: true, request: pendingRequest });
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await expect.poll(() => pendingLookupCount).toBe(1);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '사용량 안내 닫기' }).click();
+  await expect(quotaDialog).toHaveCount(0);
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(2);
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releaseFirstLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+});
+
+test('열린 사용량 모달에 새 중단 이벤트가 오면 미처리 요청을 다시 확인한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let extensionRequestCount = 0;
+  let hasPendingExtensionRequest = false;
+  let releasePendingLookup!: () => void;
+  const pendingLookupGate = new Promise<void>(resolve => {
+    releasePendingLookup = resolve;
+  });
+  const pendingRequest = {
+    id: '88888888-8888-4888-8888-888888888889',
+    feedback: '분석을 이어서 검토하기 위해 추가 사용량을 요청하는 테스트 피드백입니다.',
+    context: 'REQUEST_BLOCKED',
+    status: 'PENDING',
+    createdAt: '2026-08-25T20:30:00',
+  };
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (!hasPendingExtensionRequest) {
+      return success(route, { pending: false, request: null });
+    }
+
+    await pendingLookupGate;
+    return success(route, { pending: true, request: pendingRequest });
+  });
+  await page.route('**/api/v1/ai-token-usages/extension-requests', route => {
+    extensionRequestCount += 1;
+    hasPendingExtensionRequest = true;
+    return success(route, pendingRequest);
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await feedbackInput.fill(pendingRequest.feedback);
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(2);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releasePendingLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  expect(extensionRequestCount).toBe(1);
+});
+
+test('새 중단 이벤트는 처리 중인 추가 사용량 요청 잠금을 유지한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let extensionRequestCount = 0;
+  let releaseExtensionRequest!: () => void;
+  const extensionRequestGate = new Promise<void>(resolve => {
+    releaseExtensionRequest = resolve;
+  });
+  const pendingRequest = {
+    id: '88888888-8888-4888-8888-888888888890',
+    feedback: '분석을 이어서 검토하기 위해 추가 사용량을 요청하는 처리 중 테스트 피드백입니다.',
+    context: 'REQUEST_BLOCKED',
+    status: 'PENDING',
+    createdAt: '2026-08-25T21:00:00',
+  };
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', route => {
+    pendingLookupCount += 1;
+    return success(route, { pending: false, request: null });
+  });
+  await page.route('**/api/v1/ai-token-usages/extension-requests', async route => {
+    extensionRequestCount += 1;
+    await extensionRequestGate;
+    return success(route, pendingRequest);
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  const closeButton = quotaDialog.getByRole('button', { name: '사용량 안내 닫기' });
+  await feedbackInput.fill(pendingRequest.feedback);
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect.poll(() => extensionRequestCount).toBe(1);
+  const pendingLookupsBeforeNotice = pendingLookupCount;
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThan(pendingLookupsBeforeNotice);
+  await expect(feedbackInput).toBeDisabled();
+  await expect(closeButton).toBeDisabled();
+  await expect(quotaDialog.getByRole('button', { name: '제출 중...', exact: true })).toBeDisabled();
+  expect(extensionRequestCount).toBe(1);
+
+  releaseExtensionRequest();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  expect(extensionRequestCount).toBe(1);
+});
+
+test('열린 사용량 모달의 피드백 초안과 제출 오류는 새 중단 이벤트에도 유지한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  const feedbackDraft = '분석을 계속 진행하려고 작성 중이던 피드백과 구체적인 사용 계획입니다.';
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', route => {
+    pendingLookupCount += 1;
+    return success(route, { pending: false, request: null });
+  });
+  await page.route('**/api/v1/ai-token-usages/extension-requests', route => route.fulfill({
+    status: 500,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+  }));
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  const submissionError = quotaDialog.getByText(
+    '요청을 보내지 못했습니다. 입력한 내용은 유지되니 잠시 후 다시 시도해 주세요.',
+    { exact: true },
+  );
+  await feedbackInput.fill(feedbackDraft);
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect(submissionError).toBeVisible();
+  await expect(feedbackInput).toHaveValue(feedbackDraft);
+  const pendingLookupsBeforeNotice = pendingLookupCount;
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThan(pendingLookupsBeforeNotice);
+  await expect(feedbackInput).toHaveValue(feedbackDraft);
+  await expect(submissionError).toBeVisible();
+});
+
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -350,7 +642,7 @@ test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('삭제되어 사용할 수 없는 회차가 있습니다', { exact: true })).toBeVisible();
   await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toHaveCount(0);
@@ -368,6 +660,9 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 12 });
     }
@@ -439,7 +734,7 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('1개 회차 분석이 사용량 부족으로 중단됐습니다.');
   await expect(quotaDialog).not.toContainText('세계관 설정 비교');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('일부 회차 분석에 실패했습니다', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toBeVisible();
@@ -450,6 +745,9 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === '/api/v1/works') {
       return success(route, [{ id: workId, title: '설원 연대기', genre: '판타지', episodeCount: 14 }]);
     }
@@ -512,7 +810,7 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('3개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   const interruptedOnlyCard = page.getByRole('article').filter({ hasText: '14화' });
   const interruptedStatus = interruptedOnlyCard.getByText('세계관 비교 일부 중단', { exact: true });
@@ -546,6 +844,9 @@ test('추출 전 회차 실패와 추출 후 비교 중단을 한 알림에 함�
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}`) {
       return success(route, { id: workId, title: '설원 연대기', genre: '판타지', latestEpisodeNo: 13 });
     }
@@ -638,6 +939,9 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       if (phase === 'INTERRUPTED') return success(route, worldCandidateList('FAILED', 1));
@@ -688,7 +992,7 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await expect(page.getByText('1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '다시 비교' })).toHaveCount(0);
 
@@ -768,6 +1072,9 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       return success(route, phase === 'INTERRUPTED'
@@ -812,7 +1119,7 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: /캐릭터 후보/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBeNull();
@@ -863,6 +1170,9 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       if (phase === 'PROCESSING') {
@@ -914,7 +1224,7 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   const progressBanner = page.locator('.world-token-resume-banner--progress');
@@ -939,7 +1249,7 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
   phase = 'INTERRUPTED';
   await page.reload();
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   const dangerBanner = page.locator('.world-token-resume-banner--danger');
@@ -974,6 +1284,9 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
       return success(route, mixedFailureList);
     }
@@ -997,7 +1310,7 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   const mixedFailureNotice = page.getByRole('status').filter({ hasText: '비교 중단·실패 혼합' });
   const mixedFailureBadge = page.locator('.world-candidate-group-card .review-badge')
@@ -1034,6 +1347,9 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       worldCandidateRequestCount += 1;
@@ -1083,7 +1399,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
   await expect.poll(() => resumeRequestCount).toBe(1);
@@ -1098,7 +1414,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
   await expect.poll(() => worldCandidateRequestCount).toBeGreaterThan(requestsBeforeReinterruption);
   await expect(quotaDialog).toBeVisible({ timeout: 5_000 });
   await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
   await expect.poll(() => resumeRequestCount).toBe(2);
@@ -1121,6 +1437,9 @@ test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
       && request.method() === 'GET') {
       return success(
@@ -1160,7 +1479,7 @@ test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   await expect(page.getByText('1개 비교 결과를 추가로 확인해 주세요.')).toBeVisible();
@@ -1182,6 +1501,9 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return noPendingExtensionRequest(route);
+    }
     if (pathname === '/api/v1/works') {
       return success(route, [{ id: workId, title: '설원 연대기', genre: '판타지', episodeCount: 12 }]);
     }
@@ -1303,7 +1625,7 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
   await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(2);
   await expect(listQuotaDialog).toBeVisible();
   await expect(listQuotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await listQuotaDialog.getByRole('button', { name: '확인' }).click();
+  await listQuotaDialog.getByRole('button', { name: '취소' }).click();
   await page.clock.resume();
 
   await page.getByRole('button', { name: '남은 비교 확인' }).click();

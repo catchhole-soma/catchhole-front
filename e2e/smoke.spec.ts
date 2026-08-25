@@ -120,8 +120,10 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
 });
 
 test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
+  let extensionRequestBody: { feedback: string; context: string } | null = null;
   await page.route('**/api/v1/**', route => {
-    const pathname = new URL(route.request().url()).pathname;
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/quota-test')) {
       return route.fulfill({
         status: 409,
@@ -130,6 +132,33 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
           success: false,
           message: '기본 AI 토큰을 모두 사용했습니다.',
           error: { code: 'AI_TOKEN_QUOTA_EXHAUSTED', status: 409, details: [] },
+        }),
+      });
+    }
+
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { pending: false, request: null }, error: null }),
+      });
+    }
+
+    if (pathname.endsWith('/ai-token-usages/extension-requests') && request.method() === 'POST') {
+      extensionRequestBody = request.postDataJSON() as { feedback: string; context: string };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: '00000000-0000-4000-8000-000000000099',
+            feedback: extensionRequestBody.feedback,
+            context: extensionRequestBody.context,
+            status: 'PENDING',
+            requestedAt: '2026-08-25T17:00:00',
+          },
+          error: null,
         }),
       });
     }
@@ -146,11 +175,11 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
         }
       : pathname.endsWith('/ai-token-usages/me')
         ? {
-            grantedTokens: 1000,
-            usedTokens: 900,
+            grantedTokens: 4_000_000,
+            usedTokens: 2_000_000,
             reservedTokens: 0,
-            remainingTokens: 100,
-            remainingPercent: 10,
+            remainingTokens: 2_000_000,
+            remainingPercent: 100,
             exhausted: false,
             contactEmail: 'feedback@catchhole.com',
           }
@@ -168,7 +197,7 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
   await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
   await expect(page.getByText('남은 사용량', { exact: true })).toBeVisible();
-  await expect(page.getByText('10.0%', { exact: true })).toBeVisible();
+  await expect(page.getByText('100.0%', { exact: true })).toBeVisible();
 
   await page.evaluate(async () => {
     const modulePath = '/src/app/lib/auth-fetch.ts';
@@ -178,11 +207,36 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
     });
   });
 
-  await expect(page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' })).toBeVisible();
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  await expect(quotaDialog).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 640 });
+  const dialogBox = await quotaDialog.boundingBox();
+  expect(dialogBox).not.toBeNull();
+  expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(320);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  const submitButton = quotaDialog.getByRole('button', { name: '제출', exact: true });
+  await expect(quotaDialog.getByRole('button', { name: '취소', exact: true })).toBeVisible();
+  await expect(feedbackInput).toBeVisible();
+  await expect.poll(async () => (await submitButton.boundingBox())?.height ?? 0)
+    .toBeGreaterThanOrEqual(44);
+  await feedbackInput.fill('가'.repeat(34));
+  await expect(submitButton).toBeDisabled();
+  await feedbackInput.fill(`  ${'가'.repeat(35)}  `);
+  await expect(submitButton).toBeEnabled();
+
   const contactLink = page.getByRole('link', { name: 'feedback@catchhole.com' });
   await expect(contactLink).toBeVisible();
-  await expect(contactLink).toHaveCSS('color', 'rgb(0, 98, 196)');
+  await expectReadableDialogText(contactLink, 'rgb(0, 90, 175)');
   await expect(contactLink).toHaveCSS('text-decoration-line', 'underline');
+
+  await submitButton.click();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  expect(extensionRequestBody).toEqual({
+    feedback: '가'.repeat(35),
+    context: 'REQUEST_BLOCKED',
+  });
 });
 
 test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
@@ -1329,6 +1383,165 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
   expect(analysisRequestCount).toBe(1);
+});
+
+test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다시 노출하지 않는다', async ({ page }) => {
+  const workId = '71111111-1111-4111-8111-111111111111';
+  const episodeId = '74444444-4444-4444-8444-444444444444';
+  const batchId = '72222222-2222-4222-8222-222222222222';
+  const extensionRequestId = '79999999-9999-4999-8999-999999999999';
+  let analysisRequestCount = 0;
+  let hasPendingExtensionRequest = false;
+  let releaseFirstAnalysisRequest!: () => void;
+  const firstAnalysisResponseGate = new Promise<void>(resolve => {
+    releaseFirstAnalysisRequest = resolve;
+  });
+
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
+      analysisRequestCount += 1;
+      if (analysisRequestCount === 1) await firstAnalysisResponseGate;
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: '기본 AI 토큰을 모두 사용했습니다.',
+          error: { code: 'AI_TOKEN_QUOTA_EXHAUSTED', status: 409, details: [] },
+        }),
+      });
+    }
+
+    if (pathname.endsWith('/ai-token-usages/extension-requests/me/pending')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            pending: hasPendingExtensionRequest,
+            request: hasPendingExtensionRequest
+              ? {
+                  id: extensionRequestId,
+                  feedback: '재분석을 이어가기 위한 충분한 길이의 피드백입니다.',
+                  context: 'REQUEST_BLOCKED',
+                  status: 'PENDING',
+                  createdAt: '2026-08-25T19:30:00',
+                }
+              : null,
+          },
+          error: null,
+        }),
+      });
+    }
+
+    if (pathname.endsWith('/ai-token-usages/extension-requests') && request.method() === 'POST') {
+      hasPendingExtensionRequest = true;
+      const body = request.postDataJSON() as { feedback: string; context: string };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: extensionRequestId,
+            feedback: body.feedback,
+            context: body.context,
+            status: 'PENDING',
+            createdAt: '2026-08-25T19:30:00',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    const data = pathname.endsWith('/auth/me')
+      ? {
+          id: 7,
+          email: 'episode-reanalysis-quota@example.com',
+          displayName: '재분석 사용량 테스트',
+          phoneNumber: '01012345678',
+          phoneVerified: false,
+          role: 'AUTHOR',
+          status: 'ACTIVE',
+        }
+      : pathname.endsWith(`/${workId}/episodes`)
+        ? [{
+            id: episodeId,
+            batchId,
+            episodeNo: 1,
+            title: '사용량 소진 재분석 회차',
+            originalFilename: 'episode-1.txt',
+            contentUpdatedAt: '2026-08-25T19:00:00',
+            charCount: 100,
+            analysisStatus: 'REANALYSIS_REQUIRED',
+            unresolvedFindingCount: null,
+          }]
+        : pathname.endsWith(`/works/${workId}`)
+          ? { id: workId, title: '현재 작품', genre: '판타지' }
+          : pathname.endsWith('/works')
+            ? [{ id: workId, title: '현재 작품', genre: '판타지', episodeCount: 1 }]
+            : pathname.endsWith('/ai-token-usages/me')
+              ? {
+                  grantedTokens: 2_000_000,
+                  usedTokens: 2_000_000,
+                  reservedTokens: 0,
+                  remainingTokens: 0,
+                  remainingPercent: 0,
+                  exhausted: true,
+                  contactEmail: 'aicatchhole@gmail.com',
+                }
+              : [];
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, error: null }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.evaluate(() => localStorage.setItem('accessToken', 'episode-reanalysis-quota-token'));
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.getByRole('button', { name: '원고 목록', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('manuscripts');
+
+  const reanalysisButton = page.getByRole('button', { name: '재분석', exact: true });
+  const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
+
+  await reanalysisButton.click();
+  await reanalysisDialog.getByRole('button', { name: '재분석 시작' }).click();
+  await expect.poll(() => analysisRequestCount).toBe(1);
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+  releaseFirstAnalysisRequest();
+
+  let quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  await expect(quotaDialog).toBeVisible();
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await feedbackInput.fill('재분석을 이어서 진행하려는 이유와 사용 계획을 충분히 작성합니다.');
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인', exact: true }).click();
+
+  await expect(quotaDialog).not.toBeVisible();
+  await expect(reanalysisDialog).toHaveCount(0);
+
+  await page.getByRole('button', { name: '원고 목록', exact: true }).click();
+  await expect(reanalysisButton).toBeVisible();
+  await reanalysisButton.click();
+  await reanalysisDialog.getByRole('button', { name: '재분석 시작' }).click();
+
+  quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '확인', exact: true }).click();
+
+  await expect(quotaDialog).not.toBeVisible();
+  await expect(reanalysisDialog).toHaveCount(0);
+  expect(analysisRequestCount).toBe(2);
 });
 
 test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이동한다', async ({ page }) => {
