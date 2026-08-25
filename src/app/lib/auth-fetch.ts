@@ -25,6 +25,7 @@ interface ErrorEnvelope {
 }
 
 const REFRESH_PATH = '/api/v1/auth/refresh';
+const AUTH_ME_PATH = '/api/v1/auth/me';
 const NO_REFRESH_PATHS = [
   '/api/v1/auth/signup',
   '/api/v1/auth/login',
@@ -51,6 +52,26 @@ async function fetchOrThrowNetworkError(input: RequestInfo | URL, init?: Request
 
 function canRefresh(url: string): boolean {
   return !NO_REFRESH_PATHS.some(path => url.includes(path));
+}
+
+function isAuthMeRequest(url: string): boolean {
+  return new URL(url).pathname === AUTH_ME_PATH;
+}
+
+async function isSessionRejectedByAuthMe(accessToken: string): Promise<boolean> {
+  try {
+    const response = await fetchOrThrowNetworkError(`${API_BASE_URL}${AUTH_ME_PATH}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.status === 401;
+  } catch {
+    return false;
+  }
 }
 
 async function inspectAiTokenQuota(response: Response): Promise<Response> {
@@ -143,8 +164,12 @@ export async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit
   const retriedResponse = await fetchOrThrowNetworkError(new Request(retryRequest, { headers }));
 
   if (retriedResponse.status === 401) {
-    clearAccessToken();
-    notifyAuthError();
+    const sessionRejected = isAuthMeRequest(retryRequest.url)
+      || await isSessionRejectedByAuthMe(accessToken);
+    if (sessionRejected) {
+      clearAccessToken();
+      notifyAuthError();
+    }
   }
 
   return inspectAiTokenQuota(retriedResponse);

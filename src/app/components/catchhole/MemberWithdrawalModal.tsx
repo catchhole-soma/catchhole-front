@@ -1,8 +1,7 @@
 import { type FormEvent, type RefObject, useId, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AlertTriangle, X } from 'lucide-react';
-import { withdrawMeMutation } from '../../api/generated/@tanstack/react-query.gen';
+import { withdrawMe } from '../../api/generated/sdk.gen';
 import { NetworkError, toApiError } from '../../lib/api-errors';
 
 const CONFIRMATION_PHRASE = '회원 탈퇴';
@@ -64,17 +63,15 @@ export function MemberWithdrawalModal({
   const formErrorId = useId();
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const confirmationInputRef = useRef<HTMLInputElement>(null);
-  const withdrawalRequest = useMutation(withdrawMeMutation());
   const [currentPassword, setCurrentPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [fieldErrors, setFieldErrors] = useState<WithdrawalFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   const canSubmit = currentPassword.trim().length > 0
     && currentPassword.length <= PASSWORD_MAX_LENGTH
     && confirmation === CONFIRMATION_PHRASE;
-  const isPending = withdrawalRequest.isPending;
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isPending) return;
@@ -98,12 +95,16 @@ export function MemberWithdrawalModal({
 
     setFieldErrors({});
     setFormError(null);
+    setIsPending(true);
     try {
-      await withdrawalRequest.mutateAsync({
+      await withdrawMe({
         body: { currentPassword, confirmation },
+        throwOnError: true,
       });
+      setIsPending(false);
       onAccepted();
     } catch (error) {
+      setIsPending(false);
       const nextErrors = toWithdrawalErrors(error);
       setFieldErrors(nextErrors.fieldErrors ?? {});
       setFormError(nextErrors.formError ?? null);

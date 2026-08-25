@@ -30,16 +30,41 @@ function accepted(route: Route) {
   }, 202);
 }
 
+function unauthorized(route: Route) {
+  return json(route, 401, {
+    success: false,
+    data: null,
+    message: '인증이 필요합니다.',
+    error: {
+      code: 'UNAUTHORIZED',
+      status: 401,
+      details: [],
+    },
+  });
+}
+
+type ApiRouteHandlers = {
+  authMe?: (route: Route) => Promise<void> | void;
+  refresh?: (route: Route) => Promise<void> | void;
+  withdrawal?: (route: Route) => Promise<void> | void;
+};
+
 async function openAuthenticatedWorks(
   page: Page,
-  withdrawalHandler: (route: Route) => Promise<void> | void = route => accepted(route),
+  handlers: ApiRouteHandlers = {},
 ) {
+  const {
+    authMe = route => success(route, member),
+    refresh,
+    withdrawal = route => accepted(route),
+  } = handlers;
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
-    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname.endsWith('/auth/me')) return authMe(route);
+    if (pathname.endsWith('/auth/refresh') && refresh) return refresh(route);
     if (pathname === '/api/v1/members/me' && request.method() === 'DELETE') {
-      return withdrawalHandler(route);
+      return withdrawal(route);
     }
     return success(route, []);
   });
@@ -57,9 +82,11 @@ async function openWithdrawalDialog(page: Page) {
 
 test('사용자 정보와 키보드 메뉴를 제공하고 202 응답 뒤에만 세션을 종료한다', async ({ page }) => {
   let requestBody: Record<string, unknown> | undefined;
-  await openAuthenticatedWorks(page, route => {
-    requestBody = route.request().postDataJSON() as Record<string, unknown>;
-    return accepted(route);
+  await openAuthenticatedWorks(page, {
+    withdrawal: route => {
+      requestBody = route.request().postDataJSON() as Record<string, unknown>;
+      return accepted(route);
+    },
   });
 
   const trigger = page.getByRole('button', { name: '사용자 메뉴 열기' });
@@ -104,16 +131,18 @@ test('사용자 정보와 키보드 메뉴를 제공하고 202 응답 뒤에만 
 });
 
 test('비밀번호 불일치 시 입력값과 세션을 유지하고 Escape 뒤 메뉴 버튼으로 복귀한다', async ({ page }) => {
-  await openAuthenticatedWorks(page, route => json(route, 400, {
-    success: false,
-    data: null,
-    message: '현재 비밀번호가 일치하지 않습니다.',
-    error: {
-      code: 'MEMBER_WITHDRAWAL_PASSWORD_MISMATCH',
-      status: 400,
-      details: [],
-    },
-  }));
+  await openAuthenticatedWorks(page, {
+    withdrawal: route => json(route, 400, {
+      success: false,
+      data: null,
+      message: '현재 비밀번호가 일치하지 않습니다.',
+      error: {
+        code: 'MEMBER_WITHDRAWAL_PASSWORD_MISMATCH',
+        status: 400,
+        details: [],
+      },
+    }),
+  });
   const dialog = await openWithdrawalDialog(page);
   const password = dialog.getByLabel('현재 비밀번호');
   const confirmation = dialog.getByLabel('확인 문구');
@@ -132,15 +161,68 @@ test('비밀번호 불일치 시 입력값과 세션을 유지하고 Escape 뒤 
   await expect(page.getByRole('button', { name: '사용자 메뉴 열기' })).toBeFocused();
 });
 
+test('탈퇴 API의 재시도 401만으로 유효한 세션을 제거하지 않는다', async ({ page }) => {
+  let authMeAttempts = 0;
+  let refreshAttempts = 0;
+  let withdrawalAttempts = 0;
+  await openAuthenticatedWorks(page, {
+    authMe: route => {
+      authMeAttempts += 1;
+      return success(route, member);
+    },
+    refresh: route => {
+      refreshAttempts += 1;
+      return success(route, { accessToken: 'refreshed-member-withdrawal-token' });
+    },
+    withdrawal: route => {
+      withdrawalAttempts += 1;
+      return unauthorized(route);
+    },
+  });
+  const authMeAttemptsBeforeWithdrawal = authMeAttempts;
+  const dialog = await openWithdrawalDialog(page);
+  await dialog.getByLabel('현재 비밀번호').fill('current-password');
+  await dialog.getByLabel('확인 문구').fill('회원 탈퇴');
+  await dialog.getByRole('button', { name: '회원 탈퇴', exact: true }).click();
+
+  await expect(dialog.getByText('로그인 상태를 확인할 수 없습니다. 다시 로그인한 뒤 시도해 주세요.'))
+    .toBeVisible();
+  await expect(page).toHaveURL(/\/works$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .toBe('refreshed-member-withdrawal-token');
+  expect(withdrawalAttempts).toBe(2);
+  expect(refreshAttempts).toBe(1);
+  expect(authMeAttempts).toBe(authMeAttemptsBeforeWithdrawal + 1);
+});
+
+test('탈퇴 재시도 401 뒤 auth/me도 401이면 세션을 제거한다', async ({ page }) => {
+  let rejectSession = false;
+  await openAuthenticatedWorks(page, {
+    authMe: route => rejectSession ? unauthorized(route) : success(route, member),
+    refresh: route => success(route, { accessToken: 'expired-member-withdrawal-token' }),
+    withdrawal: route => unauthorized(route),
+  });
+  const dialog = await openWithdrawalDialog(page);
+  await dialog.getByLabel('현재 비밀번호').fill('current-password');
+  await dialog.getByLabel('확인 문구').fill('회원 탈퇴');
+  rejectSession = true;
+  await dialog.getByRole('button', { name: '회원 탈퇴', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+});
+
 test('처리 중에는 중복 요청과 닫기를 막는다', async ({ page }) => {
   let attempts = 0;
   let releaseRequest: (() => void) | undefined;
-  await openAuthenticatedWorks(page, async route => {
-    attempts += 1;
-    await new Promise<void>(resolve => {
-      releaseRequest = resolve;
-    });
-    await accepted(route);
+  await openAuthenticatedWorks(page, {
+    withdrawal: async route => {
+      attempts += 1;
+      await new Promise<void>(resolve => {
+        releaseRequest = resolve;
+      });
+      await accepted(route);
+    },
   });
   const dialog = await openWithdrawalDialog(page);
   await dialog.getByLabel('현재 비밀번호').fill('correct-password');
