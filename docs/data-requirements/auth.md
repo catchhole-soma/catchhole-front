@@ -55,11 +55,11 @@ Content-Type: application/json
 }
 ```
 
-- 생성 SDK의 `withdrawMeMutation`만 사용하며 비밀번호와 확인 문구를 로그·브라우저 저장소·쿼리 캐시에 기록하지 않는다.
+- 생성 SDK의 `withdrawMe`를 MutationCache를 거치지 않고 직접 호출하며 비밀번호와 확인 문구를 로그·브라우저 저장소·Query/Mutation 캐시에 기록하지 않는다.
 - `202 Accepted`를 받은 뒤에만 진행 중인 refresh를 무효화하고 access token과 전체 Query/Mutation 캐시를 지운다. 이후 `/landing`으로 현재 히스토리 항목을 대체하고 한 번만 보이는 탈퇴 접수 안내를 전달한다.
 - 랜딩은 안내를 화면 로컬 상태로 옮긴 직후 history state의 `memberWithdrawalAccepted`를 제거한다. 새로고침이나 뒤로가기로 같은 성공 안내를 반복하지 않는다.
 - 비밀번호 불일치(`MEMBER_WITHDRAWAL_PASSWORD_MISMATCH`)는 현재 비밀번호 필드 오류로 표시한다. 요청 검증 오류는 해당 필드에 표시한다.
-- 400·네트워크·일반 서버 오류에서는 모달, 두 입력값, access token과 캐시를 유지한다. 401은 인증 상태를 다시 확인해야 한다고 안내하며 공통 세션 갱신·만료 정책을 따른다.
+- 400·네트워크·일반 서버 오류에서는 모달, 두 입력값, access token과 캐시를 유지한다. 탈퇴 API가 refresh와 원 요청 재시도 뒤에도 401이면 `/auth/me`로 세션을 재검증하고, `/auth/me`도 401일 때만 세션을 제거한다. 세션이 유효하거나 확인할 수 없는 5xx·네트워크 오류에서는 입력과 세션을 유지한다.
 
 **4. BE → FE 제공 데이터 요구사항**
 
