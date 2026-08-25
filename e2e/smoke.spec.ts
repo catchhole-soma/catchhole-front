@@ -1675,7 +1675,7 @@ test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', 
 
   await expect(page.getByText('작품 선택', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '사용자 메뉴 열기' }).click();
-  await page.getByRole('button', { name: '로그아웃' }).click();
+  await page.getByRole('menuitem', { name: '로그아웃' }).click();
 
   await expect(page).toHaveURL(/\/landing$/);
 });

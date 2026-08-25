@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowRight,
   BookOpenText,
@@ -13,8 +13,9 @@ import {
   UploadCloud,
   UsersRound,
   WandSparkles,
+  X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
@@ -103,15 +104,46 @@ const SERVICES: Service[] = [
 ];
 
 export default function SLanding() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { openAuth } = usePublicModalNavigation();
+  const locationState = (location.state ?? {}) as Record<string, unknown>;
+  const withdrawalAccepted = locationState.memberWithdrawalAccepted === true;
+  const [withdrawalNoticeVisible, setWithdrawalNoticeVisible] = useState(withdrawalAccepted);
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   const openDemo = () => {
     navigate('/demo', { state: { transition: 'dissolve' } });
   };
 
+  useEffect(() => {
+    if (!withdrawalAccepted) return;
+    setWithdrawalNoticeVisible(true);
+    const nextState = { ...((location.state ?? {}) as Record<string, unknown>) };
+    delete nextState.memberWithdrawalAccepted;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: nextState,
+    });
+  }, [location.hash, location.pathname, location.search, location.state, navigate, withdrawalAccepted]);
+
   return (
     <div className="landing-page theme-v2">
+      {withdrawalNoticeVisible && (
+        <div className="landing-withdrawal-notice" role="status" aria-live="polite" aria-atomic="true">
+          <CheckCircle2 size={20} aria-hidden="true" />
+          <span>
+            <strong>회원 탈퇴가 접수되었습니다.</strong>
+            <span>계정과 세션을 더 이상 사용할 수 없습니다.</span>
+          </span>
+          <button
+            type="button"
+            aria-label="회원 탈퇴 안내 닫기"
+            onClick={() => setWithdrawalNoticeVisible(false)}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
       <header className="landing-header">
         <div className="landing-header__inner">
           <ProductBrand compact />

@@ -7,6 +7,45 @@
   font-family: 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+.landing-withdrawal-notice {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 100;
+  display: grid;
+  width: min(560px, calc(100vw - 32px));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px 11px 16px;
+  border: 1px solid rgb(15 159 122 / 28%);
+  border-radius: 16px;
+  background: var(--ch-surface);
+  color: var(--ch-success-ink);
+  box-shadow: var(--ch-shadow-float);
+  transform: translateX(-50%);
+  animation: landing-withdrawal-notice-in 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.landing-withdrawal-notice > svg { color: var(--ch-success); }
+.landing-withdrawal-notice > span { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.landing-withdrawal-notice strong { color: var(--ch-ink); font-size: 14px; }
+.landing-withdrawal-notice span span { color: var(--ch-text-muted); font-size: 13px; line-height: 1.45; }
+.landing-withdrawal-notice button {
+  display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center;
+  padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--ch-text-muted); cursor: pointer;
+}
+.landing-withdrawal-notice button:hover { background: var(--ch-canvas); color: var(--ch-ink); }
+.landing-withdrawal-notice button:active { transform: scale(.94); }
+
+@keyframes landing-withdrawal-notice-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-withdrawal-notice { animation: none; }
+}
+
 .landing-header {
   position: sticky;
   top: 0;
