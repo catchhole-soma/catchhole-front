@@ -380,6 +380,64 @@ test('추가 사용량 요청 폼은 현재 미처리 요청 조회가 성공한
   await expect(feedbackInput).toHaveCount(0);
 });
 
+test('열린 사용량 모달에 새 중단 이벤트가 오면 미처리 요청을 다시 확인한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let extensionRequestCount = 0;
+  let hasPendingExtensionRequest = false;
+  let releasePendingLookup!: () => void;
+  const pendingLookupGate = new Promise<void>(resolve => {
+    releasePendingLookup = resolve;
+  });
+  const pendingRequest = {
+    id: '88888888-8888-4888-8888-888888888889',
+    feedback: '분석을 이어서 검토하기 위해 추가 사용량을 요청하는 테스트 피드백입니다.',
+    context: 'REQUEST_BLOCKED',
+    status: 'PENDING',
+    createdAt: '2026-08-25T20:30:00',
+  };
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (!hasPendingExtensionRequest) {
+      return success(route, { pending: false, request: null });
+    }
+
+    await pendingLookupGate;
+    return success(route, { pending: true, request: pendingRequest });
+  });
+  await page.route('**/api/v1/ai-token-usages/extension-requests', route => {
+    extensionRequestCount += 1;
+    hasPendingExtensionRequest = true;
+    return success(route, pendingRequest);
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await feedbackInput.fill(pendingRequest.feedback);
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(2);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releasePendingLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  expect(extensionRequestCount).toBe(1);
+});
+
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
