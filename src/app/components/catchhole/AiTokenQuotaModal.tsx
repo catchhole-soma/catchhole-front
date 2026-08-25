@@ -81,7 +81,6 @@ export function AiTokenQuotaModal() {
     refetchOnMount: 'always',
   });
   const extensionRequest = useMutation(createMyAiTokenExtensionRequestMutation());
-  const resetExtensionRequest = extensionRequest.reset;
   const refetchPendingRequest = pendingRequestQuery.refetch;
 
   useEffect(() => subscribeAiTokenQuotaExhausted(nextNotice => {
@@ -90,10 +89,9 @@ export function AiTokenQuotaModal() {
     setFeedbackError(null);
     setSubmitError(null);
     setSubmittedRequest(null);
-    resetExtensionRequest();
     void refetchPendingRequest();
     setOpen(true);
-  }), [refetchPendingRequest, resetExtensionRequest]);
+  }), [refetchPendingRequest]);
 
   const normalizedFeedback = feedback.trim();
   const feedbackLength = countCharacters(normalizedFeedback);
