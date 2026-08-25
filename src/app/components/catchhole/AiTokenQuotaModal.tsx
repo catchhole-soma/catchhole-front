@@ -85,13 +85,15 @@ export function AiTokenQuotaModal() {
 
   useEffect(() => subscribeAiTokenQuotaExhausted(nextNotice => {
     setNotice(nextNotice);
-    setFeedback('');
-    setFeedbackError(null);
-    setSubmitError(null);
+    if (!open) {
+      setFeedback('');
+      setFeedbackError(null);
+      setSubmitError(null);
+    }
     setSubmittedRequest(null);
     void refetchPendingRequest();
     setOpen(true);
-  }), [refetchPendingRequest]);
+  }), [open, refetchPendingRequest]);
 
   const normalizedFeedback = feedback.trim();
   const feedbackLength = countCharacters(normalizedFeedback);

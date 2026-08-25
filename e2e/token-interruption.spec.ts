@@ -494,6 +494,49 @@ test('새 중단 이벤트는 처리 중인 추가 사용량 요청 잠금을 �
   expect(extensionRequestCount).toBe(1);
 });
 
+test('열린 사용량 모달의 피드백 초안과 제출 오류는 새 중단 이벤트에도 유지한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  const feedbackDraft = '분석을 계속 진행하려고 작성 중이던 피드백과 구체적인 사용 계획입니다.';
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', route => {
+    pendingLookupCount += 1;
+    return success(route, { pending: false, request: null });
+  });
+  await page.route('**/api/v1/ai-token-usages/extension-requests', route => route.fulfill({
+    status: 500,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+  }));
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  const submissionError = quotaDialog.getByText(
+    '요청을 보내지 못했습니다. 입력한 내용은 유지되니 잠시 후 다시 시도해 주세요.',
+    { exact: true },
+  );
+  await feedbackInput.fill(feedbackDraft);
+  await quotaDialog.getByRole('button', { name: '제출', exact: true }).click();
+  await expect(submissionError).toBeVisible();
+  await expect(feedbackInput).toHaveValue(feedbackDraft);
+  const pendingLookupsBeforeNotice = pendingLookupCount;
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThan(pendingLookupsBeforeNotice);
+  await expect(feedbackInput).toHaveValue(feedbackDraft);
+  await expect(submissionError).toBeVisible();
+});
+
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const pathname = new URL(route.request().url()).pathname;
