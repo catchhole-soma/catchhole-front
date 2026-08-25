@@ -1727,6 +1727,91 @@ test('세션을 지우면 진행 중인 refresh 응답이 access token을 복원
     .toBeNull();
 });
 
+test('auth/me가 세션 만료를 확정하면 동시에 시작된 refresh가 토큰을 복원하지 않는다', async ({ page }) => {
+  let authMeAttempts = 0;
+  let refreshAttempts = 0;
+  let releaseAuthMe: (() => void) | undefined;
+  let releaseConcurrentRefresh: (() => void) | undefined;
+  let markAuthMeStarted: (() => void) | undefined;
+  let markConcurrentRefreshStarted: (() => void) | undefined;
+  const authMeStarted = new Promise<void>(resolve => {
+    markAuthMeStarted = resolve;
+  });
+  const concurrentRefreshStarted = new Promise<void>(resolve => {
+    markConcurrentRefreshStarted = resolve;
+  });
+
+  await page.route('**/api/v1/auth/refresh', async route => {
+    refreshAttempts += 1;
+    if (refreshAttempts > 1) {
+      markConcurrentRefreshStarted?.();
+      await new Promise<void>(resolve => {
+        releaseConcurrentRefresh = resolve;
+      });
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { accessToken: refreshAttempts > 1 ? 'late-concurrent-token' : 'first-refresh-token' },
+        error: null,
+      }),
+    }).catch(() => undefined);
+  });
+  await page.route('**/api/v1/auth/me', async route => {
+    authMeAttempts += 1;
+    if (authMeAttempts > 1) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: {}, error: null }),
+      });
+      return;
+    }
+    markAuthMeStarted?.();
+    await new Promise<void>(resolve => {
+      releaseAuthMe = resolve;
+    });
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, data: null, error: { code: 'AUTH_UNAUTHORIZED' } }),
+    });
+  });
+  await page.route(/\/api\/v1\/protected-(first|second)$/, route => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'AUTH_UNAUTHORIZED' } }),
+  }));
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { setAuthErrorListener } = await import('/src/app/lib/api-errors.ts');
+    setAuthErrorListener(() => undefined);
+    localStorage.setItem('accessToken', 'expired-token');
+  });
+
+  const firstRequest = page.evaluate(async () => {
+    const { fetchWithAuth } = await import('/src/app/lib/auth-fetch.ts');
+    const response = await fetchWithAuth('http://localhost:8080/api/v1/protected-first');
+    return response.status;
+  });
+  await authMeStarted;
+
+  const secondRequest = page.evaluate(async () => {
+    const { fetchWithAuth } = await import('/src/app/lib/auth-fetch.ts');
+    const response = await fetchWithAuth('http://localhost:8080/api/v1/protected-second');
+    return response.status;
+  });
+  await concurrentRefreshStarted;
+
+  releaseAuthMe?.();
+  await expect(firstRequest).resolves.toBe(401);
+  releaseConcurrentRefresh?.();
+  await expect(secondRequest).resolves.toBe(401);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+});
+
 test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보관함에서 복구한다', async ({ page }) => {
   const workId = TEST_WORK_ID;
   let characterName = '수아';
