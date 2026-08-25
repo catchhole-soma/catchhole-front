@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const member = {
   id: 132,
@@ -159,6 +160,34 @@ test('비밀번호 불일치 시 입력값과 세션을 유지하고 Escape 뒤 
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('button', { name: '사용자 메뉴 열기' })).toBeFocused();
+});
+
+test('프로필 메뉴와 탈퇴 모달의 일반 텍스트·액션 명암비를 4.5:1 이상 유지한다', async ({ page }) => {
+  await openAuthenticatedWorks(page);
+  await page.getByRole('button', { name: '사용자 메뉴 열기' }).click();
+
+  const menu = page.getByRole('menu', { name: '사용자 메뉴' });
+  const displayName = page.getByText(member.displayName, { exact: true });
+  const email = page.getByText(member.email, { exact: true });
+  const withdrawalItem = page.getByRole('menuitem', { name: '회원 탈퇴' });
+  expect(await computedContrastRatio(displayName, menu)).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(email, menu)).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(withdrawalItem, withdrawalItem, menu))
+    .toBeGreaterThanOrEqual(4.5);
+
+  await withdrawalItem.click();
+  const dialog = page.getByRole('dialog', { name: '회원 탈퇴' });
+  const warning = dialog.locator('.member-withdrawal-modal__warning');
+  expect(await computedContrastRatio(warning.locator('p'), warning, dialog))
+    .toBeGreaterThanOrEqual(4.5);
+
+  const cancel = dialog.getByRole('button', { name: '취소' });
+  const confirm = dialog.getByRole('button', { name: '회원 탈퇴', exact: true });
+  await dialog.getByLabel('현재 비밀번호').fill('current-password');
+  await dialog.getByLabel('확인 문구').fill('회원 탈퇴');
+  await expect(confirm).toBeEnabled();
+  expect(await computedContrastRatio(cancel)).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(confirm)).toBeGreaterThanOrEqual(4.5);
 });
 
 test('탈퇴 API의 재시도 401만으로 유효한 세션을 제거하지 않는다', async ({ page }) => {
