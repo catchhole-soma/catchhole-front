@@ -2997,12 +2997,14 @@ export default function S1Dashboard() {
         'push-right',
       );
     } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
+        setEpisodeReanalysisTarget(currentTarget => (
+          currentTarget?.id === episode.id ? null : currentTarget
+        ));
+        return;
+      }
       if (isCurrentRequestContext()) {
-        const apiError = toApiError(error);
-        if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
-          setEpisodeReanalysisTarget(null);
-          return;
-        }
         setEpisodeActionError(apiError?.message ?? '분석 작업을 시작하지 못했습니다.');
       }
     }

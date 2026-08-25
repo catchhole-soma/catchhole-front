@@ -1392,13 +1392,18 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
   const extensionRequestId = '79999999-9999-4999-8999-999999999999';
   let analysisRequestCount = 0;
   let hasPendingExtensionRequest = false;
+  let releaseFirstAnalysisRequest!: () => void;
+  const firstAnalysisResponseGate = new Promise<void>(resolve => {
+    releaseFirstAnalysisRequest = resolve;
+  });
 
-  await page.route('**/api/v1/**', route => {
+  await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
       analysisRequestCount += 1;
+      if (analysisRequestCount === 1) await firstAnalysisResponseGate;
       return route.fulfill({
         status: 409,
         contentType: 'application/json',
@@ -1500,13 +1505,19 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'episode-reanalysis-quota-token'));
-  await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.getByRole('button', { name: '원고 목록', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('manuscripts');
 
   const reanalysisButton = page.getByRole('button', { name: '재분석', exact: true });
   const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
 
   await reanalysisButton.click();
   await reanalysisDialog.getByRole('button', { name: '재분석 시작' }).click();
+  await expect.poll(() => analysisRequestCount).toBe(1);
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('analyses');
+  releaseFirstAnalysisRequest();
 
   let quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
   await expect(quotaDialog).toBeVisible();
@@ -1519,6 +1530,8 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
   await expect(quotaDialog).not.toBeVisible();
   await expect(reanalysisDialog).toHaveCount(0);
 
+  await page.getByRole('button', { name: '원고 목록', exact: true }).click();
+  await expect(reanalysisButton).toBeVisible();
   await reanalysisButton.click();
   await reanalysisDialog.getByRole('button', { name: '재분석 시작' }).click();
 

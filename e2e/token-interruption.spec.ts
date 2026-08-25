@@ -380,6 +380,63 @@ test('추가 사용량 요청 폼은 현재 미처리 요청 조회가 성공한
   await expect(feedbackInput).toHaveCount(0);
 });
 
+test('모달을 다시 열면 진행 중이던 조회를 취소하고 현재 미처리 요청을 새로 확인한다', async ({ page }) => {
+  let pendingLookupCount = 0;
+  let releaseFirstLookup!: () => void;
+  const firstLookupGate = new Promise<void>(resolve => {
+    releaseFirstLookup = resolve;
+  });
+  const pendingRequest = {
+    id: '88888888-8888-4888-8888-888888888891',
+    feedback: '다른 탭에서 먼저 제출해 현재 검토 중인 추가 사용량 요청입니다.',
+    context: 'REQUEST_BLOCKED',
+    status: 'PENDING',
+    createdAt: '2026-08-25T21:30:00',
+  };
+
+  await page.route('**/api/v1/ai-token-usages/me', route => success(route, aiUsage()));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', async route => {
+    pendingLookupCount += 1;
+    if (pendingLookupCount === 1) {
+      await firstLookupGate;
+      try {
+        await success(route, { pending: false, request: null });
+      } catch {
+        // 재오픈 시 취소된 첫 요청은 응답을 전달할 대상이 없다.
+      }
+      return;
+    }
+
+    return success(route, { pending: true, request: pendingRequest });
+  });
+
+  await page.goto('/landing');
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  const quotaDialog = page.getByRole('dialog', { name: '기본 사용량을 모두 소진했습니다' });
+  const feedbackInput = quotaDialog.getByRole('textbox', { name: '피드백과 사용 계획' });
+  await expect.poll(() => pendingLookupCount).toBe(1);
+  await expect(quotaDialog.getByText('이전 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await quotaDialog.getByRole('button', { name: '사용량 안내 닫기' }).click();
+  await expect(quotaDialog).toHaveCount(0);
+
+  await page.evaluate(async () => {
+    const { notifyAiTokenQuotaExhausted } = await import('/src/app/lib/ai-token-quota.ts');
+    notifyAiTokenQuotaExhausted();
+  });
+
+  await expect.poll(() => pendingLookupCount).toBeGreaterThanOrEqual(2);
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+
+  releaseFirstLookup();
+  await expect(quotaDialog.getByText('추가 사용량 요청을 확인하고 있어요', { exact: true })).toBeVisible();
+  await expect(feedbackInput).toHaveCount(0);
+});
+
 test('열린 사용량 모달에 새 중단 이벤트가 오면 미처리 요청을 다시 확인한다', async ({ page }) => {
   let pendingLookupCount = 0;
   let extensionRequestCount = 0;

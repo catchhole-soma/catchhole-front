@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import {
   createMyAiTokenExtensionRequestMutation,
+  getMyPendingAiTokenExtensionRequestQueryKey,
   getMyAiTokenUsageOptions,
   getMyPendingAiTokenExtensionRequestOptions,
 } from '../../api/generated/@tanstack/react-query.gen';
@@ -26,6 +27,7 @@ import {
 
 const MIN_FEEDBACK_LENGTH = 35;
 const MAX_FEEDBACK_LENGTH = 1000;
+const PENDING_EXTENSION_REQUEST_QUERY_KEY = getMyPendingAiTokenExtensionRequestQueryKey();
 
 const CONTEXT_BY_NOTICE: Record<
   AiTokenQuotaNotice['kind'],
@@ -56,15 +58,18 @@ function toSubmissionError(error: unknown): string {
 }
 
 export function AiTokenQuotaModal() {
+  const queryClient = useQueryClient();
   const feedbackHintId = useId();
   const feedbackErrorId = useId();
   const submitErrorId = useId();
   const feedbackRef = useRef<HTMLTextAreaElement>(null);
+  const pendingLookupGenerationRef = useRef(0);
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<AiTokenQuotaNotice>({ kind: 'request-blocked' });
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [refreshingPendingRequest, setRefreshingPendingRequest] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<AiTokenExtensionRequestResponse | null>(null);
   const usageQuery = useQuery({
     ...getMyAiTokenUsageOptions(),
@@ -84,6 +89,8 @@ export function AiTokenQuotaModal() {
   const refetchPendingRequest = pendingRequestQuery.refetch;
 
   useEffect(() => subscribeAiTokenQuotaExhausted(nextNotice => {
+    const lookupGeneration = pendingLookupGenerationRef.current + 1;
+    pendingLookupGenerationRef.current = lookupGeneration;
     setNotice(nextNotice);
     if (!open) {
       setFeedback('');
@@ -91,16 +98,26 @@ export function AiTokenQuotaModal() {
       setSubmitError(null);
     }
     setSubmittedRequest(null);
-    void refetchPendingRequest();
+    setRefreshingPendingRequest(true);
     setOpen(true);
-  }), [open, refetchPendingRequest]);
+    void queryClient.cancelQueries({
+      queryKey: PENDING_EXTENSION_REQUEST_QUERY_KEY,
+      exact: true,
+    })
+      .then(() => refetchPendingRequest())
+      .finally(() => {
+        if (pendingLookupGenerationRef.current === lookupGeneration) {
+          setRefreshingPendingRequest(false);
+        }
+      });
+  }), [open, queryClient, refetchPendingRequest]);
 
   const normalizedFeedback = feedback.trim();
   const feedbackLength = countCharacters(normalizedFeedback);
   const submitting = extensionRequest.isPending;
   const pendingRequestStatus = pendingRequestQuery.data?.data?.pending;
   const checkingPendingRequest = !submittedRequest
-    && (pendingRequestQuery.isPending || pendingRequestQuery.isFetching);
+    && (refreshingPendingRequest || pendingRequestQuery.isPending || pendingRequestQuery.isFetching);
   const pendingRequestCheckSucceeded = !submittedRequest
     && !checkingPendingRequest
     && pendingRequestQuery.isSuccess
