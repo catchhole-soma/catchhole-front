@@ -43,8 +43,8 @@ export function observeAnalysisInterruption({
   }
 
   const comparisonBaseline = previousState.activeBaselineCount ?? previousState.lastSettledCount;
-  const shouldNotify = previousState.lastSettledCount === null
-    || (comparisonBaseline !== null && interruptedComparisonCount > comparisonBaseline);
+  const shouldNotify = comparisonBaseline === null
+    || interruptedComparisonCount > comparisonBaseline;
   analysisInterruptionStates.set(batchId, {
     activeBaselineCount: null,
     lastSettledCount: interruptedComparisonCount,

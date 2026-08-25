@@ -252,7 +252,7 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
   await expect.poll(() => summaryRequestCount).toBeGreaterThanOrEqual(2);
   await expect(quotaDialog).toContainText('51개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
   await expect(quotaDialog).not.toContainText('http');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toBeVisible();
   const interruptionAlert = page.locator('.episode-upload-alert--warning');
@@ -285,6 +285,10 @@ test('사용량 문의 조회 실패 액션은 밝은 모달 배경에서도 읽
     status: 500,
     contentType: 'application/json',
     body: JSON.stringify({ success: false, data: null, error: { code: 'SERVER_ERROR' } }),
+  }));
+  await page.route('**/api/v1/ai-token-usages/extension-requests/me/pending', route => success(route, {
+    pending: false,
+    request: null,
   }));
   await page.goto('/landing');
   await page.evaluate(async () => {
@@ -350,7 +354,7 @@ test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('삭제되어 사용할 수 없는 회차가 있습니다', { exact: true })).toBeVisible();
   await expect(page.getByText('설정 추출 후 일부 비교가 중단되었습니다', { exact: true })).toHaveCount(0);
@@ -439,7 +443,7 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('1개 회차 분석이 사용량 부족으로 중단됐습니다.');
   await expect(quotaDialog).not.toContainText('세계관 설정 비교');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await expect(page.getByText('일부 회차 분석에 실패했습니다', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '실패 회차 다시 시도' })).toBeVisible();
@@ -512,7 +516,7 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('3개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   const interruptedOnlyCard = page.getByRole('article').filter({ hasText: '14화' });
   const interruptedStatus = interruptedOnlyCard.getByText('세계관 비교 일부 중단', { exact: true });
@@ -688,7 +692,7 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await expect(page.getByText('1개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '다시 비교' })).toHaveCount(0);
 
@@ -812,7 +816,7 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: /캐릭터 후보/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBeNull();
@@ -914,7 +918,7 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   const progressBanner = page.locator('.world-token-resume-banner--progress');
@@ -939,7 +943,7 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
   phase = 'INTERRUPTED';
   await page.reload();
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   const dangerBanner = page.locator('.world-token-resume-banner--danger');
@@ -997,7 +1001,7 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   const mixedFailureNotice = page.getByRole('status').filter({ hasText: '비교 중단·실패 혼합' });
   const mixedFailureBadge = page.locator('.world-candidate-group-card .review-badge')
@@ -1083,7 +1087,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
   await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
   await expect.poll(() => resumeRequestCount).toBe(1);
@@ -1098,7 +1102,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
   await expect.poll(() => worldCandidateRequestCount).toBeGreaterThan(requestsBeforeReinterruption);
   await expect(quotaDialog).toBeVisible({ timeout: 5_000 });
   await expect(quotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
 
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
   await expect.poll(() => resumeRequestCount).toBe(2);
@@ -1160,7 +1164,7 @@ test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요
 
   const quotaDialog = page.getByRole('dialog', { name: '설정 비교가 일부 중단되었습니다' });
   await expect(quotaDialog).toBeVisible();
-  await quotaDialog.getByRole('button', { name: '확인' }).click();
+  await quotaDialog.getByRole('button', { name: '취소' }).click();
   await page.getByRole('button', { name: '남은 비교 재개' }).click();
 
   await expect(page.getByText('1개 비교 결과를 추가로 확인해 주세요.')).toBeVisible();
@@ -1303,7 +1307,7 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
   await expect.poll(() => latestAnalysisBatchInterruptedCount).toBe(2);
   await expect(listQuotaDialog).toBeVisible();
   await expect(listQuotaDialog).toContainText('2개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.');
-  await listQuotaDialog.getByRole('button', { name: '확인' }).click();
+  await listQuotaDialog.getByRole('button', { name: '취소' }).click();
   await page.clock.resume();
 
   await page.getByRole('button', { name: '남은 비교 확인' }).click();

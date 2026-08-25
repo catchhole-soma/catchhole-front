@@ -66,6 +66,235 @@
   background: var(--ch-surface) !important;
 }
 
+/* AI token extension request */
+.ai-token-quota-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgb(25 35 50 / 42%);
+  backdrop-filter: blur(6px);
+  animation: ai-token-quota-backdrop-in 140ms ease-out;
+}
+
+.ai-token-quota-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1001;
+  display: flex;
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  flex-direction: column;
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-lg);
+  outline: 0;
+  background: var(--ch-surface);
+  color: var(--ch-text);
+  box-shadow: var(--ch-shadow-float);
+  transform: translate(-50%, -50%);
+  animation: ai-token-quota-dialog-in 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.ai-token-quota-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 22px 22px 20px;
+  border-bottom: 1px solid var(--ch-border);
+}
+
+.ai-token-quota-modal__icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ch-radius-sm);
+  background: rgb(217 131 36 / 11%);
+  color: var(--ch-warning-ink);
+}
+
+.ai-token-quota-modal__heading { min-width: 0; flex: 1; }
+.ai-token-quota-modal__heading h2 {
+  margin: 0;
+  color: var(--ch-ink);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -.025em;
+}
+.ai-token-quota-modal__heading p {
+  margin: 6px 0 0;
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ai-token-quota-modal__close {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  margin: -7px -9px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ch-radius-sm);
+  background: transparent;
+  color: var(--ch-text-muted);
+  cursor: pointer;
+}
+.ai-token-quota-modal__close:hover { background: var(--ch-canvas); color: var(--ch-ink); }
+.ai-token-quota-modal__close:active:not(:disabled) svg { transform: scale(.9); }
+.ai-token-quota-modal__close:disabled { opacity: .48; cursor: not-allowed; }
+
+.ai-token-quota-modal__body { display: flex; flex-direction: column; gap: 18px; padding: 22px; }
+.ai-token-quota-modal__form { display: flex; flex-direction: column; gap: 9px; }
+.ai-token-quota-modal__field-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ai-token-quota-modal__field-header label { color: var(--ch-ink); font-size: 14px; font-weight: 800; }
+.ai-token-quota-modal__field-header span { color: var(--ch-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ai-token-quota-modal__field-header span.is-invalid { color: var(--ch-danger-ink); font-weight: 700; }
+
+.ai-token-quota-modal textarea {
+  width: 100%;
+  min-height: 148px;
+  max-height: 320px;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 12px 13px;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: var(--ch-radius-sm);
+  outline: 0;
+  background: var(--ch-surface);
+  color: var(--ch-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ai-token-quota-modal textarea::placeholder { color: var(--ch-text-muted); opacity: .9; }
+.ai-token-quota-modal textarea:focus { border-color: var(--ch-primary); box-shadow: 0 0 0 3px rgb(8 126 242 / 12%); }
+.ai-token-quota-modal textarea[aria-invalid="true"] { border-color: var(--ch-danger); }
+.ai-token-quota-modal textarea:disabled { background: var(--ch-canvas); color: var(--ch-text-muted); cursor: wait; }
+
+.ai-token-quota-modal__hint,
+.ai-token-quota-modal__field-error,
+.ai-token-quota-modal__submit-error { margin: 0; font-size: 12px; line-height: 1.55; }
+.ai-token-quota-modal__hint { color: var(--ch-text-muted); }
+.ai-token-quota-modal__field-error { color: var(--ch-danger-ink); font-weight: 650; }
+.ai-token-quota-modal__submit-error {
+  margin-top: 3px;
+  padding: 11px 12px;
+  border: 1px solid rgb(223 77 95 / 24%);
+  border-radius: var(--ch-radius-sm);
+  background: rgb(223 77 95 / 7%);
+  color: var(--ch-danger-ink);
+}
+
+.ai-token-quota-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 9px;
+}
+.ai-token-quota-modal__primary,
+.ai-token-quota-modal__secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 18px;
+  border-radius: var(--ch-radius-sm);
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.ai-token-quota-modal__primary {
+  min-width: 164px;
+  border: 1px solid var(--ch-primary);
+  background: var(--ch-primary);
+  color: var(--ch-primary-contrast);
+}
+.ai-token-quota-modal__primary:hover:not(:disabled) { border-color: var(--ch-primary-hover); background: var(--ch-primary-hover); }
+.ai-token-quota-modal__secondary {
+  min-width: 104px;
+  border: 1px solid var(--ch-border-strong);
+  background: var(--ch-surface);
+  color: var(--ch-text);
+}
+.ai-token-quota-modal__secondary:hover:not(:disabled) { border-color: var(--ch-primary); color: var(--ch-primary-ink); }
+.ai-token-quota-modal__primary:active:not(:disabled),
+.ai-token-quota-modal__secondary:active:not(:disabled) { transform: translateY(1px); }
+.ai-token-quota-modal__primary:disabled,
+.ai-token-quota-modal__secondary:disabled { opacity: .48; cursor: not-allowed; }
+
+.ai-token-quota-modal__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 15px 16px;
+  border: 1px solid rgb(8 126 242 / 22%);
+  border-radius: var(--ch-radius-sm);
+  background: var(--ch-surface-soft);
+  color: var(--ch-primary-ink);
+}
+.ai-token-quota-modal__status > svg { flex: 0 0 auto; margin-top: 1px; }
+.ai-token-quota-modal__status strong { display: block; color: var(--ch-ink); font-size: 14px; }
+.ai-token-quota-modal__status p { margin: 4px 0 0; color: var(--ch-text); font-size: 13px; line-height: 1.6; }
+
+.ai-token-quota-modal__contact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 13px;
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-sm);
+  background: var(--ch-canvas);
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ai-token-quota-modal__contact-row > svg { flex: 0 0 auto; margin-top: 2px; color: var(--ch-primary-ink); }
+.ai-token-quota-modal__contact-row button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ch-warning-ink);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.ai-token-quota-modal .ai-token-quota-modal__contact {
+  color: var(--ch-primary-ink) !important;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.ai-token-quota-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 22px;
+  border-top: 1px solid var(--ch-border);
+  background: var(--ch-surface);
+}
+.ai-token-quota-modal__footer .ai-token-quota-modal__primary { min-width: 112px; }
+.ai-token-quota-modal__spinner { animation: ai-token-quota-spin 900ms linear infinite; }
+
+@keyframes ai-token-quota-backdrop-in { from { opacity: 0; } }
+@keyframes ai-token-quota-dialog-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(.985); }
+}
+@keyframes ai-token-quota-spin { to { transform: rotate(360deg); } }
+
 .theme-v2 .theme-modal input,
 .theme-v2 .theme-modal textarea,
 .theme-v2 .theme-modal select {
@@ -183,6 +412,18 @@
   .theme-v2 .theme-modal-backdrop { padding: 12px !important; }
   .theme-v2 .theme-modal { border-radius: 16px !important; }
   .database-v2 .fact-detail-modal-backdrop { padding: 12px !important; }
+  .ai-token-quota-modal { border-radius: var(--ch-radius-md); }
+  .ai-token-quota-modal__header { padding: 19px 17px 17px; }
+  .ai-token-quota-modal__body { gap: 16px; padding: 18px 17px; }
+  .ai-token-quota-modal__actions > button { min-width: 0; flex: 1; }
+  .ai-token-quota-modal__footer { padding: 14px 17px; }
+  .ai-token-quota-modal__footer .ai-token-quota-modal__primary { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-token-quota-modal__backdrop,
+  .ai-token-quota-modal { animation: none; }
+  .ai-token-quota-modal__spinner { animation-duration: 1800ms; }
 }
 
 /* Account withdrawal confirmation */
