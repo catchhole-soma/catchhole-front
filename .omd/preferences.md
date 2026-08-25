@@ -119,3 +119,48 @@ source_context: "src/app/components/catchhole/TrackingConsentManager.tsx"
 ```
 
 For Korean service analytics and advertising disclosures, prefer a clear privacy-policy notice over a separate cookie-consent banner or signup checkbox.
+
+## 2026-08-25T09:59:43.375Z — in-the-quota-feedback-form-use-submit-fo
+
+```omd-meta
+id: pref_mt8hu2a8_977ef0e7
+timestamp: 2026-08-25T09:59:43.375Z
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/AiTokenQuotaModal.tsx"
+```
+
+In the quota feedback form, use Submit for the primary action and Cancel for the dismiss action instead of a generic Confirm label.
+
+## 2026-08-25T10:41:00.000Z — quota-exhaustion-dismisses-initiating-con
+
+```omd-meta
+id: pref_mt8jb5ef_e26dadc5
+timestamp: 2026-08-25T10:41:00.000Z
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/S1Dashboard.tsx"
+```
+
+When quota exhaustion interrupts an action, dismiss its initiating confirmation modal before showing the quota modal so closing the quota notice cannot reveal stale confirmation UI.
+
+## 2026-08-25T10:41:00.001Z — refilled-usage-displays-against-current-g
+
+```omd-meta
+id: pref_mt8jb5eh_83d72a48
+timestamp: 2026-08-25T10:41:00.001Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/AppSidebar.tsx"
+```
+
+After a refill equal to the default grant, remaining-usage UI should show 100% against the current grant unit rather than lifetime cumulative grants.
