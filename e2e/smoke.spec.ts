@@ -1812,6 +1812,71 @@ test('auth/me가 세션 만료를 확정하면 동시에 시작된 refresh가 �
   await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
 });
 
+test('지연된 auth/me 401이 다른 탭에서 교체한 새 토큰을 제거하지 않는다', async ({ page, context }) => {
+  let releaseAuthMe: (() => void) | undefined;
+  let markAuthMeStarted: (() => void) | undefined;
+  const authMeStarted = new Promise<void>(resolve => {
+    markAuthMeStarted = resolve;
+  });
+
+  await page.route('**/api/v1/auth/refresh', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: { accessToken: 'old-session-refreshed-token' },
+      error: null,
+    }),
+  }));
+  await page.route('**/api/v1/auth/me', async route => {
+    markAuthMeStarted?.();
+    await new Promise<void>(resolve => {
+      releaseAuthMe = resolve;
+    });
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, data: null, error: { code: 'AUTH_UNAUTHORIZED' } }),
+    });
+  });
+  await page.route('**/api/v1/protected', route => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, data: null, error: { code: 'AUTH_UNAUTHORIZED' } }),
+  }));
+
+  const otherTab = await context.newPage();
+  await Promise.all([page.goto('/landing'), otherTab.goto('/landing')]);
+  await page.evaluate(async () => {
+    const { setAuthErrorListener } = await import('/src/app/lib/api-errors.ts');
+    setAuthErrorListener(() => undefined);
+    localStorage.setItem('accessToken', 'old-session-token');
+  });
+
+  const protectedRequest = page.evaluate(async () => {
+    const { fetchWithAuth } = await import('/src/app/lib/auth-fetch.ts');
+    const response = await fetchWithAuth('http://localhost:8080/api/v1/protected');
+    return response.status;
+  });
+  await authMeStarted;
+
+  await otherTab.evaluate(async () => {
+    const { saveAuthToken } = await import('/src/app/lib/auth.ts');
+    saveAuthToken({
+      success: true,
+      data: { accessToken: 'new-session-token' },
+      error: null,
+    });
+  });
+  releaseAuthMe?.();
+
+  await expect(protectedRequest).resolves.toBe(401);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .toBe('new-session-token');
+  await expect.poll(() => otherTab.evaluate(() => localStorage.getItem('accessToken')))
+    .toBe('new-session-token');
+});
+
 test('캐릭터 현재 설정을 조회·수정하고 삭제한 캐릭터를 보관함에서 복구한다', async ({ page }) => {
   const workId = TEST_WORK_ID;
   let characterName = '수아';

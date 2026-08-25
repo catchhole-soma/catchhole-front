@@ -166,7 +166,7 @@ export async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit
   if (retriedResponse.status === 401) {
     const sessionRejected = isAuthMeRequest(retryRequest.url)
       || await isSessionRejectedByAuthMe(accessToken);
-    if (sessionRejected) {
+    if (sessionRejected && getAccessToken() === accessToken) {
       invalidateAuthRefresh();
       clearAccessToken();
       notifyAuthError();
