@@ -325545,34 +325545,75 @@
         },
         {
           "type": "frame",
-          "id": "nRelZ",
-          "name": "Desktop User Avatar",
-          "width": 36,
-          "height": 36,
-          "fill": "$ch-primary",
-          "cornerRadius": 999,
-          "effect": {
-            "type": "shadow",
-            "shadowType": "outer",
-            "color": "#087EF22E",
-            "offset": {
-              "x": 0,
-              "y": 6
-            },
-            "blur": 16
-          },
-          "justifyContent": "center",
+          "id": "nvm314DesktopUserActions",
+          "name": "Desktop User Actions",
+          "gap": 8,
           "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "WXvYK",
-              "name": "Desktop User Initial",
-              "fill": "$ch-primary-contrast",
-              "content": "K",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "800"
+              "type": "frame",
+              "id": "nvm314DesktopFeedbackTrigger",
+              "name": "Desktop Feedback Trigger",
+              "height": 40,
+              "fill": "$ch-surface",
+              "cornerRadius": "$ch-radius-sm",
+              "stroke": "$ch-border-strong",
+              "strokeWidth": 1,
+              "gap": 7,
+              "padding": [0, 13],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nvm314DesktopFeedbackIcon",
+                  "name": "Desktop Feedback Icon",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "message-square-text",
+                  "library": "lucide",
+                  "fill": "$ch-text"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314DesktopFeedbackLabel",
+                  "name": "Desktop Feedback Label",
+                  "fill": "$ch-text",
+                  "content": "의견 보내기",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "750"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nRelZ",
+              "name": "Desktop User Avatar",
+              "width": 36,
+              "height": 36,
+              "fill": "$ch-primary",
+              "cornerRadius": 999,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#087EF22E",
+                "offset": {"x": 0, "y": 6},
+                "blur": 16
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WXvYK",
+                  "name": "Desktop User Initial",
+                  "fill": "$ch-primary-contrast",
+                  "content": "K",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "800"
+                }
+              ]
             }
           ]
         }
@@ -325694,24 +325735,58 @@
         },
         {
           "type": "frame",
-          "id": "Eq8N0",
-          "name": "Mobile User Avatar",
-          "width": 34,
-          "height": 34,
-          "fill": "$ch-primary",
-          "cornerRadius": 999,
-          "justifyContent": "center",
+          "id": "nvm314MobileUserActions",
+          "name": "Mobile User Actions",
+          "gap": 8,
           "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "RfPje",
-              "name": "Mobile User Initial",
-              "fill": "$ch-primary-contrast",
-              "content": "K",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "800"
+              "type": "frame",
+              "id": "nvm314MobileFeedbackTrigger",
+              "name": "Mobile Feedback Trigger",
+              "width": 40,
+              "height": 40,
+              "fill": "$ch-surface",
+              "cornerRadius": "$ch-radius-sm",
+              "stroke": "$ch-border-strong",
+              "strokeWidth": 1,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nvm314MobileFeedbackIcon",
+                  "name": "Mobile Feedback Icon",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "message-square-text",
+                  "library": "lucide",
+                  "fill": "$ch-text"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Eq8N0",
+              "name": "Mobile User Avatar",
+              "width": 34,
+              "height": 34,
+              "fill": "$ch-primary",
+              "cornerRadius": 999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RfPje",
+                  "name": "Mobile User Initial",
+                  "fill": "$ch-primary-contrast",
+                  "content": "K",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "800"
+                }
+              ]
             }
           ]
         }
@@ -445503,6 +445578,646 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackFormComponent",
+      "x": 90300,
+      "y": 760,
+      "name": "FeedbackDialog / Input Base",
+      "reusable": true,
+      "width": 540,
+      "height": 624,
+      "fill": "$ch-surface",
+      "cornerRadius": "$ch-radius-lg",
+      "stroke": "$ch-border",
+      "strokeWidth": 1,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "$ch-shadow-float-color",
+        "offset": {"x": 0, "y": 20},
+        "blur": 60
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackHeader",
+          "name": "Feedback Dialog Header",
+          "width": "fill_container",
+          "stroke": "$ch-border",
+          "strokeWidth": {"bottom": 1},
+          "gap": 13,
+          "padding": [22, 22, 20, 22],
+          "alignItems": "start",
+          "children": [
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackHeaderIconSurface",
+              "name": "Feedback Header Icon Surface",
+              "width": 42,
+              "height": 42,
+              "fill": "$ch-surface-soft",
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nvm314FeedbackHeaderIcon",
+                  "name": "Feedback Header Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "message-square-text",
+                  "library": "lucide",
+                  "fill": "$ch-primary-ink"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackHeadingCopy",
+              "name": "Feedback Heading Copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackTitle",
+                  "name": "Feedback Dialog Title",
+                  "fill": "$ch-ink",
+                  "content": "서비스 의견 보내기",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 18,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackDescription",
+                  "name": "Feedback Dialog Description",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "사용하면서 불편했던 점이나 필요했던 기능을 알려주시면 감사하겠습니다. 의견은 언제든 보내실 수 있습니다.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackClose",
+              "name": "Feedback Close Button",
+              "width": 44,
+              "height": 44,
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nvm314FeedbackCloseIcon",
+                  "name": "Feedback Close Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackFormBody",
+          "name": "Feedback Form Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 22,
+          "children": [
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackRewardNote",
+              "name": "First Feedback Reward Note",
+              "width": "fill_container",
+              "fill": "$ch-surface-soft",
+              "cornerRadius": "$ch-radius-sm",
+              "stroke": "#087EF238",
+              "strokeWidth": 1,
+              "padding": [12, 13],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackRewardNoteText",
+                  "name": "First Feedback Reward Note Text",
+                  "fill": "$ch-primary-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "첫 일반 피드백에는 추가 사용량 요청이 함께 등록됩니다. 보상 요청은 계정당 한 번만 만들고, 의견은 계속 보내실 수 있어요.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackFieldHeader",
+              "name": "Feedback Field Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackLabel",
+                  "name": "Feedback Field Label",
+                  "fill": "$ch-ink",
+                  "content": "의견 내용",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackCounter",
+                  "name": "Feedback Character Counter",
+                  "fill": "$ch-text-muted",
+                  "content": "0 / 1,000자",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackTextarea",
+              "name": "Feedback Textarea",
+              "width": "fill_container",
+              "height": 148,
+              "fill": "$ch-surface",
+              "cornerRadius": "$ch-radius-sm",
+              "stroke": "$ch-border-strong",
+              "strokeWidth": 1,
+              "padding": [12, 13],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackTextareaCopy",
+                  "name": "Feedback Textarea Copy",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "어느 화면에서 무엇이 불편했는지, 어떤 기능이 더 필요했는지 구체적으로 적어 주세요.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "nvm314FeedbackHint",
+              "name": "Feedback Input Hint",
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "앞뒤 공백을 제외하고 최소 35자 이상 작성해 주세요.\n원고 내용이나 민감한 정보는 입력하지 않아도 됩니다.",
+              "lineHeight": 1.55,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "nvm314FeedbackFieldError",
+              "name": "Field Validation Error / Under 35 Characters",
+              "enabled": false,
+              "fill": "$ch-danger-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "조금 더 구체적으로 35자 이상 작성해 주세요.",
+              "lineHeight": 1.55,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "650"
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackSubmitError",
+              "name": "Submission Error / Input Preserved",
+              "enabled": false,
+              "width": "fill_container",
+              "fill": "#DF4D5F12",
+              "cornerRadius": "$ch-radius-sm",
+              "stroke": "#DF4D5F3D",
+              "strokeWidth": 1,
+              "padding": [11, 12],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackSubmitErrorText",
+                  "name": "Submission Error Text",
+                  "fill": "$ch-danger-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "의견을 보내지 못했습니다. 입력한 내용은 유지되니 잠시 후 다시 시도해 주세요.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackActions",
+              "name": "Feedback Form Actions",
+              "width": "fill_container",
+              "gap": 10,
+              "padding": [9, 0, 0, 0],
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "nvm314FeedbackCancel",
+                  "name": "Feedback Cancel Button",
+                  "width": 104,
+                  "height": 44,
+                  "fill": "$ch-surface",
+                  "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nvm314FeedbackCancelLabel",
+                      "name": "Feedback Cancel Label",
+                      "fill": "$ch-text",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "750"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "nvm314FeedbackSubmit",
+                  "name": "Feedback Submit Button / Disabled",
+                  "width": 132,
+                  "height": 44,
+                  "fill": "#83BDF6",
+                  "cornerRadius": "$ch-radius-sm",
+                  "gap": 7,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "nvm314FeedbackSpinner",
+                      "name": "Feedback Submit Spinner",
+                      "enabled": false,
+                      "width": 17,
+                      "height": 17,
+                      "icon": "loader-circle",
+                      "library": "lucide",
+                      "fill": "$ch-primary-contrast"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nvm314FeedbackSubmitLabel",
+                      "name": "Feedback Submit Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "의견 보내기",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "750"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackSuccessComponent",
+      "x": 90920,
+      "y": 760,
+      "name": "FeedbackDialog / Success Base",
+      "reusable": true,
+      "width": 540,
+      "height": 322,
+      "fill": "$ch-surface",
+      "cornerRadius": "$ch-radius-lg",
+      "stroke": "$ch-border",
+      "strokeWidth": 1,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "$ch-shadow-float-color",
+        "offset": {"x": 0, "y": 20},
+        "blur": 60
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackSuccessHeader",
+          "name": "Feedback Success Header",
+          "width": "fill_container",
+          "stroke": "$ch-border",
+          "strokeWidth": {"bottom": 1},
+          "gap": 13,
+          "padding": [22, 22, 20, 22],
+          "alignItems": "start",
+          "children": [
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackSuccessIconSurface",
+              "name": "Feedback Success Icon Surface",
+              "width": 42,
+              "height": 42,
+              "fill": "$ch-surface-soft",
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nvm314FeedbackSuccessIcon",
+                  "name": "Feedback Success Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "circle-check",
+                  "library": "lucide",
+                  "fill": "$ch-primary-ink"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackSuccessHeadingCopy",
+              "name": "Feedback Success Heading Copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackSuccessTitle",
+                  "name": "Feedback Success Title / CREATED",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "의견과 추가 사용량 요청을 함께 접수했어요",
+                  "lineHeight": 1.35,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 18,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackSuccessDescription",
+                  "name": "Feedback Success Description / CREATED",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "운영팀이 의견을 확인한 뒤 요청을 처리합니다. 사용량은 승인될 때 추가됩니다.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackAlreadyRequestedCopy",
+                  "name": "Success Variant / ALREADY_REQUESTED / 의견이 접수됐어요",
+                  "enabled": false,
+                  "fill": "$ch-text-muted",
+                  "content": "추가 사용량 요청은 이전 의견으로 이미 등록되어 있어요. 새 의견은 계속 보내실 수 있습니다.",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackPendingRequestCopy",
+                  "name": "Success Variant / PENDING_REQUEST_EXISTS / 의견이 접수됐어요",
+                  "enabled": false,
+                  "fill": "$ch-text-muted",
+                  "content": "이미 처리 중인 추가 사용량 요청이 있어 이번에는 새 보상 요청을 만들지 않았어요.",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "icon",
+              "id": "nvm314FeedbackSuccessCloseIcon",
+              "name": "Feedback Success Close Icon",
+              "width": 20,
+              "height": 20,
+              "icon": "x",
+              "library": "lucide",
+              "fill": "$ch-text-muted"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackSuccessBody",
+          "name": "Feedback Success Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 18,
+          "padding": [26, 22, 22, 22],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "nvm314FeedbackThankYouCopy",
+              "name": "Feedback Thank You Copy",
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "소중한 의견을 보내주셔서 감사합니다. 서비스 개선을 위해 꼼꼼히 확인하겠습니다.",
+              "textAlign": "center",
+              "lineHeight": 1.55,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "nvm314FeedbackSuccessConfirm",
+              "name": "Feedback Success Confirm Button",
+              "width": 132,
+              "height": 44,
+              "fill": "$ch-primary-hover",
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nvm314FeedbackSuccessConfirmLabel",
+                  "name": "Feedback Success Confirm Label",
+                  "fill": "$ch-primary-contrast",
+                  "content": "확인",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "750"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackSectionBar",
+      "x": 90300,
+      "y": 1956,
+      "name": "섹션바 / 26 활성 /account · 상시 서비스 의견",
+      "width": 6000,
+      "height": 96,
+      "fill": "$ch-surface",
+      "stroke": "$ch-border",
+      "strokeWidth": 1,
+      "padding": [0, 28],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "nvm314FeedbackSectionLabel",
+          "name": "Feedback Flow Section Label",
+          "fill": "$ch-ink",
+          "content": "26 · 상시 서비스 의견 — 기본 · 전송 중 · 오류(입력 유지) · 성공",
+          "fontFamily": "$ch-font",
+          "fontSize": 18,
+          "fontWeight": "800"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackInputActive",
+      "x": 90300,
+      "y": 2100,
+      "name": "Active / Account / Feedback / Input",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {"id": "nvm314FeedbackInputBackground", "type": "ref", "ref": "apls8", "name": "Feedback Input Background", "x": 0, "y": 0, "width": 1440, "height": 900},
+        {"type": "frame", "id": "nvm314FeedbackInputOverlay", "x": 0, "y": 0, "name": "Feedback Input Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {"id": "nvm314FeedbackInputDialog", "type": "ref", "ref": "nvm314FeedbackFormComponent", "name": "Feedback Dialog / Input", "x": 450, "y": 138, "width": 540, "height": 624}
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackSubmittingActive",
+      "x": 91820,
+      "y": 2100,
+      "name": "Active / Account / Feedback / Submitting",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {"id": "nvm314FeedbackSubmittingBackground", "type": "ref", "ref": "apls8", "name": "Feedback Submitting Background", "x": 0, "y": 0, "width": 1440, "height": 900},
+        {"type": "frame", "id": "nvm314FeedbackSubmittingOverlay", "x": 0, "y": 0, "name": "Feedback Submitting Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {
+          "id": "nvm314FeedbackSubmittingDialog",
+          "type": "ref",
+          "ref": "nvm314FeedbackFormComponent",
+          "name": "Feedback Dialog / Submitting / Inputs locked",
+          "x": 450,
+          "y": 138,
+          "width": 540,
+          "height": 624,
+          "descendants": {
+            "nvm314FeedbackClose": {"opacity": 0.48},
+            "nvm314FeedbackTextarea": {"fill": "$ch-canvas"},
+            "nvm314FeedbackTextareaCopy": {"fill": "$ch-text-muted", "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."},
+            "nvm314FeedbackCounter": {"content": "65 / 1,000자"},
+            "nvm314FeedbackCancel": {"opacity": 0.48},
+            "nvm314FeedbackSpinner": {"enabled": true},
+            "nvm314FeedbackSubmitLabel": {"content": "보내는 중..."}
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackErrorActive",
+      "x": 93340,
+      "y": 2100,
+      "name": "Active / Account / Feedback / Error / Input Preserved",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {"id": "nvm314FeedbackErrorBackground", "type": "ref", "ref": "apls8", "name": "Feedback Error Background", "x": 0, "y": 0, "width": 1440, "height": 900},
+        {"type": "frame", "id": "nvm314FeedbackErrorOverlay", "x": 0, "y": 0, "name": "Feedback Error Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {
+          "id": "nvm314FeedbackErrorDialog",
+          "type": "ref",
+          "ref": "nvm314FeedbackFormComponent",
+          "name": "Feedback Dialog / Submission Error / Retry Enabled",
+          "x": 450,
+          "y": 120,
+          "width": 540,
+          "height": 650,
+          "descendants": {
+            "nvm314FeedbackTextareaCopy": {"fill": "$ch-ink", "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."},
+            "nvm314FeedbackCounter": {"content": "65 / 1,000자"},
+            "nvm314FeedbackSubmitError": {"enabled": true},
+            "nvm314FeedbackSubmit": {"fill": "$ch-primary-hover"}
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nvm314FeedbackSuccessActive",
+      "x": 94860,
+      "y": 2100,
+      "name": "Active / Account / Feedback / Success / Reward Request Created",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {"id": "nvm314FeedbackSuccessBackground", "type": "ref", "ref": "apls8", "name": "Feedback Success Background", "x": 0, "y": 0, "width": 1440, "height": 900},
+        {"type": "frame", "id": "nvm314FeedbackSuccessOverlay", "x": 0, "y": 0, "name": "Feedback Success Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {"id": "nvm314FeedbackSuccessDialog", "type": "ref", "ref": "nvm314FeedbackSuccessComponent", "name": "Feedback Dialog / Success / CREATED", "x": 450, "y": 289, "width": 540, "height": 322}
       ]
     }
   ],
