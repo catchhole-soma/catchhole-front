@@ -6,6 +6,7 @@ import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { getMeOptions, logoutMutation } from '../../api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from '../../lib/auth';
 import { MemberWithdrawalModal } from './MemberWithdrawalModal';
+import { FeedbackDialog } from './FeedbackDialog';
 
 export function UserMenu() {
   const navigate = useAppNavigate();
@@ -102,6 +103,7 @@ export function UserMenu() {
 
   return (
     <div className="user-menu">
+      <FeedbackDialog />
       <button
         ref={triggerRef}
         type="button"

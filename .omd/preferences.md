@@ -164,3 +164,18 @@ source_context: "src/app/components/catchhole/AppSidebar.tsx"
 ```
 
 After a refill equal to the default grant, remaining-usage UI should show 100% against the current grant unit rather than lifetime cumulative grants.
+
+## 2026-08-28T07:53:32.000Z — feedback-request-and-success-copy-should
+
+```omd-meta
+id: pref_mtcnncl7_90b30df4
+timestamp: 2026-08-28T07:53:32.000Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/FeedbackDialog.tsx"
+```
+
+Feedback request and success copy should express gratitude for the user's contribution instead of only issuing directives or confirming receipt.

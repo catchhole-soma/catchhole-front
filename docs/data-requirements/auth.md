@@ -9,6 +9,7 @@
 - [로그인 (SLogin)](#로그인-slogin)
 - [회원가입 (SSignup)](#회원가입-ssignup)
 - [사용자 메뉴·회원 탈퇴 (UserMenu)](#사용자-메뉴회원-탈퇴-usermenu)
+- [상시 서비스 의견 (FeedbackDialog)](#상시-서비스-의견-feedbackdialog)
 - [인증 사용자 AI 사용량](#인증-사용자-ai-사용량)
 - [약관·개인정보 모달 (TermsModal)](#약관개인정보-모달-termsmodal)
 
@@ -75,6 +76,44 @@ Content-Type: application/json
 - `currentPassword`: 사용자가 입력한 원문, 필수, 최대 64자
 - `confirmation`: 공백을 포함한 고정 문자열 `회원 탈퇴`
 
+### 상시 서비스 의견 (FeedbackDialog)
+
+**노출 위치**: `UserMenu`를 사용하는 인증 보호 화면의 상단 아바타 왼쪽. 데스크톱은 `의견 보내기` 아이콘과 라벨을 함께 표시하고, 760px 이하에서는 같은 접근 가능한 이름을 가진 44px 아이콘 버튼으로 축소한다.
+
+디자인 기준: `design/catchhole.pen`의 `FeedbackDialog / 상시 서비스 의견` 프레임. 랜딩 전용 `DESIGN.md` 토큰은 적용하지 않고 인증 화면의 Theme V2 `--ch-*` 의미 토큰을 사용한다.
+
+**1. 입력·상태 계약**
+
+- 의견은 앞뒤 공백을 제외한 Unicode 35~1000자로 입력하며, 원고 내용이나 민감정보를 입력하지 않아도 된다고 안내한다.
+- 현재 화면은 query와 fragment를 제외한 `window.location.pathname`만 `pagePath`로 전송한다.
+- 제출 중에는 입력·중복 제출·배경 선택·`Esc`·닫기를 잠근다. 실패 시 입력을 유지하고 성공 시에만 비운다.
+- `CREATED`는 의견과 일반 피드백 보상 요청이 함께 접수됐다고 안내한다. `ALREADY_REQUESTED`는 의견만 새로 저장되고 이전 보상 요청을 재사용한다고 안내한다. `PENDING_REQUEST_EXISTS`는 다른 추가 사용량 요청이 처리 중이라 의견만 저장됐다고 안내한다.
+- 성공 안내를 닫으면 상단 `의견 보내기` 트리거로 포커스를 복원한다. 320px와 실제 200% 확대에서도 헤더와 모달이 가로로 넘치지 않아야 한다.
+
+**2. API·보상 계약**
+
+```http
+POST /api/v1/feedbacks
+Content-Type: application/json
+
+{
+  "content": "사용자가 작성한 서비스 의견",
+  "pagePath": "/dashboard"
+}
+```
+
+- Backend는 유효한 의견을 `feedbacks`에 매번 새 행으로 저장한다.
+- 첫 일반 피드백은 기존 추가 사용량 승인·지급 흐름의 `GENERAL_FEEDBACK_REWARD` 요청을 함께 만든다. 이 출처의 요청은 `PENDING`, `APPROVED`, `REJECTED` 전체 상태를 통틀어 회원당 한 번만 존재한다.
+- 다른 추가 사용량 요청이 `PENDING`이면 의견은 저장하되 이번 보상 요청 생성은 보류한다. 이후 다시 의견을 보낼 때 대기 요청이 끝났고 일반 피드백 보상 이력이 없으면 최초 보상 요청을 생성할 수 있다.
+- 보상 승인은 기존 운영자 API와 `AI_TOKEN_DEFAULT_GRANT`를 사용하며, `usedTokens`와 `reservedTokens`를 초기화하지 않는다.
+
+| 데이터 의미 | API 필드·상태 | 화면 사용 |
+| --- | --- | --- |
+| 의견 본문 | `content`, trim 후 35~1000 Unicode 글자 | 입력 검증과 운영 검토 |
+| 작성 화면 | `pagePath`, 내부 pathname | 의견 발생 화면 구분 |
+| 보상 요청 결과 | `rewardRequestOutcome` | 생성·기존 요청·다른 대기 요청 구분 |
+| 연결 요청 | `rewardRequestId`, `rewardRequestStatus` | 성공 안내 분기. 정확한 token 수치는 노출하지 않음 |
+
 ### 인증 사용자 AI 사용량
 
 - 보호 화면의 사이드바는 `GET /api/v1/ai-token-usages/me`를 조회해 `remainingPercent`만 `남은 사용량`으로 표시한다. 이 비율은 누적 지급량이 아니라 현재 `AI_TOKEN_DEFAULT_GRANT`를 100% 기준으로 계산하므로, 소진 뒤 같은 양을 추가 지급받으면 100%로 복구된다.
@@ -84,6 +123,7 @@ Content-Type: application/json
 - 분석 생성·재시도 요청에서 `AI_TOKEN_QUOTA_EXHAUSTED`를 받으면 해당 요청을 시작한 확인 모달을 먼저 닫고 전역 사용량 소진 모달을 연다. 피드백 제출 또는 검토 중 안내 확인 뒤 이전 확인 모달이 다시 드러나지 않아야 한다.
 - 분석 시작 뒤 비동기 Job 조회에서 같은 failure code를 확인해도 전역 모달을 연다. 같은 배치의 현재 Job이 모두 terminal 상태가 된 뒤 1차 추출 전 실패는 단일·전체·일부 실패 회차 수에 맞는 문구와 실패 회차 재시도를 안내하고, 1차 추출 뒤 비교 일부 중단이면 중단 건수, 완료 결과 보존, 세계관 검토에서 재개할 수 있다는 안내를 표시한다. 한 배치에 두 종류의 실패가 섞이면 실패 회차 수와 보존된 세계관 비교 중단 수를 한 모달에 함께 표시한다.
 - 소진 모달을 열 때 `GET /api/v1/ai-token-usages/extension-requests/me/pending`으로 미처리 요청을 확인한다. 요청이 있으면 새 입력 폼 대신 운영자 검토 중 상태를 표시하고, 한 회원이 동시에 두 요청을 만들지 않게 한다.
+- 소진 모달에서 생성한 요청은 `QUOTA_EXHAUSTION`, 상시 서비스 의견에서 회원당 한 번 만드는 보상 요청은 `GENERAL_FEEDBACK_REWARD` 출처로 구분한다. 운영자 승인·반려와 지급 원장은 같은 API와 상태 전이를 재사용한다.
 - 새 요청은 단일 입력란의 앞뒤 공백을 제거한 Unicode 글자 수가 35~1000자일 때만 `POST /api/v1/ai-token-usages/extension-requests`로 보낸다. 입력 폼은 `제출`과 `취소` 액션을 구분한다. Front와 OpenAPI DTO가 같은 제약을 적용하며, 원고 본문·민감정보를 자동 첨부하지 않고 입력하지 말라는 안내를 함께 표시한다.
 - 요청 body는 `feedback`과 모달 발생 원인인 `context`를 전달한다. 동기 차단은 `REQUEST_BLOCKED`, 1차 분석 실패는 `ANALYSIS_FAILED`, 1차 추출 뒤 비교 중단은 `ANALYSIS_INTERRUPTED`로 구분한다.
 - 제출 중에는 중복 전송과 모달 닫기를 막는다. 성공하면 입력을 비우고 검토 중 상태로 전환하며, 실패하면 입력을 보존한 채 다시 시도할 수 있게 한다.
@@ -94,6 +134,7 @@ Content-Type: application/json
 | 데이터 의미 | API 필드·상태 | 화면 사용 |
 | --- | --- | --- |
 | 피드백 본문 | `feedback`, trim 후 35~1000 Unicode 글자 | 글자 수 검증과 운영자 검토 내용 |
+| 요청 출처 | `source` | 사용량 소진 요청과 일반 피드백 보상 요청 구분 |
 | 요청 발생 원인 | `context` | 동기 차단·분석 실패·비교 중단 구분 |
 | 미처리 요청 | `pending`, `request.status=PENDING` | 중복 폼 대신 검토 중 상태 |
 | 처리 결과 | `APPROVED` 또는 `REJECTED` | 현재 모달에서는 직접 조회·노출하지 않음 |
