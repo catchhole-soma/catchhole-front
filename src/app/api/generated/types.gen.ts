@@ -1608,6 +1608,72 @@ export type WorkPurgeStoreResultResponse = {
 };
 
 /**
+ * 서비스 의견 등록 요청
+ */
+export type FeedbackCreateRequest = {
+    /**
+     * 서비스 의견. 앞뒤 공백을 제외하고 35~1,000자
+     */
+    content: string;
+    /**
+     * 의견을 작성한 화면의 경로. 쿼리와 fragment를 제외한 내부 경로
+     */
+    pagePath?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseFeedbackCreateResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: FeedbackCreateResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서비스 의견 등록 결과
+ */
+export type FeedbackCreateResponse = {
+    /**
+     * 저장된 의견 ID
+     */
+    id?: string;
+    /**
+     * 추가 사용량 보상 요청 처리 결과
+     */
+    rewardRequestOutcome?: 'CREATED' | 'ALREADY_REQUESTED' | 'PENDING_REQUEST_EXISTS';
+    /**
+     * 연결된 보상 요청 ID. 다른 처리 대기 요청 때문에 생성이 보류되면 null
+     */
+    rewardRequestId?: string;
+    /**
+     * 연결된 보상 요청 상태. 요청이 아직 없으면 null
+     */
+    rewardRequestStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    /**
+     * 서버 의견 접수 시각
+     */
+    submittedAt?: string;
+};
+
+/**
  * 회원가입 요청
  */
 export type AuthSignupRequest = {
@@ -1858,7 +1924,7 @@ export type AiTokenExtensionCreateRequest = {
     /**
      * 사용량 부족 안내가 발생한 화면 컨텍스트
      */
-    context: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED';
+    context: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED' | 'GENERAL_FEEDBACK';
 };
 
 /**
@@ -1867,7 +1933,8 @@ export type AiTokenExtensionCreateRequest = {
 export type AiTokenExtensionRequestResponse = {
     id?: string;
     feedback?: string;
-    context?: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED';
+    source?: 'QUOTA_EXHAUSTION' | 'GENERAL_FEEDBACK_REWARD';
+    context?: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED' | 'GENERAL_FEEDBACK';
     status?: 'PENDING' | 'APPROVED' | 'REJECTED';
     requestedAt?: string;
     reviewedAt?: string;
@@ -1920,7 +1987,8 @@ export type AiTokenExtensionAdminResponse = {
     memberEmail?: string;
     memberDisplayName?: string;
     feedback?: string;
-    context?: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED';
+    source?: 'QUOTA_EXHAUSTION' | 'GENERAL_FEEDBACK_REWARD';
+    context?: 'REQUEST_BLOCKED' | 'ANALYSIS_FAILED' | 'ANALYSIS_INTERRUPTED' | 'GENERAL_FEEDBACK';
     status?: 'PENDING' | 'APPROVED' | 'REJECTED';
     requestedAt?: string;
     reviewedAt?: string;
@@ -5986,6 +6054,35 @@ export type RetryWorkPurgeRequestResponses = {
 };
 
 export type RetryWorkPurgeRequestResponse = RetryWorkPurgeRequestResponses[keyof RetryWorkPurgeRequestResponses];
+
+export type CreateMyFeedbackData = {
+    body: FeedbackCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/feedbacks';
+};
+
+export type CreateMyFeedbackErrors = {
+    /**
+     * 의견 또는 화면 경로 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+};
+
+export type CreateMyFeedbackError = CreateMyFeedbackErrors[keyof CreateMyFeedbackErrors];
+
+export type CreateMyFeedbackResponses = {
+    /**
+     * 의견 등록 성공
+     */
+    200: CommonResponseFeedbackCreateResponse;
+};
+
+export type CreateMyFeedbackResponse = CreateMyFeedbackResponses[keyof CreateMyFeedbackResponses];
 
 export type SignupData = {
     body: AuthSignupRequest;

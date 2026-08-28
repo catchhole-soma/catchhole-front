@@ -27,7 +27,34 @@
   min-width: 44px;
   min-height: 44px;
   align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.user-menu__feedback-trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
   justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--user-menu-border);
+  border-radius: 10px;
+  background: var(--user-menu-surface);
+  color: var(--user-menu-text);
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.user-menu__feedback-trigger:hover,
+.user-menu__feedback-trigger:focus-visible {
+  border-color: var(--user-menu-muted);
+  background: var(--user-menu-surface-hover);
+}
+.user-menu__feedback-trigger:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.user-menu__feedback-trigger:active { transform: translateY(1px); }
+.user-menu__feedback-trigger svg { flex: 0 0 auto; }
+.user-menu__feedback-label { display: inline;
 }
 .user-menu__trigger {
   display: flex; width: 44px; height: 44px; align-items: center; justify-content: center;
@@ -133,6 +160,18 @@
   --user-menu-shadow: var(--ch-shadow-float);
 }
 .workspace-v2 .user-menu__trigger-avatar, .workspace-v2 .user-menu__avatar { background: var(--ch-primary); }
+.workspace-v2 .user-menu__feedback-trigger {
+  border-color: var(--ch-border-strong);
+  border-radius: var(--ch-radius-sm);
+  background: var(--ch-surface);
+  color: var(--ch-text);
+}
+.workspace-v2 .user-menu__feedback-trigger:hover,
+.workspace-v2 .user-menu__feedback-trigger:focus-visible {
+  border-color: var(--ch-primary);
+  background: var(--ch-surface-soft);
+  color: var(--ch-primary-ink);
+}
 .workspace-v2 .user-menu__trigger-avatar { box-shadow: 0 6px 16px rgb(8 126 242 / 18%); }
 .workspace-v2 .user-menu__trigger:focus-visible { outline-color: rgb(8 126 242 / 28%); }
 .workspace-v2 .user-menu__item:not(.user-menu__item--danger):hover,
@@ -251,6 +290,8 @@
   .analysis-batch-card__title-row { align-items: flex-start; flex-direction: column; gap: 8px; }
   .analysis-batch-card__main { gap: 10px; }
   .user-menu__popover { width: min(358px, calc(100vw - 36px)); }
+  .user-menu__feedback-trigger { width: 44px; min-height: 44px; padding: 0; }
+  .user-menu__feedback-label { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
