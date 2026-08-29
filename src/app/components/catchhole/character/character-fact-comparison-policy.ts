@@ -30,12 +30,11 @@ export function getCharacterFactComparisonPolicy(
     && completed
     && (operation === 'ADD' || operation === 'UPDATE' || operation === 'MERGE' || operation === 'REMOVE');
   const canSaveHistory = !valueInvalid && completed && operation != null && operation !== 'EXCLUDE';
-  const canAcceptExclusion = !valueInvalid && completed && operation === 'EXCLUDE';
 
   return {
     canApplyProposal,
     canSaveHistory,
-    canConfirm: canConfirmNewCharacter || canApplyProposal || canSaveHistory || canAcceptExclusion,
+    canConfirm: canConfirmNewCharacter || canApplyProposal || canSaveHistory,
     retryAvailable: !valueInvalid && (
       canBootstrapLegacyComparison
       || candidate.comparisonStatus === 'FAILED'

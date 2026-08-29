@@ -38,7 +38,11 @@ import type {
   WorldSettingCandidateResponse,
 } from '../../../api/generated/types.gen';
 import { useAppNavigate } from '../../../hooks/useAppNavigate';
-import { returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
+import {
+  replaceWithManuscriptList,
+  returnToAnalysisList,
+  type ReviewReturnState,
+} from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
 import {
   notifyAiTokenQuotaExhausted,
@@ -1590,6 +1594,10 @@ export function WorldSettingReview() {
       workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
     );
   };
+  const finishReview = () => {
+    leavingReviewRef.current = true;
+    replaceWithManuscriptList(routerNavigate, workId);
+  };
 
   const worldTotal = listData?.totalCandidateCount ?? 0;
   const worldReviewed = listData?.reviewedCandidateCount ?? 0;
@@ -1643,8 +1651,11 @@ export function WorldSettingReview() {
   const remainingWorldComparisonIssueCount = (listData?.failedComparisonCount ?? 0)
     + (listData?.recomparisonRequiredCount ?? 0);
   const summaryUnavailable = characterSummaryQuery.isError;
-  const reviewComplete = combinedTotal > 0 && combinedPending === 0 && combinedAttention === 0
-    && !summaryUnavailable && !characterSummaryQuery.isPending;
+  const reviewComplete = listQuery.isSuccess
+    && characterSummaryQuery.isSuccess
+    && combinedPending === 0
+    && combinedAttention === 0
+    && Boolean(workId);
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
 
@@ -1938,9 +1949,13 @@ export function WorldSettingReview() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-                <ActionButton disabled tone={reviewComplete ? C.success : C.primary}>
+                <ActionButton
+                  disabled={!reviewComplete}
+                  tone={reviewComplete ? C.success : C.primary}
+                  onClick={finishReview}
+                >
                   {reviewComplete
-                    ? '전체 후보 검토 완료 (다음 작업에서 연결)'
+                    ? '원고 목록으로'
                     : `검토 완료 · ${combinedPending}개 후보 · ${combinedAttention}개 확인 필요`}
                 </ActionButton>
               </div>

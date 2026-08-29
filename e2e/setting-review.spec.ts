@@ -92,6 +92,48 @@ async function authenticate(page: Page) {
   await page.evaluate(() => localStorage.setItem('accessToken', 'setting-review-token'));
 }
 
+async function routeCompletedReviewSummaries(page: Page) {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        conflictCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+}
+
 test('필수 검토 문맥이 없으면 후보 API를 호출하지 않는다', async ({ page }) => {
   let candidateRequestCount = 0;
   await page.route('**/api/v1/**', route => {
@@ -1161,10 +1203,44 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
 
   const applyButton = comparisonPanel.getByRole('button', { name: /AI 제안대로 현재 설정 반영/ });
   const historyButton = comparisonPanel.getByRole('button', { name: /이력에만 저장/ });
+  const historyDescription = historyButton.getByText(
+    '회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.',
+    { exact: true },
+  );
+  const historyExample = historyButton.getByText(
+    '예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.',
+    { exact: true },
+  );
+  await expect(historyDescription).toBeVisible();
+  await expect(historyExample).toBeVisible();
+  await expect(historyButton.locator('br')).toHaveCount(1);
+  const [descriptionBox, exampleBox] = await Promise.all([
+    historyDescription.boundingBox(),
+    historyExample.boundingBox(),
+  ]);
+  expect(descriptionBox).not.toBeNull();
+  expect(exampleBox).not.toBeNull();
+  expect(exampleBox?.y ?? 0).toBeGreaterThanOrEqual(
+    (descriptionBox?.y ?? 0) + (descriptionBox?.height ?? 0) - 1,
+  );
   const [applyBox, historyBox] = await Promise.all([applyButton.boundingBox(), historyButton.boundingBox()]);
   expect(applyBox).not.toBeNull();
   expect(historyBox).not.toBeNull();
   expect(historyBox?.y ?? 0).toBeGreaterThan((applyBox?.y ?? 0) + (applyBox?.height ?? 0) - 1);
+
+  await page.setViewportSize({ width: 320, height: 844 });
+  await expect(historyButton).toBeVisible();
+  expect(await historyButton.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 640, height: 844 });
+  await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
+  await expect(historyButton).toBeVisible();
+  expect(await page.evaluate(() => (
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    && document.body.scrollWidth <= document.body.clientWidth
+  ))).toBe(true);
+  await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await historyButton.click();
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
@@ -2977,4 +3053,89 @@ test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토�
   await expect(page.getByRole('button', { name: /이름 없는 캐릭터 1개 설정/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: '이름 없는 캐릭터' })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toContain('__unnamed__:');
+});
+
+test('남은 후보가 있으면 완료 버튼을 비활성화하고 남은 개수를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [{
+            groupKey: '수아',
+            entityName: '수아',
+            candidateCount: 1,
+            evidenceEpisodeNos: [1],
+            candidates: [candidates[0]],
+          }],
+          page: 0, size: 20, totalElements: 1, totalPages: 1, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return fulfill(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        conflictCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  await expect(page.getByRole('button', {
+    name: '검토 완료 · 1개 후보 · 0개 확인 필요',
+    exact: true,
+  })).toBeDisabled();
+});
+
+test('직접 진입한 캐릭터 검토 완료 버튼은 원고 목록으로 replace 이동한다', async ({ page }) => {
+  await routeCompletedReviewSummaries(page);
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+
+  const completionButton = page.getByRole('button', { name: '원고 목록으로', exact: true });
+  await expect(completionButton).toBeEnabled();
+  await completionButton.click();
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('workId')).toBe(workId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('manuscripts');
+
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).pathname).not.toBe('/setting-review');
+});
+
+test('세계관 탭에서도 완료 버튼은 같은 원고 목록으로 이동한다', async ({ page }) => {
+  await routeCompletedReviewSummaries(page);
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const completionButton = page.getByRole('button', { name: '원고 목록으로', exact: true });
+  await expect(completionButton).toBeEnabled();
+  await completionButton.click();
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).searchParams.get('workId')).toBe(workId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('manuscripts');
 });

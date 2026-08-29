@@ -37,7 +37,11 @@ import type {
   SettingCandidateGroupResponse,
   SettingCandidateResponse,
 } from '../../../api/generated/types.gen';
-import { returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
+import {
+  replaceWithManuscriptList,
+  returnToAnalysisList,
+  type ReviewReturnState,
+} from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
@@ -1871,6 +1875,10 @@ export function CharacterSettingReview() {
       workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
     );
   };
+  const finishReview = () => {
+    leavingReviewRef.current = true;
+    replaceWithManuscriptList(routerNavigate, workId);
+  };
 
   const total = listData?.totalCandidateCount ?? 0;
   const reviewed = listData?.reviewedCandidateCount ?? 0;
@@ -1890,11 +1898,11 @@ export function CharacterSettingReview() {
   const combinedAttention = matchRequired + worldAttention;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
-  const reviewComplete = combinedTotal > 0
+  const reviewComplete = listQuery.isSuccess
+    && worldSummaryQuery.isSuccess
     && combinedPending === 0
     && combinedAttention === 0
-    && !worldSummaryQuery.isError
-    && !worldSummaryQuery.isPending;
+    && Boolean(workId);
 
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
@@ -2206,7 +2214,7 @@ export function CharacterSettingReview() {
                                   {matchFilter !== 'ALL'
                                     ? '그룹 전체를 안전하게 확정하려면 연결 상태 필터를 전체로 바꿔 주세요.'
                                     : groupConfirmBlockedReason
-                                      ?? '각 항목의 제안을 함께 처리합니다. ‘반영하지 않음’ 제안은 저장하지 않고 자동으로 제외합니다.'}
+                                      ?? '각 항목에서 선택한 확정 방식을 함께 적용합니다.'}
                                 </div>
                               </div>
                               <ActionButton
@@ -2236,9 +2244,13 @@ export function CharacterSettingReview() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-                <ActionButton disabled={true} tone={C.primary}>
+                <ActionButton
+                  disabled={!reviewComplete}
+                  tone={reviewComplete ? C.success : C.primary}
+                  onClick={finishReview}
+                >
                   {reviewComplete
-                    ? '전체 후보 검토 완료 (다음 작업에서 연결)'
+                    ? '원고 목록으로'
                     : `검토 완료 · ${combinedPending}개 후보 · ${combinedAttention}개 확인 필요`}
                 </ActionButton>
               </div>
