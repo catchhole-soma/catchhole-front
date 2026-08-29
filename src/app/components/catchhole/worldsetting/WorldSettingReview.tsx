@@ -56,12 +56,13 @@ import { UserMenu } from '../UserMenu';
 import { SettingReviewTabs } from './SettingReviewTabs';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
-type WorldOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
+type WorldSuggestedOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
+type WorldOperation = Decision['operation'];
 type ReviewStatus = NonNullable<WorldSettingCandidateResponse['reviewStatus']>;
 type ComparisonStatus = NonNullable<WorldSettingCandidateResponse['comparisonStatus']>;
 type ReviewFilter = ReviewStatus | 'ALL';
 type CategoryFilter = WorldCategory | 'ALL';
-type OperationFilter = WorldOperation | 'ALL';
+type OperationFilter = WorldSuggestedOperation | 'ALL';
 type DecisionDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
 type StatusPresentation = { label: string; color: string; textColor?: string };
 
@@ -78,15 +79,20 @@ const CATEGORY_META: Record<WorldCategory, { label: string; description: string;
   IMPORTANT_ITEM: { label: '중요 아이템', description: '여러 회차에 영향을 주는 유물·도구', color: '#F4A261' },
 };
 
-const OPERATION_META: Record<WorldOperation, { label: string; color: string }> = {
+const OPERATION_META: Record<WorldSuggestedOperation, { label: string; color: string }> = {
   ADD: { label: '추가', color: C.success },
   UPDATE: { label: '수정', color: C.warning },
   MERGE: { label: '병합', color: C.primary },
   EXCLUDE: { label: '반영하지 않음', color: C.t3 },
+  REVIEW_REQUIRED: { label: '범위 확인 필요', color: C.warning },
 };
 
-const OPERATION_OPTIONS: Array<{ value: WorldOperation; label: string }> = Object.entries(OPERATION_META)
-  .map(([value, meta]) => ({ value: value as WorldOperation, label: meta.label }));
+const OPERATION_OPTIONS: Array<{ value: WorldOperation; label: string }> = [
+  { value: 'ADD', label: OPERATION_META.ADD.label },
+  { value: 'UPDATE', label: OPERATION_META.UPDATE.label },
+  { value: 'MERGE', label: OPERATION_META.MERGE.label },
+  { value: 'EXCLUDE', label: OPERATION_META.EXCLUDE.label },
+];
 
 const REVIEW_META: Record<ReviewStatus, { label: string; color: string }> = {
   PENDING_REVIEW: { label: '검토 대기', color: C.warning },
@@ -120,7 +126,7 @@ const CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
 const OPERATION_FILTERS: Array<{ value: OperationFilter; label: string }> = [
   { value: 'ALL', label: '전체 반영 방식' },
   ...Object.entries(OPERATION_META).map(([value, meta]) => ({
-    value: value as WorldOperation,
+    value: value as WorldSuggestedOperation,
     label: meta.label,
   })),
 ];
@@ -165,6 +171,12 @@ function resolvedTargetSubjectName(candidate: WorldSettingCandidateResponse): st
   return candidate.targetSubjectName ?? candidate.subjectName;
 }
 
+function isScopeUnresolvedCandidate(candidate: WorldSettingCandidateResponse): boolean {
+  return candidate.suggestedOperation === 'REVIEW_REQUIRED'
+    && candidate.comparisonReviewReason === 'SCOPE_UNRESOLVED'
+    && !candidate.finalOperation;
+}
+
 function formatEpisodeRange(start?: number | null, end?: number | null, count = 0): string {
   if (count === 0 || start == null || end == null) return '대상 회차 없음';
   return start === end ? `${start}화 · 1개 회차` : `${start}–${end}화 · ${count}개 회차`;
@@ -181,6 +193,7 @@ function operationSummary(group: WorldSettingCandidateGroupResponse): string {
     [group.updateCount, '수정'],
     [group.mergeCount, '병합'],
     [group.excludeCount, '반영 안 함'],
+    [group.reviewRequiredCount, '범위 확인'],
   ] as const;
   const summary = entries.filter(([count]) => (count ?? 0) > 0).map(([count, label]) => `${label} ${count}`).join(' · ');
   return summary || '변경 방식 확인 중';
@@ -233,8 +246,28 @@ function candidateDecision(candidate: WorldSettingCandidateResponse): DecisionDr
   const scopeName = candidate.proposedScopeName ?? candidate.scopeName ?? undefined;
   const settingName = candidate.proposedSettingName ?? candidate.settingName;
   const value = candidate.proposedValue ?? candidate.extractedValue;
-  if (!operation || !category || !subjectName || !settingName || !value) return null;
+  if (!operation || operation === 'REVIEW_REQUIRED'
+      || !category || !subjectName || !settingName || !value) return null;
   return { operation, category, subjectName, scopeName, settingName, value };
+}
+
+function candidateEditDecision(candidate: WorldSettingCandidateResponse): DecisionDraft | null {
+  const concreteDecision = candidateDecision(candidate);
+  if (concreteDecision) return concreteDecision;
+  if (!isScopeUnresolvedCandidate(candidate)) return null;
+  const category = candidate.category;
+  const subjectName = resolvedTargetSubjectName(candidate);
+  const settingName = candidate.proposedSettingName ?? candidate.settingName;
+  const value = candidate.proposedValue ?? candidate.extractedValue;
+  if (!category || !subjectName || !settingName || !value) return null;
+  return {
+    operation: 'ADD',
+    category,
+    subjectName,
+    scopeName: candidate.proposedScopeName ?? candidate.scopeName ?? undefined,
+    settingName,
+    value,
+  };
 }
 
 function groupDecisionIdentity(
@@ -275,7 +308,9 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
     .replace(/\bADD\b/g, '추가')
     .replace(/\bUPDATE\b/g, '수정')
     .replace(/\bMERGE\b/g, '병합')
-    .replace(/\bEXCLUDE\b/g, '반영하지 않음');
+    .replace(/\bEXCLUDE\b/g, '반영하지 않음')
+    .replace(/\bREVIEW_REQUIRED\b/g, '범위 확인 필요')
+    .replace(/\bSCOPE_UNRESOLVED\b/g, '범위 미확정');
 }
 
 function Badge({
@@ -578,6 +613,7 @@ function WorldKeyDiffRow({
   onEdit: () => void;
 }) {
   const operation = decision?.operation ?? candidate.suggestedOperation;
+  const scopeUnresolved = isScopeUnresolvedCandidate(candidate);
   const consolidationStatus = candidate.consolidationStatus ?? 'SINGLE';
   const hasConflict = consolidationStatus === 'CONFLICT';
   const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
@@ -591,34 +627,47 @@ function WorldKeyDiffRow({
     ? decision.scopeName ?? null
     : candidate.proposedScopeName ?? candidate.scopeName ?? null;
   const keyName = decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName ?? '설정명 없음';
-  const propertyPath = scopeName ? `${scopeName} › ${keyName}` : keyName;
+  const propertyPath = scopeName
+    ? `${scopeName} › ${keyName}`
+    : scopeUnresolved ? `범위 미지정 › ${keyName}` : keyName;
   const proposedValue = decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
-  const proposedTone = hasConflict && !conflictResolved
+  const proposedTone = scopeUnresolved
+    ? C.warning
+    : hasConflict && !conflictResolved
     ? C.warning
     : operation === 'EXCLUDE' ? C.primary : C.success;
-  const proposedLabel = hasConflict && !conflictResolved
+  const proposedLabel = scopeUnresolved
+    ? '범위 미정 후보값'
+    : hasConflict && !conflictResolved
     ? '확인이 필요한 추출값'
     : operation === 'EXCLUDE' ? '추출된 값' : '+ 제안값';
-  const preservesExistingValue = operation === 'EXCLUDE';
-  const beforeTone = preservesExistingValue ? C.t2 : C.danger;
-  const beforeLabel = preservesExistingValue
+  const preservesExistingValue = operation === 'EXCLUDE' || scopeUnresolved;
+  const beforeTone = scopeUnresolved ? C.warning : preservesExistingValue ? C.t2 : C.danger;
+  const beforeLabel = scopeUnresolved
+    ? '일치 가능 기존값'
+    : preservesExistingValue
     ? (candidate.beforeValue ? '비교한 기존값' : '비교 대상')
     : '− 기존값';
   const beforeValue = candidate.beforeValue
     || (operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
   const comparisonReason = userFacingComparisonReason(candidate);
+  const matchedPropertyPath = candidate.matchedPropertyName
+    ? candidate.matchedScopeName
+      ? `${candidate.matchedScopeName} › ${candidate.matchedPropertyName}`
+      : candidate.matchedPropertyName
+    : null;
   const canEdit = candidate.reviewStatus === 'PENDING_REVIEW'
     && candidate.comparisonStatus === 'COMPLETED'
-    && decision !== null;
+    && candidateEditDecision(candidate) !== null;
   const canExclude = candidate.reviewStatus === 'PENDING_REVIEW';
   return (
     <section className="world-setting-diff-row" style={{
       padding: '18px 22px', borderTop: `1px solid ${C.border}`,
       opacity: candidate.reviewStatus === 'PENDING_REVIEW' ? 1 : 0.68,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div className="world-setting-diff-row__header" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <strong style={{ color: REVIEW_TEXT.ink, fontSize: 14, overflowWrap: 'anywhere' }}>{propertyPath}</strong>
-        <div style={{ flex: 1 }} />
+        <div className="world-setting-diff-row__spacer" style={{ flex: 1 }} />
         {operationMeta && <Badge label={operationMeta.label} color={operationMeta.color} />}
         {consolidationStatus === 'MERGED' && <Badge label="여러 내용 정리됨" color={C.primary} />}
         {hasConflict && (
@@ -651,7 +700,7 @@ function WorldKeyDiffRow({
         )}
       </div>
 
-      <div className="world-setting-key-diff-values" style={{
+      <div className={`world-setting-key-diff-values${scopeUnresolved ? ' is-scope-unresolved' : ''}`} style={{
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10,
         margin: '13px 0 0',
       }}>
@@ -704,6 +753,26 @@ function WorldKeyDiffRow({
           color: REVIEW_TEXT.warning, fontSize: 11, lineHeight: 1.6,
         }}>
           원문 내용이 서로 달라 자동으로 하나로 합치지 않았습니다. 수정에서 최종 설정값을 정해 주세요.
+        </div>
+      )}
+
+      {scopeUnresolved && matchedPropertyPath && (
+        <div className="world-setting-scope-review" role="alert" style={{
+          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+        }}>
+          <AlertCircle size={13} color={C.warning} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: REVIEW_TEXT.warning, fontSize: 10, fontWeight: 800, marginBottom: 4 }}>
+              범위 확인 필요
+            </div>
+            <div style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.65, overflowWrap: 'anywhere' }}>
+              후보에는 범위가 없지만 기존 설정에 일치할 수 있는 ‘{matchedPropertyPath}’ 항목이 있습니다.
+              수정을 눌러 기존 범위에 수정·병합하거나, 범위를 비운 채 새 설정으로 추가해 주세요.
+              반영하지 않으려면 제외할 수 있습니다.
+            </div>
+          </div>
         </div>
       )}
 
@@ -784,6 +853,8 @@ function WorldCandidateGroupDetail({
   const identity = groupDecisionIdentity(group, decisions);
   const category = identity.category ? CATEGORY_META[identity.category] : null;
   const pendingCandidates = candidates.filter(candidate => candidate.id && candidate.reviewStatus === 'PENDING_REVIEW');
+  const identityEditable = pendingCandidates.length > 0
+    && pendingCandidates.every(candidate => candidateDecision(candidate) !== null);
   const duplicatePropertyPaths = (() => {
     const seen = new Map<string, string>();
     const duplicates = new Set<string>();
@@ -835,11 +906,11 @@ function WorldCandidateGroupDetail({
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
-          <button type="button" disabled={actionPending || pendingCandidates.length === 0} onClick={onEditIdentity} style={{
+          <button type="button" disabled={actionPending || !identityEditable} onClick={onEditIdentity} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: 'transparent', color: actionPending || pendingCandidates.length === 0 ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
+            background: 'transparent', color: actionPending || !identityEditable ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
-            cursor: actionPending || pendingCandidates.length === 0 ? 'not-allowed' : 'pointer',
+            cursor: actionPending || !identityEditable ? 'not-allowed' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
           }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
         </div>
@@ -931,6 +1002,7 @@ function WorldCandidateGroupDetail({
 function CandidateEditModal({
   initialDecision,
   identityOnly = false,
+  scopeReviewPath,
   pending,
   error,
   onClose,
@@ -938,6 +1010,7 @@ function CandidateEditModal({
 }: {
   initialDecision: DecisionDraft;
   identityOnly?: boolean;
+  scopeReviewPath?: string;
   pending: boolean;
   error?: string | null;
   onClose: () => void;
@@ -1012,7 +1085,9 @@ function CandidateEditModal({
           }}>
             {identityOnly
               ? '이 묶음의 모든 미확정 설정에 분류와 대상을 함께 적용합니다. 범위·설정명·반영 방식·최종값은 그대로 유지하며 LLM 재비교는 호출하지 않습니다.'
-              : '이 설정 항목 하나의 분류·대상·범위·설정명·반영 방식·최종값을 수정합니다. 다른 항목에는 적용되지 않으며 LLM 재비교도 호출하지 않습니다.'}
+              : scopeReviewPath
+                ? `기존 ‘${scopeReviewPath}’에 반영하려면 범위를 입력하고 수정 또는 병합을 선택하세요. 범위를 비워 두고 추가를 선택하면 새 루트 설정으로 저장합니다.`
+                : '이 설정 항목 하나의 분류·대상·범위·설정명·반영 방식·최종값을 수정합니다. 다른 항목에는 적용되지 않으며 LLM 재비교도 호출하지 않습니다.'}
           </div>
           <div className="world-setting-edit-identity" style={{
             display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10,
@@ -1656,6 +1731,15 @@ export function WorldSettingReview() {
     && combinedPending === 0
     && combinedAttention === 0
     && Boolean(workId);
+  const editDecision = editCandidate?.id
+    ? decisionOverrides[editCandidate.id] ?? candidateEditDecision(editCandidate)
+    : null;
+  const scopeReviewPath = editCandidate && isScopeUnresolvedCandidate(editCandidate)
+    && editCandidate.matchedPropertyName
+    ? editCandidate.matchedScopeName
+      ? `${editCandidate.matchedScopeName} › ${editCandidate.matchedPropertyName}`
+      : editCandidate.matchedPropertyName
+    : undefined;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
 
@@ -1964,11 +2048,12 @@ export function WorldSettingReview() {
         </div>
       </main>
 
-      {editCandidate?.id && candidateDecision(editCandidate) && (
+      {editCandidate?.id && editDecision && (
         <CandidateEditModal
           key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : 'candidate'}`}
-          initialDecision={decisionOverrides[editCandidate.id] ?? candidateDecision(editCandidate)!}
+          initialDecision={editDecision}
           identityOnly={editIdentityOnly}
+          scopeReviewPath={scopeReviewPath}
           pending={actionPending}
           error={actionError}
           onClose={() => {
@@ -1980,6 +2065,14 @@ export function WorldSettingReview() {
         />
       )}
       <style>{`
+        .setting-review-screen .world-setting-key-diff-values.is-scope-unresolved > div:first-child,
+        .setting-review-screen .world-setting-key-diff-values.is-scope-unresolved > div:last-child {
+          border-color: color-mix(in srgb, var(--ch-warning) 34%, transparent) !important;
+          background: color-mix(in srgb, var(--ch-warning) 7%, transparent) !important;
+        }
+        .setting-review-screen .world-setting-key-diff-values.is-scope-unresolved > div:last-child {
+          box-shadow: inset 3px 0 0 var(--ch-warning) !important;
+        }
         @media (max-width: 768px) {
           .world-setting-review-layout { grid-template-columns: minmax(0, 1fr) !important; }
           .world-setting-review-content { padding: 18px 16px calc(32px + env(safe-area-inset-bottom)) !important; }
@@ -1988,6 +2081,9 @@ export function WorldSettingReview() {
           .world-setting-review-mobile-back { display: inline-flex !important; align-items: center; gap: 4px; }
           .world-setting-key-diff-values { grid-template-columns: minmax(0, 1fr) !important; }
           .world-setting-edit-identity, .world-setting-edit-property, .world-setting-edit-value { grid-template-columns: minmax(0, 1fr) !important; }
+          .world-setting-diff-row__header { flex-wrap: wrap; }
+          .world-setting-diff-row__header > strong { flex-basis: 100%; }
+          .world-setting-diff-row__spacer { display: none; }
         }
       `}</style>
     </div>

@@ -500,8 +500,20 @@ export type WorldSettingCandidateResponse = {
      * 2차 비교가 연결한 기존 확정 대상의 정식 대상명
      */
     targetSubjectName?: string | null;
+    /**
+     * 2차 비교가 참조한 기존 속성의 범위
+     */
+    matchedScopeName?: string | null;
+    /**
+     * 2차 비교가 참조한 기존 속성명
+     */
+    matchedPropertyName?: string | null;
     consolidationStatus?: 'SINGLE' | 'MERGED' | 'CONFLICT';
-    suggestedOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
+    suggestedOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE' | 'REVIEW_REQUIRED';
+    /**
+     * 사용자 판단이 필요한 구조화된 비교 사유
+     */
+    comparisonReviewReason?: 'SCOPE_UNRESOLVED';
     proposedScopeName?: string | null;
     proposedSettingName?: string | null;
     beforeValue?: string | null;
@@ -2152,7 +2164,11 @@ export type WorkerWorldSettingComparisonCompleteRequest = {
     matchedScopeName?: string;
     matchedPropertyName?: string;
     consolidationStatus: 'SINGLE' | 'MERGED' | 'CONFLICT';
-    suggestedOperation: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
+    suggestedOperation: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE' | 'REVIEW_REQUIRED';
+    /**
+     * 사용자 판단이 필요한 구조화된 비교 사유
+     */
+    comparisonReviewReason?: 'SCOPE_UNRESOLVED';
     /**
      * 제안된 선택적 한 단계 범위
      */
@@ -3560,6 +3576,7 @@ export type WorldSettingCandidateGroupResponse = {
     updateCount?: number;
     mergeCount?: number;
     excludeCount?: number;
+    reviewRequiredCount?: number;
     evidenceEpisodeNos?: Array<number>;
     status?: 'READY' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'RECOMPARISON_REQUIRED';
     recomparisonScope?: 'ROW' | 'GROUP';
@@ -7592,7 +7609,7 @@ export type GetWorldSettingCandidatesData = {
         batchId: string;
         reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
         category?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
-        operation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
+        operation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE' | 'REVIEW_REQUIRED';
         page?: number;
         size?: number;
     };

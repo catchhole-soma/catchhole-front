@@ -143,6 +143,7 @@ function worldCandidateGroup(candidates: Array<ReturnType<typeof worldCandidate>
     updateCount: operationCount('UPDATE'),
     mergeCount: operationCount('MERGE'),
     excludeCount: operationCount('EXCLUDE'),
+    reviewRequiredCount: operationCount('REVIEW_REQUIRED'),
     evidenceEpisodeNos: [...new Set(candidates.map(candidate => candidate.sourceEpisodeNo))],
     status,
     recomparisonScope: status === 'RECOMPARISON_REQUIRED' ? 'ROW' : null,
@@ -200,6 +201,125 @@ test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비�
   )).toBeVisible();
   await expect(page.getByText(rawError)).toHaveCount(0);
   await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toBeVisible();
+});
+
+test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택할 때까지 검토 필요로 표시한다', async ({ page }) => {
+  let candidate = worldCandidate({
+    category: 'LOCATION',
+    subjectName: '미궁',
+    targetSubjectName: '미궁',
+    scopeName: null,
+    settingName: '광원',
+    extractedValue: '벽과 천장의 수정들이 주변을 밝힌다.',
+    matchedScopeName: '1층',
+    matchedPropertyName: '광원',
+    consolidationStatus: 'SINGLE',
+    suggestedOperation: 'REVIEW_REQUIRED',
+    comparisonReviewReason: 'SCOPE_UNRESOLVED',
+    proposedScopeName: null,
+    proposedSettingName: '광원',
+    beforeValue: '벽면 수정이 은은한 빛을 낸다.',
+    proposedValue: '벽과 천장의 수정들이 주변을 밝힌다.',
+    comparisonReason: "후보에는 범위가 없지만 기존 '1층 › 광원' 설정과 관련될 수 있어 적용 범위 확인이 필요합니다.",
+  });
+  let updatedBody: Record<string, unknown> | null = null;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`
+        && request.method() === 'GET') {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([candidate])]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates/decisions`
+        && request.method() === 'PATCH') {
+      updatedBody = request.postDataJSON() as Record<string, unknown>;
+      const decision = (updatedBody.candidates as Array<Record<string, unknown>>)[0];
+      candidate = {
+        ...candidate,
+        userModified: true,
+        finalOperation: decision.operation,
+        finalCategory: decision.category,
+        finalSubjectName: decision.subjectName,
+        finalScopeName: decision.scopeName,
+        finalSettingName: decision.settingName,
+        finalValue: decision.value,
+      };
+      return success(route, {
+        groupKey: 'LOCATION|미궁',
+        candidates: [candidate],
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const scopeReview = page.locator('.world-setting-scope-review');
+  await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toBeVisible();
+  await expect(scopeReview).toContainText('범위 확인 필요');
+  await expect(scopeReview).toContainText('1층 › 광원');
+  await expect(scopeReview).toContainText('기존 범위에 수정·병합');
+  await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '분류·대상 일괄 수정' })).toBeDisabled();
+
+  await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).click();
+  const editModal = page.locator('.review-modal');
+  await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('');
+  await expect(editModal.getByLabel('반영 방식')).toHaveValue('ADD');
+  await expect(editModal.getByText("기존 ‘1층 › 광원’에 반영하려면 범위를 입력하고 수정 또는 병합을 선택하세요.")).toBeVisible();
+  await editModal.getByLabel('범위 (선택)').fill('1층');
+  await editModal.getByLabel('반영 방식').selectOption('UPDATE');
+  await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+
+  await expect.poll(() => updatedBody).toEqual({
+    batchId,
+    candidates: [{
+      candidateId: worldCandidateId,
+      operation: 'UPDATE',
+      category: 'LOCATION',
+      subjectName: '미궁',
+      scopeName: '1층',
+      settingName: '광원',
+      value: '벽과 천장의 수정들이 주변을 밝힌다.',
+    }],
+  });
+  await expect(scopeReview).toBeHidden();
+  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
+
+  await page.getByRole('button', { name: /미궁/ }).first().click();
+  await page.setViewportSize({ width: 320, height: 900 });
+  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth
+  ))).toBe(true);
 });
 
 test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 한 번에 반영한다', async ({ page }) => {
