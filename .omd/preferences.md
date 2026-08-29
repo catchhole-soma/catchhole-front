@@ -179,3 +179,85 @@ source_context: "src/app/components/catchhole/FeedbackDialog.tsx"
 ```
 
 Feedback request and success copy should express gratitude for the user's contribution instead of only issuing directives or confirming receipt.
+
+## 2026-08-29T06:19:34.863Z — once-all-setting-review-items-are-confir
+
+```omd-meta
+id: pref_mtdzqd5x_bf644f83
+timestamp: 2026-08-29T06:19:34.863Z
+scope: components.button
+signal: user-correction
+confidence: explicit
+status: applied
+applied_at: 2026-08-29T07:43:03Z
+applied_design_md_hash: 57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c
+source_agent: codex
+source_context: "src/app/components/catchhole/SSettingReview.tsx"
+```
+
+Once all setting-review items are confirmed, enable the completion button and have it navigate to the manuscript list instead of leaving browser Back as the only exit.
+
+## 2026-08-29T06:27:52.946Z — character-settings-marked-do-not-apply-n
+
+```omd-meta
+id: pref_mte011hn_59e9112b
+timestamp: 2026-08-29T06:27:52.946Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: superseded
+superseded_by: pref_mte1s17c_30bbc591
+source_agent: codex
+source_context: "src/app/components/catchhole/character/CharacterFactComparisonPanel.tsx; src/app/components/catchhole/characterreview/CharacterSettingReview.tsx"
+```
+
+Character settings marked “Do not apply” need unmistakable visual treatment, and group confirmation must clearly communicate that those settings will be excluded rather than saved.
+
+## 2026-08-29T06:29:22.910Z — the-save-to-history-only-option-needs-co
+
+```omd-meta
+id: pref_mte02ywo_2bd2857b
+timestamp: 2026-08-29T06:29:22.910Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: applied
+applied_at: 2026-08-29T07:43:03Z
+applied_design_md_hash: 57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c
+source_agent: codex
+source_context: "src/app/components/catchhole/character/CharacterFactComparisonPanel.tsx"
+```
+
+The “Save to history only” option needs concrete explanatory copy and a past-only example, such as a recalled former condition, that distinguishes timeline history from the character’s current setting.
+
+## 2026-08-29T07:16:51.861Z — character-setting-exclude-is-auto-dismissed
+
+```omd-meta
+id: pref_mte1s17c_30bbc591
+timestamp: 2026-08-29T07:16:51.861Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: applied
+applied_at: 2026-08-29T07:43:03Z
+applied_design_md_hash: 57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c
+source_agent: codex
+source_context: "src/app/components/catchhole/characterreview/CharacterSettingReview.tsx"
+```
+
+Character setting candidates whose comparison result is EXCLUDE are automatically dismissed and hidden from the default review queue without changing the confirmed current setting or its history; world-setting EXCLUDE behavior remains unchanged.
+
+## 2026-08-29T08:00:48.898Z — the-history-only-choice-layout-should-pl
+
+```omd-meta
+id: pref_mte3cjy7_c377b531
+timestamp: 2026-08-29T08:00:48.898Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/character/CharacterFactComparisonPanel.tsx"
+```
+
+The History-only choice layout should place its example on a separate line below the usage explanation for easier scanning.

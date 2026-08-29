@@ -2,21 +2,27 @@
   "decisions": [
     {
       "evidence": [
-        "src/app/components/catchhole/SLanding.tsx"
+        "src/app/components/catchhole/SLanding.tsx",
+        "src/app/components/catchhole/SSettingReview.tsx",
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
       ],
       "path": "/experience/summary",
-      "source_class": "repository-fact",
-      "value": "CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract applies only to the landing surface."
+      "source_class": "prompt-fact",
+      "value": "CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract also defines the explicitly scoped completion and comparison-choice behavior of `/setting-review`; other authenticated workspace routes remain outside its scope."
     },
     {
       "evidence": [
-        ".omd/preferences.md#pref_mt5naiay_6861179c"
+        ".omd/preferences.md#pref_mt5naiay_6861179c",
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83"
       ],
       "path": "/experience/primary_tasks",
       "source_class": "prompt-fact",
       "value": [
         "Experience the manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.",
-        "Move to free sign-up as the secondary path when ready to register a work and use the full service."
+        "Move to free sign-up as the secondary path when ready to register a work and use the full service.",
+        "Finish all character and world-setting review decisions, then move directly to the selected work's manuscript list."
       ]
     },
     {
@@ -24,7 +30,8 @@
         ".omd/preferences.md#pref_mt5p9gzf_d79ac96b",
         ".omd/preferences.md#pref_mt5r2vut_2fded35a",
         ".omd/preferences.md#pref_mt5risax_9312dae3",
-        ".omd/preferences.md#pref_mt5suyt0_62f9b360"
+        ".omd/preferences.md#pref_mt5suyt0_62f9b360",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
       ],
       "path": "/experience/design_direction",
       "source_class": "prompt-fact",
@@ -32,7 +39,8 @@
         "Make reference-led landing redesigns visibly distinct through a strong first-screen hero and meaningful section hierarchy; CTA styling alone is not sufficient.",
         "Use purpose-built, visually distinct images for the hero and each product-flow panel instead of reusing one generic image through repeated crops.",
         "Present the implemented eight-stage manuscript workflow as one animated exploratory accordion with a clear active step and reduced-motion fallback.",
-        "Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile."
+        "Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile.",
+        "Keep the character-setting review queue decision-focused by automatically dismissing EXCLUDE comparison results without changing confirmed settings or history."
       ]
     },
     {
@@ -150,10 +158,12 @@
     {
       "evidence": [
         "src/app/components/catchhole/SLanding.tsx",
-        "src/app/components/catchhole/LandingProductDemo.tsx"
+        "src/app/components/catchhole/LandingProductDemo.tsx",
+        "src/app/components/catchhole/SSettingReview.tsx",
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83"
       ],
       "path": "/components_states/components",
-      "source_class": "repository-fact",
+      "source_class": "prompt-fact",
       "value": [
         {
           "anatomy": [
@@ -256,6 +266,55 @@
             "desktop vertical rails",
             "tablet and mobile horizontal step strip"
           ]
+        },
+        {
+          "anatomy": [
+            "label",
+            "remaining-item count"
+          ],
+          "id": "setting-review-completion-action",
+          "interaction": {
+            "kind": "interactive",
+            "state_applicability": {
+              "default": {
+                "applicability": "applicable"
+              },
+              "disabled": {
+                "applicability": "applicable",
+                "reason": "The action stays disabled until both review summaries load successfully and pending or attention-required candidates reach zero."
+              },
+              "error": {
+                "applicability": "not-applicable",
+                "reason": "A summary-query failure keeps the action disabled instead of becoming a button error state."
+              },
+              "focus-visible": {
+                "applicability": "applicable"
+              },
+              "hover": {
+                "applicability": "applicable"
+              },
+              "loading": {
+                "applicability": "applicable",
+                "reason": "The disabled action reflects that one or both aggregate queries are still loading."
+              },
+              "success": {
+                "applicability": "not-applicable",
+                "reason": "Completion replaces the review route with the selected work's manuscript list."
+              }
+            }
+          },
+          "semantics": "Leaves `/setting-review` only after both character and world-setting review summaries are available and no candidate still needs review or attention.",
+          "states": [
+            "default",
+            "hover",
+            "focus-visible",
+            "disabled",
+            "loading"
+          ],
+          "variants": [
+            "character tab",
+            "world-setting tab"
+          ]
         }
       ]
     },
@@ -269,11 +328,36 @@
     },
     {
       "evidence": [
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83"
+      ],
+      "path": "/components_states/rules/3",
+      "source_class": "prompt-fact",
+      "value": "Enable the setting-review completion action only when both character and world-setting summaries loaded successfully and all pending or attention-required counts are zero; otherwise keep it disabled and show the remaining count."
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83"
+      ],
+      "path": "/components_states/rules/4",
+      "source_class": "prompt-fact",
+      "value": "On completion, replace the current route with `/dashboard?workId={workId}&nav=manuscripts` from either review tab, including direct URL entry."
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
+      ],
+      "path": "/components_states/rules/5",
+      "source_class": "prompt-fact",
+      "value": "Automatically dismiss character-setting candidates whose comparison result is EXCLUDE, omit them from the default review queue, and preserve the confirmed current setting and history; do not apply this rule to world-setting candidates."
+    },
+    {
+      "evidence": [
         "src/app/components/catchhole/landing-v2.css",
-        "e2e/mobile-responsive.spec.ts"
+        "e2e/mobile-responsive.spec.ts",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b"
       ],
       "path": "/layout_platforms",
-      "source_class": "repository-fact",
+      "source_class": "prompt-fact",
       "value": {
         "minimum_width_px": 320,
         "platforms": [
@@ -289,23 +373,26 @@
         "rules": [
           "Keep a strong split hero at wide viewports, then stack copy before imagery on narrower screens without horizontal overflow.",
           "Render the service catalog in two columns on desktop and one column on mobile, preserving the same capability order and upcoming labels.",
-          "Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile."
+          "Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile.",
+          "Keep both setting-comparison choice descriptions readable without horizontal overflow at the 320px minimum width and 200% reflow target."
         ]
       }
     },
     {
       "evidence": [
-        "src/app/components/catchhole/SLanding.tsx"
+        "src/app/components/catchhole/SLanding.tsx",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b"
       ],
       "path": "/content_locales",
-      "source_class": "repository-fact",
+      "source_class": "prompt-fact",
       "value": {
         "locales": [
           {
             "locale": "ko-KR",
             "rules": [
               "Keep CTA labels short and action-oriented.",
-              "Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available."
+              "Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available.",
+              "Label the non-current comparison choice `이력에만 저장` and explain it as `회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다. 예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.`"
             ],
             "status": "supported"
           }
@@ -323,14 +410,28 @@
       "path": "/governance/priority",
       "source_class": "prompt-fact",
       "value": [
-        "Direct project-owner instructions for the requested landing scope.",
+        "Direct project-owner instructions for the declared landing and setting-review scopes.",
         "CatchHole repository facts and verified implementation behavior.",
-        "This adopted landing system contract.",
+        "This adopted scoped product-system contract.",
         "NHN Cloud reference inspiration within its captured evidence boundary."
       ]
+    },
+    {
+      "evidence": [
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
+      ],
+      "path": "/identity",
+      "source_class": "prompt-fact",
+      "value": {
+        "kind": "project-system",
+        "name": "CatchHole Landing and Setting Review",
+        "scope": "CatchHole public landing page plus explicitly declared completion and comparison-choice behavior on `/setting-review`; other authenticated workspace routes, authentication modals, and the interactive demo retain their route-specific product contracts."
+      }
     }
   ],
-  "design_md_sha256": "6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca",
-  "graph_sha256": "09577f96dad331ccaa35c2a6f7c083b2b949867df841920796ce1eda4558dc09",
+  "design_md_sha256": "57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c",
+  "graph_sha256": "9568b55368b8bdd8b5693b9946c7df7180159ee43f7a2fd7bd754e8fb601a621",
   "schema_version": "2.0.0"
 }
