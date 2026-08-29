@@ -1,0 +1,75 @@
+{
+  "intent": "implement",
+  "task": "Enable setting-review completion only after both candidate summaries succeed with no pending or attention-required candidates, replace-navigate to the manuscript list, clarify history-only copy, and remove obsolete character EXCLUDE confirmation affordances.",
+  "consumer_route": "/setting-review?workId={workId}&batchId={batchId}",
+  "acceptance": [
+    "The completion action is disabled while either summary is unavailable or any pending/attention count is non-zero.",
+    "The completion action is enabled on either tab when both summaries succeed and all pending/attention counts are zero.",
+    "Completion replace-navigates to /dashboard?workId={workId}&nav=manuscripts, including direct URL entry.",
+    "The history-only choice shows the approved past-state explanation and remains readable at 390px, 320px, and 200% reflow.",
+    "Character EXCLUDE candidates require no UI confirmation; world-setting EXCLUDE behavior is unchanged."
+  ],
+  "protected_behaviors": [
+    "Existing analysis-list Back behavior remains unchanged.",
+    "Character group confirmation still supports APPLY_PROPOSAL and HISTORY_ONLY for eligible non-EXCLUDE operations.",
+    "World-setting candidate confirmation and EXCLUDE behavior remain unchanged."
+  ],
+  "protected_contract": {
+    "cardinality": [
+      "one existing completion action per active review tab; allowed delta 0",
+      "two existing character comparison decision buttons for eligible non-EXCLUDE candidates; allowed delta 0"
+    ],
+    "state_transitions": [
+      "summary loading/error or remaining work -> disabled completion action",
+      "both summaries successful and zero remaining work -> enabled completion action -> replace manuscript-list route",
+      "character comparison EXCLUDE -> backend DISMISSED/NOT_REQUIRED -> absent from default queue"
+    ],
+    "facts": [
+      "completion URL is /dashboard?workId={workId}&nav=manuscripts",
+      "HISTORY_ONLY continues to create history without changing the current snapshot",
+      "character EXCLUDE does not create facts, history, or snapshot changes"
+    ],
+    "change_authority": "original-user-task-only"
+  },
+  "visual_equity": [
+    {
+      "identity": "review summary followed by a footer completion action",
+      "user_value": "keeps aggregate progress and the next action scannable",
+      "before_evidence": "existing /setting-review DOM and both review component footers",
+      "decision": "reinforce",
+      "change_authority": "original user task"
+    },
+    {
+      "identity": "selected comparison decision styling",
+      "user_value": "makes current-setting versus history-only choice explicit",
+      "before_evidence": "CharacterFactComparisonPanel DecisionButton aria-pressed state",
+      "decision": "preserve",
+      "change_authority": "original user task"
+    }
+  ],
+  "evidence": [
+    "DESIGN.md",
+    ".omd/system/graph.json",
+    "current /setting-review browser observation",
+    "CharacterSettingReview.tsx",
+    "WorldSettingReview.tsx",
+    "CharacterFactComparisonPanel.tsx"
+  ],
+  "unknowns": [],
+  "implementation_owner": "main-agent",
+  "verification": {
+    "routes": [
+      "/setting-review?workId={workId}&batchId={batchId}",
+      "/setting-review?workId={workId}&batchId={batchId}&candidateType=world"
+    ],
+    "viewports": ["desktop", "390px", "320px", "640px at 200% zoom"],
+    "states": ["pending", "summary error", "complete on character tab", "complete on world tab", "history-only", "character EXCLUDE dismissed"],
+    "commands": ["npm run lint", "npm run build", "npm run test:e2e -- e2e/setting-review.spec.ts"]
+  },
+  "first_safe_edit": {
+    "target": "src/app/lib/review-navigation.ts and the two existing completion ActionButton instances",
+    "smallest_useful_change": "add a replace-only manuscript navigation helper and wire it to the existing buttons behind the exact aggregate completion predicate",
+    "protected_contract_effect": "none",
+    "acceptance_check": "the complete mock state exposes one enabled 원고 목록으로 button on either tab"
+  }
+}

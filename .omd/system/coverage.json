@@ -45,27 +45,34 @@
       "pass": true
     }
   },
-  "design_md_sha256": "6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca",
-  "graph_sha256": "09577f96dad331ccaa35c2a6f7c083b2b949867df841920796ce1eda4558dc09",
+  "design_md_sha256": "57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c",
+  "graph_sha256": "9568b55368b8bdd8b5693b9946c7df7180159ee43f7a2fd7bd754e8fb601a621",
   "groups": {
     "components-states": {
       "evidence": [
         "DESIGN.md#components-states",
-        "src/app/components/catchhole/LandingProductDemo.tsx"
+        "src/app/components/catchhole/LandingProductDemo.tsx",
+        "src/app/components/catchhole/SSettingReview.tsx",
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
       ],
       "status": "covered"
     },
     "content-locales": {
       "evidence": [
         "DESIGN.md#content-locales",
-        "src/app/components/catchhole/SLanding.tsx"
+        "src/app/components/catchhole/SLanding.tsx",
+        "src/app/components/catchhole/character/CharacterFactComparisonPanel.tsx",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b"
       ],
       "status": "covered"
     },
     "experience": {
       "evidence": [
         "DESIGN.md#experience",
-        ".omd/preferences.md#pref_mt5r2vut_2fded35a"
+        ".omd/preferences.md#pref_mt5r2vut_2fded35a",
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
       ],
       "status": "covered"
     },
@@ -79,14 +86,18 @@
     "governance": {
       "evidence": [
         "DESIGN.md#governance",
-        ".omd/preferences.md"
+        ".omd/preferences.md#pref_mtdzqd5x_bf644f83",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b",
+        ".omd/preferences.md#pref_mte1s17c_30bbc591"
       ],
       "status": "covered"
     },
     "layout-platforms": {
       "evidence": [
         "DESIGN.md#layout-platforms",
-        "e2e/mobile-responsive.spec.ts"
+        "e2e/mobile-responsive.spec.ts",
+        "src/styles/review-v2.css",
+        ".omd/preferences.md#pref_mte02ywo_2bd2857b"
       ],
       "status": "covered"
     },

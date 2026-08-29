@@ -103,12 +103,64 @@
           "desktop vertical rails",
           "tablet and mobile horizontal step strip"
         ]
+      },
+      {
+        "anatomy": [
+          "label",
+          "remaining-item count"
+        ],
+        "id": "setting-review-completion-action",
+        "interaction": {
+          "kind": "interactive",
+          "state_applicability": {
+            "default": {
+              "applicability": "applicable"
+            },
+            "disabled": {
+              "applicability": "applicable",
+              "reason": "The action stays disabled until both review summaries load successfully and pending or attention-required candidates reach zero."
+            },
+            "error": {
+              "applicability": "not-applicable",
+              "reason": "A summary-query failure keeps the action disabled instead of becoming a button error state."
+            },
+            "focus-visible": {
+              "applicability": "applicable"
+            },
+            "hover": {
+              "applicability": "applicable"
+            },
+            "loading": {
+              "applicability": "applicable",
+              "reason": "The disabled action reflects that one or both aggregate queries are still loading."
+            },
+            "success": {
+              "applicability": "not-applicable",
+              "reason": "Completion replaces the review route with the selected work's manuscript list."
+            }
+          }
+        },
+        "semantics": "Leaves `/setting-review` only after both character and world-setting review summaries are available and no candidate still needs review or attention.",
+        "states": [
+          "default",
+          "hover",
+          "focus-visible",
+          "disabled",
+          "loading"
+        ],
+        "variants": [
+          "character tab",
+          "world-setting tab"
+        ]
       }
     ],
     "rules": [
       "Keep the verified NHN Cloud CTA geometry as landing evidence rather than a universal application button system.",
       "Use `로그인 없이 체험하기` as the primary action in the header, hero, and closing CTA; free sign-up remains secondary.",
-      "Accordion transitions must preserve keyboard focus, expose the active step, and honor reduced-motion preferences."
+      "Accordion transitions must preserve keyboard focus, expose the active step, and honor reduced-motion preferences.",
+      "Enable the setting-review completion action only when both character and world-setting summaries loaded successfully and all pending or attention-required counts are zero; otherwise keep it disabled and show the remaining count.",
+      "On completion, replace the current route with `/dashboard?workId={workId}&nav=manuscripts` from either review tab, including direct URL entry.",
+      "Automatically dismiss character-setting candidates whose comparison result is EXCLUDE, omit them from the default review queue, and preserve the confirmed current setting and history; do not apply this rule to world-setting candidates."
     ]
   },
   "content_locales": {
@@ -117,7 +169,8 @@
         "locale": "ko-KR",
         "rules": [
           "Keep CTA labels short and action-oriented.",
-          "Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available."
+          "Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available.",
+          "Label the non-current comparison choice `이력에만 저장` and explain it as `회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다. 예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.`"
         ],
         "status": "supported"
       }
@@ -129,24 +182,26 @@
   },
   "experience": {
     "avoid": [
-      "Do not apply this landing-only contract to authenticated workspace routes.",
+      "Do not apply landing-specific visual rules to authenticated workspace routes; only the explicitly scoped setting-review behavior applies to `/setting-review`.",
       "Do not reduce the redesign to generic cards, decorative gradients, or repeated crops that obscure the actual product flow."
     ],
     "design_direction": [
       "Make reference-led landing redesigns visibly distinct through a strong first-screen hero and meaningful section hierarchy; CTA styling alone is not sufficient.",
       "Use purpose-built, visually distinct images for the hero and each product-flow panel instead of reusing one generic image through repeated crops.",
       "Present the implemented eight-stage manuscript workflow as one animated exploratory accordion with a clear active step and reduced-motion fallback.",
-      "Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile."
+      "Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile.",
+      "Keep the character-setting review queue decision-focused by automatically dismissing EXCLUDE comparison results without changing confirmed settings or history."
     ],
     "primary_tasks": [
       "Experience the manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.",
-      "Move to free sign-up as the secondary path when ready to register a work and use the full service."
+      "Move to free sign-up as the secondary path when ready to register a work and use the full service.",
+      "Finish all character and world-setting review decisions, then move directly to the selected work's manuscript list."
     ],
     "principles": [
       "Use NHN Cloud as reference evidence while CatchHole repository facts and explicit owner decisions define product behavior.",
       "Keep capability claims aligned with shipped product behavior and label relationship maps, chatbot, and error reports as upcoming until implemented."
     ],
-    "summary": "CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract applies only to the landing surface."
+    "summary": "CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract also defines the explicitly scoped completion and comparison-choice behavior of `/setting-review`; other authenticated workspace routes remain outside its scope."
   },
   "extensions": {
     "dev.oh-my-design.migration": {
@@ -312,17 +367,17 @@
       "Update operational docs and the Pencil source whenever an approved landing flow or capability description changes."
     ],
     "priority": [
-      "Direct project-owner instructions for the requested landing scope.",
+      "Direct project-owner instructions for the declared landing and setting-review scopes.",
       "CatchHole repository facts and verified implementation behavior.",
-      "This adopted landing system contract.",
+      "This adopted scoped product-system contract.",
       "NHN Cloud reference inspiration within its captured evidence boundary."
     ],
     "unknown_policy": "absent-at-smallest-unresolved-boundary"
   },
   "identity": {
     "kind": "project-system",
-    "name": "CatchHole Landing",
-    "scope": "CatchHole public landing page only; authenticated workspace, authentication modals, and the interactive demo retain their route-specific product contracts."
+    "name": "CatchHole Landing and Setting Review",
+    "scope": "CatchHole public landing page plus explicitly declared completion and comparison-choice behavior on `/setting-review`; other authenticated workspace routes, authentication modals, and the interactive demo retain their route-specific product contracts."
   },
   "layout_platforms": {
     "minimum_width_px": 320,
@@ -339,13 +394,14 @@
     "rules": [
       "Keep a strong split hero at wide viewports, then stack copy before imagery on narrower screens without horizontal overflow.",
       "Render the service catalog in two columns on desktop and one column on mobile, preserving the same capability order and upcoming labels.",
-      "Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile."
+      "Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile.",
+      "Keep both setting-comparison choice descriptions readable without horizontal overflow at the 320px minimum width and 200% reflow target."
     ]
   },
   "projection": {
     "locale": "en",
     "path": "DESIGN.md",
-    "sha256": "6988a42f214c76e1ae10d202fd4b7163ea57ac006522865916f0939881454cca"
+    "sha256": "57bd598376e2436af13245debc2ea266951ce9eea5aa056ccfc5dd5a894c0c4c"
   },
   "schema_version": "2.0.0",
   "typography_assets": {

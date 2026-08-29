@@ -1,4 +1,4 @@
-import { AlertCircle, Check, History, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, History, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { SettingCandidateResponse } from '../../../api/generated/types.gen';
 import { C } from '../constants';
@@ -86,7 +86,7 @@ function DecisionButton({
   active: boolean;
   disabled: boolean;
   title: string;
-  description: string;
+  description: ReactNode;
   icon: ReactNode;
   onClick: () => void;
 }) {
@@ -262,13 +262,6 @@ export function CharacterFactComparisonPanel({
         </div>
       )}
 
-      {completed && operation === 'EXCLUDE' && (
-        <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12, display: 'flex', gap: 7 }}>
-          <AlertCircle size={15} color={C.danger} style={{ flexShrink: 0, marginTop: 2 }} />
-          새 설정이나 이력에는 저장하지 않는 제안입니다. 아래의 ‘모두 확정’을 누르면 이 항목은 자동으로 제외 처리됩니다.
-        </div>
-      )}
-
       {completed && operation !== 'EXCLUDE' && (beforeValue != null || proposedValue != null) && (
         <div className="character-comparison-values" style={{
           display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8,
@@ -355,7 +348,13 @@ export function CharacterFactComparisonPanel({
               active={applicationMode === 'HISTORY_ONLY'}
               disabled={disabled || !policy.canSaveHistory}
               title="이력에만 저장"
-              description="타임라인 이력은 남기되 캐릭터의 현재 설정은 바꾸지 않습니다."
+              description={(
+                <>
+                  <span>회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.</span>
+                  <br />
+                  <span>예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.</span>
+                </>
+              )}
               icon={<History size={15} />}
               onClick={() => onApplicationModeChange('HISTORY_ONLY')}
             />

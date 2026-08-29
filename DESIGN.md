@@ -1,4 +1,4 @@
-# CatchHole Landing Design System
+# CatchHole Landing and Setting Review Design System
 
 <!-- design-md:section experience -->
 ## 1. Experience
@@ -6,15 +6,17 @@
 <!-- design-md:claim scope kind=product-surface lang=en -->
 ### Scope
 
-CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract applies only to the landing surface.
+CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract also defines the explicitly scoped completion and comparison-choice behavior of `/setting-review`; other authenticated workspace routes remain outside its scope.
 <!-- design-md:claim-end -->
 
-<!-- design-md:claim primary-tasks kind=user-outcomes count=2 lang=en -->
+<!-- design-md:claim primary-tasks kind=user-outcomes count=3 lang=en -->
 ### Primary tasks
 
 - Experience the manuscript-to-setting review flow without signing in through `/demo` as the primary landing conversion.
 
 - Move to free sign-up as the secondary path when ready to register a work and use the full service.
+
+- Finish all character and world-setting review decisions, then move directly to the selected work's manuscript list.
 <!-- design-md:claim-end -->
 
 ### Design direction
@@ -27,6 +29,8 @@ CatchHole `/landing` is the public marketing surface for web-novel authors and e
 
 - Present the product capability surface as a structured two-column service catalog on desktop and a single-column catalog on mobile.
 
+- Keep the character-setting review queue decision-focused by automatically dismissing EXCLUDE comparison results without changing confirmed settings or history.
+
 ### Principles
 
 - Use NHN Cloud as reference evidence while CatchHole repository facts and explicit owner decisions define product behavior.
@@ -35,7 +39,7 @@ CatchHole `/landing` is the public marketing surface for web-novel authors and e
 
 ### Avoid
 
-- Do not apply this landing-only contract to authenticated workspace routes.
+- Do not apply landing-specific visual rules to authenticated workspace routes; only the explicitly scoped setting-review behavior applies to `/setting-review`.
 
 - Do not reduce the redesign to generic cards, decorative gradients, or repeated crops that obscure the actual product flow.
 
@@ -141,6 +145,28 @@ Required.
 | error | not-applicable | The showcase does not call product APIs. |
 | success | not-applicable | Selecting a step is represented by the expanded state. |
 
+### Component: setting-review-completion-action
+
+**Semantics:** Leaves `/setting-review` only after both character and world-setting review summaries are available and no candidate still needs review or attention.
+
+- Anatomy: label, remaining-item count
+- Variants: character tab, world-setting tab
+- States: default, hover, focus-visible, disabled, loading
+
+- Interaction kind: interactive
+
+#### State applicability
+
+| State | Applicability | Reason |
+|---|---|---|
+| default | applicable |  |
+| hover | applicable |  |
+| focus-visible | applicable |  |
+| disabled | applicable | The action stays disabled until both review summaries load successfully and pending or attention-required candidates reach zero. |
+| loading | applicable | The disabled action reflects that one or both aggregate queries are still loading. |
+| error | not-applicable | A summary-query failure keeps the action disabled instead of becoming a button error state. |
+| success | not-applicable | Completion replaces the review route with the selected work's manuscript list. |
+
 ### Rules
 
 - Keep the verified NHN Cloud CTA geometry as landing evidence rather than a universal application button system.
@@ -148,6 +174,12 @@ Required.
 - Use `로그인 없이 체험하기` as the primary action in the header, hero, and closing CTA; free sign-up remains secondary.
 
 - Accordion transitions must preserve keyboard focus, expose the active step, and honor reduced-motion preferences.
+
+- Enable the setting-review completion action only when both character and world-setting summaries loaded successfully and all pending or attention-required counts are zero; otherwise keep it disabled and show the remaining count.
+
+- On completion, replace the current route with `/dashboard?workId={workId}&nav=manuscripts` from either review tab, including direct URL entry.
+
+- Automatically dismiss character-setting candidates whose comparison result is EXCLUDE, omit them from the default review queue, and preserve the confirmed current setting and history; do not apply this rule to world-setting candidates.
 
 <!-- design-md:section layout-platforms -->
 ## 5. Layout & Platforms
@@ -164,6 +196,8 @@ Required.
 - Render the service catalog in two columns on desktop and one column on mobile, preserving the same capability order and upcoming labels.
 
 - Reformat the eight-step desktop accordion into a single active panel with a horizontal step strip on tablet and mobile.
+
+- Keep both setting-comparison choice descriptions readable without horizontal overflow at the 320px minimum width and 200% reflow target.
 
 ### Platform: web
 
@@ -183,6 +217,7 @@ Required.
 
 - Keep CTA labels short and action-oriented.
 - Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available.
+- Label the non-current comparison choice `이력에만 저장` and explain it as `회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다. 예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.`
 
 <!-- design-md:section governance -->
 ## 7. Governance
@@ -216,11 +251,11 @@ Record, review, and validate changes before adoption.
 
 ### Project priority details
 
-1. Direct project-owner instructions for the requested landing scope.
+1. Direct project-owner instructions for the declared landing and setting-review scopes.
 
 2. CatchHole repository facts and verified implementation behavior.
 
-3. This adopted landing system contract.
+3. This adopted scoped product-system contract.
 
 4. NHN Cloud reference inspiration within its captured evidence boundary.
 

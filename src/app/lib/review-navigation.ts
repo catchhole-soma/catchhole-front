@@ -32,3 +32,11 @@ export function returnToAnalysisList(
   }
   navigate(savedUrl, { replace: true });
 }
+
+/** 완료된 설정 검토 route를 원고 목록으로 교체해 뒤로가기로 다시 열리지 않게 한다. */
+export function replaceWithManuscriptList(
+  navigate: NavigateFunction,
+  workId: string,
+) {
+  navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, { replace: true });
+}
