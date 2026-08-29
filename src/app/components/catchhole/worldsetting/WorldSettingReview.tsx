@@ -629,7 +629,7 @@ function WorldKeyDiffRow({
   const keyName = decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName ?? '설정명 없음';
   const propertyPath = scopeName
     ? `${scopeName} › ${keyName}`
-    : scopeUnresolved ? `범위 미지정 › ${keyName}` : keyName;
+    : keyName;
   const proposedValue = decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
   const proposedTone = scopeUnresolved
     ? C.warning

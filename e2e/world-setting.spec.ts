@@ -281,7 +281,8 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   const scopeReview = page.locator('.world-setting-scope-review');
-  await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toBeVisible();
+  await expect(page.locator('.world-setting-diff-row__header strong')).toHaveText('광원');
+  await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toHaveCount(0);
   await expect(scopeReview).toContainText('범위 확인 필요');
   await expect(scopeReview).toContainText('1층 › 광원');
   await expect(scopeReview).toContainText('기존 범위에 수정·병합');
