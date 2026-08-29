@@ -3109,6 +3109,104 @@ test('남은 후보가 있으면 완료 버튼을 비활성화하고 남은 개�
   })).toBeDisabled();
 });
 
+test('배치 전환 중 이전 캐릭터 집계로 완료 버튼을 활성화하지 않는다', async ({ page }) => {
+  const nextBatchId = '77777777-7777-4777-8777-777777777777';
+  let releaseNextCharacterResponse: (() => void) | undefined;
+  const nextCharacterResponseGate = new Promise<void>(resolve => {
+    releaseNextCharacterResponse = resolve;
+  });
+  let nextWorldResponseCount = 0;
+
+  await page.route('**/api/v1/**', async route => {
+    const requestUrl = new URL(route.request().url());
+    const pathname = requestUrl.pathname;
+    const requestBatchId = requestUrl.searchParams.get('batchId');
+    if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      if (requestBatchId === nextBatchId) {
+        await nextCharacterResponseGate;
+        return fulfill(route, {
+          batchId: nextBatchId,
+          episodeStartNo: 2,
+          episodeEndNo: 2,
+          episodeCount: 1,
+          totalCandidateCount: 1,
+          reviewedCandidateCount: 0,
+          pendingCandidateCount: 1,
+          matchRequiredCandidateCount: 0,
+          groups: {
+            content: [{
+              groupKey: '수아',
+              entityName: '수아',
+              candidateCount: 1,
+              evidenceEpisodeNos: [2],
+              candidates: [candidates[0]],
+            }],
+            page: 0, size: 20, totalElements: 1, totalPages: 1, hasNext: false,
+          },
+        });
+      }
+      return fulfill(route, {
+        batchId,
+        episodeStartNo: 1,
+        episodeEndNo: 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      if (requestBatchId === nextBatchId) nextWorldResponseCount += 1;
+      return fulfill(route, {
+        batchId: requestBatchId,
+        episodeStartNo: requestBatchId === nextBatchId ? 2 : 1,
+        episodeEndNo: requestBatchId === nextBatchId ? 2 : 1,
+        episodeCount: 1,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        conflictCandidateCount: 0,
+        groups: {
+          content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false,
+        },
+      });
+    }
+    return fulfill(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+  await expect(page.getByRole('button', { name: '원고 목록으로', exact: true })).toBeEnabled();
+
+  try {
+    await page.evaluate(({ workId: nextWorkId, batchId: targetBatchId }) => {
+      const url = `/setting-review?workId=${nextWorkId}&batchId=${targetBatchId}`;
+      window.history.pushState(window.history.state, '', url);
+      window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+    }, { workId, batchId: nextBatchId });
+
+    await expect.poll(() => nextWorldResponseCount).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: /^검토 완료/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '원고 목록으로', exact: true })).toHaveCount(0);
+  } finally {
+    releaseNextCharacterResponse?.();
+  }
+
+  await expect(page.getByRole('button', {
+    name: '검토 완료 · 1개 후보 · 0개 확인 필요',
+    exact: true,
+  })).toBeDisabled();
+});
+
 test('직접 진입한 캐릭터 검토 완료 버튼은 원고 목록으로 replace 이동한다', async ({ page }) => {
   await routeCompletedReviewSummaries(page);
   await authenticate(page);

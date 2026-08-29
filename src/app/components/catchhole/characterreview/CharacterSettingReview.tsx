@@ -1899,6 +1899,7 @@ export function CharacterSettingReview() {
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
   const reviewComplete = listQuery.isSuccess
+    && listData?.batchId === batchId
     && worldSummaryQuery.isSuccess
     && combinedPending === 0
     && combinedAttention === 0
