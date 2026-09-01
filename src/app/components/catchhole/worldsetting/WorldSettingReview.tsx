@@ -291,14 +291,16 @@ function groupDecisionIdentity(
   };
 }
 
-function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): string | null {
-  if (!candidate.comparisonReason) return null;
+function userFacingComparisonReason(
+  candidate: WorldSettingCandidateResponse,
+  includeRootMoveNotice: boolean,
+): string | null {
   const targetName = resolvedTargetSubjectName(candidate);
-  let reason = candidate.comparisonReason;
+  let reason = candidate.comparisonReason ?? '';
   if (targetName) {
     reason = reason.replace(/T\d+/g, `기존 '${targetName}' 설정`);
   }
-  return reason
+  const publicReason = reason
     .replace(/\bkey로/gi, '설정 항목으로')
     .replace(/\bkey를/gi, '설정 항목을')
     .replace(/\bkey가/gi, '설정 항목이')
@@ -311,6 +313,16 @@ function userFacingComparisonReason(candidate: WorldSettingCandidateResponse): s
     .replace(/\bEXCLUDE\b/g, '반영하지 않음')
     .replace(/\bREVIEW_REQUIRED\b/g, '범위 확인 필요')
     .replace(/\bSCOPE_UNRESOLVED\b/g, '범위 미확정');
+  const rootPropertyNames = candidate.existingRootPropertyNamesToMove ?? [];
+  if (!includeRootMoveNotice || !candidate.proposedScopeName || rootPropertyNames.length === 0) {
+    return publicReason || null;
+  }
+  const movePaths = rootPropertyNames
+    .map(settingName => `‘${settingName}’ → ‘${candidate.proposedScopeName} › ${settingName}’`)
+    .join(', ');
+  return [publicReason, `확정하면 기존 설정도 함께 이동합니다: ${movePaths}.`]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function Badge({
@@ -600,6 +612,7 @@ function WorldKeyDiffRow({
   decision,
   conflictResolved,
   recompared,
+  includeRootMoveNotice,
   disabled,
   onExclude,
   onEdit,
@@ -608,6 +621,7 @@ function WorldKeyDiffRow({
   decision: DecisionDraft | null;
   conflictResolved: boolean;
   recompared: boolean;
+  includeRootMoveNotice: boolean;
   disabled: boolean;
   onExclude: () => void;
   onEdit: () => void;
@@ -650,7 +664,10 @@ function WorldKeyDiffRow({
     : '− 기존값';
   const beforeValue = candidate.beforeValue
     || (operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
-  const comparisonReason = userFacingComparisonReason(candidate);
+  const comparisonReason = userFacingComparisonReason(
+    candidate,
+    includeRootMoveNotice,
+  );
   const matchedPropertyPath = candidate.matchedPropertyName
     ? candidate.matchedScopeName
       ? `${candidate.matchedScopeName} › ${candidate.matchedPropertyName}`
@@ -897,6 +914,17 @@ function WorldCandidateGroupDetail({
     && duplicatePropertyPaths.length === 0
     && unresolvedConflicts.length === 0
     && !confirmationFiltered;
+  const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) => {
+    if (confirmationFiltered) return false;
+    const linkedSources = candidate.comparisonDecisionId
+      ? candidates.filter(source => source.comparisonDecisionId === candidate.comparisonDecisionId)
+      : [candidate];
+    return linkedSources.every(source => {
+      if (!source.id || source.userModified) return false;
+      const sourceDecision = decisions[source.id] ?? candidateDecision(source);
+      return sourceDecision?.operation === 'ADD';
+    });
+  };
   return (
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
@@ -927,6 +955,7 @@ function WorldCandidateGroupDetail({
           decision={decisions[candidate.id] ?? candidateDecision(candidate)}
           conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
           recompared={recomparedIds.has(candidate.id)}
+          includeRootMoveNotice={includeRootMoveNotice(candidate)}
           disabled={actionPending}
           onExclude={() => onExclude(candidate.id!)}
           onEdit={() => onEdit(candidate)}
@@ -970,7 +999,7 @@ function WorldCandidateGroupDetail({
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
         }}>
-          반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.
+          분류·반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.
         </div>
       )}
 
@@ -1593,8 +1622,13 @@ export function WorldSettingReview() {
   const pendingCandidates = (selectedGroup?.candidates ?? []).filter(candidate => (
     candidate.id && candidate.reviewStatus === 'PENDING_REVIEW'
   ));
+  const confirmationFiltered = operationFilter !== 'ALL'
+    || (categoryFilter !== 'ALL' && pendingCandidates.some(candidate => (
+      Boolean(candidate.comparisonDecisionId)
+      && candidate.consolidationStatus !== 'SINGLE'
+    )));
   const confirmAll = () => {
-    if (!selectedGroup || !batchId || actionPending || operationFilter !== 'ALL') return;
+    if (!selectedGroup || !batchId || actionPending || confirmationFiltered) return;
     const candidates = pendingCandidates.flatMap(candidate => {
       if (!candidate.id) return [];
       const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
@@ -2025,7 +2059,7 @@ export function WorldSettingReview() {
                         }}
                         onConfirm={confirmAll}
                         onRetry={retryGroup}
-                        confirmationFiltered={operationFilter !== 'ALL'}
+                        confirmationFiltered={confirmationFiltered}
                       />
                     )}
                   </section>

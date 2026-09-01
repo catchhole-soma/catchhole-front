@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addWorldSettingProperty, approveAiTokenExtensionRequest, claimAnalysisJob, claimNextWorkerCharacterFactComparison, claimNextWorkerWorldSettingComparison, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerWorldSettingComparison, confirmPhoneVerification, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, createAnalysisJob, createMyAiTokenExtensionRequest, createMyFeedback, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerWorldSettingComparison, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getCurrentLegalDocuments, getEpisode, getEpisodes, getLegalDocument, getMe, getMyAiTokenUsage, getMyPendingAiTokenExtensionRequest, getMyWorks, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, login, logout, type Options, publishWorkerWorldSettingCandidates, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, requestPhoneVerification, reserveAiTokens, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingProperty, uploadEpisodes, uploadSettingBook, withdrawMe } from '../sdk.gen';
-import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse } from '../types.gen';
+import { addWorldSettingProperty, approveAiTokenExtensionRequest, claimAnalysisJob, claimNextWorkerCharacterFactComparison, claimNextWorkerWorldSettingComparison, claimNextWorkerWorldSettingComparisonBatch, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerWorldSettingComparison, completeWorkerWorldSettingComparisonBatch, confirmPhoneVerification, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, createAnalysisJob, createMyAiTokenExtensionRequest, createMyFeedback, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerWorldSettingComparison, failWorkerWorldSettingComparisonBatch, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getCurrentLegalDocuments, getEpisode, getEpisodes, getLegalDocument, getMe, getMyAiTokenUsage, getMyPendingAiTokenExtensionRequest, getMyWorks, getPendingWorkerWorldSettingSubjectResolutions, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getWork, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonBatchContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, login, logout, type Options, publishWorkerWorldSettingCandidates, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, requestPhoneVerification, reserveAiTokens, resetStaleWorkerWorldSettingSubjectResolution, resolveWorkerWorldSettingSubjects, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingProperty, uploadEpisodes, uploadSettingBook, withdrawMe } from '../sdk.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonBatchData, ClaimNextWorkerWorldSettingComparisonBatchResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonBatchData, CompleteWorkerWorldSettingComparisonBatchResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonBatchData, FailWorkerWorldSettingComparisonBatchResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetPendingWorkerWorldSettingSubjectResolutionsData, GetPendingWorkerWorldSettingSubjectResolutionsResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetWorkData, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonBatchContextData, GetWorkerWorldSettingComparisonBatchContextResponse, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, ResetStaleWorkerWorldSettingSubjectResolutionData, ResetStaleWorkerWorldSettingSubjectResolutionResponse, ResolveWorkerWorldSettingSubjectsData, ResolveWorkerWorldSettingSubjectsResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -53,6 +53,26 @@ export const replaceEpisodeFileMutation = (options?: Partial<Options<ReplaceEpis
             return data;
         },
         mutationKey: replaceEpisodeFileMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const resolveWorkerWorldSettingSubjectsMutationKey = (options?: Partial<Options<ResolveWorkerWorldSettingSubjectsData>>) => createMutationKey('resolveWorkerWorldSettingSubjects', options);
+
+/**
+ * 세계관 후보 canonical 주체 해소 결과 저장
+ */
+export const resolveWorkerWorldSettingSubjectsMutation = (options?: Partial<Options<ResolveWorkerWorldSettingSubjectsData>>): UseMutationOptions<ResolveWorkerWorldSettingSubjectsResponse, DefaultError, Options<ResolveWorkerWorldSettingSubjectsData>> => {
+    const mutationOptions: UseMutationOptions<ResolveWorkerWorldSettingSubjectsResponse, DefaultError, Options<ResolveWorkerWorldSettingSubjectsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await resolveWorkerWorldSettingSubjects({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: resolveWorkerWorldSettingSubjectsMutationKey(options)
     };
     return mutationOptions;
 };
@@ -943,6 +963,106 @@ export const claimNextWorkerWorldSettingComparisonMutation = (options?: Partial<
             return data;
         },
         mutationKey: claimNextWorkerWorldSettingComparisonMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const resetStaleWorkerWorldSettingSubjectResolutionMutationKey = (options?: Partial<Options<ResetStaleWorkerWorldSettingSubjectResolutionData>>) => createMutationKey('resetStaleWorkerWorldSettingSubjectResolution', options);
+
+/**
+ * 변경된 canonical 주체 해소를 다시 시작
+ */
+export const resetStaleWorkerWorldSettingSubjectResolutionMutation = (options?: Partial<Options<ResetStaleWorkerWorldSettingSubjectResolutionData>>): UseMutationOptions<ResetStaleWorkerWorldSettingSubjectResolutionResponse, DefaultError, Options<ResetStaleWorkerWorldSettingSubjectResolutionData>> => {
+    const mutationOptions: UseMutationOptions<ResetStaleWorkerWorldSettingSubjectResolutionResponse, DefaultError, Options<ResetStaleWorkerWorldSettingSubjectResolutionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await resetStaleWorkerWorldSettingSubjectResolution({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: resetStaleWorkerWorldSettingSubjectResolutionMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const failWorkerWorldSettingComparisonBatchMutationKey = (options?: Partial<Options<FailWorkerWorldSettingComparisonBatchData>>) => createMutationKey('failWorkerWorldSettingComparisonBatch', options);
+
+/**
+ * 세계관 설정 후보 묶음 비교 실패
+ */
+export const failWorkerWorldSettingComparisonBatchMutation = (options?: Partial<Options<FailWorkerWorldSettingComparisonBatchData>>): UseMutationOptions<FailWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<FailWorkerWorldSettingComparisonBatchData>> => {
+    const mutationOptions: UseMutationOptions<FailWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<FailWorkerWorldSettingComparisonBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await failWorkerWorldSettingComparisonBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: failWorkerWorldSettingComparisonBatchMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getWorkerWorldSettingComparisonBatchContextMutationKey = (options?: Partial<Options<GetWorkerWorldSettingComparisonBatchContextData>>) => createMutationKey('getWorkerWorldSettingComparisonBatchContext', options);
+
+/**
+ * 세계관 설정 후보 묶음 비교 문맥 조회
+ */
+export const getWorkerWorldSettingComparisonBatchContextMutation = (options?: Partial<Options<GetWorkerWorldSettingComparisonBatchContextData>>): UseMutationOptions<GetWorkerWorldSettingComparisonBatchContextResponse, DefaultError, Options<GetWorkerWorldSettingComparisonBatchContextData>> => {
+    const mutationOptions: UseMutationOptions<GetWorkerWorldSettingComparisonBatchContextResponse, DefaultError, Options<GetWorkerWorldSettingComparisonBatchContextData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await getWorkerWorldSettingComparisonBatchContext({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: getWorkerWorldSettingComparisonBatchContextMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const completeWorkerWorldSettingComparisonBatchMutationKey = (options?: Partial<Options<CompleteWorkerWorldSettingComparisonBatchData>>) => createMutationKey('completeWorkerWorldSettingComparisonBatch', options);
+
+/**
+ * 세계관 설정 후보 묶음 비교 완료
+ */
+export const completeWorkerWorldSettingComparisonBatchMutation = (options?: Partial<Options<CompleteWorkerWorldSettingComparisonBatchData>>): UseMutationOptions<CompleteWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<CompleteWorkerWorldSettingComparisonBatchData>> => {
+    const mutationOptions: UseMutationOptions<CompleteWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<CompleteWorkerWorldSettingComparisonBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await completeWorkerWorldSettingComparisonBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: completeWorkerWorldSettingComparisonBatchMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const claimNextWorkerWorldSettingComparisonBatchMutationKey = (options?: Partial<Options<ClaimNextWorkerWorldSettingComparisonBatchData>>) => createMutationKey('claimNextWorkerWorldSettingComparisonBatch', options);
+
+/**
+ * 다음 세계관 설정 후보 묶음 비교 claim
+ */
+export const claimNextWorkerWorldSettingComparisonBatchMutation = (options?: Partial<Options<ClaimNextWorkerWorldSettingComparisonBatchData>>): UseMutationOptions<ClaimNextWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<ClaimNextWorkerWorldSettingComparisonBatchData>> => {
+    const mutationOptions: UseMutationOptions<ClaimNextWorkerWorldSettingComparisonBatchResponse, DefaultError, Options<ClaimNextWorkerWorldSettingComparisonBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await claimNextWorkerWorldSettingComparisonBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: claimNextWorkerWorldSettingComparisonBatchMutationKey(options)
     };
     return mutationOptions;
 };
@@ -2416,6 +2536,24 @@ export const getWorkerWorldSettingSubjectsInfiniteOptions = (options: Options<Ge
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
+
+export const getPendingWorkerWorldSettingSubjectResolutionsQueryKey = (options: Options<GetPendingWorkerWorldSettingSubjectResolutionsData>) => createQueryKey('getPendingWorkerWorldSettingSubjectResolutions', options);
+
+/**
+ * canonical 주체 해소가 필요한 세계관 후보 조회
+ */
+export const getPendingWorkerWorldSettingSubjectResolutionsOptions = (options: Options<GetPendingWorkerWorldSettingSubjectResolutionsData>) => queryOptions<GetPendingWorkerWorldSettingSubjectResolutionsResponse, DefaultError, GetPendingWorkerWorldSettingSubjectResolutionsResponse, ReturnType<typeof getPendingWorkerWorldSettingSubjectResolutionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPendingWorkerWorldSettingSubjectResolutions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPendingWorkerWorldSettingSubjectResolutionsQueryKey(options)
+});
 
 export const withdrawMeMutationKey = (options?: Partial<Options<WithdrawMeData>>) => createMutationKey('withdrawMe', options);
 
