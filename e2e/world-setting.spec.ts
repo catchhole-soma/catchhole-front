@@ -151,6 +151,116 @@ function worldCandidateGroup(candidates: Array<ReturnType<typeof worldCandidate>
   };
 }
 
+test('새 범위로 함께 이동할 기존 root 설정을 검토 판단에 명시한다', async ({ page }) => {
+  const candidate = worldCandidate({
+    settingName: '근력 기댓값',
+    extractedValue: '근력 기댓값이 높다.',
+    suggestedOperation: 'ADD',
+    proposedScopeName: '신체 능력',
+    proposedSettingName: '근력 기댓값',
+    beforeValue: null,
+    proposedValue: '근력 기댓값이 높다.',
+    existingRootPropertyNamesToMove: ['생명력'],
+    comparisonReason: '기존 생명력과 함께 신체 능력 범위로 정리합니다.',
+  });
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([candidate])]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await expect(page.locator('.world-setting-diff-row__header strong'))
+    .toHaveText('신체 능력 › 근력 기댓값');
+  await expect(page.locator('.world-setting-comparison-reason')).toContainText(
+    '확정하면 기존 설정도 함께 이동합니다: ‘생명력’ → ‘신체 능력 › 생명력’.',
+  );
+});
+
+test('분류 필터로 묶음 판단의 다른 후보가 가려지면 root 이동 안내와 확정을 막는다', async ({ page }) => {
+  const comparisonDecisionId = '12121212-1212-4121-8121-121212121212';
+  const visibleCandidate = worldCandidate({
+    id: secondWorldCandidateId,
+    comparisonDecisionId,
+    consolidationStatus: 'MERGED',
+    settingName: '근력 기댓값',
+    suggestedOperation: 'ADD',
+    proposedScopeName: '신체 능력',
+    proposedSettingName: '근력 기댓값',
+    beforeValue: null,
+    existingRootPropertyNamesToMove: ['생명력'],
+    comparisonReason: '기존 생명력과 함께 신체 능력 범위로 정리합니다.',
+  });
+
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 3,
+        episodeCount: 1,
+        totalCandidateCount: 1,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 1,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        groups: pageResponse([worldCandidateGroup([visibleCandidate])]),
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&worldCategory=RACE`);
+
+  await expect(page.getByText('확정하면 기존 설정도 함께 이동합니다')).toHaveCount(0);
+  await expect(page.getByText('분류·반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+});
+
 test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비교 안내만 표시한다', async ({ page }) => {
   const rawError = 'World-setting comparison failed after 3 attempts: A single extracted value must be preserved.';
   const failedCandidate = worldCandidate({
