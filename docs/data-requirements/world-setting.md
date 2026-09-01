@@ -354,6 +354,8 @@ LLM 원본 응답은 디버깅 저장 대상이지만 사용자 화면에는 노
 - 목록·상세 조회: 작품, 분석 묶음, 선택한 필터와 페이지, 후보 식별자
 - 후보 수정:
   - 개별 row에서 수정한 최종 분류·대상명·선택적 범위·설정명·최종 반영값·최종 반영 방식은 후보 하나를, header에서 일괄 수정한 분류·대상명은 같은 현재 그룹의 모든 미확정 후보를 `PATCH /world-setting-candidates/decisions`로 즉시 저장한다.
+  - `REVIEW_REQUIRED + SCOPE_UNRESOLVED` 후보는 기존 matched 경로를 자동 상속하지 않는다. 필터로 source가 숨지 않고 같은 `comparisonDecisionId`의 모든 미확정 후보가 동일한 matched 경로와 canonical 제안값을 가질 때만 `기존 범위 › 설정명에 병합` 빠른 선택을 표시하고, 수정 모달에 `MERGE`와 해당 경로를 미리 채운다. 저장 시 연결된 source 전체를 동일 결정으로 한 PATCH에 포함하며, `CONFLICT`는 사용자가 최종값을 확인·수정한 뒤에만 확정 요청의 `conflictResolved=true` 대상이 된다.
+  - `REVIEW_REQUIRED + BATCH_LIMIT_EXCEEDED` 후보는 `출력 한도 검토`로 표시하고 그룹 확정을 잠근다. FE는 수정 모달에 후보의 1차 추출 범위·설정명·값과 기본 `ADD`를 미리 채우되 자동 저장하지 않는다. 작가가 반영 방식과 최종값을 확인해 수정안을 저장한 뒤에만 확정을 허용하며, `CONFLICT`는 원문별 추출값을 표시하고 하나의 최종값을 직접 확인해야 `conflictResolved=true`로 전환한다.
   - Backend는 `PENDING_REVIEW + COMPLETED` 상태와 1·2차 원본을 유지한 채 `final*` 초안만 저장하고 새 `groupKey`를 반환한다. FE는 후보 목록을 다시 조회해 row를 새 그룹으로 이동시키고 그 그룹을 선택한다.
   - 수정 저장은 2차 LLM 재비교를 호출하지 않는다.
   - 원문 근거·LLM 원본·비교 기준값은 FE가 재조립하거나 덮어쓰지 않는다.
