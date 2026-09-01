@@ -551,6 +551,27 @@ flowchart TD
   classDef decision fill:#0F0F13,stroke:#F4A261,color:#F0F0F5;
 ```
 
+### 세계관 root 설정 재범위화 검토 분기
+
+기존 root 설정 이동은 별도 후보 row가 아니라 새 `ADD` 후보에 연결된 서버 이동 계획으로 표시합니다. Front는
+확정 요청에서 이동할 설정명을 다시 보내지 않고, 사용자가 AI안을 그대로 그룹 확정할지 여부만 전달합니다.
+
+```mermaid
+flowchart TD
+  A["세계관 후보 상세 조회"] --> B{"ADD + proposedScopeName +<br/>existingRootPropertyNamesToMove?"}
+  B -- "아니오" --> C["일반 후보 diff 검토"]
+  B -- "예" --> D["AI 비교 판단에 이동 안내<br/>생명력 → 신체 능력 › 생명력"]
+  D --> E{"사용자 행동"}
+  E -- "AI안 그대로 모두 확정" --> F["POST group-confirm<br/>candidate 최종 결정만 전송"]
+  F --> G{"Backend snapshot·목적지<br/>재검증 성공?"}
+  G -- "예" --> H["기존 root 이동 + 새 ADD 원자 반영<br/>후보·세계관 DB 다시 조회"]
+  G -- "아니오" --> I["409 RECOMPARISON_REQUIRED<br/>상태 재조회 후 비동기 재비교"]
+  E -- "수정 또는 row 제외" --> J["PATCH decisions 또는 POST group-dismiss"]
+  J --> K["Backend가 이동 계획 decision-wide 비활성화"]
+  K --> L["후보 재조회<br/>이동 안내 제거"]
+  E -- "일부 source를 숨길 수 있는 필터" --> M["이동 안내 숨김 + 모두 확정 잠금<br/>필터 해제 안내"]
+```
+
 > 딥링크 (클릭 시 이동): [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
 > ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&group=<group-key>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&group=<group-key>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)). 구형 `candidate=<id>` 딥링크는 진입 후 해당 그룹으로 정규화한다.
 
