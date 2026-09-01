@@ -315,6 +315,7 @@ test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비�
 
 test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택할 때까지 검토 필요로 표시한다', async ({ page }) => {
   let candidate = worldCandidate({
+    comparisonDecisionId: '12121212-1212-4212-8212-121212121212',
     category: 'LOCATION',
     subjectName: '미궁',
     targetSubjectName: '미궁',
@@ -323,7 +324,7 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
     extractedValue: '벽과 천장의 수정들이 주변을 밝힌다.',
     matchedScopeName: '1층',
     matchedPropertyName: '광원',
-    consolidationStatus: 'SINGLE',
+    consolidationStatus: 'MERGED',
     suggestedOperation: 'REVIEW_REQUIRED',
     comparisonReviewReason: 'SCOPE_UNRESOLVED',
     proposedScopeName: null,
@@ -331,6 +332,27 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
     beforeValue: '벽면 수정이 은은한 빛을 낸다.',
     proposedValue: '벽과 천장의 수정들이 주변을 밝힌다.',
     comparisonReason: "후보에는 범위가 없지만 기존 '1층 › 광원' 설정과 관련될 수 있어 적용 범위 확인이 필요합니다.",
+  });
+  let secondCandidate = worldCandidate({
+    id: secondWorldCandidateId,
+    comparisonDecisionId: '12121212-1212-4212-8212-121212121212',
+    sourceEpisodeNo: 4,
+    category: 'LOCATION',
+    subjectName: '미궁',
+    targetSubjectName: '미궁',
+    scopeName: null,
+    settingName: '광원',
+    extractedValue: '천장의 수정도 통로 전체를 비춘다.',
+    matchedScopeName: '1층',
+    matchedPropertyName: '광원',
+    consolidationStatus: 'MERGED',
+    suggestedOperation: 'REVIEW_REQUIRED',
+    comparisonReviewReason: 'SCOPE_UNRESOLVED',
+    proposedScopeName: null,
+    proposedSettingName: '광원',
+    beforeValue: '벽면 수정이 은은한 빛을 낸다.',
+    proposedValue: '벽과 천장의 수정들이 주변을 밝힌다.',
+    comparisonReason: "두 원문 모두 기존 '1층 › 광원' 설정과 관련될 수 있어 적용 범위 확인이 필요합니다.",
   });
   let updatedBody: Record<string, unknown> | null = null;
 
@@ -355,33 +377,38 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
         episodeStartNo: 3,
         episodeEndNo: 3,
         episodeCount: 1,
-        totalCandidateCount: 1,
+        totalCandidateCount: 2,
         reviewedCandidateCount: 0,
-        pendingCandidateCount: 1,
+        pendingCandidateCount: 2,
         pendingComparisonCount: 0,
         processingComparisonCount: 0,
         failedComparisonCount: 0,
         recomparisonRequiredCount: 0,
-        groups: pageResponse([worldCandidateGroup([candidate])]),
+        groups: pageResponse([worldCandidateGroup([candidate, secondCandidate])]),
       });
     }
     if (pathname === `/api/v1/works/${workId}/world-setting-candidates/decisions`
         && request.method() === 'PATCH') {
       updatedBody = request.postDataJSON() as Record<string, unknown>;
-      const decision = (updatedBody.candidates as Array<Record<string, unknown>>)[0];
-      candidate = {
-        ...candidate,
-        userModified: true,
-        finalOperation: decision.operation,
-        finalCategory: decision.category,
-        finalSubjectName: decision.subjectName,
-        finalScopeName: decision.scopeName,
-        finalSettingName: decision.settingName,
-        finalValue: decision.value,
+      const decisions = updatedBody.candidates as Array<Record<string, unknown>>;
+      const applyDecision = (current: ReturnType<typeof worldCandidate>) => {
+        const decision = decisions.find(item => item.candidateId === current.id);
+        return decision ? {
+          ...current,
+          userModified: true,
+          finalOperation: decision.operation,
+          finalCategory: decision.category,
+          finalSubjectName: decision.subjectName,
+          finalScopeName: decision.scopeName,
+          finalSettingName: decision.settingName,
+          finalValue: decision.value,
+        } : current;
       };
+      candidate = applyDecision(candidate);
+      secondCandidate = applyDecision(secondCandidate);
       return success(route, {
         groupKey: 'LOCATION|미궁',
-        candidates: [candidate],
+        candidates: [candidate, secondCandidate],
       });
     }
     return success(route, []);
@@ -391,29 +418,36 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   const scopeReview = page.locator('.world-setting-scope-review');
-  await expect(page.locator('.world-setting-diff-row__header strong')).toHaveText('광원');
+  await expect(page.locator('.world-setting-diff-row__header strong')).toHaveText(['광원', '광원']);
   await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toHaveCount(0);
-  await expect(scopeReview).toContainText('범위 확인 필요');
-  await expect(scopeReview).toContainText('1층 › 광원');
-  await expect(scopeReview).toContainText('기존 범위에 수정·병합');
+  await expect(scopeReview).toHaveCount(2);
+  await expect(scopeReview.first()).toContainText('범위 확인 필요');
+  await expect(scopeReview.first()).toContainText('1층 › 광원');
+  await expect(scopeReview.first()).toContainText('기존 범위에 수정·병합');
   await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
   await expect(page.getByRole('button', { name: '분류·대상 일괄 수정' })).toBeDisabled();
 
-  await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByRole('button', { name: "기존 ‘1층 › 광원’에 병합", exact: true }).first().click();
   const editModal = page.locator('.review-modal');
-  await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('');
-  await expect(editModal.getByLabel('반영 방식')).toHaveValue('ADD');
+  await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('1층');
+  await expect(editModal.getByLabel('반영 방식')).toHaveValue('MERGE');
   await expect(editModal.getByText("기존 ‘1층 › 광원’에 반영하려면 범위를 입력하고 수정 또는 병합을 선택하세요.")).toBeVisible();
-  await editModal.getByLabel('범위 (선택)').fill('1층');
-  await editModal.getByLabel('반영 방식').selectOption('UPDATE');
   await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
 
   await expect.poll(() => updatedBody).toEqual({
     batchId,
     candidates: [{
       candidateId: worldCandidateId,
-      operation: 'UPDATE',
+      operation: 'MERGE',
+      category: 'LOCATION',
+      subjectName: '미궁',
+      scopeName: '1층',
+      settingName: '광원',
+      value: '벽과 천장의 수정들이 주변을 밝힌다.',
+    }, {
+      candidateId: secondWorldCandidateId,
+      operation: 'MERGE',
       category: 'LOCATION',
       subjectName: '미궁',
       scopeName: '1층',
@@ -421,7 +455,7 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
       value: '벽과 천장의 수정들이 주변을 밝힌다.',
     }],
   });
-  await expect(scopeReview).toBeHidden();
+  await expect(scopeReview).toHaveCount(0);
   await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
 
@@ -431,6 +465,181 @@ test('범위 없는 후보가 기존 scoped 설정과 겹치면 범위를 선택
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth <= document.documentElement.clientWidth
   ))).toBe(true);
+});
+
+test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한 뒤에만 확정한다', async ({ page }) => {
+  let firstCandidate = worldCandidate({
+    category: 'LOCATION',
+    subjectName: '미궁',
+    targetSubjectName: '미궁',
+    scopeName: '환경',
+    settingName: '광원',
+    extractedValue: '벽과 천장의 수정이 통로를 밝힌다.',
+    consolidationStatus: 'SINGLE',
+    suggestedOperation: 'REVIEW_REQUIRED',
+    comparisonReviewReason: 'BATCH_LIMIT_EXCEEDED',
+    proposedScopeName: '환경',
+    proposedSettingName: '광원',
+    beforeValue: null,
+    proposedValue: '벽과 천장의 수정이 통로를 밝힌다.',
+    comparisonReason: '비교 결과가 출력 한도를 넘어 자동 비교하지 않았습니다.',
+  });
+  let conflictCandidate = worldCandidate({
+    id: secondWorldCandidateId,
+    sourceEpisodeNo: 4,
+    category: 'LOCATION',
+    subjectName: '미궁',
+    targetSubjectName: '미궁',
+    scopeName: '장비',
+    settingName: '무기',
+    extractedValue: '검\n몽둥이',
+    consolidationStatus: 'CONFLICT',
+    suggestedOperation: 'REVIEW_REQUIRED',
+    comparisonReviewReason: 'BATCH_LIMIT_EXCEEDED',
+    proposedScopeName: '장비',
+    proposedSettingName: '무기',
+    beforeValue: null,
+    proposedValue: '검\n몽둥이',
+    comparisonReason: '비교 결과가 출력 한도를 넘어 자동 비교하지 않았습니다.',
+  });
+  const updatedBodies: Array<Record<string, unknown>> = [];
+  let confirmedBody: Record<string, unknown> | null = null;
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, {
+        batchId,
+        totalCandidateCount: 0,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 0,
+        matchRequiredCandidateCount: 0,
+        candidates: pageResponse([]),
+      });
+    }
+    if (pathname === worldListPath && request.method() === 'GET') {
+      return success(route, {
+        batchId,
+        episodeStartNo: 3,
+        episodeEndNo: 4,
+        episodeCount: 2,
+        totalCandidateCount: 2,
+        reviewedCandidateCount: 0,
+        pendingCandidateCount: 2,
+        pendingComparisonCount: 0,
+        processingComparisonCount: 0,
+        failedComparisonCount: 0,
+        recomparisonRequiredCount: 0,
+        conflictCandidateCount: conflictCandidate.userModified ? 0 : 1,
+        groups: pageResponse([worldCandidateGroup([firstCandidate, conflictCandidate])]),
+      });
+    }
+    if (pathname === `${worldListPath}/decisions` && request.method() === 'PATCH') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      updatedBodies.push(body);
+      const decision = (body.candidates as Array<Record<string, unknown>>)[0];
+      const applyDecision = (candidate: ReturnType<typeof worldCandidate>) => (
+        decision.candidateId === candidate.id
+          ? {
+            ...candidate,
+            userModified: true,
+            finalOperation: decision.operation,
+            finalCategory: decision.category,
+            finalSubjectName: decision.subjectName,
+            finalScopeName: decision.scopeName ?? null,
+            finalSettingName: decision.settingName,
+            finalValue: decision.value,
+          }
+          : candidate
+      );
+      firstCandidate = applyDecision(firstCandidate);
+      conflictCandidate = applyDecision(conflictCandidate);
+      return success(route, {
+        groupKey: 'LOCATION|미궁',
+        candidates: [firstCandidate, conflictCandidate],
+      });
+    }
+    if (pathname === `${worldListPath}/group-confirm` && request.method() === 'POST') {
+      confirmedBody = request.postDataJSON() as Record<string, unknown>;
+      return success(route, {
+        groupKey: 'LOCATION|미궁',
+        worldSettingId,
+        appliedWorldSettingVersion: 4,
+        candidates: [firstCandidate, conflictCandidate],
+      });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  await expect(page.getByText('출력 한도 검토', { exact: true })).toHaveCount(2);
+  await expect(page.locator('.world-setting-batch-limit-review')).toHaveCount(2);
+  await expect(page.getByText('AI 비교 결과가 한 번에 반환할 수 있는 크기를 넘어 자동 판단을 생략했습니다.').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+
+  const lightRow = page.locator('.world-setting-diff-row').filter({ hasText: '환경 › 광원' });
+  await lightRow.getByRole('button', { name: '수정', exact: true }).click();
+  let editModal = page.locator('.review-modal');
+  await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('환경');
+  await expect(editModal.getByLabel('설정명')).toHaveValue('광원');
+  await expect(editModal.getByLabel('반영 방식')).toHaveValue('ADD');
+  await expect(editModal.getByLabel('최종 설정값')).toHaveValue('벽과 천장의 수정이 통로를 밝힌다.');
+  await expect(editModal.getByText('기본 반영 방식은 추가이며', { exact: false })).toBeVisible();
+  await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+
+  await expect.poll(() => updatedBodies[0]).toEqual({
+    batchId,
+    candidates: [{
+      candidateId: worldCandidateId,
+      operation: 'ADD',
+      category: 'LOCATION',
+      subjectName: '미궁',
+      scopeName: '환경',
+      settingName: '광원',
+      value: '벽과 천장의 수정이 통로를 밝힌다.',
+    }],
+  });
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+
+  const weaponRow = page.locator('.world-setting-diff-row').filter({ hasText: '장비 › 무기' });
+  await expect(weaponRow.getByText('추출 1').locator('..')).toContainText('검');
+  await expect(weaponRow.getByText('추출 2').locator('..')).toContainText('몽둥이');
+  await weaponRow.getByRole('button', { name: '수정', exact: true }).click();
+  editModal = page.locator('.review-modal');
+  await expect(editModal.getByText('최종 설정값을 하나로 정한 뒤', { exact: false })).toBeVisible();
+  await expect(editModal.getByLabel('최종 설정값')).toHaveValue('검\n몽둥이');
+  await editModal.getByLabel('최종 설정값').fill('검 또는 몽둥이');
+  await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+
+  await expect(page.getByText('내용 확인 완료')).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
+  await page.getByRole('button', { name: '모두 확정' }).click();
+  await expect.poll(() => confirmedBody).toEqual({
+    batchId,
+    candidates: [{
+      candidateId: worldCandidateId,
+      operation: 'ADD',
+      category: 'LOCATION',
+      subjectName: '미궁',
+      scopeName: '환경',
+      settingName: '광원',
+      value: '벽과 천장의 수정이 통로를 밝힌다.',
+    }, {
+      candidateId: secondWorldCandidateId,
+      operation: 'ADD',
+      category: 'LOCATION',
+      subjectName: '미궁',
+      scopeName: '장비',
+      settingName: '무기',
+      value: '검 또는 몽둥이',
+      conflictResolved: true,
+    }],
+  });
 });
 
 test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 한 번에 반영한다', async ({ page }) => {

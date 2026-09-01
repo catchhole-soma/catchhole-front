@@ -261,3 +261,18 @@ source_context: "src/app/components/catchhole/character/CharacterFactComparisonP
 ```
 
 The History-only choice layout should place its example on a separate line below the usage explanation for easier scanning.
+
+## 2026-09-01T14:21:20.000Z — unresolved-scopes-use-an-explicit-merge-
+
+```omd-meta
+id: pref_mtir9h5s_655074b6
+timestamp: 2026-09-01T14:21:20.000Z
+scope: components.button
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/worldsetting/WorldSettingReview.tsx"
+```
+
+When a world-setting candidate has an unresolved scope but exactly matches an existing scoped property, keep explicit user confirmation and offer a direct action to merge into that existing path instead of requiring manual scope entry or auto-applying it.
