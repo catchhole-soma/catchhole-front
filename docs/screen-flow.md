@@ -1,5 +1,7 @@
 # CatchHole 프론트엔드 화면 흐름 (Screen Flow)
 
+브랜드 표시는 승인된 유광 아크릴 심볼을 왼쪽에, 기존 CatchHole 워드마크를 오른쪽에 배치한 조합으로 통일합니다. 적용 파일·공유 카드·검증 범위는 [브랜드 적용 기준](./brand-assets.md)을 따르며, 기존 화면 이동과 인증 흐름은 변경하지 않습니다.
+
 CatchHole 프론트엔드의 화면(라우트)과 주요 화면 상태 사이의 이동 흐름을 Mermaid로 정리한 문서입니다.
 인증·원고 관리·회차 업로드의 MVP 기준은 `docs/data-requirements` 문서와 Pencil 화면을 함께 따릅니다.
 
