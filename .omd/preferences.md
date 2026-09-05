@@ -261,3 +261,93 @@ source_context: "src/app/components/catchhole/character/CharacterFactComparisonP
 ```
 
 The History-only choice layout should place its example on a separate line below the usage explanation for easier scanning.
+
+## 2026-09-02T09:52:14.000Z — catchhole-logos-use-simple-bright-landing-blue
+
+```omd-meta
+id: pref_mtjx397w_b55dc891
+timestamp: 2026-09-02T09:52:14.000Z
+scope: color
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "public/brand/catchhole-symbol.png; public/brand/catchhole-wordmark.png; src/app/components/catchhole/landing-v2.css"
+```
+
+CatchHole logo concepts should be simple and use the landing page's brighter blue visual language rather than dark navy and coral.
+
+## 2026-09-04T03:57:28.000Z — early-logo-rounds-explore-ten-distinct-directions
+
+```omd-meta
+id: pref_mtmfaq0r_380c28ec
+timestamp: 2026-09-04T03:57:28.000Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "public/brand/catchhole-symbol.png; public/brand/catchhole-wordmark.png"
+```
+
+Early CatchHole logo rounds should explore roughly ten structurally distinct directions informed by strong brand precedents instead of converging on one obvious literal symbol.
+
+## 2026-09-05T11:37:04.144Z — refine-selected-folded-ribbon-and-ch-logo
+
+```omd-meta
+id: pref_mtob5mds_aa29c164
+timestamp: 2026-09-05T11:37:04.144Z
+scope: color
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/04-folded-ribbon.png; design/logo-explorations/2026-09-05/06-ch-imprint.png"
+```
+
+The owner prefers the folded-ribbon logo (04) and compact CH stamp (06) from the September 5 exploration and wants to refine their colors while preserving their selected forms; neither a final logo nor a final palette has been chosen.
+
+## 2026-09-05T11:40:03.103Z — approved-logo-baseline-is-4a
+
+```omd-meta
+id: pref_mtob9ggv_023f6d33
+timestamp: 2026-09-05T11:40:03.103Z
+scope: visualTheme
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/colors-01/04-a.png"
+```
+
+The owner has confirmed 4A, the bright-blue and sky-blue folded ribbon, as the CatchHole logo baseline; preserve its selected form and palette while exploring only small optional accent additions, which are not yet approved.
+
+## 2026-09-05T12:01:14.145Z — final-logo-is-glossy-acrylic-4a
+
+```omd-meta
+id: pref_mtoc0p7l_473fdce2
+timestamp: 2026-09-05T12:01:14.145Z
+scope: visualTheme
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/depth-01/04-glossy-acrylic.png"
+```
+
+The owner has confirmed dimensional variant 04, glossy opaque acrylic based on the approved 4A folded ribbon, as the final CatchHole logo direction: retain the bright-blue main face, sky-blue folded face, controlled gloss and thickness, and no quotation accent; prior flat and alternative material images remain historical references.
+
+## 2026-09-05T12:42:06.847Z — retain-wordmark-beside-glossy-symbol
+
+```omd-meta
+id: pref_mtodh9q7_12f839cd
+timestamp: 2026-09-05T12:42:06.847Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/ui-v2/BrandLogo.tsx"
+```
+
+Preserve the existing CatchHole wordmark and place the approved glossy acrylic symbol to its left in product branding; do not replace the wordmark with a symbol-only presentation.

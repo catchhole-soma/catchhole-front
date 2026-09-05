@@ -58,6 +58,8 @@ npm run test:e2e
 
 ## 변경 원칙
 
+- 제품 브랜드는 `ui-v2/BrandLogo.tsx`에서 왼쪽 `public/brand/catchhole-glossy-v1.png` 심볼과 오른쪽 기존 `catchhole-wordmark.png`를 함께 표시합니다. 글자를 제거하거나 새 폰트로 대체하지 않으며, 워드마크 원본 여백 크롭을 심볼에 적용하지 않습니다. 파비콘은 심볼 단독입니다. 공유 카드 제목·설명·절대 이미지 URL은 크롤러가 JavaScript 없이 읽는 `index.html`에서 유지합니다.
+
 - 회원가입을 포함한 화면 디자인·상태·흐름을 바꾸면 `design/catchhole.pen`, `docs/data-requirements/auth.md`, `docs/screen-flow.md`를 구현과 함께 갱신하고 기존 Obsidian Violet 토큰을 재사용합니다.
 - `/demo`의 단계·코치마크·CTA 흐름을 바꾸면 `design/catchhole.pen`, `docs/screen-flow.md`, `design/PENCIL_MIGRATION.md`의 대표 프레임과 Workflow 정보를 함께 갱신합니다.
 - OmD 스킬은 저장소의 `.cursor/skills/`에 복제하지 않고 각 에이전트의 전역 설치본을 사용합니다. Cursor 규칙에는 저장소에 존재하지 않는 로컬 스킬 경로나 slash command를 안내하지 않습니다.

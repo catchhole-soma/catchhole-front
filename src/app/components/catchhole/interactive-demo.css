@@ -3339,9 +3339,9 @@ textarea.interactive-demo-guided-target {
     padding: 10px 14px 8px;
   }
 
-  .interactive-demo-header__brand .product-brand__wordmark {
-    width: 126px;
-    height: 25px;
+  .interactive-demo-header__brand .product-brand__symbol {
+    --brand-wordmark-width: 130px;
+    height: 40px;
   }
 
   .interactive-demo-header__brand > span {
