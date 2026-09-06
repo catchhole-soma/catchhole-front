@@ -390,6 +390,9 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
       <div className="character-fact-search__filters" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         <div className="character-fact-search__filter-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="character-fact-search__filter-label" style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 유형</span>
+          <select className="character-fact-search__mobile-filter mobile-choice-select" aria-label="설정 유형" value={factType} onChange={event => setFilter('factType', event.target.value as FactTypeFilter)}>
+            {FACT_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
           {FACT_TYPE_OPTIONS.map(option => (
             <Chip
               key={option.value}
@@ -402,6 +405,9 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
         </div>
         <div className="character-fact-search__filter-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="character-fact-search__filter-label" style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 시점</span>
+          <select className="character-fact-search__mobile-filter mobile-choice-select" aria-label="설정 시점" value={scope} onChange={event => setFilter('scope', event.target.value as ScopeFilter)}>
+            {SCOPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
           {SCOPE_OPTIONS.map(option => (
             <Chip
               key={option.value}

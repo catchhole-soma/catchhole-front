@@ -351,3 +351,33 @@ source_context: "src/app/components/catchhole/ui-v2/BrandLogo.tsx"
 ```
 
 Preserve the existing CatchHole wordmark and place the approved glossy acrylic symbol to its left in product branding; do not replace the wordmark with a symbol-only presentation.
+
+## 2026-09-06T08:46:10.544Z — mobile-layouts-adapt-controls-for-usability
+
+```omd-meta
+id: pref_mtpkhpbk_c399a9d0
+timestamp: 2026-09-06T08:46:10.544Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "모바일 화면은 잘림과 줄바꿈뿐 아니라 버튼을 드롭다운으로 바꾸는 방식까지 사용자 편의성으로 검토해 달라는 요청"
+```
+
+모바일 UI 검토는 잘림, 어색한 줄바꿈, 읽기 어려운 정보 밀도와 터치 영역을 함께 다룬다. PC의 개별 버튼·탭을 그대로 축소하지 않고, 작은 화면에서는 선택 메뉴 등 모바일에 맞는 조작 방식으로 바꾸며 중요한 저장·확정 행동은 쉽게 찾을 수 있게 유지한다.
+
+## 2026-09-06T09:13:59.869Z — demo-starts-at-top-with-user-led-scrolling
+
+```omd-meta
+id: pref_mtplhhdp_2bb9988d
+timestamp: 2026-09-06T09:13:59.869Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "체험할 때 따라가기 UI 쪽으로 바로 내려가지 말고 위에서부터 내려오면서 봐야 한다는 요청"
+```
+
+체험 화면은 위에서부터 읽으며 사용자가 직접 내려가게 한다. 안내·강조 버튼을 보여주려는 자동 스크롤과 초기 포커스 이동은 하지 않는다. 화면 회전과 안내 내용 변경도 읽는 위치를 강제로 바꾸지 않는다.

@@ -1769,7 +1769,7 @@ export function CharacterDatabase({
               />
             )}
 
-            <div style={{ minWidth: 0 }}>
+            <div className="character-detail-content" style={{ minWidth: 0 }}>
             {!demoMode && detailQuery.isPending && (
               <div className="database-state is-loading" style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3, fontSize: 13 }}>
                 <Loader2 size={18} className="spin" /> 캐릭터 정보를 불러오는 중입니다.

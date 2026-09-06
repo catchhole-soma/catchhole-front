@@ -3335,7 +3335,8 @@ textarea.interactive-demo-guided-target {
 @media (max-width: 760px) {
   .interactive-demo-header {
     min-height: auto;
-    gap: 10px 16px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 12px;
     padding: 10px 14px 8px;
   }
 
@@ -3349,10 +3350,14 @@ textarea.interactive-demo-guided-target {
   }
 
   .interactive-demo-exit {
-    min-height: 34px;
+    min-height: 44px;
     padding: 0 10px;
-    font-size: 11px;
+    font-size: 12px;
+    white-space: nowrap;
   }
+
+  .interactive-demo-exit svg { flex-shrink: 0; }
+  .interactive-demo-coachmark .ch-action { min-height: 44px; }
 
   .interactive-demo-milestones {
     width: 100%;
@@ -3976,8 +3981,18 @@ textarea.interactive-demo-guided-target {
 
 @media (max-height: 500px) {
   .interactive-demo-coachmark {
-    max-height: calc(100dvh - 20px);
+    max-height: 40dvh;
     overflow-y: auto;
+    pointer-events: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 380px) {
+  .interactive-demo-header__brand .product-brand__symbol {
+    --brand-wordmark-width: 100px;
+    height: 32px;
+    gap: 6px;
   }
 }
 

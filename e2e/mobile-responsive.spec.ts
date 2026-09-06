@@ -112,7 +112,7 @@ test('대시보드는 휴대폰에서 사이드바를 서랍으로 열고 선택
   await expectNoHorizontalOverflow(page, '.dashboard-content');
 });
 
-test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭을 두 줄로 배치한다', async ({ page }) => {
+test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 선택 메뉴로 설정 화면을 전환한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let requestedCharacterSize: string | null = null;
   const characterRows = Array.from({ length: 6 }, (_, index) => ({
@@ -170,14 +170,10 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
   await expect(page.getByText('1 / 2', { exact: true })).toBeVisible();
 
   const tabs = page.locator('.dashboard-tabs');
-  const [firstTabBox, fourthTabBox] = await Promise.all([
-    tabs.getByRole('button', { name: /^캐릭터/ }).boundingBox(),
-    tabs.getByRole('button', { name: /^관계도/ }).boundingBox(),
-  ]);
-  expect(firstTabBox).not.toBeNull();
-  expect(fourthTabBox).not.toBeNull();
-  expect(fourthTabBox?.y ?? 0).toBeGreaterThan(firstTabBox?.y ?? 0);
-  await expectNoHorizontalOverflow(page, '.dashboard-tabs');
+  await expect(tabs).toBeHidden();
+  const navigation = page.getByRole('combobox', { name: '작품 설정', exact: true });
+  await expect(navigation).toHaveValue('characters');
+  await expectNoHorizontalOverflow(page, '.setting-db-mobile-navigation');
 
   const archiveButton = page.getByRole('button', { name: '보관된 캐릭터', exact: true });
   await expect(archiveButton).toBeVisible();
@@ -211,9 +207,24 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 설정 탭�
   await expect(detailModal).toBeVisible();
   await timelinePanel.getByRole('button', { name: '타임라인 닫기' }).click();
 
+  await page.setViewportSize({ width: 320, height: 568 });
+  const detailBody = detailModal.locator('.character-detail-body');
+  await detailBody.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect.poll(() => detailBody.evaluate(element => (
+    element.getBoundingClientRect().bottom <= window.innerHeight + 1
+      && element.scrollTop + element.clientHeight >= element.scrollHeight - 1
+  ))).toBe(true);
+  await detailModal.getByRole('button', { name: '수정', exact: true }).click();
+  const saveButton = detailModal.getByRole('button', { name: '저장', exact: true });
+  await saveButton.scrollIntoViewIfNeeded();
+  await expect(saveButton).toBeInViewport({ ratio: 1 });
+  await detailModal.getByRole('button', { name: '취소', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+
   await detailModal.getByRole('button', { name: '닫기', exact: true }).click();
 
-  await tabs.getByRole('button', { name: /^설정집 목록/ }).click();
+  await navigation.selectOption('worldrules');
+  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('worldrules');
   const uploadButton = page.getByRole('button', { name: '설정집 업로드', exact: true });
   await expect(uploadButton).toBeVisible();
   await expect.poll(() => uploadButton.evaluate(element => (
@@ -293,7 +304,16 @@ test('회차 업로드 방식과 원문 리더는 휴대폰 너비에 맞춰 표
   ]);
   expect(stepLabelBox).not.toBeNull();
   expect(stepLineBox).not.toBeNull();
-  expect(stepLineBox!.x).toBeGreaterThanOrEqual(stepLabelBox!.x + stepLabelBox!.width);
+  expect(stepLineBox!.y + stepLineBox!.height).toBeLessThanOrEqual(stepLabelBox!.y);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectNoHorizontalOverflow(page, '.episode-upload-stepper');
+    for (const label of await page.locator('.episode-upload-step__label').all()) {
+      const box = await label.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    }
+  }
 
   const modeCards = page.locator('.episode-upload-mode-grid > *');
   await expect(modeCards).toHaveCount(3);

@@ -797,7 +797,7 @@ function ModalShell({
         background: 'rgba(0,0,0,0.7)',
       }}
     >
-      <form className="database-modal" onSubmit={onSubmit} style={{
+      <form className="database-modal" role="dialog" aria-modal="true" aria-label={title} onSubmit={onSubmit} style={{
         width: 'min(650px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
         borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
         boxShadow: '0 24px 72px rgba(0,0,0,0.6)',
@@ -894,7 +894,7 @@ function CreateWorldSettingModal({
       onSubmit={submit}
       submitLabel="대상 추가"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
+      <div className="world-setting-identity-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
         <label style={{ color: C.t3, fontSize: 11 }}>
           분류
           <select value={draft.category} onChange={event => onDraftChange({ ...draft, category: event.target.value as WorldCategory })} style={{ ...modalInputStyle, marginTop: 7 }}>
@@ -985,7 +985,7 @@ function EditIdentityModal({
       onSubmit={submit}
       submitLabel="변경 저장"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
+      <div className="world-setting-identity-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 12 }}>
         <label style={{ color: C.t3, fontSize: 11 }}>
           분류
           <select value={draft.category} onChange={event => onDraftChange({ ...draft, category: event.target.value as WorldCategory })} style={{ ...modalInputStyle, marginTop: 7 }}>
@@ -1426,6 +1426,7 @@ export function WorldSettingDatabase({
         </form>
         <select
           className="world-setting-sort"
+          aria-label="세계관 정렬"
           value={sort}
           onChange={event => updateListParams({ sort: event.target.value as WorldSort })}
           style={{ ...modalInputStyle, height: 42, background: C.surface }}
@@ -1433,6 +1434,19 @@ export function WorldSettingDatabase({
           <option value="CATEGORY_SUBJECT_ASC">분류·대상 이름순</option>
           <option value="UPDATED_DESC">최근 수정순</option>
         </select>
+        <label className="world-setting-mobile-category">
+          세계관 분류
+          <select
+            className="mobile-choice-select"
+            value={category ?? 'ALL'}
+            disabled={propertyPending}
+            onChange={event => updateListParams({ category: event.target.value as WorldCategory | 'ALL' })}
+          >
+            {CATEGORY_FILTER_OPTIONS.map(option => (
+              <option key={option.value ?? 'ALL'} value={option.value ?? 'ALL'}>{option.label}</option>
+            ))}
+          </select>
+        </label>
         <div
           className="world-setting-category-filters"
           role="group"
