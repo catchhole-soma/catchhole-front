@@ -1,23 +1,22 @@
 type BrandLogoProps = {
   alt?: string;
   className?: string;
-  variant?: 'symbol' | 'wordmark';
 };
 
-const BRAND_ASSET = {
-  symbol: '/brand/catchhole-symbol.png',
-  wordmark: '/brand/catchhole-wordmark.png',
-} as const;
+const BRAND_ASSET = '/brand/catchhole-glossy-v1.png';
 
-export function BrandLogo({ alt, className = '', variant = 'wordmark' }: BrandLogoProps) {
+export function BrandLogo({ alt, className = '' }: BrandLogoProps) {
   return (
     <span
       aria-hidden={alt ? undefined : true}
       aria-label={alt}
-      className={`brand-logo brand-logo--${variant}${className ? ` ${className}` : ''}`}
+      className={`brand-logo${className ? ` ${className}` : ''}`}
       role={alt ? 'img' : undefined}
     >
-      <img alt="" src={BRAND_ASSET[variant]} />
+      <img className="brand-logo__symbol" alt="" src={BRAND_ASSET} width={512} height={512} decoding="async" />
+      <span className="brand-logo__wordmark">
+        <img alt="" src="/brand/catchhole-wordmark.png" width={512} height={341} decoding="async" />
+      </span>
     </span>
   );
 }

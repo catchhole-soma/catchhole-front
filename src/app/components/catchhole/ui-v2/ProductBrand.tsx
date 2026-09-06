@@ -8,7 +8,7 @@ type ProductBrandProps = {
 export function ProductBrand({ compact = false, onClick }: ProductBrandProps) {
   const content = (
     <>
-      <BrandLogo className="product-brand__wordmark" />
+      <BrandLogo className="product-brand__symbol" />
       {!compact && <span className="product-brand__badge">BETA</span>}
     </>
   );

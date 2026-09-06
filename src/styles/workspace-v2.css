@@ -148,7 +148,7 @@
 }
 .workspace-v2 .workspace-topbar { height: 68px; padding: 0 32px; border-color: var(--ch-border); background: rgb(255 255 255 / 94%); backdrop-filter: blur(14px); }
 .workspace-v2 .product-brand { color: var(--ch-ink); }
-.workspace-v2 .product-brand__wordmark { width: 150px; height: 28px; }
+.workspace-v2 .product-brand__symbol { height: 44px; }
 .workspace-v2 .user-menu {
   --user-menu-surface: var(--ch-surface);
   --user-menu-surface-hover: var(--ch-surface-soft);
@@ -281,7 +281,7 @@
 @media (max-width: 760px) {
   .workspace-v2 .workspace-topbar { height: 60px; padding: 0 18px; }
   .workspace-v2 .product-brand__badge { display: none; }
-  .workspace-v2 .product-brand__wordmark { width: 138px; height: 26px; }
+  .workspace-v2 .product-brand__symbol { --brand-wordmark-width: 130px; height: 40px; }
   .analysis-list-page, .dashboard-manuscripts, .work-picker-main { padding: 24px 18px !important; }
   .workspace-page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
   .workspace-page-heading__action { width: 100%; }

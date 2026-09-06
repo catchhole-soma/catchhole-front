@@ -50,8 +50,8 @@
   content: '';
 }
 .auth-modal-brand__logo {
-  width: 180px;
-  height: 34px;
+  --brand-wordmark-width: 180px;
+  height: 44px;
   margin-bottom: 32px;
 }
 .auth-modal-form .auth-modal-form__logo { display: none; }
@@ -184,9 +184,9 @@
   .auth-modal-dialog--signup { width: 100%; min-height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
   .auth-modal-brand { display: none; }
   .auth-modal-form .auth-modal-form__logo {
-    display: inline-block;
-    width: 154px;
-    height: 29px;
+    display: inline-flex;
+    --brand-wordmark-width: 154px;
+    height: 48px;
     margin-bottom: 36px;
   }
   .auth-modal-form,

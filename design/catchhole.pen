@@ -318096,26 +318096,53 @@
                 {
                   "type": "frame",
                   "id": "GfMmg",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "zkkw6",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GfMmgWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "GfMmgWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -320035,26 +320062,53 @@
                 {
                   "type": "frame",
                   "id": "X1v5Qt",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "n9vZRr",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "X1v5QtWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "X1v5QtWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -321819,26 +321873,53 @@
                 {
                   "type": "frame",
                   "id": "E7iPJ",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "CaR69",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E7iPJWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "E7iPJWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },

@@ -486,8 +486,8 @@
 }
 
 .landing-demo__current > .brand-logo {
-  width: 82px;
-  height: 16px;
+  --brand-wordmark-width: 82px;
+  height: 24px;
 }
 
 .landing-demo__current > i {
@@ -627,7 +627,7 @@
   background: #fff;
 }
 
-.landing-native-brand-header > .brand-logo { width: 88px; height: 16px; }
+.landing-native-brand-header > .brand-logo { --brand-wordmark-width: 82px; height: 24px; }
 .landing-native-avatar { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--ch-primary); color: #fff; font-size: 8px; box-shadow: 0 4px 12px rgb(8 126 242 / 20%); }
 .landing-native-header__title { display: flex; align-items: center; gap: 10px; }
 .landing-native-header__title > button { display: grid; width: 26px; height: 26px; place-items: center; border: 1px solid var(--ch-border); border-radius: 8px; background: #fff; color: var(--ch-text-muted); font-size: 16px; }
@@ -2500,7 +2500,7 @@
     width: min(100% - 32px, 480px);
   }
 
-  .landing-page .product-brand__wordmark { width: 136px; height: 25px; }
+  .landing-page .product-brand__symbol { --brand-wordmark-width: 130px; height: 40px; }
 
   .landing-header__actions .ch-action:not(.landing-primary-action) {
     min-height: 38px;

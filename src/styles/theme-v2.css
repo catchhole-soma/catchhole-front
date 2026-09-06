@@ -56,51 +56,52 @@
 button.product-brand { cursor: pointer; }
 
 .brand-logo {
-  position: relative;
-  display: inline-block;
-  overflow: hidden;
+  --brand-wordmark-width: 158px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  height: 44px;
   flex: 0 0 auto;
   line-height: 0;
 }
 
 .brand-logo img {
-  position: absolute;
   display: block;
-  max-width: none;
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.brand-logo--symbol {
-  width: 36px;
-  height: 36px;
+.brand-logo__symbol {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
-.brand-logo--symbol img {
-  top: 50%;
-  left: 50%;
-  width: 148%;
-  height: auto;
-  transform: translate(-50%, -50%);
+.brand-logo__wordmark {
+  position: relative;
+  overflow: hidden;
+  width: var(--brand-wordmark-width);
+  aspect-ratio: 158 / 29;
+  flex: 0 0 auto;
+  mix-blend-mode: multiply;
 }
 
-.brand-logo--wordmark {
-  width: 172px;
-  height: 32px;
-}
-
-.brand-logo--wordmark img {
+.brand-logo__wordmark img {
+  position: absolute;
   top: calc(50% + 1px);
   left: 50%;
   width: 126%;
+  max-width: none;
   height: auto;
-  mix-blend-mode: multiply;
   transform: translate(-50%, -50%);
 }
 
-.product-brand__wordmark {
-  width: 158px;
-  height: 29px;
+.product-brand__symbol {
+  width: auto;
+  height: 44px;
 }
 
 .product-brand__badge {
