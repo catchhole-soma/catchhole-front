@@ -22,6 +22,7 @@ import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
+import { MetaPixelPageView } from './components/analytics/MetaPixelPageView';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -253,6 +254,7 @@ export default function App() {
         MozOsxFontSmoothing: 'grayscale',
       } as React.CSSProperties}
     >
+      <MetaPixelPageView />
       <AppContextProvider>
         <BackendStatusProvider>
           <AnimatedRoutes />

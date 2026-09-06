@@ -65,6 +65,13 @@ async function fillBaseSignupForm(page: Page) {
 test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토큰은 저장소에 남기지 않는다', async ({ page }) => {
   let signupBody: Record<string, unknown> | null = null;
 
+  await page.addInitScript(() => {
+    const browserWindow = window as Window & { fbq?: (...args: unknown[]) => void };
+    const metaPixelCalls: unknown[][] = [];
+    browserWindow.fbq = (...args: unknown[]) => metaPixelCalls.push(args);
+    Object.defineProperty(browserWindow, '__metaPixelCalls', { value: metaPixelCalls });
+  });
+
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -150,6 +157,9 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   });
   expect(signupBody).not.toHaveProperty('phoneNumber');
   expect(await page.evaluate(() => sessionStorage.getItem('catchhole_phone_verification'))).toBeNull();
+  expect(await page.evaluate(() => (
+    (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? []
+  ))).toContainEqual(['track', 'CompleteRegistration']);
 });
 
 test('인증된 번호를 변경하면 인증 토큰과 진행 상태를 폐기한다', async ({ page }) => {

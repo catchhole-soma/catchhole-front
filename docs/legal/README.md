@@ -106,7 +106,7 @@
 
 - Front는 Vercel, Backend·AI·PostgreSQL·Redis는 단일 AWS EC2 배포 정의, 원고는 AWS S3를 사용한다.
 - 코드의 기본 AWS 리전은 `ap-northeast-2`이지만 실제 운영 계정·버킷·백업 리전은 확인해야 한다.
-- GA4와 Meta Pixel의 실제 설치는 NVM-308·NVM-309에서 진행한다. 현재 변경은 실제 자동 수집을 시작하지 않고 개인정보처리방침의 공개 구조를 먼저 확정한다.
+- Meta Pixel은 NVM-309에서 운영 환경에만 기본 코드를 설치하고 React 경로별 `PageView`와 가입 성공 후 `CompleteRegistration`을 전송한다. GA4 설치와 그 밖의 고지된 측정 이벤트는 각 후속 작업에서 같은 개인정보처리방침 범위 안에 구현한다.
 - 개발용 Figma HTML 캡처 외부 스크립트는 운영 산출물에서 제거한다.
 
 ## 구현·배포 검증
