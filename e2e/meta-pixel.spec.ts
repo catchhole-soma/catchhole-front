@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 type MetaPixelCall = {
   args: unknown[];
   pathname: string;
+  search: string;
 };
 
 test.beforeEach(async ({ page }) => {
@@ -13,9 +14,13 @@ test.beforeEach(async ({ page }) => {
       fbq?: (...args: unknown[]) => void;
     };
     browserWindow.__metaPixelCalls = calls;
-    browserWindow.fbq = (...args: unknown[]) => {
-      calls.push({ args, pathname: window.location.pathname });
+    const fbq = (...args: unknown[]) => {
+      fbq.callMethod?.(...args);
     };
+    fbq.callMethod = (...args: unknown[]) => {
+      calls.push({ args, pathname: window.location.pathname, search: window.location.search });
+    };
+    browserWindow.fbq = fbq;
   });
 });
 
@@ -26,19 +31,30 @@ test('초기 진입과 SPA 경로 변경에서 PageView를 한 번씩 전송한�
     body: JSON.stringify({ success: false, data: null, error: null }),
   }));
 
-  await page.goto('/landing');
+  await page.goto('/landing?q=%EC%9B%90%EA%B3%A0%EB%82%B4%EC%9A%A9&utm_source=instagram');
   await expect.poll(() => page.evaluate(() => (
     (window as Window & { __metaPixelCalls?: MetaPixelCall[] }).__metaPixelCalls ?? []
   ))).toEqual([
-    { args: ['track', 'PageView'], pathname: '/landing' },
+    { args: ['track', 'PageView'], pathname: '/landing', search: '?utm_source=instagram' },
   ]);
+  await expect(page).toHaveURL(/q=%EC%9B%90%EA%B3%A0%EB%82%B4%EC%9A%A9&utm_source=instagram$/);
 
   await page.getByRole('banner').getByRole('button', { name: '무료로 시작하기', exact: true }).click();
   await expect(page).toHaveURL(/\/signup$/);
   await expect.poll(() => page.evaluate(() => (
     (window as Window & { __metaPixelCalls?: MetaPixelCall[] }).__metaPixelCalls ?? []
   ))).toEqual([
-    { args: ['track', 'PageView'], pathname: '/landing' },
-    { args: ['track', 'PageView'], pathname: '/signup' },
+    { args: ['track', 'PageView'], pathname: '/landing', search: '?utm_source=instagram' },
+    { args: ['track', 'PageView'], pathname: '/signup', search: '' },
+  ]);
+});
+
+test('리다이렉트 전용 경로는 목적지 PageView만 전송한다', async ({ page }) => {
+  await page.goto('/works');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect.poll(() => page.evaluate(() => (
+    (window as Window & { __metaPixelCalls?: MetaPixelCall[] }).__metaPixelCalls ?? []
+  ))).toEqual([
+    { args: ['track', 'PageView'], pathname: '/login', search: '' },
   ]);
 });

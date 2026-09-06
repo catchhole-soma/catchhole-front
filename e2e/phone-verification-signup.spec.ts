@@ -66,9 +66,14 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   let signupBody: Record<string, unknown> | null = null;
 
   await page.addInitScript(() => {
-    const browserWindow = window as Window & { fbq?: (...args: unknown[]) => void };
+    type MetaPixelMock = ((...args: unknown[]) => void) & {
+      callMethod?: (...args: unknown[]) => void;
+    };
+    const browserWindow = window as Window & { fbq?: MetaPixelMock };
     const metaPixelCalls: unknown[][] = [];
-    browserWindow.fbq = (...args: unknown[]) => metaPixelCalls.push(args);
+    const fbq: MetaPixelMock = (...args: unknown[]) => fbq.callMethod?.(...args);
+    fbq.callMethod = (...args: unknown[]) => metaPixelCalls.push(args);
+    browserWindow.fbq = fbq;
     Object.defineProperty(browserWindow, '__metaPixelCalls', { value: metaPixelCalls });
   });
 
