@@ -25,6 +25,7 @@ import {
 import { saveAuthToken } from '../../lib/auth';
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import { BrandLogo } from './ui-v2/BrandLogo';
+import { trackMetaCompleteRegistration } from '../../lib/meta-pixel';
 
 const PHONE_VERIFICATION_STORAGE_KEY = 'catchhole_phone_verification';
 
@@ -403,6 +404,7 @@ export default function SSignup() {
       });
       sessionStorage.removeItem(PHONE_VERIFICATION_STORAGE_KEY);
       saveAuthToken(response);
+      trackMetaCompleteRegistration();
       navigate('/works', 'push-right', undefined, { replace: true });
     } catch (error) {
       const apiError = toApiError(error);

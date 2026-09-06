@@ -22,6 +22,7 @@ import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
+import { MetaPixelPageView } from './components/analytics/MetaPixelPageView';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -113,7 +114,12 @@ function PrivateRoute() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <MetaPixelPageView />
+      <Outlet />
+    </>
+  );
 }
 
 function RootRoute() {
@@ -135,6 +141,7 @@ function PublicLayout() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <MetaPixelPageView />
       <div
         ref={backgroundRef}
         aria-hidden={backgroundInactive ? true : undefined}
@@ -147,6 +154,15 @@ function PublicLayout() {
         {termsTab && <TermsModal onClose={closeTerms} initialTab={termsTab} />}
       </AnimatePresence>
     </div>
+  );
+}
+
+function TrackedRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <MetaPixelPageView />
+      {children}
+    </>
   );
 }
 
@@ -219,9 +235,9 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
         <Route path="/login" element={<SLogin />} />
         <Route path="/signup" element={<SSignup />} />
       </Route>
-      <Route path="/demo" element={<SInteractiveDemo />} />
-      <Route path="/terms" element={<LegalDocumentPage type="terms" />} />
-      <Route path="/privacy" element={<LegalDocumentPage type="privacy" />} />
+      <Route path="/demo" element={<TrackedRoute><SInteractiveDemo /></TrackedRoute>} />
+      <Route path="/terms" element={<TrackedRoute><LegalDocumentPage type="terms" /></TrackedRoute>} />
+      <Route path="/privacy" element={<TrackedRoute><LegalDocumentPage type="privacy" /></TrackedRoute>} />
       <Route element={<PrivateRoute />}>
         <Route path="/works" element={<S0WorkPicker />} />
         <Route path="/dashboard" element={<S1Dashboard />} />
