@@ -11,16 +11,24 @@ test.beforeEach(async ({ page }) => {
     const calls: MetaPixelCall[] = [];
     const browserWindow = window as Window & {
       __metaPixelCalls?: MetaPixelCall[];
+      __startMetaPixel?: () => void;
       fbq?: (...args: unknown[]) => void;
     };
     browserWindow.__metaPixelCalls = calls;
     const fbq = (...args: unknown[]) => {
       fbq.callMethod?.(...args);
     };
-    fbq.callMethod = (...args: unknown[]) => {
+    const recordCall = (...args: unknown[]) => {
       calls.push({ args, pathname: window.location.pathname, search: window.location.search });
     };
+    if (!new URLSearchParams(window.location.search).has('deferMetaPixel')) {
+      fbq.callMethod = recordCall;
+    }
     browserWindow.fbq = fbq;
+    browserWindow.__startMetaPixel = () => {
+      fbq.callMethod = recordCall;
+      window.dispatchEvent(new Event('meta-pixel-ready'));
+    };
   });
 });
 
@@ -56,5 +64,21 @@ test('리다이렉트 전용 경로는 목적지 PageView만 전송한다', asyn
     (window as Window & { __metaPixelCalls?: MetaPixelCall[] }).__metaPixelCalls ?? []
   ))).toEqual([
     { args: ['track', 'PageView'], pathname: '/login', search: '' },
+  ]);
+});
+
+test('SDK 로딩 전에 이동해도 각 PageView의 원래 경로를 보존한다', async ({ page }) => {
+  await page.goto('/landing?deferMetaPixel=1');
+  await page.getByRole('banner').getByRole('button', { name: '무료로 시작하기', exact: true }).click();
+  await expect(page).toHaveURL(/\/signup$/);
+
+  await page.evaluate(() => {
+    (window as Window & { __startMetaPixel?: () => void }).__startMetaPixel?.();
+  });
+  await expect.poll(() => page.evaluate(() => (
+    (window as Window & { __metaPixelCalls?: MetaPixelCall[] }).__metaPixelCalls ?? []
+  ))).toEqual([
+    { args: ['track', 'PageView'], pathname: '/landing', search: '' },
+    { args: ['track', 'PageView'], pathname: '/signup', search: '' },
   ]);
 });

@@ -30,9 +30,8 @@ function getSafeAnalyticsPath(): string {
   return `${window.location.pathname}${safeSearch ? `?${safeSearch}` : ''}`;
 }
 
-function runWithSafeAnalyticsUrl(callback: () => void): void {
+function runWithSafeAnalyticsUrl(safeUrl: string, callback: () => void): void {
   const originalUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  const safeUrl = getSafeAnalyticsPath();
 
   try {
     if (originalUrl !== safeUrl) window.history.replaceState(window.history.state, '', safeUrl);
@@ -43,10 +42,11 @@ function runWithSafeAnalyticsUrl(callback: () => void): void {
 }
 
 function trackMetaEvent(eventName: string): void {
+  const safeUrl = getSafeAnalyticsPath();
   const sendEvent = () => {
     try {
       if (!window.fbq?.callMethod) return;
-      runWithSafeAnalyticsUrl(() => window.fbq?.('track', eventName));
+      runWithSafeAnalyticsUrl(safeUrl, () => window.fbq?.('track', eventName));
     } catch {
       // Analytics must never interrupt the product flow when Meta is unavailable.
     }
