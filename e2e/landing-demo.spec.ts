@@ -171,12 +171,23 @@ test('랜딩 데모의 모든 장면은 휴대폰에서도 가려지거나 가�
   expect(await computedContrastRatio(activeStepTab)).toBeGreaterThanOrEqual(4.5);
   expect(await computedContrastRatio(inactiveStepTab)).toBeGreaterThanOrEqual(4.5);
 
-  for (let index = 1; index <= 8; index += 1) {
-    await demo.getByRole('tab', { name: new RegExp(`^${index}단계`) }).click();
-    await expect.poll(() => demo.locator('.landing-demo-panel.is-active .landing-demo__viewport').evaluate(element => ({
-      horizontal: element.scrollWidth <= element.clientWidth + 1,
-      vertical: element.scrollHeight <= element.clientHeight + 1,
-    }))).toEqual({ horizontal: true, vertical: true });
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (let index = 1; index <= 8; index += 1) {
+      const tab = demo.getByRole('tab', { name: new RegExp(`^${index}단계`) });
+      await tab.click();
+      expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      await expect.poll(() => demo.locator('.landing-demo-panel.is-active .landing-demo__viewport').evaluate(element => ({
+        horizontal: element.scrollWidth <= element.clientWidth + 1,
+        vertical: element.scrollHeight <= element.clientHeight + 1,
+      }))).toEqual({ horizontal: true, vertical: true });
+      await expect.poll(() => demo.locator('.landing-demo-panel.is-active').evaluate(panel => (
+        [...panel.querySelectorAll<HTMLElement>('.landing-demo-panel__content, [class*="landing-native-"]')]
+          .filter(element => element.clientWidth > 0)
+          .filter(element => element.scrollWidth > element.clientWidth + 2)
+          .map(element => element.className)
+      ))).toEqual([]);
+    }
   }
 
   await expect.poll(() => page.locator('.landing-page').evaluate(element => (

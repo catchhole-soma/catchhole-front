@@ -407,6 +407,7 @@
 .landing-demo-panel__content .landing-demo__topbar,
 .landing-demo-panel__content .landing-demo__viewport {
   grid-column: 1;
+  min-width: 0;
 }
 
 .landing-demo-panel__content .landing-demo__topbar {
@@ -2310,6 +2311,7 @@
     position: relative;
     display: none;
     min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
     grid-column: 1 / -1;
     grid-row: 1;
     grid-template-rows: 44px minmax(0, 1fr);
@@ -2494,6 +2496,55 @@
 }
 
 @media (max-width: 520px) {
+  .landing-native-workspace,
+  .landing-native-review-layout,
+  .landing-native-timeline-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .landing-native-sidebar,
+  .landing-native-review-sidebar,
+  .landing-native-timeline-layout > aside { display: none; }
+
+  .landing-native-main,
+  .landing-native-review-page,
+  .landing-native-upload-page { padding: 12px; }
+
+  .landing-native-page-title { flex-wrap: wrap; }
+  .landing-native-page-title > strong { font-size: 16px; }
+  .landing-native-page-title > button { padding: 0 7px; }
+  .landing-native-alert { gap: 8px; padding: 8px; }
+  .landing-native-alert > span { flex: 1; min-width: 0; }
+  .landing-native-alert button { flex-shrink: 0; }
+  .landing-native-table > header { display: none; }
+  .landing-native-table > div { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 5px; padding: 8px; }
+  .landing-native-table > div > strong { grid-column: 2 / -1; font-size: 10px; }
+  .landing-native-table > div > small { grid-column: 1 / -1; }
+  .landing-native-table span,
+  .landing-native-table em,
+  .landing-native-table small { font-size: 8px; }
+  .landing-native-upload-card,
+  .landing-native-stepper { width: 100%; }
+  .landing-native-upload-card { padding: 14px; }
+  .landing-native-processing { width: 100%; padding: 20px 14px; }
+  .landing-native-processing footer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .landing-native-upload-modes { gap: 5px; }
+  .landing-native-upload-modes > div { padding: 6px; }
+  .landing-native-review-summary { flex-wrap: wrap; gap: 10px; padding: 10px; }
+  .landing-native-review-summary em { margin-left: 0; }
+  .landing-native-review-tabs > span { width: 50%; padding: 0 8px; }
+  .landing-native-diff { padding: 10px; }
+  .landing-native-diff > strong { min-width: 0; }
+  .landing-native-db > nav { flex-wrap: wrap; gap: 0; }
+  .landing-native-db > nav span { padding: 8px; }
+  .landing-native-character-list { grid-template-columns: minmax(0, 1fr); }
+  .landing-native-character-modal > header { height: auto; min-height: 54px; flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .landing-native-character-modal > header > div { flex-basis: calc(100% - 46px); }
+  .landing-native-basic { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .landing-native-basic > span { gap: 4px; padding: 7px; }
+  .landing-native-character-columns,
+  .landing-native-character-pair { grid-template-columns: minmax(0, 1fr); }
+  .landing-native-timeline-filters { flex-wrap: wrap; }
+  .landing-native-timeline-layout > main { padding: 10px; }
+
   .landing-header__inner,
   .landing-section__inner,
   .landing-footer__inner {
@@ -2531,31 +2582,32 @@
   }
 
   .landing-demo-accordion__track {
-    height: 430px;
-    grid-template-rows: minmax(0, 1fr) 45px;
+    height: 560px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) 52px 52px;
     border-radius: var(--ch-radius-md);
   }
 
   .landing-demo-panel__trigger {
-    height: 45px;
+    height: 52px;
     flex-direction: column;
     gap: 1px;
   }
 
   .landing-demo-panel__trigger > span {
-    font-size: 6px;
+    font-size: 10px;
   }
 
   .landing-demo-panel__trigger > strong {
     max-width: 100%;
     overflow: hidden;
-    font-size: 7px;
+    font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .landing-demo-panel__content {
-    grid-template-rows: 52px minmax(0, 1fr);
+    grid-template-rows: 84px minmax(0, 1fr);
     border-radius: var(--ch-radius-md) var(--ch-radius-md) 0 0;
   }
 
@@ -2599,8 +2651,19 @@
   }
 
   .landing-demo__topbar {
-    padding: 0 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    padding: 8px 12px;
   }
+
+  .landing-demo__current { display: contents; }
+  .landing-demo__current > .brand-logo { grid-column: 1; grid-row: 1; }
+  .landing-demo__current > i { display: none; }
+  .landing-demo__current > strong { grid-column: 1 / -1; grid-row: 2; }
+  .landing-demo__controls { grid-column: 2; grid-row: 1; gap: 6px; }
+  .landing-demo__play { width: 44px; height: 44px; }
+  .landing-demo-panel:nth-child(n + 5) .landing-demo-panel__trigger { grid-row: 3; }
 
   .demo-scene {
     padding: 14px;

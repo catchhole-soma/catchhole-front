@@ -43,6 +43,22 @@
   outline-offset: 3px;
 }
 
+.theme-v2 .mobile-choice-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: var(--ch-radius-sm);
+  background: var(--ch-surface);
+  color: var(--ch-ink);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.theme-v2 .mobile-choice-select:disabled { opacity: .6; cursor: wait; }
+
 .product-brand {
   display: inline-flex;
   align-items: center;

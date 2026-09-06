@@ -293,8 +293,4 @@
     overflow: hidden;
   }
 
-  .character-detail-modal--with-evidence .character-detail-body {
-    max-height: calc(58dvh - 92px) !important;
-  }
-
 }

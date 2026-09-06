@@ -279,7 +279,10 @@
 .workspace-v2 .manuscript-original-filename, .workspace-v2 .manuscript-date, .workspace-v2 .manuscript-char-count { color: var(--ch-text-muted) !important; }
 
 @media (max-width: 760px) {
-  .workspace-v2 .workspace-topbar { height: 60px; padding: 0 18px; }
+  .workspace-v2 .workspace-topbar { height: 60px; padding: 0 12px; gap: 8px; }
+  .workspace-topbar__leading { gap: 8px; }
+  .workspace-topbar .product-brand,
+  .workspace-topbar .user-menu { flex-shrink: 0; }
   .workspace-v2 .product-brand__badge { display: none; }
   .workspace-v2 .product-brand__symbol { --brand-wordmark-width: 130px; height: 40px; }
   .analysis-list-page, .dashboard-manuscripts, .work-picker-main { padding: 24px 18px !important; }
@@ -292,6 +295,10 @@
   .user-menu__popover { width: min(358px, calc(100vw - 36px)); }
   .user-menu__feedback-trigger { width: 44px; min-height: 44px; padding: 0; }
   .user-menu__feedback-label { display: none; }
+}
+
+@media (max-width: 380px) {
+  .workspace-v2 .workspace-topbar .product-brand__symbol { --brand-wordmark-width: 100px; height: 32px; gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

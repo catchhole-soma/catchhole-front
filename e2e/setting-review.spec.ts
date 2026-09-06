@@ -549,7 +549,7 @@ test('후보 수정의 늦은 응답은 떠난 검토 화면의 URL을 다시 �
 });
 
 test('모바일에서는 후보 목록과 상세를 한 화면씩 전환한다', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 568 });
 
   await page.route('**/api/v1/**', route => {
     const requestUrl = new URL(route.request().url());
@@ -590,6 +590,15 @@ test('모바일에서는 후보 목록과 상세를 한 화면씩 전환한다',
 
   await expect(candidateList).toBeVisible();
   await expect(candidateDetail).toBeHidden();
+
+  const reviewStatus = page.getByRole('combobox', { name: '검토 상태', exact: true });
+  await expect(reviewStatus).toHaveValue('PENDING_REVIEW');
+  await reviewStatus.selectOption('ALL');
+  await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('ALL');
+  await page.reload();
+  await page.getByRole('button', { name: '후보 목록으로' }).click();
+  await expect(reviewStatus).toHaveValue('ALL');
+  await reviewStatus.selectOption('PENDING_REVIEW');
 
   await candidateList.getByRole('button', { name: /수아/ }).click();
   await expect(candidateList).toBeHidden();
