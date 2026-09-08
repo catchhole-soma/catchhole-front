@@ -56,7 +56,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
 | 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 없는 공개 데모를 주 CTA로 안내하고, 전용 에디토리얼 배경 Hero와 8단계 실제 제품 아코디언, 2열 서비스 카탈로그로 기능 범위를 소개하는 Theme V2 페이지. 모바일에서도 로그인 진입점을 유지한다. |
-| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 이메일·비밀번호 인증, 휴대폰 인증, 현재 게시 법률 문서 확인과 만 14세 이상 확인 |
+| 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 서버 정책에 따른 이메일 또는 휴대폰 인증, 이메일·비밀번호 가입, 현재 게시 법률 문서 확인과 만 14세 이상 확인 |
 | 이용약관 / 개인정보처리방침 | [`/terms`](https://catch-hole.vercel.app/terms) · [`/privacy`](https://catch-hole.vercel.app/privacy) | Backend의 현재 `PUBLISHED` Markdown 원문·버전·시행일을 표시하는 공개 Theme V2 전체 화면 |
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
@@ -206,15 +206,17 @@ flowchart TD
   loginReq -- "입력·인증·네트워크 오류" --> login
   loginReq -. "제출 중: 입력·중복 요청 잠금" .-> login
 
-  signup -- "휴대폰 번호 입력<br/>인증번호 받기" --> sendCode{"SMS 발송 결과"}:::decision
+  signup -- "가입 인증 정책 조회" --> policy{"정책 조회 결과"}:::decision
+  policy -- "오류·로딩: 가입 잠금·재시도" --> signup
+  policy -- "EMAIL: 이메일 입력<br/>PHONE: 휴대폰 번호 입력" --> sendCode{"인증번호 발송 결과"}:::decision
   sendCode -- "중복 번호·한도·서비스 장애" --> signup
-  sendCode -- "성공: 5분 타이머·60초 재전송" --> otp["6자리 인증번호 입력"]:::public
+  sendCode -- "성공: 5분 타이머·60초 재전송" --> otp["6자리 인증번호 입력<br/>EMAIL: 스팸함 확인 안내 상자"]:::public
   otp -- "60초 뒤 재전송<br/>이전 번호 폐기" --> sendCode
   otp -- "인증번호 확인" --> confirmCode{"인증 결과"}:::decision
   confirmCode -- "오입력: 입력·타이머 유지" --> otp
   confirmCode -- "5회 초과·만료: 새 발송 필요" --> signup
-  confirmCode -- "성공: 10분 가입 토큰<br/>메모리에만 보관" --> verified["휴대폰 인증 완료"]:::public
-  verified -- "인증된 번호 수정<br/>토큰·진행 상태 폐기" --> signup
+  confirmCode -- "성공: 10분 가입 토큰<br/>메모리에만 보관" --> verified["이메일 또는 휴대폰 인증 완료"]:::public
+  verified -- "인증 대상 수정<br/>토큰·진행 상태·늦은 응답 폐기" --> signup
   verified --> agree{"현재 문서 동의·확인과<br/>만 14세 이상 확인을 마쳤나?"}:::decision
   agree -- "아니오: 가입 버튼 비활성" --> signup
   agree -- "예: 문서 ID와 함께 제출" --> signupReq{"회원가입 결과"}:::decision
@@ -249,7 +251,7 @@ flowchart TD
 >
 > 회원 탈퇴는 별도 계정 관리 라우트 없이 모든 보호 화면의 사용자 메뉴에서 시작합니다. `202 Accepted` 전에 오류가 나면 모달과 입력값·세션을 유지하고, 접수된 경우에만 로컬 인증 상태와 캐시를 제거한 뒤 `/landing`으로 대체 이동합니다. 랜딩의 접수 안내는 history state를 즉시 소비해 새로고침·뒤로가기에서 반복하지 않습니다. 복구·삭제 진행 상태 조회는 현재 범위가 아닙니다.
 >
-> MVP 회원가입은 이메일·비밀번호와 SOLAPI 휴대폰 번호 소유 인증을 사용합니다. Backend의 현재 게시 이용약관·개인정보처리방침을 한 체크박스로 동의·확인하고 만 14세 이상을 별도 필수 체크로 확인합니다. 가입 요청에는 사용자가 본 두 문서 ID를 보내며 Backend가 현재 게시본 여부를 원자적으로 검증한 뒤 정확한 문서 FK·버전·행위와 한 번의 서버 기록 시각을 저장합니다. 인증 진행 복원에는 `verificationId`, 전화번호, 만료·재전송 시각만 sessionStorage에 저장하고, 1회용 `phoneVerificationToken`은 메모리에만 둡니다. 소셜 로그인과 PASS 실명 본인인증은 별도 범위입니다.
+> 회원가입은 `signup-policy`가 반환한 인증 방식과 이메일·비밀번호를 사용합니다. 기본 EMAIL 정책은 이메일 소유 인증만 요구하고 전화번호 입력을 숨깁니다. PHONE 정책은 기존 SOLAPI 휴대폰 인증을 유지합니다. 정책 조회 실패 시 가입을 막고 재시도를 제공합니다. Backend 현재 게시 이용약관·개인정보처리방침을 한 체크박스로 동의·확인하고 만 14세 이상을 별도로 확인합니다. 법률 문서 ID의 현재 게시본 여부와 인증 토큰의 대상을 Backend가 검증한 뒤 자동 로그인합니다. 이메일·전화번호별 sessionStorage에는 `verificationId`, 인증 대상, 만료·재전송 시각만 저장하고 인증번호·비밀번호·가입 토큰은 메모리에만 둡니다. 발송/확인 중 주소 변경은 기존 흐름과 늦은 응답을 폐기합니다. 시간 표시는 API 응답을 따르며 기본값은 인증 5분·재전송 60초·가입 토큰 10분입니다. [상세 인증 계약](data-requirements/auth.md#회원가입-ssignup)
 > 딥링크: 약관·개인정보 모달을 바로 열기 — [`/login?terms=terms`](https://catch-hole.vercel.app/login?terms=terms) · [`/login?terms=privacy`](https://catch-hole.vercel.app/login?terms=privacy) (회원가입은 [`/signup?terms=terms`](https://catch-hole.vercel.app/signup?terms=terms) · [`/signup?terms=privacy`](https://catch-hole.vercel.app/signup?terms=privacy)).
 >
 > AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에서 고지합니다. 가입 이후 업로드·재시도·재분석마다 AI 동의를 반복하지 않고, GA4·Meta용 별도 쿠키 배너나 회원가입 체크박스를 두지 않습니다. 실제 측정 설치는 NVM-308·NVM-309 범위입니다.
@@ -471,6 +473,8 @@ flowchart TD
 
 1. **업로드 방식** — `2B 다회차 단일 파일`일 때만 "회차 분리 확인" 단계가 추가됩니다. 2A·2C는 건너뜁니다.
 2. **분석 목적** — 입력 폼에서 고른 `신규 회차 검수` / `기존 설정 구축`에 따라 설정 후보 검토 완료 후 다음 목적지가 갈립니다.
+
+업로드 방식 카드에는 `단일 회차 업로드` 카드 왼쪽 상단에 `추천` 배지를 표시하고, 카드 안에 `가장 정확한 설정 분석을 위해 한 회차씩 업로드하는 것을 권장해요.`라고 안내합니다. 추천은 설정 분석 정확도를 기준으로 하며, 다회차 단일 파일의 회차 분리와 다회차 여러 파일 업로드도 계속 선택할 수 있습니다. 방식 카드가 표시되는 입력 단계에서도 같은 안내를 유지합니다.
 
 `설정집도 함께 업로드`는 단계 분기가 아닙니다. 설정집 원본 저장 결과를 회차 저장·분석과 독립적으로 처리하며, MVP에서는 설정집 분석·추출이나 결과 확인 화면을 거치지 않습니다.
 

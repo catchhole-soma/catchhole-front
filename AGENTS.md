@@ -43,14 +43,14 @@ npm run test:e2e
 - `/demo`는 진입·새 화면·재체험 시 맨 위에서 읽게 한다. 안내 대상을 보여주려고 자동 스크롤하거나 초기 포커스를 보내지 않으며, 안내 변경·화면 회전에도 사용자의 읽는 위치를 유지한다. 사용자가 직접 연 수정 폼의 입력 포커스는 `preventScroll`로 처리한다.
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
-- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
+- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/signup-policy/email-verifications/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
 - 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
-- 회원가입 전 `phone-verifications` 발송·확인을 완료하고, 가입 요청에는 전화번호 대신 발급된 `phoneVerificationToken`을 보냅니다. 인증된 번호가 바뀌면 토큰과 진행 상태를 즉시 폐기합니다.
+- 회원가입은 `signup-policy`의 서버 지정 `EMAIL`/`PHONE` 인증을 사용합니다. 정책 조회 실패 시 가입을 막고 재시도를 제공합니다. EMAIL은 전화번호 입력 없이 `email-verifications` 확인 뒤 `emailVerificationToken`을, PHONE은 기존 `phoneVerificationToken`을 보냅니다. 이메일은 trim만 적용하고 대소문자를 보존합니다. 인증 대상 변경 시 토큰·진행 상태와 이전 발송·확인의 늦은 응답을 폐기합니다.
 - 회원가입 화면은 Backend의 현재 `PUBLISHED` 이용약관·개인정보처리방침을 조회해 한 체크박스로 동의·확인을 함께 표시하고, 만 14세 이상 확인은 별도 필수 체크로 표시합니다. 가입 요청에는 `termsAccepted`, `privacyPolicyAcknowledged`, `age14OrOlderConfirmed`와 사용자가 본 `termsDocumentId`, `privacyPolicyDocumentId`를 보냅니다.
 - Backend가 가입 시점의 현재 게시본과 문서 ID를 같은 트랜잭션에서 검증하고 문서 FK·종류·버전·행위·서버 기록 시각을 저장합니다. 문서가 교체된 409 응답에서는 체크를 해제하고 최신 게시본을 다시 조회해 재확인받습니다. Front에 문서 원문이나 현재 버전을 하드코딩하지 않습니다.
 - AI 원고 처리 고지는 개인정보처리방침에 포함하며 회원가입 이후 업로드·재시도·재분석마다 별도 동의나 반복 고지를 표시하지 않습니다.
 - GA4·Meta Pixel의 자동 수집 항목·목적·보유기간·국외 처리·거부방법은 개인정보처리방침에 공개합니다. 별도 쿠키 배너나 회원가입 선택 체크박스는 두지 않으며 실제 측정 코드는 NVM-308·NVM-309 범위에서 방침과 일치하도록 설치합니다.
-- 휴대폰 인증 진행 복원에는 `verificationId`, 전화번호, 인증 만료 시각, 재전송 가능 시각만 sessionStorage에 보관합니다. `phoneVerificationToken`은 컴포넌트 메모리에만 두고 localStorage/sessionStorage/로그에 남기지 않습니다.
+- 인증 진행 복원에는 이메일·전화번호별 sessionStorage 키에 `verificationId`, 인증 대상, 인증 만료 시각, 재전송 가능 시각만 보관합니다. 인증번호·비밀번호·가입 토큰은 컴포넌트 메모리에만 두고 브라우저 저장소·로그·공유 Mutation 캐시에 남기지 않습니다.
 - 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.
 - 실제 로그인·회원가입 성공으로 access token을 저장할 때는 데모 모드와 데모 작품 데이터를 함께 제거해 실제 API 모드로 전환합니다.

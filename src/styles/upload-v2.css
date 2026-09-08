@@ -94,7 +94,19 @@
 .episode-upload-page .mode-card:hover { border-color: var(--ch-primary) !important; transform: translateY(-2px); }
 .episode-upload-page .mode-card.is-selected { border: 2px solid var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 10px 24px rgb(8 126 242 / 10%); }
 .episode-upload-page .mode-card > div:nth-last-child(2) { color: var(--ch-ink) !important; }
-.episode-upload-page .mode-card > div:last-child { color: var(--ch-text-muted) !important; }
+.episode-upload-page .mode-card > div:last-child { color: var(--ch-text-muted) !important; word-break: keep-all; overflow-wrap: anywhere; }
+.episode-upload-page .mode-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--ch-primary-ink);
+  color: var(--ch-primary-contrast);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
 
 .episode-upload-input {
   border-color: var(--ch-border-strong) !important;

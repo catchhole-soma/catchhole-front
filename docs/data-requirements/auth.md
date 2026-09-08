@@ -292,157 +292,93 @@ Content-Type: application/json
 
 ## 회원가입 (SSignup)
 
-**URL**: [`/signup`](https://www.catchhole.com/signup)
+**URL**: `/signup` — 랜딩 위의 회원가입 라우트 모달. 데스크톱 브랜드 패널·모바일 전체 화면·약관 딥링크와 자동 로그인은 유지한다.
 
-![인증번호 발송 전 회원가입 화면](../screens/tMALM.png)
+브라우저 검증 화면: [데스크톱](../screens/email-signup-desktop.png) · [인증번호 입력](../screens/email-signup-code.png) · [인증 완료](../screens/email-signup-verified.png) · [320px 모바일](../screens/email-signup-mobile.png). Pencil 원본 반영 대상과 편집 상태는 [디자인 반영안](../../design/EMAIL_SIGNUP_GH181.md)을 따른다.
 
-![인증번호 입력 화면](../screens/VzawP.png)
+**인증 정책**
 
-![휴대폰 인증 완료 화면](../screens/j1BByU.png)
+- 최초 진입마다 생성 SDK의 `GET /api/v1/auth/signup-policy`로 `verificationMethod`를 조회한다. `EMAIL`이면 이메일 인증만 표시하고 전화번호를 수집하지 않는다. `PHONE`이면 기존 이메일·비밀번호 가입 정보와 휴대폰 인증을 표시한다.
+- Backend 기본 설정은 `EMAIL`이다. Front에 기본 인증 방식을 추측하는 fallback, 사용자 선택 토글 또는 별도 환경 변수를 두지 않는다.
+- 정책 로딩·오류·알 수 없는 값에서는 발송과 가입을 막고 오류일 때 `인증 방식 다시 불러오기`를 제공한다. 서버 정책 변경 오류는 토큰을 폐기하고 정책을 재조회한다.
 
-상태 화면: [재전송 대기](../screens/MF1bl.png) · [가입 오류](../screens/RXyHs.png) · [모바일 기본](../screens/HDeLo.png) · [모바일 인증번호 입력](../screens/P0YjRs.png) · [모바일 재전송 대기](../screens/MaREr.png) · [모바일 인증 완료](../screens/Gmae3.png) · [모바일 오류](../screens/BKd2a.png)
+**입력·시간 정책**
 
-신규 사용자가 계정을 생성하고 자동 로그인 후 작품 목록에 진입하는 라우트 모달. 데스크톱에서는 랜딩 위 중앙 모달로 표시하고, 모바일에서는 긴 입력 폼을 스크롤할 수 있는 전체 화면으로 표시한다.
+| 항목 | 계약 |
+| --- | --- |
+| 이름(필명) | 필수, 최대 20자, 중복 허용 |
+| 이메일 | 필수, 이메일 형식, 최대 255자, 중복 불가. 앞뒤 공백만 제거하고 대소문자를 보존한다. 인증·가입에 동일한 값을 보낸다. |
+| 휴대폰 번호 | `PHONE` 정책에서만 필수, `010`으로 시작하는 11자리 숫자, 중복 불가 |
+| 인증번호 | 6자리 숫자, 기본 유효시간 300초, 오입력 5회에서 해당 흐름 잠금 |
+| 재전송 | 기본 대기 60초. 재전송 성공 시 최신 `verificationId`와 새 유효시간으로 교체 |
+| 가입 토큰 | 인증 성공 후 기본 600초 동안 유효한 1회용 토큰. 가입 완료까지 남은 시간을 표시 |
+| 비밀번호 | 8~64자, 영문·숫자 각각 한 개 이상 |
+| 비밀번호 확인 | Front에서만 일치 검증 |
+| 법률 확인 | 현재 게시 이용약관·개인정보처리방침을 한 체크로 동의·확인 |
+| 나이 확인 | 별도 필수 체크로 만 14세 이상 확인, 생년월일은 수집하지 않음 |
 
-> **MVP 범위 메모**: 이메일·비밀번호 가입에 SOLAPI 휴대폰 번호 인증을 결합한다. 이는 PASS 같은 실명·CI/DI 본인인증이 아니라, 가입 시점에 해당 번호로 수신한 6자리 번호를 확인하는 소유 인증이다. 소셜 로그인·CAPTCHA·마케팅 수신 동의는 제외한다.
+인증 만료·재전송·가입 토큰 타이머는 모두 Backend 응답의 초를 사용한다. 화면에서 300/60/600을 상수로 재정의하지 않는다. 이메일 소유 인증은 실명·나이 확인을 대신하지 않는다.
 
-> **디자인 원본**: `design/catchhole.pen`의 `Active / Signup / ...` 데스크톱·모바일 프레임을 구현 상태의 기준으로 사용한다.
+**화면·상호작용**
 
-> **입력 정책**
-> - 이름(필명): 필수, 최대 20자, 중복 허용. 화면에는 `이름 (필명)`, 문서와 전달 데이터에는 필명(`displayName`)으로 표기
-> - 이메일: 필수, 이메일 형식, 중복 불가
-> - 휴대폰 번호: 필수, 하이픈 없이 `010`으로 시작하는 11자리 숫자, 중복 불가. 인증이 끝난 번호를 수정하면 인증 완료 상태와 가입 토큰을 즉시 폐기
-> - 인증번호: 숫자 6자리, 발송 후 5분 동안 유효, 5회 오입력 시 해당 인증 흐름 잠금
-> - 재전송: 발송 후 60초 동안 버튼 비활성. 재전송 성공 시 이전 인증번호를 폐기하고 최신 번호만 유효
-> - 비밀번호: 8자 이상 64자 이하, 영문·숫자 각 1개 이상, 특수문자 선택
-> - 비밀번호 확인: 비밀번호와 일치
-> - 이용약관 동의·개인정보 처리방침 확인: 하나의 체크박스로 표시
-> - 만 14세 이상 확인: 이용약관·개인정보 확인과 분리한 필수 체크박스로 표시하며 생년월일은 수집하지 않음
+1. 이름·이메일을 입력한다. `PHONE` 정책에만 휴대폰 입력이 추가된다.
+2. 연락처 아래 전체 너비의 `인증번호 받기`를 누른다. 긴 이메일도 320px 화면에서 읽을 수 있으며 발송 중 중복 클릭은 차단한다.
+3. 발송 성공 후 6자리 입력·`MM:SS` 만료 타이머·`인증` 버튼을 표시하고 재전송 대기 초를 버튼에 표시한다. 이메일 모드에서는 입력칸 아래 별도 안내 상자에 `인증메일이 도착하지 않았다면 스팸함도 확인해주세요.`를 표시하고 `스팸함`을 굵게 강조한다. 인증 완료 또는 이메일 변경 시 안내를 숨긴다.
+4. 확인 성공 시 인증 완료 상태와 가입 완료까지 남은 시간을 표시한다. 인증번호는 화면 상태에서도 지운다.
+5. 비밀번호·법률 문서·만 14세 이상 확인 후 가입한다. 가입·토큰 발급 한 요청 성공 시 자동 로그인하여 `/works`로 현재 히스토리를 대체한다.
 
-**1. 화면에 표시할 데이터**
-- 좌측 브랜딩 영역: CatchHole 로고, 서비스 소개
-- 이름(필명)·이메일·휴대폰 번호·비밀번호·비밀번호 확인 입력
-- 휴대폰 번호 입력 오른쪽 `인증번호 받기` 버튼. 발송 중에는 중복 요청을 막고, 발송 뒤에는 남은 재전송 대기 초를 표시
-- 발송 성공 후에만 노출하는 6자리 인증번호 입력, `MM:SS` 형식 5분 타이머, `인증` 버튼
-- 발송 완료·가장 최근 번호만 유효·인증 완료·만료 상태를 아이콘과 문구로 안내
-- 인증 완료 상태는 성공 색상으로 표시하고, 인증 전에는 회원가입 버튼을 `휴대폰 인증 후 회원가입` 문구로 비활성
-- 비밀번호·비밀번호 확인 표시·숨김 버튼
-- Backend가 반환한 현재 게시 이용약관·개인정보처리방침의 버전, 한 개의 동의·확인 체크와 각 본문 링크
-- 만 14세 이상 확인 체크
-- 회원가입 버튼
-- 로그인 이동 링크
+- 인증 대상 이메일이나 번호를 바꾸면 토큰·인증번호·진행 상태를 즉시 폐기한다. 발송·확인 요청 중에도 연락처를 수정할 수 있다. 이전 주소의 늦은 성공·실패 응답은 새 흐름을 덮어쓰지 않는다. 이메일 대소문자 변경도 다른 주소로 취급하며 앞뒤 공백만 바뀌면 동일 주소다.
+- 재전송 중 이전 인증번호 확인을 막는다. 인증번호 만료·오입력 한도에서 확인 입력을 닫되 남은 재전송 대기는 유지한다.
+- 인증·법률·연령 확인 전에는 회원가입을 비활성화한다. 제출 중에는 인증 대상 입력·발송·확인을 잠근다.
+- 로그인으로 전환할 때는 `/login`으로 대체한다. 랜딩에서 열었으면 닫기·뒤로가기로 복귀하고 직접 진입은 `/landing`으로 대체한다.
 
+**저장소·세션**
 
-**2. 사용자 액션**
-- 가입 정보 입력
-- 휴대폰 번호 입력 후 인증번호 발송 요청
-- 60초 뒤 인증번호 재전송. 재전송하면 현재 OTP 입력을 비우고 새 5분 타이머 시작
-- 6자리 인증번호 입력·확인
-- 인증된 휴대폰 번호 수정 → 인증 ID·OTP·가입 토큰 폐기 후 발송 전 상태로 복귀
-- 비밀번호·비밀번호 확인 표시/숨김
-- 이용약관·개인정보 처리방침 본문 확인
-- 이용약관 동의·개인정보 처리방침 확인 체크
-- 만 14세 이상 확인
-- 휴대폰 인증·법률 문서 확인·연령 확인을 모두 완료한 뒤 가입 제출 → 자동 로그인 → [작품 목록](./work.md#작품-목록-s0workpicker)
-- 닫기·배경 선택·`Esc`·브라우저 뒤로가기 → 랜딩 복귀
-- [로그인](#로그인-slogin) 모달로 전환
+| 저장 위치 | 저장 가능한 값 |
+| --- | --- |
+| `sessionStorage.catchhole_email_verification` | `verificationId`, `email`, `expiresAt`, `resendAt` |
+| `sessionStorage.catchhole_phone_verification` | `verificationId`, `phoneNumber`, `expiresAt`, `resendAt` |
+| 컴포넌트 메모리 | 인증번호·가입 토큰·비밀번호. 새로고침·모달 이탈 시 폐기 |
 
+- 확인 성공·가입 성공 시 인증 진행 저장소를 지운다. 새로고침하면 성공 토큰을 복원하지 않으며 새 인증번호를 받아야 한다.
+- 발송·확인·가입은 생성 SDK를 직접 호출하여 인증번호·비밀번호·가입 토큰이 공유 Query/Mutation 캐시에 남지 않도록 한다. 정책·법률 조회는 생성 TanStack Query 옵션을 사용한다.
+- 모든 요청은 공통 `fetchWithAuth`와 `credentials: include`를 따른다. `signup-policy`, `email-verifications`, 기존 전화번호 인증·가입·로그인·refresh·logout에는 401 refresh 재시도를 적용하지 않는다.
+- 가입 성공 시 access token은 localStorage에 저장하고 refresh token은 Backend의 HttpOnly 쿠키로만 다룬다. 실제 인증 저장 시 데모 데이터를 제거한다. 보호 화면에서는 `/auth/me`로 인증을 확인한다.
 
-**3. 화면 전환 식별자**
-- 회원가입 라우트 모달: `/signup`
-- 랜딩에서 연 경우 닫기 → 브라우저 뒤로가기, 직접 진입에서 닫기 → `/landing` 대체 이동
-- 로그인 전환: `/login`으로 현재 히스토리 항목 대체
-- 가입·자동 로그인 성공 시 `accessToken` 저장
-- 가입·자동 로그인 성공 → `/works`로 현재 히스토리 항목 대체
-- 약관·개인정보 모달: `?terms=terms|privacy`
-- 휴대폰 인증 진행 복원: `sessionStorage.catchhole_phone_verification`
-  - 저장 허용: `verificationId`, `phoneNumber`, `expiresAt`, `resendAt`
-  - 저장 금지: 인증번호, `phoneVerificationToken`, 비밀번호
-- `phoneVerificationToken`은 컴포넌트 메모리에만 보관한다. 새로고침·Auth 모달 이탈·번호 수정 시 사라지므로 다시 확인해야 한다.
+**API 계약**
 
-**4. 데이터 없음 / 실패 표시**
-- 필명 미입력·길이 초과
-- 이메일 미입력·형식 오류·중복 ([가입 오류 대표 화면](../screens/RXyHs.png))
-- 휴대폰 번호 미입력·형식 오류·중복
-- 잘못된 인증번호와 남은 흐름 유지
-- 인증번호 5회 오입력 잠금과 새 번호 발송 안내
-- 인증 흐름 만료 시 OTP 입력을 닫고 새 인증번호 발송 안내
-- 재전송·발송량 제한과 잠시 후 재시도 안내
-- Redis 또는 SMS 발송 서비스 장애와 휴대폰 인증 일시 사용 불가 안내
-- 유효하지 않거나 이미 사용한 가입 토큰은 인증 상태를 폐기하고 재인증 안내
-- 비밀번호 미입력·정책 불충족
-- 비밀번호 확인 미입력·불일치
-- 현재 게시 법률 문서를 불러오지 못하거나 가입 요청이 `LEGAL_DOCUMENTS_UNAVAILABLE`로 거절되면 기존 법률 체크를 해제하고, 최신 게시본 재조회가 성공할 때까지 가입을 잠근 뒤 다시 불러오기 안내
-- 휴대폰 미인증, 이용약관 동의·개인정보 처리방침 확인 전, 또는 만 14세 이상 확인 전에는 회원가입 버튼 비활성
-- 제출 중 게시 문서가 바뀐 `LEGAL_DOCUMENT_NOT_CURRENT` 응답에서는 법률 체크를 해제하고 최신 문서를 재조회한 뒤 재확인 안내
-- 네트워크 오류와 입력값 유지 ([가입 오류 대표 화면](../screens/RXyHs.png))
-- 제출·자동 로그인 중 로딩과 중복 제출 방지
-
-
-**5. 화면 데이터 요구사항**
-
-**5-1. BE → FE 제공 데이터 요구사항**
-
-**현재 게시 법률 문서 묶음**
-
-| 데이터 의미 | 형태·필수성 | 값 없음·조건 |
+| 요청 | 입력 | 성공 응답 `data` |
 | --- | --- | --- |
-| 문서 언어·지역 | 단일 문자열·성공 시 필수 | 현재 `ko-KR` |
-| 현재 이용약관 | `id`, `documentType`, `documentVersion`, `title`, `contentMarkdown`, `contentHash`, `status`, `effectiveDate`, `publishedAt`·성공 시 필수 | `PUBLISHED` 한 건이 없으면 가입 불가 |
-| 현재 개인정보처리방침 | 이용약관과 같은 구조·성공 시 필수 | `PUBLISHED` 한 건이 없으면 가입 불가 |
+| `GET /api/v1/auth/signup-policy` | 없음 | `verificationMethod: EMAIL \| PHONE` |
+| `POST /api/v1/auth/email-verifications` | `email` | `verificationId`, `expiresInSeconds`, `resendAfterSeconds` |
+| `POST /api/v1/auth/email-verifications/{verificationId}/confirm` | `code` | `emailVerificationToken`, `expiresInSeconds` |
+| `POST /api/v1/auth/phone-verifications` | `phoneNumber` | 이메일 발송과 같은 형식 |
+| `POST /api/v1/auth/phone-verifications/{verificationId}/confirm` | `code` | `phoneVerificationToken`, `expiresInSeconds` |
+| `POST /api/v1/auth/signup` | `email`, `password`, `displayName`, 정책에 맞는 인증 토큰, 아래 법률 확인 필드 | `accessToken` 및 HttpOnly refresh 쿠키 |
 
-**가입·자동 로그인 성공 후 인증 상태**
+회원가입에는 `termsAccepted=true`, `privacyPolicyAcknowledged=true`, `age14OrOlderConfirmed=true`, 사용자가 본 `termsDocumentId`, `privacyPolicyDocumentId`를 보낸다. Backend가 같은 트랜잭션에서 현재 게시본을 검증하고 문서 FK·종류·버전·행위와 서버 기록 시각을 보존한다. 전화번호는 가입 body에 직접 보내지 않고 인증 토큰에 연결된 값을 사용한다. 이메일 인증은 토큰의 주소와 가입 이메일이 일치해야 한다.
 
-| 데이터 의미 | 형태·필수성 | 값 없음·조건 |
-| --- | --- | --- |
-| API 인증에 사용할 access token | 단일 값·가입과 자동 로그인 성공 시 필수 | 가입 또는 자동 로그인 실패 시 제공하지 않음 |
-| 인증 갱신에 사용할 refresh token | HttpOnly 쿠키·가입과 자동 로그인 성공 시 필수 | 가입 또는 자동 로그인 실패 시 제공하지 않으며 FE가 본문 값으로 직접 읽지 않음 |
+`MemberResponse`는 `emailVerified`와 기존 `phoneVerified`를 독립 제공한다. 이메일 가입자는 `phoneNumber=null`, `phoneVerified=false`, `emailVerified=true`이다. 기존 회원의 이메일 인증을 완료한 것으로 추측하지 않는다.
 
-**가입 정보 중복 실패**
+**오류 처리**
 
-| 데이터 의미 | 형태·필수성 | 값 없음·조건 |
-| --- | --- | --- |
-| 이메일 중복 식별값 | 단일 상태값·이메일 중복 시 필수 | `AUTH_EMAIL_DUPLICATED` |
-| 휴대폰 번호 중복 식별값 | 단일 상태값·휴대폰 번호 중복 시 필수 | `AUTH_PHONE_NUMBER_DUPLICATED` |
+| 오류 코드 | 화면 처리 |
+| --- | --- |
+| `AUTH_EMAIL_DUPLICATED` / `AUTH_PHONE_NUMBER_DUPLICATED` | 해당 입력에 이미 가입된 주소·번호 안내 |
+| `AUTH_EMAIL_VERIFICATION_CODE_INVALID` | 잘못된 인증번호 안내, 입력·타이머 유지 |
+| `AUTH_EMAIL_VERIFICATION_EXPIRED` | 진행 상태 폐기, 새 발송 안내 |
+| `AUTH_EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED` | 확인 입력을 닫고 새 발송 안내, 재전송 대기 유지 |
+| `AUTH_EMAIL_VERIFICATION_RATE_LIMITED` | 발송 한도·요청 과다 안내 |
+| `AUTH_EMAIL_VERIFICATION_UNAVAILABLE` | 이메일 인증 일시 사용 불가, 가입 정보 유지 |
+| `AUTH_EMAIL_VERIFICATION_TOKEN_INVALID` | 완료 토큰 폐기, 재인증 안내 |
+| `AUTH_SIGNUP_VERIFICATION_METHOD_DISABLED` / `AUTH_EMAIL_VERIFICATION_TOKEN_REQUIRED` / `AUTH_PHONE_VERIFICATION_TOKEN_REQUIRED` | 정책 재조회·토큰 폐기·새 정책의 인증 안내 |
+| `LEGAL_DOCUMENT_NOT_CURRENT` | 동의 해제, 최신 게시본 재조회 후 재확인 |
+| `LEGAL_DOCUMENTS_UNAVAILABLE` | 동의 해제, 게시본 재조회 성공 전까지 가입 잠금 |
+| 네트워크·기타 실패 | 현재 가입 입력 유지, 재시도 안내 |
 
-**휴대폰 인증번호 발송 성공**
+전화번호 모드의 대응 오류는 기존 `AUTH_PHONE_VERIFICATION_*`를 같은 상태 처리에 사용한다. 원시 오류·내부 응답 본문을 사용자에게 표시하지 않는다.
 
-| 데이터 의미 | 형태·필수성 | 값 없음·조건 |
-| --- | --- | --- |
-| 인증 흐름 식별자 | UUID 문자열·발송 성공 시 필수 | `verificationId`; 재전송 성공 시 새 값으로 교체 |
-| 인증번호 만료까지 남은 초 | 정수·발송 성공 시 필수 | `expiresInSeconds=300` |
-| 재전송 가능까지 남은 초 | 정수·발송 성공 시 필수 | `resendAfterSeconds=60` |
-
-**휴대폰 인증 확인 성공**
-
-| 데이터 의미 | 형태·필수성 | 값 없음·조건 |
-| --- | --- | --- |
-| 1회용 회원가입 인증 토큰 | 문자열·인증 성공 시 필수 | `phoneVerificationToken`; 브라우저 저장소에 기록하지 않음 |
-| 가입 토큰 만료까지 남은 초 | 정수·인증 성공 시 필수 | `expiresInSeconds=600` |
-
-**휴대폰 인증 실패 상태**
-
-| 오류 코드 | HTTP | 화면 처리 |
-| --- | --- | --- |
-| `AUTH_PHONE_VERIFICATION_CODE_INVALID` | 400 | 인증번호가 올바르지 않음을 표시하고 입력·타이머 유지 |
-| `AUTH_PHONE_VERIFICATION_TOKEN_INVALID` | 400 | 인증 완료 상태를 폐기하고 재인증 안내 |
-| `AUTH_PHONE_VERIFICATION_EXPIRED` | 410 | 진행 상태를 폐기하고 새 인증번호 발송 안내 |
-| `AUTH_PHONE_VERIFICATION_RATE_LIMITED` | 429 | 발송 한도 초과 안내, 재전송 카운트다운이 있으면 유지 |
-| `AUTH_PHONE_VERIFICATION_ATTEMPTS_EXCEEDED` | 429 | 5회 오입력 잠금과 새 인증번호 발송 안내 |
-| `AUTH_PHONE_VERIFICATION_UNAVAILABLE` | 503 | 인증 서비스 일시 사용 불가 안내, 가입 정보 유지 |
-| `LEGAL_DOCUMENT_NOT_CURRENT` | 409 | 법률 체크 해제, 현재 게시본 재조회, 최신 내용 재확인 안내 |
-| `LEGAL_DOCUMENTS_UNAVAILABLE` | 503 | 법률 체크 해제, 현재 게시본 재조회, 재조회 성공 전까지 동의·가입 잠금과 다시 불러오기 안내 |
-
-**5-2. FE → BE 전달 데이터 요구사항**
-- 인증번호 발송: 휴대폰 번호(`phoneNumber`)
-- 인증번호 확인: URL의 `verificationId`, 본문의 6자리 `code`
-- 회원가입: 필명(`displayName`), 이메일, 비밀번호, 이용약관 동의(`termsAccepted=true`), 개인정보처리방침 확인(`privacyPolicyAcknowledged=true`), 만 14세 이상 확인(`age14OrOlderConfirmed=true`), 사용자가 확인한 `termsDocumentId`, `privacyPolicyDocumentId`, `phoneVerificationToken`
-
-회원가입 요청에 휴대폰 번호를 다시 보내지 않는다. Backend가 `phoneVerificationToken`에 연결된 번호를 사용해 인증 번호 위조를 차단한다. 비밀번호 확인은 FE에서만 검증한다. 화면의 단일 체크는 이용약관 동의와 개인정보처리방침 확인을 함께 표시하지만 Backend에는 두 의미와 사용자가 실제 확인한 문서 ID를 각각 전달한다. Backend는 두 ID가 가입 시점의 현재 게시본인지 같은 트랜잭션에서 검증하고 문서 FK·종류·버전·행위와 한 번의 서버 기록 시각을 저장한다. 만 14세 이상 확인 시각도 서버가 정한다. AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에 고지하며 별도 가입 동의, 업로드·재분석별 동의 또는 쿠키 배너로 반복하지 않는다.
-
-**6. BE와 협의할 범위·상태값**
-- TTL과 재전송 간격은 Backend 응답 초를 기준으로 표시하며 FE 상수로 계약을 재정의하지 않는다.
-- 429 응답의 `Retry-After`는 서버 제한 해제 시각의 기준이다. 화면에 서버 대기 초 표시가 추가되면 해당 헤더를 사용한다.
+AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에 고지하고 별도 가입 동의나 반복 고지를 추가하지 않는다. 정책 변경으로 실제 수집 항목이 바뀌므로 운영 문서의 게시본은 배포 전에 검토해야 한다.
 
 ---
 

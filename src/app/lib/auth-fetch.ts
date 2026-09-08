@@ -30,6 +30,8 @@ const NO_REFRESH_PATHS = [
   '/api/v1/auth/signup',
   '/api/v1/auth/login',
   '/api/v1/auth/phone-verifications',
+  '/api/v1/auth/email-verifications',
+  '/api/v1/auth/signup-policy',
   REFRESH_PATH,
   '/api/v1/auth/logout',
 ];

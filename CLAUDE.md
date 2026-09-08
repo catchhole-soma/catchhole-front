@@ -64,6 +64,7 @@ CatchHole은 웹소설 작가·편집자가 회차 원고를 업로드하면 AI�
 API 호출은 `src/app/api/generated/`의 Hey API SDK와 TanStack Query 옵션을 사용합니다. 세션 저장은 `src/app/lib/auth.ts`, access token 자동 갱신은 `src/app/lib/auth-fetch.ts`에서 담당합니다.
 
 - 로그인·회원가입: access token은 응답 body에서 localStorage에 저장하고, refresh token은 서버가 `/api/v1/auth` 경로의 HttpOnly 쿠키로 발급합니다. 회원가입은 한 번의 요청으로 가입과 자동 로그인을 완료합니다.
+- 회원가입 인증: `GET /api/v1/auth/signup-policy`의 `EMAIL`/`PHONE`을 따릅니다. 기본 EMAIL에서는 이메일 인증만 요구하고 전화번호를 수집하지 않습니다. 정책 실패 시 가입을 막고 재시도를 제공합니다. 인증 대상 변경은 토큰과 늦은 응답을 폐기하며 시간은 API 응답을 사용합니다. 이메일은 trim만 적용하고 대소문자를 보존합니다.
 - 회원가입 법률 문서: `GET /api/v1/legal-documents/current?locale=ko-KR`로 현재 게시본을 조회하고, 이용약관·개인정보처리방침을 한 체크로 확인하며 만 14세 이상은 별도 필수 체크로 받습니다. 가입 요청에는 두 동의 boolean, `age14OrOlderConfirmed`, 사용자가 본 두 문서 ID를 보내고, 게시본 교체 오류에서는 법률 체크를 해제한 뒤 최신 문서를 다시 조회합니다.
 - Backend가 정확한 문서 FK·종류·버전·행위와 한 번의 서버 기록 시각을 저장합니다. 원문·현재 버전을 Front에 하드코딩하거나 AI 원고 처리 고지를 업로드·재분석 때 반복하지 않습니다.
 - GA4·Meta Pixel 관련 자동 수집은 개인정보처리방침에 항목·목적·보유기간·국외 처리·거부방법을 공개하고, 별도 쿠키 배너나 회원가입 선택 체크박스를 두지 않습니다. 실제 설치는 NVM-308·NVM-309에서 방침과 일치하도록 진행합니다.

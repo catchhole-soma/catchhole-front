@@ -318,8 +318,11 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   await page.getByRole('button', { name: '회원가입 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
   await expect(page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
-  expect(dataRequests).toHaveLength(1);
-  const legalDocumentRequest = new URL(dataRequests[0]);
+  expect(dataRequests).toHaveLength(2);
+  expect(dataRequests.map(url => new URL(url).pathname).sort()).toEqual([
+    '/api/v1/auth/signup-policy', '/api/v1/legal-documents/current',
+  ]);
+  const legalDocumentRequest = new URL(dataRequests.find(url => new URL(url).pathname === '/api/v1/legal-documents/current')!);
   expect(legalDocumentRequest.pathname).toBe('/api/v1/legal-documents/current');
   expect(legalDocumentRequest.searchParams.get('locale')).toBe('ko-KR');
 });
