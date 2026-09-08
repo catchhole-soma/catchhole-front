@@ -381,3 +381,18 @@ source_context: "체험할 때 따라가기 UI 쪽으로 바로 내려가지 말
 ```
 
 체험 화면은 위에서부터 읽으며 사용자가 직접 내려가게 한다. 안내·강조 버튼을 보여주려는 자동 스크롤과 초기 포커스 이동은 하지 않는다. 화면 회전과 안내 내용 변경도 읽는 위치를 강제로 바꾸지 않는다.
+
+## 2026-09-08T06:22:28.186Z — compact-manuscript-notice-after-demo
+
+```omd-meta
+id: pref_mtsa8llp_af66f182
+timestamp: 2026-09-08T06:22:28.186Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/SLanding.tsx; https://github.com/catchhole-soma/catchhole-backend-java/issues/182"
+```
+
+Place a compact, always-visible manuscript non-training notice immediately after the product demo and before the three-item core feature summary; keep the heading “작가님의 원고는 AI 학습에 사용하지 않습니다.”, shorten the body to “원고와 분석 결과 모두에 적용됩니다.”, retain the privacy-policy link, and use the shared canvas background with 32px maximum / 26px minimum heading text and 56px desktop / 40px mobile vertical padding.

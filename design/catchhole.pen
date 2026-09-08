@@ -326707,9 +326707,10 @@
       "x": 84140,
       "y": 144,
       "name": "Active / Landing / Approved Full Page",
+      "context": "구현 기준: /landing. Hero → 제품 데모 → 원고 학습 미사용 안내 → 핵심 기능 3항목 요약 → 주요 서비스 → 마지막 시작 안내 순서로 표시한다. 제목: 작가님의 원고는 AI 학습에 사용하지 않습니다. 본문: 원고와 분석 결과 모두에 적용됩니다. 개인정보 처리방침 보기 → /privacy. 섹션 참조: omdLandingManuscriptNotice. 직접 연결: /landing#manuscript-protection.",
       "clip": true,
       "width": 1100,
-      "height": 2720,
+      "height": 2913,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -326719,6 +326720,93 @@
       "cornerRadius": 12,
       "stroke": "$ch-border",
       "strokeWidth": 1
+    },
+    {
+      "type": "frame",
+      "id": "omdLandingManuscriptNotice",
+      "x": 85320,
+      "y": 2980,
+      "name": "Active / Landing / 원고 학습 미사용 안내",
+      "context": "SLanding.tsx · landing-manuscript-notice · /landing#manuscript-protection. 제품 데모 아래, 핵심 기능 3항목 요약 위에 항상 표시한다. 제목: 작가님의 원고는 AI 학습에 사용하지 않습니다. 본문: 원고와 분석 결과 모두에 적용됩니다. 기존 콘텐츠 폭·왼쪽 정렬·캔버스 배경을 유지하며 제목은 데스크톱 32px·모바일 26px, 위아래 여백은 데스크톱 56px·모바일 40px로 표시한다. 개인정보 처리방침 보기 링크는 /privacy로 이동하고 키보드 포커스를 표시한다. 앵커의 scroll-margin-top은 88px이다. GitHub: catchhole-soma/catchhole-backend-java#182.",
+      "width": 1440,
+      "height": 253,
+      "fill": "$ch-canvas",
+      "layout": "vertical",
+      "padding": [56, 80],
+      "children": [
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticeHeading",
+          "name": "원고 학습 미사용 제목",
+          "width": "fill_container",
+          "height": 45,
+          "gap": 8,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticeSubject",
+              "name": "제목 원고",
+              "content": "작가님의 원고는",
+              "fill": "$ch-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 32,
+              "fontWeight": "700",
+              "letterSpacing": -1.12
+            },
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticePromise",
+              "name": "제목 학습 미사용 강조",
+              "content": "AI 학습에 사용하지 않습니다.",
+              "fill": "$ch-primary-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 32,
+              "fontWeight": "700",
+              "letterSpacing": -1.12
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticeDescriptionRow",
+          "name": "학습 미사용 범위 설명",
+          "width": "fill_container",
+          "height": 40,
+          "padding": [12, 0, 0, 0],
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticeDescription",
+              "content": "원고와 분석 결과 모두에 적용됩니다.",
+              "fill": "$ch-text-muted",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 16,
+              "fontWeight": "400"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticePrivacyRow",
+          "name": "개인정보 처리방침 링크 · /privacy",
+          "width": "fill_container",
+          "height": 56,
+          "padding": [12, 0, 0, 0],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticePrivacyLink",
+              "content": "개인정보 처리방침 보기 →",
+              "fill": "$ch-primary-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 14,
+              "fontWeight": "650"
+            }
+          ]
+        }
+      ]
     },
     {
       "type": "frame",

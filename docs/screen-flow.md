@@ -55,7 +55,7 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 
 | 화면 이름 | 경로 (클릭 시 이동) | 무슨 화면인가 |
 | --- | --- | --- |
-| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 없는 공개 데모를 주 CTA로 안내하고, 전용 에디토리얼 배경 Hero와 8단계 실제 제품 아코디언, 2열 서비스 카탈로그로 기능 범위를 소개하는 Theme V2 페이지. 모바일에서도 로그인 진입점을 유지한다. |
+| 랜딩 | [`/landing`](https://catch-hole.vercel.app/landing) | 로그인 없는 공개 데모를 주 CTA로 안내하는 Theme V2 페이지. Hero → 8단계 실제 제품 데모 → 원고·분석 결과의 AI 학습 미사용 안내(`#manuscript-protection`)와 `/privacy` 링크 → 핵심 기능 3항목 요약 → 주요 서비스 카탈로그 → 마지막 시작 안내 순서로 표시한다. 모바일에서도 로그인 진입점을 유지한다. |
 | 로그인 / 회원가입 | [`/login`](https://catch-hole.vercel.app/login) · [`/signup`](https://catch-hole.vercel.app/signup) | Theme V2 흰색 라우트 모달로 제공하는 서버 정책에 따른 이메일 또는 휴대폰 인증, 이메일·비밀번호 가입, 현재 게시 법률 문서 확인과 만 14세 이상 확인 |
 | 이용약관 / 개인정보처리방침 | [`/terms`](https://catch-hole.vercel.app/terms) · [`/privacy`](https://catch-hole.vercel.app/privacy) | Backend의 현재 `PUBLISHED` Markdown 원문·버전·시행일을 표시하는 공개 Theme V2 전체 화면 |
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
@@ -187,6 +187,7 @@ flowchart TD
   landing -- "로그인" --> login
   landing -- "회원가입" --> signup
   landing -. "Footer 법률 문서" .-> legalPage["이용약관 / 개인정보처리방침<br/>/terms · /privacy"]:::public
+  landing -. "원고 학습 미사용 안내 · /privacy" .-> legalPage
 
   login["로그인 라우트 모달<br/>/login"]:::public
   signup["회원가입 라우트 모달<br/>/signup"]:::public
