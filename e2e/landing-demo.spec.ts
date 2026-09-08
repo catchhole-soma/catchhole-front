@@ -121,6 +121,74 @@ test('랜딩 Hero는 승인 프레임처럼 전용 이미지를 전체 배경으
   await expect(heroCopy).toHaveCSS('text-align', 'center');
 });
 
+test('원고 보호 안내는 데모 다음에 표시되고 개인정보 링크를 키보드로 읽고 사용할 수 있다', async ({ page }) => {
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/landing');
+
+    const notice = page.getByRole('region', { name: '작가님의 원고는 AI 학습에 사용하지 않습니다.', exact: true });
+    const heading = notice.getByRole('heading', { level: 2 });
+    const description = notice.getByText('원고와 분석 결과 모두에 적용됩니다.', { exact: true });
+    const privacyLink = notice.getByRole('link', { name: '개인정보 처리방침 보기', exact: true });
+    await expect(heading).toHaveText('작가님의 원고는 AI 학습에 사용하지 않습니다.');
+    await expect(description).toBeVisible();
+    await expect(privacyLink).toHaveAttribute('href', '/privacy');
+    expect(await notice.evaluate(element => ({
+      afterDemo: element.previousElementSibling?.classList.contains('landing-demo-section'),
+      beforeFeatures: element.nextElementSibling?.classList.contains('landing-quick-actions'),
+    }))).toEqual({ afterDemo: true, beforeFeatures: true });
+
+    expect(await computedContrastRatio(description, notice)).toBeGreaterThanOrEqual(4.5);
+    expect(await computedContrastRatio(privacyLink, privacyLink, notice)).toBeGreaterThanOrEqual(4.5);
+    await expect(privacyLink).toHaveCSS('text-decoration-line', /underline/);
+
+    const demo = page.locator('.landing-demo-accordion');
+    await demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' }).focus();
+    await demo.getByRole('button', { name: '자동 재생 일시정지' }).press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(privacyLink).toBeFocused();
+    await notice.scrollIntoViewIfNeeded();
+    await expect(privacyLink).toBeInViewport({ ratio: 1 });
+
+    const focus = await privacyLink.evaluate(element => {
+      const style = getComputedStyle(element);
+      const background = getComputedStyle(element.closest('section')!).backgroundColor;
+      const rgba = (color: string) => color.match(/[\d.]+/g)!.map(Number);
+      const [outline, surface] = [rgba(style.outlineColor), rgba(background)];
+      const alpha = outline[3] ?? 1;
+      const luminance = (channels: number[]) => channels.slice(0, 3)
+        .map(channel => channel / 255)
+        .map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+        .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+      const foreground = luminance(outline.slice(0, 3).map((channel, index) => (
+        channel * alpha + surface[index] * (1 - alpha)
+      )));
+      const backdrop = luminance(surface);
+      return {
+        visible: element.matches(':focus-visible') && style.outlineStyle !== 'none'
+          && style.outlineStyle !== 'hidden' && parseFloat(style.outlineWidth) > 0,
+        contrast: (Math.max(foreground, backdrop) + 0.05) / (Math.min(foreground, backdrop) + 0.05),
+      };
+    });
+    expect(focus.visible).toBe(true);
+    expect(focus.contrast).toBeGreaterThanOrEqual(3);
+    expect((await privacyLink.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    await expect.poll(() => notice.evaluate(section => (
+      [...section.querySelectorAll<HTMLElement>('h2, p, a')].every(element => {
+        const rect = element.getBoundingClientRect();
+        return element.scrollWidth <= element.clientWidth + 1
+          && element.scrollHeight <= element.clientHeight + 1
+          && rect.left >= 0 && rect.right <= window.innerWidth
+          && rect.top >= 0 && rect.bottom <= window.innerHeight;
+      })
+    ))).toBe(true);
+
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL('/privacy');
+  }
+});
+
 test('랜딩 데모는 전체 설정 관리 흐름을 직접 탐색하고 재생을 제어할 수 있다', async ({ page }) => {
   await page.goto('/landing');
 
