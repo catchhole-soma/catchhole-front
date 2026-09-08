@@ -202,3 +202,45 @@
   .auth-modal-close,
   .auth-modal-primary { transition: none; }
 }
+.auth-verification-send {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--ch-primary);
+  border-radius: 8px;
+  background: var(--ch-surface);
+  color: var(--ch-primary-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auth-verification-send.is-verified { color: var(--ch-success-ink); border-color: var(--ch-success-ink); }
+.auth-verification-send:disabled { cursor: not-allowed; }
+.auth-verification-confirm { display: flex; align-items: center; gap: 8px; }
+.auth-verification-countdown { color: var(--ch-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.auth-verification-countdown.is-urgent { color: var(--ch-warning-ink); }
+.auth-verification-confirm__button {
+  min-width: 58px; min-height: 32px; padding: 4px 10px; border: 0; border-radius: 6px;
+  background: var(--ch-primary-ink); color: var(--ch-primary-contrast); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.auth-verification-confirm__button:disabled { cursor: not-allowed; }
+.auth-verification-status { display: flex; align-items: center; gap: 6px; color: var(--ch-text-muted); font-size: 12px; line-height: 1.5; }
+.auth-verification-status svg { flex-shrink: 0; }
+.auth-verification-status.is-verified { color: var(--ch-success-ink); }
+.auth-verification-help { margin: 0; color: var(--ch-text-muted); font-size: 12px; line-height: 1.5; }
+.auth-verification-mail-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ch-surface-soft);
+  color: var(--ch-text);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.auth-verification-mail-help svg { flex-shrink: 0; margin-top: 2px; color: var(--ch-primary-ink); }
+.auth-verification-mail-help strong { font-weight: 700; }
