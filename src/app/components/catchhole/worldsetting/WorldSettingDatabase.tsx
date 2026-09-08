@@ -1657,19 +1657,17 @@ export function WorldSettingDatabase({
                 onReload={() => void detailQuery.refetch()}
                 onToggleEvidence={(scopeName, name) => {
                   const key = propertyPathKey(scopeName, name);
-                  setExpandedEvidence(current => {
-                    const next = current === key ? null : key;
-                    if (fixture && selectedId) {
-                      fixture.onEvidenceToggle?.({
-                        worldSettingId: selectedId,
-                        subjectName: detail.subjectName ?? '',
-                        scopeName,
-                        settingName: name,
-                        expanded: next === key,
-                      });
-                    }
-                    return next;
-                  });
+                  const next = expandedEvidence === key ? null : key;
+                  setExpandedEvidence(next);
+                  if (fixture && selectedId) {
+                    fixture.onEvidenceToggle?.({
+                      worldSettingId: selectedId,
+                      subjectName: detail.subjectName ?? '',
+                      scopeName,
+                      settingName: name,
+                      expanded: next === key,
+                    });
+                  }
                 }}
               />
             )}

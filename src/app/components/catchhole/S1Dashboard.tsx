@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
@@ -546,7 +546,9 @@ export default function S1Dashboard() {
   const episodeApiEnabled = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(effectiveWorkId);
   const dashboardMountedRef = useRef(false);
   const dashboardContextRef = useRef({ workId: effectiveWorkId, activeNav });
-  dashboardContextRef.current = { workId: effectiveWorkId, activeNav };
+  useLayoutEffect(() => {
+    dashboardContextRef.current = { workId: effectiveWorkId, activeNav };
+  }, [effectiveWorkId, activeNav]);
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
     enabled: episodeApiEnabled,
