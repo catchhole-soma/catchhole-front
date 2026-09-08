@@ -280,6 +280,10 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
   await activate(guidedWorldEvidenceButton, keyboard);
   await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
+  await activate(guidedWorldEvidenceButton, keyboard);
+  await expect(worldDetail.locator('.world-setting-evidence-row')).toHaveCount(0);
+  await activate(guidedWorldEvidenceButton, keyboard);
+  await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
   await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
   const worldEvidenceHighlight = await guidedWorldEvidenceButton.evaluate(() => {
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible')!;
@@ -299,6 +303,12 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
 }
 
 test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료하고 회원가입으로 이동한다', async ({ page }) => {
+  const renderUpdateWarnings: string[] = [];
+  page.on('console', message => {
+    if (message.type() === 'error' && message.text().includes('Cannot update a component')) {
+      renderUpdateWarnings.push(message.text());
+    }
+  });
   const dataRequests: string[] = [];
   page.on('request', request => {
     if (request.resourceType() === 'fetch' || request.resourceType() === 'xhr') {
@@ -308,6 +318,7 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
 
   await page.goto('/demo');
   await completeDemo(page, { keyboard: true });
+  expect(renderUpdateWarnings).toEqual([]);
 
   await expect(page.getByRole('button', { name: '다시 체험하기' })).toBeVisible();
   expect(dataRequests).toEqual([]);

@@ -1,5 +1,3 @@
-import type { AnalysisJobCreateRequest } from '../../api/generated/types.gen';
-
 // ===== Episode =====
 export type EpisodeProcessingStatus =
   | 'UPLOADED'
@@ -11,48 +9,8 @@ export type EpisodeProcessingStatus =
   | 'ANALYZED'
   | 'FAILED';
 
-export type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
-
-export interface Episode {
-  id: string;
-  workId: string;
-  episodeNumber: number;
-  title: string;
-  rawText: string;
-  analysisJobType: AnalysisJobType;
-  processingStatus: EpisodeProcessingStatus;
-}
-
 // ===== AnalysisJob =====
 export type AnalysisJobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
-
-export interface AnalysisJob {
-  id: string;
-  episodeId: string;
-  jobType: AnalysisJobType;
-  status: AnalysisJobStatus;
-  retryCount: number;
-}
-
-// ===== 화면 전용 보조 타입 =====
-export interface SingleUploadForm {
-  episodeNumber: string;
-  title: string;
-  file: File | null;
-}
-
-export interface SettingsExtractionCategory {
-  type: string;
-  count: number;
-  items: string[];
-}
-
-export interface JobProgressItem {
-  episodeId: string;
-  episodeLabel: string;
-  job: AnalysisJob;
-  processingStatus: EpisodeProcessingStatus;
-}
 
 export const PROCESSING_STATUS_LABELS: Record<EpisodeProcessingStatus, string> = {
   UPLOADED: '원문 저장 완료',

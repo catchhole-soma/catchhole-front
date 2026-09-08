@@ -2318,7 +2318,7 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await page.getByRole('button', { name: '분류: 전체' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
 
-  await page.getByPlaceholder('대상 · 설정명 · 설정값 검색').fill('사회 구조');
+  await page.getByRole('textbox', { name: '세계관 설정 검색', exact: true }).fill('사회 구조');
   await page.getByRole('button', { name: '검색', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('사회 구조');
   await expect.poll(() => latestListQuery?.searchParams.get('q') ?? null).toBe('사회 구조');

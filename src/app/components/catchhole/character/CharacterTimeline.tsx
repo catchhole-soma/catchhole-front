@@ -44,7 +44,7 @@ import './character-timeline.css';
 type TimelineFactFilter = 'ALL' | TimelineFactType;
 type TimelineViewMode = 'types' | 'all';
 
-export interface CharacterTimelineDemoData {
+interface CharacterTimelineDemoData {
   summary: CharacterTimelineSummaryResponse;
   facts: CharacterTimelineFactResponse[];
   evidenceByFactId: Record<string, CharacterFactEvidenceResponse>;

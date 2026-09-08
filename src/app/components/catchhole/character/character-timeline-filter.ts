@@ -14,7 +14,7 @@ export const EMPTY_TIMELINE_SELECTION: TimelineSelection = {
   factKeys: [],
 };
 
-export function normalizeTimelineSelection(selection: TimelineSelection): TimelineSelection {
+function normalizeTimelineSelection(selection: TimelineSelection): TimelineSelection {
   return {
     factTypes: [...new Set(selection.factTypes.filter(type => TIMELINE_FACT_TYPES.includes(type)))]
       .sort((left, right) => TIMELINE_FACT_TYPES.indexOf(left) - TIMELINE_FACT_TYPES.indexOf(right)),

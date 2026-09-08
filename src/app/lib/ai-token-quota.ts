@@ -1,4 +1,4 @@
-export const AI_TOKEN_QUOTA_EXHAUSTED_EVENT = 'catchhole:ai-token-quota-exhausted';
+const AI_TOKEN_QUOTA_EXHAUSTED_EVENT = 'catchhole:ai-token-quota-exhausted';
 
 export type AiTokenQuotaNotice = {
   kind: 'request-blocked' | 'analysis-failed' | 'analysis-interrupted';

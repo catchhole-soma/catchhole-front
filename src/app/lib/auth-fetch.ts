@@ -7,7 +7,6 @@ import {
 import {
   NetworkError,
   notifyAuthError,
-  notifyNetworkError,
 } from './api-errors';
 import { notifyAiTokenQuotaExhausted } from './ai-token-quota';
 
@@ -47,7 +46,6 @@ async function fetchOrThrowNetworkError(input: RequestInfo | URL, init?: Request
     if (error instanceof Error && error.name === 'AbortError') {
       throw error;
     }
-    notifyNetworkError();
     throw new NetworkError();
   }
 }

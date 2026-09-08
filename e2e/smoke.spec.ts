@@ -580,7 +580,18 @@ test('업로드 방식을 전환해도 각 방식의 파일과 감지 결과를 
   await page.evaluate(() => localStorage.setItem('accessToken', 'mode-state-token'));
   await page.goto(`/episode-upload?workId=${workId}`);
 
-  await page.getByText('단일 회차 업로드', { exact: true }).click();
+  const singleMode = page.getByRole('button', { name: '단일 회차 업로드', exact: true });
+  const combinedMode = page.getByRole('button', { name: '다회차 - 단일 파일', exact: true });
+  const multipleMode = page.getByRole('button', { name: '다회차 - 여러 파일', exact: true });
+  for (const [mode, key] of [[combinedMode, 'Enter'], [multipleMode, 'Space'], [singleMode, 'Enter']] as const) {
+    await mode.focus();
+    await expect(mode).toBeFocused();
+    await expect(mode).toHaveCSS('outline-style', 'solid');
+    await page.keyboard.press(key);
+    await expect(mode).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.mode-card[aria-pressed="true"]')).toHaveCount(1);
+  }
+
   await page.locator('input[type="file"]').setInputFiles({
     name: '51화.txt',
     mimeType: 'text/plain',
@@ -1185,7 +1196,7 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await expect(page.getByRole('button', { name: '삭제' }).first()).toBeDisabled();
 
   await titleButton.click();
-  await expect(page.getByRole('textbox')).toHaveValue('분석 중 회차');
+  await expect(page.getByRole('textbox', { name: '1화 제목', exact: true })).toHaveValue('분석 중 회차');
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
