@@ -122,7 +122,7 @@ const INITIAL_DEMO_CHARACTERS: CharacterDetailResponse[] = [
   },
 ];
 
-export function createInitialDemoCharacters(): CharacterDetailResponse[] {
+function createInitialDemoCharacters(): CharacterDetailResponse[] {
   return structuredClone(INITIAL_DEMO_CHARACTERS);
 }
 

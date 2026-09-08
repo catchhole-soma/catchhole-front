@@ -23,7 +23,7 @@ interface Props {
   onClose: () => void;
 }
 
-export interface CharacterEvidenceSourceTab {
+interface CharacterEvidenceSourceTab {
   characterFactId: string;
   sourceEpisodeNo?: number | null;
   hasEvidence: boolean;
