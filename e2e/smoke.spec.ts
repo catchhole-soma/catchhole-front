@@ -2,6 +2,29 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
 
+async function installMetaPixelMock(page: Page) {
+  await page.addInitScript(() => {
+    type MetaPixelMock = ((...args: unknown[]) => void) & {
+      callMethod?: (...args: unknown[]) => void;
+    };
+    const browserWindow = window as Window & {
+      __metaPixelCalls?: unknown[][];
+      fbq?: MetaPixelMock;
+    };
+    const metaPixelCalls: unknown[][] = [];
+    const fbq: MetaPixelMock = (...args: unknown[]) => fbq.callMethod?.(...args);
+    fbq.callMethod = (...args: unknown[]) => metaPixelCalls.push(args);
+    browserWindow.fbq = fbq;
+    browserWindow.__metaPixelCalls = metaPixelCalls;
+  });
+}
+
+async function getMetaPixelCalls(page: Page): Promise<unknown[][]> {
+  return page.evaluate(() => (
+    (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? []
+  ));
+}
+
 async function expectReadableDialogText(locator: Locator, expectedColor: string) {
   await expect(locator).toHaveCSS('color', expectedColor);
   const contrast = await locator.evaluate(element => {
@@ -709,13 +732,16 @@ test('다회차 업로드에 기존 회차가 포함되면 두 방식 모두 중
   await expect(page.getByRole('button', { name: '다음 — 분석 시작' })).toBeDisabled();
 });
 
-test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드한다', async ({ page }) => {
+test('회차 감지 수정값을 업로드하고 성공 전환을 한 번만 전송한다', async ({ page }) => {
   const workId = '11111111-1111-4111-8111-111111111111';
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   const secondAnalysisJobId = '66666666-6666-4666-8666-666666666666';
   let detectionMultipartBody = '';
   let uploadMultipartBody = '';
+  let episodeUploadRequestCount = 0;
+
+  await installMetaPixelMock(page);
 
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -759,7 +785,20 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
     }
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/episodes`)) {
+      episodeUploadRequestCount += 1;
       uploadMultipartBody = request.postData() ?? '';
+      if (episodeUploadRequestCount === 1) {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            message: '회차 저장에 실패했습니다.',
+            data: null,
+            error: { code: 'EPISODE_UPLOAD_FAILED', status: 500, details: [] },
+          }),
+        });
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -886,9 +925,19 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   await expect(page.getByText('제 2화 둘째 제목', { exact: true })).toBeVisible();
   await page.locator('input[type="number"]').fill('11');
   await expect(page.getByText('제 2화 둘째 제목', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /회차 분리 확정 \(2개\)/ }).click();
+  const confirmUploadButton = page.getByRole('button', { name: /회차 분리 확정 \(2개\)/ });
+  await confirmUploadButton.click();
 
-  await expect.poll(() => uploadMultipartBody).not.toBe('');
+  await expect.poll(() => episodeUploadRequestCount).toBe(1);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(confirmUploadButton).toBeEnabled();
+  expect((await getMetaPixelCalls(page)).filter(call => (
+    call[0] === 'trackCustom' && call[1] === 'EpisodeUploaded'
+  ))).toEqual([]);
+
+  await confirmUploadButton.click();
+
+  await expect.poll(() => episodeUploadRequestCount).toBe(2);
   expect(uploadMultipartBody).toContain('name="metadata"');
   expect(uploadMultipartBody).toContain('"episodeConfirmations"');
   expect(uploadMultipartBody).toContain('"detectionOrder":0');
@@ -903,6 +952,9 @@ test('회차 감지 수정값을 metadata의 episodeConfirmations로 업로드�
   await expect.poll(() => new URL(page.url()).searchParams.get('currentAnalysisJobIds'))
     .toBe(`${analysisJobId},${secondAnalysisJobId}`);
   await expect(page).toHaveURL(/jobType=SETTING_EXTRACTION/);
+  expect((await getMetaPixelCalls(page)).filter(call => (
+    call[0] === 'trackCustom' && call[1] === 'EpisodeUploaded'
+  ))).toEqual([['trackCustom', 'EpisodeUploaded']]);
 
   await page.getByRole('button', { name: '분석 목록으로', exact: true }).click();
   await expect(page).toHaveURL(

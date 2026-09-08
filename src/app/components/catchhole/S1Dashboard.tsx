@@ -3091,6 +3091,23 @@ export default function S1Dashboard() {
                   </div>
                 </div>
 
+                <label className="setting-db-mobile-navigation">
+                  작품 설정
+                  <select
+                    className="mobile-choice-select"
+                    value={settingTab}
+                    onChange={event => {
+                      if (event.target.value === 'relations') setComingSoonFeature('관계도');
+                      else setSettingTab(event.target.value as SettingTabId);
+                    }}
+                  >
+                    <option value="characters">캐릭터 설정</option>
+                    <option value="worldsettings">세계관 설정</option>
+                    <option value="worldrules">설정집 목록</option>
+                    <option value="search">설정 검색</option>
+                    <option value="relations">관계도 · 업데이트 예정</option>
+                  </select>
+                </label>
                 <div className="dashboard-tabs setting-db-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                   {([
                     { id: 'characters', label: '캐릭터 설정', icon: <Users size={13} /> },

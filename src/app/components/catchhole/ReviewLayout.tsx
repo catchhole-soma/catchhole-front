@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { C } from './constants';
 
-export function ModeCard({ icon, title, desc, color, selected, onSelect }: {
+export function ModeCard({ icon, title, desc, color, selected, onSelect, badge }: {
   icon: React.ReactNode; title: string; desc: string; color: string; selected: boolean; onSelect: () => void;
+  badge?: string;
 }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -19,6 +20,7 @@ export function ModeCard({ icon, title, desc, color, selected, onSelect }: {
         background: selected ? color + '0D' : C.surface,
       }}
     >
+      {badge && <span className="mode-card__badge">{badge}</span>}
       {selected && (
         <div style={{ position: 'absolute', top: 12, right: 12, color }}>
           <Check size={16} />

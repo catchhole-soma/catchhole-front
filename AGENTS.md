@@ -40,16 +40,17 @@ npm run test:e2e
 - `/login`과 `/signup`은 랜딩 위에 표시하는 라우트 모달로 유지합니다. 랜딩에서 열 때만 브라우저 뒤로가기로 닫고, 직접 진입·보호 라우트 리다이렉트로 연 경우 닫을 때 `/landing`으로 대체 이동합니다. 로그인↔회원가입 전환과 인증 성공에는 `replace`를 사용하며, 로그아웃은 `/landing`으로 대체 이동합니다.
 - `/demo`는 `PrivateRoute`와 Auth용 `PublicLayout` 밖의 독립 공개 라우트로 유지합니다. `interactiveDemoFixture.ts`와 컴포넌트 메모리만 사용하고 생성 SDK·API·localStorage·sessionStorage에 연결하지 않으며, 새로고침과 `다시 체험하기`는 첫 단계로 초기화합니다.
 - `/demo`의 결과 탐색 화면은 배포 화면의 `CharacterDatabase`, `CharacterTimelineModal`, `WorldSettingDatabase`를 fixture 주입으로 그대로 재사용합니다. 같은 화면을 데모 전용 JSX·CSS로 복제하지 않습니다.
+- `/demo`는 진입·새 화면·재체험 시 맨 위에서 읽게 한다. 안내 대상을 보여주려고 자동 스크롤하거나 초기 포커스를 보내지 않으며, 안내 변경·화면 회전에도 사용자의 읽는 위치를 유지한다. 사용자가 직접 연 수정 폼의 입력 포커스는 `preventScroll`로 처리한다.
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
-- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
+- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/signup-policy/email-verifications/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
 - 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
-- 회원가입 전 `phone-verifications` 발송·확인을 완료하고, 가입 요청에는 전화번호 대신 발급된 `phoneVerificationToken`을 보냅니다. 인증된 번호가 바뀌면 토큰과 진행 상태를 즉시 폐기합니다.
+- 회원가입은 `signup-policy`의 서버 지정 `EMAIL`/`PHONE` 인증을 사용합니다. 정책 조회 실패 시 가입을 막고 재시도를 제공합니다. EMAIL은 전화번호 입력 없이 `email-verifications` 확인 뒤 `emailVerificationToken`을, PHONE은 기존 `phoneVerificationToken`을 보냅니다. 이메일은 trim만 적용하고 대소문자를 보존합니다. 인증 대상 변경 시 토큰·진행 상태와 이전 발송·확인의 늦은 응답을 폐기합니다.
 - 회원가입 화면은 Backend의 현재 `PUBLISHED` 이용약관·개인정보처리방침을 조회해 한 체크박스로 동의·확인을 함께 표시하고, 만 14세 이상 확인은 별도 필수 체크로 표시합니다. 가입 요청에는 `termsAccepted`, `privacyPolicyAcknowledged`, `age14OrOlderConfirmed`와 사용자가 본 `termsDocumentId`, `privacyPolicyDocumentId`를 보냅니다.
 - Backend가 가입 시점의 현재 게시본과 문서 ID를 같은 트랜잭션에서 검증하고 문서 FK·종류·버전·행위·서버 기록 시각을 저장합니다. 문서가 교체된 409 응답에서는 체크를 해제하고 최신 게시본을 다시 조회해 재확인받습니다. Front에 문서 원문이나 현재 버전을 하드코딩하지 않습니다.
 - AI 원고 처리 고지는 개인정보처리방침에 포함하며 회원가입 이후 업로드·재시도·재분석마다 별도 동의나 반복 고지를 표시하지 않습니다.
 - GA4·Meta Pixel의 자동 수집 항목·목적·보유기간·국외 처리·거부방법은 개인정보처리방침에 공개합니다. 별도 쿠키 배너나 회원가입 선택 체크박스는 두지 않으며 실제 측정 코드는 NVM-308·NVM-309 범위에서 방침과 일치하도록 설치합니다.
-- 휴대폰 인증 진행 복원에는 `verificationId`, 전화번호, 인증 만료 시각, 재전송 가능 시각만 sessionStorage에 보관합니다. `phoneVerificationToken`은 컴포넌트 메모리에만 두고 localStorage/sessionStorage/로그에 남기지 않습니다.
+- 인증 진행 복원에는 이메일·전화번호별 sessionStorage 키에 `verificationId`, 인증 대상, 인증 만료 시각, 재전송 가능 시각만 보관합니다. 인증번호·비밀번호·가입 토큰은 컴포넌트 메모리에만 두고 브라우저 저장소·로그·공유 Mutation 캐시에 남기지 않습니다.
 - 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.
 - 실제 로그인·회원가입 성공으로 access token을 저장할 때는 데모 모드와 데모 작품 데이터를 함께 제거해 실제 API 모드로 전환합니다.
@@ -57,6 +58,8 @@ npm run test:e2e
 - `/auth/me`의 401에서만 세션을 제거하고 로그인으로 이동합니다. 5xx나 네트워크 오류에서는 토큰을 유지하고 보호 화면 진입을 보류한 채 재시도를 제공합니다.
 
 ## 변경 원칙
+
+- 제품 브랜드는 `ui-v2/BrandLogo.tsx`에서 왼쪽 `public/brand/catchhole-glossy-v1.png` 심볼과 오른쪽 기존 `catchhole-wordmark.png`를 함께 표시합니다. 글자를 제거하거나 새 폰트로 대체하지 않으며, 워드마크 원본 여백 크롭을 심볼에 적용하지 않습니다. 파비콘은 심볼 단독입니다. 공유 카드 제목·설명·절대 이미지 URL은 크롤러가 JavaScript 없이 읽는 `index.html`에서 유지합니다.
 
 - 회원가입을 포함한 화면 디자인·상태·흐름을 바꾸면 `design/catchhole.pen`, `docs/data-requirements/auth.md`, `docs/screen-flow.md`를 구현과 함께 갱신하고 기존 Obsidian Violet 토큰을 재사용합니다.
 - `/demo`의 단계·코치마크·CTA 흐름을 바꾸면 `design/catchhole.pen`, `docs/screen-flow.md`, `design/PENCIL_MIGRATION.md`의 대표 프레임과 Workflow 정보를 함께 갱신합니다.
@@ -97,7 +100,7 @@ npm run test:e2e
 - 세계관 후보 목록·상세는 같은 `batchId`의 `분류 + 대상` 그룹과 `scopeName › settingName` diff row로 표시하되 후보 ID·비교 상태는 row별로 유지한다. 범위가 없는 row는 설정명만 표시한다. 그룹 확정·제외는 전용 단일 요청을 사용하고 기존 단일 후보 mutation을 반복 호출하지 않는다.
 - `AI_TOKEN_QUOTA_EXHAUSTED`로 중단된 세계관 후보는 일반 `다시 비교` 대상에서 제외하고 상단에 정확한 중단 건수와 `남은 비교 재개` 배치 액션을 표시한다. 그룹 전체를 사용량 중단으로 표시하는 것은 실패 row가 모두 이 code일 때뿐이며, 다른 실패 code와 섞이면 혼합 상태와 배치 재개·일반 다시 비교를 함께 안내합니다. 재개는 생성 SDK의 배치 mutation을 한 번 호출하고 응답 뒤 목록·배치 집계를 무효화해 polling으로 진행 상태를 갱신한다. 새로고침 후에도 목록의 `activeComparisonJobCount > 0`인 동안은 재개된 `PENDING` 후보를 단건 재시도하거나 최종 중단 알림을 먼저 표시하지 않고, 값이 0인 고아 `PENDING` 후보만 자동 복구한다. 재개 완료는 `failedComparisonCount`와 `recomparisonRequiredCount`도 모두 0일 때만 성공으로 표시합니다.
 - 분석 사용량 중단 알림의 배치별 확인 상태는 `AnalysisList`, `SEpisodeUpload`, `WorldSettingReview`가 공용 모듈로 공유한다. 비교가 진행 중일 때는 기준 건수를 기록하고 정산 뒤 증가한 새 중단 세대에만 알린다. 후보 집계가 아직 로드되지 않은 `undefined`를 0건 회복으로 해석하지 않으며, 실제 0건 응답에서만 다음 중단 세대를 위해 상태를 초기화한다.
-- 세계관 검토의 검토 상태·세계관 분류·제안된 반영 방식 필터는 캐릭터 검토와 같은 버튼 선택 그룹으로 표시하며, 활성값은 URL query 계약을 그대로 사용한다.
+- 세계관 검토의 검토 상태·세계관 분류·제안된 반영 방식 필터는 캐릭터 검토와 같이 데스크톱에서는 버튼 그룹, 768px 이하에서는 이름이 있는 native select로 표시하며, 활성값과 변경 처리는 같은 URL query 계약을 사용한다.
 - 그룹 안 한 row라도 비교 대기·처리·실패·재비교 필요이면 그룹 확정을 잠근다. 재비교 중에도 이전 diff와 1차 추출 원문 근거를 유지하고, 2차 비교 응답으로 quote·회차·offset을 덮어쓰지 않는다.
 - 같은 범위+설정명의 여러 1차 추출값은 AI가 후보 하나로 통합하고 `SINGLE/MERGED/CONFLICT` 상태를 반환한다. Front는 `MERGED`를 `여러 내용 정리됨`, `CONFLICT`를 `내용 확인 필요`로 표현하고 내부 enum을 노출하지 않는다. 세계관 row는 선택 체크박스를 사용하지 않고 각 row의 `제외`로 해당 후보 하나만 즉시 제외한다. 하단은 남은 검토 대기 row 전체를 처리하는 `모두 확정`만 두며 선택 항목 제외 버튼을 두지 않는다. 이 흐름에서 일부 row만 확정한 뒤 남은 row를 재비교하는 구형 체크박스 시나리오는 만들지 않는다. `CONFLICT` row는 최종값을 저장하기 전에는 모두 확정을 잠그되 row 제외은 허용한다. 모든 `evidenceSpans` quote는 생략 없이 표시한다.
 - AI `ADD` 제안이 `existingRootPropertyNamesToMove`를 함께 반환하면 기존 `AI 비교 판단` 문장 안에 `root 설정명 → 제안 범위 › 설정명`을 명시해 확정의 부수 효과를 숨기지 않는다. 작가가 제안을 수정했거나 반영 방식을 `ADD`가 아닌 것으로 바꾸면 이동 안내를 표시하지 않는다. 반영 방식 필터 또는 여러 source를 정리한 비교 판단에 분류 필터가 적용돼 일부 후보가 숨겨질 수 있을 때도 이동 안내와 일괄 확정을 막는다.
@@ -114,6 +117,9 @@ npm run test:e2e
 - 화면·데이터 요구사항의 기준은 `docs/data-requirements/world-setting.md`이며, 실제 API 연동은 Backend OpenAPI와 생성 SDK를 따른다.
 
 ## 캐릭터 상세 설정 편집
+
+- 모바일은 가로 넘침뿐 아니라 줄바꿈·터치 영역·정보 밀도와 조작 방식을 검토한다. 여러 설정 탭·필터는 선택 메뉴로 압축하되 저장·확정 같은 주 행동은 직접 노출한다. 표현을 바꿔도 URL·뒤로가기·새로고침·입력 보존 계약을 유지한다.
+- 모바일 상세·편집 모달의 본문 높이는 고정 header 높이를 빼서 추측하지 않는다. 실제 header·footer가 차지한 뒤 남은 높이를 flex와 `min-height: 0`으로 배분하고, 320×568에서도 마지막 입력과 저장 버튼에 접근 가능한지 확인한다.
 
 - 사용자가 새 설정을 추가하면 `manual_*` 임시 key를 만들지 않는다. 설정 유형의 고정 prefix와 화면 설정명을 조합한 의미 있는 pattern key를 사용하고, Backend가 exact → alias → pattern 순서로 최종 canonical key를 결정하게 한다.
 - 새 설정 입력 행은 key와 별개의 화면 전용 ID를 React key로 사용한다. 설정명을 입력할 때 suffix가 계속 바뀌어도 input이 remount되어 포커스가 끊기지 않게 하기 위함이다.

@@ -2327,11 +2327,17 @@ test('모바일 세계관 DB는 사용자가 대상을 고를 때까지 목록�
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,
   }));
-  const filterTops = await filters.locator(':scope > *').evaluateAll(elements => (
+  const filterTops = await filters.locator(':scope > :visible').evaluateAll(elements => (
     elements.map(element => Math.round(element.getBoundingClientRect().top))
   ));
   expect(filterMetrics.scrollWidth).toBeLessThanOrEqual(filterMetrics.clientWidth);
   expect(new Set(filterTops).size).toBe(3);
+
+  const categorySelect = page.getByRole('combobox', { name: '세계관 분류', exact: true });
+  await categorySelect.selectOption('RACE');
+  await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('RACE');
+  await page.reload();
+  await expect(categorySelect).toHaveValue('RACE');
 
   const list = page.locator('.world-setting-db-list');
   await expect(list).toBeVisible();

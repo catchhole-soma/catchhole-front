@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -554,6 +554,9 @@ type WorldReviewScreenProps = {
 };
 
 function WorldReviewScreen({ draft, editApplied, editing, onApplyEdit, onCancelEdit, onChange, onConfirm, onEdit }: WorldReviewScreenProps) {
+  const focusEditor = useCallback((element: HTMLTextAreaElement | null) => {
+    element?.focus({ preventScroll: true });
+  }, []);
   const candidate = INTERACTIVE_DEMO_CANDIDATES.world;
   const validEdit = draft.trim().length > 0 && draft.trim() !== candidate.proposedValue;
   return (
@@ -618,7 +621,7 @@ function WorldReviewScreen({ draft, editApplied, editing, onApplyEdit, onCancelE
               </div>
               <div className="interactive-demo-review-modal__value">
                 <label>반영 방식<select aria-label="반영 방식" defaultValue="ADD"><option value="ADD">추가</option><option value="UPDATE">수정</option><option value="EXCLUDE">제외</option></select></label>
-                <label htmlFor="interactive-demo-world-value">최종 설정값<textarea id="interactive-demo-world-value" data-demo-focus="true" value={draft} onChange={event => onChange(event.target.value)} rows={4} /></label>
+                <label htmlFor="interactive-demo-world-value">최종 설정값<textarea ref={focusEditor} id="interactive-demo-world-value" data-demo-focus="true" value={draft} onChange={event => onChange(event.target.value)} rows={4} /></label>
               </div>
               {!validEdit && <div className="interactive-demo-review-modal__hint">AI 제안과 다른 최종 설정값을 입력해 주세요.</div>}
             </div>
@@ -1090,46 +1093,6 @@ export default function SInteractiveDemo() {
       window.removeEventListener('resize', scheduleUpdate);
     };
   }, []);
-
-  useEffect(() => {
-    const page = pageRef.current;
-    const timer = window.setTimeout(() => {
-      const target = page?.querySelector<HTMLElement>('[data-demo-focus="true"]');
-      target?.focus({ preventScroll: true });
-
-      if (!page || !target || !window.matchMedia('(max-width: 760px)').matches) return;
-
-      const pageBounds = page.getBoundingClientRect();
-      const targetBounds = target.getBoundingClientRect();
-      const coachmarkBounds = page.querySelector<HTMLElement>('.interactive-demo-coachmark')?.getBoundingClientRect();
-      const safeTop = pageBounds.top + 88;
-      const safeBottom = Math.min(pageBounds.bottom - 16, (coachmarkBounds?.top ?? pageBounds.bottom) - 16);
-
-      if (targetBounds.top < safeTop || targetBounds.bottom > safeBottom) {
-        page.scrollTo({
-          top: Math.max(0, page.scrollTop + targetBounds.top - safeTop),
-          left: 0,
-          behavior: 'auto',
-        });
-      }
-    }, reduceMotion ? 0 : 280);
-    return () => window.clearTimeout(timer);
-  }, [
-    analysisComplete,
-    reduceMotion,
-    state.characterEvidenceId,
-    state.characterTimelineOpen,
-    state.databaseTab,
-    state.expandedWorldEvidence,
-    state.screen,
-    state.selectedCharacter,
-    state.selectedWorldSubject,
-    state.worldEditApplied,
-    state.worldEditing,
-    timelineFactId,
-    timelineSelection.factKeys,
-    timelineSelection.factTypes,
-  ]);
 
   const worldValue = state.worldValue ?? INTERACTIVE_DEMO_CANDIDATES.world.proposedValue;
   let coachmark: CoachmarkProps | null = null;

@@ -276,3 +276,138 @@ source_context: "src/app/components/catchhole/worldsetting/WorldSettingReview.ts
 ```
 
 When a world-setting candidate has an unresolved scope but exactly matches an existing scoped property, keep explicit user confirmation and offer a direct action to merge into that existing path instead of requiring manual scope entry or auto-applying it.
+
+## 2026-09-02T09:52:14.000Z — catchhole-logos-use-simple-bright-landing-blue
+
+```omd-meta
+id: pref_mtjx397w_b55dc891
+timestamp: 2026-09-02T09:52:14.000Z
+scope: color
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "public/brand/catchhole-symbol.png; public/brand/catchhole-wordmark.png; src/app/components/catchhole/landing-v2.css"
+```
+
+CatchHole logo concepts should be simple and use the landing page's brighter blue visual language rather than dark navy and coral.
+
+## 2026-09-04T03:57:28.000Z — early-logo-rounds-explore-ten-distinct-directions
+
+```omd-meta
+id: pref_mtmfaq0r_380c28ec
+timestamp: 2026-09-04T03:57:28.000Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "public/brand/catchhole-symbol.png; public/brand/catchhole-wordmark.png"
+```
+
+Early CatchHole logo rounds should explore roughly ten structurally distinct directions informed by strong brand precedents instead of converging on one obvious literal symbol.
+
+## 2026-09-05T11:37:04.144Z — refine-selected-folded-ribbon-and-ch-logo
+
+```omd-meta
+id: pref_mtob5mds_aa29c164
+timestamp: 2026-09-05T11:37:04.144Z
+scope: color
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/04-folded-ribbon.png; design/logo-explorations/2026-09-05/06-ch-imprint.png"
+```
+
+The owner prefers the folded-ribbon logo (04) and compact CH stamp (06) from the September 5 exploration and wants to refine their colors while preserving their selected forms; neither a final logo nor a final palette has been chosen.
+
+## 2026-09-05T11:40:03.103Z — approved-logo-baseline-is-4a
+
+```omd-meta
+id: pref_mtob9ggv_023f6d33
+timestamp: 2026-09-05T11:40:03.103Z
+scope: visualTheme
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/colors-01/04-a.png"
+```
+
+The owner has confirmed 4A, the bright-blue and sky-blue folded ribbon, as the CatchHole logo baseline; preserve its selected form and palette while exploring only small optional accent additions, which are not yet approved.
+
+## 2026-09-05T12:01:14.145Z — final-logo-is-glossy-acrylic-4a
+
+```omd-meta
+id: pref_mtoc0p7l_473fdce2
+timestamp: 2026-09-05T12:01:14.145Z
+scope: visualTheme
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "design/logo-explorations/2026-09-05/depth-01/04-glossy-acrylic.png"
+```
+
+The owner has confirmed dimensional variant 04, glossy opaque acrylic based on the approved 4A folded ribbon, as the final CatchHole logo direction: retain the bright-blue main face, sky-blue folded face, controlled gloss and thickness, and no quotation accent; prior flat and alternative material images remain historical references.
+
+## 2026-09-05T12:42:06.847Z — retain-wordmark-beside-glossy-symbol
+
+```omd-meta
+id: pref_mtodh9q7_12f839cd
+timestamp: 2026-09-05T12:42:06.847Z
+scope: visualTheme
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/ui-v2/BrandLogo.tsx"
+```
+
+Preserve the existing CatchHole wordmark and place the approved glossy acrylic symbol to its left in product branding; do not replace the wordmark with a symbol-only presentation.
+
+## 2026-09-06T08:46:10.544Z — mobile-layouts-adapt-controls-for-usability
+
+```omd-meta
+id: pref_mtpkhpbk_c399a9d0
+timestamp: 2026-09-06T08:46:10.544Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "모바일 화면은 잘림과 줄바꿈뿐 아니라 버튼을 드롭다운으로 바꾸는 방식까지 사용자 편의성으로 검토해 달라는 요청"
+```
+
+모바일 UI 검토는 잘림, 어색한 줄바꿈, 읽기 어려운 정보 밀도와 터치 영역을 함께 다룬다. PC의 개별 버튼·탭을 그대로 축소하지 않고, 작은 화면에서는 선택 메뉴 등 모바일에 맞는 조작 방식으로 바꾸며 중요한 저장·확정 행동은 쉽게 찾을 수 있게 유지한다.
+
+## 2026-09-06T09:13:59.869Z — demo-starts-at-top-with-user-led-scrolling
+
+```omd-meta
+id: pref_mtplhhdp_2bb9988d
+timestamp: 2026-09-06T09:13:59.869Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "체험할 때 따라가기 UI 쪽으로 바로 내려가지 말고 위에서부터 내려오면서 봐야 한다는 요청"
+```
+
+체험 화면은 위에서부터 읽으며 사용자가 직접 내려가게 한다. 안내·강조 버튼을 보여주려는 자동 스크롤과 초기 포커스 이동은 하지 않는다. 화면 회전과 안내 내용 변경도 읽는 위치를 강제로 바꾸지 않는다.
+
+## 2026-09-08T06:22:28.186Z — compact-manuscript-notice-after-demo
+
+```omd-meta
+id: pref_mtsa8llp_af66f182
+timestamp: 2026-09-08T06:22:28.186Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/SLanding.tsx; https://github.com/catchhole-soma/catchhole-backend-java/issues/182"
+```
+
+Place a compact, always-visible manuscript non-training notice immediately after the product demo and before the three-item core feature summary; keep the heading “작가님의 원고는 AI 학습에 사용하지 않습니다.”, shorten the body to “원고와 분석 결과 모두에 적용됩니다.”, retain the privacy-policy link, and use the shared canvas background with 32px maximum / 26px minimum heading text and 56px desktop / 40px mobile vertical padding.

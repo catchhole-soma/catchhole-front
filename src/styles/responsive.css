@@ -30,6 +30,13 @@ body,
   display: none;
 }
 
+.setting-db-mobile-navigation,
+.review-filter__select,
+.world-setting-mobile-category,
+.character-fact-search__mobile-filter {
+  display: none;
+}
+
 .dashboard-content,
 .dashboard-section-content,
 .dashboard-tabs,
@@ -62,8 +69,8 @@ body,
   }
 
   .mobile-nav-trigger {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
@@ -156,29 +163,54 @@ body,
     justify-content: center;
   }
 
-  .dashboard-tabs {
-    width: 100%;
-    padding: 0 8px !important;
-    overflow: visible;
-    flex-wrap: wrap;
+  .dashboard-tabs { display: none !important; }
+
+  .setting-db-mobile-navigation {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ch-border);
+    background: var(--ch-surface);
+    color: var(--ch-text-muted);
+    font-size: 12px;
+    font-weight: 650;
   }
 
-  .dashboard-tabs > button {
-    min-width: 0;
-    height: 42px !important;
-    justify-content: center;
-    padding-right: 6px !important;
-    padding-left: 6px !important;
-    font-size: 11px !important;
-  }
+  .review-filter__options { display: none !important; }
+  .review-filter__select,
+  .character-fact-search__mobile-filter { display: block; }
 
-  .dashboard-tabs > button:nth-child(-n + 3) {
-    flex: 1 1 33.333%;
+  .world-setting-mobile-category {
+    display: grid;
+    gap: 8px;
+    color: var(--ch-text-muted);
+    font-size: 12px;
   }
+  .world-setting-category-filters { display: none !important; }
+  .character-fact-search__filter-row > button { display: none !important; }
+  .character-fact-search__filter-row .mobile-choice-select { flex: 1; width: 0; }
+  .world-setting-identity-fields { grid-template-columns: minmax(0, 1fr) !important; }
 
-  .dashboard-tabs > button:nth-child(n + 4) {
-    flex: 1 1 50%;
+  .database-modal-backdrop { padding: 8px !important; }
+  .database-modal {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 16px) !important;
+    overflow: hidden !important;
   }
+  .database-modal__header { flex-shrink: 0; padding: 16px !important; }
+  .database-modal__header > div:first-child { min-width: 0; }
+  .database-modal__close { min-width: 44px; min-height: 44px; flex-shrink: 0; }
+  .database-modal__body { min-height: 0; overflow-y: auto; padding: 0 16px 16px !important; }
+  .database-modal__footer { flex-shrink: 0; padding: 12px 16px !important; }
+  .database-modal__footer > button { flex: 1; min-height: 44px; justify-content: center; }
+  .database-modal :is(input, select, textarea),
+  .character-detail-body :is(input, select, textarea) { min-height: 44px; font-size: 16px !important; }
+  .character-detail-header__close { min-width: 44px; min-height: 44px; }
+  .character-detail-actions > button { min-height: 44px; }
 
   .dashboard-section-content,
   .analysis-list-page {
@@ -241,13 +273,12 @@ body,
   .episode-upload-stepper {
     width: 100%;
     padding: 18px 16px 0 !important;
-    overflow-x: auto;
-    scrollbar-width: none;
+    overflow: visible;
   }
 
-  .episode-upload-stepper::-webkit-scrollbar {
-    display: none;
-  }
+  .episode-upload-page .episode-upload-step { min-width: 0; flex: 1; flex-direction: column; gap: 8px !important; }
+  .episode-upload-step__label { white-space: nowrap; }
+  .episode-upload-page .episode-upload-step__line { min-width: 8px; flex: 0 1 24px !important; margin: 0 4px 26px !important; }
 
   .episode-upload-content {
     width: 100%;
@@ -291,6 +322,44 @@ body,
     gap: 16px 24px !important;
     padding: 16px !important;
   }
+
+  .setting-review-screen .review-header {
+    gap: 8px !important;
+    padding-right: 12px !important;
+    padding-left: 12px !important;
+  }
+  .review-header__back { width: 44px !important; height: 44px !important; flex-shrink: 0; }
+  .review-header__title { min-width: 0; flex: 1; }
+  .review-header__title strong { white-space: nowrap; }
+  .review-header__spacer { display: none; }
+  .review-header .user-menu { flex-shrink: 0; }
+
+  .setting-review-screen .setting-review-summary {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px !important;
+  }
+  .setting-review-summary__item {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .setting-review-summary__item:first-child,
+  .setting-review-summary > div:last-child { grid-column: 1 / -1; }
+  .setting-review-summary__item > div { margin-bottom: 0 !important; }
+  .setting-review-summary__item > strong { white-space: nowrap; }
+
+  .setting-review-screen .review-modal-layer { padding: 8px !important; }
+  .review-modal-layer .review-modal { max-height: calc(100dvh - 16px) !important; }
+  .review-modal-layer div.review-modal { padding: 20px !important; }
+  .review-modal input,
+  .review-modal select,
+  .review-modal textarea { min-height: 44px; font-size: 16px !important; }
+  form.review-modal > div:first-child { position: sticky; top: 0; z-index: 1; background: var(--ch-surface); }
+  form.review-modal > div:last-child { position: sticky; bottom: 0; background: var(--ch-surface); }
+  .review-modal button[aria-label] { min-width: 44px; min-height: 44px; flex-shrink: 0; }
 
   .setting-review-summary > div:not(:last-child) {
     flex: 1 1 calc(50% - 24px);
@@ -498,7 +567,17 @@ body,
 
   .manuscript-actions > button {
     width: 100%;
+    min-height: 44px;
     justify-content: center;
+  }
+
+  .manuscript-title {
+    height: auto !important;
+    min-height: 28px;
+    white-space: normal !important;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
   }
 
   .character-fact-results {
@@ -508,6 +587,10 @@ body,
   .character-fact-search-input {
     min-width: 0;
   }
+
+  .character-fact-search-input,
+  .world-setting-search__input,
+  .world-setting-sort { font-size: 16px !important; }
 
   .fact-detail-modal-backdrop {
     padding: 0 !important;
@@ -546,9 +629,20 @@ body,
     height: 100dvh;
     border: 0 !important;
     border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .character-detail-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .character-detail-header {
+    flex-shrink: 0;
     gap: 10px !important;
     padding: max(14px, env(safe-area-inset-top)) 16px 14px !important;
     flex-wrap: wrap;
@@ -559,7 +653,9 @@ body,
   }
 
   .character-detail-body {
-    max-height: calc(100dvh - 92px) !important;
+    flex: 1;
+    min-height: 0;
+    max-height: none !important;
     padding: 18px 16px calc(28px + env(safe-area-inset-bottom)) !important;
   }
 

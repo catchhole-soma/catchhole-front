@@ -365,6 +365,15 @@ function FilterGroup<T extends string>({
   return (
     <div className="review-filter" role="group" aria-label={label}>
       <div className="review-filter__label">{label}</div>
+      <select
+        className="review-filter__select mobile-choice-select"
+        aria-label={label}
+        value={value}
+        disabled={disabled}
+        onChange={event => onChange(event.target.value as T)}
+      >
+        {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
       <div className="review-filter__options">
         {options.map(option => {
           const active = option.value === value;

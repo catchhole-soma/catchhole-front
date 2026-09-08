@@ -318096,26 +318096,53 @@
                 {
                   "type": "frame",
                   "id": "GfMmg",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "zkkw6",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GfMmgWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "GfMmgWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -320035,26 +320062,53 @@
                 {
                   "type": "frame",
                   "id": "X1v5Qt",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "n9vZRr",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "X1v5QtWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "X1v5QtWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -321819,26 +321873,53 @@
                 {
                   "type": "frame",
                   "id": "E7iPJ",
-                  "name": "CatchHole Wordmark",
+                  "name": "CatchHole Symbol and Wordmark",
                   "clip": true,
-                  "width": 150,
-                  "height": 28,
+                  "width": 210,
+                  "height": 44,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "CaR69",
-                      "x": -19.5,
-                      "y": -48,
-                      "name": "CatchHole Wordmark Image",
+                      "x": 0,
+                      "y": 0,
+                      "name": "CatchHole Glossy Logo Image",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "../public/brand/catchhole-wordmark.png",
+                        "url": "../public/brand/catchhole-glossy-v1.png",
                         "mode": "stretch"
                       },
-                      "width": 189,
-                      "height": 126
+                      "width": 44,
+                      "height": 44
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E7iPJWordmark",
+                      "name": "Original CatchHole Wordmark",
+                      "x": 52,
+                      "y": 7.5,
+                      "width": 158,
+                      "height": 29,
+                      "clip": true,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "E7iPJWordmarkImage",
+                          "x": -20.54,
+                          "y": -50.8,
+                          "width": 199.08,
+                          "height": 132.6,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../public/brand/catchhole-wordmark.png",
+                            "mode": "stretch"
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -325560,7 +325641,10 @@
               "stroke": "$ch-border-strong",
               "strokeWidth": 1,
               "gap": 7,
-              "padding": [0, 13],
+              "padding": [
+                0,
+                13
+              ],
               "alignItems": "center",
               "children": [
                 {
@@ -325597,7 +325681,10 @@
                 "type": "shadow",
                 "shadowType": "outer",
                 "color": "#087EF22E",
-                "offset": {"x": 0, "y": 6},
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
                 "blur": 16
               },
               "justifyContent": "center",
@@ -325635,7 +325722,7 @@
       },
       "padding": [
         0,
-        16
+        12
       ],
       "justifyContent": "space_between",
       "alignItems": "center",
@@ -325644,15 +325731,15 @@
           "type": "frame",
           "id": "i7LzH",
           "name": "Mobile Topbar Leading Area",
-          "gap": 10,
+          "gap": 8,
           "alignItems": "center",
           "children": [
             {
               "type": "frame",
               "id": "WEVeH",
               "name": "Mobile Menu Trigger",
-              "width": 36,
-              "height": 36,
+              "width": 44,
+              "height": 44,
               "fill": "$ch-surface",
               "cornerRadius": 8,
               "stroke": "$ch-border-strong",
@@ -326620,9 +326707,10 @@
       "x": 84140,
       "y": 144,
       "name": "Active / Landing / Approved Full Page",
+      "context": "구현 기준: /landing. Hero → 제품 데모 → 원고 학습 미사용 안내 → 핵심 기능 3항목 요약 → 주요 서비스 → 마지막 시작 안내 순서로 표시한다. 제목: 작가님의 원고는 AI 학습에 사용하지 않습니다. 본문: 원고와 분석 결과 모두에 적용됩니다. 개인정보 처리방침 보기 → /privacy. 섹션 참조: omdLandingManuscriptNotice. 직접 연결: /landing#manuscript-protection.",
       "clip": true,
       "width": 1100,
-      "height": 2720,
+      "height": 2913,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -326632,6 +326720,93 @@
       "cornerRadius": 12,
       "stroke": "$ch-border",
       "strokeWidth": 1
+    },
+    {
+      "type": "frame",
+      "id": "omdLandingManuscriptNotice",
+      "x": 85320,
+      "y": 2980,
+      "name": "Active / Landing / 원고 학습 미사용 안내",
+      "context": "SLanding.tsx · landing-manuscript-notice · /landing#manuscript-protection. 제품 데모 아래, 핵심 기능 3항목 요약 위에 항상 표시한다. 제목: 작가님의 원고는 AI 학습에 사용하지 않습니다. 본문: 원고와 분석 결과 모두에 적용됩니다. 기존 콘텐츠 폭·왼쪽 정렬·캔버스 배경을 유지하며 제목은 데스크톱 32px·모바일 26px, 위아래 여백은 데스크톱 56px·모바일 40px로 표시한다. 개인정보 처리방침 보기 링크는 /privacy로 이동하고 키보드 포커스를 표시한다. 앵커의 scroll-margin-top은 88px이다. GitHub: catchhole-soma/catchhole-backend-java#182.",
+      "width": 1440,
+      "height": 253,
+      "fill": "$ch-canvas",
+      "layout": "vertical",
+      "padding": [56, 80],
+      "children": [
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticeHeading",
+          "name": "원고 학습 미사용 제목",
+          "width": "fill_container",
+          "height": 45,
+          "gap": 8,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticeSubject",
+              "name": "제목 원고",
+              "content": "작가님의 원고는",
+              "fill": "$ch-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 32,
+              "fontWeight": "700",
+              "letterSpacing": -1.12
+            },
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticePromise",
+              "name": "제목 학습 미사용 강조",
+              "content": "AI 학습에 사용하지 않습니다.",
+              "fill": "$ch-primary-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 32,
+              "fontWeight": "700",
+              "letterSpacing": -1.12
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticeDescriptionRow",
+          "name": "학습 미사용 범위 설명",
+          "width": "fill_container",
+          "height": 40,
+          "padding": [12, 0, 0, 0],
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticeDescription",
+              "content": "원고와 분석 결과 모두에 적용됩니다.",
+              "fill": "$ch-text-muted",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 16,
+              "fontWeight": "400"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "omdManuscriptNoticePrivacyRow",
+          "name": "개인정보 처리방침 링크 · /privacy",
+          "width": "fill_container",
+          "height": 56,
+          "padding": [12, 0, 0, 0],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "omdManuscriptNoticePrivacyLink",
+              "content": "개인정보 처리방침 보기 →",
+              "fill": "$ch-primary-ink",
+              "fontFamily": "Pretendard Variable",
+              "fontSize": 14,
+              "fontWeight": "650"
+            }
+          ]
+        }
+      ]
     },
     {
       "type": "frame",
@@ -345390,144 +345565,71 @@
                     {
                       "type": "frame",
                       "id": "MEqxJ",
-                      "name": "Mobile Character Dashboard Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "G2134",
-                          "name": "Mobile Character Tab 캐릭터 설정",
+                          "id": "MEqxJSelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "pEAhZ",
-                              "name": "Mobile Character Tab 캐릭터 설정 Label",
-                              "fill": "$ch-primary",
-                              "content": "캐릭터 설정",
+                              "id": "MEqxJSelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "En1q2",
-                          "name": "Mobile Character Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "J3HQS",
-                              "name": "Mobile Character Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "v1n3j",
-                          "name": "Mobile Character Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "P4bu2c",
-                              "name": "Mobile Character Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "ezyHD",
-                          "name": "Mobile Character Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "O4TUzR",
-                              "name": "Mobile Character Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "JSGQh",
-                          "name": "Mobile Character Tab 관계도",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "L5Hbgk",
-                              "name": "Mobile Character Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "MEqxJSelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "MEqxJSelectValue",
+                                  "name": "캐릭터 설정",
+                                  "fill": "$ch-text",
+                                  "content": "캐릭터 설정",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "MEqxJSelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -346040,144 +346142,71 @@
                     {
                       "type": "frame",
                       "id": "vPR8F",
-                      "name": "Mobile Character Dashboard Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "QXSla",
-                          "name": "Mobile Character Tab 캐릭터 설정",
+                          "id": "vPR8FSelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "L89xb",
-                              "name": "Mobile Character Tab 캐릭터 설정 Label",
-                              "fill": "$ch-primary",
-                              "content": "캐릭터 설정",
+                              "id": "vPR8FSelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "WI9TX",
-                          "name": "Mobile Character Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "vuLFs",
-                              "name": "Mobile Character Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "h97AFT",
-                          "name": "Mobile Character Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "ew9v1",
-                              "name": "Mobile Character Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "rVXDM",
-                          "name": "Mobile Character Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "GSKTu",
-                              "name": "Mobile Character Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "E1uOlD",
-                          "name": "Mobile Character Tab 관계도",
-                          "width": "fill_container",
-                          "height": 42,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "FXweT",
-                              "name": "Mobile Character Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "vPR8FSelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vPR8FSelectValue",
+                                  "name": "캐릭터 설정",
+                                  "fill": "$ch-text",
+                                  "content": "캐릭터 설정",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "vPR8FSelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -353412,144 +353441,71 @@
                     {
                       "type": "frame",
                       "id": "l2GHe1",
-                      "name": "Mobile World Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "y6786",
-                          "name": "Mobile World Tab 캐릭터 설정",
+                          "id": "l2GHe1Select",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "KWdGe",
-                              "name": "Mobile World Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "l2GHe1SelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "P9b1f",
-                          "name": "Mobile World Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "cJG2r",
-                              "name": "Mobile World Tab 세계관 설정 Label",
-                              "fill": "$ch-primary",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "SAOZg",
-                          "name": "Mobile World Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "LRAwr",
-                              "name": "Mobile World Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "lF9Uw",
-                          "name": "Mobile World Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "YeNb8",
-                              "name": "Mobile World Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "aSAFY",
-                          "name": "Mobile World Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "u00lD",
-                              "name": "Mobile World Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "l2GHe1SelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "l2GHe1SelectValue",
+                                  "name": "세계관 설정",
+                                  "fill": "$ch-text",
+                                  "content": "세계관 설정",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "l2GHe1SelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -354295,144 +354251,71 @@
                     {
                       "type": "frame",
                       "id": "lsDj2",
-                      "name": "Mobile World Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "ZWDAK",
-                          "name": "Mobile World Tab 캐릭터 설정",
+                          "id": "lsDj2Select",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "G5Uavi",
-                              "name": "Mobile World Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "lsDj2SelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "eCXny",
-                          "name": "Mobile World Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "I7ee5",
-                              "name": "Mobile World Tab 세계관 설정 Label",
-                              "fill": "$ch-primary",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "saxEo",
-                          "name": "Mobile World Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "R2iMw",
-                              "name": "Mobile World Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "yxrND",
-                          "name": "Mobile World Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "PLUMd",
-                              "name": "Mobile World Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "T9guyb",
-                          "name": "Mobile World Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "VOofs",
-                              "name": "Mobile World Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "lsDj2SelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "lsDj2SelectValue",
+                                  "name": "세계관 설정",
+                                  "fill": "$ch-text",
+                                  "content": "세계관 설정",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "lsDj2SelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -354895,144 +354778,71 @@
                     {
                       "type": "frame",
                       "id": "gieb6",
-                      "name": "Mobile World Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "Mwwvs",
-                          "name": "Mobile World Tab 캐릭터 설정",
+                          "id": "gieb6Select",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "h8PQuQ",
-                              "name": "Mobile World Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "gieb6SelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "f0WQtc",
-                          "name": "Mobile World Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "P8NYYZ",
-                              "name": "Mobile World Tab 세계관 설정 Label",
-                              "fill": "$ch-primary",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "AfKo4",
-                          "name": "Mobile World Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "WxFgo",
-                              "name": "Mobile World Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "B0owgR",
-                          "name": "Mobile World Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "dlCYH",
-                              "name": "Mobile World Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "qmFrr",
-                          "name": "Mobile World Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "zrvqR",
-                              "name": "Mobile World Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "gieb6SelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gieb6SelectValue",
+                                  "name": "세계관 설정",
+                                  "fill": "$ch-text",
+                                  "content": "세계관 설정",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "gieb6SelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -358639,144 +358449,71 @@
                     {
                       "type": "frame",
                       "id": "A8QXfY",
-                      "name": "Mobile Setting Book Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "vEnZv",
-                          "name": "Mobile Setting Book Tab 캐릭터 설정",
+                          "id": "A8QXfYSelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "FxF50",
-                              "name": "Mobile Setting Book Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "A8QXfYSelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "B6suk",
-                          "name": "Mobile Setting Book Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "PYQEq",
-                              "name": "Mobile Setting Book Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Z13sDH",
-                          "name": "Mobile Setting Book Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rrmVZ",
-                              "name": "Mobile Setting Book Tab 설정집 목록 Label",
-                              "fill": "$ch-primary",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "D6Zt4Y",
-                          "name": "Mobile Setting Book Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "T3LZD",
-                              "name": "Mobile Setting Book Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "VLpRo",
-                          "name": "Mobile Setting Book Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "doLkt",
-                              "name": "Mobile Setting Book Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "A8QXfYSelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "A8QXfYSelectValue",
+                                  "name": "설정집 목록",
+                                  "fill": "$ch-text",
+                                  "content": "설정집 목록",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "A8QXfYSelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -359315,144 +359052,71 @@
                     {
                       "type": "frame",
                       "id": "PqvcC",
-                      "name": "Mobile Setting Book Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "JsZdz",
-                          "name": "Mobile Setting Book Tab 캐릭터 설정",
+                          "id": "PqvcCSelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "rHkvx",
-                              "name": "Mobile Setting Book Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "PqvcCSelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "yrJCi",
-                          "name": "Mobile Setting Book Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "ssfMU",
-                              "name": "Mobile Setting Book Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "BzTLa",
-                          "name": "Mobile Setting Book Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "f2qCuS",
-                              "name": "Mobile Setting Book Tab 설정집 목록 Label",
-                              "fill": "$ch-primary",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "aS6dt",
-                          "name": "Mobile Setting Book Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "h9ISbw",
-                              "name": "Mobile Setting Book Tab 설정 검색 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Bn6C2",
-                          "name": "Mobile Setting Book Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "w1wQjr",
-                              "name": "Mobile Setting Book Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "PqvcCSelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PqvcCSelectValue",
+                                  "name": "설정집 목록",
+                                  "fill": "$ch-text",
+                                  "content": "설정집 목록",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "PqvcCSelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -363067,144 +362731,71 @@
                     {
                       "type": "frame",
                       "id": "zyD9T",
-                      "name": "Mobile Search Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "ml7jm",
-                          "name": "Mobile Search Tab 캐릭터 설정",
+                          "id": "zyD9TSelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "sWPds",
-                              "name": "Mobile Search Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "zyD9TSelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "mLc9p",
-                          "name": "Mobile Search Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "U8smjN",
-                              "name": "Mobile Search Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Na8z3",
-                          "name": "Mobile Search Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "Q8TvO9",
-                              "name": "Mobile Search Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Fj4EE",
-                          "name": "Mobile Search Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "BsxfO",
-                              "name": "Mobile Search Tab 설정 검색 Label",
-                              "fill": "$ch-primary",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "cRZAp",
-                          "name": "Mobile Search Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "SAvbu",
-                              "name": "Mobile Search Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "zyD9TSelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zyD9TSelectValue",
+                                  "name": "설정 검색",
+                                  "fill": "$ch-text",
+                                  "content": "설정 검색",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "zyD9TSelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -363553,144 +363144,71 @@
                     {
                       "type": "frame",
                       "id": "T6UKE",
-                      "name": "Mobile Search Tabs",
+                      "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 7,
+                      "gap": 0,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "M0s5gP",
-                          "name": "Mobile Search Tab 캐릭터 설정",
+                          "id": "T6UKESelect",
+                          "name": "작품 설정 / Mobile Select",
                           "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "g3TrS",
-                              "name": "Mobile Search Tab 캐릭터 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "캐릭터 설정",
+                              "id": "T6UKESelectLabel",
+                              "name": "작품 설정",
+                              "fill": "$ch-text",
+                              "content": "작품 설정",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "PS1I8",
-                          "name": "Mobile Search Tab 세계관 설정",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
                             {
-                              "type": "text",
-                              "id": "h4lhA",
-                              "name": "Mobile Search Tab 세계관 설정 Label",
-                              "fill": "$ch-muted",
-                              "content": "세계관 설정",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Ez0cC",
-                          "name": "Mobile Search Tab 설정집 목록",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "pp3AA",
-                              "name": "Mobile Search Tab 설정집 목록 Label",
-                              "fill": "$ch-muted",
-                              "content": "설정집 목록",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "i6kWY",
-                          "name": "Mobile Search Tab 설정 검색",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": {
-                            "bottom": 3
-                          },
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "JEDXS",
-                              "name": "Mobile Search Tab 설정 검색 Label",
-                              "fill": "$ch-primary",
-                              "content": "설정 검색",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "oFFQb",
-                          "name": "Mobile Search Tab 관계도",
-                          "width": "fill_container",
-                          "height": 40,
-                          "stroke": "$ch-border",
-                          "padding": [
-                            0,
-                            2
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "GRRTW",
-                              "name": "Mobile Search Tab 관계도 Label",
-                              "fill": "$ch-muted",
-                              "content": "관계도",
-                              "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "600"
+                              "type": "frame",
+                              "id": "T6UKESelectControl",
+                              "name": "작품 설정 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "T6UKESelectValue",
+                                  "name": "설정 검색",
+                                  "fill": "$ch-text",
+                                  "content": "설정 검색",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "T6UKESelectArrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     }
                   ]
                 },
@@ -390150,65 +389668,128 @@
                       "id": "dUANE",
                       "name": "Mobile Character Candidate Filters",
                       "width": "fill_container",
-                      "gap": 8,
+                      "gap": 14,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "z5OWF8",
-                          "name": "Mobile Character Review Pending Filter",
-                          "height": 26,
-                          "fill": "$ch-surface-accent",
-                          "cornerRadius": 999,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": 1,
-                          "padding": [
-                            0,
-                            10
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "id": "dUANESelect0",
+                          "name": "검토 상태 / Mobile Select",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "mq6E0",
-                              "name": "Mobile Character Review Pending Filter Label",
-                              "fill": "$ch-primary",
-                              "content": "검토 대기",
+                              "id": "dUANESelect0Label",
+                              "name": "검토 상태",
+                              "fill": "$ch-text",
+                              "content": "검토 상태",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "dUANESelect0Control",
+                              "name": "검토 상태 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dUANESelect0Value",
+                                  "name": "검토 대기",
+                                  "fill": "$ch-text",
+                                  "content": "검토 대기",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "dUANESelect0Arrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "Os908",
-                          "name": "Mobile Character Review All Match Filter",
-                          "height": 26,
-                          "fill": "$ch-surface-accent",
-                          "cornerRadius": 999,
-                          "stroke": "$ch-primary",
-                          "strokeWidth": 1,
-                          "padding": [
-                            0,
-                            10
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
+                          "id": "dUANESelect1",
+                          "name": "캐릭터 연결 상태 / Mobile Select",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
-                              "id": "wazO2",
-                              "name": "Mobile Character Review All Match Filter Label",
-                              "fill": "$ch-primary",
-                              "content": "전체 연결",
+                              "id": "dUANESelect1Label",
+                              "name": "캐릭터 연결 상태",
+                              "fill": "$ch-text",
+                              "content": "캐릭터 연결 상태",
                               "fontFamily": "$ch-font",
-                              "fontSize": 10,
-                              "fontWeight": "800"
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "dUANESelect1Control",
+                              "name": "캐릭터 연결 상태 Selected Value",
+                              "width": "fill_container",
+                              "height": 44,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 8,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dUANESelect1Value",
+                                  "name": "전체 연결",
+                                  "fill": "$ch-text",
+                                  "content": "전체 연결",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "dUANESelect1Arrow",
+                                  "name": "Open options",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$ch-text"
+                                }
+                              ]
                             }
                           ]
                         }
-                      ]
+                      ],
+                      "layout": "vertical"
                     },
                     {
                       "type": "frame",
@@ -405088,65 +404669,188 @@
                   "type": "frame",
                   "id": "tgJT0",
                   "name": "Mobile World Candidate Filters",
-                  "gap": 8,
+                  "gap": 14,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "kRJTO",
-                      "name": "Mobile World Pending Filter",
-                      "height": 25,
-                      "fill": "$ch-surface-accent",
-                      "cornerRadius": 999,
-                      "stroke": "$ch-primary",
-                      "strokeWidth": 1,
-                      "padding": [
-                        0,
-                        9
-                      ],
-                      "justifyContent": "center",
-                      "alignItems": "center",
+                      "id": "tgJT0Select0",
+                      "name": "검토 상태 / Mobile Select",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
                       "children": [
                         {
                           "type": "text",
-                          "id": "ft23X",
-                          "name": "Mobile World Pending Filter Label",
-                          "fill": "$ch-primary",
-                          "content": "검토 대기",
+                          "id": "tgJT0Select0Label",
+                          "name": "검토 상태",
+                          "fill": "$ch-text",
+                          "content": "검토 상태",
                           "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "800"
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tgJT0Select0Control",
+                          "name": "검토 상태 Selected Value",
+                          "width": "fill_container",
+                          "height": 44,
+                          "fill": "$ch-surface",
+                          "cornerRadius": 8,
+                          "stroke": "$ch-border-strong",
+                          "strokeWidth": 1,
+                          "padding": [
+                            8,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "tgJT0Select0Value",
+                              "name": "검토 대기",
+                              "fill": "$ch-text",
+                              "content": "검토 대기",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 16,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "tgJT0Select0Arrow",
+                              "name": "Open options",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$ch-text"
+                            }
+                          ]
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "gVUBl",
-                      "name": "Mobile World All Category",
-                      "height": 25,
-                      "fill": "$ch-surface-accent",
-                      "cornerRadius": 999,
-                      "stroke": "$ch-primary",
-                      "strokeWidth": 1,
-                      "padding": [
-                        0,
-                        9
-                      ],
-                      "justifyContent": "center",
-                      "alignItems": "center",
+                      "id": "tgJT0Select1",
+                      "name": "세계관 분류 / Mobile Select",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
                       "children": [
                         {
                           "type": "text",
-                          "id": "uFtV6",
-                          "name": "Mobile World All Category Label",
-                          "fill": "$ch-primary",
-                          "content": "전체 분류",
+                          "id": "tgJT0Select1Label",
+                          "name": "세계관 분류",
+                          "fill": "$ch-text",
+                          "content": "세계관 분류",
                           "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "800"
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tgJT0Select1Control",
+                          "name": "세계관 분류 Selected Value",
+                          "width": "fill_container",
+                          "height": 44,
+                          "fill": "$ch-surface",
+                          "cornerRadius": 8,
+                          "stroke": "$ch-border-strong",
+                          "strokeWidth": 1,
+                          "padding": [
+                            8,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "tgJT0Select1Value",
+                              "name": "전체 분류",
+                              "fill": "$ch-text",
+                              "content": "전체 분류",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 16,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "tgJT0Select1Arrow",
+                              "name": "Open options",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$ch-text"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tgJT0Select2",
+                      "name": "제안된 반영 방식 / Mobile Select",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tgJT0Select2Label",
+                          "name": "제안된 반영 방식",
+                          "fill": "$ch-text",
+                          "content": "제안된 반영 방식",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tgJT0Select2Control",
+                          "name": "제안된 반영 방식 Selected Value",
+                          "width": "fill_container",
+                          "height": 44,
+                          "fill": "$ch-surface",
+                          "cornerRadius": 8,
+                          "stroke": "$ch-border-strong",
+                          "strokeWidth": 1,
+                          "padding": [
+                            8,
+                            12
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "tgJT0Select2Value",
+                              "name": "전체 반영 방식",
+                              "fill": "$ch-text",
+                              "content": "전체 반영 방식",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 16,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "tgJT0Select2Arrow",
+                              "name": "Open options",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$ch-text"
+                            }
+                          ]
                         }
                       ]
                     }
-                  ]
+                  ],
+                  "layout": "vertical",
+                  "width": "fill_container"
                 },
                 {
                   "type": "frame",
@@ -445597,7 +445301,10 @@
         "type": "shadow",
         "shadowType": "outer",
         "color": "$ch-shadow-float-color",
-        "offset": {"x": 0, "y": 20},
+        "offset": {
+          "x": 0,
+          "y": 20
+        },
         "blur": 60
       },
       "layout": "vertical",
@@ -445608,9 +445315,16 @@
           "name": "Feedback Dialog Header",
           "width": "fill_container",
           "stroke": "$ch-border",
-          "strokeWidth": {"bottom": 1},
+          "strokeWidth": {
+            "bottom": 1
+          },
           "gap": 13,
-          "padding": [22, 22, 20, 22],
+          "padding": [
+            22,
+            22,
+            20,
+            22
+          ],
           "alignItems": "start",
           "children": [
             {
@@ -445712,7 +445426,10 @@
               "cornerRadius": "$ch-radius-sm",
               "stroke": "#087EF238",
               "strokeWidth": 1,
-              "padding": [12, 13],
+              "padding": [
+                12,
+                13
+              ],
               "children": [
                 {
                   "type": "text",
@@ -445769,7 +445486,10 @@
               "cornerRadius": "$ch-radius-sm",
               "stroke": "$ch-border-strong",
               "strokeWidth": 1,
-              "padding": [12, 13],
+              "padding": [
+                12,
+                13
+              ],
               "children": [
                 {
                   "type": "text",
@@ -445823,7 +445543,10 @@
               "cornerRadius": "$ch-radius-sm",
               "stroke": "#DF4D5F3D",
               "strokeWidth": 1,
-              "padding": [11, 12],
+              "padding": [
+                11,
+                12
+              ],
               "children": [
                 {
                   "type": "text",
@@ -445846,7 +445569,12 @@
               "name": "Feedback Form Actions",
               "width": "fill_container",
               "gap": 10,
-              "padding": [9, 0, 0, 0],
+              "padding": [
+                9,
+                0,
+                0,
+                0
+              ],
               "justifyContent": "end",
               "children": [
                 {
@@ -445932,7 +445660,10 @@
         "type": "shadow",
         "shadowType": "outer",
         "color": "$ch-shadow-float-color",
-        "offset": {"x": 0, "y": 20},
+        "offset": {
+          "x": 0,
+          "y": 20
+        },
         "blur": 60
       },
       "layout": "vertical",
@@ -445943,9 +445674,16 @@
           "name": "Feedback Success Header",
           "width": "fill_container",
           "stroke": "$ch-border",
-          "strokeWidth": {"bottom": 1},
+          "strokeWidth": {
+            "bottom": 1
+          },
           "gap": 13,
-          "padding": [22, 22, 20, 22],
+          "padding": [
+            22,
+            22,
+            20,
+            22
+          ],
           "alignItems": "start",
           "children": [
             {
@@ -446049,7 +445787,12 @@
           "height": "fill_container",
           "layout": "vertical",
           "gap": 18,
-          "padding": [26, 22, 22, 22],
+          "padding": [
+            26,
+            22,
+            22,
+            22
+          ],
           "alignItems": "center",
           "children": [
             {
@@ -446104,7 +445847,10 @@
       "fill": "$ch-surface",
       "stroke": "$ch-border",
       "strokeWidth": 1,
-      "padding": [0, 28],
+      "padding": [
+        0,
+        28
+      ],
       "alignItems": "center",
       "children": [
         {
@@ -446131,9 +445877,40 @@
       "fill": "$ch-canvas",
       "layout": "none",
       "children": [
-        {"id": "nvm314FeedbackInputBackground", "type": "ref", "ref": "apls8", "name": "Feedback Input Background", "x": 0, "y": 0, "width": 1440, "height": 900},
-        {"type": "frame", "id": "nvm314FeedbackInputOverlay", "x": 0, "y": 0, "name": "Feedback Input Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
-        {"id": "nvm314FeedbackInputDialog", "type": "ref", "ref": "nvm314FeedbackFormComponent", "name": "Feedback Dialog / Input", "x": 450, "y": 138, "width": 540, "height": 624}
+        {
+          "id": "nvm314FeedbackInputBackground",
+          "type": "ref",
+          "ref": "apls8",
+          "name": "Feedback Input Background",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackInputOverlay",
+          "x": 0,
+          "y": 0,
+          "name": "Feedback Input Overlay",
+          "width": 1440,
+          "height": 900,
+          "fill": "#1923326B",
+          "effect": {
+            "type": "background_blur",
+            "radius": 6
+          }
+        },
+        {
+          "id": "nvm314FeedbackInputDialog",
+          "type": "ref",
+          "ref": "nvm314FeedbackFormComponent",
+          "name": "Feedback Dialog / Input",
+          "x": 450,
+          "y": 138,
+          "width": 540,
+          "height": 624
+        }
       ]
     },
     {
@@ -446148,8 +445925,30 @@
       "fill": "$ch-canvas",
       "layout": "none",
       "children": [
-        {"id": "nvm314FeedbackSubmittingBackground", "type": "ref", "ref": "apls8", "name": "Feedback Submitting Background", "x": 0, "y": 0, "width": 1440, "height": 900},
-        {"type": "frame", "id": "nvm314FeedbackSubmittingOverlay", "x": 0, "y": 0, "name": "Feedback Submitting Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {
+          "id": "nvm314FeedbackSubmittingBackground",
+          "type": "ref",
+          "ref": "apls8",
+          "name": "Feedback Submitting Background",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackSubmittingOverlay",
+          "x": 0,
+          "y": 0,
+          "name": "Feedback Submitting Overlay",
+          "width": 1440,
+          "height": 900,
+          "fill": "#1923326B",
+          "effect": {
+            "type": "background_blur",
+            "radius": 6
+          }
+        },
         {
           "id": "nvm314FeedbackSubmittingDialog",
           "type": "ref",
@@ -446160,13 +445959,28 @@
           "width": 540,
           "height": 624,
           "descendants": {
-            "nvm314FeedbackClose": {"opacity": 0.48},
-            "nvm314FeedbackTextarea": {"fill": "$ch-canvas"},
-            "nvm314FeedbackTextareaCopy": {"fill": "$ch-text-muted", "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."},
-            "nvm314FeedbackCounter": {"content": "65 / 1,000자"},
-            "nvm314FeedbackCancel": {"opacity": 0.48},
-            "nvm314FeedbackSpinner": {"enabled": true},
-            "nvm314FeedbackSubmitLabel": {"content": "보내는 중..."}
+            "nvm314FeedbackClose": {
+              "opacity": 0.48
+            },
+            "nvm314FeedbackTextarea": {
+              "fill": "$ch-canvas"
+            },
+            "nvm314FeedbackTextareaCopy": {
+              "fill": "$ch-text-muted",
+              "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."
+            },
+            "nvm314FeedbackCounter": {
+              "content": "65 / 1,000자"
+            },
+            "nvm314FeedbackCancel": {
+              "opacity": 0.48
+            },
+            "nvm314FeedbackSpinner": {
+              "enabled": true
+            },
+            "nvm314FeedbackSubmitLabel": {
+              "content": "보내는 중..."
+            }
           }
         }
       ]
@@ -446183,8 +445997,30 @@
       "fill": "$ch-canvas",
       "layout": "none",
       "children": [
-        {"id": "nvm314FeedbackErrorBackground", "type": "ref", "ref": "apls8", "name": "Feedback Error Background", "x": 0, "y": 0, "width": 1440, "height": 900},
-        {"type": "frame", "id": "nvm314FeedbackErrorOverlay", "x": 0, "y": 0, "name": "Feedback Error Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
+        {
+          "id": "nvm314FeedbackErrorBackground",
+          "type": "ref",
+          "ref": "apls8",
+          "name": "Feedback Error Background",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackErrorOverlay",
+          "x": 0,
+          "y": 0,
+          "name": "Feedback Error Overlay",
+          "width": 1440,
+          "height": 900,
+          "fill": "#1923326B",
+          "effect": {
+            "type": "background_blur",
+            "radius": 6
+          }
+        },
         {
           "id": "nvm314FeedbackErrorDialog",
           "type": "ref",
@@ -446195,10 +446031,19 @@
           "width": 540,
           "height": 650,
           "descendants": {
-            "nvm314FeedbackTextareaCopy": {"fill": "$ch-ink", "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."},
-            "nvm314FeedbackCounter": {"content": "65 / 1,000자"},
-            "nvm314FeedbackSubmitError": {"enabled": true},
-            "nvm314FeedbackSubmit": {"fill": "$ch-primary-hover"}
+            "nvm314FeedbackTextareaCopy": {
+              "fill": "$ch-ink",
+              "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."
+            },
+            "nvm314FeedbackCounter": {
+              "content": "65 / 1,000자"
+            },
+            "nvm314FeedbackSubmitError": {
+              "enabled": true
+            },
+            "nvm314FeedbackSubmit": {
+              "fill": "$ch-primary-hover"
+            }
           }
         }
       ]
@@ -446215,9 +446060,330 @@
       "fill": "$ch-canvas",
       "layout": "none",
       "children": [
-        {"id": "nvm314FeedbackSuccessBackground", "type": "ref", "ref": "apls8", "name": "Feedback Success Background", "x": 0, "y": 0, "width": 1440, "height": 900},
-        {"type": "frame", "id": "nvm314FeedbackSuccessOverlay", "x": 0, "y": 0, "name": "Feedback Success Overlay", "width": 1440, "height": 900, "fill": "#1923326B", "effect": {"type": "background_blur", "radius": 6}},
-        {"id": "nvm314FeedbackSuccessDialog", "type": "ref", "ref": "nvm314FeedbackSuccessComponent", "name": "Feedback Dialog / Success / CREATED", "x": 450, "y": 289, "width": 540, "height": 322}
+        {
+          "id": "nvm314FeedbackSuccessBackground",
+          "type": "ref",
+          "ref": "apls8",
+          "name": "Feedback Success Background",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "type": "frame",
+          "id": "nvm314FeedbackSuccessOverlay",
+          "x": 0,
+          "y": 0,
+          "name": "Feedback Success Overlay",
+          "width": 1440,
+          "height": 900,
+          "fill": "#1923326B",
+          "effect": {
+            "type": "background_blur",
+            "radius": 6
+          }
+        },
+        {
+          "id": "nvm314FeedbackSuccessDialog",
+          "type": "ref",
+          "ref": "nvm314FeedbackSuccessComponent",
+          "name": "Feedback Dialog / Success / CREATED",
+          "x": 450,
+          "y": 289,
+          "width": 540,
+          "height": 322
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mobileUx20260906",
+      "name": "Active / Mobile UX / 2026-09-06 / Browser Verification",
+      "x": 76540,
+      "y": 77200,
+      "width": 1096,
+      "height": 1820,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "mobileUx20260906Title",
+          "name": "모바일 조작 방식 · 브라우저 검토",
+          "fill": "$ch-text",
+          "content": "모바일 조작 방식 · 브라우저 검토",
+          "fontFamily": "$ch-font",
+          "fontSize": 24,
+          "fontWeight": "500",
+          "x": 32,
+          "y": 24
+        },
+        {
+          "type": "text",
+          "id": "mobileUx20260906Note",
+          "name": "320px · Chromium · 로컬 목 데이터 · 실제 기기/Safari 별도 확인",
+          "fill": "$ch-text",
+          "content": "320px · Chromium · 로컬 목 데이터 · 실제 기기/Safari 별도 확인",
+          "fontFamily": "$ch-font",
+          "fontSize": 13,
+          "fontWeight": "500",
+          "x": 32,
+          "y": 64
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906dashboard",
+          "name": "작품 설정 선택 메뉴",
+          "x": 32,
+          "y": 110,
+          "width": 320,
+          "height": 782,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906dashboardCaption",
+              "name": "작품 설정 선택 메뉴",
+              "fill": "$ch-text",
+              "content": "작품 설정 선택 메뉴",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906dashboardScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 740,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/dashboard.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906setting-review",
+          "name": "검토 필터 선택 메뉴",
+          "x": 376,
+          "y": 110,
+          "width": 320,
+          "height": 782,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906setting-reviewCaption",
+              "name": "검토 필터 선택 메뉴",
+              "fill": "$ch-text",
+              "content": "검토 필터 선택 메뉴",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906setting-reviewScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 740,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/setting-review.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906upload",
+          "name": "업로드 단계와 입력 방식",
+          "x": 720,
+          "y": 110,
+          "width": 320,
+          "height": 782,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906uploadCaption",
+              "name": "업로드 단계와 입력 방식",
+              "fill": "$ch-text",
+              "content": "업로드 단계와 입력 방식",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906uploadScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 740,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/upload.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906character-edit",
+          "name": "캐릭터 편집 · 본문 끝까지 스크롤",
+          "x": 32,
+          "y": 952,
+          "width": 320,
+          "height": 610,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906character-editCaption",
+              "name": "캐릭터 편집 · 본문 끝까지 스크롤",
+              "fill": "$ch-text",
+              "content": "캐릭터 편집 · 본문 끝까지 스크롤",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906character-editScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 568,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/character-edit.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x568",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906world-create",
+          "name": "세계관 추가 · 저장 영역 유지",
+          "x": 376,
+          "y": 952,
+          "width": 320,
+          "height": 610,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906world-createCaption",
+              "name": "세계관 추가 · 저장 영역 유지",
+              "fill": "$ch-text",
+              "content": "세계관 추가 · 저장 영역 유지",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906world-createScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 568,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/world-create.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x568",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mobileUx20260906demo",
+          "name": "체험 · 맨 위에서 읽기",
+          "x": 720,
+          "y": 952,
+          "width": 320,
+          "height": 782,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "mobileUx20260906demoCaption",
+              "name": "체험 · 헤더와 안내",
+              "fill": "$ch-text",
+              "content": "체험 · 맨 위에서 읽기",
+              "fontFamily": "$ch-font",
+              "fontSize": 13,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "mobileUx20260906demoScreen",
+              "name": "Verified browser capture",
+              "width": 320,
+              "height": 740,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "../docs/screens/mobile-ux-20260906/demo.png",
+                "mode": "fill"
+              },
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06",
+                "state": "manuscript-top-user-scroll"
+              }
+            }
+          ]
+        }
       ]
     }
   ],

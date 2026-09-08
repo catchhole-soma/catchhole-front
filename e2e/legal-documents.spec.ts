@@ -98,6 +98,7 @@ test('회원가입 중 문서가 교체되면 동의를 해제하고 최신 문�
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname === '/api/v1/auth/signup-policy') return respond(route, success({ verificationMethod: 'PHONE' }));
     if (pathname === '/api/v1/legal-documents/current') {
       return respond(route, success(stale
         ? legalBundle('2026-08-24.2', 41, 42)
@@ -159,6 +160,7 @@ test('회원가입 중 현재 법률 문서를 사용할 수 없으면 동의를
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname === '/api/v1/auth/signup-policy') return respond(route, success({ verificationMethod: 'PHONE' }));
     if (pathname === '/api/v1/legal-documents/current') {
       if (legalDocumentsUnavailable) {
         return respond(route, failure('LEGAL_DOCUMENTS_UNAVAILABLE', 503), 503);
@@ -213,6 +215,7 @@ test('회원가입 중 현재 법률 문서를 사용할 수 없으면 동의를
 
 test('동의 후 현재 게시 문서가 갱신되면 이전 문서 동의를 즉시 무효화한다', async ({ page }) => {
   let latest = false;
+  await page.route('**/api/v1/auth/signup-policy', route => respond(route, success({ verificationMethod: 'PHONE' })));
 
   await page.route('**/api/v1/legal-documents/current*', route => (
     respond(route, success(latest

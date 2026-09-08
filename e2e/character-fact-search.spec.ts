@@ -262,6 +262,40 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   expect(characterUrl.get('q')).toBe('회복');
 });
 
+test('모바일 검색 선택 메뉴는 필터와 페이지를 URL·API에 반영하고 새로고침 후 복원한다', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  const requests: URL[] = [];
+  await page.route('**/api/v1/**', route => {
+    const baseHandled = routeDashboardBase(route);
+    if (baseHandled) return baseHandled;
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/character-facts/search')) {
+      requests.push(url);
+      return success(route, searchPage([searchResult()]));
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=search&q=검술&page=2`);
+  const typeSelect = page.getByRole('combobox', { name: '설정 유형', exact: true });
+  const scopeSelect = page.getByRole('combobox', { name: '설정 시점', exact: true });
+  await typeSelect.selectOption('SKILL');
+  await scopeSelect.selectOption('CURRENT');
+  await expect.poll(() => requests.some(url => (
+    url.searchParams.get('factType') === 'SKILL'
+      && url.searchParams.get('scope') === 'CURRENT'
+      && url.searchParams.get('page') === '0'
+  ))).toBe(true);
+  await page.reload();
+  await expect(typeSelect).toHaveValue('SKILL');
+  await expect(scopeSelect).toHaveValue('CURRENT');
+  expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(typeSelect).toBeHidden();
+  await expect(page.getByRole('button', { name: '스킬', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '현재값 근거', exact: true })).toBeVisible();
+});
+
 test('검색 로딩·실패 재시도·빈 결과 상태를 표시한다', async ({ page }) => {
   let searchAttempts = 0;
 

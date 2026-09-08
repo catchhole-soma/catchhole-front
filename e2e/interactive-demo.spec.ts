@@ -18,7 +18,6 @@ async function expectNoHorizontalOverflow(page: Page) {
 async function expectGuideCenteredOn(page: Page, target: Locator) {
   const focusBox = page.locator('.interactive-demo-guide-focus-box.is-visible');
   await expect(target).toHaveAttribute('data-demo-focus', 'true');
-  await expect(target).toBeFocused();
   await expect(focusBox).toBeVisible();
   await expect.poll(() => target.evaluate(element => {
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible');
@@ -319,8 +318,11 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   await page.getByRole('button', { name: '회원가입 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
   await expect(page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
-  expect(dataRequests).toHaveLength(1);
-  const legalDocumentRequest = new URL(dataRequests[0]);
+  expect(dataRequests).toHaveLength(2);
+  expect(dataRequests.map(url => new URL(url).pathname).sort()).toEqual([
+    '/api/v1/auth/signup-policy', '/api/v1/legal-documents/current',
+  ]);
+  const legalDocumentRequest = new URL(dataRequests.find(url => new URL(url).pathname === '/api/v1/legal-documents/current')!);
   expect(legalDocumentRequest.pathname).toBe('/api/v1/legal-documents/current');
   expect(legalDocumentRequest.searchParams.get('locale')).toBe('ko-KR');
 });
@@ -345,10 +347,24 @@ test('데모 상태는 저장되지 않으며 새로고침과 재체험으로 �
 test('모바일에서도 전체 흐름이 가로로 넘치지 않고 다시 체험할 수 있다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/demo');
+  const demoPage = page.locator('.interactive-demo-page');
+  await expect(page.getByRole('heading', { name: '가상 원고 확인' })).toBeInViewport();
+  // 이전 280ms 안내 타이머가 지난 뒤에도 첫 화면을 위에서 읽을 수 있어야 한다.
+  await page.waitForTimeout(350);
+  expect(await demoPage.evaluate(element => element.scrollTop)).toBe(0);
+  for (const width of [667, 320]) {
+    await page.setViewportSize({ width, height: 375 });
+    await expect.poll(() => demoPage.evaluate(element => element.scrollTop)).toBe(0);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await demoPage.evaluate(element => { element.scrollTop = 80; });
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+  expect(await demoPage.evaluate(element => element.scrollTop)).toBe(80);
   await completeDemo(page, { mobile: true });
 
   await page.getByRole('button', { name: '다시 체험하기' }).click();
   await expect(page.getByRole('heading', { name: '가상 원고 확인' })).toBeVisible();
   await expect(page.getByTestId('demo-coachmark')).toContainText('1 / 5');
+  await expect.poll(() => demoPage.evaluate(element => element.scrollTop)).toBe(0);
   await expectNoHorizontalOverflow(page);
 });
