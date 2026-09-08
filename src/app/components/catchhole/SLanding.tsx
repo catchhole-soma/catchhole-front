@@ -15,7 +15,7 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
@@ -206,6 +206,19 @@ export default function SLanding() {
               <p>단계에 마우스를 올리거나 선택하면 실제 CatchHole 화면이 넓게 펼쳐집니다.</p>
             </div>
             <LandingProductDemo />
+          </div>
+        </section>
+
+        <section className="landing-manuscript-notice" id="manuscript-protection" aria-labelledby="landing-manuscript-notice-heading">
+          <div className="landing-section__inner">
+            <h2 id="landing-manuscript-notice-heading">
+              작가님의 원고는 <strong>AI 학습에 사용하지 않습니다.</strong>
+            </h2>
+            <p>원고와 분석 결과 모두에 적용됩니다.</p>
+            <Link className="landing-manuscript-notice__link" to="/privacy">
+              개인정보 처리방침 보기
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </section>
 
