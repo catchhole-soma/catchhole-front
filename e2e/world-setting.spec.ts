@@ -613,6 +613,13 @@ test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한
   editModal = page.locator('.review-modal');
   await expect(editModal.getByText('최종 설정값을 하나로 정한 뒤', { exact: false })).toBeVisible();
   await expect(editModal.getByLabel('최종 설정값')).toHaveValue('검\n몽둥이');
+  for (const unresolvedValue of ['검\n몽둥이', '  검 \n\n 몽둥이  ']) {
+    await editModal.getByLabel('최종 설정값').fill(unresolvedValue);
+    await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+    await expect(editModal.getByRole('alert')).toHaveText('서로 다른 추출값을 하나의 최종 설정값으로 정리해 주세요.');
+    expect(updatedBodies).toHaveLength(1);
+    await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  }
   await editModal.getByLabel('최종 설정값').fill('검 또는 몽둥이');
   await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
 

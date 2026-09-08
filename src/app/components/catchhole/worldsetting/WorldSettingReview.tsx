@@ -1201,6 +1201,12 @@ function CandidateEditModal({
       setValidationError('대상명·설정명·최종 설정값을 모두 입력해 주세요.');
       return;
     }
+    if (!identityOnly && batchLimitReview && conflictReview && operation !== 'EXCLUDE'
+        && normalizedValue.normalize('NFC').replace(/\s+/g, '')
+          === initialDecision.value.normalize('NFC').replace(/\s+/g, '')) {
+      setValidationError('서로 다른 추출값을 하나의 최종 설정값으로 정리해 주세요.');
+      return;
+    }
     setValidationError(null);
     onSubmit({
       category,
