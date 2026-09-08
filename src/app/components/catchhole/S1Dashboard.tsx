@@ -1088,6 +1088,7 @@ export default function S1Dashboard() {
                                     <div className="manuscript-title-edit" style={{ display: 'flex', gap: 5, paddingRight: 8 }}>
                                       <input
                                         autoFocus
+                                        aria-label={`${episode.episodeNo}화 제목`}
                                         value={editingEpisodeTitle}
                                         maxLength={100}
                                         onChange={event => setEditingEpisodeTitle(event.target.value)}

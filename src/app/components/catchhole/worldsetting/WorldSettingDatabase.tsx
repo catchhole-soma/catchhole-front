@@ -1409,6 +1409,7 @@ export function WorldSettingDatabase({
           <Search size={15} color={C.t3} style={{ position: 'absolute', left: 13, top: 13 }} />
           <input
             className="world-setting-search__input"
+            aria-label="세계관 설정 검색"
             value={searchDraft}
             onChange={event => setSearchDraft(event.target.value)}
             placeholder="대상 · 설정명 · 설정값 검색"

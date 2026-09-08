@@ -93,8 +93,9 @@
 }
 .episode-upload-page .mode-card:hover { border-color: var(--ch-primary) !important; transform: translateY(-2px); }
 .episode-upload-page .mode-card.is-selected { border: 2px solid var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 10px 24px rgb(8 126 242 / 10%); }
-.episode-upload-page .mode-card > div:nth-last-child(2) { color: var(--ch-ink) !important; }
-.episode-upload-page .mode-card > div:last-child { color: var(--ch-text-muted) !important; word-break: keep-all; overflow-wrap: anywhere; }
+.episode-upload-page .mode-card:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 3px; }
+.episode-upload-page .mode-card__title { color: var(--ch-ink) !important; }
+.episode-upload-page .mode-card__description { color: var(--ch-text-muted) !important; word-break: keep-all; overflow-wrap: anywhere; }
 .episode-upload-page .mode-card__badge {
   position: absolute;
   top: 12px;
