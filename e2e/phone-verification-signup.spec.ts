@@ -20,6 +20,29 @@ const failure = (code: string, status: number) => ({
   error: { code, status, details: [] },
 });
 
+async function installMetaPixelMock(page: Page) {
+  await page.addInitScript(() => {
+    type MetaPixelMock = ((...args: unknown[]) => void) & {
+      callMethod?: (...args: unknown[]) => void;
+    };
+    const browserWindow = window as Window & {
+      __metaPixelCalls?: unknown[][];
+      fbq?: MetaPixelMock;
+    };
+    const metaPixelCalls: unknown[][] = [];
+    const fbq: MetaPixelMock = (...args: unknown[]) => fbq.callMethod?.(...args);
+    fbq.callMethod = (...args: unknown[]) => metaPixelCalls.push(args);
+    browserWindow.fbq = fbq;
+    browserWindow.__metaPixelCalls = metaPixelCalls;
+  });
+}
+
+async function getMetaPixelCalls(page: Page): Promise<unknown[][]> {
+  return page.evaluate(() => (
+    (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? []
+  ));
+}
+
 const currentLegalDocuments = {
   termsOfService: {
     id: 31,
@@ -66,17 +89,7 @@ async function fillBaseSignupForm(page: Page) {
 test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토큰은 저장소에 남기지 않는다', async ({ page }) => {
   let signupBody: Record<string, unknown> | null = null;
 
-  await page.addInitScript(() => {
-    type MetaPixelMock = ((...args: unknown[]) => void) & {
-      callMethod?: (...args: unknown[]) => void;
-    };
-    const browserWindow = window as Window & { fbq?: MetaPixelMock };
-    const metaPixelCalls: unknown[][] = [];
-    const fbq: MetaPixelMock = (...args: unknown[]) => fbq.callMethod?.(...args);
-    fbq.callMethod = (...args: unknown[]) => metaPixelCalls.push(args);
-    browserWindow.fbq = fbq;
-    Object.defineProperty(browserWindow, '__metaPixelCalls', { value: metaPixelCalls });
-  });
+  await installMetaPixelMock(page);
 
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
@@ -163,9 +176,9 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   });
   expect(signupBody).not.toHaveProperty('phoneNumber');
   expect(await page.evaluate(() => sessionStorage.getItem('catchhole_phone_verification'))).toBeNull();
-  expect(await page.evaluate(() => (
-    (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? []
-  ))).toContainEqual(['track', 'CompleteRegistration']);
+  expect((await getMetaPixelCalls(page)).filter(call => (
+    call[0] === 'track' && call[1] === 'CompleteRegistration'
+  ))).toEqual([['track', 'CompleteRegistration']]);
 });
 
 test('인증된 번호를 변경하면 인증 토큰과 진행 상태를 폐기한다', async ({ page }) => {
@@ -321,6 +334,7 @@ test('Backend가 인증 흐름 만료를 반환하면 진행 상태를 폐기하
 });
 
 test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐기하고 재인증을 요구한다', async ({ page }) => {
+  await installMetaPixelMock(page);
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -360,4 +374,7 @@ test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐�
   await expect(dialog.getByRole('button', { name: '휴대폰 인증 후 회원가입' })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: '인증번호 받기' })).toBeEnabled();
   expect(await page.evaluate(() => sessionStorage.getItem('catchhole_phone_verification'))).toBeNull();
+  expect((await getMetaPixelCalls(page)).filter(call => (
+    call[0] === 'track' && call[1] === 'CompleteRegistration'
+  ))).toEqual([]);
 });

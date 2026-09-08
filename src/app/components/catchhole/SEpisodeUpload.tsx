@@ -45,6 +45,7 @@ import {
   observeAnalysisInterruption,
 } from '../../lib/ai-token-quota';
 import { validateManuscriptFile } from '../../lib/fileValidation';
+import { trackMetaEpisodeUploaded } from '../../lib/meta-pixel';
 import { C } from './constants';
 import { FileDropArea } from './S1Dashboard';
 import { UserMenu } from './UserMenu';
@@ -1125,6 +1126,7 @@ export default function SEpisodeUpload() {
     try {
       const episodeUpload = episodeResult.value.data;
       if (!episodeUpload?.batchId) throw new Error('업로드 배치 ID가 응답에 없습니다.');
+      trackMetaEpisodeUploaded();
       setEpisodeUploadBatchId(episodeUpload.batchId);
       setUploadedEpisodes(episodeUpload.createdEpisodes ?? []);
       setStep('processing');

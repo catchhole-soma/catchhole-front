@@ -41,12 +41,12 @@ function runWithSafeAnalyticsUrl(safeUrl: string, callback: () => void): void {
   }
 }
 
-function trackMetaEvent(eventName: string): void {
+function trackMetaEvent(command: 'track' | 'trackCustom', eventName: string): void {
   const safeUrl = getSafeAnalyticsPath();
   const sendEvent = () => {
     try {
       if (!window.fbq?.callMethod) return;
-      runWithSafeAnalyticsUrl(safeUrl, () => window.fbq?.('track', eventName));
+      runWithSafeAnalyticsUrl(safeUrl, () => window.fbq?.(command, eventName));
     } catch {
       // Analytics must never interrupt the product flow when Meta is unavailable.
     }
@@ -59,9 +59,13 @@ function trackMetaEvent(eventName: string): void {
 export function trackMetaPageView(pathname: string): void {
   if (pathname === '/' || pathname === lastPagePath) return;
   lastPagePath = pathname;
-  trackMetaEvent('PageView');
+  trackMetaEvent('track', 'PageView');
 }
 
 export function trackMetaCompleteRegistration(): void {
-  trackMetaEvent('CompleteRegistration');
+  trackMetaEvent('track', 'CompleteRegistration');
+}
+
+export function trackMetaEpisodeUploaded(): void {
+  trackMetaEvent('trackCustom', 'EpisodeUploaded');
 }
