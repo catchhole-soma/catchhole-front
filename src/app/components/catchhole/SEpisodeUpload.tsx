@@ -1296,7 +1296,8 @@ export default function SEpisodeUpload() {
                 <ModeCard
                   icon={<FileText size={22} />}
                   title="단일 회차 업로드"
-                  desc="새 회차 파일 한 개를 등록합니다"
+                  desc="가장 정확한 설정 분석을 위해 한 회차씩 업로드하는 것을 권장해요."
+                  badge="추천"
                   color={C.primary}
                   selected={uploadType === 'SINGLE_EPISODE'}
                   onSelect={() => selectUploadType('SINGLE_EPISODE')}
