@@ -8,11 +8,17 @@
 
 ```bash
 npm run lint
+npm run typecheck
 npm run build
 npm run test:e2e
+npm run check:unused
+npm run doctor
 ```
 
 실제 API 연동 변경은 브라우저에서 요청·응답, 인증 저장소와 쿠키, 백엔드 DB 반영까지 확인합니다.
+
+- 미사용 코드·의존성은 고정 버전 Knip으로 검사합니다. `knip.json`은 PostCSS 설정과 E2E의 Vite `/src/*` 모듈 경로를 포함합니다. 생성 API는 검사에서 제외하고, fixture는 실제 import 경로를 확인한 뒤 제거합니다.
+- React Doctor는 고정 버전으로 전체 범위를 검사하는 참고용 명령입니다. `doctor.config.json`은 생성 API 파일만 제외하며, 남은 진단·오탐과 리디자인 후속 범위는 `docs/react-doctor-cleanup.md`에 기록합니다. 종료 코드 0만으로 오류가 없다고 판단하지 않습니다.
 
 ## OpenAPI와 생성 코드
 
