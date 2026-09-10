@@ -318120,12 +318120,12 @@
                     {
                       "type": "frame",
                       "id": "GfMmgWordmark",
-                      "name": "Original CatchHole Wordmark",
                       "x": 52,
                       "y": 7.5,
+                      "name": "Original CatchHole Wordmark",
+                      "clip": true,
                       "width": 158,
                       "height": 29,
-                      "clip": true,
                       "layout": "none",
                       "children": [
                         {
@@ -318133,14 +318133,14 @@
                           "id": "GfMmgWordmarkImage",
                           "x": -20.54,
                           "y": -50.8,
-                          "width": 199.08,
-                          "height": 132.6,
                           "fill": {
                             "type": "image",
                             "enabled": true,
                             "url": "../public/brand/catchhole-wordmark.png",
                             "mode": "stretch"
-                          }
+                          },
+                          "width": 199.08,
+                          "height": 132.6
                         }
                       ]
                     }
@@ -320086,12 +320086,12 @@
                     {
                       "type": "frame",
                       "id": "X1v5QtWordmark",
-                      "name": "Original CatchHole Wordmark",
                       "x": 52,
                       "y": 7.5,
+                      "name": "Original CatchHole Wordmark",
+                      "clip": true,
                       "width": 158,
                       "height": 29,
-                      "clip": true,
                       "layout": "none",
                       "children": [
                         {
@@ -320099,14 +320099,14 @@
                           "id": "X1v5QtWordmarkImage",
                           "x": -20.54,
                           "y": -50.8,
-                          "width": 199.08,
-                          "height": 132.6,
                           "fill": {
                             "type": "image",
                             "enabled": true,
                             "url": "../public/brand/catchhole-wordmark.png",
                             "mode": "stretch"
-                          }
+                          },
+                          "width": 199.08,
+                          "height": 132.6
                         }
                       ]
                     }
@@ -321897,12 +321897,12 @@
                     {
                       "type": "frame",
                       "id": "E7iPJWordmark",
-                      "name": "Original CatchHole Wordmark",
                       "x": 52,
                       "y": 7.5,
+                      "name": "Original CatchHole Wordmark",
+                      "clip": true,
                       "width": 158,
                       "height": 29,
-                      "clip": true,
                       "layout": "none",
                       "children": [
                         {
@@ -321910,14 +321910,14 @@
                           "id": "E7iPJWordmarkImage",
                           "x": -20.54,
                           "y": -50.8,
-                          "width": 199.08,
-                          "height": 132.6,
                           "fill": {
                             "type": "image",
                             "enabled": true,
                             "url": "../public/brand/catchhole-wordmark.png",
                             "mode": "stretch"
-                          }
+                          },
+                          "width": 199.08,
+                          "height": 132.6
                         }
                       ]
                     }
@@ -326706,8 +326706,8 @@
       "id": "omdLandingFullPageActive",
       "x": 84140,
       "y": 144,
-      "name": "Active / Landing / Approved Full Page",
-      "context": "구현 기준: /landing. Hero → 제품 데모 → 원고 학습 미사용 안내 → 핵심 기능 3항목 요약 → 주요 서비스 → 마지막 시작 안내 순서로 표시한다. 제목: 작가님의 원고는 AI 학습에 사용하지 않습니다. 본문: 원고와 분석 결과 모두에 적용됩니다. 개인정보 처리방침 보기 → /privacy. 섹션 참조: omdLandingManuscriptNotice. 직접 연결: /landing#manuscript-protection.",
+      "name": "Archive / Landing / Before Video Hero",
+      "context": "NVM-321 이전 전체 페이지 캡처. 첫 화면은 omdLandingHeroActive로 대체. 아래 기존 제품 데모·원고 보호 안내·핵심 기능·서비스·마지막 CTA는 그대로 유지한다.",
       "clip": true,
       "width": 1100,
       "height": 2913,
@@ -326732,7 +326732,10 @@
       "height": 253,
       "fill": "$ch-canvas",
       "layout": "vertical",
-      "padding": [56, 80],
+      "padding": [
+        56,
+        80
+      ],
       "children": [
         {
           "type": "frame",
@@ -326747,8 +326750,8 @@
               "type": "text",
               "id": "omdManuscriptNoticeSubject",
               "name": "제목 원고",
-              "content": "작가님의 원고는",
               "fill": "$ch-ink",
+              "content": "작가님의 원고는",
               "fontFamily": "Pretendard Variable",
               "fontSize": 32,
               "fontWeight": "700",
@@ -326758,8 +326761,8 @@
               "type": "text",
               "id": "omdManuscriptNoticePromise",
               "name": "제목 학습 미사용 강조",
-              "content": "AI 학습에 사용하지 않습니다.",
               "fill": "$ch-primary-ink",
+              "content": "AI 학습에 사용하지 않습니다.",
               "fontFamily": "Pretendard Variable",
               "fontSize": 32,
               "fontWeight": "700",
@@ -326773,16 +326776,20 @@
           "name": "학습 미사용 범위 설명",
           "width": "fill_container",
           "height": 40,
-          "padding": [12, 0, 0, 0],
+          "padding": [
+            12,
+            0,
+            0,
+            0
+          ],
           "children": [
             {
               "type": "text",
               "id": "omdManuscriptNoticeDescription",
-              "content": "원고와 분석 결과 모두에 적용됩니다.",
               "fill": "$ch-text-muted",
+              "content": "원고와 분석 결과 모두에 적용됩니다.",
               "fontFamily": "Pretendard Variable",
-              "fontSize": 16,
-              "fontWeight": "400"
+              "fontSize": 16
             }
           ]
         },
@@ -326792,14 +326799,19 @@
           "name": "개인정보 처리방침 링크 · /privacy",
           "width": "fill_container",
           "height": 56,
-          "padding": [12, 0, 0, 0],
+          "padding": [
+            12,
+            0,
+            0,
+            0
+          ],
           "alignItems": "center",
           "children": [
             {
               "type": "text",
               "id": "omdManuscriptNoticePrivacyLink",
-              "content": "개인정보 처리방침 보기 →",
               "fill": "$ch-primary-ink",
+              "content": "개인정보 처리방침 보기 →",
               "fontFamily": "Pretendard Variable",
               "fontSize": 14,
               "fontWeight": "650"
@@ -326813,14 +326825,15 @@
       "id": "omdLandingHeroActive",
       "x": 85320,
       "y": 144,
-      "name": "Active / Landing / Approved Hero",
+      "name": "Active / Landing / Video Hero · NVM-321",
+      "context": "실제 /landing의 영상 첫 화면. 제목만 표시하고 체험·무료 시작 CTA와 신뢰 안내는 마지막 장면으로 옮긴다. 데스크톱은 여백·둥근 모서리에서 시작해 스크롤·드래그로 확장한다. 기존 헤더 유지.",
       "clip": true,
       "width": 1440,
-      "height": 796,
+      "height": 900,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "../docs/screens/landing-hero.png",
+        "url": "../docs/screens/landing-video-desktop.png",
         "mode": "stretch"
       },
       "cornerRadius": 12,
@@ -326984,14 +326997,15 @@
       "id": "u2KiIK",
       "x": 86840,
       "y": 2012,
-      "name": "Active / Landing / Mobile",
+      "name": "Active / Landing / Mobile Video · NVM-321",
+      "context": "680px 이하: 음소거 일반 영상 재생 → 25화 원고 → 세계관·캐릭터·마법 설정 6개 자동 추출·확정 → 마지막 CTA. 스크롤은 진행률과 무관하며 자동 스크롤도 하지 않는다. 일시정지·재개·다시 보기, 모션 감소 시 수동 확정을 제공한다.",
       "clip": true,
-      "width": 450,
-      "height": 852,
+      "width": 390,
+      "height": 844,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "../docs/screens/u2KiIK.png",
+        "url": "../docs/screens/landing-video-mobile.png",
         "mode": "stretch"
       },
       "cornerRadius": 12,
@@ -345567,7 +345581,7 @@
                       "id": "MEqxJ",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -345628,8 +345642,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -346144,7 +346157,7 @@
                       "id": "vPR8F",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -346205,8 +346218,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -353443,7 +353455,7 @@
                       "id": "l2GHe1",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -353504,8 +353516,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -354253,7 +354264,7 @@
                       "id": "lsDj2",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -354314,8 +354325,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -354780,7 +354790,7 @@
                       "id": "gieb6",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -354841,8 +354851,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -358451,7 +358460,7 @@
                       "id": "A8QXfY",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -358512,8 +358521,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -359054,7 +359062,7 @@
                       "id": "PqvcC",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -359115,8 +359123,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -362733,7 +362740,7 @@
                       "id": "zyD9T",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -362794,8 +362801,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -363146,7 +363152,7 @@
                       "id": "T6UKE",
                       "name": "Mobile Workspace Navigation / Select",
                       "width": "fill_container",
-                      "gap": 0,
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
@@ -363207,8 +363213,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     }
                   ]
                 },
@@ -389668,6 +389673,7 @@
                       "id": "dUANE",
                       "name": "Mobile Character Candidate Filters",
                       "width": "fill_container",
+                      "layout": "vertical",
                       "gap": 14,
                       "children": [
                         {
@@ -389788,8 +389794,7 @@
                             }
                           ]
                         }
-                      ],
-                      "layout": "vertical"
+                      ]
                     },
                     {
                       "type": "frame",
@@ -404669,6 +404674,8 @@
                   "type": "frame",
                   "id": "tgJT0",
                   "name": "Mobile World Candidate Filters",
+                  "width": "fill_container",
+                  "layout": "vertical",
                   "gap": 14,
                   "children": [
                     {
@@ -404848,9 +404855,7 @@
                         }
                       ]
                     }
-                  ],
-                  "layout": "vertical",
-                  "width": "fill_container"
+                  ]
                 },
                 {
                   "type": "frame",
@@ -445325,7 +445330,6 @@
             20,
             22
           ],
-          "alignItems": "start",
           "children": [
             {
               "type": "frame",
@@ -445522,11 +445526,13 @@
             {
               "type": "text",
               "id": "nvm314FeedbackFieldError",
+              "x": 0,
+              "y": 0,
               "name": "Field Validation Error / Under 35 Characters",
               "enabled": false,
               "fill": "$ch-danger-ink",
               "textGrowth": "fixed-width",
-              "width": "fill_container",
+              "width": "fill_container(0)",
               "content": "조금 더 구체적으로 35자 이상 작성해 주세요.",
               "lineHeight": 1.55,
               "fontFamily": "$ch-font",
@@ -445536,9 +445542,11 @@
             {
               "type": "frame",
               "id": "nvm314FeedbackSubmitError",
+              "x": 0,
+              "y": 0,
               "name": "Submission Error / Input Preserved",
               "enabled": false,
-              "width": "fill_container",
+              "width": "fill_container(0)",
               "fill": "#DF4D5F12",
               "cornerRadius": "$ch-radius-sm",
               "stroke": "#DF4D5F3D",
@@ -445617,6 +445625,8 @@
                     {
                       "type": "icon",
                       "id": "nvm314FeedbackSpinner",
+                      "x": 0,
+                      "y": 0,
                       "name": "Feedback Submit Spinner",
                       "enabled": false,
                       "width": 17,
@@ -445684,7 +445694,6 @@
             20,
             22
           ],
-          "alignItems": "start",
           "children": [
             {
               "type": "frame",
@@ -445746,6 +445755,8 @@
                 {
                   "type": "text",
                   "id": "nvm314FeedbackAlreadyRequestedCopy",
+                  "x": 0,
+                  "y": 0,
                   "name": "Success Variant / ALREADY_REQUESTED / 의견이 접수됐어요",
                   "enabled": false,
                   "fill": "$ch-text-muted",
@@ -445757,6 +445768,8 @@
                 {
                   "type": "text",
                   "id": "nvm314FeedbackPendingRequestCopy",
+                  "x": 0,
+                  "y": 0,
                   "name": "Success Variant / PENDING_REQUEST_EXISTS / 의견이 접수됐어요",
                   "enabled": false,
                   "fill": "$ch-text-muted",
@@ -445803,8 +445816,8 @@
               "textGrowth": "fixed-width",
               "width": "fill_container",
               "content": "소중한 의견을 보내주셔서 감사합니다. 서비스 개선을 위해 꼼꼼히 확인하겠습니다.",
-              "textAlign": "center",
               "lineHeight": 1.55,
+              "textAlign": "center",
               "fontFamily": "$ch-font",
               "fontSize": 12,
               "fontWeight": "normal"
@@ -445962,15 +445975,15 @@
             "nvm314FeedbackClose": {
               "opacity": 0.48
             },
+            "nvm314FeedbackCounter": {
+              "content": "65 / 1,000자"
+            },
             "nvm314FeedbackTextarea": {
               "fill": "$ch-canvas"
             },
             "nvm314FeedbackTextareaCopy": {
               "fill": "$ch-text-muted",
               "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."
-            },
-            "nvm314FeedbackCounter": {
-              "content": "65 / 1,000자"
             },
             "nvm314FeedbackCancel": {
               "opacity": 0.48
@@ -446031,12 +446044,12 @@
           "width": 540,
           "height": 650,
           "descendants": {
+            "nvm314FeedbackCounter": {
+              "content": "65 / 1,000자"
+            },
             "nvm314FeedbackTextareaCopy": {
               "fill": "$ch-ink",
               "content": "후보 검토 화면에서 수정한 뒤 목록 위치가 유지되면 좋겠습니다. 여러 후보를 연달아 확인할 때 다시 찾기 어렵습니다."
-            },
-            "nvm314FeedbackCounter": {
-              "content": "65 / 1,000자"
             },
             "nvm314FeedbackSubmitError": {
               "enabled": true
@@ -446099,9 +446112,9 @@
     {
       "type": "frame",
       "id": "mobileUx20260906",
-      "name": "Active / Mobile UX / 2026-09-06 / Browser Verification",
       "x": 76540,
       "y": 77200,
+      "name": "Active / Mobile UX / 2026-09-06 / Browser Verification",
       "width": 1096,
       "height": 1820,
       "fill": "$ch-canvas",
@@ -446110,33 +446123,33 @@
         {
           "type": "text",
           "id": "mobileUx20260906Title",
+          "x": 32,
+          "y": 24,
           "name": "모바일 조작 방식 · 브라우저 검토",
           "fill": "$ch-text",
           "content": "모바일 조작 방식 · 브라우저 검토",
           "fontFamily": "$ch-font",
           "fontSize": 24,
-          "fontWeight": "500",
-          "x": 32,
-          "y": 24
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "mobileUx20260906Note",
+          "x": 32,
+          "y": 64,
           "name": "320px · Chromium · 로컬 목 데이터 · 실제 기기/Safari 별도 확인",
           "fill": "$ch-text",
           "content": "320px · Chromium · 로컬 목 데이터 · 실제 기기/Safari 별도 확인",
           "fontFamily": "$ch-font",
           "fontSize": 13,
-          "fontWeight": "500",
-          "x": 32,
-          "y": 64
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "mobileUx20260906dashboard",
-          "name": "작품 설정 선택 메뉴",
           "x": 32,
           "y": 110,
+          "name": "작품 설정 선택 메뉴",
           "width": 320,
           "height": 782,
           "layout": "vertical",
@@ -446156,6 +446169,12 @@
               "type": "frame",
               "id": "mobileUx20260906dashboardScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              },
               "width": 320,
               "height": 740,
               "fill": {
@@ -446163,12 +446182,6 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/dashboard.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x740",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06"
               }
             }
           ]
@@ -446176,9 +446189,9 @@
         {
           "type": "frame",
           "id": "mobileUx20260906setting-review",
-          "name": "검토 필터 선택 메뉴",
           "x": 376,
           "y": 110,
+          "name": "검토 필터 선택 메뉴",
           "width": 320,
           "height": 782,
           "layout": "vertical",
@@ -446198,6 +446211,12 @@
               "type": "frame",
               "id": "mobileUx20260906setting-reviewScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              },
               "width": 320,
               "height": 740,
               "fill": {
@@ -446205,12 +446224,6 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/setting-review.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x740",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06"
               }
             }
           ]
@@ -446218,9 +446231,9 @@
         {
           "type": "frame",
           "id": "mobileUx20260906upload",
-          "name": "업로드 단계와 입력 방식",
           "x": 720,
           "y": 110,
+          "name": "업로드 단계와 입력 방식",
           "width": 320,
           "height": 782,
           "layout": "vertical",
@@ -446240,6 +446253,12 @@
               "type": "frame",
               "id": "mobileUx20260906uploadScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              },
               "width": 320,
               "height": 740,
               "fill": {
@@ -446247,12 +446266,6 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/upload.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x740",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06"
               }
             }
           ]
@@ -446260,9 +446273,9 @@
         {
           "type": "frame",
           "id": "mobileUx20260906character-edit",
-          "name": "캐릭터 편집 · 본문 끝까지 스크롤",
           "x": 32,
           "y": 952,
+          "name": "캐릭터 편집 · 본문 끝까지 스크롤",
           "width": 320,
           "height": 610,
           "layout": "vertical",
@@ -446282,6 +446295,12 @@
               "type": "frame",
               "id": "mobileUx20260906character-editScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x568",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              },
               "width": 320,
               "height": 568,
               "fill": {
@@ -446289,12 +446308,6 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/character-edit.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x568",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06"
               }
             }
           ]
@@ -446302,9 +446315,9 @@
         {
           "type": "frame",
           "id": "mobileUx20260906world-create",
-          "name": "세계관 추가 · 저장 영역 유지",
           "x": 376,
           "y": 952,
+          "name": "세계관 추가 · 저장 영역 유지",
           "width": 320,
           "height": 610,
           "layout": "vertical",
@@ -446324,6 +446337,12 @@
               "type": "frame",
               "id": "mobileUx20260906world-createScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x568",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06"
+              },
               "width": 320,
               "height": 568,
               "fill": {
@@ -446331,12 +446350,6 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/world-create.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x568",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06"
               }
             }
           ]
@@ -446344,9 +446357,9 @@
         {
           "type": "frame",
           "id": "mobileUx20260906demo",
-          "name": "체험 · 맨 위에서 읽기",
           "x": 720,
           "y": 952,
+          "name": "체험 · 맨 위에서 읽기",
           "width": 320,
           "height": 782,
           "layout": "vertical",
@@ -446366,6 +446379,13 @@
               "type": "frame",
               "id": "mobileUx20260906demoScreen",
               "name": "Verified browser capture",
+              "metadata": {
+                "type": "screen",
+                "viewport": "320x740",
+                "verified": "chromium-mocked",
+                "date": "2026-09-06",
+                "state": "manuscript-top-user-scroll"
+              },
               "width": 320,
               "height": 740,
               "fill": {
@@ -446373,18 +446393,45 @@
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/demo.png",
                 "mode": "fill"
-              },
-              "metadata": {
-                "type": "screen",
-                "viewport": "320x740",
-                "verified": "chromium-mocked",
-                "date": "2026-09-06",
-                "state": "manuscript-top-user-scroll"
               }
             }
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "TmOGZ",
+      "x": 91540,
+      "y": 144,
+      "name": "Active / Landing / Video Settings · NVM-321",
+      "context": "영상 마지막 노트북 프레임 → 잊힌 불씨 25화 북쪽 성문 → 세계관 3개·캐릭터 1개·마법 2개. 설정별 확정 및 마지막 CTA. 이동 중 영상의 글자 추적 합성은 사용하지 않는다.",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-video-settings.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "MrzMM",
+      "x": 93060,
+      "y": 144,
+      "name": "Active / Landing / Mobile Extraction Complete · NVM-321",
+      "context": "모바일 전체 장면 캡처. 영상 뒤 동일한 잊힌 불씨 25화 원고와 설정 6개를 세로로 제시한다. 자동 진행·직접 확정 후 CTA. 카드 본문 14px, 버튼 최소 44px. 긴 sticky 구간이나 스크롤 탐색 없음.",
+      "clip": true,
+      "width": 375,
+      "height": 1412,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-video-mobile-complete.png",
+        "mode": "stretch"
+      }
     }
   ],
   "variables": {
