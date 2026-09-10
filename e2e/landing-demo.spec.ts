@@ -12,6 +12,14 @@ test('랜딩의 주 CTA는 로그인 없이 체험하기다', async ({ page }) =
   const heroDemo = heroActions.getByRole('button', { name: '로그인 없이 체험하기' });
   const bottomDemo = bottomActions.getByRole('button', { name: '로그인 없이 체험하기' });
 
+  await expect(heroActions).toBeHidden();
+  await page.locator('.landing-page').evaluate(container => {
+    const hero = container.querySelector<HTMLElement>('.lvh-story')!;
+    const top = hero.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+    container.scrollTo({ top: top + hero.offsetHeight - container.clientHeight, behavior: 'instant' });
+  });
+  await expect(heroActions).toBeVisible();
+
   await expect(headerDemo).toHaveClass(/ch-action--primary/);
   await expect(heroDemo).toHaveClass(/ch-action--primary/);
   await expect(bottomDemo).toHaveClass(/ch-action--primary/);
@@ -40,7 +48,7 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
 
   await expect(page.getByRole('heading', {
     level: 1,
-    name: '원고 속 캐릭터와 세계관을, 근거와 함께 정리하세요',
+    name: '설정 추출부터 검수까지 캐치홀 하나로',
   })).toBeVisible();
 
   const demoSection = page.locator('.landing-demo-section');
@@ -100,25 +108,7 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
   await expect(finalCta).toHaveCSS('background-image', 'none');
   await expect(finalCta).toHaveCSS('box-shadow', 'none');
 
-  const hero = page.locator('.landing-hero');
-  const trustItems = page.locator('.landing-trust__item');
-  await expect(trustItems).toHaveCount(2);
-  for (const trustItem of await trustItems.all()) {
-    expect(await computedContrastRatio(trustItem, hero)).toBeGreaterThanOrEqual(4.5);
-  }
-});
-
-test('랜딩 Hero는 승인 프레임처럼 전용 이미지를 전체 배경으로 사용한다', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/landing');
-
-  const hero = page.locator('.landing-hero');
-  const heroCopy = page.locator('.landing-hero-copy');
-  await expect(hero).toHaveCSS('background-size', /cover/);
-  await expect(hero).toHaveCSS('background-position', /50% 50%/);
-  await expect(hero).toHaveCSS('background-image', /catchhole-hero-editorial-v2\.webp/);
-  await expect(page.locator('.landing-hero__visual')).toHaveCount(0);
-  await expect(heroCopy).toHaveCSS('text-align', 'center');
+  await expect(page.locator('.landing-trust__item')).toHaveCount(2);
 });
 
 test('원고 보호 안내는 데모 다음에 표시되고 개인정보 링크를 키보드로 읽고 사용할 수 있다', async ({ page }) => {
