@@ -62,6 +62,7 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
     };
     let disposed = false, renderFrame = 0, inertiaFrame = 0, sequenceFrame = 0, mode: HeroMode | '' = '';
     let progress = 0, staticProgress = 0, desiredTime = 0, suppressClickUntil = 0;
+    let deferredPlayback = false;
     let presentation = initialState();
     let drag: { id: number; startY: number; scroll: number; lastY: number; time: number; velocity: number; active: boolean } | null = null;
 
@@ -97,7 +98,7 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
       publish({ playing: !video.paused, ended: video.ended });
     };
     const playSequence = () => {
-      if (inactive() || document.hidden || sequenceFrame || staticProgress >= 1) return;
+      if (inactive() || document.hidden || reduce.matches || sequenceFrame || staticProgress >= 1) return;
       let previous = performance.now();
       publish({ playing: true });
       const advance = (now: number) => {
@@ -120,6 +121,8 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
     };
     const startPlayback = () => {
       if (inactive()) return;
+      if (document.hidden) { deferredPlayback = true; return; }
+      deferredPlayback = false;
       const playbackMode = mode;
       void video.play().catch((error: unknown) => {
         if (disposed || playbackMode !== mode || mode === 'desktop' ||
@@ -167,6 +170,7 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
       viewport.classList.remove('is-dragging');
       video.pause();
       video.controls = false;
+      deferredPlayback = false;
       staticProgress = 0;
       publish({ mode: next, scene: 'video', visibleMask: 0, interactiveMask: 0, confirmedMask: 0, ended: false, playing: false });
       section.dataset.mode = next;
@@ -216,16 +220,16 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
         borderRadius: `${40 * (1 - opening) * (1 - morph) + 12 * morph}px` });
       Object.assign(canvas.style, { width: '1600px', height: `${sceneHeight}px`, transform: `scale(${frameScale})` });
       canvas.style.setProperty('--lvh-target-size', `${44 / frameScale}px`);
-      canvas.style.setProperty('--lvh-card-type', `${compact ? Math.max(20, 12.5 / frameScale) : 20}px`);
-      canvas.style.setProperty('--lvh-card-name', `${compact ? Math.max(23, 14 / frameScale) : 23}px`);
-      canvas.style.setProperty('--lvh-card-title', `${compact ? Math.max(20, 12.5 / frameScale) : 20}px`);
-      canvas.style.setProperty('--lvh-card-status', `${compact ? Math.max(15, 11 / frameScale) : 15}px`);
+      canvas.style.setProperty('--lvh-card-type', `${Math.max(20, 12.5 / frameScale)}px`);
+      canvas.style.setProperty('--lvh-card-name', `${Math.max(23, 14 / frameScale)}px`);
+      canvas.style.setProperty('--lvh-card-title', `${Math.max(20, 12.5 / frameScale)}px`);
+      canvas.style.setProperty('--lvh-card-status', `${Math.max(15, 11 / frameScale)}px`);
       canvas.style.setProperty('--lvh-card-padding', `${compact ? Math.max(28, 12 / frameScale) : 28}px`);
       canvas.style.setProperty('--lvh-card-gap', `${compact ? 12 / frameScale : 20}px`);
       canvas.style.setProperty('--lvh-card-heading-gap', `${compact ? 12 / frameScale : 24}px`);
       canvas.style.setProperty('--lvh-card-value-gap', `${compact ? 4 / frameScale : 8}px`);
       canvas.style.setProperty('--lvh-card-button-gap', `${compact ? 12 / frameScale : 22}px`);
-      canvas.style.setProperty('--lvh-character-name', `${compact ? Math.max(34, 20 / frameScale) : 34}px`);
+      canvas.style.setProperty('--lvh-character-name', `${Math.max(34, 20 / frameScale)}px`);
       for (const element of [film, foreground]) Object.assign(element.style, {
         left: `${filmRect.x}px`, top: `${filmRect.y}px`, width: `${filmRect.width}px`, height: `${filmRect.height}px`,
       });
@@ -243,6 +247,8 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
       wires.style.opacity = p >= .6 ? '1' : '0';
       let visibleMask = 0, interactiveMask = 0, confirmedMask = 0;
       let characterBottom = 0;
+      const rightColumnTop = Math.max(24, Math.min(groups[1].y,
+        sceneHeight - panelHeights[1] - panelHeights[2] - 74));
       groups.forEach((group, index) => {
         const panel = panels[index];
         const t = clamp((ex - group.start) / (group.end - group.start));
@@ -250,7 +256,9 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
         const confirmed = ex >= group.confirm;
         const panelWidth = compact ? Math.max(330, 194 / frameScale) : group.width;
         const panelX = index === 0 ? 24 : 1600 - panelWidth - 24;
-        const panelY = compact ? (index === 0 ? 40 : index === 1 ? 60 : characterBottom + 50) : group.y;
+        const panelY = compact ? (index === 0 ? 40 : index === 1 ? 60 : characterBottom + 50) :
+          index === 1 ? rightColumnTop : index === 2 ?
+            Math.max(characterBottom + 50, Math.min(group.y, sceneHeight - panelHeights[index] - 24)) : group.y;
         panel.style.width = `${panelWidth}px`;
         panel.style.left = `${panelX}px`;
         panel.style.top = `${panelY}px`;
@@ -399,6 +407,7 @@ export function useLandingVideo(scrollContainerRef: RefObject<HTMLDivElement>, h
     }
     const onVisibilityChange = () => {
       if (document.hidden) { pauseSequence(); if (mode !== 'desktop') video.pause(); }
+      else if (deferredPlayback && mode === 'mobile' && !reduce.matches && staticProgress === 0) startPlayback();
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     const timeout = window.setTimeout(() => { if (video.readyState < 1) onMediaError(); }, 12000);

@@ -176,6 +176,5 @@
   .landing-video-hero .lvh-story { height: auto; }
   .landing-video-hero:not([data-scene=video]) .lvh-editor { animation: none; }
   .landing-video-hero .lvh-setting { transition: none; }
-  .landing-video-hero[data-scene=settings] .lvh-play-toggle,
-  .landing-video-hero[data-scene=manuscript] .lvh-play-toggle { display: flex; }
+  .landing-video-hero .lvh-end-replay { display: inline-flex; }
 }

@@ -112,6 +112,56 @@ test('모바일은 일반 재생이고 스크롤은 정지된 영상 시간을 �
   }
 });
 
+test('백그라운드에서 처음 연 모바일 영상은 탭이 보일 때부터 재생된다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }));
+  await page.goto('/landing');
+  const video = page.locator('.lvh-film video');
+  await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
+  expect(await video.evaluate(v => (v as HTMLVideoElement).paused)).toBe(true);
+  expect(await videoTime(page)).toBe(0);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect.poll(() => videoTime(page)).toBeGreaterThan(.1);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).paused)).toBe(true);
+});
+
+test('높이가 낮은 데스크톱에서도 설정 글자와 확정 버튼을 읽고 누를 수 있다', async ({ page }) => {
+  for (const size of [{ width: 1366, height: 768 }, { width: 1280, height: 720 }]) {
+    await page.setViewportSize(size);
+    await page.goto('/landing');
+    await scrollHero(page, .8587);
+    await expect(page.getByRole('heading', { name: '북쪽 성문', exact: true })).toBeVisible();
+    const measurements = await page.locator('.lvh-canvas').evaluate(canvas => {
+      const scale = canvas.getBoundingClientRect().width / (canvas as HTMLElement).offsetWidth;
+      return [...canvas.querySelectorAll('.lvh-fact p, .lvh-setting__status')].map(el => ({
+        size: parseFloat(getComputedStyle(el).fontSize) * scale,
+        minimum: el.classList.contains('lvh-setting__status') ? 11 : 12.5,
+      }));
+    });
+    for (const text of measurements) expect(text.size).toBeGreaterThanOrEqual(text.minimum - .05);
+    await expect.poll(async () => {
+      const frame = (await page.locator('.lvh-viewport').boundingBox())!;
+      const world = (await page.getByRole('region', { name: '세계관 설정', exact: true }).boundingBox())!;
+      const character = (await page.getByRole('region', { name: '캐릭터 설정', exact: true }).boundingBox())!;
+      const magic = (await page.getByRole('region', { name: '마법 설정', exact: true }).boundingBox())!;
+      return character.y + character.height < magic.y
+        && world.y + world.height < frame.y + frame.height
+        && magic.y + magic.height < frame.y + frame.height;
+    }).toBe(true);
+    for (const button of await page.locator('.lvh-confirm').all()) {
+      await expect(button).toBeInViewport();
+      expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(43.9);
+    }
+  }
+});
+
 test('모바일 영상 뒤 설정 6개가 스크롤 없이 자동 추출·확정되고 마지막에 CTA가 나온다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/landing');
@@ -140,12 +190,20 @@ test('모바일 모션 감소에서는 원고·설정을 수동으로 확정하�
   await page.getByRole('button', { name: '영상 재생', exact: true }).click();
   await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
   await video.evaluate(element => { const v = element as HTMLVideoElement; v.currentTime = v.duration - .15; });
-  await expect(page.getByRole('button', { name: '설정 추출 재생', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '북쪽 성문', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '설정 추출 재생', exact: true })).toBeHidden();
+  const hero = page.locator('.landing-video-hero');
+  const progress = await hero.getAttribute('data-progress');
+  await page.waitForTimeout(300);
+  await expect(hero).toHaveAttribute('data-progress', progress!);
   await expect(page.locator('.landing-actions')).toBeHidden();
   for (const name of ['세계관 설정', '캐릭터 설정', '마법 설정']) {
     await page.getByRole('button', { name: `${name} 확정`, exact: true }).click();
   }
   await expect(page.locator('.landing-actions')).toBeVisible();
+  await page.getByRole('button', { name: '처음부터 다시 보기', exact: true }).click();
+  await expect(hero).toHaveAttribute('data-scene', 'video');
+  await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).paused)).toBe(true);
 });
 
 test('모션 감소는 자동 진행 없이 버튼으로 정적 설정 장면을 탐색한다', async ({ page }) => {
