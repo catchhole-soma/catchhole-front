@@ -208,7 +208,7 @@ export function CharacterFactComparisonPanel({
       {comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH' && (
         <div role="status" style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
           {candidate.matchStatus === 'UNRESOLVED'
-            ? '새 캐릭터로 확정하면 이 설정을 현재값으로 바로 반영합니다. 같은 이름의 기존 캐릭터가 확인되면 현재 설정 비교 후 다시 확정하게 됩니다.'
+            ? '신규 캐릭터도 빈 현재 설정에서 같은 그룹의 후보를 순서대로 비교합니다. 비교가 끝난 뒤 확정해 주세요.'
             : '비교할 캐릭터를 먼저 연결해 주세요. 연결이 완료되면 현재 설정 비교를 시작합니다.'}
         </div>
       )}
@@ -225,6 +225,7 @@ export function CharacterFactComparisonPanel({
             {comparisonStatus === 'FAILED'
               ? '현재 설정과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
               : comparisonStatus === 'NOT_REQUIRED'
+                || comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
                 ? '이전 분석 후보라 현재 설정 비교가 아직 없습니다. 비교를 시작한 뒤 확정해 주세요.'
                 : '후보 또는 현재 설정이 바뀌어 다시 비교해야 합니다.'}
           </div>
@@ -252,8 +253,12 @@ export function CharacterFactComparisonPanel({
             >
               <RefreshCw size={12} className={retrying ? 'spin' : undefined} />
               {retrying
-                ? comparisonStatus === 'NOT_REQUIRED' ? '비교 요청 중…' : '재비교 요청 중…'
-                : comparisonStatus === 'NOT_REQUIRED' ? '현재 설정 비교 시작' : '다시 비교'}
+                ? comparisonStatus === 'NOT_REQUIRED' || comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
+                  ? '비교 요청 중…'
+                  : '재비교 요청 중…'
+                : comparisonStatus === 'NOT_REQUIRED' || comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
+                  ? '현재 설정 비교 시작'
+                  : '다시 비교'}
             </button>
           )}
           {retryError && (
