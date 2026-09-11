@@ -168,8 +168,7 @@ function isCharacterComparisonActive(
 }
 
 function hasCharacterFactComparison(candidate: SettingCandidateResponse): boolean {
-  return candidate.candidateKind !== 'CHARACTER_DISCOVERY'
-    && candidate.comparisonStatus != null;
+  return candidate.candidateKind !== 'CHARACTER_DISCOVERY';
 }
 
 function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
@@ -1411,6 +1410,12 @@ export function CharacterSettingReview() {
   const pendingGroupCandidates = selectedGroupCandidates.filter(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
+  const comparisonRevisions = Array.from(new Set(pendingGroupCandidates.flatMap(candidate => (
+    hasCharacterFactComparison(candidate) && candidate.comparisonRevision
+      ? [candidate.comparisonRevision]
+      : []
+  ))));
+  const comparisonRevision = comparisonRevisions.length === 1 ? comparisonRevisions[0] : undefined;
   const groupHasInvalidCandidate = pendingGroupCandidates.some(isCandidateValueInvalid);
 
   const worldSummaryQuery = useQuery({
@@ -1852,6 +1857,8 @@ export function CharacterSettingReview() {
       ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'
     : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
       ? '캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.'
+      : comparisonRevisions.length > 1
+        ? '비교 결과가 갱신 중입니다. 목록을 다시 불러와 주세요.'
       : pendingGroupCandidates.some(candidate => (
           hasCharacterFactComparison(candidate)
           && !getCharacterFactComparisonPolicy(candidate).canConfirm
@@ -1867,6 +1874,7 @@ export function CharacterSettingReview() {
       path: { workId },
       body: {
         batchId,
+        comparisonRevision,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
           applicationMode: applicationModeForCandidate(candidate),

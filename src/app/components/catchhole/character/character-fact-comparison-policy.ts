@@ -20,12 +20,10 @@ export function getCharacterFactComparisonPolicy(
   const valueInvalid = candidate.valueValidation?.status === 'INVALID';
   const completed = candidate.comparisonStatus === 'COMPLETED';
   const operation = candidate.suggestedOperation ?? null;
-  const canConfirmNewCharacter = !valueInvalid
-    && candidate.comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
-    && candidate.matchStatus === 'UNRESOLVED';
-  const canBootstrapLegacyComparison = candidate.comparisonStatus === 'NOT_REQUIRED'
-    && candidate.matchedCharacterId != null
-    && (candidate.matchStatus === 'MATCHED' || candidate.matchStatus === 'AUTO_MATCHED_BY_NAME');
+  const canBootstrapLegacyComparison = candidate.comparisonStatus == null
+    || candidate.comparisonStatus === 'NOT_REQUIRED'
+    || (candidate.comparisonStatus === 'WAITING_FOR_CHARACTER_MATCH'
+      && candidate.matchStatus === 'UNRESOLVED');
   const canApplyProposal = !valueInvalid
     && completed
     && (operation === 'ADD' || operation === 'UPDATE' || operation === 'MERGE' || operation === 'REMOVE');
@@ -34,15 +32,13 @@ export function getCharacterFactComparisonPolicy(
   return {
     canApplyProposal,
     canSaveHistory,
-    canConfirm: canConfirmNewCharacter || canApplyProposal || canSaveHistory,
+    canConfirm: canApplyProposal || canSaveHistory,
     retryAvailable: !valueInvalid && (
       canBootstrapLegacyComparison
       || candidate.comparisonStatus === 'FAILED'
       || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
     ),
-    defaultApplicationMode: canApplyProposal || canConfirmNewCharacter
-      ? 'APPLY_PROPOSAL'
-      : 'HISTORY_ONLY',
+    defaultApplicationMode: canApplyProposal ? 'APPLY_PROPOSAL' : 'HISTORY_ONLY',
   };
 }
 
