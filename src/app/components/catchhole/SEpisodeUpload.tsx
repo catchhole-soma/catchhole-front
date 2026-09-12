@@ -1997,7 +1997,7 @@ export default function SEpisodeUpload() {
                     <PrimaryButton disabled onClick={() => undefined}>
                       분석이 취소되었습니다
                     </PrimaryButton>
-                  ) : analysisFailed ? (
+                  ) : analysisFailed && retryableFailedAnalysisJobIds.length > 0 ? (
                     <PrimaryButton
                       disabled={batchRetryPending || routeWork?.lifecycleStatus === 'PURGING'}
                       onClick={() => void retryFailedAnalysisJobs()}
@@ -2005,6 +2005,10 @@ export default function SEpisodeUpload() {
                       {routeWork?.lifecycleStatus === 'PURGING'
                         ? '작품 삭제 중에는 재시도할 수 없습니다'
                         : batchRetryPending ? '재시도 요청 중...' : orderedAnalysis ? '중단된 회차부터 재개' : '실패 회차 다시 시도'}
+                    </PrimaryButton>
+                  ) : hasUnfinishedOrderedStorage ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      설정 저장 상태 확인 필요
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>

@@ -112,6 +112,7 @@ function actionLabel(status: AnalysisBatchStatus, tokenInterruptedCount: number)
 
 function hasSettledTokenInterruption(batch: AnalysisBatchSummaryResponse): boolean {
   return batch.status !== 'IN_PROGRESS'
+    && batch.status !== 'CANCELED'
     && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0;
 }
 

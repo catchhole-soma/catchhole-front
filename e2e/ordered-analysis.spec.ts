@@ -65,6 +65,8 @@ test('저장 완료가 확인되지 않은 분석은 완료나 계속 진행 중
   await expect(page.getByText('앞 회차 재개 대기', { exact: true })).toBeVisible();
   await expect(page.getByText('분석 결과의 저장 완료를 확인하지 못했습니다.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '설정 후보 검토', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '설정 저장 상태 확인 필요', exact: true })).toBeDisabled();
 });
 
 for (const initialStatus of ['FAILED', 'SUCCEEDED'] as const) {

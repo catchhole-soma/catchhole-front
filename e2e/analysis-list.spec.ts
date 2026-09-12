@@ -4,6 +4,34 @@ const workId = '11111111-1111-4111-8111-111111111111';
 const reviewBatchId = '22222222-2222-4222-8222-222222222222';
 const reviewCandidateId = '33333333-3333-4333-8333-333333333333';
 
+for (const width of [1280, 320]) {
+  test(`취소된 분석은 과거 토큰 중단이 남아도 진행 화면에서 확인한다 (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    const canceled = {
+      ...batch(1), status: 'CANCELED', worldSettingTokenInterruptedCandidateCount: 3,
+      jobGroups: [{ ...batch(1).jobGroups[0], status: 'CANCELED', jobType: 'SETTING_EXTRACTION' }],
+    };
+    await page.route('**/api/v1/**', route => {
+      const path = new URL(route.request().url()).pathname;
+      const data = path.endsWith('/auth/me')
+        ? { id: 1, email: 'test@example.com', displayName: '작가', role: 'AUTHOR', status: 'ACTIVE' }
+        : path.endsWith('/analysis-jobs/batches')
+          ? { content: [canceled], page: 0, size: 10, totalElements: 1, totalPages: 1, hasNext: false }
+          : path.endsWith(`/works/${workId}`)
+            ? { id: workId, title: '취소 확인 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' }
+            : [];
+      return route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ success: true, data, error: null }) });
+    });
+    await page.addInitScript(() => localStorage.setItem('accessToken', 'synthetic-review-test'));
+    await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+    await expect(page.getByText('분석 취소', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '남은 비교 확인' })).toHaveCount(0);
+    await page.getByRole('button', { name: '취소 확인' }).click();
+    await expect(page).toHaveURL(/\/episode-upload\?/);
+  });
+}
+
 function batch(index: number) {
   const suffix = String(index).padStart(12, '0');
   return {
