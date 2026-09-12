@@ -42,13 +42,13 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
   },
   CANCELED: {
     label: '분석 취소',
-    description: '작품 영구 삭제가 시작되어 분석 작업이 취소되었습니다.',
+    description: '원문이나 설정 변경, 작품 삭제로 분석을 이어갈 수 없습니다. 현재 상태를 확인해 주세요.',
     tone: 'warning',
     icon: AlertCircle,
   },
   PARTIALLY_FAILED: {
-    label: '일부 실패',
-    description: '완료된 회차는 유지되며 실패 회차만 다시 시도할 수 있습니다.',
+    label: '일부 분석 중단',
+    description: '완료된 회차는 유지됩니다. 중단된 회차를 재개하면 대기 중인 회차도 이어집니다.',
     tone: 'warning',
     icon: TriangleAlert,
   },
@@ -59,14 +59,14 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
     icon: AlertCircle,
   },
   REVIEW_REQUIRED: {
-    label: '후보 검토 필요',
-    description: '분석이 끝났으며 추출된 설정 후보를 검토할 차례입니다.',
-    tone: 'warning',
+    label: '분석 완료',
+    description: '회차 분석은 끝났습니다. 아직 확인하지 않은 설정은 결과에서 확인할 수 있습니다.',
+    tone: 'success',
     icon: FileSearch,
   },
   COMPLETED: {
     label: '분석 완료',
-    description: '분석과 설정 후보 검토가 모두 끝났습니다.',
+    description: '회차 분석과 설정 정리가 모두 끝났습니다.',
     tone: 'success',
     icon: CheckCircle2,
   },
@@ -374,7 +374,9 @@ export function AnalysisList({ workId }: { workId: string }) {
                         </small>
                       </div>
                       <span className={`analysis-status analysis-tone--${view.tone}`}>
-                        {view.label}
+                        {view.label}{status === 'REVIEW_REQUIRED'
+                          && characterPendingCount + worldSettingPendingCount > 0
+                          ? ` · ${characterPendingCount + worldSettingPendingCount}개 확인 가능` : ''}
                       </span>
                     </div>
                     <div className="analysis-batch-card__description">
@@ -388,6 +390,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                           {group.succeededJobCount ?? 0}/{group.totalJobCount ?? 0} 완료
                           {(group.failedJobCount ?? 0) > 0 ? ` · ${group.failedJobCount} 실패` : ''}
                           {(group.canceledJobCount ?? 0) > 0 ? ` · ${group.canceledJobCount} 취소` : ''}
+                          {(group.pendingJobCount ?? 0) > 0 ? ` · ${group.pendingJobCount} 대기` : ''}
                         </span>
                       ))}
                     </div>

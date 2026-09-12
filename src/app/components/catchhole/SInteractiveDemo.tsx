@@ -300,7 +300,7 @@ function Coachmark({ actionLabel, current, description, onAction, title, waiting
       <motion.footer variants={reduceMotion ? undefined : coachmarkItemVariants}>
         <span>
           {waiting ? <LoaderCircle className="spin" size={15} /> : <MousePointer2 size={15} />}
-          {waiting ? 'fixture 분석이 자동으로 진행됩니다.' : '파란색으로 강조된 곳에서 직접 행동해 보세요.'}
+          {waiting ? '가상 원고 분석이 자동으로 진행됩니다.' : '파란색으로 강조된 곳에서 직접 행동해 보세요.'}
         </span>
         {actionLabel && onAction && <button type="button" onClick={onAction}>{actionLabel}<ArrowRight size={13} /></button>}
       </motion.footer>
@@ -344,18 +344,18 @@ function ManuscriptScreen({ onStart }: { onStart: () => void }) {
           <div className="interactive-demo-work-label">
             <span>데모 작품</span>
             <strong>{INTERACTIVE_DEMO_MANUSCRIPT.workTitle}</strong>
-            <small>현대 판타지 · fixture 데이터</small>
+            <small>현대 판타지 · 체험용 예시</small>
           </div>
           <div className="interactive-demo-value-preview">
             <Sparkles size={19} />
             <div>
               <strong>이 원고에서 무엇을 찾을까요?</strong>
-              <p>AI가 캐릭터 변화와 세계관 규칙 후보를 찾고, 원문 근거와 함께 검토할 수 있게 준비합니다.</p>
+              <p>이 체험은 설정을 직접 검토하는 예시입니다. 원문 근거를 보고 반영할 내용을 결정해 보세요.</p>
             </div>
           </div>
           <ul>
-            <li><CheckCircle2 size={15} /> 실제 서비스 형식의 AI 결과 fixture</li>
-            <li><CheckCircle2 size={15} /> Backend와 라이브 LLM 호출 없음</li>
+            <li><CheckCircle2 size={15} /> 실제 서비스와 같은 형식의 분석 예시</li>
+            <li><CheckCircle2 size={15} /> 준비된 예시로 바로 체험</li>
             <li><CheckCircle2 size={15} /> 새로고침하면 언제든 처음부터 시작</li>
           </ul>
           <div className="interactive-demo-manuscript__actions">
@@ -610,7 +610,7 @@ function WorldReviewScreen({ draft, editApplied, editing, onApplyEdit, onCancelE
           <form className="interactive-demo-review-modal interactive-demo-guided-target" onSubmit={event => { event.preventDefault(); if (validEdit) onApplyEdit(); }}>
             <header><strong>귀환문의 조건 반영 내용 수정</strong><button type="button" aria-label="닫기" onClick={onCancelEdit}><X size={18} /></button></header>
             <div className="interactive-demo-review-modal__body">
-              <p>이 설정 항목 하나의 분류·대상·범위·설정명·반영 방식·최종값을 수정합니다. 다른 항목에는 적용되지 않으며 LLM 재비교도 호출하지 않습니다.</p>
+              <p>이 항목을 어디에 어떤 내용으로 반영할지 정해 주세요. 다른 항목은 바뀌지 않습니다.</p>
               <div className="interactive-demo-review-modal__identity">
                 <label>분류<select aria-label="분류" defaultValue="LOCATION"><option value="LOCATION">장소</option><option value="WORLD_RULE_HISTORY">규칙·역사</option></select></label>
                 <label>대상<input aria-label="대상" defaultValue="거꾸로숲" /></label>
@@ -835,7 +835,7 @@ function CompleteScreen({ onRestart, onSignup }: { onRestart: () => void; onSign
       <div className="interactive-demo-complete__icon"><Check size={34} /></div>
       <span>INTERACTIVE DEMO COMPLETE</span>
       <h1 id="interactive-demo-stage-title">한 편의 원고가<br />작품의 기준이 되었습니다</h1>
-      <p>CatchHole은 AI가 찾은 내용을 자동으로 덮어쓰지 않습니다.<br />원문 근거를 확인하고, 작가가 결정한 설정만 작품에 남깁니다.</p>
+      <p>이번 체험에서는 원문 근거를 확인하고 설정을 직접 검토했습니다.<br />실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.</p>
       <div className="interactive-demo-complete__results">
         <article><span className="is-success"><CheckCircle2 /></span><small>캐릭터 후보 확정</small><strong>에단 렌 · 재액 운반자</strong></article>
         <article><span className="is-primary"><PencilLine /></span><small>세계관 수정안 적용·확정</small><strong>거꾸로숲 · 귀환문의 조건</strong></article>

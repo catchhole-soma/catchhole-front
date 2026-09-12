@@ -143,7 +143,7 @@ function UploadScene() {
 }
 
 function AnalysisScene() {
-  const states = ['원문 저장 완료', '원문 청킹 완료', 'LLM 전처리 완료', 'AI 설정 추출 중', '설정 후보 생성 대기'];
+  const states = ['원문 저장 완료', '원문 정리 완료', '내용 파악 완료', 'AI 설정 추출 중', '설정 후보 생성 대기'];
   return (
     <div className="landing-native-screen">
       <DemoHeader eyebrow="MANUSCRIPT" title="회차 업로드" back />

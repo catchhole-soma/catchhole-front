@@ -1192,7 +1192,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
             textAlign: 'center',
           }}>
             <AlertCircle size={34} strokeWidth={1.3} />
-            <div style={{ color: C.t2, fontSize: 14 }}>데모 작품은 설정집 API에 연결되지 않습니다.</div>
+            <div style={{ color: C.t2, fontSize: 14 }}>체험 작품에서는 실제 설정집을 관리할 수 없습니다.</div>
             <div style={{ fontSize: 12 }}>실제 계정의 작품을 선택하거나 새 작품을 등록하세요.</div>
           </div>
         ) : (

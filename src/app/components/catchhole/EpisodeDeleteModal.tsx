@@ -150,7 +150,7 @@ export function EpisodeDeleteModal({
               boxSizing: 'border-box',
             }}>
               <AlertTriangle size={14} />
-              회차 원문·업로드 파일, 원고 청크와 미확정 분석 후보가 영구 삭제됩니다.
+              회차 원문·업로드 파일과 미확정 분석 후보가 영구 삭제됩니다.
             </div>
           )}
 

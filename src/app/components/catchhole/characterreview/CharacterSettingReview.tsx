@@ -44,6 +44,20 @@ import {
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
+import {
+  AUTOMATIC_APPLICATION_PENDING_MESSAGE,
+  REVIEWABLE_COMPARISON_FAILURE_MESSAGE,
+  automaticReviewHoldLabel,
+  isAutomaticApplicationPending,
+  combinedSettingReviewProgress,
+  isCandidateComparisonProcessing,
+  needsDirectCandidateReview,
+  isReviewableComparisonFailure,
+  remainingReviewLabel,
+} from '../../../lib/setting-review-progress';
+import { SettingReviewSummary } from '../SettingReviewSummary';
+import { AutomaticApplicationNotice } from '../AutomaticApplicationNotice';
+import { OrderedReviewImpactNotice } from '../OrderedReviewImpactNotice';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
@@ -67,9 +81,9 @@ const DEFAULT_PAGE_SIZE = 20;
 const ACTIVE_COMPARISON_POLL_INTERVAL = 2_000;
 const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
-  { value: 'PENDING_REVIEW', label: '검토 대기' },
-  { value: 'CONFIRMED', label: '확정' },
-  { value: 'DISMISSED', label: '무시' },
+  { value: 'PENDING_REVIEW', label: '미처리' },
+  { value: 'CONFIRMED', label: '반영됨' },
+  { value: 'DISMISSED', label: '제외됨' },
 ];
 const MATCH_FILTERS: Array<{ value: MatchFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
@@ -79,9 +93,9 @@ const MATCH_FILTERS: Array<{ value: MatchFilter; label: string }> = [
 ];
 
 const REVIEW_LABELS: Record<ReviewStatus, string> = {
-  PENDING_REVIEW: '검토 대기',
-  CONFIRMED: '확정',
-  DISMISSED: '무시',
+  PENDING_REVIEW: '직접 확인',
+  CONFIRMED: '반영됨',
+  DISMISSED: '제외됨',
 };
 const MATCH_LABELS: Record<MatchStatus, string> = {
   MATCHED: '기존 캐릭터 연결됨',
@@ -112,6 +126,7 @@ const SETTING_NAME_LABELS: Record<string, string> = {
   'profile.occupation': '직업',
   'profile.eye_color': '눈 색깔',
   'profile.description': '설명',
+  'profile.attribute': '특징',
   'stats.strength': '근력',
   'stats.mana': '마나',
   'stats.physique': '육체',
@@ -423,43 +438,6 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ReviewSummary({
-  episodeRange,
-  total,
-  reviewed,
-  pending,
-  attentionRequired,
-}: {
-  episodeRange: string;
-  total: number;
-  reviewed: number;
-  pending: number;
-  attentionRequired: number;
-}) {
-  const items = [
-    ['분석 대상', episodeRange, C.t1],
-    ['전체 후보', `${total}개`, C.t1],
-    ['검토 완료', `${reviewed}개`, C.t1],
-    ['검토 대기', `${pending}개`, C.t1],
-    ['확인 필요', `${attentionRequired}개`, attentionRequired > 0 ? C.warning : C.t1],
-  ];
-  return (
-    <section className="setting-review-summary" aria-label="설정 후보 검토 요약" style={{
-      padding: '18px 22px', borderRadius: 10, border: `1px solid ${C.border}`,
-      background: C.surface, display: 'flex', alignItems: 'center', gap: 38, flexWrap: 'wrap',
-    }}>
-      {items.map(([label, value, color]) => (
-        <div className="setting-review-summary__item" key={label}>
-          <div>{label}</div>
-          <strong style={{ color: reviewToneInk(color) }}>{value}</strong>
-        </div>
-      ))}
-      <div style={{ flex: 1 }} />
-      <StatusBadge label={`${reviewed}/${total} 검토`} color={C.primary} />
-    </section>
-  );
-}
-
 function CandidateGroupCard({
   group,
   selected,
@@ -472,11 +450,8 @@ function CandidateGroupCard({
   onClick: () => void;
 }) {
   const candidates = group.candidates ?? [];
-  const attentionCount = candidates.filter(candidate => (
-    candidate.matchStatus === 'AMBIGUOUS'
-    || candidate.comparisonStatus === 'FAILED'
-    || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
-  )).length;
+  const directReviewCount = candidates.filter(needsDirectCandidateReview).length;
+  const processingCount = candidates.filter(isCandidateComparisonProcessing).length;
   const matchStatuses = Array.from(new Set(candidates.map(candidate => candidate.matchStatus).filter(Boolean)));
   const episodes = group.evidenceEpisodeNos ?? [];
   return (
@@ -499,9 +474,10 @@ function CandidateGroupCard({
         </strong>
         <StatusBadge label={`${group.candidateCount ?? candidates.length}개 설정`} color={C.primary} />
       </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: 10, color: REVIEW_TEXT.muted, fontSize: 11 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, color: REVIEW_TEXT.muted, fontSize: 11 }}>
         <span>{episodes.length > 0 ? `${episodes.join(', ')}화` : '출처 회차 없음'}</span>
-        {attentionCount > 0 && <span style={{ color: REVIEW_TEXT.warning }}>· {attentionCount}개 확인 필요</span>}
+        {directReviewCount > 0 && <span style={{ color: REVIEW_TEXT.warning }}>· 직접 확인 {directReviewCount}개</span>}
+        {processingCount > 0 && <span style={{ color: REVIEW_TEXT.primary }}>· 분석 중 {processingCount}개</span>}
       </div>
       {matchStatuses.length > 0 && (
         <div style={{ display: 'flex', gap: 5, marginTop: 9, flexWrap: 'wrap' }}>
@@ -695,12 +671,14 @@ function ModalLayer({
 function CandidateEditModal({
   candidate,
   pending,
+  automaticPending = false,
   error,
   onClose,
   onSubmit,
 }: {
   candidate: SettingCandidateResponse;
   pending: boolean;
+  automaticPending?: boolean;
   error: string | null;
   onClose: () => void;
   onSubmit: (attributeName: string, attributeValue: string | null) => void;
@@ -716,6 +694,7 @@ function CandidateEditModal({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (pending || automaticPending) return;
     const nextName = editableName ? `${dynamicName.prefix}${attributeSuffix.trim()}` : originalName;
     if (!nextName) {
       setValidationError('설정명 정보가 없어 수정할 수 없습니다.');
@@ -735,12 +714,16 @@ function CandidateEditModal({
 
   return (
     <ModalLayer
-      title="설정 후보 수정"
-      description="설정명이나 값을 바꾸면 화면에 표시하지 않는 AI 세부 속성은 정리되며, 최초 원문 근거는 유지됩니다."
+      title={candidate.manualReviewAvailable ? '설정 직접 확인' : '설정 후보 수정'}
+      description={candidate.manualReviewAvailable
+        ? '원문과 설정값을 직접 확인해 주세요. 확인한 값을 저장한 뒤 이 캐릭터의 설정을 함께 확정할 수 있습니다.'
+        : '설정명이나 값을 바꾸면 화면에 표시하지 않는 AI 세부 속성은 정리되며, 최초 원문 근거는 유지됩니다.'}
       pending={pending}
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
+        {automaticPending && <AutomaticApplicationNotice />}
+        {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
         <div style={{ marginTop: 22 }}>
           <label htmlFor="candidate-attribute-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
             설정명
@@ -813,8 +796,8 @@ function CandidateEditModal({
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || Boolean(valueFormatError)} tone={C.primary}>
-            {pending ? '저장 중…' : '저장'}
+          <ActionButton type="submit" disabled={pending || automaticPending || Boolean(valueFormatError)} tone={C.primary}>
+            {pending ? '저장 중…' : candidate.manualReviewAvailable ? '확인한 값 저장' : '저장'}
           </ActionButton>
         </div>
       </form>
@@ -829,6 +812,7 @@ function CharacterMatchModal({
   candidate,
   initialResolution,
   pending,
+  automaticPending = false,
   error,
   groupCandidateCount,
   onClose,
@@ -838,6 +822,7 @@ function CharacterMatchModal({
   candidate: SettingCandidateResponse;
   initialResolution: MatchResolution;
   pending: boolean;
+  automaticPending?: boolean;
   error: string | null;
   groupCandidateCount?: number;
   onClose: () => void;
@@ -872,6 +857,7 @@ function CharacterMatchModal({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (pending || automaticPending) return;
     if (resolution === 'MATCH_EXISTING' && !selectedCharacterVisible) {
       setValidationError('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
       return;
@@ -901,6 +887,8 @@ function CharacterMatchModal({
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
+        {automaticPending && <AutomaticApplicationNotice />}
+        {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 20 }}>
           {([
             ['MATCH_EXISTING', '기존 캐릭터에 연결'],
@@ -1034,7 +1022,7 @@ function CharacterMatchModal({
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending} tone={C.primary}>
+          <ActionButton type="submit" disabled={pending || automaticPending} tone={C.primary}>
             {pending ? '연결 중…' : resolution === 'MATCH_EXISTING' ? '선택한 캐릭터에 연결' : '새 캐릭터로 등록'}
           </ActionButton>
         </div>
@@ -1056,6 +1044,7 @@ function CandidateDetail({
   onMatch,
   onApplicationModeChange,
   onRetryComparison,
+  manuallyReviewed,
 }: {
   candidate: SettingCandidateResponse;
   applicationMode: CharacterFactApplicationMode;
@@ -1069,17 +1058,23 @@ function CandidateDetail({
   onMatch?: (resolution: MatchResolution) => void;
   onApplicationModeChange: (mode: CharacterFactApplicationMode) => void;
   onRetryComparison?: () => void;
+  manuallyReviewed: boolean;
 }) {
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
+  const automaticPending = isAutomaticApplicationPending(candidate);
   const confidence = confidenceDescription(candidate.confidence ?? undefined);
+  const reviewableFailure = isReviewableComparisonFailure(candidate);
   const quotes = evidenceQuotes(candidate.evidenceSpans);
   const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
   const invalidValueRepairable = isCandidateValueRepairable(candidate);
-  const matchDisabledTitle = invalidValue
+  const holdLabel = automaticReviewHoldLabel(candidate);
+  const matchDisabledTitle = automaticPending
+    ? AUTOMATIC_APPLICATION_PENDING_MESSAGE
+    : invalidValue
     ? '설정값 오류를 수정하거나 후보를 제외한 뒤 캐릭터를 연결해 주세요.'
     : actionPending
       ? '다른 후보 작업이 끝난 뒤 시도해 주세요.'
@@ -1093,8 +1088,11 @@ function CandidateDetail({
         <span style={{ color: REVIEW_TEXT.muted, fontSize: 12 }}>{settingDisplay.typeLabel}</span>
         <span style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>·</span>
         <strong style={{ color: REVIEW_TEXT.ink, fontSize: 14 }}>{settingDisplay.nameLabel}</strong>
-        <StatusBadge label={REVIEW_LABELS[reviewStatus]} color={reviewColor(reviewStatus)} />
+        <StatusBadge label={isCandidateComparisonProcessing(candidate) ? '분석 중' : reviewableFailure ? '검토 필요' : REVIEW_LABELS[reviewStatus]} color={isCandidateComparisonProcessing(candidate) ? C.primary : reviewColor(reviewStatus)} />
         <StatusBadge label={MATCH_LABELS[matchStatus]} color={matchColor(matchStatus)} />
+        {holdLabel && <StatusBadge label={holdLabel} color={C.warning} />}
+        {!readOnly && !automaticPending && candidate.comparisonStatus === 'FAILED' && !reviewableFailure && <StatusBadge label={candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED' ? '사용량 부족으로 중단' : '비교 실패'} color={candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED' ? C.warning : C.danger} />}
+        {!readOnly && !automaticPending && candidate.comparisonStatus === 'RECOMPARISON_REQUIRED' && <StatusBadge label="현재 설정 다시 확인" color={C.warning} />}
         <span style={{ color: reviewToneInk(confidence.color), fontSize: 10, fontWeight: 700 }}>
           근거 명확도 {confidence.percent}
         </span>
@@ -1105,20 +1103,20 @@ function CandidateDetail({
         {!readOnly && (
           <>
             <ActionButton
-              disabled={!onEdit || actionPending || (invalidValue && !invalidValueRepairable)}
-              disabledTitle={invalidValue && !invalidValueRepairable
-                ? '현재 활성 설정 정의와 연결되지 않아 이 화면에서 수정할 수 없습니다.'
+              disabled={!onEdit || actionPending || automaticPending || (invalidValue && !invalidValueRepairable)}
+              disabledTitle={automaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : invalidValue && !invalidValueRepairable
+                ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.'
                 : actionPending
                   ? '다른 후보 작업이 끝난 뒤 시도해 주세요.'
                   : undefined}
               tone={C.warning}
               onClick={onEdit}
             >
-              수정
+              {candidate.manualReviewAvailable ? '직접 확인해서 반영' : '수정'}
             </ActionButton>
             <ActionButton
-              disabled={!onDismiss || actionPending}
-              disabledTitle={dismissing
+              disabled={!onDismiss || actionPending || automaticPending}
+              disabledTitle={automaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : dismissing
                 ? '설정 후보를 제외하고 있습니다.'
                 : actionPending
                   ? '다른 후보 작업이 끝난 뒤 시도해 주세요.'
@@ -1132,7 +1130,9 @@ function CandidateDetail({
         )}
       </div>
 
-      {matchStatus === 'AMBIGUOUS' && !readOnly && (
+      {automaticPending && <AutomaticApplicationNotice />}
+
+      {matchStatus === 'AMBIGUOUS' && !readOnly && !automaticPending && (
         <div className="setting-candidate-match-notice" role="status" style={{
           marginTop: 12, padding: '10px 12px', borderRadius: 7,
           border: `1px solid ${C.warning}`, background: `${C.warning}12`,
@@ -1151,10 +1151,12 @@ function CandidateDetail({
         }}>
           <AlertCircle size={14} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
-            {candidate.valueValidation?.message ?? '설정값의 형식과 구조화된 값이 일치하지 않습니다.'}
-            {!readOnly && (invalidValueRepairable
+            {invalidValueRepairable
+              ? candidate.valueValidation?.message ?? '이 설정값을 올바르게 읽지 못했습니다.'
+              : '설정값의 형식을 확인해야 합니다.'}
+            {!readOnly && !automaticPending && (invalidValueRepairable
               ? ' 수정하거나 제외한 뒤 묶음을 확정해 주세요.'
-              : ' 현재 화면에서 수정할 수 없어 제외하거나 활성 설정 정의를 복구해야 합니다.')}
+              : ' 지금은 이 항목을 수정할 수 없습니다. 이 후보를 제외하면 나머지 설정을 검토할 수 있습니다.')}
           </span>
         </div>
       )}
@@ -1212,11 +1214,23 @@ function CandidateDetail({
         )}
       </div>
 
-      {comparisonEnabled && (
+      {(comparisonEnabled || reviewableFailure) && candidate.manualReviewAvailable && !readOnly && !automaticPending && (
+        <div role="status" style={{ marginTop: 12, padding: '12px 14px', borderRadius: 7,
+          background: C.bg, border: `1px solid ${C.border}`, color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
+          {invalidValue && !invalidValueRepairable
+            ? `${reviewableFailure ? '자동 비교를 마치지 못했습니다. ' : ''}이 항목은 지금 직접 수정할 수 없습니다. 원문을 확인해 주세요. 이 후보를 제외하면 나머지 설정을 검토할 수 있습니다.`
+            : manuallyReviewed
+            ? '확인한 값을 저장했습니다. 아래 버튼으로 이 캐릭터의 설정을 함께 확정해 주세요.'
+            : reviewableFailure
+              ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 원문을 확인하고 ‘직접 확인해서 반영’을 눌러 값을 저장해 주세요.`
+              : '자동으로 확정하지 못한 설정입니다. 원문을 확인하고 ‘직접 확인해서 반영’을 눌러 값을 저장해 주세요.'}
+        </div>
+      )}
+      {comparisonEnabled && !candidate.manualReviewAvailable && (
         <CharacterFactComparisonPanel
           candidate={candidate}
           applicationMode={applicationMode}
-          disabled={actionPending || readOnly}
+          disabled={actionPending || readOnly || automaticPending}
           retrying={retrying}
           retryError={retryError}
           onApplicationModeChange={onApplicationModeChange}
@@ -1231,7 +1245,7 @@ function CandidateDetail({
               {isConnectedMatch(matchStatus) ? `${candidate.entityName}에 연결됨` : `${candidate.entityName || '이름 없음'} 신규 등록 예정`}
             </span>
             <ActionButton
-              disabled={!onMatch || actionPending || invalidValue}
+              disabled={!onMatch || actionPending || automaticPending || invalidValue}
               disabledTitle={matchDisabledTitle}
               tone={C.primary}
               onClick={() => onMatch?.('MATCH_EXISTING')}
@@ -1241,7 +1255,7 @@ function CandidateDetail({
               </span>
             </ActionButton>
             <ActionButton
-              disabled={!onMatch || actionPending || invalidValue}
+              disabled={!onMatch || actionPending || automaticPending || invalidValue}
               disabledTitle={matchDisabledTitle}
               tone={C.primary}
               onClick={() => onMatch?.('CREATE_NEW')}
@@ -1312,6 +1326,7 @@ export function CharacterSettingReview() {
     resolution: MatchResolution;
   } | null>(null);
   const [applicationModes, setApplicationModes] = useState<Record<string, CharacterFactApplicationMode>>({});
+  const [manuallyReviewedCandidateIds, setManuallyReviewedCandidateIds] = useState<Set<string>>(new Set());
   const [legacyResolutionError, setLegacyResolutionError] = useState(false);
   const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(
@@ -1349,7 +1364,9 @@ export function CharacterSettingReview() {
       ))) ?? data?.candidates?.content?.some(candidate => (
         isCharacterComparisonActive(candidate.comparisonStatus)
       ));
-      return currentPageActive ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
+      const hasActiveComparison = data?.processingCandidateCount != null
+        ? data.processingCandidateCount > 0 : currentPageActive;
+      return hasActiveComparison ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
   const listData = listQuery.data?.data;
@@ -1412,6 +1429,10 @@ export function CharacterSettingReview() {
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
   const groupHasInvalidCandidate = pendingGroupCandidates.some(isCandidateValueInvalid);
+  const groupAutomaticPending = pendingGroupCandidates.some(isAutomaticApplicationPending);
+  const candidateAutomaticPending = (candidateId?: string) => selectedGroupCandidates.some(candidate => (
+    candidate.id === candidateId && isAutomaticApplicationPending(candidate)
+  ));
 
   const worldSummaryQuery = useQuery({
     ...getWorldSettingCandidatesOptions({
@@ -1423,7 +1444,7 @@ export function CharacterSettingReview() {
     refetchInterval: query => {
       const data = query.state.data?.data;
       const activeCount = (data?.pendingComparisonCount ?? 0) + (data?.processingComparisonCount ?? 0);
-      return activeCount > 0 ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
+      return (data?.processingCandidateCount ?? activeCount) > 0 ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
   const worldSummary = worldSummaryQuery.data?.data;
@@ -1607,6 +1628,10 @@ export function CharacterSettingReview() {
     ]);
   };
 
+  const refreshAutomaticApplicationState = async (error: unknown) => {
+    if (toApiError(error)?.code === 'ANALYSIS_AUTOMATIC_APPLICATION_PENDING') await invalidateCandidateData();
+  };
+
   const confirmMutation = useMutation({
     ...confirmSettingCandidateGroupMutation(),
     onSuccess: async (_response, variables) => {
@@ -1633,6 +1658,7 @@ export function CharacterSettingReview() {
   });
   const retryComparisonMutation = useMutation({
     ...retrySettingCandidateComparisonMutation(),
+    onError: refreshAutomaticApplicationState,
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
@@ -1644,6 +1670,7 @@ export function CharacterSettingReview() {
   });
   const dismissMutation = useMutation({
     ...dismissSettingCandidateMutation(),
+    onError: refreshAutomaticApplicationState,
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
@@ -1655,7 +1682,11 @@ export function CharacterSettingReview() {
   });
   const updateMutation = useMutation({
     ...updateSettingCandidateMutation(),
+    onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
+      if (response.data?.manualReviewAvailable) {
+        setManuallyReviewedCandidateIds(previous => new Set([...previous, variables.path.candidateId]));
+      }
       setEditCandidate(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
@@ -1672,6 +1703,7 @@ export function CharacterSettingReview() {
   });
   const matchMutation = useMutation({
     ...updateSettingCandidateCharacterMatchMutation(),
+    onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       setMatchTarget(null);
       selectionGroupRef.current = null;
@@ -1694,6 +1726,7 @@ export function CharacterSettingReview() {
   });
   const groupMatchMutation = useMutation({
     ...updateSettingCandidateGroupCharacterMatchMutation(),
+    onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       setGroupMatchOpen(false);
       selectionGroupRef.current = null;
@@ -1795,7 +1828,7 @@ export function CharacterSettingReview() {
     }, { replace: true, state: location.state });
   };
   const dismissCandidate = (candidateId: string) => {
-    if (actionPending) return;
+    if (actionPending || candidateAutomaticPending(candidateId)) return;
     confirmMutation.reset();
     dismissMutation.mutate({ path: { workId, candidateId } });
   };
@@ -1804,7 +1837,7 @@ export function CharacterSettingReview() {
     attributeName: string,
     attributeValue: string | null,
   ) => {
-    if (actionPending) return;
+    if (actionPending || candidateAutomaticPending(candidateId)) return;
     updateMutation.mutate({
       path: { workId, candidateId },
       body: { attributeName, attributeValue },
@@ -1813,7 +1846,7 @@ export function CharacterSettingReview() {
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
     if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe) return;
-    if (groupHasInvalidCandidate) {
+    if (groupHasInvalidCandidate || groupAutomaticPending) {
       setGroupMatchOpen(false);
       return;
     }
@@ -1827,7 +1860,7 @@ export function CharacterSettingReview() {
   const matchSelectedCandidate = (candidateId: string, resolution: MatchResolution, value: string) => {
     if (actionPending) return;
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
-    if (!candidate || isCandidateValueInvalid(candidate)) {
+    if (!candidate || isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate)) {
       setMatchTarget(null);
       return;
     }
@@ -1840,20 +1873,28 @@ export function CharacterSettingReview() {
   };
   const retryCandidateComparison = (candidateId: string) => {
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
-    if (actionPending || !candidate || isCandidateValueInvalid(candidate)) return;
+    if (actionPending || !candidate || isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate)) return;
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 
+  const hasManualReview = (candidate: SettingCandidateResponse) => candidate.manualReviewAvailable === true
+    && Boolean(candidate.id && manuallyReviewedCandidateIds.has(candidate.id));
   const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
-    ? '서버 업데이트 전 호환 목록에서는 묶음 전체를 보장할 수 없어 일괄 확정을 지원하지 않습니다.'
+    ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'
     : pendingGroupCandidates.length === 0
     ? '확정할 검토 대기 설정이 없습니다.'
+    : groupAutomaticPending
+      ? AUTOMATIC_APPLICATION_PENDING_MESSAGE
     : pendingGroupCandidates.some(isCandidateValueInvalid)
       ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'
     : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
       ? '캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.'
+      : pendingGroupCandidates.some(candidate => hasCharacterFactComparison(candidate)
+          && candidate.manualReviewAvailable && !hasManualReview(candidate))
+        ? '자동으로 확정하지 못한 설정의 원문과 값을 직접 확인하고 저장해 주세요.'
       : pendingGroupCandidates.some(candidate => (
           hasCharacterFactComparison(candidate)
+          && !hasManualReview(candidate)
           && !getCharacterFactComparisonPolicy(candidate).canConfirm
         ))
         ? '모든 설정의 현재값 비교가 끝난 뒤 함께 확정할 수 있습니다.'
@@ -1869,8 +1910,9 @@ export function CharacterSettingReview() {
         batchId,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
-          applicationMode: applicationModeForCandidate(candidate),
+          applicationMode: hasManualReview(candidate) ? 'APPLY_PROPOSAL' : applicationModeForCandidate(candidate),
           baseSnapshotVersion: candidate.comparisonBaseSnapshotVersion ?? null,
+          applyEditedValue: hasManualReview(candidate) ? true : undefined,
         })),
       },
     });
@@ -1890,28 +1932,19 @@ export function CharacterSettingReview() {
   };
 
   const total = listData?.totalCandidateCount ?? 0;
-  const reviewed = listData?.reviewedCandidateCount ?? 0;
   const pending = listData?.pendingCandidateCount ?? 0;
-  const matchRequired = listData?.matchRequiredCandidateCount ?? 0;
   const worldTotal = worldSummary?.totalCandidateCount ?? 0;
-  const worldReviewed = worldSummary?.reviewedCandidateCount ?? 0;
   const worldPending = worldSummary?.pendingCandidateCount ?? 0;
-  const worldAttention = (worldSummary?.pendingComparisonCount ?? 0)
-    + (worldSummary?.processingComparisonCount ?? 0)
-    + (worldSummary?.failedComparisonCount ?? 0)
-    + (worldSummary?.recomparisonRequiredCount ?? 0)
-    + (worldSummary?.conflictCandidateCount ?? 0);
-  const combinedTotal = total + worldTotal;
-  const combinedReviewed = reviewed + worldReviewed;
   const combinedPending = pending + worldPending;
-  const combinedAttention = matchRequired + worldAttention;
+  const reviewProgress = combinedSettingReviewProgress(listData, worldSummary);
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
   const reviewComplete = listQuery.isSuccess
     && listData?.batchId === batchId
     && worldSummaryQuery.isSuccess
     && combinedPending === 0
-    && combinedAttention === 0
+    && (reviewProgress.directReview ?? 0) === 0
+    && (reviewProgress.processing ?? 0) === 0
     && Boolean(workId);
 
   useEffect(() => {
@@ -1954,22 +1987,19 @@ export function CharacterSettingReview() {
       <main className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           {listQuery.data && (
-            <ReviewSummary
+            <SettingReviewSummary
               episodeRange={formatEpisodeRange(
                 listData?.episodeStartNo,
                 listData?.episodeEndNo,
                 listData?.episodeCount ?? 0,
               )}
-              total={combinedTotal}
-              reviewed={combinedReviewed}
-              pending={combinedPending}
-              attentionRequired={combinedAttention}
+              progress={reviewProgress}
             />
           )}
           <SettingReviewTabs
             active="character"
-            character={{ reviewed, total }}
-            world={{ reviewed: worldReviewed, total: worldTotal }}
+            character={{ total, directReview: listData?.directReviewCandidateCount, processing: listData?.processingCandidateCount }}
+            world={{ total: worldTotal, directReview: worldSummary?.directReviewCandidateCount, processing: worldSummary?.processingCandidateCount }}
           />
 
           {listQuery.isPending && !listQuery.data ? (
@@ -2145,13 +2175,14 @@ export function CharacterSettingReview() {
                             {pendingGroupCandidates.length > 0 && (
                               <ActionButton
                                 disabled={actionPending
+                                  || groupAutomaticPending
                                   || groupHasInvalidCandidate
                                   || matchFilter !== 'ALL'
                                   || legacyGroupedActionsUnsafe}
-                                disabledTitle={groupHasInvalidCandidate
+                                disabledTitle={groupAutomaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : groupHasInvalidCandidate
                                   ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 일괄 연결해 주세요.'
                                   : legacyGroupedActionsUnsafe
-                                  ? '서버 업데이트 전 호환 목록에서는 그룹 일부만 보일 수 있어 일괄 연결할 수 없습니다.'
+                                  ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 연결할 수 없습니다.'
                                   : matchFilter !== 'ALL'
                                   ? '연결 상태 필터를 전체로 바꾼 뒤 그룹 전체 연결을 변경해 주세요.'
                                   : undefined}
@@ -2168,12 +2199,15 @@ export function CharacterSettingReview() {
                             <p style={{ margin: '7px 0 0', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
                               같은 캐릭터에서 추출된 설정을 아래로 이어서 검토하고 남은 항목을 함께 확정합니다.
                             </p>
+                            {pendingGroupCandidates.some(candidate => candidate.manualReviewAvailable
+                              && !isAutomaticApplicationPending(candidate)) && <OrderedReviewImpactNotice />}
                           </header>
 
                           {selectedGroupCandidates.map(candidate => candidate.id && (
                             <CandidateDetail
                               key={candidate.id}
                               candidate={candidate}
+                              manuallyReviewed={hasManualReview(candidate)}
                               applicationMode={applicationModeForCandidate(candidate)}
                               actionError={dismissErrorForCandidate(candidate.id)}
                               actionPending={actionPending}
@@ -2261,7 +2295,7 @@ export function CharacterSettingReview() {
                 >
                   {reviewComplete
                     ? '원고 목록으로'
-                    : `검토 완료 · ${combinedPending}개 후보 · ${combinedAttention}개 확인 필요`}
+                    : remainingReviewLabel(reviewProgress)}
                 </ActionButton>
               </div>
             </>
@@ -2273,6 +2307,7 @@ export function CharacterSettingReview() {
           key={editCandidate.id}
           candidate={editCandidate}
           pending={updateMutation.isPending}
+          automaticPending={candidateAutomaticPending(editCandidate.id)}
           error={selectedCandidateUpdateError}
           onClose={() => {
             if (updateMutation.isPending) return;
@@ -2292,6 +2327,7 @@ export function CharacterSettingReview() {
           initialResolution="MATCH_EXISTING"
           groupCandidateCount={pendingGroupCandidates.length}
           pending={groupMatchMutation.isPending}
+          automaticPending={groupAutomaticPending}
           error={groupMatchError}
           onClose={() => {
             if (groupMatchMutation.isPending) return;
@@ -2308,6 +2344,7 @@ export function CharacterSettingReview() {
           candidate={matchTarget.candidate}
           initialResolution={matchTarget.resolution}
           pending={matchMutation.isPending}
+          automaticPending={candidateAutomaticPending(matchTarget.candidate.id)}
           error={selectedCandidateMatchError}
           onClose={() => {
             if (matchMutation.isPending) return;

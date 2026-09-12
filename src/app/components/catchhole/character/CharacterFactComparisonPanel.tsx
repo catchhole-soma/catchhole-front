@@ -8,6 +8,7 @@ import {
   type CharacterFactApplicationMode,
 } from './character-fact-comparison-policy';
 import './character-evidence.css';
+import { isReviewableComparisonFailure, REVIEWABLE_COMPARISON_FAILURE_MESSAGE } from '../../../lib/setting-review-progress';
 
 type CharacterFactComparisonStatus = NonNullable<SettingCandidateResponse['comparisonStatus']>;
 type CharacterFactOperation = NonNullable<SettingCandidateResponse['suggestedOperation']>;
@@ -131,7 +132,10 @@ export function CharacterFactComparisonPanel({
   onRetry,
 }: Props) {
   const comparisonStatus = candidate.comparisonStatus ?? 'NOT_REQUIRED';
-  const statusMeta = STATUS_META[comparisonStatus];
+  const reviewableFailure = isReviewableComparisonFailure(candidate);
+  const quotaInterrupted = comparisonStatus === 'FAILED' && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED';
+  const statusMeta = reviewableFailure ? { label: '검토 필요', color: C.warning }
+    : quotaInterrupted ? { label: '사용량 부족으로 중단', color: C.warning } : STATUS_META[comparisonStatus];
   const operation = candidate.suggestedOperation ?? null;
   const operationMeta = operation ? OPERATION_META[operation] : null;
   const active = comparisonStatus === 'PENDING' || comparisonStatus === 'PROCESSING';
@@ -221,8 +225,10 @@ export function CharacterFactComparisonPanel({
 
       {retryAvailable && (
         <div style={{ marginTop: 12 }}>
-          <div role="alert" style={{ color: comparisonStatus === 'FAILED' ? REVIEW_TEXT.danger : REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.65 }}>
-            {comparisonStatus === 'FAILED'
+          <div role="alert" style={{ color: comparisonStatus === 'FAILED' && !reviewableFailure && !quotaInterrupted ? REVIEW_TEXT.danger : REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.65 }}>
+            {reviewableFailure ? REVIEWABLE_COMPARISON_FAILURE_MESSAGE
+              : quotaInterrupted ? '사용량이 부족해 비교가 중단되었습니다. 사용량을 추가한 뒤 다시 비교해 주세요.'
+              : comparisonStatus === 'FAILED'
               ? '현재 설정과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
               : comparisonStatus === 'NOT_REQUIRED'
                 ? '이전 분석 후보라 현재 설정 비교가 아직 없습니다. 비교를 시작한 뒤 확정해 주세요.'

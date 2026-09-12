@@ -4,7 +4,8 @@ import { useLocation, useSearchParams } from 'react-router';
 export type SettingCandidateType = 'character' | 'world';
 
 interface CandidateTabCount {
-  reviewed: number;
+  directReview?: number;
+  processing?: number;
   total: number;
 }
 
@@ -136,7 +137,10 @@ export function SettingReviewTabs({
             <Icon size={16} />
             <span>{tab.label}</span>
             <span className="setting-review-tabs__count">
-              {tab.count.reviewed}/{tab.count.total}
+              {[
+                tab.count.directReview != null ? `직접 확인 ${tab.count.directReview}개` : `전체 ${tab.count.total}개`,
+                (tab.count.processing ?? 0) > 0 ? `분석 중 ${tab.count.processing}개` : null,
+              ].filter(Boolean).join(' · ')}
             </span>
           </button>
         );

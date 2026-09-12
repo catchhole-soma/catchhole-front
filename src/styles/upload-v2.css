@@ -91,7 +91,7 @@
   background: var(--ch-surface) !important;
   box-shadow: 0 5px 18px rgb(31 55 88 / 5%);
 }
-.episode-upload-page .mode-card:hover { border-color: var(--ch-primary) !important; transform: translateY(-2px); }
+.episode-upload-page .mode-card:not(:disabled):hover { border-color: var(--ch-primary) !important; transform: translateY(-2px); }
 .episode-upload-page .mode-card.is-selected { border: 2px solid var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 10px 24px rgb(8 126 242 / 10%); }
 .episode-upload-page .mode-card > div:nth-last-child(2) { color: var(--ch-ink) !important; }
 .episode-upload-page .mode-card > div:last-child { color: var(--ch-text-muted) !important; }
@@ -182,6 +182,7 @@
 .episode-processing-card__status.status-ANALYZED { background: rgb(15 159 122 / 9%); color: var(--ch-success) !important; }
 .episode-processing-card__status.status-FAILED { background: rgb(223 77 95 / 8%); color: var(--ch-danger) !important; }
 .episode-processing-card__status.status-UNAVAILABLE { background: rgb(217 131 36 / 9%); color: var(--ch-warning) !important; }
+.episode-processing-card__status.status-REANALYSIS_REQUIRED { background: rgb(217 131 36 / 9%); color: var(--ch-warning-ink) !important; }
 .episode-processing-card__unavailable { color: var(--ch-text-muted) !important; }
 .episode-processing-card__steps span { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; color: var(--ch-text-subtle) !important; }
 .episode-processing-card__steps span.is-complete { border-color: rgb(8 126 242 / 22%) !important; background: var(--ch-surface-accent) !important; color: var(--ch-primary) !important; }
@@ -199,3 +200,109 @@
   .episode-processing__actions > button,
   .episode-processing__actions > div { width: 100%; }
 }
+.theme-v2 .episode-analysis-mode {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid var(--ch-border);
+  border-radius: 8px;
+  min-width: 0;
+  color: var(--ch-text);
+}
+
+.theme-v2 .episode-analysis-mode legend {
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.theme-v2 .episode-analysis-mode label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.theme-v2 .episode-analysis-mode input {
+  flex: none;
+  margin-top: 4px;
+  accent-color: var(--ch-primary);
+}
+
+.theme-v2 .episode-analysis-mode strong,
+.theme-v2 .episode-analysis-mode small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.theme-v2 .episode-analysis-mode small {
+  color: var(--ch-text-muted);
+  margin-top: 3px;
+}
+
+.ordered-analysis-restart-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 310;
+  background: rgb(4 4 8 / 65%);
+}
+
+.ordered-analysis-restart {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 311;
+  width: min(500px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-md);
+  background: var(--ch-surface);
+  color: var(--ch-text);
+  box-shadow: var(--ch-shadow-float);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.ordered-analysis-restart h2 { font-size: 17px; font-weight: 700; color: var(--ch-ink); margin: 0 0 16px; }
+.ordered-analysis-restart p { margin: 0 0 12px; }
+.ordered-analysis-restart__error { color: var(--ch-danger-ink); }
+.ordered-analysis-restart__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.ordered-analysis-restart button { border: 1px solid var(--ch-border-strong); border-radius: 8px; padding: 9px 13px; background: var(--ch-surface); color: var(--ch-ink); cursor: pointer; }
+.ordered-analysis-restart .ordered-analysis-restart__confirm { background: var(--ch-primary-ink); color: var(--ch-primary-contrast); border-color: var(--ch-primary-ink); }
+.ordered-analysis-restart button:disabled { opacity: .55; cursor: default; }
+
+/* Upload policy and review choices stay readable without blocking single uploads. */
+.episode-upload-page .mode-card { font-family: inherit; }
+.episode-upload-page .mode-card:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 3px; }
+.episode-upload-page .mode-card:disabled { cursor: not-allowed; background: var(--ch-canvas) !important; box-shadow: none; }
+.episode-upload-page .mode-card:disabled > div { color: var(--ch-text-muted) !important; }
+.episode-upload-page .mode-card__badge { position: absolute; top: 10px; left: 12px; padding: 3px 8px; border-radius: var(--ch-radius-sm); background: var(--ch-primary-ink); color: var(--ch-primary-contrast); font-size: 11px; font-weight: 700; }
+.episode-upload-policy { margin: 16px 0 22px; color: var(--ch-text-muted); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.episode-upload-policy button, .episode-upload-pending-notice button { display: block; width: fit-content; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--ch-primary-ink); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.episode-upload-pending-notice { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; line-height: 1.7; }
+.theme-v2 .episode-upload-auto-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--ch-border);
+  background: var(--ch-surface-soft);
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.episode-upload-auto-notice__icon { flex: none; margin-top: 3px; color: var(--ch-primary-ink); }
+.episode-upload-auto-notice__content { display: grid; min-width: 0; gap: 6px; }
+.episode-upload-auto-notice__content strong { color: var(--ch-ink); font-size: inherit; font-weight: 700; }
+.episode-upload-auto-notice__content p { margin: 0; font-size: inherit; }
+.episode-upload-character-count { margin: 0 0 16px; color: var(--ch-text-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
