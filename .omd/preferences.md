@@ -381,3 +381,18 @@ source_context: "체험할 때 따라가기 UI 쪽으로 바로 내려가지 말
 ```
 
 체험 화면은 위에서부터 읽으며 사용자가 직접 내려가게 한다. 안내·강조 버튼을 보여주려는 자동 스크롤과 초기 포커스 이동은 하지 않는다. 화면 회전과 안내 내용 변경도 읽는 위치를 강제로 바꾸지 않는다.
+
+## 2026-09-10 — author-language-and-one-direct-review-count
+
+```omd-meta
+id: pref_gh180_author_review_20260910
+timestamp: 2026-09-10T05:56:40Z
+scope: interaction
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "사용자가 자동 반영 결과의 단일 직접 확인 집계와 root 포함 개발자식 안내 제거를 승인함"
+```
+
+분석 결과는 반영됨·제외됨·직접 확인을 중심으로 안내하고, 진행 중인 분석은 따로 보여 준다. 개발자 용어가 아니라 작가가 판단할 의미와 다음 행동으로 오류·모달·판단 근거를 설명한다. 원문·고유명사·설정값은 바꾸지 않는다.
