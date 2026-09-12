@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useLocation,
   useNavigate as useRouterNavigate,
@@ -14,6 +14,7 @@ import {
   CircleCheckBig,
   FileText,
   Files,
+  Info,
   RefreshCw,
   Upload,
 } from 'lucide-react';
@@ -21,7 +22,10 @@ import {
   createAnalysisJobMutation as createAnalysisJobMutationOptions,
   detectEpisodesMutation as detectEpisodesMutationOptions,
   getAnalysisJobOptions,
+  getAnalysisBatchesQueryKey,
   getEpisodesOptions,
+  getEpisodesQueryKey,
+  getEpisodeUploadPolicyOptions,
   getSettingBooksOptions,
   getWorkOptions,
   getWorldSettingCandidatesOptions,
@@ -46,15 +50,18 @@ import {
 } from '../../lib/ai-token-quota';
 import { validateManuscriptFile } from '../../lib/fileValidation';
 import { trackMetaEpisodeUploaded } from '../../lib/meta-pixel';
+import { canResumeOrderedAnalysis, isBlockedOrderedAnalysis, isCompletedOrderedAnalysis, isInvalidatedAnalysis, isOrderedAnalysis } from '../../lib/ordered-analysis';
 import { C } from './constants';
 import { FileDropArea } from './S1Dashboard';
 import { UserMenu } from './UserMenu';
 import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
+import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
+type ReviewMode = NonNullable<AnalysisJobCreateRequest['reviewMode']>;
 type EpisodeUploadType = EpisodeDetectionRequest['uploadType'];
 
 type EpisodeConfirmation = {
@@ -132,6 +139,8 @@ function errorMessage(error: unknown, fallback: string): string {
       return '회차 번호는 원문 순서대로 중복 없이 오름차순이어야 합니다.';
     case 'UPLOAD_SETTING_BOOK_DUPLICATED':
       return '같은 이름의 설정집이 이미 업로드되어 있습니다.';
+    case 'UPLOAD_CHARACTER_LIMIT_EXCEEDED':
+    case 'UPLOAD_MULTI_EPISODE_NOT_ENABLED':
     case 'UPLOAD_FILE_TYPE_NOT_SUPPORTED':
     case 'UPLOAD_FILE_TOO_LARGE':
     case 'UPLOAD_FILE_EMPTY':
@@ -510,6 +519,7 @@ function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodePr
 }
 
 export default function SEpisodeUpload() {
+  const queryClient = useQueryClient();
   const navigate = useAppNavigate();
   const routerNavigate = useRouterNavigate();
   const location = useLocation();
@@ -568,6 +578,9 @@ export default function SEpisodeUpload() {
     ? 'EPISODE_VALIDATION'
     : 'SETTING_EXTRACTION';
   const [analysisJobType, setAnalysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
+  const [reviewMode, setReviewMode] = useState<ReviewMode>('AUTOMATIC');
+  const [uploadCharactersByType, setUploadCharactersByType] = useState<Partial<Record<EpisodeUploadType, number>>>({});
+  const [characterLimitErrors, setCharacterLimitErrors] = useState<Partial<Record<EpisodeUploadType, string>>>({});
   const [includeSettings, setIncludeSettings] = useState(false);
   const [settingsFile, setSettingsFile] = useState<File | null>(null);
   const [settingsFileError, setSettingsFileError] = useState<string | null>(null);
@@ -582,6 +595,9 @@ export default function SEpisodeUpload() {
   );
   const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
   const [batchRetryPending, setBatchRetryPending] = useState(false);
+  const [orderedRestartOpen, setOrderedRestartOpen] = useState(false);
+  const [orderedRestartError, setOrderedRestartError] = useState<string | null>(null);
+  const orderedRestartInFlight = useRef(false);
   const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
   const detectionRequestSequence = useRef(0);
@@ -673,6 +689,21 @@ export default function SEpisodeUpload() {
     setSelectedWorkInfo,
   ]);
 
+  const uploadPolicyQuery = useQuery({
+    ...getEpisodeUploadPolicyOptions({ path: { workId } }),
+    enabled: UUID_PATTERN.test(workId) && step !== 'processing',
+    retry: false,
+  });
+  const uploadPolicy = uploadPolicyQuery.data?.data;
+  const maxUploadCharacters = uploadPolicy?.maxUploadCharacters ?? 250_000;
+  const uploadCharacters = uploadType ? uploadCharactersByType[uploadType] : undefined;
+  const characterLimitError = uploadType
+    ? characterLimitErrors[uploadType] ?? (uploadCharacters !== undefined && uploadCharacters > maxUploadCharacters
+      ? `원고 전체는 ${maxUploadCharacters.toLocaleString()}자까지 업로드할 수 있습니다. 현재 ${uploadCharacters.toLocaleString()}자입니다.`
+      : null)
+    : null;
+  const automaticReview = uploadType !== null && (uploadType !== 'SINGLE_EPISODE' || reviewMode === 'AUTOMATIC');
+
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId } }),
     enabled: UUID_PATTERN.test(workId),
@@ -709,7 +740,13 @@ export default function SEpisodeUpload() {
   const detectEpisodesMutation = useMutation(detectEpisodesMutationOptions());
   const uploadEpisodesMutation = useMutation(uploadEpisodesMutationOptions());
   const uploadSettingBookMutation = useMutation(uploadSettingBookMutationOptions());
-  const createAnalysisJobMutation = useMutation(createAnalysisJobMutationOptions());
+  const createAnalysisJobMutation = useMutation({
+    ...createAnalysisJobMutationOptions(),
+    onSuccess: (_response, variables) => Promise.all([
+      queryClient.invalidateQueries({ queryKey: getEpisodesQueryKey({ path: variables.path }) }),
+      queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: variables.path }) }),
+    ]),
+  });
   const retryAnalysisJobMutation = useMutation(retryAnalysisJobMutationOptions());
   const submitting = uploadEpisodesMutation.isPending
     || uploadSettingBookMutation.isPending
@@ -721,7 +758,10 @@ export default function SEpisodeUpload() {
       enabled: step === 'processing' && UUID_PATTERN.test(workId),
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
-        const status = query.state.data?.data?.status;
+        const job = query.state.data?.data;
+        const status = job?.status;
+        // 같은 Job 재개와 완료 뒤 사용자 변경에 따른 무효화를 계속 확인한다.
+        if (job && isOrderedAnalysis(job) && !isInvalidatedAnalysis(job) && status !== 'CANCELED') return 3_000;
         return status === 'SUCCEEDED' || status === 'FAILED' || status === 'CANCELED'
           ? false
           : 3_000;
@@ -757,11 +797,17 @@ export default function SEpisodeUpload() {
 
   const currentAnalysisJobsLoaded = currentAnalysisJobIds.length > 0
     && currentAnalysisJobs.length === currentAnalysisJobIds.length;
-  const analysisRunning = currentAnalysisJobs.some(
-    job => job.status === 'PENDING' || job.status === 'RUNNING',
+  const orderedAnalysis = currentAnalysisJobs.some(isOrderedAnalysis);
+  const automaticAnalysis = currentAnalysisJobs.length > 0 && currentAnalysisJobs.every(job => job.reviewMode === 'AUTOMATIC');
+  const analysisInvalidated = currentAnalysisJobs.some(isInvalidatedAnalysis);
+  const hasActiveCurrentJobs = currentAnalysisJobs.some(job => job.status === 'PENDING' || job.status === 'RUNNING');
+  const blockedOrderedJobs = currentAnalysisJobs.filter(job => isBlockedOrderedAnalysis(job, currentAnalysisJobs));
+  const analysisRunning = !analysisInvalidated && currentAnalysisJobs.some(
+    job => job.status === 'RUNNING'
+      || job.status === 'PENDING' && !isBlockedOrderedAnalysis(job, currentAnalysisJobs),
   );
   const tokenInterruptedAnalysisJobs = currentAnalysisJobs.filter(job => (
-    job.status === 'FAILED'
+    !isOrderedAnalysis(job) && job.status === 'FAILED'
     && job.failureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
     && job.tokenInterruptedAfterExtraction
   ));
@@ -769,19 +815,24 @@ export default function SEpisodeUpload() {
     job.status === 'FAILED' && job.failureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
   ));
   const retryableFailedAnalysisJobIds = currentAnalysisJobs.flatMap(job =>
-    job.status === 'FAILED'
+    (isOrderedAnalysis(job) ? canResumeOrderedAnalysis(job, currentAnalysisJobs) : job.status === 'FAILED')
       && job.id
+      && !analysisInvalidated
       && !job.tokenInterruptedAfterExtraction
       && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
       ? [job.id]
       : []);
   const analysisCanceled = currentAnalysisJobsLoaded
+    && !analysisInvalidated
     && !analysisRunning
     && currentAnalysisJobs.some(job => job.status === 'CANCELED');
+  const hasUnfinishedOrderedStorage = currentAnalysisJobs.some(job => isOrderedAnalysis(job)
+    && job.status === 'SUCCEEDED' && !isCompletedOrderedAnalysis(job));
   const analysisFailed = currentAnalysisJobsLoaded
+    && !analysisInvalidated
     && !analysisRunning
     && !analysisCanceled
-    && retryableFailedAnalysisJobIds.length > 0;
+    && (retryableFailedAnalysisJobIds.length > 0 || hasUnfinishedOrderedStorage);
   const analysisFailureTitle = progressEpisodes.length <= 1
     ? '회차 분석에 실패했습니다'
     : retryableFailedAnalysisJobIds.length === currentAnalysisJobs.length
@@ -795,8 +846,10 @@ export default function SEpisodeUpload() {
     && !analysisUnavailable
     && tokenInterruptedAnalysisJobs.length > 0;
   const analysisSucceeded = currentAnalysisJobsLoaded
+    && !analysisInvalidated
     && !analysisUnavailable
-    && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED');
+    && currentAnalysisJobs.every(job => job.status === 'SUCCEEDED'
+      && (!isOrderedAnalysis(job) || isCompletedOrderedAnalysis(job)));
   const analysisEpisodeStateChanged = analysisSucceeded
     && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
   const statusQueryFailed = jobQueries.some(query => query.isError);
@@ -934,6 +987,8 @@ export default function SEpisodeUpload() {
   ): Promise<EpisodeDetectionResult> => {
     const requestSequence = ++detectionRequestSequence.current;
     setRequestError(null);
+    setCharacterLimitErrors(current => ({ ...current, [nextUploadType]: undefined }));
+    setUploadCharactersByType(current => ({ ...current, [nextUploadType]: undefined }));
     try {
       const response = await detectEpisodesMutation.mutateAsync({
         path: { workId },
@@ -946,6 +1001,9 @@ export default function SEpisodeUpload() {
       if (requestSequence !== detectionRequestSequence.current) {
         return { episodeConfirmations: [], error: null };
       }
+      setUploadCharactersByType(current => ({
+        ...current, [nextUploadType]: response.data?.totalUploadCharacters,
+      }));
       const nextEpisodeConfirmations = toEpisodeConfirmations(
         response.data?.detectedEpisodes,
       );
@@ -962,7 +1020,10 @@ export default function SEpisodeUpload() {
       if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
         setSelectedDetectionOrder(null);
       }
-      setRequestError(errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.'));
+      const message = errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.');
+      if (toApiError(error)?.code === 'UPLOAD_CHARACTER_LIMIT_EXCEEDED') {
+        setCharacterLimitErrors(current => ({ ...current, [nextUploadType]: message }));
+      } else setRequestError(message);
       return { episodeConfirmations: [], error };
     }
   };
@@ -1036,6 +1097,7 @@ export default function SEpisodeUpload() {
     if (submitting) return;
     detectionRequestSequence.current += 1;
     setUploadType(nextUploadType);
+    if (nextUploadType !== uploadType) setReviewMode('AUTOMATIC');
     setRequestError(null);
     if (!singleFile) setSingleFileError(null);
     if (!bulkFile) setBulkFileError(null);
@@ -1047,12 +1109,16 @@ export default function SEpisodeUpload() {
     try {
       const response = await createAnalysisJobMutation.mutateAsync({
         path: { workId },
-        body: { jobType: 'SETTING_EXTRACTION', batchId },
+        body: {
+          jobType: 'SETTING_EXTRACTION', batchId,
+          reviewMode: automaticReview ? 'AUTOMATIC' : 'MANUAL',
+          ...(automaticReview ? { analysisMode: 'ORDERED_PROVISIONAL' as const } : {}),
+        },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
-      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      if (analysisJobIds.length === 0) throw new Error('분석 시작을 확인하지 못했습니다. 다시 시도해 주세요.');
       setTrackedAnalysisJobIds(analysisJobIds);
       setCurrentAnalysisJobIds(analysisJobIds);
       persistAnalysisRoute(batchId, analysisJobIds, analysisJobIds);
@@ -1078,7 +1144,7 @@ export default function SEpisodeUpload() {
   };
 
   const submitEpisodeUpload = async () => {
-    if (!uploadType) return;
+    if (!uploadType || characterLimitError) return;
     setRequestError(null);
     const sourceEpisodeFiles = uploadType === 'SINGLE_EPISODE'
       ? (singleFile ? [singleFile] : [])
@@ -1125,7 +1191,7 @@ export default function SEpisodeUpload() {
 
     try {
       const episodeUpload = episodeResult.value.data;
-      if (!episodeUpload?.batchId) throw new Error('업로드 배치 ID가 응답에 없습니다.');
+      if (!episodeUpload?.batchId) throw new Error('업로드 결과를 확인하지 못했습니다. 다시 시도해 주세요.');
       trackMetaEpisodeUploaded();
       setEpisodeUploadBatchId(episodeUpload.batchId);
       setUploadedEpisodes(episodeUpload.createdEpisodes ?? []);
@@ -1171,16 +1237,24 @@ export default function SEpisodeUpload() {
         }
         const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
         if (responseJobIds.length === 0) {
-          retryError ??= new Error('재시도 작업 ID가 응답에 없습니다.');
+          retryError ??= new Error('분석 재시작을 확인하지 못했습니다. 다시 시도해 주세요.');
           return;
         }
         successfullyRetriedJobIds.add(failedAnalysisJobId);
         retryAnalysisJobIds.push(...responseJobIds);
+        responseJobs.forEach(job => {
+          if (!job.id) return;
+          queryClient.setQueryData(
+            getAnalysisJobOptions({ path: { workId, analysisJobId: job.id } }).queryKey,
+            { ...response.value, data: job },
+          );
+        });
       });
 
       if (retryAnalysisJobIds.length > 0) {
         const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
-          analysisJobId => !successfullyRetriedJobIds.has(analysisJobId),
+          analysisJobId => !successfullyRetriedJobIds.has(analysisJobId)
+            || retryAnalysisJobIds.includes(analysisJobId),
         );
         const nextTrackedAnalysisJobIds = [...new Set([
           ...trackedAnalysisJobIds,
@@ -1197,6 +1271,9 @@ export default function SEpisodeUpload() {
           nextTrackedAnalysisJobIds,
           nextCurrentAnalysisJobIds,
         );
+        await Promise.all(nextCurrentAnalysisJobIds.map(analysisJobId => queryClient.invalidateQueries({
+          queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId } }).queryKey,
+        })));
       }
 
       if (retryError) {
@@ -1217,8 +1294,46 @@ export default function SEpisodeUpload() {
     }
   };
 
+  const restartInvalidatedAnalysis = async () => {
+    if (!analysisInvalidated || !episodeUploadBatchId || orderedRestartInFlight.current || hasActiveCurrentJobs
+      || routeWork?.lifecycleStatus === 'PURGING') return;
+    orderedRestartInFlight.current = true;
+    setOrderedRestartError(null);
+    try {
+      const response = await createAnalysisJobMutation.mutateAsync({
+        path: { workId },
+        body: { jobType: 'SETTING_EXTRACTION', batchId: episodeUploadBatchId, analysisMode: 'ORDERED_PROVISIONAL', reviewMode: 'AUTOMATIC' },
+      });
+      const newJobs = response.data ?? [];
+      const newIds = [...new Set(newJobs.flatMap(job => job.id ? [job.id] : []))];
+      if (newIds.length === 0) throw new Error('새 분석 시작을 확인하지 못했습니다. 다시 시도해 주세요.');
+      newJobs.forEach(job => {
+        if (job.id) queryClient.setQueryData(
+          getAnalysisJobOptions({ path: { workId, analysisJobId: job.id } }).queryKey,
+          { ...response, data: job },
+        );
+      });
+      const trackedIds = [...new Set([...trackedAnalysisJobIds, ...newIds])];
+      setTrackedAnalysisJobIds(trackedIds);
+      setCurrentAnalysisJobIds(newIds);
+      setUploadedEpisodes([]);
+      persistAnalysisRoute(episodeUploadBatchId, trackedIds, newIds);
+      setOrderedRestartOpen(false);
+    } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
+        setOrderedRestartOpen(false);
+      } else {
+        setOrderedRestartError(errorMessage(error, '새 분석을 시작하지 못했습니다. 기존 분석 기록은 유지됩니다.'));
+      }
+    } finally {
+      orderedRestartInFlight.current = false;
+    }
+  };
+
   const singleNo = Number.parseInt(episodeNo, 10);
   const singleValid = Boolean(singleFile)
+    && !singleFileError
     && Number.isInteger(singleNo)
     && singleNo >= 1
     && !existingEpisodeNos.has(singleNo)
@@ -1244,6 +1359,7 @@ export default function SEpisodeUpload() {
     || Boolean(settingsFile && !settingsModeError && settingBooksQuery.isSuccess);
   const canSubmit = UUID_PATTERN.test(workId)
     && settingsValid
+    && !characterLimitError
     && !detectEpisodesMutation.isPending
     && !submitting
     && (uploadType === 'SINGLE_EPISODE' ? singleValid
@@ -1298,8 +1414,9 @@ export default function SEpisodeUpload() {
                 <ModeCard
                   icon={<FileText size={22} />}
                   title="단일 회차 업로드"
-                  desc="가장 정확한 설정 분석을 위해 한 회차씩 업로드하는 것을 권장해요."
+                  desc="설정 기반을 차근차근 쌓도록 한 회차씩 업로드하는 것을 권장해요."
                   badge="추천"
+                  disabled={submitting}
                   color={C.primary}
                   selected={uploadType === 'SINGLE_EPISODE'}
                   onSelect={() => selectUploadType('SINGLE_EPISODE')}
@@ -1309,6 +1426,7 @@ export default function SEpisodeUpload() {
                   title="다회차 - 단일 파일"
                   desc="명시적인 회차 제목 행을 기준으로 분리합니다"
                   color={C.success}
+                  disabled={submitting}
                   selected={uploadType === 'MULTI_EPISODE_SINGLE_FILE'}
                   onSelect={() => selectUploadType('MULTI_EPISODE_SINGLE_FILE')}
                 />
@@ -1317,10 +1435,26 @@ export default function SEpisodeUpload() {
                   title="다회차 - 여러 파일"
                   desc="TXT 파일마다 한 회차로 등록합니다"
                   color={C.warning}
+                  disabled={submitting}
                   selected={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
                   onSelect={() => selectUploadType('MULTI_EPISODE_MULTI_FILE')}
                 />
               </div>
+
+              {uploadPolicyQuery.isError && (
+                <div className="episode-upload-policy" role="status">
+                  미확정 설정 정보를 불러오지 못했습니다. 업로드는 계속할 수 있습니다.
+                  <button type="button" onClick={() => void uploadPolicyQuery.refetch()}>미확정 설정 다시 확인</button>
+                </div>
+              )}
+              {uploadPolicy && (uploadPolicy.pendingCharacterCandidateCount + uploadPolicy.pendingWorldSettingCandidateCount > 0) && (
+                <div className="episode-upload-alert episode-upload-alert--warning episode-upload-pending-notice" role="status">
+                  <strong>아직 검토하지 않은 설정이 있습니다</strong>
+                  <span>캐릭터 {uploadPolicy.pendingCharacterCandidateCount}개 · 세계관 {uploadPolicy.pendingWorldSettingCandidateCount}개</span>
+                  <span>먼저 검토·확정하면 새 회차를 더 정확하게 분석하는 데 도움이 됩니다. 지금 업로드해도 괜찮습니다.</span>
+                  <button type="button" onClick={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`, 'dissolve')}>분석 결과에서 확인</button>
+                </div>
+              )}
 
               {uploadType === 'SINGLE_EPISODE' && (
                 <div className="episode-upload-form-section" style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
@@ -1441,6 +1575,36 @@ export default function SEpisodeUpload() {
                     onChange={setAnalysisJobType}
                     disabled={submitting}
                   />
+                  {uploadType === 'SINGLE_EPISODE' ? (
+                    <fieldset className="episode-analysis-mode" disabled={submitting}>
+                      <legend>설정 반영 방식</legend>
+                      <label>
+                        <input type="radio" name="review-mode" value="AUTOMATIC"
+                          checked={reviewMode === 'AUTOMATIC'} onChange={() => setReviewMode('AUTOMATIC')} />
+                        <span><strong>AI 판단으로 설정 자동 반영</strong>
+                          <small>판단이 명확한 설정은 작품에 자동 저장하고, 인물이나 내용이 불분명한 설정만 검토합니다. 기본 방식입니다.</small></span>
+                      </label>
+                      <label>
+                        <input type="radio" name="review-mode" value="MANUAL"
+                          checked={reviewMode === 'MANUAL'} onChange={() => setReviewMode('MANUAL')} />
+                        <span><strong>모든 설정 직접 검토</strong>
+                          <small>분석 결과를 직접 확인하고 확정한 설정만 작품에 저장합니다.</small></span>
+                      </label>
+                    </fieldset>
+                  ) : (
+                    <div className="episode-upload-alert episode-upload-auto-notice" role="note">
+                      <Info className="episode-upload-auto-notice__icon" size={16} aria-hidden="true" />
+                      <div className="episode-upload-auto-notice__content">
+                        <strong>회차 순서대로 분석하고 설정을 자동 반영합니다</strong>
+                        <p>앞 회차의 설정을 저장한 뒤 다음 회차를 분석합니다. 아직 확정하지 않은 제안도 참고합니다.</p>
+                        <p>인물이나 내용이 불분명하거나 비교에 실패한 설정은 분석 후 직접 검토할 수 있습니다.</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="episode-upload-character-count" role="status">
+                    원고 전체 합계 {uploadCharacters !== undefined ? `${uploadCharacters.toLocaleString()} / ` : ''}{maxUploadCharacters.toLocaleString()}자 이하 · 공백 포함
+                  </div>
+                  {characterLimitError && <ErrorBanner message={characterLimitError} />}
                   <SettingsFileInput
                     include={includeSettings}
                     setInclude={include => {
@@ -1614,7 +1778,9 @@ export default function SEpisodeUpload() {
           {step === 'processing' && (
             <div className="episode-processing">
               <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
-                {analysisSucceeded
+                {analysisInvalidated
+                  ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
+                  : analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
                   : analysisCanceled
                     ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
@@ -1626,18 +1792,25 @@ export default function SEpisodeUpload() {
                       ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
-                  {analysisSucceeded ? '분석이 완료되었습니다'
-                    : analysisCanceled ? '작품 삭제로 분석이 취소되었습니다'
-                    : analysisFailed ? analysisFailureTitle
+                  {analysisInvalidated ? '변경된 내용으로 새 분석이 필요합니다'
+                    : analysisSucceeded ? '분석이 완료되었습니다'
+                    : analysisCanceled ? (orderedAnalysis ? '순차 분석이 중단되었습니다' : '작품 삭제로 분석이 취소되었습니다')
+                    : analysisFailed ? (orderedAnalysis ? '순차 분석이 중단되었습니다' : analysisFailureTitle)
                       : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
                 </div>
                 <div className="episode-processing__description" style={{ color: C.t2, fontSize: 13 }}>
                   {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+                  {automaticAnalysis ? ' · 회차별 설정 자동 반영' : orderedAnalysis && ' · 앞 회차 제안을 이어서 분석'}
                 </div>
               </div>
 
+              {analysisSucceeded && automaticAnalysis && (
+                <div className="episode-upload-alert episode-upload-alert--success" role="status">
+                  회차 분석과 설정 자동 반영이 끝났습니다. 일부 설정이 확인 대기로 남아 있어도 다음 회차 분석은 계속됩니다. 남은 설정은 결과에서 확인할 수 있습니다.
+                </div>
+              )}
               {settingUploadError && (
                 <ErrorBanner message={settingUploadError} onRetry={() => void uploadSelectedSettingBook()} />
               )}
@@ -1658,11 +1831,27 @@ export default function SEpisodeUpload() {
                     : undefined}
                 />
               )}
+              {analysisInvalidated && (
+                <div className="episode-upload-alert episode-upload-alert--warning" role="status">
+                  원문이나 검토 내용이 바뀌어 이 분석을 이어갈 수 없습니다. 변경된 내용을 확인한 뒤 이 업로드 묶음의 새 순차 분석을 시작할 수 있습니다. 이전 분석 기록은 유지됩니다.
+                </div>
+              )}
               {analysisFailed && (
-                <ErrorBanner message="분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요." />
+                <ErrorBanner message={orderedAnalysis
+                  ? retryableFailedAnalysisJobIds.length > 0
+                    ? '완료된 추출과 비교 결과는 유지됩니다. 중단된 회차를 재개하면 대기 중인 뒤 회차도 순서대로 이어집니다.'
+                    : '분석 결과의 저장 완료를 확인하지 못했습니다. 완료된 결과는 유지됩니다. 잠시 후 상태를 다시 확인해 주세요.'
+                  : '분석 중 문제가 발생했습니다. 실패한 회차를 다시 시도해주세요.'} />
+              )}
+              {!analysisInvalidated && blockedOrderedJobs.length > 0 && (
+                <div className="episode-upload-alert episode-upload-alert--warning" role="status">
+                  앞 회차가 중단되어 뒤의 {blockedOrderedJobs.length}개 회차가 기다리고 있습니다.
+                </div>
               )}
               {analysisCanceled && (
-                <ErrorBanner message="작품 영구 삭제가 시작되어 분석이 취소되었습니다. 이 분석은 다시 시도할 수 없습니다." />
+                <ErrorBanner message={orderedAnalysis
+                  ? '앞 회차가 취소되어 후속 분석을 진행할 수 없습니다. 원고 목록에서 현재 상태를 확인해주세요.'
+                  : '작품 영구 삭제가 시작되어 분석이 취소되었습니다. 이 분석은 다시 시도할 수 없습니다.'} />
               )}
               {analysisPartiallyInterrupted && (
                 <div className="episode-upload-alert episode-upload-alert--warning" role="status">
@@ -1697,6 +1886,25 @@ export default function SEpisodeUpload() {
               )}
               <div className="episode-processing__list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {progressEpisodes.map(episode => {
+                  const episodeJob = currentAnalysisJobs.find(job => job.episodeId === episode.id
+                    || job.episodes?.some(item => item.id === episode.id));
+                  const orderedStatusLabel = episodeJob && isOrderedAnalysis(episodeJob)
+                    ? isInvalidatedAnalysis(episodeJob) ? '새 분석 필요'
+                      : isBlockedOrderedAnalysis(episodeJob, currentAnalysisJobs) ? '앞 회차 재개 대기'
+                        : episodeJob.analysisRun?.journalStatus === 'INCOMPLETE' ? '비교 미완료'
+                          : episodeJob.status === 'PENDING' ? '순서 대기' : null
+                    : null;
+                  const statusTone = orderedStatusLabel
+                    ? isInvalidatedAnalysis(episodeJob!) ? 'REANALYSIS_REQUIRED'
+                      : episodeJob?.analysisRun?.journalStatus === 'INCOMPLETE' ? 'FAILED' : 'UPLOADED'
+                    : null;
+                  const automaticSavePending = episodeJob?.reviewMode === 'AUTOMATIC'
+                    && episode.status === 'ANALYZED' && episodeJob.status === 'RUNNING';
+                  const automaticStatusLabel = episodeJob?.reviewMode === 'AUTOMATIC' && episode.status === 'ANALYZED'
+                    ? episodeJob.status === 'SUCCEEDED' && episodeJob.analysisRun?.journalStatus === 'SEALED'
+                      ? '설정 자동 반영 완료'
+                      : episodeJob.status === 'RUNNING' ? '설정 비교·반영 중' : null
+                    : null;
                   const status = toProcessingStatus(episode.status);
                   const sequenceIndex = status === null || status === 'FAILED'
                     ? -1
@@ -1707,7 +1915,7 @@ export default function SEpisodeUpload() {
                         <div className="episode-processing-card__title" style={{ fontSize: 14, fontWeight: 700 }}>
                           {episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}
                         </div>
-                        <span className={`episode-processing-card__status status-${status ?? 'UNAVAILABLE'}`} style={{
+                        <span className={`episode-processing-card__status status-${statusTone ?? (automaticSavePending ? 'ANALYZING' : status) ?? 'UNAVAILABLE'}`} style={{
                           color: status === null
                             ? C.warning
                             : status === 'FAILED'
@@ -1715,9 +1923,9 @@ export default function SEpisodeUpload() {
                               : status === 'ANALYZED' ? C.success : C.t2,
                           fontSize: 12, fontWeight: 700,
                         }}>
-                          {status === null
+                          {orderedStatusLabel ?? automaticStatusLabel ?? (status === null
                             ? '사용할 수 없음'
-                            : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status]}
+                            : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status])}
                         </span>
                       </div>
                       {status === null ? (
@@ -1746,7 +1954,20 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
-                  {analysisSucceeded || (analysisPartiallyInterrupted
+                  {analysisInvalidated ? (
+                    <div className="episode-upload-actions">
+                      <SecondaryButton onClick={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}>
+                        원고 목록에서 확인
+                      </SecondaryButton>
+                      <PrimaryButton disabled={!episodeUploadBatchId || hasActiveCurrentJobs || routeWork?.lifecycleStatus === 'PURGING'} onClick={() => {
+                        setOrderedRestartError(null);
+                        setOrderedRestartOpen(true);
+                        void episodesQuery.refetch();
+                      }}>
+                        새 순차 분석
+                      </PrimaryButton>
+                    </div>
+                  ) : analysisSucceeded || (analysisPartiallyInterrupted
                     && !analysisFailed
                     && !analysisUnavailable) ? (
                     <PrimaryButton
@@ -1770,20 +1991,24 @@ export default function SEpisodeUpload() {
                       }}>
                       {routeWork?.lifecycleStatus === 'PURGING'
                         ? '작품 삭제 중에는 후보를 검토할 수 없습니다'
-                        : analysisPartiallyInterrupted ? '남은 비교 확인' : '설정 후보 검토'}
+                        : analysisPartiallyInterrupted ? '남은 비교 확인' : automaticAnalysis ? '확인이 필요한 설정 검토' : '설정 후보 검토'}
                     </PrimaryButton>
                   ) : analysisCanceled ? (
                     <PrimaryButton disabled onClick={() => undefined}>
                       분석이 취소되었습니다
                     </PrimaryButton>
-                  ) : analysisFailed ? (
+                  ) : analysisFailed && retryableFailedAnalysisJobIds.length > 0 ? (
                     <PrimaryButton
                       disabled={batchRetryPending || routeWork?.lifecycleStatus === 'PURGING'}
                       onClick={() => void retryFailedAnalysisJobs()}
                     >
                       {routeWork?.lifecycleStatus === 'PURGING'
                         ? '작품 삭제 중에는 재시도할 수 없습니다'
-                        : batchRetryPending ? '재시도 요청 중...' : '실패 회차 다시 시도'}
+                        : batchRetryPending ? '재시도 요청 중...' : orderedAnalysis ? '중단된 회차부터 재개' : '실패 회차 다시 시도'}
+                    </PrimaryButton>
+                  ) : hasUnfinishedOrderedStorage ? (
+                    <PrimaryButton disabled onClick={() => undefined}>
+                      설정 저장 상태 확인 필요
                     </PrimaryButton>
                   ) : analysisUnavailable ? (
                     <PrimaryButton disabled onClick={() => undefined}>
@@ -1802,6 +2027,19 @@ export default function SEpisodeUpload() {
           )}
         </div>
       </main>
+      {orderedRestartOpen && (
+        <OrderedAnalysisRestartDialog
+          episodes={existingEpisodes.filter(episode => episode.batchId === episodeUploadBatchId && episode.status !== 'ARCHIVED')
+            .sort((left, right) => (left.episodeNo ?? 0) - (right.episodeNo ?? 0))}
+          loading={episodesQuery.isFetching}
+          loadFailed={episodesQuery.isError}
+          submitting={createAnalysisJobMutation.isPending}
+          error={orderedRestartError}
+          onReload={() => { void episodesQuery.refetch(); }}
+          onClose={() => setOrderedRestartOpen(false)}
+          onConfirm={() => { void restartInvalidatedAnalysis(); }}
+        />
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@
 <!-- design-md:claim scope kind=product-surface lang=en -->
 ### Scope
 
-CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence and author confirmation. This contract also defines the explicitly scoped completion and comparison-choice behavior of `/setting-review`; other authenticated workspace routes remain outside its scope.
+CatchHole `/landing` is the public marketing surface for web-novel authors and editors evaluating a product that turns uploaded episode manuscripts into AI-extracted character and world-setting candidates with source evidence, automatic application, and author review where needed. This contract also defines the explicitly scoped completion and comparison-choice behavior of `/setting-review`; other authenticated workspace routes remain outside its scope.
 <!-- design-md:claim-end -->
 
 <!-- design-md:claim primary-tasks kind=user-outcomes count=3 lang=en -->
@@ -147,7 +147,7 @@ Required.
 
 ### Component: setting-review-completion-action
 
-**Semantics:** Leaves `/setting-review` only after both character and world-setting review summaries are available and no candidate still needs review or attention.
+**Semantics:** Leaves `/setting-review` only after both character and world-setting review summaries are available and no candidate still needs direct review or is being analyzed.
 
 - Anatomy: label, remaining-item count
 - Variants: character tab, world-setting tab
@@ -162,7 +162,7 @@ Required.
 | default | applicable |  |
 | hover | applicable |  |
 | focus-visible | applicable |  |
-| disabled | applicable | The action stays disabled until both review summaries load successfully and pending or attention-required candidates reach zero. |
+| disabled | applicable | The action stays disabled until both review summaries load successfully and direct-review and processing candidates reach zero. |
 | loading | applicable | The disabled action reflects that one or both aggregate queries are still loading. |
 | error | not-applicable | A summary-query failure keeps the action disabled instead of becoming a button error state. |
 | success | not-applicable | Completion replaces the review route with the selected work's manuscript list. |
@@ -175,7 +175,7 @@ Required.
 
 - Accordion transitions must preserve keyboard focus, expose the active step, and honor reduced-motion preferences.
 
-- Enable the setting-review completion action only when both character and world-setting summaries loaded successfully and all pending or attention-required counts are zero; otherwise keep it disabled and show the remaining count.
+- Enable the setting-review completion action only when both character and world-setting summaries loaded successfully and all direct-review and processing counts are zero; otherwise keep it disabled and show the remaining count.
 
 - On completion, replace the current route with `/dashboard?workId={workId}&nav=manuscripts` from either review tab, including direct URL entry.
 
@@ -264,3 +264,19 @@ Record, review, and validate changes before adoption.
 - Record new owner corrections in `.omd/preferences.md`, review them, and fold them through the Core v2 graph before clearing pending status.
 
 - Update operational docs and the Pencil source whenever an approved landing flow or capability description changes.
+
+### Review results and language
+
+- Use shared batch-wide counts for applied, excluded, direct review, and analyzing. Each candidate belongs to one count. Saved drafts remain in direct review until confirmed or excluded.
+- Present applied, excluded, and direct review as the three primary summary cards. Keep analyzing in a separate status line; candidate-type tabs and the disabled completion action use the same remaining-work meaning.
+- The pending filter is labeled `미처리` because it includes direct review and ongoing comparisons. Candidate badges distinguish these states.
+- Explain review and error messages through manuscript meaning and the next author action. Preserve quoted evidence, proper names, and setting values; do not replace technical-looking words across arbitrary content.
+- Reference frames: `gh180DirectReview20260910Desktop`, `gh180DirectReview20260910Mobile`.
+
+- Treat candidates awaiting automatic application as analyzing until their episode completes automatic saving, including candidates whose individual comparison already completed or failed. Lock only those candidates and group writes containing them. Earlier completed episodes remain reviewable. If an open edit modal becomes locked after refresh, retain the draft and allow cancellation while disabling submission.
+
+- Mobile review detail back-to-list actions use the same light secondary button treatment in both tabs: surface, border, primary-ink tokens, a minimum 44px touch height, and visible keyboard focus.
+
+### GH180 자동 반영 기본값과 공개 체험 안내
+
+랜딩의 일반 소개는 명확한 설정의 자동 반영과 필요한 항목의 직접 확인을 설명한다. 모든 내용을 작가가 확인한 뒤에만 저장한다고 안내하지 않는다. 8단계 예시와 공개 체험은 단일 회차에서 직접 검토를 선택한 흐름임을 명시하며 기존 단계·버튼·결과를 유지한다. 체험 완료에서는 실제 업로드의 자동 반영 기본값과 단일 회차의 전체 직접 검토 선택지를 구분해 알린다. 일반 소개 문구만 갱신하며 레이아웃·동작·원문·확정 예시는 바꾸지 않는다. Pencil 참고: `gh180LandingAutoCopy20260910`.

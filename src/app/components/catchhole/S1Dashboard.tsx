@@ -35,6 +35,7 @@ import {
   createAnalysisJobMutation,
   deleteEpisodeMutation,
   getAnalysisBatchesOptions,
+  getAnalysisBatchesQueryKey,
   getEpisodesOptions,
   getEpisodesQueryKey,
   replaceEpisodeFileMutation,
@@ -549,15 +550,6 @@ export default function S1Dashboard() {
   useLayoutEffect(() => {
     dashboardContextRef.current = { workId: effectiveWorkId, activeNav };
   }, [effectiveWorkId, activeNav]);
-  const episodesQuery = useQuery({
-    ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
-    enabled: episodeApiEnabled,
-    retry: false,
-    refetchInterval: query => {
-      const episodes = query.state.data?.data ?? [];
-      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS') ? 10_000 : false;
-    },
-  });
   const analysisOverviewQuery = useQuery({
     ...getAnalysisBatchesOptions({
       path: { workId: effectiveWorkId },
@@ -571,10 +563,43 @@ export default function S1Dashboard() {
         : false
     ),
   });
+  const overviewAnalysisActive = analysisOverviewQuery.data?.data?.content
+    ?.some(batch => batch.status === 'IN_PROGRESS') ?? false;
+  const previousOverviewActivityRef = useRef<{ workId: string; active: boolean } | null>(null);
+  const episodesQuery = useQuery({
+    ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
+    enabled: episodeApiEnabled,
+    retry: false,
+    refetchInterval: query => {
+      const episodes = query.state.data?.data ?? [];
+      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS')
+        || (activeNav === 'manuscripts' && overviewAnalysisActive) ? 10_000 : false;
+    },
+  });
+
+  useEffect(() => {
+    if (!episodeApiEnabled || activeNav !== 'manuscripts' || !analysisOverviewQuery.isSuccess) return;
+    const previous = previousOverviewActivityRef.current;
+    const wasActive = previous?.workId === effectiveWorkId && previous.active;
+    previousOverviewActivityRef.current = { workId: effectiveWorkId, active: overviewAnalysisActive };
+    // 다른 탭에서 시작한 분석도 반영하고, 종료 전이에서는 마지막 원고 상태를 한 번 더 받는다.
+    if (overviewAnalysisActive !== wasActive) {
+      void queryClient.invalidateQueries({
+        queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
+      });
+    }
+  }, [activeNav, analysisOverviewQuery.isSuccess, effectiveWorkId, episodeApiEnabled, overviewAnalysisActive, queryClient]);
+
   const deleteEpisodeRequest = useMutation(deleteEpisodeMutation());
   const updateEpisodeTitleRequest = useMutation(updateEpisodeTitleMutation());
   const replaceEpisodeFileRequest = useMutation(replaceEpisodeFileMutation());
-  const createEpisodeAnalysisRequest = useMutation(createAnalysisJobMutation());
+  const createEpisodeAnalysisRequest = useMutation({
+    ...createAnalysisJobMutation(),
+    onSuccess: (_response, variables) => Promise.all([
+      queryClient.invalidateQueries({ queryKey: getEpisodesQueryKey({ path: variables.path }) }),
+      queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: variables.path }) }),
+    ]),
+  });
 
   useEffect(() => {
     dashboardMountedRef.current = true;
@@ -742,7 +767,7 @@ export default function S1Dashboard() {
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
       if (!isCurrentRequestContext()) return;
-      if (analysisJobIds.length === 0) throw new Error('분석 작업 ID가 응답에 없습니다.');
+      if (analysisJobIds.length === 0) throw new Error('분석 시작을 확인하지 못했습니다. 다시 시도해 주세요.');
       const analysisJobIdParam = analysisJobIds.join(',');
       setEpisodeReanalysisTarget(null);
       navigate(
@@ -1004,7 +1029,7 @@ export default function S1Dashboard() {
                     height: 280, color: C.t3, gap: 12,
                   }}>
                     <AlertCircle size={40} strokeWidth={1.2} />
-                    <div style={{ fontSize: 14 }}>데모 작품은 원고 API에 연결되지 않습니다.</div>
+                    <div style={{ fontSize: 14 }}>체험 작품에서는 실제 원고를 관리할 수 없습니다.</div>
                     <div style={{ fontSize: 12 }}>실제 계정으로 로그인해 작품을 선택하거나 등록하세요.</div>
                   </div>
                 ) : (
@@ -1206,7 +1231,7 @@ export default function S1Dashboard() {
           title="회차 파일 변경"
           description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
           currentFilename={replaceEpisodeTarget.originalFilename}
-          warning="파일을 변경하면 이전 원문·청크·미확정 후보가 영구 삭제됩니다. 확정 설정은 유지되며 새 원문은 재분석이 필요합니다."
+          warning="파일을 변경하면 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정은 유지되며 새 원문은 재분석이 필요합니다."
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}

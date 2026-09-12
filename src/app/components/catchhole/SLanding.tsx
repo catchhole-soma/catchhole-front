@@ -35,18 +35,18 @@ type Service = {
 const QUICK_ACTIONS = [
   {
     icon: <WandSparkles size={23} />,
-    title: '캐릭터·세계관 후보',
-    description: '원고에서 인물과 세계관 설정 후보를 구분해 보여드려요.',
+    title: '캐릭터·세계관 정리',
+    description: '원고에서 인물과 세계관 설정을 찾아 구분해 드려요.',
   },
   {
     icon: <BookOpenText size={23} />,
     title: '원문 근거 연결',
-    description: '어떤 문장에서 찾았는지 후보마다 함께 확인해요.',
+    description: '어떤 문장에서 찾았는지 설정마다 함께 확인해요.',
   },
   {
     icon: <ShieldCheck size={23} />,
-    title: '작가 최종 확정',
-    description: '검토한 내용만 작품 설정으로 저장해요.',
+    title: '자동 반영·직접 확인',
+    description: '명확한 설정은 자동 반영하고 필요한 내용만 확인해요.',
   },
 ] as const;
 
@@ -61,7 +61,7 @@ const SERVICES: Service[] = [
     icon: <WandSparkles size={25} />,
     category: 'AI 분석',
     title: '캐릭터·세계관 자동 추출',
-    description: '회차 원고를 분석해 캐릭터와 세계관 설정 후보를 구분하고, 작가가 확인할 검토 목록으로 정리합니다.',
+    description: '원고에서 찾은 명확한 설정은 자동으로 작품에 쌓고, 연결이나 내용 확인이 필요한 항목은 직접 검토하도록 정리합니다.',
   },
   {
     icon: <Globe2 size={25} />,
@@ -183,7 +183,7 @@ export default function SLanding() {
             <div className="landing-demo-section__heading">
               <span>8단계 제품 흐름</span>
               <h2 id="landing-demo-heading">원고가 작품 설정이 되는 과정을<br />직접 확인하세요</h2>
-              <p>단계에 마우스를 올리거나 선택하면 실제 CatchHole 화면이 넓게 펼쳐집니다.</p>
+              <p>단일 회차에서 직접 검토를 선택한 예시예요. 단계를 선택해 화면을 살펴보세요.</p>
             </div>
             <LandingProductDemo />
           </div>
@@ -248,7 +248,7 @@ export default function SLanding() {
             <div className="landing-cta">
               <div>
                 <h2>회원가입 없이<br />설정 관리 흐름을 확인하세요</h2>
-                <p>가상 원고로 후보 추출부터 원문 근거, 작가 확정까지 직접 체험할 수 있어요.</p>
+                <p>가상 원고로 원문 근거를 확인하고, 설정을 직접 검토하는 방식을 체험해 보세요.</p>
               </div>
               <div className="landing-cta__actions">
                 <ActionButton className="landing-primary-action" icon={<ArrowRight size={16} />} onClick={openDemo}>
