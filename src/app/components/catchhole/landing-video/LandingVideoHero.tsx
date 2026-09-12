@@ -54,7 +54,7 @@ export function LandingVideoHero({ scrollContainerRef, headerRef, onDemo, onSign
       <div className="lvh-story">
       <div className="lvh-sticky">
         <div className="lvh-scene-heading">
-          <div><p>쓰던 원고에서 바로</p><h2>설정이 한눈에 펼쳐져요.</h2></div>
+          <div><p>작성한 원고를 업로드하면</p><h2>캐릭터와 세계관 설정을 추출해요.</h2></div>
           <button type="button" className="lvh-back" onClick={showVideo}><RotateCcw size={14} aria-hidden="true" />처음 장면으로</button>
         </div>
         <div className="lvh-viewport">
