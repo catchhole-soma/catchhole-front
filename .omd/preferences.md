@@ -430,3 +430,18 @@ source_context: "기존 캐치홀 랜딩의 첫 사진을 승인한 영상으로
 후속 교정: 영상 첫 화면의 체험·무료 시작 버튼, 설정 추출 보기 버튼과 보조 안내를 처음부터 노출하지 않는다. 데스크톱은 설정 추출이 끝난 마지막 장면, 모바일은 영상 재생이 끝난 뒤 체험·무료 시작 CTA와 신뢰 안내를 표시한다. 상단 헤더 및 하단 랜딩의 기존 CTA는 유지한다.
 
 모바일 후속 교정: 일반 영상만 재생하고 끝내지 않는다. 영상 뒤에도 같은 25화 원고에서 설정이 추출되고 확정되는 장면까지 이어져야 한다. 모바일은 스크롤에 장면 진행을 연결하지 않으며, 읽을 수 있는 세로 카드 배치와 시간 기반 자동 진행·일시정지·다시 보기를 제공한다. 체험·무료 시작 CTA는 영상 종료가 아닌 설정 확정 완료 뒤에 표시한다. 위 모바일 CTA 시점 설명을 이 요청으로 대체한다.
+
+## 2026-09-12T15:12:44.338Z — landing-copy-explains-upload-and-extracti
+
+```omd-meta
+id: pref_mtyixxrm_95d688ad
+timestamp: 2026-09-12T15:12:44.338Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/landing-video/LandingVideoHero.tsx; https://github.com/catchhole-soma/catchhole-backend-java/issues/192"
+```
+
+Use “작성한 원고를 업로드하면” as the supporting copy and “캐릭터와 세계관 설정을 추출해요.” as the setting-extraction heading on `/landing` so the upload requirement and extraction targets are explicit.
