@@ -247,6 +247,8 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
   const analysisCard = page.getByRole('article');
   await expect(analysisCard.getByText('캐릭터 설정 후보 0/1개 검토 완료')).toBeVisible();
   await expect(analysisCard.getByText('세계관 설정 후보 1/2개 검토 완료')).toBeVisible();
+  await expect(analysisCard.getByText('분석 완료 · 2개 확인 가능', { exact: true })).toBeVisible();
+  await expect(analysisCard.getByText('후보 검토 필요', { exact: true })).toHaveCount(0);
   await expect(analysisCard.getByRole('button')).toHaveCount(1);
   await analysisCard.getByRole('button', { name: '결과 보기' }).click();
 

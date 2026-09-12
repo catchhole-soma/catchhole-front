@@ -363,7 +363,7 @@ test('느린 필터 응답 중에도 필터와 뒤로가기 버튼을 유지해 
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
   await expect(page.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: '제외', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: '확정', exact: true }).first().click({ timeout: 500 });
+  await page.getByRole('button', { name: '반영됨', exact: true }).first().click({ timeout: 500 });
   await expect.poll(() => new URL(page.url()).searchParams.get('reviewStatus')).toBe('CONFIRMED');
 
   releaseAllFilter?.();
@@ -880,7 +880,7 @@ test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버
   await expect(page.getByText('status.부상_상태', { exact: true })).toHaveCount(0);
   await expect.poll(() => listRequests.some(request => request.page === '1')).toBe(true);
 
-  await page.getByRole('button', { name: '확정', exact: true }).first().click();
+  await page.getByRole('button', { name: '반영됨', exact: true }).first().click();
   await expect(page).toHaveURL(/reviewStatus=CONFIRMED/);
   await expect.poll(() => new URL(page.url()).searchParams.get('jobType')).toBe('EPISODE_VALIDATION');
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('1');
@@ -971,6 +971,10 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
         episodeCount: 1,
         totalCandidateCount: 1,
         reviewedCandidateCount: reviewStatus === 'CONFIRMED' ? 1 : 0,
+        confirmedCandidateCount: reviewStatus === 'CONFIRMED' ? 1 : 0,
+        dismissedCandidateCount: 0,
+        directReviewCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
+        processingCandidateCount: 0,
         pendingCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
         matchRequiredCandidateCount: 0,
         candidates: {
@@ -996,6 +1000,11 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
     if (pathname === `${listPath}/${firstCandidateId}`) {
       return fulfill(route, { ...candidate, matchedCharacterId, matchStatus, reviewStatus });
     }
+    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+      batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
+      confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
+      groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
+    });
     return fulfill(route, []);
   });
 
@@ -1019,7 +1028,7 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
   await expect(page.getByText('확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.')).toBeVisible();
   await expect(page.getByText('신규 캐릭터에 연결됨').last()).toBeVisible();
   const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
-  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+  await expect(reviewSummary.getByText('반영됨', { exact: true }).locator('..'))
     .toContainText('1개');
   await expect.poll(() => confirmRequestCount).toBe(2);
 });
@@ -1049,6 +1058,10 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
         episodeCount: 1,
         totalCandidateCount: 1,
         reviewedCandidateCount: reviewStatus === 'DISMISSED' ? 1 : 0,
+        confirmedCandidateCount: 0,
+        dismissedCandidateCount: reviewStatus === 'DISMISSED' ? 1 : 0,
+        directReviewCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
+        processingCandidateCount: 0,
         pendingCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
         matchRequiredCandidateCount: reviewStatus === 'PENDING_REVIEW' ? 1 : 0,
         candidates: {
@@ -1077,6 +1090,11 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
     if (pathname === `${listPath}/${firstCandidateId}`) {
       return fulfill(route, { ...candidate, reviewStatus });
     }
+    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+      batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
+      confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
+      groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
+    });
     return fulfill(route, []);
   });
 
@@ -1119,9 +1137,9 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
   await expect(page.getByText('어떤 캐릭터의 설정인지 확인이 필요합니다.')).toHaveCount(0);
   await expect(page.getByText('수아의 눈동자는 햇살 아래 짙은 갈색으로 빛났다.')).toBeVisible();
   const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
-  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+  await expect(reviewSummary.getByText('제외됨', { exact: true }).locator('..'))
     .toContainText('1개');
-  await expect(page.getByRole('button', { name: '무시', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '제외됨', exact: true })).toHaveCount(1);
   await expect.poll(() => dismissRequestCount).toBe(2);
 });
 
@@ -1715,6 +1733,10 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
         episodeCount: 2,
         totalCandidateCount: 2,
         reviewedCandidateCount: firstDismissed ? 1 : 0,
+        confirmedCandidateCount: 0,
+        dismissedCandidateCount: firstDismissed ? 1 : 0,
+        directReviewCandidateCount: firstDismissed ? 1 : 2,
+        processingCandidateCount: 0,
         pendingCandidateCount: firstDismissed ? 1 : 2,
         matchRequiredCandidateCount: 0,
         candidates: {
@@ -1743,6 +1765,11 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
     if (pathname === `${listPath}/${secondCandidateId}`) {
       return fulfill(route, nextCandidate);
     }
+    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+      batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
+      confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
+      groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
+    });
     return fulfill(route, []);
   });
 
@@ -1787,7 +1814,7 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
   }));
   expect(Math.abs(scrollTopAfterAutoSelect - scrollTopBeforeAutoSelect)).toBeLessThanOrEqual(1);
   const reviewSummary = page.getByRole('region', { name: '설정 후보 검토 요약' });
-  await expect(reviewSummary.getByText('검토 완료', { exact: true }).locator('..'))
+  await expect(reviewSummary.getByText('제외됨', { exact: true }).locator('..'))
     .toContainText('1개');
   await expect(page.getByRole('button', { name: /강민준/ }).first()).toBeEnabled();
 });
@@ -1807,7 +1834,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
     valueValidation: {
       status: 'INVALID' as const,
       errorCode: 'SETTING_CANDIDATE_VALUE_FORMAT_INVALID',
-      message: '설정 후보의 표시값이 NUMBER 형식이 아닙니다.',
+      message: '설정 내용을 저장할 수 없는 형식입니다. 내용을 확인해 주세요.',
       repairable: true,
     },
     comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' as const,
@@ -1869,7 +1896,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
 
   const candidateDetail = page.getByRole('region', { name: '정신 설정 후보' });
   await expect(candidateDetail.getByRole('alert')).toContainText(
-    '설정 후보의 표시값이 NUMBER 형식이 아닙니다.',
+    '설정 내용을 저장할 수 없는 형식입니다. 내용을 확인해 주세요.',
   );
   await expect(candidateDetail.getByRole('alert')).toContainText('수정하거나 제외한 뒤');
   await expect(page.getByText('값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'))
@@ -1916,7 +1943,7 @@ test('schema 오류 후보는 수정과 재비교를 잠그고 제외만 허용�
     valueValidation: {
       status: 'INVALID' as const,
       errorCode: 'SETTING_CANDIDATE_SCHEMA_NOT_MATCHED',
-      message: '설정 후보 속성과 일치하는 활성 schema가 없습니다.',
+      message: '이 설정의 입력 형식을 확인하지 못했습니다.',
       repairable: false,
     },
   };
@@ -1964,7 +1991,7 @@ test('schema 오류 후보는 수정과 재비교를 잠그고 제외만 허용�
 
   const candidateDetail = page.getByRole('region', { name: '눈 색깔 설정 후보' });
   await expect(candidateDetail.getByRole('alert')).toContainText(
-    '현재 화면에서 수정할 수 없어 제외하거나 활성 설정 정의를 복구해야 합니다.',
+    '지금은 이 항목을 수정할 수 없습니다. 이 후보를 제외하면 나머지 설정을 검토할 수 있습니다.',
   );
   await expect(candidateDetail.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
   await expect(candidateDetail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
@@ -1998,7 +2025,7 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
     valueValidation: {
       status: 'INVALID' as const,
       errorCode: 'SETTING_CANDIDATE_SCHEMA_NOT_MATCHED',
-      message: '설정 후보 속성과 일치하는 활성 schema가 없습니다.',
+      message: '이 설정의 입력 형식을 확인하지 못했습니다.',
       repairable: false,
     },
   };
@@ -2060,7 +2087,7 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
   await expect(candidateMatchDialog).toBeVisible();
 
   invalid = true;
-  await expect(candidateDetail.getByRole('alert')).toContainText('활성 schema가 없습니다.');
+  await expect(candidateDetail.getByRole('alert')).toContainText('입력 형식을 확인하지 못했습니다.');
   await candidateMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
   await expect(candidateMatchDialog).toHaveCount(0);
   expect(candidateMatchRequestCount).toBe(0);
@@ -2074,7 +2101,7 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
   await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).first().click();
 
   invalid = true;
-  await expect(candidateDetail.getByRole('alert')).toContainText('활성 schema가 없습니다.');
+  await expect(candidateDetail.getByRole('alert')).toContainText('입력 형식을 확인하지 못했습니다.');
   await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
   await expect(groupMatchDialog).toHaveCount(0);
   expect(groupMatchRequestCount).toBe(0);
@@ -2760,7 +2787,7 @@ test('구버전 다중 페이지 후보 응답에서는 불완전한 묶음 일�
 
   await expect(page.getByRole('button', { name: '캐릭터 일괄 연결' })).toBeDisabled();
   await expect(page.getByRole('button', { name: /설정 모두 확정/ }).last()).toBeDisabled();
-  await expect(page.getByText('서버 업데이트 전 호환 목록에서는 묶음 전체를 보장할 수 없어 일괄 확정을 지원하지 않습니다.'))
+  await expect(page.getByText('이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'))
     .toBeVisible();
 });
 
@@ -3113,7 +3140,7 @@ test('남은 후보가 있으면 완료 버튼을 비활성화하고 남은 개�
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
   await expect(page.getByRole('button', {
-    name: '검토 완료 · 1개 후보 · 0개 확인 필요',
+    name: '남은 설정을 확인해 주세요',
     exact: true,
   })).toBeDisabled();
 });
@@ -3204,14 +3231,14 @@ test('배치 전환 중 이전 캐릭터 집계로 완료 버튼을 활성화하
     }, { workId, batchId: nextBatchId });
 
     await expect.poll(() => nextWorldResponseCount).toBeGreaterThan(0);
-    await expect(page.getByRole('button', { name: /^검토 완료/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '남은 설정을 확인해 주세요', exact: true })).toBeDisabled();
     await expect(page.getByRole('button', { name: '원고 목록으로', exact: true })).toHaveCount(0);
   } finally {
     releaseNextCharacterResponse?.();
   }
 
   await expect(page.getByRole('button', {
-    name: '검토 완료 · 1개 후보 · 0개 확인 필요',
+    name: '남은 설정을 확인해 주세요',
     exact: true,
   })).toBeDisabled();
 });

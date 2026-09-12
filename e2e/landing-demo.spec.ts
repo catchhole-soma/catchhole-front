@@ -276,3 +276,27 @@ test('모바일 헤더의 로그인 버튼은 로그인 라우트 모달을 연�
   await page.locator('.landing-header__actions').getByRole('button', { name: '로그인', exact: true }).click();
   await expect(page).toHaveURL('/login');
 });
+
+for (const width of [320, 1280]) {
+  test(`일반 소개는 자동 반영 기본값을 알리고 수동 검토 데모와 구분한다 (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/landing');
+    const hero = page.locator('.landing-hero');
+    await expect(hero).toContainText('AI가 명확한 설정을 원문 근거와 함께 자동으로 반영해요.');
+    await expect(hero).toContainText('확인이 필요한 내용만 직접 검토하세요.');
+    await expect(page.locator('.landing-trust')).toContainText('필요한 내용만 직접 확인');
+    await expect(page.locator('.landing-quick-actions')).toContainText('자동 반영·직접 확인');
+    await expect(page.locator('.landing-feature-card').filter({ hasText: '캐릭터·세계관 자동 추출' })).toContainText('명확한 설정은 자동으로 작품에 쌓고');
+    await expect(page.locator('.landing-demo-section__heading')).toContainText('단일 회차에서 직접 검토를 선택한 예시예요.');
+    for (const outdated of ['작가님이 확인한 내용만 작품 설정으로 확정합니다.', '작가가 직접 최종 확정', '검토한 내용만 작품 설정으로 저장해요.', '작가가 확인할 검토 목록']) {
+      await expect(page.getByText(outdated, { exact: false })).toHaveCount(0);
+    }
+    expect(await page.locator('.landing-page').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
+    await expect(page.locator('.app-route-layer')).toHaveCSS('opacity', '1');
+    await page.screenshot({ path: `docs/screens/gh180-landing-auto-${width}.png` });
+    await page.goto('/demo');
+    await expect(page.getByText('이 체험은 설정을 직접 검토하는 예시입니다.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI 분석 시작', exact: true })).toBeEnabled();
+  });
+}

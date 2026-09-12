@@ -147,6 +147,7 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
     if (pathname.endsWith('/quota-test')) {
       return route.fulfill({
         status: 409,
@@ -334,6 +335,7 @@ test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 �
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
       const detectionIndex = detectionMultipartBodies.length;
@@ -434,6 +436,7 @@ test('다회차 단일 파일에서 한 회차만 감지되면 파일을 제거�
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
       return route.fulfill({
@@ -525,6 +528,7 @@ test('업로드 방식을 전환해도 각 방식의 파일과 감지 결과를 
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
       const detection = detectionResponses[detectionRequestCount];
@@ -639,6 +643,7 @@ test('다회차 업로드에 기존 회차가 포함되면 두 방식 모두 중
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
       const multiFileDetection = detectionRequestCount > 0;
@@ -746,6 +751,7 @@ test('회차 감지 수정값을 업로드하고 성공 전환을 한 번만 전
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
       detectionMultipartBody = request.postData() ?? '';
@@ -1063,6 +1069,7 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
       analysisCreateRequestCount += 1;
     }
@@ -1226,6 +1233,7 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'DELETE' && pathname.endsWith(`/${workId}/episodes/${episodeId}`)) {
       deleteRequestCount += 1;
@@ -1289,7 +1297,7 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
   await expect(modal).toHaveCSS('border-radius', '20px');
   await expect(modal.getByText('20화 · 파일 교체 후 제목')).toBeVisible();
   await expect(modal.getByText('20화_파일_교체_후.docx')).toBeVisible();
-  await expect(modal.getByText(/원고 청크와 미확정 분석 후보가 영구 삭제됩니다/)).toBeVisible();
+  await expect(modal.getByText(/미확정 분석 후보가 영구 삭제됩니다/)).toBeVisible();
   await expectReadableDialogText(
     modal.locator('.episode-delete-permanent-warning'),
     'rgb(138, 75, 0)',
@@ -1337,6 +1345,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
       analysisRequestCount += 1;
@@ -1452,6 +1461,7 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
       analysisRequestCount += 1;
@@ -2363,6 +2373,7 @@ ${evidenceEpilogue}`;
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
     const method = request.method();
     if (pathname.includes('/characters')) characterRequestPaths.push(pathname);
 
