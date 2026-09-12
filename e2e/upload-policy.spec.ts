@@ -57,7 +57,7 @@ for (const count of [0, 9]) {
     await setup(page, { ...defaultPolicy, completedSingleEpisodeCount: count,
       requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: false });
     await page.goto(`/episode-upload?workId=${workId}`);
-    await expect(page.getByRole('button', { name: /추천 단일 회차 업로드/ })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /단일 회차 업로드/ })).toBeEnabled();
     for (const name of ['다회차 - 단일 파일', '다회차 - 여러 파일']) {
       await expect(page.getByRole('button', { name: new RegExp(name) })).toBeEnabled();
     }
@@ -76,10 +76,10 @@ test('미확정 정보 조회 실패여도 모든 업로드 방식을 허용하�
     ? route.fulfill({ status: 503, body: JSON.stringify({ message: '일시 오류' }) })
     : success(route, { ...defaultPolicy, pendingCharacterCandidateCount: 2 }));
   await page.goto(`/episode-upload?workId=${workId}`);
-  await expect(page.getByRole('button', { name: /추천 단일 회차 업로드/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /단일 회차 업로드/ })).toBeEnabled();
   await expect(page.getByRole('button', { name: /다회차 - 여러 파일/ })).toBeEnabled();
   await expect(page.getByRole('button', { name: /다회차 - 단일 파일/ })).toBeEnabled();
-  await page.getByRole('button', { name: /추천 단일 회차 업로드/ }).click();
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
   await expect(page.getByRole('radio', { name: /모든 설정 직접 검토/ })).toBeEnabled();
   await expect(page.getByRole('radio', { name: /AI 판단으로 설정 자동 반영/ })).toBeChecked();
   await expect(page.getByText('미확정 설정 정보를 불러오지 못했습니다. 업로드는 계속할 수 있습니다.')).toBeVisible();
@@ -95,7 +95,7 @@ for (const automatic of [false, true]) {
     await detected(page, 'SINGLE_EPISODE');
     await page.goto(`/episode-upload?workId=${workId}`);
     await expect(page.getByText('캐릭터 7개 · 세계관 3개')).toBeVisible();
-    await page.getByRole('button', { name: /추천 단일 회차 업로드/ }).click();
+    await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
     await expect(page.getByRole('radio', { name: /AI 판단으로 설정 자동 반영/ })).toBeChecked();
     if (!automatic) await page.getByRole('radio', { name: /모든 설정 직접 검토/ }).check();
     await chooseFile(page);
@@ -130,7 +130,7 @@ for (const uploadType of ['SINGLE_EPISODE', 'MULTI_EPISODE_SINGLE_FILE', 'MULTI_
       const requests = await setup(page);
       await detected(page, uploadType, total);
       await page.goto(`/episode-upload?workId=${workId}`);
-      const name = uploadType === 'SINGLE_EPISODE' ? /추천 단일 회차 업로드/
+      const name = uploadType === 'SINGLE_EPISODE' ? /단일 회차 업로드/
         : uploadType.endsWith('MULTI_FILE') ? /다회차 - 여러 파일/ : /다회차 - 단일 파일/;
       await page.getByRole('button', { name }).click();
       await chooseFile(page, uploadType.endsWith('MULTI_FILE'));
@@ -150,7 +150,7 @@ test('서버가 감지 단계에서 분량 초과를 거부하면 단일 회차 
   const requests = await setup(page);
   await page.route('**/episodes/detect', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false, message: '전체 원고는 250,000자 이하여야 합니다.', error: { code: 'UPLOAD_CHARACTER_LIMIT_EXCEEDED', status: 400 } }) }));
   await page.goto(`/episode-upload?workId=${workId}`);
-  await page.getByRole('button', { name: /추천 단일 회차 업로드/ }).click();
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
   await page.locator('input[type=number]').fill('11');
   await chooseFile(page);
   await expect(page.getByRole('alert')).toContainText('250,000자');
@@ -162,7 +162,7 @@ test('320px에서 경고·자동 반영 설명을 읽고 키보드로 단일 자
   await setup(page, { ...defaultPolicy, pendingCharacterCandidateCount: 3 });
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto(`/episode-upload?workId=${workId}`);
-  const single = page.getByRole('button', { name: /추천 단일 회차 업로드/ });
+  const single = page.getByRole('button', { name: /단일 회차 업로드/ });
   await single.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('radio', { name: /AI 판단으로 설정 자동 반영/ })).toBeChecked();
@@ -182,7 +182,7 @@ test('자동 반영 완료 후 캐릭터·세계관 결과는 미확정 후보�
   await setup(page);
   const reviewQueries: Array<{ type: string; status: string | null }> = [];
   await page.route(`**/analysis-jobs/${jobId}`, route => success(route, {
-    id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: 'SUCCEEDED', reviewMode: 'AUTOMATIC',
+    id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: 'SUCCEEDED', reviewMode: 'AUTOMATIC', automaticAppliedAt: '2026-09-13T01:00:00',
     episodes: [{ id: episodeId, episodeNo: 11, title: '자동 반영 원고', status: 'ANALYZED' }],
     analysisRun: { mode: 'ORDERED_PROVISIONAL', runId: '55555555-5555-4555-8555-555555555555', generation: 1, sequence: 0, journalStatus: 'SEALED' },
   }));
@@ -199,7 +199,7 @@ test('자동 반영 완료 후 캐릭터·세계관 결과는 미확정 후보�
     });
   }
   await page.goto(`/episode-upload?workId=${workId}&batchId=${batchId}&analysisJobIds=${jobId}`);
-  await expect(page.getByText(/판단이 명확한 설정은 작품에 자동 반영했습니다/)).toBeVisible();
+  await expect(page.getByText(/회차 분석과 설정 자동 반영이 끝났습니다/)).toBeVisible();
   await page.getByRole('button', { name: '확인이 필요한 설정 검토' }).click();
   await expect.poll(() => reviewQueries.some(query => query.type === 'setting-candidates' && query.status === 'PENDING_REVIEW')).toBe(true);
   await page.getByRole('button', { name: /세계관 후보/ }).click();
@@ -211,7 +211,7 @@ test('추출을 마쳤어도 자동 저장이 끝나기 전에는 완료나 검�
   await setup(page);
   let saved = false;
   await page.route(`**/analysis-jobs/${jobId}`, route => success(route, {
-    id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: saved ? 'SUCCEEDED' : 'RUNNING', reviewMode: 'AUTOMATIC',
+    id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: saved ? 'SUCCEEDED' : 'RUNNING', reviewMode: 'AUTOMATIC', automaticAppliedAt: saved ? '2026-09-13T01:00:00' : null,
     episodes: [{ id: episodeId, episodeNo: 11, title: '저장 대기 원고', status: 'ANALYZED' }],
     analysisRun: { mode: 'ORDERED_PROVISIONAL', runId: '55555555-5555-4555-8555-555555555555', generation: 1, sequence: 0, journalStatus: saved ? 'SEALED' : 'PENDING' },
   }));
@@ -238,7 +238,7 @@ test('미확정 정보 확인 중에도 단일 기본 자동 업로드와 다회
     await page.goto(`/episode-upload?workId=${workId}`);
     await expect(page.getByRole('button', { name: /다회차 - 단일 파일/ })).toBeEnabled();
     await expect(page.getByRole('button', { name: /다회차 - 여러 파일/ })).toBeEnabled();
-    await page.getByRole('button', { name: /추천 단일 회차 업로드/ }).click();
+    await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
     await expect(page.getByRole('radio', { name: /AI 판단으로 설정 자동 반영/ })).toBeChecked();
     await chooseFile(page);
     await page.getByRole('button', { name: '다음 — 분석 시작' }).click();

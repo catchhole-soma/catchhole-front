@@ -7,7 +7,6 @@ import {
 import {
   NetworkError,
   notifyAuthError,
-  notifyNetworkError,
 } from './api-errors';
 import { notifyAiTokenQuotaExhausted } from './ai-token-quota';
 
@@ -30,6 +29,8 @@ const NO_REFRESH_PATHS = [
   '/api/v1/auth/signup',
   '/api/v1/auth/login',
   '/api/v1/auth/phone-verifications',
+  '/api/v1/auth/email-verifications',
+  '/api/v1/auth/signup-policy',
   REFRESH_PATH,
   '/api/v1/auth/logout',
 ];
@@ -45,7 +46,6 @@ async function fetchOrThrowNetworkError(input: RequestInfo | URL, init?: Request
     if (error instanceof Error && error.name === 'AbortError') {
       throw error;
     }
-    notifyNetworkError();
     throw new NetworkError();
   }
 }

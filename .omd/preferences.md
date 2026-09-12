@@ -262,6 +262,21 @@ source_context: "src/app/components/catchhole/character/CharacterFactComparisonP
 
 The History-only choice layout should place its example on a separate line below the usage explanation for easier scanning.
 
+## 2026-09-01T14:21:20.000Z — unresolved-scopes-use-an-explicit-merge-
+
+```omd-meta
+id: pref_mtir9h5s_655074b6
+timestamp: 2026-09-01T14:21:20.000Z
+scope: components.button
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/worldsetting/WorldSettingReview.tsx"
+```
+
+When a world-setting candidate has an unresolved scope but exactly matches an existing scoped property, keep explicit user confirmation and offer a direct action to merge into that existing path instead of requiring manual scope entry or auto-applying it.
+
 ## 2026-09-02T09:52:14.000Z — catchhole-logos-use-simple-bright-landing-blue
 
 ```omd-meta
@@ -381,6 +396,55 @@ source_context: "체험할 때 따라가기 UI 쪽으로 바로 내려가지 말
 ```
 
 체험 화면은 위에서부터 읽으며 사용자가 직접 내려가게 한다. 안내·강조 버튼을 보여주려는 자동 스크롤과 초기 포커스 이동은 하지 않는다. 화면 회전과 안내 내용 변경도 읽는 위치를 강제로 바꾸지 않는다.
+
+## 2026-09-08T06:22:28.186Z — compact-manuscript-notice-after-demo
+
+```omd-meta
+id: pref_mtsa8llp_af66f182
+timestamp: 2026-09-08T06:22:28.186Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/SLanding.tsx; https://github.com/catchhole-soma/catchhole-backend-java/issues/182"
+```
+
+Place a compact, always-visible manuscript non-training notice immediately after the product demo and before the three-item core feature summary; keep the heading “작가님의 원고는 AI 학습에 사용하지 않습니다.”, shorten the body to “원고와 분석 결과 모두에 적용됩니다.”, retain the privacy-policy link, and use the shared canvas background with 32px maximum / 26px minimum heading text and 56px desktop / 40px mobile vertical padding.
+
+## 2026-09-10 — landing-live-action-video
+
+```omd-meta
+id: pref_nvm321_landing_video
+timestamp: 2026-09-10T09:00:00+09:00
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "기존 캐치홀 랜딩의 첫 사진을 승인한 영상으로 교체. 데스크톱은 여백이 사라지며 스크롤 진행, 모바일은 일반 영상 재생 요청. NVM-321"
+```
+
+기존 `/landing`의 첫 화면에 승인한 작가→노트북 영상을 사용한다. 데스크톱은 흰 여백과 둥근 모서리로 시작하고 스크롤·드래그 시 영상이 확장되면서 연속적으로 진행한다. 하단에는 설정 추출부터 검수까지 캐치홀 하나로라는 뜻의 큰 문구를 둔다. 승인한 25화 원고와 6개의 추출 설정을 유지한다. 모바일은 스크롤에 시간을 연결하지 않고 일반 영상을 재생한다. 이 명시적 요청은 과거 에디토리얼 전체 배경 Hero 선호를 대체한다.
+
+후속 교정: 영상 첫 화면의 체험·무료 시작 버튼, 설정 추출 보기 버튼과 보조 안내를 처음부터 노출하지 않는다. 데스크톱은 설정 추출이 끝난 마지막 장면, 모바일은 영상 재생이 끝난 뒤 체험·무료 시작 CTA와 신뢰 안내를 표시한다. 상단 헤더 및 하단 랜딩의 기존 CTA는 유지한다.
+
+모바일 후속 교정: 일반 영상만 재생하고 끝내지 않는다. 영상 뒤에도 같은 25화 원고에서 설정이 추출되고 확정되는 장면까지 이어져야 한다. 모바일은 스크롤에 장면 진행을 연결하지 않으며, 읽을 수 있는 세로 카드 배치와 시간 기반 자동 진행·일시정지·다시 보기를 제공한다. 체험·무료 시작 CTA는 영상 종료가 아닌 설정 확정 완료 뒤에 표시한다. 위 모바일 CTA 시점 설명을 이 요청으로 대체한다.
+
+## 2026-09-12T15:12:44.338Z — landing-copy-explains-upload-and-extracti
+
+```omd-meta
+id: pref_mtyixxrm_95d688ad
+timestamp: 2026-09-12T15:12:44.338Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/landing-video/LandingVideoHero.tsx; https://github.com/catchhole-soma/catchhole-backend-java/issues/192"
+```
+
+Use “작성한 원고를 업로드하면” as the supporting copy and “캐릭터와 세계관 설정을 추출해요.” as the setting-extraction heading on `/landing` so the upload requirement and extraction targets are explicit.
 
 ## 2026-09-10 — author-language-and-one-direct-review-count
 

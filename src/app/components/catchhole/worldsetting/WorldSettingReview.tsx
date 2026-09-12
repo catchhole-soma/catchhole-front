@@ -240,6 +240,12 @@ function lastComparisonSelectedPaths(candidate: WorldSettingCandidateResponse): 
   )))];
 }
 
+function isBatchLimitExceededCandidate(candidate: WorldSettingCandidateResponse): boolean {
+  return candidate.suggestedOperation === 'REVIEW_REQUIRED'
+    && candidate.comparisonReviewReason === 'BATCH_LIMIT_EXCEEDED'
+    && !candidate.finalOperation;
+}
+
 function formatEpisodeRange(start?: number | null, end?: number | null, count = 0): string {
   if (count === 0 || start == null || end == null) return '대상 회차 없음';
   return start === end ? `${start}화 · 1개 회차` : `${start}–${end}화 · ${count}개 회차`;
@@ -326,9 +332,9 @@ function candidateEditDecision(candidate: WorldSettingCandidateResponse): Decisi
       && (candidate.comparisonStatus !== 'COMPLETED' || candidate.suggestedOperation !== 'REVIEW_REQUIRED')) return null;
   const category = candidate.category;
   const subjectName = resolvedTargetSubjectName(candidate);
-  const scopeReview = needsScopeReview(candidate);
-  const settingName = scopeReview ? candidate.settingName : candidate.proposedSettingName ?? candidate.settingName;
-  const value = scopeReview ? candidate.extractedValue : candidate.proposedValue ?? candidate.extractedValue;
+  const scopeReview = needsScopeReview(candidate) || isBatchLimitExceededCandidate(candidate);
+  const settingName = scopeReview ? candidate.settingName ?? candidate.proposedSettingName : candidate.proposedSettingName ?? candidate.settingName;
+  const value = scopeReview ? candidate.extractedValue ?? candidate.proposedValue : candidate.proposedValue ?? candidate.extractedValue;
   if (!category || !subjectName || !settingName || !value) return null;
   return {
     operation: 'ADD',
@@ -679,6 +685,7 @@ function WorldKeyDiffRow({
   disabled,
   onExclude,
   onEdit,
+  onUseMatchedScope,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -688,6 +695,7 @@ function WorldKeyDiffRow({
   disabled: boolean;
   onExclude: () => void;
   onEdit: () => void;
+  onUseMatchedScope?: () => void;
 }) {
   const automaticPending = isAutomaticApplicationPending(candidate);
   const reviewableFailure = isReviewableComparisonFailure(candidate);
@@ -697,10 +705,15 @@ function WorldKeyDiffRow({
   const scopeNeedsReview = scopeUnresolved || scopeMismatch;
   const subjectUnresolved = candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED';
   const reviewRequired = candidate.suggestedOperation === 'REVIEW_REQUIRED';
+  const batchLimitExceeded = isBatchLimitExceededCandidate(candidate);
   const consolidationStatus = candidate.consolidationStatus ?? 'SINGLE';
   const hasConflict = consolidationStatus === 'CONFLICT';
   const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
-  const operationMeta = operation ? OPERATION_META[operation] : null;
+  const operationMeta = operation
+    ? batchLimitExceeded
+      ? { label: '출력 한도 검토', color: C.warning }
+      : OPERATION_META[operation]
+    : null;
   const comparison: StatusPresentation = candidate.comparisonStatus === 'FAILED'
     && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
     ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
@@ -736,6 +749,7 @@ function WorldKeyDiffRow({
     : '− 기존값';
   const beforeValue = subjectUnresolved ? '비교 대상 미정' : candidate.beforeValue
     || (candidate.comparisonStatus === 'FAILED' ? '비교를 완료하지 못했습니다.'
+      : batchLimitExceeded ? '기존 설정과 자동 비교하지 않음'
       : reviewRequired ? '비교한 기존값 정보 없음'
       : operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
   const comparisonReason = userFacingComparisonReason(
@@ -881,6 +895,25 @@ function WorldKeyDiffRow({
         </div>
       )}
 
+      {batchLimitExceeded && (
+        <div className="world-setting-batch-limit-review" role="alert" style={{
+          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
+          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+        }}>
+          <AlertCircle size={13} color={C.warning} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: REVIEW_TEXT.warning, fontSize: 10, fontWeight: 800, marginBottom: 4 }}>
+              출력 한도 검토 필요
+            </div>
+            <div style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.65, overflowWrap: 'anywhere' }}>
+              AI 비교 결과가 한 번에 반환할 수 있는 크기를 넘어 자동 판단을 생략했습니다.
+              수정을 눌러 원문에서 추출한 경로·값과 반영 방식을 확인하거나, 반영하지 않으려면 제외해 주세요.
+            </div>
+          </div>
+        </div>
+      )}
+
       {scopeUnresolved && matchedPropertyPath && (
         <div className="world-setting-scope-review" role="alert" style={{
           margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
@@ -897,6 +930,13 @@ function WorldKeyDiffRow({
               수정을 눌러 기존 범위에 수정·병합하거나, 범위를 비운 채 새 설정으로 추가해 주세요.
               반영하지 않으려면 제외할 수 있습니다.
             </div>
+            {onUseMatchedScope && (
+              <div style={{ marginTop: 10 }}>
+                <ActionButton disabled={disabled} tone={C.warning} onClick={onUseMatchedScope}>
+                  기존 ‘{matchedPropertyPath}’에 병합
+                </ActionButton>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -966,6 +1006,7 @@ function WorldCandidateGroupDetail({
   actionError,
   onExclude,
   onEdit,
+  onUseMatchedScope,
   onEditIdentity,
   onConfirm,
   onRetry,
@@ -979,6 +1020,7 @@ function WorldCandidateGroupDetail({
   actionError?: string | null;
   onExclude: (candidateId: string) => void;
   onEdit: (candidate: WorldSettingCandidateResponse) => void;
+  onUseMatchedScope: (candidate: WorldSettingCandidateResponse, linkedCandidateIds: string[]) => void;
   onEditIdentity: () => void;
   onConfirm: () => void;
   onRetry: () => void;
@@ -997,7 +1039,11 @@ function WorldCandidateGroupDetail({
     && pendingCandidates.every(candidate => candidateDecision(candidate) !== null);
   const duplicatePropertyPaths = (() => {
     const orderedGroup = pendingCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
-    const seen = new Map<string, string>();
+    const seen = new Map<string, {
+      displayPath: string;
+      comparisonDecisionId?: string | null;
+      decisionSignature: string | null;
+    }>();
     const duplicates = new Set<string>();
     for (const candidate of pendingCandidates) {
       if (!candidate.id) continue;
@@ -1020,8 +1066,31 @@ function WorldCandidateGroupDetail({
       const normalized = JSON.stringify([category, normalizedSubject, normalizedScope, normalizedSetting,
         orderedGroup ? candidate.sourceEpisodeNo ?? null : null]);
       const displayPath = scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim();
-      if (seen.has(normalized)) duplicates.add(seen.get(normalized) ?? displayPath);
-      else seen.set(normalized, displayPath);
+      const decisionSignature = selectedDecision
+        ? JSON.stringify([
+          selectedDecision.operation,
+          selectedDecision.category,
+          selectedDecision.subjectName,
+          selectedDecision.scopeName ?? null,
+          selectedDecision.settingName,
+          selectedDecision.value,
+        ])
+        : null;
+      const existing = seen.get(normalized);
+      if (existing) {
+        const sameSharedDecision = Boolean(
+          candidate.comparisonDecisionId
+          && existing.comparisonDecisionId === candidate.comparisonDecisionId
+          && existing.decisionSignature === decisionSignature,
+        );
+        if (!sameSharedDecision) duplicates.add(existing.displayPath);
+      } else {
+        seen.set(normalized, {
+          displayPath,
+          comparisonDecisionId: candidate.comparisonDecisionId,
+          decisionSignature,
+        });
+      }
     }
     return [...duplicates];
   })();
@@ -1053,6 +1122,29 @@ function WorldCandidateGroupDetail({
       return sourceDecision?.operation === 'ADD';
     });
   };
+  const scopeMergeSources = (candidate: WorldSettingCandidateResponse): string[] => {
+    if (confirmationFiltered
+        || !candidate.id
+        || !isScopeUnresolvedCandidate(candidate)
+        || !candidate.matchedScopeName
+        || !candidate.matchedPropertyName) return [];
+    const linkedSources = candidate.comparisonDecisionId
+      ? candidates.filter(source => source.comparisonDecisionId === candidate.comparisonDecisionId)
+      : [candidate];
+    const proposedValue = candidate.proposedValue ?? candidate.extractedValue;
+    const compatible = linkedSources.length > 0 && linkedSources.every(source => (
+      Boolean(source.id)
+      && source.reviewStatus === 'PENDING_REVIEW'
+      && source.comparisonStatus === 'COMPLETED'
+      && !isAutomaticApplicationPending(source)
+      && isScopeUnresolvedCandidate(source)
+      && source.targetWorldSettingId === candidate.targetWorldSettingId
+      && source.matchedScopeName === candidate.matchedScopeName
+      && source.matchedPropertyName === candidate.matchedPropertyName
+      && (source.proposedValue ?? source.extractedValue) === proposedValue
+    ));
+    return compatible ? linkedSources.map(source => source.id!) : [];
+  };
   return (
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
@@ -1078,19 +1170,26 @@ function WorldCandidateGroupDetail({
       </header>
 
       <RecomparisonNotice group={group} />
-      {candidates.map(candidate => candidate.id && (
-        <WorldKeyDiffRow
-          key={candidate.id}
-          candidate={candidate}
-          decision={decisions[candidate.id] ?? candidateDecision(candidate)}
-          conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
-          recompared={recomparedIds.has(candidate.id)}
-          includeRootMoveNotice={includeRootMoveNotice(candidate)}
-          disabled={actionPending}
-          onExclude={() => onExclude(candidate.id!)}
-          onEdit={() => onEdit(candidate)}
-        />
-      ))}
+      {candidates.map(candidate => {
+        if (!candidate.id) return null;
+        const linkedScopeCandidateIds = scopeMergeSources(candidate);
+        return (
+          <WorldKeyDiffRow
+            key={candidate.id}
+            candidate={candidate}
+            decision={decisions[candidate.id] ?? candidateDecision(candidate)}
+            conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
+            recompared={recomparedIds.has(candidate.id)}
+            includeRootMoveNotice={includeRootMoveNotice(candidate)}
+            disabled={actionPending}
+            onExclude={() => onExclude(candidate.id!)}
+            onEdit={() => onEdit(candidate)}
+            onUseMatchedScope={linkedScopeCandidateIds.length
+              ? () => onUseMatchedScope(candidate, linkedScopeCandidateIds)
+              : undefined}
+          />
+        );
+      })}
 
       {!groupAutomaticPending && duplicatePropertyPaths.length > 0 && (
         <div role="alert" style={{
@@ -1167,6 +1266,8 @@ function CandidateEditModal({
   scopeReviewPath,
   scopeReviewSourcePath,
   scopeMismatchPaths,
+  batchLimitReview = false,
+  conflictReview = false,
   pending,
   automaticPending = false,
   ordered = false,
@@ -1179,6 +1280,8 @@ function CandidateEditModal({
   scopeReviewPath?: string;
   scopeReviewSourcePath?: string;
   scopeMismatchPaths?: { source: string; existing: string };
+  batchLimitReview?: boolean;
+  conflictReview?: boolean;
   pending: boolean;
   automaticPending?: boolean;
   ordered?: boolean;
@@ -1206,6 +1309,12 @@ function CandidateEditModal({
     const normalizedValue = value.trim();
     if (!normalizedSubject || !normalizedSetting || !normalizedValue) {
       setValidationError('대상명·설정명·최종 설정값을 모두 입력해 주세요.');
+      return;
+    }
+    if (!identityOnly && batchLimitReview && conflictReview && operation !== 'EXCLUDE'
+        && normalizedValue.normalize('NFC').replace(/\s+/g, '')
+          === initialDecision.value.normalize('NFC').replace(/\s+/g, '')) {
+      setValidationError('서로 다른 추출값을 하나의 최종 설정값으로 정리해 주세요.');
       return;
     }
     setValidationError(null);
@@ -1262,6 +1371,10 @@ function CandidateEditModal({
                 ? `원문의 ‘${scopeMismatchPaths.source}’과 기존 ‘${scopeMismatchPaths.existing}’을 확인해 주세요. 기존 설정을 바꾸려면 해당 범위와 설정명을 입력하고 수정 또는 병합을 선택하세요. 별도 설정이면 원문의 범위로 추가할 수 있습니다.`
               : scopeReviewPath
                 ? `${scopeReviewSourcePath ? `원문은 ‘${scopeReviewSourcePath}’로 추출되었습니다. ` : ''}기존 ‘${scopeReviewPath}’에 반영하려면 범위를 입력하고 수정 또는 병합을 선택하세요. 설정명이 다르면 반영할 설정명도 함께 정해 주세요. 범위를 비워 두고 추가하면 이 대상의 공통 설정으로 저장합니다.`
+                : batchLimitReview
+                  ? conflictReview
+                    ? '한 번에 비교할 수 있는 분량을 넘어 비교를 보류했습니다. 서로 다른 추출값을 확인하고 최종 내용을 하나로 정해 주세요.'
+                    : '한 번에 비교할 수 있는 분량을 넘어 비교를 보류했습니다. 원문에서 추출한 대상과 내용을 확인해 반영해 주세요.'
                 : '이 항목을 어디에 어떤 내용으로 반영할지 정해 주세요. 다른 항목은 바뀌지 않습니다.'}
           </div>
           <div className="world-setting-edit-identity" style={{
@@ -1344,6 +1457,7 @@ export function WorldSettingReview() {
   const [decisionOverrides, setDecisionOverrides] = useState<Record<string, DecisionDraft>>({});
   const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
   const [editIdentityOnly, setEditIdentityOnly] = useState(false);
+  const [scopeMergeCandidateIds, setScopeMergeCandidateIds] = useState<string[]>([]);
   const [confirmedTarget, setConfirmedTarget] = useState<{
     id?: string;
     subjectName: string;
@@ -1532,6 +1646,7 @@ export function WorldSettingReview() {
     selectionGroupRef.current = groupKey;
     setEditCandidate(null);
     setEditIdentityOnly(false);
+    setScopeMergeCandidateIds([]);
   }, [selectedGroup]);
 
   useEffect(() => {
@@ -1541,6 +1656,7 @@ export function WorldSettingReview() {
     setDecisionOverrides({});
     setEditCandidate(null);
     setEditIdentityOnly(false);
+    setScopeMergeCandidateIds([]);
   }, [batchId, workId]);
 
   const invalidateReviewState = async () => {
@@ -1659,6 +1775,7 @@ export function WorldSettingReview() {
       ));
       setEditCandidate(null);
       setEditIdentityOnly(false);
+      setScopeMergeCandidateIds([]);
       selectionGroupRef.current = null;
       if (isWorldReviewLocation()) {
         setSearchParams(previous => {
@@ -1736,6 +1853,7 @@ export function WorldSettingReview() {
     setMobileDetailOpen(false);
     setEditCandidate(null);
     setEditIdentityOnly(false);
+    setScopeMergeCandidateIds([]);
     resetActionsIfSettled();
     selectionGroupRef.current = null;
     setSearchParams(previous => {
@@ -1757,6 +1875,7 @@ export function WorldSettingReview() {
     setMobileDetailOpen(true);
     setEditCandidate(null);
     setEditIdentityOnly(false);
+    setScopeMergeCandidateIds([]);
     resetActionsIfSettled();
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -1833,6 +1952,12 @@ export function WorldSettingReview() {
   const submitEditedCandidate = (draft: DecisionDraft) => {
     if (!editCandidate?.id || actionPending || candidateAutomaticPending(editCandidate.id)
       || (editIdentityOnly && groupAutomaticPending)) return;
+    const linkedScopeCandidates = !editIdentityOnly && scopeMergeCandidateIds.length
+      ? scopeMergeCandidateIds.flatMap(candidateId => {
+        const candidate = pendingCandidates.find(item => item.id === candidateId);
+        return candidate?.id ? [{ candidateId: candidate.id, ...draft }] : [];
+      })
+      : null;
     const candidates = editIdentityOnly
       ? pendingCandidates.flatMap(candidate => {
         if (!candidate.id) return [];
@@ -1844,18 +1969,24 @@ export function WorldSettingReview() {
           subjectName: draft.subjectName,
         }] : [];
       })
-      : [{ candidateId: editCandidate.id, ...draft }];
-    if (!candidates.length || (editIdentityOnly && candidates.length !== pendingCandidates.length)) return;
-    const resolvedConflictId = !editIdentityOnly && editCandidate.consolidationStatus === 'CONFLICT'
-      ? editCandidate.id
-      : null;
+      : linkedScopeCandidates ?? [{ candidateId: editCandidate.id, ...draft }];
+    if (!candidates.length
+        || (editIdentityOnly && candidates.length !== pendingCandidates.length)
+        || (linkedScopeCandidates && (candidates.length !== scopeMergeCandidateIds.length
+          || scopeMergeCandidateIds.some(candidateAutomaticPending)))) return;
+    const resolvedConflictCandidateIds = !editIdentityOnly
+      ? candidates.flatMap(decision => {
+        const candidate = pendingCandidates.find(item => item.id === decision.candidateId);
+        return candidate?.consolidationStatus === 'CONFLICT' ? [decision.candidateId] : [];
+      })
+      : [];
     updateDecisionMutation.mutate({
       path: { workId },
       body: { batchId, candidates },
     }, {
       onSuccess: () => {
-        if (!resolvedConflictId) return;
-        setResolvedConflictIds(previous => new Set([...previous, resolvedConflictId]));
+        if (!resolvedConflictCandidateIds.length) return;
+        setResolvedConflictIds(previous => new Set([...previous, ...resolvedConflictCandidateIds]));
       },
     });
   };
@@ -1922,9 +2053,20 @@ export function WorldSettingReview() {
     && (reviewProgress.directReview ?? 0) === 0
     && (reviewProgress.processing ?? 0) === 0
     && Boolean(workId);
-  const editDecision = editCandidate?.id
+  const baseEditDecision = editCandidate?.id
     ? decisionOverrides[editCandidate.id] ?? candidateEditDecision(editCandidate)
     : null;
+  const editDecision = baseEditDecision
+    && scopeMergeCandidateIds.length
+    && editCandidate?.matchedScopeName
+    && editCandidate.matchedPropertyName
+    ? {
+      ...baseEditDecision,
+      operation: 'MERGE' as const,
+      scopeName: editCandidate.matchedScopeName,
+      settingName: editCandidate.matchedPropertyName,
+    }
+    : baseEditDecision;
   const scopeReviewPath = editCandidate && isScopeUnresolvedCandidate(editCandidate)
     && editCandidate.matchedPropertyName
     ? editCandidate.matchedScopeName
@@ -2203,6 +2345,7 @@ export function WorldSettingReview() {
                           dismissMutation.reset();
                           updateDecisionMutation.reset();
                           setEditIdentityOnly(true);
+                          setScopeMergeCandidateIds([]);
                           setEditCandidate(candidate);
                         }}
                         onEdit={candidate => {
@@ -2211,6 +2354,16 @@ export function WorldSettingReview() {
                           dismissMutation.reset();
                           updateDecisionMutation.reset();
                           setEditIdentityOnly(false);
+                          setScopeMergeCandidateIds([]);
+                          setEditCandidate(candidate);
+                        }}
+                        onUseMatchedScope={(candidate, linkedCandidateIds) => {
+                          if (linkedCandidateIds.some(candidateAutomaticPending)) return;
+                          confirmMutation.reset();
+                          dismissMutation.reset();
+                          updateDecisionMutation.reset();
+                          setEditIdentityOnly(false);
+                          setScopeMergeCandidateIds(linkedCandidateIds);
                           setEditCandidate(candidate);
                         }}
                         onConfirm={confirmAll}
@@ -2240,7 +2393,7 @@ export function WorldSettingReview() {
 
       {editCandidate?.id && editDecision && (
         <CandidateEditModal
-          key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : 'candidate'}`}
+          key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : scopeMergeCandidateIds.length ? 'scope-merge' : isBatchLimitExceededCandidate(editCandidate) ? 'batch-limit' : 'candidate'}`}
           initialDecision={editDecision}
           identityOnly={editIdentityOnly}
           scopeReviewPath={scopeReviewPath}
@@ -2249,6 +2402,8 @@ export function WorldSettingReview() {
             source: settingPath(editCandidate.scopeName, editCandidate.settingName),
             existing: settingPath(editCandidate.matchedScopeName, editCandidate.matchedPropertyName),
           } : undefined}
+          batchLimitReview={isBatchLimitExceededCandidate(editCandidate)}
+          conflictReview={editCandidate.consolidationStatus === 'CONFLICT'}
           pending={actionPending}
           automaticPending={candidateAutomaticPending(editCandidate.id) || (editIdentityOnly && groupAutomaticPending)}
           ordered={editCandidate.analysisMode === 'ORDERED_PROVISIONAL'}
@@ -2257,6 +2412,7 @@ export function WorldSettingReview() {
             if (actionPending) return;
             setEditCandidate(null);
             setEditIdentityOnly(false);
+            setScopeMergeCandidateIds([]);
           }}
           onSubmit={submitEditedCandidate}
         />

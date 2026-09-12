@@ -71,6 +71,7 @@ const currentLegalDocuments = {
 };
 
 async function openSignup(page: Page) {
+  await page.route('**/api/v1/auth/signup-policy', route => response(route, success({ verificationMethod: 'PHONE' })));
   await page.route('**/api/v1/legal-documents/current*', route => (
     response(route, success(currentLegalDocuments))
   ));

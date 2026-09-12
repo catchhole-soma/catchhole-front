@@ -7,7 +7,7 @@ import type {
   WorldSettingDetailResponse,
 } from '../../api/generated/types.gen';
 
-export type DemoEvidenceTone = 'character' | 'neutral' | 'world';
+type DemoEvidenceTone = 'character' | 'neutral' | 'world';
 
 export type DemoManuscriptParagraph = {
   id: string;
@@ -16,16 +16,16 @@ export type DemoManuscriptParagraph = {
 };
 
 export type DemoCharacterName = '도리안 베일' | '리아 모렌' | '세리아 노크' | '에단 렌' | '카엘 로스크';
-export type DemoCharacterSettingCategory = '스킬' | '스탯' | '아이템' | '프로필' | '상태';
+type DemoCharacterSettingCategory = '스킬' | '스탯' | '아이템' | '프로필' | '상태';
 
-export type DemoCharacterEvidence = {
+type DemoCharacterEvidence = {
   episode: number;
   episodeTitle: string;
   id: string;
   quote: string;
 };
 
-export type DemoCharacterSetting = {
+type DemoCharacterSetting = {
   category: DemoCharacterSettingCategory;
   evidence?: DemoCharacterEvidence;
   settingName: string;
@@ -33,7 +33,7 @@ export type DemoCharacterSetting = {
   value: string;
 };
 
-export type DemoCharacterTimelineFact = DemoCharacterSetting & {
+type DemoCharacterTimelineFact = DemoCharacterSetting & {
   current: boolean;
   evidence: DemoCharacterEvidence;
 };
@@ -146,7 +146,7 @@ export const INTERACTIVE_DEMO_CANDIDATES = {
   },
 } as const;
 
-export const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
+const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
   {
     age: '27세', firstEpisode: '1화', level: '8', name: '에단 렌',
     representativeLabel: '직업', representativeValue: '재액 운반자', role: '주인공', updated: true,
@@ -237,22 +237,6 @@ export const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
     ],
   },
 ];
-
-export const INTERACTIVE_DEMO_WORLD_ROWS = [
-  {
-    category: '장소',
-    subject: '거꾸로숲',
-    settingName: '하늘과 땅의 방향',
-    value: '해가 아래에서 뜨고 나무뿌리가 하늘을 향한다.',
-    evidence: '3화',
-  },
-  {
-    category: '장소',
-    subject: '거꾸로숲',
-    settingName: '귀환문의 조건',
-    evidence: '6화',
-  },
-] as const;
 
 const FACT_TYPE_BY_CATEGORY = {
   '프로필': 'PROFILE',

@@ -1,7 +1,7 @@
 import { Globe2, Users } from 'lucide-react';
 import { useLocation, useSearchParams } from 'react-router';
 
-export type SettingCandidateType = 'character' | 'world';
+type SettingCandidateType = 'character' | 'world';
 
 interface CandidateTabCount {
   directReview?: number;

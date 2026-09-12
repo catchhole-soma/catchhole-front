@@ -8,11 +8,17 @@
 
 ```bash
 npm run lint
+npm run typecheck
 npm run build
 npm run test:e2e
+npm run check:unused
+npm run doctor
 ```
 
 실제 API 연동 변경은 브라우저에서 요청·응답, 인증 저장소와 쿠키, 백엔드 DB 반영까지 확인합니다.
+
+- 미사용 코드·의존성은 고정 버전 Knip으로 검사합니다. `knip.json`은 PostCSS 설정과 E2E의 Vite `/src/*` 모듈 경로를 포함합니다. 생성 API는 검사에서 제외하고, fixture는 실제 import 경로를 확인한 뒤 제거합니다.
+- React Doctor는 고정 버전으로 전체 범위를 검사하는 참고용 명령입니다. `doctor.config.json`은 생성 API 파일만 제외하며, 남은 진단·오탐과 리디자인 후속 범위는 `docs/react-doctor-cleanup.md`에 기록합니다. 종료 코드 0만으로 오류가 없다고 판단하지 않습니다.
 
 ## OpenAPI와 생성 코드
 
@@ -52,14 +58,14 @@ npm run test:e2e
 - `/demo`는 진입·새 화면·재체험 시 맨 위에서 읽게 한다. 안내 대상을 보여주려고 자동 스크롤하거나 초기 포커스를 보내지 않으며, 안내 변경·화면 회전에도 사용자의 읽는 위치를 유지한다. 사용자가 직접 연 수정 폼의 입력 포커스는 `preventScroll`로 처리한다.
 - access token은 응답 body에서 받아 localStorage에 저장하고, refresh token은 HttpOnly 쿠키로만 취급합니다. refresh token을 JavaScript에서 읽거나 로그에 남기지 않습니다.
 - 모든 백엔드 요청은 `credentials: include`와 공통 `fetchWithAuth` 경로를 유지합니다.
-- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
+- 보호 API의 401은 refresh 한 번과 원 요청 한 번만 재시도하며, signup/login/signup-policy/email-verifications/phone-verifications/refresh/logout에는 refresh 재시도를 적용하지 않습니다.
 - 로그아웃이나 세션 제거 시 진행 중인 refresh를 즉시 무효화하고, 이전 세션에서 시작된 refresh 응답으로 access token을 복원하지 않습니다.
-- 회원가입 전 `phone-verifications` 발송·확인을 완료하고, 가입 요청에는 전화번호 대신 발급된 `phoneVerificationToken`을 보냅니다. 인증된 번호가 바뀌면 토큰과 진행 상태를 즉시 폐기합니다.
+- 회원가입은 `signup-policy`의 서버 지정 `EMAIL`/`PHONE` 인증을 사용합니다. 정책 조회 실패 시 가입을 막고 재시도를 제공합니다. EMAIL은 전화번호 입력 없이 `email-verifications` 확인 뒤 `emailVerificationToken`을, PHONE은 기존 `phoneVerificationToken`을 보냅니다. 이메일은 trim만 적용하고 대소문자를 보존합니다. 인증 대상 변경 시 토큰·진행 상태와 이전 발송·확인의 늦은 응답을 폐기합니다.
 - 회원가입 화면은 Backend의 현재 `PUBLISHED` 이용약관·개인정보처리방침을 조회해 한 체크박스로 동의·확인을 함께 표시하고, 만 14세 이상 확인은 별도 필수 체크로 표시합니다. 가입 요청에는 `termsAccepted`, `privacyPolicyAcknowledged`, `age14OrOlderConfirmed`와 사용자가 본 `termsDocumentId`, `privacyPolicyDocumentId`를 보냅니다.
 - Backend가 가입 시점의 현재 게시본과 문서 ID를 같은 트랜잭션에서 검증하고 문서 FK·종류·버전·행위·서버 기록 시각을 저장합니다. 문서가 교체된 409 응답에서는 체크를 해제하고 최신 게시본을 다시 조회해 재확인받습니다. Front에 문서 원문이나 현재 버전을 하드코딩하지 않습니다.
 - AI 원고 처리 고지는 개인정보처리방침에 포함하며 회원가입 이후 업로드·재시도·재분석마다 별도 동의나 반복 고지를 표시하지 않습니다.
 - GA4·Meta Pixel의 자동 수집 항목·목적·보유기간·국외 처리·거부방법은 개인정보처리방침에 공개합니다. 별도 쿠키 배너나 회원가입 선택 체크박스는 두지 않으며 실제 측정 코드는 NVM-308·NVM-309 범위에서 방침과 일치하도록 설치합니다.
-- 휴대폰 인증 진행 복원에는 `verificationId`, 전화번호, 인증 만료 시각, 재전송 가능 시각만 sessionStorage에 보관합니다. `phoneVerificationToken`은 컴포넌트 메모리에만 두고 localStorage/sessionStorage/로그에 남기지 않습니다.
+- 인증 진행 복원에는 이메일·전화번호별 sessionStorage 키에 `verificationId`, 인증 대상, 인증 만료 시각, 재전송 가능 시각만 보관합니다. 인증번호·비밀번호·가입 토큰은 컴포넌트 메모리에만 두고 브라우저 저장소·로그·공유 Mutation 캐시에 남기지 않습니다.
 - 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
 - 회원가입은 가입과 토큰 발급을 한 요청으로 완료합니다. 소셜 로그인은 실제 OAuth 계약이 준비되기 전까지 비활성 상태로 둡니다.
 - 실제 로그인·회원가입 성공으로 access token을 저장할 때는 데모 모드와 데모 작품 데이터를 함께 제거해 실제 API 모드로 전환합니다.
@@ -122,6 +128,9 @@ npm run test:e2e
 - 같은 범위+설정명의 여러 1차 추출값은 AI가 후보 하나로 통합하고 `SINGLE/MERGED/CONFLICT` 상태를 반환한다. Front는 `MERGED`를 `여러 내용 정리됨`, `CONFLICT`를 `내용 확인 필요`로 표현하고 내부 enum을 노출하지 않는다. 세계관 row는 선택 체크박스를 사용하지 않고 각 row의 `제외`로 해당 후보 하나만 즉시 제외한다. 하단은 남은 검토 대기 row 전체를 처리하는 `모두 확정`만 두며 선택 항목 제외 버튼을 두지 않는다. 이 흐름에서 일부 row만 확정한 뒤 남은 row를 재비교하는 구형 체크박스 시나리오는 만들지 않는다. `CONFLICT` row는 최종값을 저장하기 전에는 모두 확정을 잠그되 row 제외은 허용한다. 모든 `evidenceSpans` quote는 생략 없이 표시한다.
 - AI `ADD` 제안이 `existingRootPropertyNamesToMove`를 함께 반환하면 기존 `AI 비교 판단` 문장 안에 `root 설정명 → 제안 범위 › 설정명`을 명시해 확정의 부수 효과를 숨기지 않는다. 작가가 제안을 수정했거나 반영 방식을 `ADD`가 아닌 것으로 바꾸면 이동 안내를 표시하지 않는다. 반영 방식 필터 또는 여러 source를 정리한 비교 판단에 분류 필터가 적용돼 일부 후보가 숨겨질 수 있을 때도 이동 안내와 일괄 확정을 막는다.
 - 작가가 세계관 후보의 분류·대상·범위·설정명·반영 방식·최종값을 저장하면 전용 후보 결정 mutation으로 즉시 Backend 후보의 `final*` 초안을 갱신하되 2차 LLM 재비교는 호출하지 않는다. 일반 수정은 해당 row 하나만, 상세 header의 `분류·대상 일괄 수정`은 모든 미확정 row를 한 요청에서 원자적으로 저장한다. 분류·대상이 바뀌면 조회 결과를 무효화해 row를 새 그룹으로 이동시키고 그 그룹을 자동 선택한다. 이후 `모두 확정`은 서버에 저장된 최종 결정을 반영하며 Backend가 반환한 `ADD` 경로 중복·`UPDATE/MERGE` 경로 부재·루트/범위 경로 충돌을 그대로 안내한다.
+- `REVIEW_REQUIRED + SCOPE_UNRESOLVED` row는 일치 가능한 기존 경로를 자동 적용하지 않고 `기존 범위 › 설정명에 병합` 빠른 선택을 제공한다. 이 선택은 수정 모달에 기존 경로와 `MERGE`를 미리 채우며, 같은 `comparisonDecisionId`의 모든 미확정 source를 한 PATCH로 저장한다. 일부 source가 필터로 숨거나 연결 후보의 경로·제안값이 다르면 빠른 선택을 숨기고, `CONFLICT`는 모달에서 최종값을 확인한 뒤에만 해결된 것으로 처리한다.
+- `REVIEW_REQUIRED + BATCH_LIMIT_EXCEEDED` row는 범위 미확정과 구분해 `출력 한도 검토`로 표시한다. 자동 추가·재비교하지 않고 그룹 확정을 잠근 뒤, 수정 모달에 1차 원문의 범위·설정명·값과 안전한 기본 `ADD`를 미리 채운다. 작가가 반영 방식과 최종값을 확인해 수정안을 저장해야만 확정할 수 있고, `CONFLICT`는 서로 다른 추출값을 하나의 최종값으로 확인한 후 `conflictResolved=true`로 보낸다.
+- 출력 한도 초과의 `CONFLICT` 후보를 반영할 때 미리 채운 추출값을 그대로 두거나 공백·줄바꿈만 바꾼 저장은 막는다. 오류와 입력을 유지하고 최종값을 정리하기 전에는 후보 결정 PATCH와 그룹 확정을 진행하지 않는다. `EXCLUDE`는 허용한다.
 - 기존 속성과 의미가 같아 `반영하지 않음`이 제안된 row는 Backend의 `beforeValue`로 실제 기존 설정값을 표시한다. 이 값은 삭제되지 않으므로 danger 색상이나 `−` 기호를 쓰지 않고 중립색 `비교한 기존값`으로 표시한다. 특정 기존 속성과 비교하지 않은 일시적 사건 등의 제외만 `비교 대상 없음`으로 표시하며, 값이 없다는 뜻의 `없음`과 혼동하지 않는다.
 - 확정 세계관 목록은 `분류 + 대상`을 한 항목으로 표시하고 API의 평면 `properties[]` 경로를 루트 `공통 설정`과 `scopeName` 섹션으로 묶어 펼친다. 선택적 1단계 범위와 같은 설정명의 다른 범위 중복은 세계관에만 허용하며 캐릭터 설정 UI·DTO에 `scopeName`을 추가하지 않는다. FE가 JSON 전체를 덮어쓰지 않는다.
 - `/dashboard?nav=settingDB&tab=worldsettings`는 세계관 대상 목록·상세와 직접 추가·수정을 생성 SDK로 제공한다. 검색·분류·정렬·1-based 페이지·선택 대상·생성/수정 모달 상태는 `q`, `category`, `sort`, `page`, `settingId`, `modal` URL 계약을 따른다.

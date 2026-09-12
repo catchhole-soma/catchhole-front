@@ -2087,7 +2087,7 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
   await expect(candidateMatchDialog).toBeVisible();
 
   invalid = true;
-  await expect(candidateDetail.getByRole('alert')).toContainText('입력 형식을 확인하지 못했습니다.');
+  await expect(candidateDetail.getByRole('alert')).toContainText('설정값의 형식을 확인해야 합니다.');
   await candidateMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
   await expect(candidateMatchDialog).toHaveCount(0);
   expect(candidateMatchRequestCount).toBe(0);
@@ -2101,7 +2101,7 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
   await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).first().click();
 
   invalid = true;
-  await expect(candidateDetail.getByRole('alert')).toContainText('입력 형식을 확인하지 못했습니다.');
+  await expect(candidateDetail.getByRole('alert')).toContainText('설정값의 형식을 확인해야 합니다.');
   await groupMatchDialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).last().click();
   await expect(groupMatchDialog).toHaveCount(0);
   expect(groupMatchRequestCount).toBe(0);

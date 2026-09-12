@@ -33,19 +33,10 @@ export class NetworkError extends Error {
   }
 }
 
-let networkErrorListener: (() => void) | null = null;
 let authErrorListener: (() => void) | null = null;
-
-export function setNetworkErrorListener(listener: (() => void) | null): void {
-  networkErrorListener = listener;
-}
 
 export function setAuthErrorListener(listener: (() => void) | null): void {
   authErrorListener = listener;
-}
-
-export function notifyNetworkError(): void {
-  networkErrorListener?.();
 }
 
 export function notifyAuthError(): void {

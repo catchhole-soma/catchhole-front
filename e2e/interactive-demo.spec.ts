@@ -280,6 +280,10 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
   await activate(guidedWorldEvidenceButton, keyboard);
   await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
+  await activate(guidedWorldEvidenceButton, keyboard);
+  await expect(worldDetail.locator('.world-setting-evidence-row')).toHaveCount(0);
+  await activate(guidedWorldEvidenceButton, keyboard);
+  await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
   await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
   const worldEvidenceHighlight = await guidedWorldEvidenceButton.evaluate(() => {
     const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible')!;
@@ -299,6 +303,12 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
 }
 
 test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료하고 회원가입으로 이동한다', async ({ page }) => {
+  const renderUpdateWarnings: string[] = [];
+  page.on('console', message => {
+    if (message.type() === 'error' && message.text().includes('Cannot update a component')) {
+      renderUpdateWarnings.push(message.text());
+    }
+  });
   const dataRequests: string[] = [];
   page.on('request', request => {
     if (request.resourceType() === 'fetch' || request.resourceType() === 'xhr') {
@@ -308,6 +318,7 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
 
   await page.goto('/demo');
   await completeDemo(page, { keyboard: true });
+  expect(renderUpdateWarnings).toEqual([]);
 
   await expect(page.getByRole('button', { name: '다시 체험하기' })).toBeVisible();
   await expect(page.locator('.interactive-demo-complete')).toContainText('실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.');
@@ -319,9 +330,12 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   await expect(page.getByRole('dialog', { name: '회원가입' })).toBeVisible();
   await page.getByRole('button', { name: '회원가입 닫기' }).click();
   await expect(page).toHaveURL(/\/landing$/);
-  await expect(page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
-  expect(dataRequests).toHaveLength(1);
-  const legalDocumentRequest = new URL(dataRequests[0]);
+  await expect(page.locator('.landing-header__actions').getByRole('button', { name: '로그인 없이 체험하기' })).toBeVisible();
+  expect(dataRequests).toHaveLength(2);
+  expect(dataRequests.map(url => new URL(url).pathname).sort()).toEqual([
+    '/api/v1/auth/signup-policy', '/api/v1/legal-documents/current',
+  ]);
+  const legalDocumentRequest = new URL(dataRequests.find(url => new URL(url).pathname === '/api/v1/legal-documents/current')!);
   expect(legalDocumentRequest.pathname).toBe('/api/v1/legal-documents/current');
   expect(legalDocumentRequest.searchParams.get('locale')).toBe('ko-KR');
 });
@@ -329,7 +343,7 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
 test('데모 상태는 저장되지 않으며 새로고침과 재체험으로 처음부터 초기화된다', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/landing');
-  await page.locator('#features').getByRole('button', { name: '로그인 없이 체험하기' }).click();
+  await page.locator('.landing-header__actions').getByRole('button', { name: '로그인 없이 체험하기' }).click();
   await expect(page).toHaveURL(/\/demo$/);
 
   const startButton = page.getByRole('button', { name: 'AI 분석 시작' });

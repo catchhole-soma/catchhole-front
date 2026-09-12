@@ -93,8 +93,21 @@
 }
 .episode-upload-page .mode-card:not(:disabled):hover { border-color: var(--ch-primary) !important; transform: translateY(-2px); }
 .episode-upload-page .mode-card.is-selected { border: 2px solid var(--ch-primary) !important; background: var(--ch-surface-accent) !important; box-shadow: 0 10px 24px rgb(8 126 242 / 10%); }
-.episode-upload-page .mode-card > div:nth-last-child(2) { color: var(--ch-ink) !important; }
-.episode-upload-page .mode-card > div:last-child { color: var(--ch-text-muted) !important; }
+.episode-upload-page .mode-card:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 3px; }
+.episode-upload-page .mode-card__title { color: var(--ch-ink) !important; }
+.episode-upload-page .mode-card__description { color: var(--ch-text-muted) !important; word-break: keep-all; overflow-wrap: anywhere; }
+.episode-upload-page .mode-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--ch-primary-ink);
+  color: var(--ch-primary-contrast);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
 
 .episode-upload-input {
   border-color: var(--ch-border-strong) !important;
@@ -286,7 +299,7 @@
 .episode-upload-page .mode-card__badge { position: absolute; top: 10px; left: 12px; padding: 3px 8px; border-radius: var(--ch-radius-sm); background: var(--ch-primary-ink); color: var(--ch-primary-contrast); font-size: 11px; font-weight: 700; }
 .episode-upload-policy { margin: 16px 0 22px; color: var(--ch-text-muted); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .episode-upload-policy button, .episode-upload-pending-notice button { display: block; width: fit-content; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--ch-primary-ink); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
-.episode-upload-pending-notice { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; line-height: 1.7; }
+.episode-upload-pending-notice { margin-top: 20px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; line-height: 1.7; }
 .theme-v2 .episode-upload-auto-notice {
   display: flex;
   align-items: flex-start;

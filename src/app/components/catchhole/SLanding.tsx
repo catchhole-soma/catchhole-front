@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowRight,
   BookOpenText,
@@ -9,19 +9,20 @@ import {
   MessageSquareText,
   Quote,
   ShieldCheck,
-  Sparkles,
   UploadCloud,
   UsersRound,
   WandSparkles,
   X,
 } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
 import { SurfaceCard } from './ui-v2/SurfaceCard';
 import { LandingProductDemo } from './LandingProductDemo';
 import './landing-v2.css';
+import './landing-video/landing-video-hero.css';
+import { LandingVideoHero } from './landing-video/LandingVideoHero';
 
 type Service = {
   category: string;
@@ -104,6 +105,8 @@ const SERVICES: Service[] = [
 ];
 
 export default function SLanding() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { openAuth } = usePublicModalNavigation();
@@ -127,7 +130,7 @@ export default function SLanding() {
   }, [location.hash, location.pathname, location.search, location.state, navigate, withdrawalAccepted]);
 
   return (
-    <div className="landing-page theme-v2">
+    <div ref={scrollContainerRef} className="landing-page theme-v2">
       {withdrawalNoticeVisible && (
         <div className="landing-withdrawal-notice" role="status" aria-live="polite" aria-atomic="true">
           <CheckCircle2 size={20} aria-hidden="true" />
@@ -144,7 +147,7 @@ export default function SLanding() {
           </button>
         </div>
       )}
-      <header className="landing-header">
+      <header ref={headerRef} className="landing-header">
         <div className="landing-header__inner">
           <ProductBrand compact />
           <div className="landing-header__right">
@@ -168,35 +171,12 @@ export default function SLanding() {
       </header>
 
       <main>
-        <section className="landing-hero" id="features">
-          <div className="landing-section__inner landing-hero__inner">
-            <div className="landing-hero-copy">
-              <div className="landing-eyebrow">
-                <Sparkles size={14} />
-                웹소설 원고에서 작품 설정까지
-              </div>
-              <h1 className="landing-hero-title">
-                원고 속 캐릭터와 세계관을,<br /><em>근거와 함께 정리하세요</em>
-              </h1>
-              <p className="landing-hero-description">
-                AI가 명확한 설정을 원문 근거와 함께 자동으로 반영해요.
-                확인이 필요한 내용만 직접 검토하세요.
-              </p>
-              <div className="landing-actions">
-                <ActionButton className="landing-primary-action" icon={<ArrowRight size={16} />} onClick={openDemo}>
-                  로그인 없이 체험하기
-                </ActionButton>
-                <ActionButton variant="secondary" onClick={() => openAuth('/signup')}>
-                  지금 무료로 시작하기
-                </ActionButton>
-              </div>
-              <div className="landing-trust">
-                <span className="landing-trust__item"><CheckCircle2 size={14} /> 원문 근거까지 한눈에</span>
-                <span className="landing-trust__item"><CheckCircle2 size={14} /> 필요한 내용만 직접 확인</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <LandingVideoHero
+          scrollContainerRef={scrollContainerRef}
+          headerRef={headerRef}
+          onDemo={openDemo}
+          onSignup={() => openAuth("/signup")}
+        />
 
         <section className="landing-demo-section" aria-labelledby="landing-demo-heading">
           <div className="landing-demo-section__inner">
@@ -206,6 +186,19 @@ export default function SLanding() {
               <p>단일 회차에서 직접 검토를 선택한 예시예요. 단계를 선택해 화면을 살펴보세요.</p>
             </div>
             <LandingProductDemo />
+          </div>
+        </section>
+
+        <section className="landing-manuscript-notice" id="manuscript-protection" aria-labelledby="landing-manuscript-notice-heading">
+          <div className="landing-section__inner">
+            <h2 id="landing-manuscript-notice-heading">
+              작가님의 원고는 <strong>AI 학습에 사용하지 않습니다.</strong>
+            </h2>
+            <p>원고와 분석 결과 모두에 적용됩니다.</p>
+            <Link className="landing-manuscript-notice__link" to="/privacy">
+              개인정보 처리방침 보기
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </section>
 

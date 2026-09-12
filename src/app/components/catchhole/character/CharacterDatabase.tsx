@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -1148,12 +1148,14 @@ export function CharacterDatabase({
     archiveOpen,
     restoringCharacterId,
   });
-  currentViewRef.current = {
-    workId,
-    selectedCharacterId,
-    archiveOpen,
-    restoringCharacterId,
-  };
+  useLayoutEffect(() => {
+    currentViewRef.current = {
+      workId,
+      selectedCharacterId,
+      archiveOpen,
+      restoringCharacterId,
+    };
+  }, [workId, selectedCharacterId, archiveOpen, restoringCharacterId]);
   const {
     containerRef,
     contentStartRef,
