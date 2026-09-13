@@ -128,7 +128,7 @@ export function LandingVideoHero({ scrollContainerRef, headerRef, onDemo, onSign
         </div>
         <div className="landing-trust">
           <span className="landing-trust__item"><CheckCircle2 size={14} aria-hidden="true" />원문 근거까지 한눈에</span>
-          <span className="landing-trust__item"><CheckCircle2 size={14} aria-hidden="true" />작가가 직접 최종 확정</span>
+          <span className="landing-trust__item"><CheckCircle2 size={14} aria-hidden="true" />필요한 내용만 직접 확인</span>
         </div>
         <button className="lvh-end-replay" type="button" onClick={showVideo}><RotateCcw size={14} aria-hidden="true" />처음부터 다시 보기</button>
       </div>

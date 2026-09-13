@@ -824,7 +824,7 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
     .toHaveCSS('color', 'rgb(217, 131, 36)');
 
   const mixedFailureCard = page.getByRole('article').filter({ hasText: '12~13화' });
-  await expect(mixedFailureCard.getByText('일부 실패', { exact: true })).toBeVisible();
+  await expect(mixedFailureCard.getByText('일부 분석 중단', { exact: true })).toBeVisible();
   await expect(mixedFailureCard.getByRole('button', { name: '실패 확인' })).toBeVisible();
   await expect(mixedFailureCard.getByRole('button', { name: '남은 비교 확인' })).toHaveCount(0);
   await mixedFailureCard.getByRole('button', { name: '실패 확인' }).click();

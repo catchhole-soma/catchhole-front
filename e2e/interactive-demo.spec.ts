@@ -321,6 +321,8 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   expect(renderUpdateWarnings).toEqual([]);
 
   await expect(page.getByRole('button', { name: '다시 체험하기' })).toBeVisible();
+  await expect(page.locator('.interactive-demo-complete')).toContainText('실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.');
+  await expect(page.getByText('CatchHole은 AI가 찾은 내용을 자동으로 덮어쓰지 않습니다.', { exact: false })).toHaveCount(0);
   expect(dataRequests).toEqual([]);
 
   await page.getByRole('button', { name: '내 작품으로 시작하기' }).click();

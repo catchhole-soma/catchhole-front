@@ -105,10 +105,10 @@ export const INTERACTIVE_DEMO_MANUSCRIPT = {
 
 export const INTERACTIVE_DEMO_ANALYSIS_PHASES = [
   '원문 저장 완료',
-  '원문 청킹 중',
-  '청크 저장 완료',
-  'LLM 전처리 중',
-  'LLM 전처리 완료',
+  '원문 나누는 중',
+  '원문 정리 완료',
+  '내용 파악 중',
+  '내용 파악 완료',
   'AI 설정 추출 중',
   '설정 후보 생성 완료',
 ] as const;

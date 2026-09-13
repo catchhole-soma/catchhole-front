@@ -353,7 +353,7 @@ function validateTypedValue(value: string | null | undefined, valueType: Setting
     try {
       JSON.parse(value);
     } catch {
-      throw new Error(`${label}의 JSON 형식을 확인해 주세요.`);
+      throw new Error(`${label}에 입력한 내용을 확인해 주세요. 올바른 형식으로 읽지 못했습니다.`);
     }
   }
 }

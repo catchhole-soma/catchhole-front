@@ -27,7 +27,7 @@ export class ApiError extends Error {
 
 /** 서버 응답 자체를 받지 못한 경우(CORS, 서버 중단, 네트워크 단절 등). */
 export class NetworkError extends Error {
-  constructor(message = '백엔드 서버에 연결할 수 없습니다.') {
+  constructor(message = '서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.') {
     super(message);
     this.name = 'NetworkError';
   }

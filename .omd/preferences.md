@@ -445,3 +445,18 @@ source_context: "src/app/components/catchhole/landing-video/LandingVideoHero.tsx
 ```
 
 Use “작성한 원고를 업로드하면” as the supporting copy and “캐릭터와 세계관 설정을 추출해요.” as the setting-extraction heading on `/landing` so the upload requirement and extraction targets are explicit.
+
+## 2026-09-10 — author-language-and-one-direct-review-count
+
+```omd-meta
+id: pref_gh180_author_review_20260910
+timestamp: 2026-09-10T05:56:40Z
+scope: interaction
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "사용자가 자동 반영 결과의 단일 직접 확인 집계와 root 포함 개발자식 안내 제거를 승인함"
+```
+
+분석 결과는 반영됨·제외됨·직접 확인을 중심으로 안내하고, 진행 중인 분석은 따로 보여 준다. 개발자 용어가 아니라 작가가 판단할 의미와 다음 행동으로 오류·모달·판단 근거를 설명한다. 원문·고유명사·설정값은 바꾸지 않는다.
