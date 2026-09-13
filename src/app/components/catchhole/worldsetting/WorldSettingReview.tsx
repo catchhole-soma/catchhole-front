@@ -325,7 +325,13 @@ function candidateDecision(candidate: WorldSettingCandidateResponse): DecisionDr
   return { operation, category, subjectName, scopeName, settingName, value };
 }
 
+function isQuotaInterruptedCandidate(candidate: WorldSettingCandidateResponse): boolean {
+  return candidate.comparisonStatus === 'FAILED'
+    && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED';
+}
+
 function candidateEditDecision(candidate: WorldSettingCandidateResponse): DecisionDraft | null {
+  if (isQuotaInterruptedCandidate(candidate)) return null;
   const concreteDecision = candidateDecision(candidate);
   if (concreteDecision) return concreteDecision;
   if (!candidate.manualReviewAvailable
@@ -766,6 +772,7 @@ function WorldKeyDiffRow({
       : candidate.matchedPropertyName
     : null;
   const canEdit = candidate.reviewStatus === 'PENDING_REVIEW' && !automaticPending
+    && !isQuotaInterruptedCandidate(candidate)
     && (candidate.comparisonStatus === 'COMPLETED' || candidate.manualReviewAvailable === true)
     && candidateEditDecision(candidate) !== null;
   const canExclude = candidate.reviewStatus === 'PENDING_REVIEW';
@@ -813,7 +820,7 @@ function WorldKeyDiffRow({
 
       {automaticPending && <AutomaticApplicationNotice />}
 
-      {candidate.manualReviewAvailable && !scopeMismatch && !automaticPending && (
+      {candidate.manualReviewAvailable && !isQuotaInterruptedCandidate(candidate) && !scopeMismatch && !automaticPending && (
         <div role="status" className={`world-setting-manual-notice ${candidate.userModified && candidate.finalOperation ? 'is-saved' : 'is-review'}`}>
           {candidate.userModified && candidate.finalOperation ? <Check size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
           <div>
@@ -1104,7 +1111,7 @@ function WorldCandidateGroupDetail({
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
   const confirmable = !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
-    .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW'
+    .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
       && (candidate.comparisonStatus === 'COMPLETED'
         || (candidate.manualReviewAvailable === true && candidate.userModified && candidate.finalOperation != null))
       && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
@@ -1910,7 +1917,8 @@ export function WorldSettingReview() {
       && candidate.consolidationStatus !== 'SINGLE'
     )));
   const confirmAll = () => {
-    if (!selectedGroup || !batchId || actionPending || confirmationFiltered || groupAutomaticPending) return;
+    if (!selectedGroup || !batchId || actionPending || confirmationFiltered || groupAutomaticPending
+        || pendingCandidates.some(isQuotaInterruptedCandidate)) return;
     const candidates = pendingCandidates.flatMap(candidate => {
       if (!candidate.id) return [];
       const decision = decisionOverrides[candidate.id] ?? candidateDecision(candidate);
@@ -1971,6 +1979,8 @@ export function WorldSettingReview() {
       })
       : linkedScopeCandidates ?? [{ candidateId: editCandidate.id, ...draft }];
     if (!candidates.length
+        || candidates.some(decision => pendingCandidates.some(candidate =>
+          candidate.id === decision.candidateId && isQuotaInterruptedCandidate(candidate)))
         || (editIdentityOnly && candidates.length !== pendingCandidates.length)
         || (linkedScopeCandidates && (candidates.length !== scopeMergeCandidateIds.length
           || scopeMergeCandidateIds.some(candidateAutomaticPending)))) return;

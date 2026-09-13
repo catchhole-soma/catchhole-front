@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
@@ -125,6 +126,18 @@ for (const scenario of [
       expect(candidate.comparisonStatus).toBe('FAILED');
     }
     await expect(confirm).toBeDisabled();
+    const notice = page.locator('.character-direct-review-notice');
+    await expect(notice).toBeVisible();
+    // The notice must remain readable outside the broad legacy override selector.
+    const standalone = await notice.evaluateHandle(element => {
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.id = 'isolated-character-notice';
+      document.body.appendChild(clone);
+      return clone;
+    });
+    const isolated = page.locator('#isolated-character-notice');
+    expect(await computedContrastRatio(isolated)).toBeGreaterThanOrEqual(4.5);
+    await standalone.evaluate(element => element.remove());
     if (scenario.invalid) {
       const detail = page.locator('.setting-candidate-detail');
       await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeDisabled();

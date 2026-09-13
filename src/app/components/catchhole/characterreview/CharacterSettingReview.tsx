@@ -1215,8 +1215,8 @@ function CandidateDetail({
       </div>
 
       {(comparisonEnabled || reviewableFailure) && candidate.manualReviewAvailable && !readOnly && !automaticPending && (
-        <div role="status" style={{ marginTop: 12, padding: '12px 14px', borderRadius: 7,
-          background: C.bg, border: `1px solid ${C.border}`, color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
+        <div className="character-direct-review-notice" role="status" style={{ marginTop: 12, padding: '12px 14px', borderRadius: 7,
+          background: 'var(--ch-canvas)', border: '1px solid var(--ch-border)', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
           {invalidValue && !invalidValueRepairable
             ? `${reviewableFailure ? '자동 비교를 마치지 못했습니다. ' : ''}이 항목은 지금 직접 수정할 수 없습니다. 원문을 확인해 주세요. 이 후보를 제외하면 나머지 설정을 검토할 수 있습니다.`
             : manuallyReviewed

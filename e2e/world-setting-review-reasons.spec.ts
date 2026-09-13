@@ -211,6 +211,8 @@ test('사용량 부족 후보는 수동 확인 가능 표시가 함께 있어도
   await expect(row.locator('.world-setting-comparison-reason__text')).toContainText('사용량이 부족해');
   await expect(page.locator('.world-candidate-group-card')).toContainText('사용량 부족으로 중단');
   await expect(row.locator('.world-setting-diff-row__header')).not.toContainText('검토 필요');
+  await expect(row.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
 });
 
 test('실패 후보에 검토 제안이 남아 있어도 그룹 검토 수를 중복으로 더하지 않는다', async ({ page }) => {
@@ -253,3 +255,14 @@ for (const [reason, label] of [
     await expect(page.getByRole('region', { name: '설정 후보 검토 요약' }).locator('.is-direct strong')).toHaveText('1개');
   });
 }
+
+
+test('사용량 중단 후보에 이전 수동 결정이 남아 있어도 확정을 열지 않는다', async ({ page }) => {
+  const state = await mockReview(page, { comparisonStatus: 'FAILED', suggestedOperation: null,
+    comparisonFailureCode: 'AI_TOKEN_QUOTA_EXHAUSTED', manualReviewAvailable: true,
+    userModified: true, finalOperation: 'ADD', finalCategory: 'POWER_SYSTEM',
+    finalSubjectName: '정령술', finalSettingName: '소환 지속 시간', finalValue: '30분' });
+  await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  expect(state.unintendedRequests()).toBe(0);
+});
