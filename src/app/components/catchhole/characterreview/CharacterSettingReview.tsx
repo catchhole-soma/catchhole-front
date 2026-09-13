@@ -1705,6 +1705,11 @@ export function CharacterSettingReview() {
     ...updateSettingCandidateCharacterMatchMutation(),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
+      setManuallyReviewedCandidateIds(previous => {
+        const next = new Set(previous);
+        next.delete(variables.path.candidateId);
+        return next;
+      });
       setMatchTarget(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
@@ -1728,6 +1733,11 @@ export function CharacterSettingReview() {
     ...updateSettingCandidateGroupCharacterMatchMutation(),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
+      setManuallyReviewedCandidateIds(previous => {
+        const next = new Set(previous);
+        variables.body.candidateIds.forEach(candidateId => next.delete(candidateId));
+        return next;
+      });
       setGroupMatchOpen(false);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {

@@ -761,7 +761,7 @@ export default function S1Dashboard() {
     try {
       const response = await createEpisodeAnalysisRequest.mutateAsync({
         path: { workId: requestWorkId },
-        body: { jobType, batchId: episode.batchId, episodeId: episode.id },
+        body: { jobType, batchId: episode.batchId, episodeId: episode.id, reviewMode: 'MANUAL' },
       });
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),

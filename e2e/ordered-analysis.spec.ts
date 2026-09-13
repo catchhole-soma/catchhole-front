@@ -245,3 +245,90 @@ test('무효화되었어도 아직 실행 중인 Job이 있으면 새 분석 버
   await page.goto(progressUrl());
   await expect(page.getByRole('button', { name: '새 순차 분석', exact: true })).toBeDisabled();
 });
+
+test('재개 후 새 작업 ID가 생기면 이전 작업의 반복 조회를 멈추고 현재 작업은 계속 확인한다', async ({ page }) => {
+  await installBaseRoutes(page);
+  await page.clock.install();
+  const replacementId = '77777777-7777-4777-8777-777777777777';
+  const reads = { previous: 0, current: 0 };
+  await page.route('**/analysis-jobs/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith(`/${jobIds[0]}/retry`)) {
+      return success(route, [{ ...job(0, 'SUCCEEDED', 'SEALED'), id: replacementId }]);
+    }
+    if (path.endsWith(replacementId)) {
+      reads.current += 1;
+      return success(route, { ...job(0, 'SUCCEEDED', 'SEALED'), id: replacementId });
+    }
+    if (path.endsWith(jobIds[1])) return success(route, job(1, 'SUCCEEDED', 'SEALED'));
+    reads.previous += 1;
+    return success(route, job(0, 'FAILED', 'INCOMPLETE'));
+  });
+  await page.goto(progressUrl());
+  await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+  await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(','))
+    .toEqual([jobIds[1], replacementId]);
+  expect(new URL(page.url()).searchParams.get('analysisJobIds')?.split(',')).toContain(jobIds[0]);
+  const previousReads = reads.previous;
+  const currentReads = reads.current;
+  await page.clock.fastForward(9_000);
+  await expect.poll(() => reads.current).toBeGreaterThan(currentReads);
+  expect(reads.previous).toBe(previousReads);
+});
+
+test('무효화된 회차를 먼저 받아도 나머지 회차 상태를 확인하기 전에는 새 분석을 열지 않는다', async ({ page }) => {
+  await installBaseRoutes(page);
+  let releaseSibling!: () => void;
+  const siblingReady = new Promise<void>(resolve => { releaseSibling = resolve; });
+  let siblingRunning = true;
+  let creations = 0;
+  await page.route(`**/works/${workId}/episodes`, route => success(route,
+    episodeIds.map((id, index) => ({ id, batchId, episodeNo: index + 2, status: 'ANALYZED' }))));
+  await page.route('**/analysis-jobs/**', async route => {
+    if (new URL(route.request().url()).pathname.endsWith(jobIds[1])) {
+      await siblingReady;
+      return success(route, job(1, siblingRunning ? 'RUNNING' : 'SUCCEEDED', siblingRunning ? 'PENDING' : 'INVALIDATED'));
+    }
+    return success(route, job(0, 'SUCCEEDED', 'INVALIDATED'));
+  });
+  await page.route(`**/works/${workId}/analysis-jobs`, route => {
+    creations += 1;
+    return success(route, []);
+  });
+  await page.goto(progressUrl());
+  const restart = page.getByRole('button', { name: '새 순차 분석', exact: true });
+  await expect(restart).toBeDisabled();
+  releaseSibling();
+  await expect(page.locator('.episode-processing-card')).toHaveCount(2);
+  await expect(restart).toBeDisabled();
+  siblingRunning = false;
+  await expect(restart).toBeEnabled();
+  expect(creations).toBe(0);
+});
+
+test('새 분석 확인창을 연 뒤 진행 중인 회차가 확인되면 제출도 잠근다', async ({ page }) => {
+  await installBaseRoutes(page);
+  let siblingRunning = false;
+  let creations = 0;
+  await page.route(`**/works/${workId}/episodes`, route => success(route,
+    episodeIds.map((id, index) => ({ id, batchId, episodeNo: index + 2, status: 'ANALYZED' }))));
+  await page.route('**/analysis-jobs/**', route => {
+    const index = new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0;
+    return success(route, job(index, index && siblingRunning ? 'RUNNING' : 'SUCCEEDED',
+      index && !siblingRunning ? 'SEALED' : 'INVALIDATED'));
+  });
+  await page.route(`**/works/${workId}/analysis-jobs`, route => {
+    creations += 1;
+    return success(route, []);
+  });
+  await page.goto(progressUrl());
+  await page.getByRole('button', { name: '새 순차 분석', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const submit = dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true });
+  await expect(submit).toBeEnabled();
+  siblingRunning = true;
+  await expect(submit).toBeDisabled();
+  await dialog.getByRole('button', { name: '취소', exact: true }).click();
+  expect(creations).toBe(0);
+});

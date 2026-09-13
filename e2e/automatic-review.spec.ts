@@ -27,6 +27,83 @@ async function authenticate(page: Page) {
 const member = { id: 1, email: 'automatic-review@example.com', displayName: '검토 테스트',
   role: 'AUTHOR', status: 'ACTIVE', phoneVerified: false };
 
+for (const grouped of [false, true]) {
+  test(`직접 검토한 캐릭터의 ${grouped ? '일괄' : '단건'} 연결 변경 성공 후에는 새 대상에 대한 검토를 다시 요구한다`, async ({ page }) => {
+    const nextCharacterId = '55555555-5555-4555-8555-555555555555';
+    let candidate = {
+      id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING', entityType: 'CHARACTER',
+      entityName: '수아', matchedCharacterId: characterId, matchStatus: 'MATCHED',
+      attributeName: 'profile.eye_color', attributeValue: '갈색', valueType: 'STRING',
+      evidenceSpans: [{ quote: '수아의 눈동자는 짙은 갈색으로 빛났다.' }],
+      reviewStatus: 'PENDING_REVIEW', comparisonStatus: 'FAILED', manualReviewAvailable: true,
+    };
+    let matchRequests = 0;
+    let confirmRequests = 0;
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    await page.route('**/api/v1/**', route => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (path.endsWith('/auth/me')) return success(route, member);
+      if (path.endsWith('/characters')) return success(route, pageOf([{ id: nextCharacterId, name: '다른 수아' }]));
+      if (path === `${listPath}/${candidateId}` && request.method() === 'PATCH') {
+        candidate = { ...candidate, comparisonStatus: 'RECOMPARISON_REQUIRED' };
+        return success(route, candidate);
+      }
+      if (path.endsWith(grouped ? '/group-character-match' : `/${candidateId}/character-match`)) {
+        matchRequests += 1;
+        if (matchRequests === 1) return route.fulfill({ status: 409, contentType: 'application/json',
+          body: JSON.stringify({ success: false, message: '캐릭터 연결을 저장하지 못했습니다.',
+            error: { code: 'SETTING_CANDIDATE_CHARACTER_MATCH_FAILED', status: 409, details: [] } }) });
+        expect(request.postDataJSON().matchedCharacterId).toBe(nextCharacterId);
+        candidate = { ...candidate, matchedCharacterId: nextCharacterId, comparisonStatus: 'PENDING' };
+        return success(route, grouped ? { groupKey: '수아', candidates: [candidate] } : candidate);
+      }
+      if (path.endsWith('/group-confirm')) {
+        confirmRequests += 1;
+        return success(route, {});
+      }
+      if (path === listPath) return success(route, { batchId, totalCandidateCount: 1,
+        pendingCandidateCount: 1, matchRequiredCandidateCount: 0,
+        groups: pageOf([{ groupKey: '수아', entityName: '수아', candidateCount: 1,
+          pendingCandidateCount: 1, candidates: [candidate] }]) });
+      if (path === `${listPath}/${candidateId}`) return success(route, candidate);
+      return success(route, []);
+    });
+    await authenticate(page);
+    await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+    const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+    const saveManualReview = async () => {
+      await page.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
+      await page.getByRole('dialog', { name: '설정 직접 확인' })
+        .getByRole('button', { name: '확인한 값 저장' }).click();
+      await expect(confirm).toBeEnabled();
+    };
+    await saveManualReview();
+    const openMatch = async () => {
+      await page.getByRole('button', { name: grouped ? '캐릭터 일괄 연결' : '기존 캐릭터 변경', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: grouped ? '캐릭터 일괄 연결' : '캐릭터 연결 확인' });
+      await dialog.getByRole('button', { name: /다른 수아/ }).click();
+      await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
+      return dialog;
+    };
+    const failedDialog = await openMatch();
+    await expect(failedDialog.getByRole('alert')).toContainText('캐릭터 연결을 저장하지 못했습니다.');
+    await failedDialog.getByRole('button', { name: '취소', exact: true }).click();
+    // 실패한 연결은 기존 대상에 저장한 검토를 지우지 않는다.
+    await expect(confirm).toBeEnabled();
+    const matchedDialog = await openMatch();
+    await expect(matchedDialog).toHaveCount(0);
+    await expect(confirm).toBeDisabled();
+    await expect(page.getByText('확인한 값을 저장했습니다.', { exact: false })).toHaveCount(0);
+    candidate = { ...candidate, comparisonStatus: 'FAILED' };
+    await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeEnabled();
+    await expect(confirm).toBeDisabled();
+    expect(confirmRequests).toBe(0);
+    await saveManualReview();
+    expect(matchRequests).toBe(2);
+  });
+}
+
 test('자동 검토 후보와 기존 실패 후보가 섞여 있으면 기존 후보만 재비교한다', async ({ page }) => {
   let retriedId: string | undefined;
   const shared = { workId, sourceEpisodeNo: 11, category: 'RACE', subjectName: '설인',

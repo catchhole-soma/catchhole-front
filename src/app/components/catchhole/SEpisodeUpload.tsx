@@ -752,12 +752,14 @@ export default function SEpisodeUpload() {
     || uploadSettingBookMutation.isPending
     || createAnalysisJobMutation.isPending;
 
+  const currentAnalysisJobIdSet = new Set(currentAnalysisJobIds);
   const jobQueries = useQueries({
     queries: trackedAnalysisJobIds.map(analysisJobId => ({
       ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
       enabled: step === 'processing' && UUID_PATTERN.test(workId),
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
+        if (!currentAnalysisJobIdSet.has(analysisJobId)) return false;
         const job = query.state.data?.data;
         const status = job?.status;
         // 같은 Job 재개와 완료 뒤 사용자 변경에 따른 무효화를 계속 확인한다.
@@ -801,6 +803,8 @@ export default function SEpisodeUpload() {
   const automaticAnalysis = currentAnalysisJobs.length > 0 && currentAnalysisJobs.every(job => job.reviewMode === 'AUTOMATIC');
   const analysisInvalidated = currentAnalysisJobs.some(isInvalidatedAnalysis);
   const hasActiveCurrentJobs = currentAnalysisJobs.some(job => job.status === 'PENDING' || job.status === 'RUNNING');
+  const canRestartOrderedAnalysis = analysisInvalidated && Boolean(episodeUploadBatchId)
+    && currentAnalysisJobsLoaded && !hasActiveCurrentJobs && routeWork?.lifecycleStatus !== 'PURGING';
   const blockedOrderedJobs = currentAnalysisJobs.filter(job => isBlockedOrderedAnalysis(job, currentAnalysisJobs));
   const analysisRunning = !analysisInvalidated && currentAnalysisJobs.some(
     job => job.status === 'RUNNING'
@@ -1296,8 +1300,7 @@ export default function SEpisodeUpload() {
   };
 
   const restartInvalidatedAnalysis = async () => {
-    if (!analysisInvalidated || !episodeUploadBatchId || orderedRestartInFlight.current || hasActiveCurrentJobs
-      || routeWork?.lifecycleStatus === 'PURGING') return;
+    if (!canRestartOrderedAnalysis || !episodeUploadBatchId || orderedRestartInFlight.current) return;
     orderedRestartInFlight.current = true;
     setOrderedRestartError(null);
     try {
@@ -1960,7 +1963,7 @@ export default function SEpisodeUpload() {
                       <SecondaryButton onClick={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}>
                         원고 목록에서 확인
                       </SecondaryButton>
-                      <PrimaryButton disabled={!episodeUploadBatchId || hasActiveCurrentJobs || routeWork?.lifecycleStatus === 'PURGING'} onClick={() => {
+                      <PrimaryButton disabled={!canRestartOrderedAnalysis} onClick={() => {
                         setOrderedRestartError(null);
                         setOrderedRestartOpen(true);
                         void episodesQuery.refetch();
@@ -2035,6 +2038,7 @@ export default function SEpisodeUpload() {
           loading={episodesQuery.isFetching}
           loadFailed={episodesQuery.isError}
           submitting={createAnalysisJobMutation.isPending}
+          startBlocked={!canRestartOrderedAnalysis}
           error={orderedRestartError}
           onReload={() => { void episodesQuery.refetch(); }}
           onClose={() => setOrderedRestartOpen(false)}

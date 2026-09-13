@@ -1443,6 +1443,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
     jobType: 'SETTING_EXTRACTION',
     batchId,
     episodeId,
+    reviewMode: 'MANUAL',
   });
   const pendingReanalysis = reanalysisDialog.getByRole('button', { name: '재분석 요청 중...' });
   await expect(pendingReanalysis).toBeDisabled();

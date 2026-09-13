@@ -6,13 +6,14 @@ type Props = {
   loading: boolean;
   loadFailed: boolean;
   submitting: boolean;
+  startBlocked: boolean;
   error: string | null;
   onReload: () => void;
   onClose: () => void;
   onConfirm: () => void;
 };
 
-export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, submitting, error, onReload, onClose, onConfirm }: Props) {
+export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, submitting, startBlocked, error, onReload, onClose, onConfirm }: Props) {
   return (
     <Dialog.Root open onOpenChange={open => { if (!open && !submitting) onClose(); }}>
       <Dialog.Portal>
@@ -35,7 +36,7 @@ export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, su
           <div className="ordered-analysis-restart__actions">
             <button type="button" disabled={submitting} onClick={onClose}>취소</button>
             <button type="button" className="ordered-analysis-restart__confirm"
-              disabled={submitting || loading || loadFailed || episodes.length === 0} onClick={onConfirm}>
+              disabled={submitting || startBlocked || loading || loadFailed || episodes.length === 0} onClick={onConfirm}>
               {submitting ? '새 분석 요청 중...' : '새 순차 분석 시작'}
             </button>
           </div>
