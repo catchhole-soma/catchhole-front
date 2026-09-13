@@ -67,6 +67,45 @@ test('저장 완료가 확인되지 않은 분석은 완료나 계속 진행 중
   await expect(page.getByRole('button', { name: '설정 후보 검토', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '설정 저장 상태 확인 필요', exact: true })).toBeDisabled();
+  await expect(page.getByText('설정 자동 반영 완료', { exact: true })).toHaveCount(0);
+});
+
+test('같은 분석을 재개한 뒤 다시 사용량이 소진되면 새 안내를 한 번 표시한다', async ({ page }) => {
+  await installBaseRoutes(page);
+  await page.addInitScript(() => {
+    window.addEventListener('catchhole:ai-token-quota-exhausted', () => {
+      const count = Number(sessionStorage.getItem('quotaNotices') ?? 0);
+      sessionStorage.setItem('quotaNotices', String(count + 1));
+    });
+  });
+  let retries = 0;
+  let failedReads = 0;
+  await page.route('**/analysis-jobs/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith(`/${jobIds[0]}/retry`)) {
+      retries += 1;
+      return success(route, [job(0, 'PENDING', 'PENDING')]);
+    }
+    if (path.endsWith(jobIds[1])) return success(route, job(1, 'PENDING', 'PENDING'));
+    failedReads += 1;
+    return success(route, { ...job(0, 'FAILED', 'INCOMPLETE'),
+      failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED' });
+  });
+  await page.goto(progressUrl());
+  const notice = page.getByRole('dialog', { name: '일부 회차 분석이 중단되었습니다', exact: true });
+  await expect(notice).toBeVisible();
+  await notice.getByRole('button', { name: '사용량 안내 닫기' }).click();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('quotaNotices'))).toBe('1');
+  // A normal refetch of the same failed attempt must not show another notice.
+  const beforeRefetch = failedReads;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => failedReads).toBeGreaterThan(beforeRefetch);
+  await expect(notice).toHaveCount(0);
+  expect(await page.evaluate(() => sessionStorage.getItem('quotaNotices'))).toBe('1');
+  await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+  await expect(notice).toBeVisible();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('quotaNotices'))).toBe('2');
+  expect(retries).toBe(1);
 });
 
 for (const initialStatus of ['FAILED', 'SUCCEEDED'] as const) {

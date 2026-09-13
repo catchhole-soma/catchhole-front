@@ -879,17 +879,16 @@ export default function SEpisodeUpload() {
   const refetchWorldComparisonSummary = worldComparisonSummaryQuery.refetch;
   const notifiedQuotaJobIds = useRef(new Set<string>());
   const notifyingQuotaJobIds = useRef(new Set<string>());
+  const quotaNotificationGenerations = useRef(new Map<string, number>());
 
   useEffect(() => {
     if (!currentAnalysisJobsLoaded || analysisRunning) return;
 
-    const newlyInterruptedIds = asyncQuotaFailedAnalysisJobs.flatMap(job => (
-      job.id
-        && !notifiedQuotaJobIds.current.has(job.id)
-        && !notifyingQuotaJobIds.current.has(job.id)
-        ? [job.id]
-        : []
-    ));
+    const newlyInterruptedIds = asyncQuotaFailedAnalysisJobs.flatMap(job => {
+      if (!job.id) return [];
+      const key = `${job.id}:${quotaNotificationGenerations.current.get(job.id) ?? 0}`;
+      return !notifiedQuotaJobIds.current.has(key) && !notifyingQuotaJobIds.current.has(key) ? [key] : [];
+    });
     if (newlyInterruptedIds.length === 0) return;
     newlyInterruptedIds.forEach(jobId => notifyingQuotaJobIds.current.add(jobId));
 
@@ -1244,6 +1243,8 @@ export default function SEpisodeUpload() {
         retryAnalysisJobIds.push(...responseJobIds);
         responseJobs.forEach(job => {
           if (!job.id) return;
+          quotaNotificationGenerations.current.set(job.id,
+            (quotaNotificationGenerations.current.get(job.id) ?? 0) + 1);
           queryClient.setQueryData(
             getAnalysisJobOptions({ path: { workId, analysisJobId: job.id } }).queryKey,
             { ...response.value, data: job },
@@ -1901,7 +1902,7 @@ export default function SEpisodeUpload() {
                   const automaticSavePending = episodeJob?.reviewMode === 'AUTOMATIC'
                     && episode.status === 'ANALYZED' && episodeJob.status === 'RUNNING';
                   const automaticStatusLabel = episodeJob?.reviewMode === 'AUTOMATIC' && episode.status === 'ANALYZED'
-                    ? episodeJob.status === 'SUCCEEDED' && episodeJob.analysisRun?.journalStatus === 'SEALED'
+                    ? isCompletedOrderedAnalysis(episodeJob)
                       ? '설정 자동 반영 완료'
                       : episodeJob.status === 'RUNNING' ? '설정 비교·반영 중' : null
                     : null;
