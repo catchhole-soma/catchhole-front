@@ -39,6 +39,7 @@ const candidates = [
     candidateKind: 'SETTING',
     comparisonStatus: 'COMPLETED',
     suggestedOperation: 'ADD',
+    comparisonRevision: 'default-comparison-revision-1',
   },
   {
     id: secondCandidateId,
@@ -60,6 +61,7 @@ const candidates = [
     candidateKind: 'SETTING',
     comparisonStatus: 'COMPLETED',
     suggestedOperation: 'ADD',
+    comparisonRevision: 'default-comparison-revision-1',
   },
 ] as const;
 
@@ -1341,6 +1343,7 @@ test('동일 상태 종료 제안을 현재 설정에서 제거하는 방식으�
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'default-comparison-revision-1',
     candidates: [{
       candidateId: secondCandidateId,
       applicationMode: 'APPLY_PROPOSAL',
@@ -1497,6 +1500,7 @@ test('재비교 결과가 바뀌면 저장된 현재값 반영 선택을 허용 
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'default-comparison-revision-1',
     candidates: [{
       candidateId: firstCandidateId,
       applicationMode: 'HISTORY_ONLY',
@@ -2502,6 +2506,7 @@ test('연결 확인 후보를 입력한 이름의 새 캐릭터로 등록한다'
 test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 확정한다', async ({ page }) => {
   let entityName = '수아';
   let comparisonCompleted = false;
+  let secondComparisonRevisionAvailable = false;
   let groupMatchBody: unknown;
   let groupConfirmBody: unknown;
   const groupedCandidates = [
@@ -2532,13 +2537,15 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
-      const content = groupedCandidates.map(candidate => ({
+      const content = groupedCandidates.map((candidate, index) => ({
         ...candidate,
         entityName,
         comparisonStatus: comparisonCompleted ? 'COMPLETED' as const : candidate.comparisonStatus,
         suggestedOperation: comparisonCompleted ? 'ADD' as const : undefined,
         comparisonBaseSnapshotVersion: comparisonCompleted ? 0 : null,
-        comparisonRevision: comparisonCompleted ? 'group-revision-1' : null,
+        comparisonRevision: comparisonCompleted && (index === 0 || secondComparisonRevisionAvailable)
+          ? 'group-revision-1'
+          : null,
       }));
       return fulfill(route, {
         batchId,
@@ -2612,7 +2619,16 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
   });
   await expect(page.getByRole('button', { name: /나은 2개 설정/ })).toBeVisible();
 
-  await page.getByRole('button', { name: /2개 설정 모두 확정/ }).click();
+  const confirmButton = page.getByRole('button', { name: /2개 설정 모두 확정/ });
+  await expect(confirmButton).toBeDisabled();
+  await expect(page.getByText('모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'))
+    .toBeVisible();
+  expect(groupConfirmBody).toBeUndefined();
+
+  secondComparisonRevisionAvailable = true;
+  await page.reload();
+  await expect(confirmButton).toBeEnabled();
+  await confirmButton.click();
   await expect.poll(() => groupConfirmBody).toEqual({
     batchId,
     comparisonRevision: 'group-revision-1',
