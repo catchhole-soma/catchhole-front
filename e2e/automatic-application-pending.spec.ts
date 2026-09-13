@@ -16,7 +16,7 @@ function pageOf(content: unknown[], page = 0, pages = 1) {
 }
 function character(index: number, overrides: Partial<SettingCandidateResponse> = {}): SettingCandidateResponse {
   return { id: `${index}3333333-3333-4333-8333-333333333333`, workId, episodeNo: 35,
-    candidateKind: 'SETTING', entityType: 'CHARACTER', entityName: '비요른', rawEntityMention: '비요른',
+    candidateKind: 'SETTING', entityType: 'CHARACTER', analysisMode: 'ORDERED_PROVISIONAL', entityName: '비요른', rawEntityMention: '비요른',
     matchedCharacterId: '44444444-4444-4444-8444-444444444444', matchStatus: 'MATCHED',
     attributeName: 'profile.attribute', attributeValue: '끝까지 포기하지 않는다.', valueType: 'STRING',
     reviewStatus: 'PENDING_REVIEW', comparisonStatus: 'COMPLETED', suggestedOperation: 'ADD',
@@ -250,7 +250,7 @@ test('새 대기 필드가 없는 이전 응답의 수동 후보는 계속 직�
     if (isCharacter || path.endsWith('/world-setting-candidates')) return success(route, { batchId, ...emptyCounts,
       totalCandidateCount: 1, reviewedCandidateCount: 0, pendingCandidateCount: 1, directReviewCandidateCount: 1,
       activeComparisonJobCount: 0, groups: pageOf([isCharacter
-        ? characterGroup([character(1, { automaticApplicationPending: undefined })])
+        ? characterGroup([character(1, { automaticApplicationPending: undefined, analysisMode: 'CONFIRMED_ONLY', comparisonRevision: 'a'.repeat(64) })])
         : worldGroup([world(1, { automaticApplicationPending: undefined })])]) });
     return success(route, []);
   });

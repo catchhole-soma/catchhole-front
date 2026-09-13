@@ -36,6 +36,10 @@ const candidates = [
     rawAiResultJson: { secret: '숨은 AI 원본' },
     confidence: 0.92,
     reviewStatus: 'PENDING_REVIEW',
+    candidateKind: 'SETTING',
+    comparisonStatus: 'COMPLETED',
+    suggestedOperation: 'ADD',
+    comparisonRevision: 'default-comparison-revision-1',
   },
   {
     id: secondCandidateId,
@@ -54,6 +58,10 @@ const candidates = [
     evidenceSpans: [{ quote: '민준은 전투에서 경상을 입었다.' }],
     confidence: 0.83,
     reviewStatus: 'CONFIRMED',
+    candidateKind: 'SETTING',
+    comparisonStatus: 'COMPLETED',
+    suggestedOperation: 'ADD',
+    comparisonRevision: 'default-comparison-revision-1',
   },
 ] as const;
 
@@ -1127,7 +1135,8 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
   await expect(dismissButton).toBeEnabled();
   await dismissButton.click();
 
-  await expect(page.getByRole('alert')).toHaveText('일시적인 오류로 후보를 무시하지 못했습니다.');
+  await expect(page.getByText('일시적인 오류로 후보를 무시하지 못했습니다.', { exact: true }))
+    .toBeVisible();
   await expect(page.getByRole('heading', { name: '수아' })).toBeVisible();
   await expect(dismissButton).toBeEnabled();
 
@@ -1168,6 +1177,7 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
     }],
     comparisonReason: '기존 눈 색상 설명을 보존하면서 더 구체적인 표현으로 합칩니다.',
     comparisonBaseSnapshotVersion: 7,
+    comparisonRevision: 'comparison-revision-1',
   };
 
   await page.route('**/api/v1/**', route => {
@@ -1274,6 +1284,7 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
 
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'comparison-revision-1',
     candidates: [{
       candidateId: firstCandidateId,
       applicationMode: 'HISTORY_ONLY',
@@ -1350,6 +1361,7 @@ test('동일 상태 종료 제안을 현재 설정에서 제거하는 방식으�
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'default-comparison-revision-1',
     candidates: [{
       candidateId: secondCandidateId,
       applicationMode: 'APPLY_PROPOSAL',
@@ -1506,6 +1518,7 @@ test('재비교 결과가 바뀌면 저장된 현재값 반영 선택을 허용 
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'default-comparison-revision-1',
     candidates: [{
       candidateId: firstCandidateId,
       applicationMode: 'HISTORY_ONLY',
@@ -1589,15 +1602,21 @@ test('실패한 캐릭터 설정 비교를 재요청하고 완료 전까지 확�
   await expect(confirmButton).toBeEnabled();
 });
 
-test('연결 대기 중인 신규 캐릭터 후보는 바로 확정할 수 있다', async ({ page }) => {
+test('연결 대기 중인 신규 캐릭터도 비교 완료 후 최신 revision으로 확정한다', async ({ page }) => {
   let confirmBody: unknown;
-  const newCharacterCandidate = {
+  let comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' | 'PENDING' | 'COMPLETED' = 'WAITING_FOR_CHARACTER_MATCH';
+  let pendingListReadCount = 0;
+  let retryRequestCount = 0;
+  const newCharacterCandidate = () => ({
     ...candidates[0],
     candidateKind: 'SETTING' as const,
     matchedCharacterId: null,
     matchStatus: 'UNRESOLVED' as const,
-    comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' as const,
-  };
+    comparisonStatus,
+    suggestedOperation: comparisonStatus === 'COMPLETED' ? 'ADD' as const : undefined,
+    comparisonBaseSnapshotVersion: comparisonStatus === 'COMPLETED' ? 0 : null,
+    comparisonRevision: comparisonStatus === 'COMPLETED' ? 'new-character-revision-1' : null,
+  });
 
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -1606,6 +1625,9 @@ test('연결 대기 중인 신규 캐릭터 후보는 바로 확정할 수 있�
 
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
+      if (comparisonStatus === 'PENDING' && pendingListReadCount++ > 0) {
+        comparisonStatus = 'COMPLETED';
+      }
       return fulfill(route, {
         batchId,
         episodeStartNo: 1,
@@ -1616,7 +1638,7 @@ test('연결 대기 중인 신규 캐릭터 후보는 바로 확정할 수 있�
         pendingCandidateCount: 1,
         matchRequiredCandidateCount: 0,
         candidates: {
-          content: [newCharacterCandidate],
+          content: [newCharacterCandidate()],
           page: 0,
           size: 20,
           totalElements: 1,
@@ -1625,12 +1647,17 @@ test('연결 대기 중인 신규 캐릭터 후보는 바로 확정할 수 있�
         },
       });
     }
+    if (pathname === `${listPath}/${firstCandidateId}/recompare`) {
+      retryRequestCount += 1;
+      comparisonStatus = 'PENDING';
+      return fulfill(route, newCharacterCandidate());
+    }
     if (pathname === `${listPath}/group-confirm`) {
       confirmBody = request.postDataJSON();
       return fulfill(route, { id: firstCandidateId, reviewStatus: 'CONFIRMED' });
     }
     if (pathname === `${listPath}/${firstCandidateId}`) {
-      return fulfill(route, newCharacterCandidate);
+      return fulfill(route, newCharacterCandidate());
     }
     return fulfill(route, []);
   });
@@ -1640,16 +1667,24 @@ test('연결 대기 중인 신규 캐릭터 후보는 바로 확정할 수 있�
     `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
   );
 
-  await expect(page.getByText('새 캐릭터로 확정하면 이 설정을 현재값으로 바로 반영합니다.')).toBeVisible();
+  await expect(page.getByText(
+    '신규 캐릭터도 빈 현재 설정에서 같은 그룹의 후보를 순서대로 비교합니다. 비교가 끝난 뒤 확정해 주세요.',
+  )).toBeVisible();
   const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+  await expect(confirmButton).toBeDisabled();
+  await page.getByRole('button', { name: '현재 설정 비교 시작', exact: true }).click();
+  await expect.poll(() => retryRequestCount).toBe(1);
+  await expect(page.getByText('현재 캐릭터 설정과 비교하고 있습니다.')).toBeVisible();
+  await expect(page.getByText('비교 완료', { exact: true })).toBeVisible({ timeout: 7_000 });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
+    comparisonRevision: 'new-character-revision-1',
     candidates: [{
       candidateId: firstCandidateId,
       applicationMode: 'APPLY_PROPOSAL',
-      baseSnapshotVersion: null,
+      baseSnapshotVersion: 0,
     }],
   });
 });
@@ -1842,6 +1877,10 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
   const repairedCandidate = {
     ...invalidCandidate,
     attributeValue: '36',
+    comparisonStatus: 'COMPLETED' as const,
+    suggestedOperation: 'ADD' as const,
+    comparisonBaseSnapshotVersion: 0,
+    comparisonRevision: 'repaired-revision-1',
     valueValidation: {
       status: 'VALID' as const,
       errorCode: null,
@@ -2493,6 +2532,8 @@ test('연결 확인 후보를 입력한 이름의 새 캐릭터로 등록한다'
 
 test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 확정한다', async ({ page }) => {
   let entityName = '수아';
+  let comparisonCompleted = false;
+  let secondComparisonRevisionAvailable = false;
   let groupMatchBody: unknown;
   let groupConfirmBody: unknown;
   const groupedCandidates = [
@@ -2523,7 +2564,16 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
-      const content = groupedCandidates.map(candidate => ({ ...candidate, entityName }));
+      const content = groupedCandidates.map((candidate, index) => ({
+        ...candidate,
+        entityName,
+        comparisonStatus: comparisonCompleted ? 'COMPLETED' as const : candidate.comparisonStatus,
+        suggestedOperation: comparisonCompleted ? 'ADD' as const : undefined,
+        comparisonBaseSnapshotVersion: comparisonCompleted ? 0 : null,
+        comparisonRevision: comparisonCompleted && (index === 0 || secondComparisonRevisionAvailable)
+          ? 'group-revision-1'
+          : null,
+      }));
       return fulfill(route, {
         batchId,
         episodeStartNo: 1,
@@ -2552,6 +2602,7 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
     if (pathname === `${listPath}/group-character-match`) {
       groupMatchBody = request.postDataJSON();
       entityName = '나은';
+      comparisonCompleted = true;
       return fulfill(route, {
         groupKey: '나은',
         entityName,
@@ -2595,19 +2646,29 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
   });
   await expect(page.getByRole('button', { name: /나은 2개 설정/ })).toBeVisible();
 
-  await page.getByRole('button', { name: /2개 설정 모두 확정/ }).click();
+  const confirmButton = page.getByRole('button', { name: /2개 설정 모두 확정/ });
+  await expect(confirmButton).toBeDisabled();
+  await expect(page.getByText('모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'))
+    .toBeVisible();
+  expect(groupConfirmBody).toBeUndefined();
+
+  secondComparisonRevisionAvailable = true;
+  await page.reload();
+  await expect(confirmButton).toBeEnabled();
+  await confirmButton.click();
   await expect.poll(() => groupConfirmBody).toEqual({
     batchId,
+    comparisonRevision: 'group-revision-1',
     candidates: [
       {
         candidateId: firstCandidateId,
         applicationMode: 'APPLY_PROPOSAL',
-        baseSnapshotVersion: null,
+        baseSnapshotVersion: 0,
       },
       {
         candidateId: secondCandidateId,
         applicationMode: 'APPLY_PROPOSAL',
-        baseSnapshotVersion: null,
+        baseSnapshotVersion: 0,
       },
     ],
   });
@@ -2792,7 +2853,10 @@ test('구버전 다중 페이지 후보 응답에서는 불완전한 묶음 일�
 });
 
 test('큰 캐릭터 후보 묶음도 세계관 후보처럼 한 목록으로 렌더링하고 전체 묶음을 확정한다', async ({ page }) => {
-  let groupConfirmBody: { candidates?: Array<{ candidateId?: string }> } | undefined;
+  let groupConfirmBody: {
+    comparisonRevision?: string;
+    candidates?: Array<{ candidateId?: string }>;
+  } | undefined;
   const largeGroupCandidates = Array.from({ length: 25 }, (_, index) => ({
     ...candidates[0],
     id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`,
@@ -2805,7 +2869,9 @@ test('큰 캐릭터 후보 묶음도 세계관 후보처럼 한 목록으로 렌
     attributeNameEditable: true,
     attributeNamePrefix: 'stats.',
     attributeValue: String(index + 1),
-    comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' as const,
+    comparisonStatus: 'COMPLETED' as const,
+    comparisonBaseSnapshotVersion: 0,
+    comparisonRevision: 'large-group-revision-1',
   }));
 
   await page.route('**/api/v1/**', route => {
@@ -2860,6 +2926,7 @@ test('큰 캐릭터 후보 묶음도 세계관 후보처럼 한 목록으로 렌
   await expect(details).toHaveCount(25);
 
   await page.getByRole('button', { name: /25개 설정 모두 확정/ }).click();
+  await expect.poll(() => groupConfirmBody?.comparisonRevision).toBe('large-group-revision-1');
   await expect.poll(() => groupConfirmBody?.candidates?.length).toBe(25);
   expect(groupConfirmBody?.candidates?.map(candidate => candidate.candidateId))
     .toEqual(largeGroupCandidates.map(candidate => candidate.id));

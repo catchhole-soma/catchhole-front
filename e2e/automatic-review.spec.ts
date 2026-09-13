@@ -31,7 +31,7 @@ for (const grouped of [false, true]) {
   test(`직접 검토한 캐릭터의 ${grouped ? '일괄' : '단건'} 연결 변경 성공 후에는 새 대상에 대한 검토를 다시 요구한다`, async ({ page }) => {
     const nextCharacterId = '55555555-5555-4555-8555-555555555555';
     let candidate = {
-      id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING', entityType: 'CHARACTER',
+      id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING', entityType: 'CHARACTER', analysisMode: 'ORDERED_PROVISIONAL',
       entityName: '수아', matchedCharacterId: characterId, matchStatus: 'MATCHED',
       attributeName: 'profile.eye_color', attributeValue: '갈색', valueType: 'STRING',
       evidenceSpans: [{ quote: '수아의 눈동자는 짙은 갈색으로 빛났다.' }],
@@ -147,7 +147,7 @@ for (const scenario of [
   test(`자동 분석 캐릭터 ${scenario.status} 후보는 ${scenario.invalid ? '수정 불가 값이면 제외를 안내한다' : '직접 확인 후 반영한다'} (${scenario.width}px)`, async ({ page }) => {
     await page.setViewportSize({ width: scenario.width, height: 800 });
     let candidate = {
-      id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING', entityType: 'CHARACTER',
+      id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING', entityType: 'CHARACTER', analysisMode: 'ORDERED_PROVISIONAL',
       entityName: '수아', rawEntityMention: '수아', matchedCharacterId: characterId, matchStatus: 'MATCHED',
       attributeName: 'profile.eye_color', attributeValue: '갈색', valueType: scenario.invalid ? 'UNKNOWN' : 'STRING',
       valueValidation: scenario.invalid ? { status: 'INVALID', repairable: false,

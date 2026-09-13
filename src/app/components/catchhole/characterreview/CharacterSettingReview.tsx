@@ -183,8 +183,7 @@ function isCharacterComparisonActive(
 }
 
 function hasCharacterFactComparison(candidate: SettingCandidateResponse): boolean {
-  return candidate.candidateKind !== 'CHARACTER_DISCOVERY'
-    && candidate.comparisonStatus != null;
+  return candidate.candidateKind !== 'CHARACTER_DISCOVERY';
 }
 
 function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
@@ -1428,6 +1427,14 @@ export function CharacterSettingReview() {
   const pendingGroupCandidates = selectedGroupCandidates.filter(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
+  const comparisonCandidates = pendingGroupCandidates.filter(candidate => (
+    hasCharacterFactComparison(candidate) && candidate.analysisMode !== 'ORDERED_PROVISIONAL'
+  ));
+  const comparisonRevision = comparisonCandidates[0]?.comparisonRevision ?? undefined;
+  const groupHasSharedComparisonRevision = comparisonCandidates.length === 0 || (
+    Boolean(comparisonRevision)
+    && comparisonCandidates.every(candidate => candidate.comparisonRevision === comparisonRevision)
+  );
   const groupHasInvalidCandidate = pendingGroupCandidates.some(isCandidateValueInvalid);
   const groupAutomaticPending = pendingGroupCandidates.some(isAutomaticApplicationPending);
   const candidateAutomaticPending = (candidateId?: string) => selectedGroupCandidates.some(candidate => (
@@ -1902,6 +1909,8 @@ export function CharacterSettingReview() {
       : pendingGroupCandidates.some(candidate => hasCharacterFactComparison(candidate)
           && candidate.manualReviewAvailable && !hasManualReview(candidate))
         ? '자동으로 확정하지 못한 설정의 원문과 값을 직접 확인하고 저장해 주세요.'
+      : !groupHasSharedComparisonRevision
+        ? '모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'
       : pendingGroupCandidates.some(candidate => (
           hasCharacterFactComparison(candidate)
           && !hasManualReview(candidate)
@@ -1918,6 +1927,7 @@ export function CharacterSettingReview() {
       path: { workId },
       body: {
         batchId,
+        comparisonRevision,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
           applicationMode: hasManualReview(candidate) ? 'APPLY_PROPOSAL' : applicationModeForCandidate(candidate),
