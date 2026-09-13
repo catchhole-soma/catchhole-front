@@ -12,7 +12,8 @@ function success(route: Route, data: unknown) {
     body: JSON.stringify({ success: true, data, error: null }) });
 }
 
-async function mockReview(page: Page, overrides: Record<string, unknown>) {
+async function mockReview(page: Page, overrides: Record<string, unknown>,
+  beforeListResponse?: (url: URL) => Promise<void>) {
   let candidate: Record<string, unknown> = {
     id: candidateId, workId, sourceEpisodeNo: 11, category: 'POWER_SYSTEM',
     subjectName: '정령술', targetSubjectName: '정령술', scopeName: null,
@@ -27,7 +28,7 @@ async function mockReview(page: Page, overrides: Record<string, unknown>) {
   };
   let savedBody: Record<string, unknown> | null = null;
   let unintendedRequests = 0;
-  await page.route('**/api/v1/**', route => {
+  await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, {
@@ -42,7 +43,9 @@ async function mockReview(page: Page, overrides: Record<string, unknown>) {
         finalScopeName: decision.scopeName, finalSettingName: decision.settingName, finalValue: decision.value };
       return success(route, { groupKey, candidates: [candidate] });
     }
-    if (pathname === endpoint) return success(route, { batchId, episodeStartNo: 11, episodeEndNo: 11,
+    if (pathname === endpoint) {
+      await beforeListResponse?.(new URL(request.url()));
+      return success(route, { batchId, episodeStartNo: 11, episodeEndNo: 11,
       episodeCount: 1, totalCandidateCount: 1, pendingCandidateCount: 1, reviewedCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 1, processingCandidateCount: 0,
       pendingComparisonCount: 0, processingComparisonCount: 0,
@@ -51,6 +54,7 @@ async function mockReview(page: Page, overrides: Record<string, unknown>) {
         content: [{ groupKey, category: 'POWER_SYSTEM', subjectName: '정령술', changeCount: 1,
           status: candidate.comparisonStatus,
           reviewRequiredCount: candidate.suggestedOperation === 'REVIEW_REQUIRED' ? 1 : 0, candidates: [candidate], evidenceEpisodeNos: [11] }] } });
+    }
     if (pathname.endsWith('/setting-candidates')) return success(route, { batchId, totalCandidateCount: 0,
       pendingCandidateCount: 0, reviewedCandidateCount: 0, matchRequiredCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
@@ -201,6 +205,28 @@ test('반영 방식 필터의 AI 판단 보류는 정상 검토 요청을 뜻하
   await filter.getByRole('button', { name: '전체 반영 방식', exact: true }).click();
   expect(new URL(page.url()).searchParams.get('operation')).toBeNull();
   await expect(page.locator('.world-setting-diff-row__header')).toContainText('검토 필요');
+});
+
+test('필터를 되돌린 동일 목록의 재조회가 끝나면 첫 대상 상세를 다시 선택한다', async ({ page }) => {
+  let holdFullList = false;
+  let releaseResponse: (() => void) | undefined;
+  await mockReview(page, { comparisonStatus: 'FAILED', suggestedOperation: null }, async url => {
+    if (holdFullList && !url.searchParams.has('operation')) {
+      await new Promise<void>(resolve => { releaseResponse = resolve; });
+    }
+  });
+  const header = page.locator('.world-setting-diff-row__header');
+  await expect(header).toContainText('검토 필요');
+  const filter = page.getByRole('group', { name: '제안된 반영 방식' });
+  await filter.getByRole('button', { name: 'AI 판단 보류', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe(groupKey);
+  holdFullList = true;
+  await filter.getByRole('button', { name: '전체 반영 방식', exact: true }).click();
+  await expect.poll(() => Boolean(releaseResponse)).toBe(true);
+  await expect(header).toHaveCount(0);
+  releaseResponse!();
+  await expect(header).toContainText('검토 필요');
+  await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe(groupKey);
 });
 
 test('사용량 부족 후보는 수동 확인 가능 표시가 함께 있어도 중단 사유를 유지한다', async ({ page }) => {

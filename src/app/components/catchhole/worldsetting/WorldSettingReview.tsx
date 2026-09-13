@@ -1495,8 +1495,8 @@ export function WorldSettingReview() {
     }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,
-    // 비교 상태 폴링 중이라는 이유만으로 큰 검토 화면을 주기적으로 재렌더링하지 않는다.
-    notifyOnChangeProps: ['data', 'error', 'status'],
+    // 동일한 응답이어도 조회가 끝나면 필터·페이지 변경 후 대상 선택을 보정해야 한다.
+    notifyOnChangeProps: ['data', 'error', 'status', 'fetchStatus'],
     refetchInterval: query => {
       const data = query.state.data?.data;
       const activeCount = (data?.pendingComparisonCount ?? 0) + (data?.processingComparisonCount ?? 0);

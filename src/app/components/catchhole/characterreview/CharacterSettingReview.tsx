@@ -1355,7 +1355,8 @@ export function CharacterSettingReview() {
     // 새 응답이 오기 전까지 직전 목록을 표시하므로 연속 클릭 대상이 DOM에서 사라지지 않는다.
     placeholderData: previousData => previousData,
     // 세계관 후보와 동일하게 비교 중 후보가 있는 목록만 주기적으로 다시 받는다.
-    notifyOnChangeProps: ['data', 'error', 'status'],
+    // 동일한 응답이어도 조회가 끝나면 필터·페이지 변경 후 대상 선택을 보정해야 한다.
+    notifyOnChangeProps: ['data', 'error', 'status', 'fetchStatus'],
     refetchInterval: query => {
       const data = query.state.data?.data;
       const currentPageActive = data?.groups?.content?.some(group => group.candidates?.some(candidate => (
