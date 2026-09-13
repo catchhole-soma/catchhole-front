@@ -910,7 +910,7 @@ export const confirmEmailVerificationMutationKey = (options?: Partial<Options<Co
 /**
  * 이메일 인증번호 확인
  *
- * 가장 최근에 발송된 인증번호를 확인하고 10분 동안 유효한 1회용 회원가입 토큰을 발급합니다.
+ * 가장 최근 인증번호를 확인해 1회용 회원가입 토큰을 발급합니다. 기본 유효시간은 10분이며 실제 남은 시간은 응답 값을 사용합니다. 재전송하면 이전 인증 흐름과 가입 토큰이 폐기됩니다.
  */
 export const confirmEmailVerificationMutation = (options?: Partial<Options<ConfirmEmailVerificationData>>): UseMutationOptions<ConfirmEmailVerificationResponse, ConfirmEmailVerificationError, Options<ConfirmEmailVerificationData>> => {
     const mutationOptions: UseMutationOptions<ConfirmEmailVerificationResponse, ConfirmEmailVerificationError, Options<ConfirmEmailVerificationData>> = {

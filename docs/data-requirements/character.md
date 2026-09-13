@@ -1200,7 +1200,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 > - `valueValidation.status`가 `INVALID`가 아닌 `PENDING_REVIEW` 후보는 기존 활성 캐릭터 연결 또는 새 캐릭터 등록 예정 상태로 연결을 바꿀 수 있다. `INVALID` 후보는 값을 복구하거나 제외하기 전까지 단건·일괄 연결을 잠그며, `AMBIGUOUS` 후보는 연결을 해소한 뒤 확정한다.
 > - 후보 수정과 캐릭터 연결 성공 후 목록·상세를 다시 조회한다. 실패하면 모달 입력과 선택을 유지해 같은 화면에서 재시도한다.
 > - 캐릭터 연결이 확정된 후보는 현재 `WorkCharacter` snapshot과 2차 비교한 결과를 상세에 표시한다. 캐릭터 후보용 비교 DTO와 확정 mutation은 세계관 후보 계약과 합치지 않는다.
-> - 비교 상태가 `PENDING`, `PROCESSING`이면 확정을 잠근다. `WAITING_FOR_CHARACTER_MATCH`는 기존 캐릭터 연결이 필요한 경우 잠그되, `matchStatus=UNRESOLVED`인 신규 캐릭터 등록 예정 후보는 확정을 허용한다. 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 연결·비교 Job을 만든 뒤 재확정을 요구한다. 배포 전 후보가 `MATCHED/AUTO_MATCHED_BY_NAME + NOT_REQUIRED`이면 확정을 잠그고 `현재 설정 비교 시작`을 제공한다. `FAILED`, `RECOMPARISON_REQUIRED`이면 현재 상세와 최초 원문 근거를 유지하고 재비교를 제공한다.
+> - 모든 캐릭터 설정 후보는 해당 그룹의 최신 `COMPLETED` 비교 revision이 있어야 확정한다. 신규 캐릭터는 빈 snapshot에서 같은 그룹 후보를 순서대로 비교하고, `PENDING`·`PROCESSING`·`WAITING_FOR_CHARACTER_MATCH`이거나 revision이 누락되었거나 서로 다르면 확정을 잠근다. 배포 전 후보가 `WAITING_FOR_CHARACTER_MATCH + UNRESOLVED`, 비교 누락, 또는 `NOT_REQUIRED`로 남아 있으면 `현재 설정 비교 시작` retry를 제공한다. `FAILED`·`RECOMPARISON_REQUIRED`는 상세와 1차 원문 근거를 유지한 채 재비교를 제공한다.
 > - `ADD`, `UPDATE`, `MERGE` 제안은 `AI 제안대로 현재 설정 반영` 또는 `이력에만 저장` 중 하나로 확정한다. `HISTORY_ONLY`는 이력 저장만, `EXCLUDE`는 기존 무시 액션, `REVIEW_REQUIRED`는 이력 저장 또는 후보 수정 후 재비교만 허용한다.
 > - 기존 캐릭터의 현재값 변경 제안은 세계관 diff와 같은 밀도로 `기존값 / 제안값`, 함께 변경될 snapshot slot, 판단 이유를 읽기 전용으로 보여준다. 신규 캐릭터 후보는 비교할 기존 snapshot이 없으므로 추출값과 신규 반영 안내만 표시한다. 화면 diff는 Backend의 `beforeFactValue`·`proposedFactValue`를 우선하고 구조화 JSON은 구응답 fallback으로만 사용한다. 사용자가 기존 Fact 하나하나를 체크해 종료 대상을 재조립하는 UI는 두지 않는다.
 > - 검토 완료 후 다음 단계 분기는 후속 변경 단위에서 연결한다.
