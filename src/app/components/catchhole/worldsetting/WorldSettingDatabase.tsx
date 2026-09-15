@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CSSProperties, FormEvent, ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -14,9 +14,11 @@ import {
   Plus,
   RefreshCw,
   Search,
-  X,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
+import { WorldSubjectImage } from './WorldSubjectImage';
+import { WORLD_CATEGORY_IMAGES as CATEGORY_IMAGES } from './worldCategoryImages';
+import { WorldImagePicker } from './WorldImagePicker';
 import {
   addWorldSettingPropertyMutation,
   createWorldSettingMutation,
@@ -39,6 +41,8 @@ import { toApiError } from '../../../lib/api-errors';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
+import { WorldSettingDialog } from './WorldSettingDialog';
+import { useWorldSettingPagination } from './useWorldSettingPagination';
 
 type WorldCategory = NonNullable<WorldSettingDetailResponse['category']>;
 type WorldSort = 'CATEGORY_SUBJECT_ASC' | 'UPDATED_DESC';
@@ -60,8 +64,6 @@ export interface WorldSettingDatabaseFixture {
   }) => void;
 }
 
-const PAGE_SIZE = 20;
-const MOBILE_VIEWPORT_QUERY = '(max-width: 900px)';
 const CATEGORY_META: Record<WorldCategory, { label: string; description: string; color: string }> = {
   RACE: { label: '종족', description: '공통 신체·문화·기원 특성을 가진 존재 집단', color: '#087EF2' },
   FACTION: { label: '세력', description: '국가·조직·종교·길드처럼 영향력을 가진 집단', color: '#4BB8D9' },
@@ -222,26 +224,40 @@ function CategoryOverview({
         <div>
           <span>WORLD SETTING</span>
           <h3 id="world-setting-category-overview-title">어떤 세계관 설정을 볼까요?</h3>
-          <p>분류를 선택하면 관련 대상과 설정만 모아서 보여드립니다.</p>
+          <p>분류를 골라 세계관 설정을 살펴보세요.</p>
         </div>
       </div>
       <div className="world-setting-category-overview__grid">
-        {CATEGORY_FILTER_OPTIONS.map(option => {
+        {CATEGORY_FILTER_OPTIONS.map((option, index) => {
           const meta = option.value ? CATEGORY_META[option.value] : null;
           return (
             <button
               key={option.value ?? 'ALL'}
               type="button"
               className="world-setting-category-overview__card"
-              aria-label={`${option.label} 설정 보기`}
+              aria-label={option.value ? `${option.label} 설정 보기` : '전체 보기'}
               onClick={() => onSelect(option.value ?? 'ALL')}
-              style={{ '--category-color': meta?.color ?? C.primary } as CSSProperties}
             >
-              <span className="world-setting-category-overview__card-label">{option.label}</span>
-              <span className="world-setting-category-overview__card-description">
-                {meta?.description ?? '모든 분류의 세계관 설정을 한 번에 확인합니다.'}
+              <span className="world-setting-category-overview__image-wrap">
+                <img
+                  className="world-setting-category-overview__image"
+                  src={CATEGORY_IMAGES[option.value ?? 'ALL']}
+                  alt=""
+                  width={768}
+                  height={512}
+                  loading={index < 4 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
               </span>
-              <ChevronRight size={18} aria-hidden="true" />
+              <span className="world-setting-category-overview__card-copy">
+                <span className="world-setting-category-overview__card-title">
+                  <span className="world-setting-category-overview__card-label">{option.value ? option.label : '전체 보기'}</span>
+                  <ChevronRight size={17} aria-hidden="true" />
+                </span>
+                <span className="world-setting-category-overview__card-description">
+                  {meta?.description ?? '모든 분류의 세계관 설정을 한눈에'}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -250,61 +266,42 @@ function CategoryOverview({
   );
 }
 
-function ListItem({
-  item,
-  selected,
-  disabled,
-  onClick,
-}: {
+function ListItem({ item, showCategory, showMatch, onClick }: {
   item: WorldSettingListItemResponse;
-  selected: boolean;
-  disabled: boolean;
+  showCategory: boolean;
+  showMatch: boolean;
   onClick: () => void;
 }) {
   return (
     <button
-      className={`world-setting-list-item${selected ? ' is-selected' : ''}`}
+      className="world-setting-list-item"
       type="button"
       aria-label={`${item.subjectName || '이름 없는 대상'} 세계관 대상 보기`}
-      disabled={disabled}
+      aria-haspopup="dialog"
+      data-world-setting-id={item.id}
       onClick={onClick}
-      style={{
-        width: '100%', minHeight: 82, padding: '12px 14px', borderRadius: 8,
-        border: `1px solid ${selected ? `${C.primary}88` : C.border}`,
-        background: selected ? `${C.primary}18` : C.bg,
-        textAlign: 'left', fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.65 : 1,
-      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Badge category={item.category} />
-        <strong style={{
-          minWidth: 0, flex: 1, color: C.t1, fontSize: 13,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {item.subjectName || '대상명 없음'}
-        </strong>
-        <ChevronRight size={15} color={selected ? C.primary : C.t3} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9 }}>
-        <span style={{ color: C.t3, fontSize: 10 }}>설정 {item.propertyCount ?? 0}개</span>
-        <div style={{ flex: 1 }} />
-        <span style={{ color: C.t3, fontSize: 10 }}>{formatUpdatedAt(item.updatedAt)}</span>
-      </div>
-      {(item.matchedScopeName || item.matchedSettingName || item.matchedSettingValue) && (
-        <div style={{
-          marginTop: 8, color: C.t2, fontSize: 10,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
+      <WorldSubjectImage category={item.category} path={item.image?.thumbnailUrl} className="world-setting-list-item__image" />
+      <span className="world-setting-list-item__copy">
+      {showCategory && <Badge category={item.category} />}
+      <span className="world-setting-list-item__title">
+        <strong>{item.subjectName || '대상명 없음'}</strong>
+        <ChevronRight size={18} aria-hidden="true" />
+      </span>
+      <span className="world-setting-list-item__count">설정 {item.propertyCount ?? 0}개</span>
+      {showMatch && (item.matchedScopeName || item.matchedSettingName || item.matchedSettingValue) && (
+        <span className="world-setting-list-item__match">
           {item.matchedScopeName ? `${item.matchedScopeName} › ` : ''}
           {item.matchedSettingName || '일치 설정'} · {item.matchedSettingValue || '값 없음'}
-        </div>
+        </span>
       )}
+      </span>
     </button>
   );
 }
 
 interface PropertyDraft {
+  worldSettingId: string;
   mode: 'add' | 'edit';
   currentScopeName?: string;
   currentSettingName?: string;
@@ -498,6 +495,7 @@ function WorldSettingDetail({
   propertyConflict,
   expandedEvidence,
   onEditIdentity,
+  onEditImage,
   onStartAdd,
   onStartEdit,
   onDraftChange,
@@ -513,6 +511,7 @@ function WorldSettingDetail({
   propertyConflict: boolean;
   expandedEvidence: string | null;
   onEditIdentity: () => void;
+  onEditImage: () => void;
   onStartAdd: () => void;
   onStartEdit: (scopeName: string | null, name: string, value: string) => void;
   onDraftChange: (draft: PropertyDraft) => void;
@@ -535,8 +534,9 @@ function WorldSettingDetail({
       border: `1px solid ${C.border}`, background: C.surface,
     }}>
       <div className="world-setting-detail-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-        <Badge category={detail.category} />
+        <div className="world-setting-detail-image"><WorldSubjectImage category={detail.category} path={detail.image?.imageUrl} eager /><small>공용 예시 이미지</small></div>
         <div style={{ minWidth: 0, flex: 1 }}>
+          <Badge category={detail.category} />
           <strong style={{ display: 'block', color: C.t1, fontSize: 18, marginBottom: 5 }}>
             {detail.subjectName || '대상명 없음'}
           </strong>
@@ -544,7 +544,10 @@ function WorldSettingDetail({
             {formatUpdatedAt(detail.updatedAt)}
           </span>
         </div>
-        <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditIdentity}><Pencil size={12} /> 대상 정보 수정</Button>
+        <div className="world-setting-detail-actions">
+          <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditImage}>이미지 변경</Button>
+          <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditIdentity}><Pencil size={12} /> 대상 정보 수정</Button>
+        </div>
       </div>
 
       <div className="world-setting-detail-toolbar" style={{ display: 'flex', alignItems: 'center', marginBottom: 11 }}>
@@ -714,60 +717,22 @@ function DiscardChangesDialog({
   if (!open) return null;
 
   return (
-    <div
-      className="database-modal-backdrop"
-      role="presentation"
-      onMouseDown={event => { if (event.target === event.currentTarget) onKeepEditing(); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 260, padding: 20,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.74)',
-      }}
+    <WorldSettingDialog
+      title="작성 중인 내용을 취소할까요?"
+      description={description}
+      role="alertdialog"
+      className="database-discard-dialog"
+      onClose={onKeepEditing}
     >
-      <div
-        className="database-modal database-discard-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="discard-world-setting-title"
-        aria-describedby="discard-world-setting-description"
-        style={{
-          width: 'min(430px, 100%)', padding: 22, borderRadius: 12,
-          border: `1px solid ${C.warning}55`, background: C.surface,
-          boxShadow: '0 24px 72px rgba(0,0,0,0.62)',
-        }}
-      >
-        <strong id="discard-world-setting-title" style={{ display: 'block', color: C.t1, fontSize: 17 }}>
-          작성 중인 내용을 취소할까요?
-        </strong>
-        <p id="discard-world-setting-description" style={{ margin: '9px 0 20px', color: C.t2, fontSize: 12, lineHeight: 1.65 }}>
-          {description}
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button onClick={onKeepEditing}>계속 작성</Button>
-          <button type="button" onClick={onDiscard} style={{
-            minHeight: 36, padding: '0 14px', borderRadius: 7,
-            border: `1px solid ${C.danger}66`, background: `${C.danger}18`,
-            color: C.danger, fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
-            cursor: 'pointer',
-          }}>
-            작성 취소
-          </button>
-        </div>
+      <div className="database-modal__footer">
+        <Button onClick={onKeepEditing}>계속 작성</Button>
+        <Button onClick={onDiscard}>작성 취소</Button>
       </div>
-    </div>
+    </WorldSettingDialog>
   );
 }
 
-function ModalShell({
-  title,
-  description,
-  pending,
-  dirty,
-  children,
-  onClose,
-  onSubmit,
-  submitLabel,
-}: {
+function ModalShell({ title, description, pending, dirty, children, onClose, onSubmit, submitLabel }: {
   title: string;
   description: string;
   pending: boolean;
@@ -780,45 +745,14 @@ function ModalShell({
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const requestClose = () => {
     if (pending) return;
-    if (dirty) {
-      setDiscardDialogOpen(true);
-      return;
-    }
-    onClose();
+    if (dirty) setDiscardDialogOpen(true);
+    else onClose();
   };
   return (
-    <div
-      className="database-modal-backdrop"
-      role="presentation"
-      onMouseDown={event => { if (event.target === event.currentTarget) requestClose(); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 220, padding: 20,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)',
-      }}
-    >
-      <form className="database-modal" role="dialog" aria-modal="true" aria-label={title} onSubmit={onSubmit} style={{
-        width: 'min(650px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
-        borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
-        boxShadow: '0 24px 72px rgba(0,0,0,0.6)',
-      }}>
-        <div className="database-modal__header" style={{ padding: '22px 24px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div>
-            <strong style={{ display: 'block', color: C.t1, fontSize: 18, marginBottom: 6 }}>{title}</strong>
-            <span style={{ color: C.t3, fontSize: 11 }}>{description}</span>
-          </div>
-          <div style={{ flex: 1 }} />
-          <button type="button" className="database-modal__close" aria-label="닫기" disabled={pending} onClick={requestClose} style={{
-            width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`,
-            background: C.bg, color: C.t3, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: pending ? 'not-allowed' : 'pointer',
-          }}><X size={16} /></button>
-        </div>
-        <div className="database-modal__body" style={{ padding: '0 24px 22px' }}>{children}</div>
-        <div className="database-modal__footer" style={{
-          padding: '15px 24px', borderTop: `1px solid ${C.border}`,
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
-        }}>
+    <WorldSettingDialog title={title} description={description} pending={pending} onClose={requestClose}>
+      <form onSubmit={onSubmit}>
+        <div className="database-modal__body">{children}</div>
+        <div className="database-modal__footer">
           <Button disabled={pending} onClick={requestClose}>취소</Button>
           <Button type="submit" primary disabled={pending}>
             {pending ? <Loader2 size={13} className="spin" /> : <Check size={13} />} {pending ? '저장 중…' : submitLabel}
@@ -829,12 +763,9 @@ function ModalShell({
         open={discardDialogOpen}
         description="지금 닫으면 입력한 대상과 설정 내용이 저장되지 않습니다."
         onKeepEditing={() => setDiscardDialogOpen(false)}
-        onDiscard={() => {
-          setDiscardDialogOpen(false);
-          onClose();
-        }}
+        onDiscard={() => { setDiscardDialogOpen(false); onClose(); }}
       />
-    </div>
+    </WorldSettingDialog>
   );
 }
 
@@ -1042,28 +973,21 @@ export function WorldSettingDatabase({
   const selectedId = searchParams.get('settingId');
   const modal = searchParams.get('modal');
   const categoryOverview = !fixtureMode && categoryParam === null && !q && !selectedId;
+  const { containerRef, contentStartRef, columnCount, pageSize, ready: paginationReady } = useWorldSettingPagination(
+    !categoryOverview && (enabled || fixtureMode),
+  );
   const [searchDraft, setSearchDraft] = useState(q);
   const [createDraft, setCreateDraft] = useState<CreateWorldSettingDraft>(emptyCreateDraft);
   const [identityDraft, setIdentityDraft] = useState<IdentityDraft | null>(null);
-  const [propertyDraft, setPropertyDraft] = useState<PropertyDraft | null>(null);
+  const [storedPropertyDraft, setPropertyDraft] = useState<PropertyDraft | null>(null);
+  const propertyDraft = storedPropertyDraft?.worldSettingId === selectedId ? storedPropertyDraft : null;
   const [propertyValidationError, setPropertyValidationError] = useState<string | null>(null);
   const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [propertyDraftDiscardRequest, setPropertyDraftDiscardRequest] = useState<{
     afterDiscard?: () => void;
   } | null>(null);
-  const [mobileViewport, setMobileViewport] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
-  ));
-
   useEffect(() => setSearchDraft(q), [q]);
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
-    const updateViewport = () => setMobileViewport(mediaQuery.matches);
-    updateViewport();
-    mediaQuery.addEventListener('change', updateViewport);
-    return () => mediaQuery.removeEventListener('change', updateViewport);
-  }, []);
   useEffect(() => {
     if (!successMessage) return undefined;
     const timer = window.setTimeout(() => setSuccessMessage(null), 3500);
@@ -1073,9 +997,9 @@ export function WorldSettingDatabase({
   const listQuery = useQuery({
     ...getWorldSettingsOptions({
       path: { workId },
-      query: { q: q || undefined, category, sort, page: apiPage, size: PAGE_SIZE },
+      query: { q: q || undefined, category, sort, page: apiPage, size: pageSize },
     }),
-    enabled: enabled && !fixtureMode && !categoryOverview,
+    enabled: enabled && !fixtureMode && !categoryOverview && paginationReady,
     retry: shouldRetryQuery,
   });
   const fixtureListData = useMemo<WorldSettingListResponse | undefined>(() => {
@@ -1100,8 +1024,8 @@ export function WorldSettingDatabase({
       const categoryOrder = String(left.category ?? '').localeCompare(String(right.category ?? ''));
       return categoryOrder || String(left.subjectName ?? '').localeCompare(String(right.subjectName ?? ''), 'ko-KR');
     });
-    const start = apiPage * PAGE_SIZE;
-    const content = filtered.slice(start, start + PAGE_SIZE).map(setting => ({
+    const start = apiPage * pageSize;
+    const content = filtered.slice(start, start + pageSize).map(setting => ({
       id: setting.id,
       category: setting.category,
       subjectName: setting.subjectName,
@@ -1114,27 +1038,17 @@ export function WorldSettingDatabase({
       worldSettings: {
         content,
         page: apiPage,
-        size: PAGE_SIZE,
+        size: pageSize,
         totalElements: filtered.length,
-        totalPages: Math.ceil(filtered.length / PAGE_SIZE),
-        hasNext: start + PAGE_SIZE < filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize),
+        hasNext: start + pageSize < filtered.length,
       },
     };
-  }, [apiPage, category, fixture, q, sort]);
+  }, [apiPage, category, fixture, pageSize, q, sort]);
   const listData = fixtureListData ?? listQuery.data?.data;
   const worldSettingPage = listData?.worldSettings;
   const items = useMemo(() => worldSettingPage?.content ?? [], [worldSettingPage?.content]);
-  const listReady = fixtureMode || listQuery.isSuccess;
   const listFetching = fixtureMode ? false : listQuery.isFetching;
-
-  useEffect(() => {
-    if (categoryOverview || mobileViewport || modal || !listReady || listFetching || selectedId || !items[0]?.id) return;
-    setSearchParams(previous => {
-      const next = new URLSearchParams(previous);
-      next.set('settingId', items[0].id!);
-      return next;
-    }, { replace: true });
-  }, [categoryOverview, items, listFetching, listReady, mobileViewport, modal, selectedId, setSearchParams]);
 
   useEffect(() => {
     const totalPages = worldSettingPage?.totalPages;
@@ -1142,7 +1056,6 @@ export function WorldSettingDatabase({
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('page', String(Math.max(totalPages, 1)));
-      next.delete('settingId');
       return next;
     }, { replace: true });
   }, [apiPage, setSearchParams, worldSettingPage?.totalPages]);
@@ -1175,7 +1088,7 @@ export function WorldSettingDatabase({
         const next = new URLSearchParams(previous);
         next.delete('modal');
         next.delete('q');
-        next.delete('category');
+        next.set('category', response.data?.category ?? 'ALL');
         next.delete('sort');
         next.set('page', '1');
         if (createdId) next.set('settingId', createdId);
@@ -1259,7 +1172,7 @@ export function WorldSettingDatabase({
         next.set('settingId', id);
         next.delete('modal');
         return next;
-      }, { replace: true });
+      });
     });
   };
 
@@ -1272,6 +1185,7 @@ export function WorldSettingDatabase({
           else next.delete('q');
         }
         if ('category' in patch) {
+          next.delete('worldSize');
           if (patch.category) next.set('category', patch.category);
           else next.delete('category');
         }
@@ -1281,8 +1195,32 @@ export function WorldSettingDatabase({
         }
         next.set('page', '1');
         next.delete('settingId');
+        next.delete('modal');
         return next;
-      }, { replace: true });
+      }, { replace: !('category' in patch) });
+    });
+  };
+
+  const clearDetailSelection = () => {
+    setExpandedEvidence(null);
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      // Older shared links may contain only settingId. Closing them still opens the list.
+      if (!next.has('category')) next.set('category', 'ALL');
+      next.delete('settingId');
+      next.delete('modal');
+      return next;
+    }, { replace: true });
+  };
+
+  const closeDetail = () => requestPropertyDraftDiscard(clearDetailSelection);
+
+  const backToCategories = () => {
+    setSearchDraft('');
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      for (const key of ['category', 'q', 'sort', 'page', 'worldSize', 'settingId', 'modal']) next.delete(key);
+      return next;
     });
   };
 
@@ -1363,17 +1301,20 @@ export function WorldSettingDatabase({
 
   return (
     <section className="world-setting-database" style={{ maxWidth: 1280, margin: '0 auto' }}>
-      <div className="world-setting-database__header" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 18 }}>
-        <div>
+      <div className={`world-setting-database__header${categoryOverview ? '' : ' world-setting-database__header--list'}`}>
+        {categoryOverview ? <div>
           <strong className="world-setting-database__title" style={{ display: 'block', color: C.t1, fontSize: 20, marginBottom: 6 }}>세계관 설정</strong>
-          <span className="world-setting-database__subtitle" style={{ color: C.t3, fontSize: 12 }}>대상 아래 범위와 설정 경로를 한곳에서 관리합니다.</span>
-        </div>
-        <div style={{ flex: 1 }} />
-        {!categoryOverview && <span className="world-setting-database__count" style={{
-          minHeight: 27, padding: '0 10px', borderRadius: 14,
-          border: `1px solid ${C.border}`, background: C.surface,
-          color: C.t2, display: 'inline-flex', alignItems: 'center', fontSize: 11,
-        }}>총 {total}개 대상</span>}
+          <span className="world-setting-database__subtitle" style={{ color: C.t3, fontSize: 12 }}>작품의 세계를 이루는 설정을 모아보세요.</span>
+        </div> : <div className="world-setting-list-heading">
+          {!fixtureMode && <>
+            <button type="button" className="world-setting-back" onClick={backToCategories} aria-label="분류 선택으로">
+              <ChevronLeft size={18} aria-hidden="true" /> <span>분류 선택으로</span>
+            </button>
+            <span className="world-setting-list-heading__divider" aria-hidden="true">/</span>
+          </>}
+          <h3>{category ? CATEGORY_META[category].label : '전체 세계관'}</h3>
+          <span className="world-setting-list-heading__count" role="status">{listFetching ? '조회 중…' : `${filteredTotal}개`}</span>
+        </div>}
         <Button primary onClick={() => {
           if (fixtureMode) {
             explainFixtureReadOnly();
@@ -1401,7 +1342,7 @@ export function WorldSettingDatabase({
       {categoryOverview ? (
         <CategoryOverview onSelect={selectedCategory => updateListParams({ category: selectedCategory })} />
       ) : <>
-      <div className="world-setting-db-filters" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 220px', gap: 10, marginBottom: 14 }}>
+      <div ref={containerRef} className="world-setting-db-filters" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 220px', gap: 10, marginBottom: 14 }}>
         <form className="world-setting-search" onSubmit={(event: FormEvent) => {
           event.preventDefault();
           updateListParams({ q: searchDraft.trim() });
@@ -1432,58 +1373,12 @@ export function WorldSettingDatabase({
           onChange={event => updateListParams({ sort: event.target.value as WorldSort })}
           style={{ ...modalInputStyle, height: 42, background: C.surface }}
         >
-          <option value="CATEGORY_SUBJECT_ASC">분류·대상 이름순</option>
+          <option value="CATEGORY_SUBJECT_ASC">{category ? '대상 이름순' : '분류·대상 이름순'}</option>
           <option value="UPDATED_DESC">최근 수정순</option>
         </select>
-        <label className="world-setting-mobile-category">
-          세계관 분류
-          <select
-            className="mobile-choice-select"
-            value={category ?? 'ALL'}
-            disabled={propertyPending}
-            onChange={event => updateListParams({ category: event.target.value as WorldCategory | 'ALL' })}
-          >
-            {CATEGORY_FILTER_OPTIONS.map(option => (
-              <option key={option.value ?? 'ALL'} value={option.value ?? 'ALL'}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <div
-          className="world-setting-category-filters"
-          role="group"
-          aria-label="세계관 분류"
-          style={{
-            gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 7,
-            padding: 6, borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface,
-          }}
-        >
-          {CATEGORY_FILTER_OPTIONS.map(option => {
-            const selected = option.value ? category === option.value : categoryParam === 'ALL';
-            return (
-              <button
-                className={`world-setting-category-filter${selected ? ' is-selected' : ''}`}
-                key={option.value ?? 'ALL'}
-                type="button"
-                aria-label={`분류: ${option.label}`}
-                aria-current={selected ? 'true' : undefined}
-                disabled={propertyPending}
-                onClick={() => updateListParams({ category: option.value ?? 'ALL' })}
-                style={{
-                  minHeight: 32, padding: '0 12px', borderRadius: 7,
-                  border: `1px solid ${selected ? `${C.primary}77` : 'transparent'}`,
-                  background: selected ? `${C.primary}20` : C.bg,
-                  color: selected ? C.primary : C.t2,
-                  fontFamily: 'inherit', fontSize: 11, fontWeight: selected ? 750 : 600,
-                  cursor: propertyPending ? 'not-allowed' : 'pointer',
-                  opacity: propertyPending ? 0.58 : 1,
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+
       </div>
+      <div ref={contentStartRef} />
 
       {!fixtureMode && listQuery.isPending && !listQuery.data ? (
         <PanelState
@@ -1524,69 +1419,50 @@ export function WorldSettingDatabase({
       ) : filteredTotal === 0 ? (
         <PanelState
           icon={<Search size={28} color={C.t3} />}
-          title="검색 조건에 맞는 세계관 설정이 없습니다."
-          description="검색어 또는 분류 필터를 바꿔 보세요."
-          action={<Button onClick={() => {
-            setSearchDraft('');
-            updateListParams({ q: '', category: 'ALL', sort: 'CATEGORY_SUBJECT_ASC' });
-          }}>검색 조건 초기화</Button>}
+          title={q ? '검색 조건에 맞는 세계관 설정이 없습니다.' : '이 분류에 등록된 대상이 없습니다.'}
+          description={q ? '다른 검색어로 찾아보거나 검색어를 지워 보세요.' : '새 대상을 추가하거나 분류 선택으로 돌아가 다른 설정을 살펴보세요.'}
+          action={q ? <Button onClick={() => updateListParams({ q: '' })}>검색어 지우기</Button> : undefined}
           minHeight={460}
         />
       ) : (
-        <div className={`world-setting-db-layout${selectedId ? ' mobile-detail-open' : ''}`} style={{
-          display: 'grid', gridTemplateColumns: 'minmax(270px, 350px) minmax(0, 1fr)',
-          gap: 14, alignItems: 'start',
-        }}>
-          <aside className="world-setting-db-list" style={{
-            minHeight: 540, padding: 14, borderRadius: 10,
-            border: `1px solid ${C.border}`, background: C.surface,
-            display: 'flex', flexDirection: 'column', gap: 8,
-          }}>
-            <div className="world-setting-db-list__header" style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
-              <strong style={{ color: C.t1, fontSize: 13 }}>대상 목록</strong>
-              <div style={{ flex: 1 }} />
-              <span style={{ color: C.t3, fontSize: 10 }}>{PAGE_SIZE}개씩</span>
-            </div>
+        <section className="world-setting-db-list" aria-label="세계관 대상 목록">
             {!fixtureMode && listQuery.isError && listQuery.data && (
               <div className="database-inline-alert is-error" role="alert" style={{ color: C.danger, fontSize: 10, marginBottom: 3 }}>
                 최신 목록 조회 실패 · 이전 결과 표시 중
               </div>
             )}
+          <div className="world-setting-subject-grid" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
             {items.map(item => item.id && (
               <ListItem
                 key={item.id}
                 item={item}
-                selected={item.id === selectedId}
-                disabled={propertyPending}
+                showCategory={!category}
+                showMatch={Boolean(q)}
                 onClick={() => selectSetting(item.id!)}
               />
             ))}
-            <div style={{ flex: 1 }} />
+          </div>
             <PageNavigation
               page={currentPage}
               totalPages={totalPages}
               disabled={listFetching || propertyPending}
               onPageChange={changePage}
             />
-          </aside>
+        </section>
+      )}
+      </>}
 
+      {selectedId && (
+        <WorldSettingDialog
+          title={detail?.subjectName ? `${detail.subjectName} 세계관 상세` : '세계관 상세'}
+          className="world-setting-detail-dialog"
+          pending={propertyPending || identityMutation.isPending}
+          modal={!fixtureMode}
+          returnFocusId={selectedId}
+          onClose={closeDetail}
+        >
           <section className="world-setting-db-detail">
-            <button type="button" className="world-setting-db-mobile-back" onClick={() => setSearchParams(previous => {
-              const next = new URLSearchParams(previous);
-              next.delete('settingId');
-              return next;
-            }, { replace: true })} style={{
-              display: 'none', border: 'none', background: 'none', color: C.primary,
-              fontFamily: 'inherit', fontSize: 11, marginBottom: 8, cursor: 'pointer',
-            }}><ChevronLeft size={14} /> 대상 목록으로</button>
-            {!selectedId ? (
-              <PanelState
-                icon={<Database size={26} color={C.primary} />}
-                title="세계관 대상을 선택해 주세요."
-                description="왼쪽 목록에서 대상을 선택하면 설정을 확인하고 수정할 수 있습니다."
-                minHeight={540}
-              />
-            ) : !fixtureMode && detailQuery.isPending ? (
+            {!fixtureMode && detailQuery.isPending ? (
               <PanelState
                 icon={<Loader2 size={26} color={C.primary} className="spin" />}
                 title="세계관 상세를 불러오고 있습니다."
@@ -1609,6 +1485,12 @@ export function WorldSettingDatabase({
                 propertyError={propertyError}
                 propertyConflict={isVersionConflict(propertyMutationError)}
                 expandedEvidence={expandedEvidence}
+                onEditImage={() => {
+                  if (fixtureMode) { explainFixtureReadOnly(); return; }
+                  setSearchParams(previous => {
+                    const next = new URLSearchParams(previous); next.set('modal', 'world-setting-image'); return next;
+                  });
+                }}
                 onEditIdentity={() => {
                   if (fixtureMode) {
                     explainFixtureReadOnly();
@@ -1633,7 +1515,7 @@ export function WorldSettingDatabase({
                   }
                   resetPropertyMutations();
                   setPropertyDraft({
-                    mode: 'add', scopeName: '', settingName: '', settingValue: '',
+                    worldSettingId: selectedId!, mode: 'add', scopeName: '', settingName: '', settingValue: '',
                     initialScopeName: '',
                     initialSettingName: '', initialSettingValue: '',
                   });
@@ -1645,7 +1527,7 @@ export function WorldSettingDatabase({
                   }
                   resetPropertyMutations();
                   setPropertyDraft({
-                    mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
+                    worldSettingId: selectedId!, mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
                     scopeName: scopeName ?? '',
                     settingName: name, settingValue: value,
                     initialScopeName: scopeName ?? '',
@@ -1673,10 +1555,17 @@ export function WorldSettingDatabase({
               />
             )}
           </section>
-        </div>
+        </WorldSettingDialog>
       )}
-      </>}
 
+      {!fixtureMode && modal === 'world-setting-image' && detail && selectedId && (
+        <WorldImagePicker key={`${selectedId}-${detail.category}`} workId={workId} detail={detail}
+          onSaved={() => invalidateWorldSettings(selectedId)}
+          onReload={async () => { const result = await detailQuery.refetch(); if (result.error) throw result.error; return result.data?.data?.image?.version ?? 0; }}
+          onClose={() => setSearchParams(previous => {
+            const next = new URLSearchParams(previous); next.delete('modal'); return next;
+          }, { replace: true })} />
+      )}
       {!fixtureMode && modal === 'world-setting-create' && (
         <CreateWorldSettingModal
           draft={createDraft}
@@ -1734,20 +1623,6 @@ export function WorldSettingDatabase({
           }
           .world-setting-db-filters {
             grid-template-columns: minmax(0, 1fr) !important;
-          }
-          .world-setting-db-layout {
-            grid-template-columns: minmax(0, 1fr) !important;
-          }
-          .world-setting-db-layout.mobile-detail-open .world-setting-db-list {
-            display: none !important;
-          }
-          .world-setting-db-layout:not(.mobile-detail-open) .world-setting-db-detail {
-            display: none !important;
-          }
-          .world-setting-db-layout.mobile-detail-open .world-setting-db-mobile-back {
-            display: inline-flex !important;
-            align-items: center;
-            gap: 4px;
           }
         }
       `}</style>

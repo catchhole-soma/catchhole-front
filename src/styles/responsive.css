@@ -32,7 +32,6 @@ body,
 
 .setting-db-mobile-navigation,
 .review-filter__select,
-.world-setting-mobile-category,
 .character-fact-search__mobile-filter {
   display: none;
 }
@@ -183,13 +182,6 @@ body,
   .review-filter__select,
   .character-fact-search__mobile-filter { display: block; }
 
-  .world-setting-mobile-category {
-    display: grid;
-    gap: 8px;
-    color: var(--ch-text-muted);
-    font-size: 12px;
-  }
-  .world-setting-category-filters { display: none !important; }
   .character-fact-search__filter-row > button { display: none !important; }
   .character-fact-search__filter-row .mobile-choice-select { flex: 1; width: 0; }
   .world-setting-identity-fields { grid-template-columns: minmax(0, 1fr) !important; }

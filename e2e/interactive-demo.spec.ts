@@ -259,13 +259,13 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await activate(secondaryCharacterDetail.getByRole('button', { name: '닫기' }), keyboard);
 
   await activate(page.getByRole('tab', { name: /세계관 설정/ }), keyboard);
-  await expect(page.locator('.world-setting-database__title')).toHaveText('세계관 설정');
+  await expect(page.getByRole('heading', { name: '전체 세계관', exact: true })).toBeVisible();
 
-  if (mobile) await activate(page.getByRole('button', { name: '대상 목록으로' }), keyboard);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await activate(page.getByRole('button', { name: '무저갱 관문 세계관 대상 보기' }), keyboard);
   await expect(page.getByText('무저갱 관문', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('서약자의 인장이 있어야 관문이 열린다.', { exact: true })).toBeVisible();
-  if (mobile) await activate(page.getByRole('button', { name: '대상 목록으로' }), keyboard);
+  await activate(page.getByRole('dialog', { name: '무저갱 관문 세계관 상세' }).getByRole('button', { name: '닫기' }), keyboard);
   await activate(page.getByRole('button', { name: '거꾸로숲 세계관 대상 보기' }), keyboard);
   const worldDetail = page.locator('.world-setting-detail-card');
   await expect(worldDetail.getByText(EDITED_WORLD_VALUE, { exact: true })).toBeVisible();
