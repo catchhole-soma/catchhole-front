@@ -11,4 +11,3 @@ export const WORLD_CATEGORY_IMAGES = {
   RACE: raceImage, FACTION: factionImage, LOCATION: locationImage, MONSTER: monsterImage,
   POWER_SYSTEM: powerSystemImage, WORLD_RULE_HISTORY: historyImage, IMPORTANT_ITEM: itemImage, ALL: allImage,
 };
-
