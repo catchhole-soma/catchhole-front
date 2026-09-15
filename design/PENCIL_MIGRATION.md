@@ -101,6 +101,7 @@
 - 원고 목록은 목록·빈 화면·오류, 분석 목록은 완료·진행·대기·부분 실패·실패 상태를 포함한다.
 - 캐릭터는 목록·빈 화면·상세·수정·삭제·변화 이력·원문 근거를 포함한다.
 - 세계관은 분류 선택, 목록/상세, 생성/수정, 충돌, 미저장 변경을 포함한다.
+- GH-194 (2026-09-14): 분류 선택에 승인된 이미지 8장과 전체 보기 A안(세계 전경)을 적용했다. 실제 구현은 `docs/screens/gh194/world-categories-desktop.png`·`world-categories-mobile.png`·`world-categories-320.png`를 기준으로 한다. Pencil MCP가 `transport not connected` 및 `Transport closed`를 반환해 `.pen`은 수정하지 못했으며, 연결 복구 후 기존 분류 프레임 `RSX1d`·`JezJo`와 관련 Workflow 복제본 동기화가 필요하다. 후속으로 대상 카드 목록·상세 모달·분류 선택 복귀를 적용했다. `world-subject-list-desktop.png`·`world-detail-desktop.png`·`world-subject-list-mobile.png`·`world-detail-mobile.png` 캡처와 함께 `d1Aj0p`·`V0wXQL`·`E9zwO` 및 생성·수정·충돌·작성 취소, `/demo`와 Workflow 복제본의 동기화가 필요하다. 재확인에서도 Pencil MCP가 `Transport closed`를 반환했다.
 - 설정집은 목록·원문·업로드·수정·삭제·오류를 포함한다.
 - 설정 검색은 기본·결과·상세 모달을 포함하며, 접근 가능한 미래 기능은 `업데이트 예정` 토스트로만 표현한다.
 
@@ -162,3 +163,23 @@
 2026-09-11: `gh180EpisodeAutoPolicy`의 완료·재개 문구에 `분석 완료 · N개 확인 가능`, 차단 대기와 실제 진행의 구분, 후보 변경 전 후속 분석 중단 안내를 동기화했다. 분석 중 수정 예약은 미구현이다. 구현 검증은 진행·목록·자동 검토 Playwright 21개와 추가 보류 문구 7개 재검증이며, 새 Pencil 화면 캡처를 생성했다는 의미는 아니다.
 
 2026-09-11: `gh180ReviewReasons20260910`의 수동 해결 가능한 실패 안내를 `검토 필요`와 자동 비교 미완료 문장으로 갱신했다. 정상 일반 보류의 `대상·내용 확인 필요`, 반영 방식 필터의 `AI 판단 보류`, 수정 불가 값의 원문 확인·제외 안내를 규칙 노트에 기록했다. 내부 실패 상태와 실제 회차 중단·사용량 부족·확정 잠금은 유지한다. 실제 UI의 1280/320px Playwright로 확인하며 새 Pencil 렌더를 생성했다는 의미는 아니다.
+
+### GH194 목록 밀도와 반응형 페이지 크기 (2026-09-14)
+
+후속 사용자 교정으로 목록의 반복 제목·안내를 제거하고 뒤로가기·분류명·조회 개수·추가 버튼을 한 줄로 압축했다. 카드 최소 높이는 데스크톱 122→104px, 모바일 110→94px이다. 실제 목록 여유 높이와 열 수에 따라 12·18·24개로 페이징하며 URL `worldSize`에 페이지 경계를 저장한다. 새로고침·공유·뒤로가기는 경계를 복원하고 열 수/수용량 변경은 이전 첫 항목을 포함하는 페이지로 이동한다. 최신 캡처는 `docs/screens/gh194/world-compact-list-desktop.png`·`world-compact-list-mobile.png` 및 갱신한 목록/상세 캡처이다. Pencil MCP 재확인도 `Transport closed`로 실패해 위의 대상 프레임과 Workflow 복제본 동기화는 계속 대기한다. 이전 `.pen` 프레임을 이번 구현의 최신 화면으로 간주하지 않는다.
+
+
+## 2026-09-15 GH194 세계관 도감 — 검증 화면 동기화
+
+`GH194 / 세계관 이미지 도감 · 검증 화면` (`qg188`) 아래 영역에 실제 브라우저 캡처를 참조하는 Active 프레임 8개를 추가했다. 새로운 흐름의 기준은 아래 GH194 프레임이다. 기존 구조형 시안과 Post-MVP 화면은 보존한다. 캡처가 가리키는 화면의 편집 가능한 구현은 `WorldSettingDatabase`, `WorldSettingDialog`, `WorldImagePicker`와 `database-v2.css`다.
+
+| 상태 | Desktop | Mobile |
+| --- | --- | --- |
+| 이미지 분류 선택 | `r8anb` | `AV3ZP` |
+| 썸네일 대상 목록 | `LQUZc` | `NHFGy` |
+| 상세 모달·공용 예시 이미지 | `oYBX0` | `ZtPJb` |
+| 대표 이미지 도감·검색·선택·기본 이미지 복귀 | `eToFP` | `F4dds` |
+
+Workflow: 분류 선택 → 대상 목록 → 상세 모달 → 이미지 도감 → 저장 후 상세 → 닫기 후 원래 목록. 기존 설정 입력/원문 근거 흐름과 `/demo`의 읽는 위치를 유지한다. 이미지 도감의 저장 오류와 충돌은 초안을 유지한다. 프롬프트·자동 매칭은 보류다.
+
+캡처 원본은 `docs/screens/gh194/`에 커밋한다. 실제 API/DB 연결 캡처는 `image-list-desktop.png`, `image-detail-desktop.png`, `image-catalog-desktop-ready.png`, `image-picker-mobile.png` 등이다. 이미지 로딩 완료 후 캡처했으며, Pencil에서도 렌더·영역 경계를 확인했다. 테스트 화면은 데스크톱 1440×900, 모바일 320×740이며 분류 선택은 전체 페이지 캡처다.

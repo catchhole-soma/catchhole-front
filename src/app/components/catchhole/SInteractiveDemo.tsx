@@ -1231,7 +1231,7 @@ export default function SInteractiveDemo() {
       clearTimelineSelection(next);
       ['timelineView', 'timelineFactType', 'timelineEpisodeNo', 'timelineFactId', 'modal'].forEach(key => next.delete(key));
       if (tab === 'world') {
-        next.set('settingId', 'demo-world-reverse-forest');
+        next.delete('settingId');
         next.delete('q');
         next.delete('category');
         next.delete('sort');

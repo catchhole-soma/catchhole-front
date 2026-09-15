@@ -8,6 +8,8 @@ interface ResponsiveGridPaginationOptions {
   maxPageSize: number;
   reservedBottomSpace: number;
   mobilePageSize?: number;
+  allowedPageSizes?: readonly number[];
+  enabled?: boolean;
 }
 
 interface ResponsiveGridLayout {
@@ -34,6 +36,8 @@ export function useResponsiveGridPagination({
   maxPageSize,
   reservedBottomSpace,
   mobilePageSize,
+  allowedPageSizes,
+  enabled = true,
 }: ResponsiveGridPaginationOptions) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentStartRef = useRef<HTMLDivElement>(null);
@@ -44,6 +48,7 @@ export function useResponsiveGridPagination({
   });
 
   useLayoutEffect(() => {
+    if (!enabled) return;
     const container = containerRef.current;
     const contentStart = contentStartRef.current;
     if (!container || !contentStart) return;
@@ -63,7 +68,7 @@ export function useResponsiveGridPagination({
         ? scrollParent.clientHeight
           - (contentStartRect.top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop)
           - reservedBottomSpace
-        : window.innerHeight - contentStartRect.top - reservedBottomSpace;
+        : window.innerHeight - (contentStartRect.top + window.scrollY) - reservedBottomSpace;
       const visibleRows = Math.max(
         1,
         Math.floor((Math.max(itemHeight, availableHeight) + gap) / (itemHeight + gap)),
@@ -71,9 +76,12 @@ export function useResponsiveGridPagination({
       const maxRows = Math.max(1, Math.floor(maxPageSize / columns));
       const responsivePageSize = columns * Math.min(visibleRows, maxRows);
       const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
-      const pageSize = mobilePageSize != null && isMobileViewport
+      const capacity = mobilePageSize != null && isMobileViewport
         ? Math.min(maxPageSize, Math.max(columns, mobilePageSize))
         : responsivePageSize;
+      const pageSize = allowedPageSizes?.length
+        ? allowedPageSizes.reduce((size, candidate) => candidate <= capacity ? Math.max(size, candidate) : size, Math.min(...allowedPageSizes))
+        : capacity;
 
       setLayout(current => (
         current.columns === columns && current.pageSize === pageSize && current.ready
@@ -97,7 +105,7 @@ export function useResponsiveGridPagination({
       observer.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  }, [gap, itemHeight, maxColumns, maxPageSize, minItemWidth, mobilePageSize, reservedBottomSpace]);
+  }, [allowedPageSizes, enabled, gap, itemHeight, maxColumns, maxPageSize, minItemWidth, mobilePageSize, reservedBottomSpace]);
 
   return {
     containerRef,

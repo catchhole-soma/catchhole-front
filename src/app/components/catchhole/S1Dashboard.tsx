@@ -349,6 +349,7 @@ export default function S1Dashboard() {
     setSearchParams(prev => {
       const next = switchSettingTabQueryState(prev, settingTab, id);
       next.set('tab', id);
+      next.delete('worldSize');
       if (openCategoryOverview) {
         next.delete('category');
         next.delete('q');

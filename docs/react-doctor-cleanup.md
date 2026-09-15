@@ -60,6 +60,18 @@ Playwright의 두 live API 테스트는 실행 환경이 없어 건너뛰었다.
 
 ## 재현
 
+### GH-194 세계관 목록·상세 모달 (2026-09-14)
+
+분류 선택 복귀 버튼, 대상 카드 목록, 상세 모달을 적용했다. 전체 진단은 `complete=true`, `skippedChecks=[]`, 오류 2건·경고 165건이다. 두 오류는 `requestPropertyDraftDiscard`에 넘긴 일반 이벤트 callback을 React state updater로 잘못 해석한 `no-impure-state-updater` 오탐이다. 기존 대상 선택 callback과 상세 닫기 callback이 해당한다. 이 함수는 callback을 직접 실행하거나 확인 상태의 객체 속성에 저장하고, 작성 취소가 확인된 이벤트에서 실행한다. 실제 React state updater에서는 URLSearchParams만 반환한다. 새 `WorldSettingDialog.tsx`에는 진단이 없다.
+
+타입 검사·lint·build·Knip과 세계관/공개 데모 브라우저 테스트 31개가 통과했다. 마지막 터치 영역 보완 뒤 영향받은 2개 시나리오도 다시 통과했다. 검색·분류·정렬·페이지·스크롤·초점 복원, Back/Forward·새로고침, 상세 선조회 없음, 빈 목록과 404 공유 링크, 320×568 편집·저장·취소 확인, 키보드 포커스 제한과 대비를 검증했다. 실제 로컬 API의 기존 작품에서 목록·상세를 읽어 확인했으며, 별도 live 생성·수정 테스트는 이번 UI 변경에서 실행하지 않았다. 기존 Fast Refresh 경고 2건, Vite 공용 JS chunk 안내와 Knip 설정 힌트는 유지된다.
+
+### GH-194 세계관 분류 이미지 카드 (2026-09-14)
+
+전체 React Doctor 진단의 `projects[].complete=true`, `skippedChecks=[]`를 확인했다. 오류 1건·경고 168건이며, 오류는 위에 기록된 `requestPropertyDraftDiscard` 내부 callback의 `setExpandedEvidence`에 대한 `no-impure-state-updater` 오탐이다. 참고용 종료 코드 0을 진단 없음으로 해석하지 않는다. lint의 기존 Fast Refresh 경고 2건과 build의 큰 공용 JS chunk 안내도 남아 있다.
+
+타입 검사·build·미사용 검사와 세계관/공개 데모의 관련 브라우저 테스트 30개가 통과했다. 분류 이미지 로딩, 텍스트 대비, 1440·390·320px 배치, 320×568에서 마지막 카드 접근, 키보드 포커스·Enter 선택 및 모션 감소를 확인했다.
+
 ### NVM-321 랜딩 영상 추가 확인 (2026-09-10)
 
 실사 영상 히어로와 반응형 재생을 추가한 뒤 전체 진단을 다시 실행했다. `complete: true`이며 오류 1건·경고 164건으로 기존 기준과 같다. 새 `landing-video/` 컴포넌트에는 진단이 없으며, 기존 `SLanding.tsx`의 순수 함수 위치 제안과 위에 기록한 오탐·유보 항목은 유지한다. 스크롤 프레임에서는 레이아웃 측정 뒤 스타일 쓰기를 모아서 실행한다.
@@ -79,3 +91,13 @@ npm run doctor -- --no-cache --json
 `doctor`는 공급망·원격 점수 검사를 생략한 전체 React 진단이며 참고용 종료 정책(`--blocking none`)을 사용한다. JSON의 `complete`, `skippedChecks`, `summary`를 함께 확인한다.
 
 React Doctor 0.9.13은 Git index에 남은 삭제 파일을 maintainability 단계에서 다시 읽어 ENOENT로 일부 검사를 건너뛸 수 있다. 이번 결과는 현재 존재하는 저장소 파일을 Git 메타데이터 없는 임시 폴더에 복사하고, 같은 node_modules·설정·명령으로 다시 검사한 것이다. 복사 manifest로 원본과 일치함을 확인했으며 실제 브랜치의 index·커밋을 변경하지 않았다. 삭제가 커밋된 체크아웃에서는 일반 재현 명령을 사용한다.
+
+### GH194 목록 밀도·반응형 페이징 후속 검증 (2026-09-14)
+
+세계관/데모 회귀 32개와 공용 반응형 훅의 캐릭터 목록 회귀 1개를 통과했다. 12·18·24개 전환, 이전 첫 항목 포함, 저장한 페이지 경계의 공유·새로고침 복원, 320px 조작 영역과 넘침을 확인했다. lint는 기존 경고 2개, 타입검사·빌드·Knip은 통과했다. React Doctor 전체 재검사는 `complete=true`, `skippedChecks=[]`, 오류 2 / 경고 165로 동일하며 새 `useWorldSettingPagination` 진단은 없다. 앞서 기록한 일반 콜백의 state updater 판정 오탐은 유지한다. 실제 로컬 Backend에서도 전체 161개 목록의 12개 단위 1→2페이지 조회를 확인했고, 이번 변경은 쓰기 API·LLM 호출을 추가하지 않는다.
+
+## 2026-09-15 GH194 도감 연결 검사
+
+- 타입 검사·ESLint·빌드·Knip 통과. ESLint는 기존 AppSidebar/AppContext의 fast refresh 경고 2개가 남는다.
+- React Doctor는 점수/차단 없이 전체 진단: 오류 2, 경고 167(성능43/유지보수74/접근성12/버그37/보안1). 오류 두 건은 `requestPropertyDraftDiscard`를 React updater로 오인한 기존 패턴이며 기능 흐름의 회귀 테스트를 유지한다. 도감 컴포넌트의 분기 수/이벤트용 상태 경고는 기록하고 규칙을 끄지 않는다.
+- 전체 Playwright 319 통과/환경 조건부 3 건너뜀. 실제 Java·PostgreSQL live 테스트는 별도 실행한다. 공용 도감 저장·해제·충돌·네트워크 오류·기본 이미지 대체·320px 동작을 검증한다.
