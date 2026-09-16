@@ -469,7 +469,7 @@ export type WorldSettingEvidenceSpanResponse = {
 };
 
 /**
- * 세계관 대상의 표시 이미지. 설정 내용·분석 버전과 독립적으로 저장합니다.
+ * 세계관·캐릭터의 표시 이미지. 설정 내용·분석 버전과 독립적으로 저장합니다.
  */
 export type WorldSettingImageResponse = {
     catalogId?: string | null;
@@ -482,7 +482,7 @@ export type WorldSettingImageResponse = {
      * 960×640 이미지 API 상대 경로
      */
     imageUrl?: string | null;
-    source?: 'DEFAULT' | 'MANUAL' | 'PRIVATE';
+    source?: 'DEFAULT' | 'MANUAL' | 'PRIVATE' | 'AUTO';
     /**
      * 이미지 선택의 독립 버전. 설정 수정 version과 다릅니다.
      */
@@ -4140,6 +4140,10 @@ export type CharacterDetailResponse = {
      * 상태 현재 설정
      */
     statuses?: Array<CharacterSettingResponse>;
+    /**
+     * 대표 이미지와 독립 선택 버전
+     */
+    image?: WorldSettingImageResponse;
 };
 
 /**
@@ -4318,6 +4322,22 @@ export type CommonResponseCharacterRestoreResponse = {
      * 응답 생성 시각
      */
     timestamp?: string;
+};
+
+/**
+ * 종족 도감·개인 이미지·공통 기본 중 하나를 선택. 모두 비어 있으면 확정 종족에 따른 자동 연결로 돌아갑니다.
+ */
+export type CharacterImageUpdateRequest = {
+    catalogId?: string | null;
+    /**
+     * 현재 이미지 선택 version
+     */
+    version: number;
+    privateImageId?: string | null;
+    /**
+     * 종족 정보와 관계없이 공통 기본 이미지 사용. 생략하면 false
+     */
+    useDefault?: boolean;
 };
 
 /**
@@ -5008,6 +5028,10 @@ export type CharacterSummaryResponse = {
      * 첫 등장 회차 번호
      */
     firstAppearanceEpisodeNo?: number | null;
+    /**
+     * 대표 이미지와 독립 선택 버전
+     */
+    image?: WorldSettingImageResponse;
 };
 
 /**
@@ -9188,6 +9212,46 @@ export type RestoreCharacterResponses = {
 };
 
 export type RestoreCharacterResponse = RestoreCharacterResponses[keyof RestoreCharacterResponses];
+
+export type UpdateCharacterImageData = {
+    body: CharacterImageUpdateRequest;
+    path: {
+        workId: string;
+        characterId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/characters/{characterId}/image';
+};
+
+export type UpdateCharacterImageErrors = {
+    /**
+     * 입력 또는 이미지 분류 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 접근 가능한 작품·대상·이미지가 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 이미지 선택 버전 충돌
+     */
+    409: CommonErrorResponse;
+};
+
+export type UpdateCharacterImageError = UpdateCharacterImageErrors[keyof UpdateCharacterImageErrors];
+
+export type UpdateCharacterImageResponses = {
+    /**
+     * 이미지 선택 저장 성공
+     */
+    200: CommonResponseWorldSettingImageResponse;
+};
+
+export type UpdateCharacterImageResponse = UpdateCharacterImageResponses[keyof UpdateCharacterImageResponses];
 
 export type UpdateProgressData = {
     body: WorkerAnalysisJobProgressRequest;

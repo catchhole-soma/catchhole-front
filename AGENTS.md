@@ -175,3 +175,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - GH194 대표 이미지는 `image` 응답을 목록 썸네일/상세에 표시하고 `modal=world-setting-image`의 도감 검색/수동 선택/기본 이미지 복귀를 제공한다. 이미지 version은 설정 version과 독립적으로 보관한다. 409에서는 선택을 보존하고 명시적 최신 조회 뒤 재시도하며 자동 덮어쓰기는 하지 않는다.
 - 공용 이미지 URL은 등록된 SHA의 `/api/v1/world-image-assets/*.webp`만 API base에 연결한다. 없거나 읽기 실패한 공용 이미지는 번들 분류 기본 이미지로 복귀한다. `/demo`는 도감 API를 호출하지 않으며 번들 이미지와 기존 읽기 전용 안내를 사용한다.
 - 개인 이미지(`source: PRIVATE`)는 `docs/private-world-images.md`의 CHI1 계약을 따른다. 원본·썸네일·파일명은 업로드 전에 브라우저에서 암호화하고 복구키는 서버/브라우저 영구 저장소/로그에 보내지 않는다. 인증 SDK로 암호문을 받아 복호화하며 Query cache에는 암호문만 둔다. 잠금/로그아웃 시 복호화 상태·Blob URL을 폐기한다. 잠긴 개인 이미지는 분류 기본 그림으로 바꾸지 않고 잠금 상태를 표시한다. 원고 보호 방식 변경은 보류 상태다.
+
+- 캐릭터 카드도 `image` 응답을 사용하며 177px 높이에 좌측 이미지·이름·첫 등장 회차만 표시한다. 종족 도감과 같은 작품의 개인 보관함을 재사용하고 외형 정보가 없으면 번들 공통 그림을 사용한다. `modal=char-detail&mode=image`에서 직접 선택·공통 기본 고정·자동 연결 복귀를 구분한다. 계약과 검증은 `docs/character-images.md`를 따른다.
