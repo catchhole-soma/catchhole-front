@@ -448430,15 +448430,15 @@
       "id": "r8anb",
       "x": 84140,
       "y": 31174,
-      "name": "Active / GH194 / World / Category Selection",
-      "context": "실제 브라우저 캡처. 구현: worldsetting/WorldSettingDatabase.tsx 및 WorldImagePicker.tsx. 공용 예시 이미지는 수동 선택하며 설정 추출은 변경하지 않음.",
+      "name": "Active / GH194 / World / SF Category Selection",
+      "context": "실제 Java/PostgreSQL 연결 화면. 장르별 초기/기본 이미지, 장르 추천·전체 도감 전환과 타 장르 수동 선택을 지원한다. 개인 이미지 우선순위는 유지한다. docs/world-image-themes.md 참고.",
       "clip": true,
       "width": 1440,
       "height": 1100,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "../docs/screens/gh194/world-categories-desktop.png",
+        "url": "../docs/screens/gh194/theme-sf-overview.png",
         "mode": "fit"
       },
       "layout": "vertical"
@@ -448484,15 +448484,15 @@
       "id": "eToFP",
       "x": 88700,
       "y": 31174,
-      "name": "Active / GH194 / World / Image Catalog",
-      "context": "실제 브라우저 캡처. 구현: worldsetting/WorldSettingDatabase.tsx 및 WorldImagePicker.tsx. 공용 예시 이미지는 수동 선택하며 설정 추출은 변경하지 않음.",
+      "name": "Active / GH194 / World / Genre Image Catalog",
+      "context": "실제 Java/PostgreSQL 연결 화면. 장르별 초기/기본 이미지, 장르 추천·전체 도감 전환과 타 장르 수동 선택을 지원한다. 개인 이미지 우선순위는 유지한다. docs/world-image-themes.md 참고.",
       "clip": true,
       "width": 1440,
-      "height": 900,
+      "height": 1100,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "../docs/screens/gh194/image-catalog-desktop-ready.png",
+        "url": "../docs/screens/gh194/theme-picker-desktop.png",
         "mode": "fit"
       },
       "layout": "vertical"
@@ -448553,15 +448553,15 @@
       "id": "F4dds",
       "x": 85550,
       "y": 32344,
-      "name": "Active / GH194 / World / Mobile / Image Catalog",
-      "context": "모바일 실제 브라우저 캡처. 도감 검색·선택·고정 저장 영역·초점 복귀 검증.",
+      "name": "Active / GH194 / World / Mobile / Genre Image Catalog",
+      "context": "실제 Java/PostgreSQL 연결 화면. 장르별 초기/기본 이미지, 장르 추천·전체 도감 전환과 타 장르 수동 선택을 지원한다. 개인 이미지 우선순위는 유지한다. docs/world-image-themes.md 참고.",
       "clip": true,
       "width": 320,
-      "height": 740,
+      "height": 568,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "../docs/screens/gh194/image-picker-mobile.png",
+        "url": "../docs/screens/gh194/theme-picker-mobile.png",
         "mode": "fit"
       }
     }

@@ -3115,6 +3115,7 @@ test(scopeUnresolved
 
 test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초안을 유지한다', async ({ page }) => {
   const imagePath = `/api/v1/world-image-assets/${'a'.repeat(64)}.webp`;
+  const themeFallback = `/api/v1/world-image-assets/${'b'.repeat(64)}.webp`;
   let catalogFailed = true;
   let saveFailed = true;
   let selected = false;
@@ -3127,7 +3128,10 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
     if (path.endsWith('/auth/me')) return success(route, member);
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '도감 오류 확인', genre: '판타지' }]);
     if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '도감 오류 확인', genre: '판타지' });
-    if (path === imagePath) return route.fulfill({ status: 404 });
+    if (path === `/api/v1/works/${workId}/world-image-theme`) return success(route, {
+      theme: 'fantasy', defaults: { RACE: { thumbnailUrl: themeFallback } }, overview: {},
+    });
+    if (path === imagePath || path === themeFallback) return route.fulfill({ status: 404 });
     if (path === base) return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([item]) });
     if (path === `${base}/${worldSettingId}`) return success(route, { ...item, version: 0, properties: [{ settingName: '성격', value: '경계한다' }] });
     if (path === '/api/v1/world-image-catalog') {
@@ -3146,7 +3150,7 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
   await authenticate(page);
   await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE`);
   const card = page.getByRole('button', { name: '고블린 세계관 대상 보기' });
-  await expect(card.locator('img')).toHaveAttribute('src', /world-categories\/race.webp/);
+  await expect(card.locator('img')).toHaveAttribute('src', /world-defaults\/race.webp/);
   await card.click();
   await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
   const picker = page.getByRole('dialog', { name: '대표 이미지 선택', exact: true });

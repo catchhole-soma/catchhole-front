@@ -183,3 +183,7 @@
 Workflow: 분류 선택 → 대상 목록 → 상세 모달 → 이미지 도감 → 저장 후 상세 → 닫기 후 원래 목록. 기존 설정 입력/원문 근거 흐름과 `/demo`의 읽는 위치를 유지한다. 이미지 도감의 저장 오류와 충돌은 초안을 유지한다. 프롬프트·자동 매칭은 보류다.
 
 캡처 원본은 `docs/screens/gh194/`에 커밋한다. 실제 API/DB 연결 캡처는 `image-list-desktop.png`, `image-detail-desktop.png`, `image-catalog-desktop-ready.png`, `image-picker-mobile.png` 등이다. 이미지 로딩 완료 후 캡처했으며, Pencil에서도 렌더·영역 경계를 확인했다. 테스트 화면은 데스크톱 1440×900, 모바일 320×740이며 분류 선택은 전체 페이지 캡처다.
+
+## 2026-09-16 GH194 장르 이미지 연결
+
+실제 Java/PostgreSQL 연결 캡처로 `r8anb`(SF 초기 8칸), `eToFP`(전체 도감에서 타 장르 객잔 선택), `F4dds`(320×568 스크롤·저장 영역)를 동기화했다. 테마 구성과 선택 보존 계약은 `docs/world-image-themes.md`를 따른다.

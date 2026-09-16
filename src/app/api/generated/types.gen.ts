@@ -4659,6 +4659,54 @@ export type WorldSettingCandidateListResponse = {
 /**
  * 공통 API 응답 Envelope
  */
+export type CommonResponseWorldImageThemeResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorldImageThemeResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 작품 장르에 맞는 초기 분류 8칸과 기본 이미지 7칸
+ */
+export type WorldImageThemeResponse = {
+    /**
+     * 여러 장르가 공유할 수 있는 테마 ID
+     */
+    theme?: string;
+    /**
+     * 분류 코드 및 ALL별 초기 이미지
+     */
+    overview?: {
+        [key: string]: WorldSettingImageResponse;
+    };
+    /**
+     * 분류 코드별 기본 이미지
+     */
+    defaults?: {
+        [key: string]: WorldSettingImageResponse;
+    };
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
 export type CommonResponseSettingCandidateListResponse = {
     /**
      * 요청 처리 성공 여부
@@ -9295,6 +9343,14 @@ export type GetWorldImageCatalogData = {
     body?: never;
     path?: never;
     query: {
+        /**
+         * 장르 추천을 받을 작품 ID
+         */
+        workId?: string;
+        /**
+         * true는 작품 장르 추천, false는 같은 분류 전체 도감
+         */
+        recommended?: boolean;
         category: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
         q?: string;
         page?: number;
@@ -9459,6 +9515,37 @@ export type GetWorldSettingCandidateResponses = {
 };
 
 export type GetWorldSettingCandidateResponse = GetWorldSettingCandidateResponses[keyof GetWorldSettingCandidateResponses];
+
+export type GetWorldImageThemeData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/world-image-theme';
+};
+
+export type GetWorldImageThemeErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 접근 가능한 작품 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetWorldImageThemeError = GetWorldImageThemeErrors[keyof GetWorldImageThemeErrors];
+
+export type GetWorldImageThemeResponses = {
+    /**
+     * 이미지 구성 조회 성공
+     */
+    200: CommonResponseWorldImageThemeResponse;
+};
+
+export type GetWorldImageThemeResponse = GetWorldImageThemeResponses[keyof GetWorldImageThemeResponses];
 
 export type GetSettingCandidatesData = {
     body?: never;

@@ -46,13 +46,14 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
   const [expectedVersion, setExpectedVersion] = useState(image?.version ?? 0);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [recommended, setRecommended] = useState(!character);
   const [reloadPending, setReloadPending] = useState(false);
   const [reloadError, setReloadError] = useState(false);
   const [selection, setSelection] = useState<WorldImageCatalogResponse | null>(() => image?.source === 'MANUAL'
     ? { id: image.catalogId ?? undefined, name: image.name ?? undefined, thumbnailUrl: image.thumbnailUrl ?? undefined, imageUrl: image.imageUrl ?? undefined }
     : null);
   const catalog = useQuery({
-    ...getWorldImageCatalogOptions({ query: { category, q: query, page, size: 18 } }),
+    ...getWorldImageCatalogOptions({ query: { category, q: query, page, size: 18, ...(character ? {} : { workId, recommended }) } }),
     enabled: tab === 'catalog',
     retry: shouldRetryQuery,
     staleTime: 5 * 60_000,
@@ -77,6 +78,12 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
         {(vaultId, key) => <PrivateWorldImagePicker workId={workId} vaultId={vaultId} vaultKey={key} selectedId={privateId}
           pending={pending} onBusy={setPrivateBusy} onSelect={image => { setPrivateId(image?.id); setSelection(null); setUseDefault(false); }} />}
       </PrivateImageVaultGate> : <>
+      {!character && <div className="private-image-tabs" role="group" aria-label="도감 범위">
+        <button type="button" className="database-button" aria-pressed={recommended} disabled={pending}
+          onClick={() => { setRecommended(true); setPage(0); }}>장르 추천</button>
+        <button type="button" className="database-button" aria-pressed={!recommended} disabled={pending}
+          onClick={() => { setRecommended(false); setPage(0); }}>전체 도감</button>
+      </div>}
       <form className="world-image-picker__search" onSubmit={event => { event.preventDefault(); setQuery(search.trim()); setPage(0); }}>
         <Search size={17} aria-hidden="true" />
         <input aria-label="대표 이미지 이름·별칭 검색" value={search} maxLength={100} placeholder="이름·별칭으로 찾기"
@@ -104,7 +111,9 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
                 <span>{entry.name}{selection?.id === entry.id && <Check size={15} aria-hidden="true" />}</span>
               </button>)}
             </div>
-            {!entries?.content?.length && <p className="world-image-picker__empty">검색 결과가 없어요. 다른 별칭을 입력하거나 기본 이미지를 사용해 주세요.</p>}
+            {!entries?.content?.length && <p className="world-image-picker__empty">{recommended ? '이 장르의 추천 이미지가 없어요. 전체 도감에서 찾아보세요.' : '검색 결과가 없어요. 다른 별칭을 입력하거나 기본 이미지를 사용해 주세요.'}
+              {recommended && <button type="button" className="database-button" onClick={() => { setRecommended(false); setPage(0); }}>전체 도감에서 찾기</button>}
+            </p>}
             <PageNavigation page={page} totalPages={entries?.totalPages ?? 0} disabled={catalog.isFetching || pending}
               onPageChange={setPage} />
           </>}

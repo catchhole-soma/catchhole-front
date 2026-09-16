@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { WorldSubjectImage } from './WorldSubjectImage';
-import { WORLD_CATEGORY_IMAGES as CATEGORY_IMAGES } from './worldCategoryImages';
+import { WorldImageThemeProvider } from './WorldImageThemeProvider';
+import { useWorldImageThemeContext } from './useWorldImageTheme';
 import { WorldImagePicker } from './WorldImagePicker';
 import {
   addWorldSettingPropertyMutation,
@@ -218,6 +219,7 @@ function CategoryOverview({
 }: {
   onSelect: (category: WorldCategory | 'ALL') => void;
 }) {
+  const theme = useWorldImageThemeContext();
   return (
     <section className="world-setting-category-overview" aria-labelledby="world-setting-category-overview-title">
       <div className="world-setting-category-overview__heading">
@@ -239,14 +241,11 @@ function CategoryOverview({
               onClick={() => onSelect(option.value ?? 'ALL')}
             >
               <span className="world-setting-category-overview__image-wrap">
-                <img
+                <WorldSubjectImage
                   className="world-setting-category-overview__image"
-                  src={CATEGORY_IMAGES[option.value ?? 'ALL']}
-                  alt=""
-                  width={768}
-                  height={512}
-                  loading={index < 4 ? 'eager' : 'lazy'}
-                  decoding="async"
+                  category={option.value ?? 'ALL'}
+                  path={theme?.overview?.[option.value ?? 'ALL']?.imageUrl}
+                  eager={index < 4}
                 />
               </span>
               <span className="world-setting-category-overview__card-copy">
@@ -950,7 +949,15 @@ function EditIdentityModal({
   );
 }
 
-export function WorldSettingDatabase({
+export function WorldSettingDatabase(props: {
+  workId: string; enabled: boolean; onAnalyze: () => void; fixture?: WorldSettingDatabaseFixture;
+}) {
+  return <WorldImageThemeProvider workId={props.workId} enabled={props.enabled && !props.fixture}>
+    <WorldSettingDatabaseContent {...props} />
+  </WorldImageThemeProvider>;
+}
+
+function WorldSettingDatabaseContent({
   workId,
   enabled,
   onAnalyze,

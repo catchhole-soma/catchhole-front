@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { AlertCircle, Loader2, Pencil, X } from 'lucide-react';
 import {
   getMyWorksQueryKey,
+  getWorldImageThemeQueryKey,
+  getWorldSettingsQueryKey,
   updateWorkMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
 import { NetworkError, toApiError } from '../../lib/api-errors';
@@ -75,7 +77,16 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
         },
       });
       const updatedWork: Work | null = response.data ? toWork(response.data) : null;
-      await queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getWorldImageThemeQueryKey({ path: { workId: work.id } }) }),
+        queryClient.invalidateQueries({ predicate: query => {
+          const key = query.queryKey[0] as { _id?: string; path?: { workId?: string }; query?: { workId?: string } } | undefined;
+          return (key?._id === 'getWorldImageCatalog' && key.query?.workId === work.id)
+            || (key?._id === 'getWorldSetting' && key.path?.workId === work.id);
+        } }),
+        queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId: work.id } }) }),
+      ]);
 
       if (!updatedWork) throw new Error('작품 수정 응답에 필수 정보가 없습니다.');
       onUpdated(updatedWork);
