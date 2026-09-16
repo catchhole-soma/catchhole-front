@@ -2096,7 +2096,10 @@ test('auth/me가 세션 만료를 확정하면 동시에 시작된 refresh가 �
   await expect(firstRequest).resolves.toBe(401);
   releaseConcurrentRefresh?.();
   await expect(secondRequest).resolves.toBe(401);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+  // 인증 만료의 전체 페이지 이동이 진행 중이면 새 문맥에서 동일한 토큰 검증을 재시도한다.
+  await expect(async () => {
+    expect(await page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+  }).toPass({ timeout: 5000 });
 });
 
 test('지연된 auth/me 401이 다른 탭에서 교체한 새 토큰을 제거하지 않는다', async ({ page, context }) => {
