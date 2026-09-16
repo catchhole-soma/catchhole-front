@@ -142,7 +142,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
 });
 
-test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
+test('사이드바 사용량 없이 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
   let extensionRequestBody: { feedback: string; context: string } | null = null;
   await page.route('**/api/v1/**', route => {
     const request = route.request();
@@ -220,8 +220,8 @@ test('남은 사용량과 한도 소진 안내를 공통 API 오류에서 표시
   await page.evaluate(() => localStorage.setItem('accessToken', 'quota-token'));
   await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
-  await expect(page.getByText('남은 사용량', { exact: true })).toBeVisible();
-  await expect(page.getByText('100.0%', { exact: true })).toBeVisible();
+  await expect(page.getByText('남은 사용량', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('100.0%', { exact: true })).toHaveCount(0);
 
   await page.evaluate(async () => {
     const modulePath = '/src/app/lib/auth-fetch.ts';
