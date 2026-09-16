@@ -2650,7 +2650,7 @@ ${evidenceEpilogue}`;
 
   const characterCard = page.getByRole('button', { name: /수아/ });
   await expect(characterCard).toContainText('첫 등장');
-  await expect(characterCard).toContainText('—');
+  await expect(characterCard).toContainText('첫 등장 회차 미확인');
 
   failCharacterListRefetch = true;
   await page.evaluate(() => {

@@ -277,7 +277,8 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
   await expect(page.locator('.character-card').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(page.locator('.character-card').first()).toHaveCSS('border-radius', '16px');
   await expect(page.locator('.character-card').first().locator('.character-avatar')).toHaveCount(0);
-  await expect(page.locator('.character-card').first().locator('.character-card__eyebrow')).toHaveText('CHARACTER');
+  await expect(page.locator('.character-card').first().locator('.character-card__eyebrow')).toHaveCount(0);
+  await expect(page.locator('.character-card').first().locator('.character-card__image')).toBeVisible();
   await page.getByRole('button', { name: /아리아/ }).click();
   await expect(page.getByText('현재 나이', { exact: true })).toBeVisible();
   await expect(page.locator('.character-detail-modal')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
