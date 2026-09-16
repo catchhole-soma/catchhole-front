@@ -2439,6 +2439,52 @@ export type CommonResponseAiTokenExtensionRequestResponse = {
 };
 
 /**
+ * 작품별 미처리 이미지 보정. apply=true일 때만 저장하고, 기본은 예상 결과 조회입니다.
+ */
+export type WorldImageBackfillRequest = {
+    workId: string;
+    kind: 'CHARACTER' | 'WORLD_SETTING';
+    limit?: number;
+    apply?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorldImageBackfillResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorldImageBackfillResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 한 묶음의 매칭 예상/저장 결과. 기본 이미지도 처리 완료로 기록합니다.
+ */
+export type WorldImageBackfillResponse = {
+    processed?: number;
+    matched?: number;
+    defaults?: number;
+    applied?: boolean;
+};
+
+/**
  * 추가 AI 사용량 요청 거절
  */
 export type AiTokenExtensionRejectRequest = {
@@ -3657,7 +3703,7 @@ export type WorldSettingPropertyUpdateRequest = {
 };
 
 /**
- * 공용 catalogId 또는 개인 privateImageId 중 하나를 선택. 둘 다 null이면 기본 이미지로 되돌립니다.
+ * 공용 catalogId 또는 개인 privateImageId 중 하나를 선택. 둘 다 null이면 기본 이미지로 되돌립니다. useAutomatic=true이면 현재 이름으로 자동 연결을 다시 저장합니다.
  */
 export type WorldSettingImageUpdateRequest = {
     catalogId?: string | null;
@@ -3666,6 +3712,10 @@ export type WorldSettingImageUpdateRequest = {
      */
     version: number;
     privateImageId?: string | null;
+    /**
+     * 현재 이름·분류·장르로 자동 연결 복귀. 다른 이미지 선택과 함께 보낼 수 없습니다.
+     */
+    useAutomatic?: boolean;
 };
 
 /**
@@ -7855,6 +7905,47 @@ export type CreateMyAiTokenExtensionRequestResponses = {
 };
 
 export type CreateMyAiTokenExtensionRequestResponse = CreateMyAiTokenExtensionRequestResponses[keyof CreateMyAiTokenExtensionRequestResponses];
+
+export type BackfillSubjectImagesData = {
+    body: WorldImageBackfillRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/world-images/backfill';
+};
+
+export type BackfillSubjectImagesErrors = {
+    /**
+     * 입력 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 운영자 권한 필요
+     */
+    403: CommonErrorResponse;
+    /**
+     * 작품 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 활성 작품 아님
+     */
+    409: CommonErrorResponse;
+};
+
+export type BackfillSubjectImagesError = BackfillSubjectImagesErrors[keyof BackfillSubjectImagesErrors];
+
+export type BackfillSubjectImagesResponses = {
+    /**
+     * 예상 결과 또는 보정 완료
+     */
+    200: CommonResponseWorldImageBackfillResponse;
+};
+
+export type BackfillSubjectImagesResponse = BackfillSubjectImagesResponses[keyof BackfillSubjectImagesResponses];
 
 export type RejectAiTokenExtensionRequestData = {
     body: AiTokenExtensionRejectRequest;

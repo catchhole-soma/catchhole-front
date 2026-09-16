@@ -1074,8 +1074,8 @@
 .database-v2 .character-detail-image { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
 .database-v2 .character-detail-image__preview { width: 108px; height: 108px; flex: 0 0 108px; object-fit: cover; border-radius: 12px; overflow: hidden; }
 .database-v2 .character-detail-image p { font-size: 12px; color: var(--ch-text-muted); margin: 7px 0 12px; }
-.database-v2 .world-image-picker__automatic { flex-wrap: wrap; justify-content: flex-start; text-align: left; }
-.database-v2 .world-image-picker__automatic small { width: 100%; font-size: 12px; font-weight: 400; }
+.theme-v2 .world-image-picker__automatic { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 6px; height: auto; text-align: left; white-space: normal; }
+.theme-v2 .world-image-picker__automatic small { display: block; flex-basis: 100%; font-size: 12px; font-weight: 400; line-height: 1.5; }
 @media (max-width: 480px) {
   .database-v2 .character-card { gap: 12px; }
   .database-v2 .character-card .character-card__image { width: 88px; flex-basis: 88px; }

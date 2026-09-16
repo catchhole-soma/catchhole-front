@@ -23,7 +23,7 @@ export function WorldImagePicker({ workId, detail, ...callbacks }: PickerCallbac
 }) {
   const mutation = useMutation(updateWorldSettingImageMutation());
   return <SubjectImagePicker {...callbacks} workId={workId} name={detail.subjectName ?? '대상'} category={detail.category ?? 'RACE'} image={detail.image}
-    saveImage={({ catalogId, privateImageId, version }) => mutation.mutateAsync({ path: { workId, worldSettingId: detail.id! }, body: { catalogId, privateImageId, version } })} />;
+    saveImage={({ catalogId, privateImageId, version, useDefault }) => mutation.mutateAsync({ path: { workId, worldSettingId: detail.id! }, body: { catalogId, privateImageId, version, useAutomatic: !useDefault && !catalogId && !privateImageId ? true : undefined } })} />;
 }
 
 export function CharacterImagePicker({ workId, detail, ...callbacks }: PickerCallbacks & {
@@ -39,7 +39,7 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
   image?: WorldSettingImageResponse; character?: boolean; saveImage: (body: CharacterImageUpdateRequest) => Promise<unknown>;
 }) {
   const [tab, setTab] = useState<'catalog' | 'private'>(image?.source === 'PRIVATE' ? 'private' : 'catalog');
-  const [useDefault, setUseDefault] = useState(character && image?.source === 'DEFAULT');
+  const [useDefault, setUseDefault] = useState(image?.source === 'DEFAULT');
   const [privateBusy, setPrivateBusy] = useState(false);
   const [privateId, setPrivateId] = useState<string | undefined>(image?.privateImageId ?? undefined);
   const [search, setSearch] = useState('');
@@ -66,7 +66,7 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
   const conflict = error?.status === 409;
   const pending = mutation.isPending || reloadPending || privateBusy;
   const entries = catalog.data?.data;
-  const changed = useDefault !== (character && image?.source === 'DEFAULT') || (privateId ?? null) !== (image?.privateImageId ?? null) || (selection?.id ?? null) !== (image?.source === 'MANUAL' ? image.catalogId : null);
+  const changed = useDefault !== (image?.source === 'DEFAULT') || (privateId ?? null) !== (image?.privateImageId ?? null) || (selection?.id ?? null) !== (image?.source === 'MANUAL' ? image.catalogId : null);
   return <WorldSettingDialog title="대표 이미지 선택" description={`${name}에 사용할 이미지를 골라 주세요. 공용 그림은 예시이며, 작품의 설정 내용은 바뀌지 않아요.`}
     className="world-image-picker" onClose={onClose} pending={pending}>
     <div className="world-image-picker__body">
@@ -90,16 +90,16 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
           onChange={event => setSearch(event.target.value)} />
         <button className="database-button" type="submit">검색</button>
       </form>
-      <button type="button" className="world-image-picker__default" aria-pressed={!selection && !privateId && (!character || useDefault)} onClick={() => { setSelection(null); setPrivateId(undefined); setUseDefault(character); }} disabled={pending}>
+      <button type="button" className="world-image-picker__default" aria-pressed={!selection && !privateId && useDefault} onClick={() => { setSelection(null); setPrivateId(undefined); setUseDefault(true); }} disabled={pending}>
         <WorldSubjectImage category={category} fallbackSrc={character ? CHARACTER_DEFAULT_IMAGE : undefined} />
         <span><strong>{character ? '공통 기본 이미지' : '분류 기본 이미지'}</strong><small>아직 어울리는 이미지가 없다면</small></span>
-        {!selection && !privateId && (!character || useDefault) && <Check size={18} aria-hidden="true" />}
+        {!selection && !privateId && useDefault && <Check size={18} aria-hidden="true" />}
       </button>
-      {character && <button type="button" className="world-image-picker__automatic database-button" aria-pressed={!selection && !privateId && !useDefault}
+      <button type="button" className="world-image-picker__automatic database-button" aria-pressed={!selection && !privateId && !useDefault}
         disabled={pending} onClick={() => { setSelection(null); setPrivateId(undefined); setUseDefault(false); }}>
-        {!selection && !privateId && !useDefault && <Check size={16} aria-hidden="true" />}종족 정보에 따라 자동 선택
-        <small>명확한 종족 정보가 없으면 공통 기본 이미지를 사용해요.</small>
-      </button>}
+        {!selection && !privateId && !useDefault && <Check size={16} aria-hidden="true" />}{character ? '종족 정보에 따라 자동 선택' : '대상 이름에 따라 자동 선택'}
+        <small>{character ? '명확한 종족 정보가 없으면 공통 기본 이미지를 사용해요.' : '이름과 분류에 맞는 이미지가 없으면 기본 이미지를 사용해요.'}</small>
+      </button>
       {catalog.isPending ? <p role="status"><Loader2 size={16} className="spin" /> 이미지를 불러오고 있어요.</p>
         : catalog.isError ? <div role="alert" className="world-image-picker__error"><p>도감을 불러오지 못했어요.</p>
           <button className="database-button" onClick={() => void catalog.refetch()}>다시 시도</button></div>
@@ -119,7 +119,7 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
           </>}
       </>}
       <div className="world-image-picker__footer">
-        <div className="world-image-picker__selection" aria-live="polite"><ImagePlus size={16} aria-hidden="true" />{privateId ? '내 이미지' : selection?.name ?? (character ? useDefault ? '공통 기본 이미지' : '종족 정보에 따라 자동 선택' : '분류 기본 이미지')} 선택</div>
+        <div className="world-image-picker__selection" aria-live="polite"><ImagePlus size={16} aria-hidden="true" />{privateId ? '내 이미지' : selection?.name ?? (useDefault ? character ? '공통 기본 이미지' : '분류 기본 이미지' : character ? '종족 정보에 따라 자동 선택' : '대상 이름에 따라 자동 선택')} 선택</div>
         {mutation.isError && <div role="alert" className="world-image-picker__error">
           <p>{error?.message ?? '이미지를 저장하지 못했어요. 선택은 유지되어 있으니 다시 시도해 주세요.'}</p>
           {conflict && <button className="database-button" disabled={pending} onClick={async () => {

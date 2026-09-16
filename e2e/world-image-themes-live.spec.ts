@@ -19,7 +19,7 @@ test('장르별 초기·기본 그림과 공용 추천·전체 도감 선택을 
   const workUrl = `${api}/api/v1/works/${workId}`;
   try {
     const createdSetting = await request.post(`${workUrl}/world-settings`, { headers, data: {
-      category: 'LOCATION', subjectName: '검증용 숲', settingName: '특징', settingValue: '내용은 바뀌지 않는다.',
+      category: 'LOCATION', subjectName: '검증용 장소', settingName: '특징', settingValue: '내용은 바뀌지 않는다.',
     } });
     expect(createdSetting.ok()).toBeTruthy();
     const settingId = (await createdSetting.json()).data.id;
@@ -41,7 +41,7 @@ test('장르별 초기·기본 그림과 공용 추천·전체 도감 선택을 
       if (themes.has(theme)) expect(result.overview.ALL.imageUrl).toBe(themes.get(theme));
       themes.set(theme, result.overview.ALL.imageUrl);
       const detail = (await (await request.get(detailUrl, { headers })).json()).data;
-      expect(detail.image).toMatchObject({ source: 'DEFAULT', version: 0, imageUrl: result.defaults.LOCATION.imageUrl });
+      expect(detail.image).toMatchObject({ source: 'AUTO', version: 0, imageUrl: result.defaults.LOCATION.imageUrl });
       expect(detail.version).toBe(0);
       const catalog = await request.get(`${api}/api/v1/world-image-catalog`, {
         headers, params: { workId, recommended: true, category: 'LOCATION', q: '숲' },
@@ -69,7 +69,7 @@ test('장르별 초기·기본 그림과 공용 추천·전체 도감 선택을 
     await overview.scrollIntoViewIfNeeded();
     await page.screenshot({ path: 'docs/screens/gh194/theme-sf-overview.png', animations: 'disabled' });
     await overview.getByRole('button', { name: '장소 설정 보기', exact: true }).click();
-    const card = page.getByRole('button', { name: '검증용 숲 세계관 대상 보기' });
+    const card = page.getByRole('button', { name: '검증용 장소 세계관 대상 보기' });
     await expect(card.locator('img')).toHaveAttribute('src', `${api}${sf.defaults.LOCATION.thumbnailUrl}`);
     await card.click();
     await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
@@ -117,6 +117,19 @@ test('장르별 초기·기본 그림과 공용 추천·전체 도감 선택을 
     const reset = (await (await request.get(detailUrl, { headers })).json()).data;
     const sports = (await (await request.get(`${workUrl}/world-image-theme`, { headers })).json()).data;
     expect(reset.image).toMatchObject({ source: 'DEFAULT', imageUrl: sports.defaults.LOCATION.imageUrl, version: 2 });
+    await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
+    await picker.getByRole('button', { name: /대상 이름에 따라 자동 선택/ }).click();
+    await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+    await expect(picker).toHaveCount(0);
+    const automatic = (await (await request.get(detailUrl, { headers })).json()).data;
+    expect(automatic.image.source).toBe('AUTO');
+    const renamed = await request.patch(`${detailUrl}/identity`, { headers, data: {
+      category: 'LOCATION', subjectName: '고블린 숲', version: automatic.version,
+    } });
+    expect(renamed.ok()).toBeTruthy();
+    const persisted = (await renamed.json()).data;
+    expect(persisted.image).toMatchObject({ source: 'AUTO', catalogId: 'location-forest' });
+    expect((await (await request.get(detailUrl, { headers })).json()).data.image).toEqual(persisted.image);
   } finally {
     await purgeWorkAndWait(request, api!, headers.Authorization, workId);
   }

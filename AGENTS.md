@@ -181,3 +181,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - 캐릭터 카드도 `image` 응답을 사용하며 177px 높이에 좌측 이미지·이름·첫 등장 회차만 표시한다. 종족 도감과 같은 작품의 개인 보관함을 재사용하고 외형 정보가 없으면 번들 공통 그림을 사용한다. `modal=char-detail&mode=image`에서 직접 선택·공통 기본 고정·자동 연결 복귀를 구분한다. 계약과 검증은 `docs/character-images.md`를 따른다.
 
 - GH194 장르별 초기 8장·기본 7장은 작품 소유권을 검증한 `world-image-theme` API로 조회한다. 추천은 `workId`/`recommended`로 필터링하고 전체 도감에서는 타 장르도 선택할 수 있다. 로맨스·코미디·일상·기타는 modern-common을 공유한다. 작품 수정은 관련 Query를 무효화하되 수동/개인 선택을 재저장하지 않는다. 자세한 계약은 `docs/world-image-themes.md`를 따른다.
+
+- GH194 V63부터 캐릭터·세계관 자동 이미지는 확정/수정 시 Backend에 저장된다. FE는 image 응답만 사용한다. 세계관 자동 복귀는 useAutomatic=true, 기본 고정은 기존 null 선택 요청이며 직접 선택과 자동 상태를 구분한다.
