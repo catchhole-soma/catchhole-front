@@ -36,13 +36,13 @@ export async function createPrivateImageVault() {
 }
 export async function openPrivateImageVault(id: string, keyCheck: string, recoveryKey: string) {
   const value = recoveryKey.trim();
-  if (!/^CHI1-[A-Za-z0-9_-]{43}$/.test(value)) throw new Error('복구키 형식을 확인해 주세요.');
+  if (!/^CHI1-[A-Za-z0-9_-]{43}$/.test(value)) throw new Error('보관용 코드가 빠짐없이 입력됐는지 확인해 주세요.');
   const raw = unbase64(value.slice(5).replace(/-/g, '+').replace(/_/g, '/') + '=');
   const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
   raw.fill(0);
   try {
     if (decoder.decode(await open(key, unbase64(keyCheck), aad(id, '', 'check'))) !== CHECK) throw new Error();
-  } catch { throw new Error('이 계정의 복구키가 아니거나 보관함을 열 수 없어요.'); }
+  } catch { throw new Error('이 보관함의 코드가 아니에요. 처음 저장한 코드를 확인해 주세요.'); }
   return key;
 }
 function imageMime(bytes: Uint8Array): string {

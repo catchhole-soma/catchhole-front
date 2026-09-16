@@ -29,7 +29,10 @@ export function PrivateImageVaultGate({ children, onBusy, pending }: {
   }
   function endAction() { setBusy(false); onBusy(false); }
   function reportError(cause: unknown) {
-    setError(toApiError(cause)?.message ?? (cause instanceof Error ? cause.message : '보관함을 열지 못했어요. 다시 시도해 주세요.'));
+    const apiError = toApiError(cause);
+    setError(apiError?.code === 'PRIVATE_IMAGE_VAULT_CONFLICT'
+      ? '이미 준비된 보관함이 있어요. 처음 저장한 코드로 열어 주세요.'
+      : apiError?.message ?? (cause instanceof Error ? cause.message : '보관함을 열지 못했어요. 다시 시도해 주세요.'));
   }
   async function handleUnlock() {
     if (!current?.id || !current.keyCheck) return;
@@ -73,28 +76,30 @@ export function PrivateImageVaultGate({ children, onBusy, pending }: {
   </>;
   return <section className="private-image-vault" aria-label="내 이미지 잠금 설정">
     <LockKeyhole size={24} aria-hidden="true" />
-    <h3>{current ? '내 이미지 잠금 풀기' : '나만 여는 이미지 보관함'}</h3>
-    <p>이미지와 파일명을 이 브라우저에서 암호화해 저장해요. 복구키는 서버에 보내지 않아요.</p>
+    <h3>{current ? '내 이미지 열기' : draft ? '내 이미지를 위한 준비' : '작가님만의 이미지 보관함'}</h3>
+    <p>{current ? '처음 저장한 보관용 코드를 입력하면 내 이미지를 볼 수 있어요.'
+      : draft ? '이미지를 다시 열 때 필요한 나만의 코드예요. 아래 버튼으로 저장해 주세요.'
+        : '다른 사용자에게 공개되지 않아요. 이미지는 잠긴 상태로 보관해요.'}</p>
     {current?.id && current.keyCheck ? <form onSubmit={event => {
       event.preventDefault(); void handleUnlock();
     }}>
-      <label htmlFor="private-image-recovery">복구키</label>
+      <label htmlFor="private-image-recovery">보관용 코드</label>
       <input id="private-image-recovery" type="password" autoComplete="off" spellCheck={false} value={recoveryKey}
-        onChange={event => setRecoveryKey(event.target.value)} placeholder="CHI1-로 시작하는 복구키" disabled={busy} />
+        onChange={event => setRecoveryKey(event.target.value)} placeholder="저장해 둔 코드를 붙여 넣어 주세요" disabled={busy} />
       <button type="submit" className="database-button is-primary" disabled={busy || !recoveryKey.trim()}>{busy ? '여는 중…' : '잠금 풀기'}</button>
-    </form> : !draft ? <button className="database-button is-primary" disabled={busy} onClick={() => void handlePrepare()}>보관함 만들기</button> : <>
-      <p><strong>복구키를 안전한 곳에 보관해 주세요.</strong> 키를 잃으면 저희도 이미지를 복원할 수 없어요. 로그인 비밀번호와는 달라요.</p>
-      <label htmlFor="private-image-new-key">새 복구키</label>
+    </form> : !draft ? <button className="database-button is-primary" disabled={busy} onClick={() => void handlePrepare()}>내 이미지 시작하기</button> : <>
+      <p><strong>코드를 안전한 곳에 보관해 주세요.</strong> 코드를 잃으면 이미지를 다시 열 수 없고, 캐치홀에서도 찾아드릴 수 없어요.</p>
+      <label htmlFor="private-image-new-key">내 보관용 코드</label>
       <input id="private-image-new-key" className="private-image-key" readOnly value={draft.recoveryKey} onFocus={event => event.target.select()} />
       <button className="database-button" onClick={() => {
-        const url = URL.createObjectURL(new Blob([`Catchhole 이미지 복구키\n${draft.recoveryKey}\n\n타인과 공유하지 마세요.\n`], { type: 'text/plain' }));
-        const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'catchhole-image-recovery-key.txt'; anchor.click();
+        const url = URL.createObjectURL(new Blob([`캐치홀 이미지 보관용 코드\n${draft.recoveryKey}\n\n내 이미지를 다시 열 때 필요한 코드예요. 다른 사람과 공유하지 마세요.\n`], { type: 'text/plain' }));
+        const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'catchhole-image-code.txt'; anchor.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }}>복구키 파일 저장</button>
-      <label className="private-image-confirm"><input type="checkbox" checked={saved} onChange={event => setSaved(event.target.checked)} />복구키를 안전한 곳에 저장했어요.</label>
+      }}>코드 저장하기</button>
+      <label className="private-image-confirm"><input type="checkbox" checked={saved} onChange={event => setSaved(event.target.checked)} />코드를 안전한 곳에 저장했어요.</label>
       <button className="database-button is-primary" disabled={!saved || busy} onClick={() => void handleCreate()}>{busy ? '만드는 중…' : '보관함 사용하기'}</button>
     </>}
-    <p className="private-image-vault__hint">새로고침하거나 다시 로그인하면 복구키를 다시 입력해 주세요.</p>
+    {(current || draft) && <p className="private-image-vault__hint">새로고침하거나 다시 로그인할 때 이 코드로 이미지를 열 수 있어요.</p>}
     {error && <p role="alert" className="world-image-picker__error">{error}</p>}
   </section>;
 }

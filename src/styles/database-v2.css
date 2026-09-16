@@ -1015,7 +1015,7 @@
 .database-v2 .private-image-tabs { display: flex; gap: 8px; }
 .database-v2 .private-image-vault { border: 1px solid var(--ch-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .database-v2 .private-image-vault h3 { margin: 0; font-size: 18px; }
-.database-v2 .private-image-vault p { margin: 0; font-size: 13px; line-height: 1.7; }
+.database-v2 .private-image-vault p { margin: 0; font-size: 13px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
 .database-v2 .private-image-vault form { width: 100%; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .database-v2 .private-image-vault input:not([type="checkbox"]) { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-bg); color: var(--ch-ink); padding: 12px; font: inherit; }
 .database-v2 .private-image-vault .private-image-key { font: 12px monospace; }

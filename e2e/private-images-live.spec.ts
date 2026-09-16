@@ -31,8 +31,13 @@ test('개인 이미지 생성·업로드·선택·잠금·복구·삭제를 실�
     await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
     const picker = page.getByRole('dialog', { name: '대표 이미지 선택', exact: true });
     await picker.getByRole('button', { name: '내 이미지', exact: true }).click();
-    await picker.getByRole('button', { name: '보관함 만들기', exact: true }).click();
-    const recoveryKey = await picker.getByLabel('새 복구키', { exact: true }).inputValue();
+    await picker.getByRole('button', { name: '내 이미지 시작하기', exact: true }).waitFor();
+    await page.screenshot({ path: 'docs/screens/gh194/private-image-welcome-desktop.png' });
+    await page.setViewportSize({ width: 320, height: 740 });
+    await page.screenshot({ path: 'docs/screens/gh194/private-image-welcome-mobile.png' });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await picker.getByRole('button', { name: '내 이미지 시작하기', exact: true }).click();
+    const recoveryKey = await picker.getByLabel('내 보관용 코드', { exact: true }).inputValue();
     await expect(picker.getByRole('button', { name: '보관함 사용하기' })).toBeDisabled();
     await picker.getByRole('checkbox').check();
     await picker.getByRole('button', { name: '보관함 사용하기' }).click();
@@ -81,10 +86,10 @@ test('개인 이미지 생성·업로드·선택·잠금·복구·삭제를 실�
     await page.reload();
     await expect(page.locator('.world-setting-detail-image')).toContainText('잠긴 내 이미지');
     await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
-    await picker.getByLabel('복구키', { exact: true }).fill('CHI1-' + 'A'.repeat(43));
+    await picker.getByLabel('보관용 코드', { exact: true }).fill('CHI1-' + 'A'.repeat(43));
     await picker.getByRole('button', { name: '잠금 풀기', exact: true }).click();
-    await expect(picker.getByRole('alert')).toContainText('이 계정의 복구키');
-    await picker.getByLabel('복구키', { exact: true }).fill(recoveryKey);
+    await expect(picker.getByRole('alert')).toContainText('이 보관함의 코드가 아니에요');
+    await picker.getByLabel('보관용 코드', { exact: true }).fill(recoveryKey);
     await picker.getByRole('button', { name: '잠금 풀기', exact: true }).click();
     await expect(option.locator('img')).toHaveJSProperty('naturalWidth', 120);
     await picker.getByRole('button', { name: '삭제', exact: true }).click();
@@ -94,7 +99,7 @@ test('개인 이미지 생성·업로드·선택·잠금·복구·삭제를 실�
     await page.screenshot({ path: 'docs/screens/gh194/private-image-picker-mobile.png' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await picker.getByRole('button', { name: '보관함 잠그기' }).click();
-    await expect(picker.getByLabel('복구키', { exact: true })).toBeVisible();
+    await expect(picker.getByLabel('보관용 코드', { exact: true })).toBeVisible();
     await expect(page.locator('img[src^="blob:"]')).toHaveCount(0);
     await picker.getByRole('button', { name: '공용 도감', exact: true }).click();
     await picker.getByRole('button', { name: /분류 기본 이미지/ }).click();
