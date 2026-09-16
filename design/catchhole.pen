@@ -10434,63 +10434,6 @@
           "name": "Spacer",
           "width": "fill_container",
           "height": "fill_container"
-        },
-        {
-          "type": "frame",
-          "id": "p0eQK",
-          "name": "Footer",
-          "width": "fill_container",
-          "stroke": "$border",
-          "strokeWidth": {
-            "top": 1
-          },
-          "strokeLinejoin": "round",
-          "layout": "vertical",
-          "gap": 4,
-          "padding": [
-            16,
-            20
-          ],
-          "children": [
-            {
-              "type": "text",
-              "id": "Mcf22",
-              "fill": "$text-3",
-              "content": "남은 사용량",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "normal"
-            },
-            {
-              "type": "frame",
-              "id": "w4ySD",
-              "name": "Progress Track",
-              "width": "fill_container",
-              "height": 4,
-              "fill": "$border",
-              "cornerRadius": 2,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "wCFky",
-                  "name": "Progress Fill",
-                  "width": 147,
-                  "height": 4,
-                  "fill": "$primary",
-                  "cornerRadius": 2
-                }
-              ]
-            },
-            {
-              "type": "text",
-              "id": "FEgTw",
-              "fill": "$text-3",
-              "content": "81.6%",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "normal"
-            }
-          ]
         }
       ]
     },
@@ -318580,79 +318523,6 @@
                   "name": "Sidebar Flexible Spacer",
                   "width": "fill_container",
                   "height": "fill_container"
-                },
-                {
-                  "type": "frame",
-                  "id": "jBAXb",
-                  "name": "AI Usage Section",
-                  "width": "fill_container",
-                  "stroke": "$ch-border",
-                  "strokeWidth": {
-                    "top": 1
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": [
-                    14,
-                    6,
-                    0,
-                    6
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "pJ1Ha",
-                      "name": "Usage Heading Row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "Y9vjjP",
-                          "name": "Usage Label",
-                          "fill": "$ch-subtle",
-                          "content": "남은 사용량",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "750"
-                        },
-                        {
-                          "type": "text",
-                          "id": "r106fZ",
-                          "name": "Usage Value",
-                          "fill": "$ch-muted",
-                          "content": "68.0%",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "x3aox",
-                      "name": "Usage Track",
-                      "width": "fill_container",
-                      "height": 5,
-                      "fill": "$ch-border",
-                      "cornerRadius": 999,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 999,
-                          "id": "bx64R",
-                          "x": 0,
-                          "y": 0,
-                          "name": "Usage Fill",
-                          "fill": "$ch-primary",
-                          "width": 132,
-                          "height": 5
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -320546,79 +320416,6 @@
                   "name": "Sidebar Flexible Spacer",
                   "width": "fill_container",
                   "height": "fill_container"
-                },
-                {
-                  "type": "frame",
-                  "id": "hZZme",
-                  "name": "AI Usage Section",
-                  "width": "fill_container",
-                  "stroke": "$ch-border",
-                  "strokeWidth": {
-                    "top": 1
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": [
-                    14,
-                    6,
-                    0,
-                    6
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "s05GC",
-                      "name": "Usage Heading Row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "dZRgn",
-                          "name": "Usage Label",
-                          "fill": "$ch-subtle",
-                          "content": "남은 사용량",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "750"
-                        },
-                        {
-                          "type": "text",
-                          "id": "DdApW",
-                          "name": "Usage Value",
-                          "fill": "$ch-muted",
-                          "content": "68.0%",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "PP1i7",
-                      "name": "Usage Track",
-                      "width": "fill_container",
-                      "height": 5,
-                      "fill": "$ch-border",
-                      "cornerRadius": 999,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 999,
-                          "id": "DpNl7",
-                          "x": 0,
-                          "y": 0,
-                          "name": "Usage Fill",
-                          "fill": "$ch-primary",
-                          "width": 132,
-                          "height": 5
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -322357,79 +322154,6 @@
                   "name": "Sidebar Flexible Spacer",
                   "width": "fill_container",
                   "height": "fill_container"
-                },
-                {
-                  "type": "frame",
-                  "id": "T22zfI",
-                  "name": "AI Usage Section",
-                  "width": "fill_container",
-                  "stroke": "$ch-border",
-                  "strokeWidth": {
-                    "top": 1
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": [
-                    14,
-                    6,
-                    0,
-                    6
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "avzvz",
-                      "name": "Usage Heading Row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "Kj9P7",
-                          "name": "Usage Label",
-                          "fill": "$ch-subtle",
-                          "content": "남은 사용량",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "750"
-                        },
-                        {
-                          "type": "text",
-                          "id": "XLSQu",
-                          "name": "Usage Value",
-                          "fill": "$ch-muted",
-                          "content": "68.0%",
-                          "fontFamily": "$ch-font",
-                          "fontSize": 10,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "QlvOL",
-                      "name": "Usage Track",
-                      "width": "fill_container",
-                      "height": 5,
-                      "fill": "$ch-border",
-                      "cornerRadius": 999,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 999,
-                          "id": "ysvNk",
-                          "x": 0,
-                          "y": 0,
-                          "name": "Usage Fill",
-                          "fill": "$ch-primary",
-                          "width": 132,
-                          "height": 5
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -325635,15 +325359,15 @@
               "type": "frame",
               "id": "nvm314DesktopFeedbackTrigger",
               "name": "Desktop Feedback Trigger",
-              "height": 40,
-              "fill": "$ch-surface",
+              "height": 44,
+              "fill": "$ch-primary-hover",
               "cornerRadius": "$ch-radius-sm",
-              "stroke": "$ch-border-strong",
+              "stroke": "$ch-primary-hover",
               "strokeWidth": 1,
               "gap": 7,
               "padding": [
                 0,
-                13
+                10
               ],
               "alignItems": "center",
               "children": [
@@ -325655,13 +325379,13 @@
                   "height": 17,
                   "icon": "message-square-text",
                   "library": "lucide",
-                  "fill": "$ch-text"
+                  "fill": "$ch-primary-contrast"
                 },
                 {
                   "type": "text",
                   "id": "nvm314DesktopFeedbackLabel",
                   "name": "Desktop Feedback Label",
-                  "fill": "$ch-text",
+                  "fill": "$ch-primary-contrast",
                   "content": "의견 보내기",
                   "fontFamily": "$ch-font",
                   "fontSize": 13,
@@ -325831,11 +325555,11 @@
               "type": "frame",
               "id": "nvm314MobileFeedbackTrigger",
               "name": "Mobile Feedback Trigger",
-              "width": 40,
-              "height": 40,
-              "fill": "$ch-surface",
+              "width": 118,
+              "height": 44,
+              "fill": "$ch-primary-hover",
               "cornerRadius": "$ch-radius-sm",
-              "stroke": "$ch-border-strong",
+              "stroke": "$ch-primary-hover",
               "strokeWidth": 1,
               "justifyContent": "center",
               "alignItems": "center",
@@ -325848,8 +325572,23 @@
                   "height": 17,
                   "icon": "message-square-text",
                   "library": "lucide",
-                  "fill": "$ch-text"
+                  "fill": "$ch-primary-contrast"
+                },
+                {
+                  "type": "text",
+                  "id": "gh196MobileFeedbackLabel",
+                  "name": "Desktop Feedback Label",
+                  "fill": "$ch-primary-contrast",
+                  "content": "의견 보내기",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "750"
                 }
+              ],
+              "gap": 7,
+              "padding": [
+                0,
+                10
               ]
             },
             {
@@ -326333,79 +326072,6 @@
           "name": "Sidebar Flexible Spacer",
           "width": "fill_container",
           "height": "fill_container"
-        },
-        {
-          "type": "frame",
-          "id": "Q68K5",
-          "name": "Sidebar AI Usage Section",
-          "width": "fill_container",
-          "stroke": "$ch-border",
-          "strokeWidth": {
-            "top": 1
-          },
-          "layout": "vertical",
-          "gap": 8,
-          "padding": [
-            14,
-            6,
-            0,
-            6
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "D9xZZ4",
-              "name": "Sidebar Usage Heading",
-              "width": "fill_container",
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "TOyOr",
-                  "name": "Sidebar Usage Label",
-                  "fill": "$ch-text-subtle",
-                  "content": "남은 사용량",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "750"
-                },
-                {
-                  "type": "text",
-                  "id": "aZNaR",
-                  "name": "Sidebar Usage Value",
-                  "fill": "$ch-text-muted",
-                  "content": "68.0%",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "700"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "WQemx",
-              "name": "Sidebar Usage Track",
-              "width": "fill_container",
-              "height": 5,
-              "fill": "$ch-border",
-              "cornerRadius": 999,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 999,
-                  "id": "ZYehK",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Sidebar Usage Fill",
-                  "fill": "$ch-primary",
-                  "width": 132,
-                  "height": 5
-                }
-              ]
-            }
-          ]
         }
       ]
     },
@@ -445502,7 +445168,7 @@
                   "fill": "$ch-text-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "어느 화면에서 무엇이 불편했는지, 어떤 기능이 더 필요했는지 구체적으로 적어 주세요.",
+                  "content": "좋았던 점, 불편했던 점, 필요한 기능을 짧게 남겨주세요.",
                   "lineHeight": 1.6,
                   "fontFamily": "$ch-font",
                   "fontSize": 14,
@@ -445517,7 +445183,7 @@
               "fill": "$ch-text-muted",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "앞뒤 공백을 제외하고 최소 35자 이상 작성해 주세요.\n원고 내용이나 민감한 정보는 입력하지 않아도 됩니다.",
+              "content": "앞뒤 공백을 제외하고 최소 10자 이상 작성해 주세요.\n원고 내용이나 민감한 정보는 입력하지 않아도 됩니다.",
               "lineHeight": 1.55,
               "fontFamily": "$ch-font",
               "fontSize": 12,
@@ -445533,7 +445199,7 @@
               "fill": "$ch-danger-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container(0)",
-              "content": "조금 더 구체적으로 35자 이상 작성해 주세요.",
+              "content": "조금 더 구체적으로 10자 이상 작성해 주세요.",
               "lineHeight": 1.55,
               "fontFamily": "$ch-font",
               "fontSize": 12,
@@ -448468,6 +448134,220 @@
           "metadata": {
             "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
           }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "gh196FeedbackInvitation",
+      "x": 91000,
+      "y": 760,
+      "name": "FeedbackDialog / 계정당 한 번 의견 안내",
+      "reusable": false,
+      "width": 540,
+      "height": 300,
+      "fill": "$ch-surface",
+      "cornerRadius": "$ch-radius-lg",
+      "stroke": "$ch-border",
+      "strokeWidth": 1,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "$ch-shadow-float-color",
+        "offset": {
+          "x": 0,
+          "y": 20
+        },
+        "blur": 60
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "gh196PromptFeedbackHeader",
+          "name": "Feedback Dialog Header",
+          "width": "fill_container",
+          "stroke": "$ch-border",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "gap": 13,
+          "padding": [
+            22,
+            22,
+            20,
+            22
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "gh196PromptFeedbackHeaderIconSurface",
+              "name": "Feedback Header Icon Surface",
+              "width": 42,
+              "height": 42,
+              "fill": "$ch-surface-soft",
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "gh196PromptFeedbackHeaderIcon",
+                  "name": "Feedback Header Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "message-square-text",
+                  "library": "lucide",
+                  "fill": "$ch-primary-ink"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gh196PromptFeedbackHeadingCopy",
+              "name": "Feedback Heading Copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gh196PromptFeedbackTitle",
+                  "name": "Feedback Dialog Title",
+                  "fill": "$ch-ink",
+                  "content": "캐치홀을 사용해 주셔서 감사합니다!",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 18,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "gh196PromptFeedbackDescription",
+                  "name": "Feedback Dialog Description",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "캐치홀은 주니어 개발자들이 함께 만들어 가는 서비스예요. 좋았던 점이나 아쉬웠던 점을 편하게 들려주세요. 짧은 한마디도 저희에겐 큰 힘이 됩니다.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gh196PromptFeedbackClose",
+              "name": "Feedback Close Button",
+              "width": 44,
+              "height": 44,
+              "cornerRadius": "$ch-radius-sm",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "gh196PromptFeedbackCloseIcon",
+                  "name": "Feedback Close Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gh196PromptActionsBody",
+          "name": "Invitation Actions",
+          "width": "fill_container",
+          "layout": "vertical",
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "gh196PromptFeedbackActions",
+              "name": "Feedback Form Actions",
+              "width": "fill_container",
+              "gap": 10,
+              "padding": [
+                9,
+                0,
+                0,
+                0
+              ],
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gh196PromptFeedbackCancel",
+                  "name": "Feedback Cancel Button",
+                  "width": 104,
+                  "height": 44,
+                  "fill": "$ch-surface",
+                  "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh196PromptFeedbackCancelLabel",
+                      "name": "Feedback Cancel Label",
+                      "fill": "$ch-text",
+                      "content": "닫기",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "750"
+                    }
+                  ],
+                  "opacity": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "gh196PromptFeedbackSubmit",
+                  "name": "Feedback Submit Button / Disabled",
+                  "width": 132,
+                  "height": 44,
+                  "fill": "#83BDF6",
+                  "cornerRadius": "$ch-radius-sm",
+                  "gap": 7,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "gh196PromptFeedbackSpinner",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Feedback Submit Spinner",
+                      "enabled": false,
+                      "width": 17,
+                      "height": 17,
+                      "icon": "loader-circle",
+                      "library": "lucide",
+                      "fill": "$ch-primary-contrast"
+                    },
+                    {
+                      "type": "text",
+                      "id": "gh196PromptFeedbackSubmitLabel",
+                      "name": "Feedback Submit Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "의견 남기기",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "750"
+                    }
+                  ],
+                  "opacity": 1
+                }
+              ]
+            }
+          ]
         }
       ]
     }

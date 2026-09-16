@@ -1,13 +1,10 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
-  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare, RefreshCw,
+  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare,
 } from 'lucide-react';
 import { NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
-import { getMyAiTokenUsageOptions } from '../../api/generated/@tanstack/react-query.gen';
-import { getAccessToken } from '../../lib/api-config';
 
 /** 작품 정보가 아직 로드되지 않았을 때 사용하는 기본 표시값 */
 export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
@@ -44,15 +41,6 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
   const workInfo = selectedWorkInfo?.id === selectedWork
     ? selectedWorkInfo
     : FALLBACK_WORK_INFO;
-  const usageQuery = useQuery({
-    ...getMyAiTokenUsageOptions(),
-    enabled: Boolean(getAccessToken()),
-    retry: false,
-    staleTime: 15_000,
-    refetchInterval: query => (query.state.data?.data?.reservedTokens ?? 0) > 0 ? 3_000 : 30_000,
-  });
-  const usage = usageQuery.data?.data;
-  const remainingPercent = Math.max(0, Math.min(100, usage?.remainingPercent ?? 0));
 
   const nav = (id: NavId) => {
     onNavChange?.(id);
@@ -92,42 +80,6 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
       <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
         onClick={() => { onComingSoon?.('챗봇'); onClose?.(); }} />
 
-      <div className="workspace-sidebar__usage">
-        <div className="workspace-sidebar__usage-inner">
-          <div className="workspace-sidebar__usage-heading">
-            <span>남은 사용량</span>
-            {usageQuery.isError && (
-              <button
-                type="button"
-                aria-label="남은 사용량 다시 불러오기"
-                onClick={() => void usageQuery.refetch()}
-                disabled={usageQuery.isFetching}
-                className="workspace-sidebar__usage-retry"
-              >
-                <RefreshCw size={12} />
-              </button>
-            )}
-          </div>
-
-          {usageQuery.isPending ? (
-            <div className="workspace-sidebar__usage-message">사용량 확인 중...</div>
-          ) : usageQuery.isError ? (
-            <div className="workspace-sidebar__usage-message is-error">사용량을 불러오지 못했습니다.</div>
-          ) : (
-            <>
-              <div className="workspace-sidebar__usage-track">
-                <div
-                  className={`workspace-sidebar__usage-fill${remainingPercent <= 10 ? ' is-danger' : remainingPercent <= 30 ? ' is-warning' : ''}`}
-                  style={{ width: `${remainingPercent}%` }}
-                />
-              </div>
-              <div className="workspace-sidebar__usage-value">
-                {remainingPercent.toFixed(1)}%
-              </div>
-            </>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }
