@@ -281,7 +281,7 @@ function ListItem({ item, showCategory, showMatch, onClick }: {
       data-world-setting-id={item.id}
       onClick={onClick}
     >
-      <WorldSubjectImage category={item.category} path={item.image?.thumbnailUrl} className="world-setting-list-item__image" />
+      <WorldSubjectImage category={item.category} path={item.image?.thumbnailUrl} vaultId={item.image?.vaultId} className="world-setting-list-item__image" />
       <span className="world-setting-list-item__copy">
       {showCategory && <Badge category={item.category} />}
       <span className="world-setting-list-item__title">
@@ -534,7 +534,7 @@ function WorldSettingDetail({
       border: `1px solid ${C.border}`, background: C.surface,
     }}>
       <div className="world-setting-detail-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-        <div className="world-setting-detail-image"><WorldSubjectImage category={detail.category} path={detail.image?.imageUrl} eager /><small>공용 예시 이미지</small></div>
+        <div className="world-setting-detail-image"><WorldSubjectImage category={detail.category} path={detail.image?.imageUrl} vaultId={detail.image?.vaultId} eager /><small>{detail.image?.source === 'PRIVATE' ? '내 이미지' : '공용 예시 이미지'}</small></div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <Badge category={detail.category} />
           <strong style={{ display: 'block', color: C.t1, fontSize: 18, marginBottom: 5 }}>

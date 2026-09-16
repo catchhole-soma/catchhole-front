@@ -3135,7 +3135,7 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
       return success(route, pageResponse([{ id: 'race-goblin', category: 'RACE', name: '고블린', thumbnailUrl: imagePath, imageUrl: imagePath }]));
     }
     if (path === `${base}/${worldSettingId}/image`) {
-      expect(route.request().postDataJSON()).toEqual({ catalogId: 'race-goblin', version: 0 });
+      expect(route.request().postDataJSON()).toEqual({ catalogId: 'race-goblin', privateImageId: null, version: 0 });
       if (saveFailed) return failure(route, 503, '잠시 후 다시 시도해 주세요.', 'TEST_FAILURE');
       selected = true;
       item.image = { ...item.image, catalogId: 'race-goblin', source: 'MANUAL', version: 1 };

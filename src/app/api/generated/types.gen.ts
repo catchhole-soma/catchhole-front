@@ -482,11 +482,13 @@ export type WorldSettingImageResponse = {
      * 960×640 이미지 API 상대 경로
      */
     imageUrl?: string | null;
-    source?: 'DEFAULT' | 'MANUAL';
+    source?: 'DEFAULT' | 'MANUAL' | 'PRIVATE';
     /**
      * 이미지 선택의 독립 버전. 설정 수정 version과 다릅니다.
      */
     version?: number;
+    privateImageId?: string | null;
+    vaultId?: string | null;
 };
 
 /**
@@ -1255,6 +1257,46 @@ export type SettingBookSummaryResponse = {
     uploadedAt: string;
 };
 
+export type PrivateWorldImageUploadRequest = {
+    id: string;
+    vaultId: string;
+    encryptedMetadata: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponsePrivateWorldImageResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PrivateWorldImageResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+export type PrivateWorldImageResponse = {
+    id?: string;
+    workId?: string;
+    vaultId?: string;
+    encryptedMetadata?: string;
+    createdAt?: string;
+};
+
 /**
  * 사용자가 확정한 업로드 회차 정보
  */
@@ -1853,6 +1895,42 @@ export type WorkPurgeStoreResultResponse = {
      * 삭제 실패 수
      */
     failedCount?: number;
+};
+
+export type PrivateImageVaultCreateRequest = {
+    id: string;
+    keyCheck: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponsePrivateImageVaultResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PrivateImageVaultResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+export type PrivateImageVaultResponse = {
+    id?: string;
+    keyCheck?: string;
 };
 
 /**
@@ -3543,7 +3621,7 @@ export type WorldSettingPropertyUpdateRequest = {
 };
 
 /**
- * 세계관 대표 이미지 선택. catalogId=null이면 기본 이미지로 되돌립니다.
+ * 공용 catalogId 또는 개인 privateImageId 중 하나를 선택. 둘 다 null이면 기본 이미지로 되돌립니다.
  */
 export type WorldSettingImageUpdateRequest = {
     catalogId?: string | null;
@@ -3551,6 +3629,7 @@ export type WorldSettingImageUpdateRequest = {
      * 현재 이미지 선택 version
      */
     version: number;
+    privateImageId?: string | null;
 };
 
 /**
@@ -4761,6 +4840,62 @@ export type CommonResponseListSettingBookSummaryResponse = {
      * 응답 생성 시각
      */
     timestamp?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponsePageResponsePrivateWorldImageResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PageResponsePrivateWorldImageResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponsePrivateWorldImageResponse = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<PrivateWorldImageResponse>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
 };
 
 /**
@@ -6943,6 +7078,49 @@ export type UploadSettingBookResponses = {
 
 export type UploadSettingBookResponse = UploadSettingBookResponses[keyof UploadSettingBookResponses];
 
+export type GetPrivateWorldImagesData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        page?: number;
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/private-world-images';
+};
+
+export type GetPrivateWorldImagesResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponsePageResponsePrivateWorldImageResponse;
+};
+
+export type GetPrivateWorldImagesResponse = GetPrivateWorldImagesResponses[keyof GetPrivateWorldImagesResponses];
+
+export type UploadPrivateWorldImageData = {
+    body?: {
+        metadata: PrivateWorldImageUploadRequest;
+        image: Blob | File;
+        thumbnail: Blob | File;
+    };
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/private-world-images';
+};
+
+export type UploadPrivateWorldImageResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponsePrivateWorldImageResponse;
+};
+
+export type UploadPrivateWorldImageResponse = UploadPrivateWorldImageResponses[keyof UploadPrivateWorldImageResponses];
+
 export type GetEpisodesData = {
     body?: never;
     path: {
@@ -7195,6 +7373,38 @@ export type RetryWorkPurgeRequestResponses = {
 };
 
 export type RetryWorkPurgeRequestResponse = RetryWorkPurgeRequestResponses[keyof RetryWorkPurgeRequestResponses];
+
+export type GetPrivateImageVaultData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/private-image-vault';
+};
+
+export type GetPrivateImageVaultResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponsePrivateImageVaultResponse;
+};
+
+export type GetPrivateImageVaultResponse = GetPrivateImageVaultResponses[keyof GetPrivateImageVaultResponses];
+
+export type CreatePrivateImageVaultData = {
+    body: PrivateImageVaultCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/private-image-vault';
+};
+
+export type CreatePrivateImageVaultResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponsePrivateImageVaultResponse;
+};
+
+export type CreatePrivateImageVaultResponse = CreatePrivateImageVaultResponses[keyof CreatePrivateImageVaultResponses];
 
 export type CreateMyFeedbackData = {
     body: FeedbackCreateRequest;
@@ -9280,6 +9490,44 @@ export type GetWorkPurgeRequestByWorkResponses = {
 
 export type GetWorkPurgeRequestByWorkResponse = GetWorkPurgeRequestByWorkResponses[keyof GetWorkPurgeRequestByWorkResponses];
 
+export type GetPrivateWorldImageThumbnailData = {
+    body?: never;
+    path: {
+        workId: string;
+        imageId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/private-world-images/{imageId}/thumbnail';
+};
+
+export type GetPrivateWorldImageThumbnailResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type GetPrivateWorldImageThumbnailResponse = GetPrivateWorldImageThumbnailResponses[keyof GetPrivateWorldImageThumbnailResponses];
+
+export type GetPrivateWorldImageContentData = {
+    body?: never;
+    path: {
+        workId: string;
+        imageId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/private-world-images/{imageId}/image';
+};
+
+export type GetPrivateWorldImageContentResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type GetPrivateWorldImageContentResponse = GetPrivateWorldImageContentResponses[keyof GetPrivateWorldImageContentResponses];
+
 export type GetEpisodeUploadPolicyData = {
     body?: never;
     path: {
@@ -9977,6 +10225,25 @@ export type GetPendingWorkerWorldSettingSubjectResolutionsResponses = {
 };
 
 export type GetPendingWorkerWorldSettingSubjectResolutionsResponse = GetPendingWorkerWorldSettingSubjectResolutionsResponses[keyof GetPendingWorkerWorldSettingSubjectResolutionsResponses];
+
+export type DeletePrivateWorldImageData = {
+    body?: never;
+    path: {
+        workId: string;
+        imageId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/private-world-images/{imageId}';
+};
+
+export type DeletePrivateWorldImageResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseVoid;
+};
+
+export type DeletePrivateWorldImageResponse = DeletePrivateWorldImageResponses[keyof DeletePrivateWorldImageResponses];
 
 export type WithdrawMeData = {
     body: MemberWithdrawalCreateRequest;

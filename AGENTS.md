@@ -173,4 +173,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - 완료된 앞 회차의 후보 변경도 후속 분석을 무효화할 수 있으므로 자동 완료 후 캐릭터 검토와 ordered 세계관의 수정·연결 모달/그룹 확정 영역에 영향을 미리 안내한다. 이 안내는 기존 mutation을 바꾸거나 추가 확인 클릭을 요구하지 않는다. 분석 중 수정 예약·종료 후 자동 반영은 미구현이며, 예약된 것처럼 안내하지 않는다. 새 자동 보류 사유는 `SUBJECT_RESOLUTION_FAILED`를 `연결할 대상 확인`, `COMPARISON_INPUT_TOO_LARGE`를 `비교할 내용 확인`으로 표시한다.
 
 - GH194 대표 이미지는 `image` 응답을 목록 썸네일/상세에 표시하고 `modal=world-setting-image`의 도감 검색/수동 선택/기본 이미지 복귀를 제공한다. 이미지 version은 설정 version과 독립적으로 보관한다. 409에서는 선택을 보존하고 명시적 최신 조회 뒤 재시도하며 자동 덮어쓰기는 하지 않는다.
-- 이미지 URL은 등록된 SHA의 `/api/v1/world-image-assets/*.webp`만 API base에 연결한다. 없거나 읽기 실패한 이미지는 번들 분류 기본 이미지로 복귀한다. `/demo`는 도감 API를 호출하지 않으며 번들 이미지와 기존 읽기 전용 안내를 사용한다.
+- 공용 이미지 URL은 등록된 SHA의 `/api/v1/world-image-assets/*.webp`만 API base에 연결한다. 없거나 읽기 실패한 공용 이미지는 번들 분류 기본 이미지로 복귀한다. `/demo`는 도감 API를 호출하지 않으며 번들 이미지와 기존 읽기 전용 안내를 사용한다.
+- 개인 이미지(`source: PRIVATE`)는 `docs/private-world-images.md`의 CHI1 계약을 따른다. 원본·썸네일·파일명은 업로드 전에 브라우저에서 암호화하고 복구키는 서버/브라우저 영구 저장소/로그에 보내지 않는다. 인증 SDK로 암호문을 받아 복호화하며 Query cache에는 암호문만 둔다. 잠금/로그아웃 시 복호화 상태·Blob URL을 폐기한다. 잠긴 개인 이미지는 분류 기본 그림으로 바꾸지 않고 잠금 상태를 표시한다. 원고 보호 방식 변경은 보류 상태다.
