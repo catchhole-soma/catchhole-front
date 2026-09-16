@@ -345,6 +345,7 @@
 }
 .feedback-dialog__heading { min-width: 0; flex: 1; }
 .feedback-dialog__heading h2 {
+  word-break: keep-all;
   margin: 0;
   color: var(--ch-ink);
   font-size: 18px;
@@ -376,6 +377,7 @@
 .feedback-dialog__close:hover { background: var(--ch-canvas); color: var(--ch-ink); }
 .feedback-dialog__close:disabled { opacity: .48; cursor: not-allowed; }
 
+.feedback-dialog__invitation,
 .feedback-dialog__form,
 .feedback-dialog__result {
   display: flex;
@@ -603,6 +605,7 @@
   .ai-token-quota-modal__footer .ai-token-quota-modal__primary { width: 100%; }
   .feedback-dialog { border-radius: var(--ch-radius-md); }
   .feedback-dialog__header { padding: 19px 17px 17px; }
+  .feedback-dialog__invitation,
   .feedback-dialog__form,
   .feedback-dialog__result { padding: 18px 17px; }
   .feedback-dialog__actions > button { min-width: 0; flex: 1; }

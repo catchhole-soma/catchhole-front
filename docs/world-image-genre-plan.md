@@ -28,7 +28,7 @@
 
 ## 2. 확인한 현재 자산과 중요한 연결 차이
 
-서비스 등록 기준은 Backend의 `catalog-v1.json`과 V56 seed다. 제작 폴더의 일부 `service_integration` 문구는 제작 당시 상태가 남아 있어 현재 연결 여부의 근거로 쓰지 않았다.
+서비스 등록 기준은 Backend의 `catalog-v1.json`과 V58 seed다. 제작 폴더의 일부 `service_integration` 문구는 제작 당시 상태가 남아 있어 현재 연결 여부의 근거로 쓰지 않았다.
 
 | 분류 | 개별 도감 수 | 현재 강점 | 주요 공백 |
 | --- | ---: | --- | --- |
@@ -43,7 +43,7 @@
 
 별도로 초기 분류 화면 8장, 새로 제작한 분류 기본 그림 7장, 캐릭터 공통 기본 그림 1장이 있다. 제작 후 취소한 인간 1인 초상은 사용 자산에서 제외한다.
 
-**연결 상태 확인:** 등록 도감 340행은 개별 333종 + 기본 7행이다. 그런데 이 기본 7행의 `source`는 현재 `src/assets/world-categories/*.webp`, 즉 초기 분류 그림이다. `design-assets/world-defaults/2026-09-15-v1/`의 별도 기본 그림 7장은 현재 manifest/seed에 연결되어 있지 않다. 예를 들어 등록된 몬스터 기본 그림은 그리핀이지만 별도로 제작한 최신 기본 그림은 안개에 가린 괴물이다. V60에서 두 용도의 자산을 구분해 연결했다. 이 문단은 초기 조사 시점의 차이를 기록한 것이다. 운영 DB·S3의 별도 수동 변경 여부는 이번 문서 조사에서 확인하지 않았다.
+**연결 상태 확인:** 등록 도감 340행은 개별 333종 + 기본 7행이다. 그런데 이 기본 7행의 `source`는 현재 `src/assets/world-categories/*.webp`, 즉 초기 분류 그림이다. `design-assets/world-defaults/2026-09-15-v1/`의 별도 기본 그림 7장은 현재 manifest/seed에 연결되어 있지 않다. 예를 들어 등록된 몬스터 기본 그림은 그리핀이지만 별도로 제작한 최신 기본 그림은 안개에 가린 괴물이다. V62에서 두 용도의 자산을 구분해 연결했다. 이 문단은 초기 조사 시점의 차이를 기록한 것이다. 운영 DB·S3의 별도 수동 변경 여부는 이번 문서 조사에서 확인하지 않았다.
 
 조사 범위: 개별 333종 전체 이름·제작 방향·현재 파일 색인, 기본 그림 7종 색인, 등록 manifest와 enum/추출 기준을 확인했다. 등록 자산·분류 화면 47개 표시 사례와 별도 기본 원본 3종을 시각 점검했다. 아래의 재사용 평가는 기획 판단이며 333종 전체의 최종 시각 승인이나 실제 작품 데이터에 대한 커버리지 측정은 아니다. 전체 목록과 현재 파일 경로는 [자산 인벤토리](world-image-genre-inventory.md)에 기록했다.
 
@@ -216,7 +216,7 @@
 - [프론트 장르 10개](../src/app/lib/work-contract.ts)
 - [현재 분류 이미지 고정 목록](../src/app/components/catchhole/worldsetting/worldCategoryImages.ts)
 - [현재 도감·기본 이미지 등록 manifest](../../catchhole-backend-java/src/main/resources/world-images/catalog-v1.json)
-- [분류당 기본 이미지 제약](../../catchhole-backend-java/src/main/resources/db/migration/V55__add_world_image_catalog.sql)
+- [분류당 기본 이미지 제약](../../catchhole-backend-java/src/main/resources/db/migration/V57__add_world_image_catalog.sql)
 - [세계관 이미지 API/배포 계약](../../catchhole-backend-java/docs/world-image-catalog.md)
 - [현행 추출 프롬프트의 분류·제외 기준](../../catchhole-backend-ai/app/llm/prompts/world_setting_extraction.md)
 - [별도 기본 이미지 제작 색인](../../design-assets/world-defaults/2026-09-15-v1/ASSET_INDEX.json)

@@ -8,7 +8,7 @@ import { clearAuthSession } from '../../lib/auth';
 import { MemberWithdrawalModal } from './MemberWithdrawalModal';
 import { FeedbackDialog } from './FeedbackDialog';
 
-export function UserMenu() {
+export function UserMenu({ feedbackPromptAllowed = false }: { feedbackPromptAllowed?: boolean }) {
   const navigate = useAppNavigate();
   const queryClient = useQueryClient();
   const reduceMotion = useReducedMotion();
@@ -103,7 +103,11 @@ export function UserMenu() {
 
   return (
     <div className="user-menu">
-      <FeedbackDialog />
+      <FeedbackDialog
+        key={member?.id ?? 'anonymous'}
+        memberId={member?.id}
+        autoPromptAllowed={feedbackPromptAllowed && !menuOpen && !withdrawalOpen}
+      />
       <button
         ref={triggerRef}
         type="button"

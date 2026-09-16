@@ -1,5 +1,7 @@
 # 장르별 세계관 이미지 연결 — GH194
 
+번호 안내: 2026-09-16 main 통합으로 미배포 GH194 migration을 V55~V60에서 **V57~V62**로 이동했다. 아래 계약은 최종 번호로 표기하며, 이전 검증 실행 당시에는 각 번호가 2씩 작았다. SQL 내용과 기존 사용자 선택은 보존했다.
+
 2026-09-16 · 서비스 구현·로컬 검증·개발 S3 업로드 완료. 운영 DB/서비스 배포는 별도다.
 
 ## 화면에서 달라지는 것
@@ -38,17 +40,19 @@
 
 Backend의 `world_image_recommendations`는 `(catalog_id, theme)` PK다. 숲·동굴·책 등은 같은 ID와 파일을 여러 테마가 참조하며 복제 등록하지 않는다. `world_image_theme_assets`는 `(theme, purpose, slot)` 고유 슬롯 105행이다. 도감은 기존 333종 + 신규 130종 + 기본 7종 = 470행, 추천 연결은 720행이다.
 
-V59는 테이블을 추가하고 V60은 승인된 테마 구성표를 등록한다. 초기 카드 사진과 혼용되던 기존 기본 7종의 SHA를 별도 제작한 중립 기본 그림으로 바로잡았다. V55~V58은 수정하지 않는다. 원본 PNG·제작 보고서는 `design-assets/world-themes`에 보존하고 서비스 manifest는 Backend의 `world-images/themes-v1.json`이다.
+V61은 테이블을 추가하고 V62는 승인된 테마 구성표를 등록한다. 초기 카드 사진과 혼용되던 기존 기본 7종의 SHA를 별도 제작한 중립 기본 그림으로 바로잡았다. V57~V60은 수정하지 않는다. 원본 PNG·제작 보고서는 `design-assets/world-themes`에 보존하고 서비스 manifest는 Backend의 `world-images/themes-v1.json`이다.
 
 ## 검증·배포
 
-- Java 전체 1,174개: 1,109 통과, 조건부 65 건너뜀. 개인 이미지 장르 변경 보존을 추가한 통합 테스트도 통과.
-- 별도 빈 PostgreSQL에서 V1~V60 migration·Hibernate validate·health UP. 기존 로컬 DB도 V60 적용.
-- Front 타입·린트·빌드·Knip 통과. 관련 Playwright 33개와 실제 Java/PostgreSQL 연동 테스트 1개 통과.
+- 최신 main 통합 후 Java 전체 1,183개: 1,117 통과, 조건부 66 건너뜀, 실패 0. 개인 이미지 장르 변경 보존을 포함한다.
+- 별도 빈 PostgreSQL에서 V1~V62 migration·Hibernate validate·health UP. 기존 로컬 DB의 백업 복제본에서 번호 전환을 검증한 뒤 실제 로컬에도 반영했다. 기존 데이터 해시와 테스트 작품 9개·설정 63개를 보존했다.
+- Front 타입·린트·빌드·Knip 통과. 전체 Playwright 330 통과·1 실패·조건부 7 건너뜀 이후, 신규 피드백 API 응답이 빠진 smoke fixture를 수정하고 관련 9개를 재실행해 모두 통과했다. 합계 331개 회귀 시나리오를 확인했다. 실제 Java/PostgreSQL의 테마·캐릭터/개인 이미지 E2E도 각각 통과했다.
 - 실제 연동은 10개 장르/7개 테마, 초기 8장·기본 7장, 공용 숲의 동일 ID/파일, 별칭·페이지, 전체 도감의 타 장르 저장, 선택 보존·기본 복귀, 320×568 표시를 확인하고 임시 작품을 삭제했다.
-- React Doctor 비차단 진단은 기존 updater 진단 2개와 참고 경고를 포함한다. `docs/react-doctor-cleanup.md`의 기존 범위를 유지한다.
+- React Doctor 비차단 진단은 기존 updater 진단 2개와 경고 172개다. `docs/react-doctor-cleanup.md`에 남은 범위를 기록한다.
 - 개발 S3 신규 330개, 기존 포함 1,010개 WebP의 실제 다운로드 SHA 검증 완료(70,140,720 bytes). 버킷 정책/ACL은 유지했다.
-- 배포 순서: 대상 버킷에 전체 manifest 자산 확보 → Backend V59/V60·API → Front. 다른 환경의 버킷은 별도로 동일 자산을 업로드해야 한다.
+- 배포 순서: 대상 버킷에 전체 manifest 자산 확보 → Backend V61/V62·API → Front. 다른 환경의 버킷은 별도로 동일 자산을 업로드해야 한다.
+
+2026-09-16 Front main #79와 Java main #197의 피드백 기능을 함께 통합했다. SDK는 통합 서버의 OpenAPI로 다시 생성했고 Pencil에는 피드백 안내와 이미지 화면을 모두 보존했다. main의 확정 V55/V56은 유지하며 GH194 SQL만 내용 변경 없이 V57~V62로 옮겼다. 자세한 개발 DB 이력 전환은 Java `docs/database-migration.md`를 따른다.
 
 ![SF 분류 화면](screens/gh194/theme-sf-overview.png)
 

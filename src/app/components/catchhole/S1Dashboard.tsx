@@ -826,6 +826,13 @@ export default function S1Dashboard() {
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <WorkspaceTopbar
+        feedbackPromptAllowed={
+          !demoMode && episodeApiEnabled && activeNav === 'manuscripts'
+          && episodesQuery.isSuccess && analysisOverviewQuery.isSuccess && !overviewAnalysisActive
+          && !mobileNavOpen && !searchParams.has('modal')
+          && !episodeRows.some(episode => episode.analysisStatus === 'IN_PROGRESS'
+            || ['CHUNKING', 'PREPROCESSING', 'ANALYZING'].includes(episode.status ?? ''))
+        }
         onBrandClick={() => navigate('/works', 'dissolve')}
         leading={(
           <button

@@ -1938,7 +1938,7 @@ export type PrivateImageVaultResponse = {
  */
 export type FeedbackCreateRequest = {
     /**
-     * 서비스 의견. 앞뒤 공백을 제외하고 35~1,000자
+     * 서비스 의견. 앞뒤 공백을 제외하고 10~1,000자
      */
     content: string;
     /**
@@ -1997,6 +1997,42 @@ export type FeedbackCreateResponse = {
      * 서버 의견 접수 시각
      */
     submittedAt?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseFeedbackPromptResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: FeedbackPromptResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서비스 의견 안내 노출 여부
+ */
+export type FeedbackPromptResponse = {
+    /**
+     * 의견 안내 노출 가능 여부. 선점 API에서는 이번 요청만 노출할 수 있는지 반환
+     */
+    shouldShow: boolean;
 };
 
 /**
@@ -7507,6 +7543,31 @@ export type CreateMyFeedbackResponses = {
 
 export type CreateMyFeedbackResponse = CreateMyFeedbackResponses[keyof CreateMyFeedbackResponses];
 
+export type ClaimMyFeedbackPromptData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/feedbacks/prompt/claim';
+};
+
+export type ClaimMyFeedbackPromptErrors = {
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+};
+
+export type ClaimMyFeedbackPromptError = ClaimMyFeedbackPromptErrors[keyof ClaimMyFeedbackPromptErrors];
+
+export type ClaimMyFeedbackPromptResponses = {
+    /**
+     * 안내 노출 선점 결과
+     */
+    200: CommonResponseFeedbackPromptResponse;
+};
+
+export type ClaimMyFeedbackPromptResponse = ClaimMyFeedbackPromptResponses[keyof ClaimMyFeedbackPromptResponses];
+
 export type SignupData = {
     body: AuthSignupRequest;
     path?: never;
@@ -10188,6 +10249,31 @@ export type GetCurrentLegalDocumentsResponses = {
 };
 
 export type GetCurrentLegalDocumentsResponse = GetCurrentLegalDocumentsResponses[keyof GetCurrentLegalDocumentsResponses];
+
+export type GetMyFeedbackPromptData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/feedbacks/prompt';
+};
+
+export type GetMyFeedbackPromptErrors = {
+    /**
+     * 인증 실패
+     */
+    401: CommonErrorResponse;
+};
+
+export type GetMyFeedbackPromptError = GetMyFeedbackPromptErrors[keyof GetMyFeedbackPromptErrors];
+
+export type GetMyFeedbackPromptResponses = {
+    /**
+     * 안내 대상 조회 성공
+     */
+    200: CommonResponseFeedbackPromptResponse;
+};
+
+export type GetMyFeedbackPromptResponse = GetMyFeedbackPromptResponses[keyof GetMyFeedbackPromptResponses];
 
 export type GetSignupPolicyData = {
     body?: never;
