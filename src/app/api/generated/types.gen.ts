@@ -7985,7 +7985,7 @@ export type ClaimMyAnalysisGuideData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/analysis-mode-guide/claim';
+    url: '/api/v1/analysis-mode-guides/claim';
 };
 
 export type ClaimMyAnalysisGuideErrors = {
@@ -10586,7 +10586,7 @@ export type GetMyAnalysisGuideData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/analysis-mode-guide';
+    url: '/api/v1/analysis-mode-guides';
 };
 
 export type GetMyAnalysisGuideErrors = {

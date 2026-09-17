@@ -3113,6 +3113,54 @@ test(scopeUnresolved
 });
 }
 
+test('다른 세션이 분류와 이미지를 바꿔도 충돌 새로고침에서 선택 초안을 유지한다', async ({ page }) => {
+  const base = `/api/v1/works/${workId}/world-settings`;
+  const item = { id: worldSettingId, category: 'RACE', subjectName: '고블린', propertyCount: 1,
+    image: { source: 'AUTO', catalogId: 'race-goblin', name: '고블린', version: 0 } };
+  const saves: unknown[] = [];
+  const catalogCategories: string[] = [];
+  await page.route('**/api/v1/**', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.endsWith('/auth/me')) return success(route, member);
+    if (path === '/api/v1/works') return success(route, [{ id: workId, title: '이미지 충돌 확인', genre: '판타지' }]);
+    if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '이미지 충돌 확인', genre: '판타지' });
+    if (path === base) return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([item]) });
+    if (path === `${base}/${worldSettingId}`) return success(route, { ...item, version: 0, properties: [] });
+    if (path === '/api/v1/world-image-catalogs') {
+      catalogCategories.push(url.searchParams.get('category')!);
+      return success(route, pageResponse([]));
+    }
+    if (path === `${base}/${worldSettingId}/image`) {
+      saves.push(route.request().postDataJSON());
+      if (saves.length === 1) {
+        item.category = 'LOCATION';
+        item.image = { source: 'MANUAL', catalogId: 'location-forest', name: '숲', version: 3 };
+        return failure(route, 409, '최신 이미지를 확인해 주세요.', 'WORLD_IMAGE_VERSION_CONFLICT');
+      }
+      item.image = { source: 'DEFAULT', catalogId: 'location-default', name: '장소 기본', version: 4 };
+      return success(route, item.image);
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&settingId=${worldSettingId}&modal=world-setting-image`);
+  const picker = page.getByRole('dialog', { name: '대표 이미지 선택', exact: true });
+  const defaultOption = picker.getByRole('button', { name: /^분류 기본 이미지/ });
+  await defaultOption.click();
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await picker.getByRole('button', { name: '최신 이미지 확인', exact: true }).click();
+  await expect.poll(() => catalogCategories).toContain('LOCATION');
+  await expect(defaultOption).toHaveAttribute('aria-pressed', 'true');
+  await expect(picker.locator('.world-image-picker__selection')).toContainText('분류 기본 이미지 선택');
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  expect(saves).toEqual([
+    { catalogId: null, privateImageId: null, version: 0 },
+    { catalogId: null, privateImageId: null, version: 3 },
+  ]);
+});
+
 test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초안을 유지한다', async ({ page }) => {
   const imagePath = `/api/v1/world-image-assets/${'a'.repeat(64)}.webp`;
   const themeFallback = `/api/v1/world-image-assets/${'b'.repeat(64)}.webp`;

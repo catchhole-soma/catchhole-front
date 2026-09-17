@@ -15,10 +15,10 @@ async function setup(page: Page, { eligible = true, fail = false, claimEligible 
     if (path.endsWith('/auth/me')) data = { id: 1, email: 'guide@example.com', displayName: '안내 테스트', role: 'AUTHOR', status: 'ACTIVE' };
     else if (/\/works\/[^/]+$/.test(path)) data = { id: path.split('/').at(-1), title: '처음 쓰는 작품', lifecycleStatus: 'ACTIVE' };
     else if (path.endsWith('/episodes/upload-policy')) data = { pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 };
-    else if (path.endsWith('/analysis-mode-guide')) {
+    else if (path.endsWith('/analysis-mode-guides')) {
       if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false }) });
       data = { shouldShow: eligible && !consumed };
-    } else if (path.endsWith('/analysis-mode-guide/claim')) {
+    } else if (path.endsWith('/analysis-mode-guides/claim')) {
       if (failFirstClaim && claims++ === 0) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false }) });
       data = { shouldShow: eligible && claimEligible && !consumed }; consumed = true;
     }
@@ -48,7 +48,7 @@ test('첫 안내는 계정당 한 번이며 닫은 뒤 새 작품·새로고침�
   await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
   await expect(page.getByRole('button', { name: '두 방식의 차이 보기' })).toBeVisible();
   await expect(dialog).toHaveCount(0);
-  expect(mutations).toEqual(['/api/v1/analysis-mode-guide/claim']);
+  expect(mutations).toEqual(['/api/v1/analysis-mode-guides/claim']);
 });
 
 test('한 줄의 5단계에서 실제 컴포넌트를 보여주고 예시 조작은 차단한다', async ({ page }) => {
@@ -105,14 +105,14 @@ test('한 줄의 5단계에서 실제 컴포넌트를 보여주고 예시 조작
   await dialog.getByRole('button', { name: '다음', exact: true }).click();
   await dialog.getByRole('button', { name: '알겠어요' }).click();
   await expect(page.getByRole('radio', { name: /AI 판단으로 설정 자동 반영/ })).toBeChecked();
-  expect(mutations).toEqual(['/api/v1/analysis-mode-guide/claim']);
+  expect(mutations).toEqual(['/api/v1/analysis-mode-guides/claim']);
 });
 
 for (const mode of ['existing', 'failed', 'claimed-elsewhere']) {
   test(`${mode}: 자동 안내 없이 업로드를 유지하고 도움말은 직접 열 수 있다`, async ({ page }) => {
     const fixture = await setup(page, { eligible: mode !== 'existing', fail: mode === 'failed', claimEligible: mode !== 'claimed-elsewhere' });
     await enter(page);
-    await expect.poll(() => fixture.requests.some(path => path.endsWith('/analysis-mode-guide'))).toBe(true);
+    await expect.poll(() => fixture.requests.some(path => path.endsWith('/analysis-mode-guides'))).toBe(true);
     if (mode === 'claimed-elsewhere') await expect.poll(() => fixture.mutations.length).toBe(1);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.getByRole('radio', { name: /모든 설정 직접 검토/ }).check();
@@ -131,7 +131,8 @@ test('다회차의 자동 반영 정책을 안내하고 5단계를 URL에서 복
   const dialog = page.getByRole('dialog', { name: title });
   await expect(dialog).toContainText('지금 선택한 다회차 업로드는 자동 반영으로 진행돼요.');
   await page.keyboard.press('ArrowRight');
-  await expect(dialog).toContainText('직접 검토 선택은 단일 회차에서 제공돼요.');
+  await expect(page).toHaveURL(/guideStep=2(?:&|$)/);
+  await expect(dialog.getByRole('heading', { name: '모든 설정을 직접 보고 확정해요' })).toBeVisible();
   await page.keyboard.press('ArrowRight');
   await expect(page).toHaveURL(/guideStep=3(?:&|$)/);
   await expect(dialog.getByRole('heading', { name: '명확한 설정은 AI가 바로 반영해요' })).toBeVisible();

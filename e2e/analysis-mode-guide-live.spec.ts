@@ -9,7 +9,7 @@ test('첫 분석 안내는 실제 계정에 한 번 기록하고 예시 화면 �
   expect(login.ok()).toBeTruthy();
   const token = (await login.json()).data.accessToken;
   const headers = { Authorization: `Bearer ${token}` };
-  const guideUrl = `${api}/api/v1/analysis-mode-guide`;
+  const guideUrl = `${api}/api/v1/analysis-mode-guides`;
   expect((await (await request.get(guideUrl, { headers })).json()).data.shouldShow).toBe(true);
   const work = await request.post(`${api}/api/v1/works`, { headers, data: { title: '안내 화면 검증', genre: '판타지' } });
   expect(work.ok()).toBeTruthy();

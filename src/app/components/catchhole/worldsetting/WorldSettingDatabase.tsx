@@ -1566,7 +1566,7 @@ function WorldSettingDatabaseContent({
       )}
 
       {!fixtureMode && modal === 'world-setting-image' && detail && selectedId && (
-        <WorldImagePicker key={`${selectedId}-${detail.category}`} workId={workId} detail={detail}
+        <WorldImagePicker key={`${workId}-${selectedId}`} workId={workId} detail={detail}
           onSaved={() => invalidateWorldSettings(selectedId)}
           onReload={async () => { const result = await detailQuery.refetch(); if (result.error) throw result.error; return result.data?.data?.image?.version ?? 0; }}
           onClose={() => setSearchParams(previous => {

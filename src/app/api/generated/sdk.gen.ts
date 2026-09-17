@@ -576,7 +576,7 @@ export const confirmEmailVerification = <ThrowOnError extends boolean = true>(op
  */
 export const claimMyAnalysisGuide = <ThrowOnError extends boolean = true>(options?: Options<ClaimMyAnalysisGuideData, ThrowOnError>): RequestResult<ClaimMyAnalysisGuideResponses, ClaimMyAnalysisGuideErrors, ThrowOnError> => (options?.client ?? client).post<ClaimMyAnalysisGuideResponses, ClaimMyAnalysisGuideErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/v1/analysis-mode-guide/claim',
+    url: '/api/v1/analysis-mode-guides/claim',
     ...options
 });
 
@@ -1492,7 +1492,7 @@ export const getMe = <ThrowOnError extends boolean = true>(options?: Options<Get
  */
 export const getMyAnalysisGuide = <ThrowOnError extends boolean = true>(options?: Options<GetMyAnalysisGuideData, ThrowOnError>): RequestResult<GetMyAnalysisGuideResponses, GetMyAnalysisGuideErrors, ThrowOnError> => (options?.client ?? client).get<GetMyAnalysisGuideResponses, GetMyAnalysisGuideErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/v1/analysis-mode-guide',
+    url: '/api/v1/analysis-mode-guides',
     ...options
 });
 
