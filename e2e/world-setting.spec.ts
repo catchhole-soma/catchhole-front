@@ -2168,7 +2168,7 @@ test('Job이 없는 비교 대기 후보를 자동 복구하고 대기 아이콘
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   await expect.poll(() => retryAttempts).toBe(1);
-  const spinner = page.getByRole('article').locator('svg.spin');
+  const spinner = page.getByRole('article').getByRole('status').locator('svg.spin');
   await expect(spinner).toBeVisible();
   await expect.poll(() => spinner.evaluate(element => getComputedStyle(element).animationName))
     .toBe('catchhole-spin');
@@ -3134,7 +3134,7 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
     if (path === imagePath || path === themeFallback) return route.fulfill({ status: 404 });
     if (path === base) return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([item]) });
     if (path === `${base}/${worldSettingId}`) return success(route, { ...item, version: 0, properties: [{ settingName: '성격', value: '경계한다' }] });
-    if (path === '/api/v1/world-image-catalog') {
+    if (path === '/api/v1/world-image-catalogs') {
       if (catalogFailed) return failure(route, 400, '도감 조회 실패', 'TEST_FAILURE');
       return success(route, pageResponse([{ id: 'race-goblin', category: 'RACE', name: '고블린', thumbnailUrl: imagePath, imageUrl: imagePath }]));
     }

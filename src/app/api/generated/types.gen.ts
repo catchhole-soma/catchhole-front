@@ -7284,9 +7284,26 @@ export type GetPrivateWorldImagesData = {
     url: '/api/v1/works/{workId}/private-world-images';
 };
 
+export type GetPrivateWorldImagesErrors = {
+    /**
+     * 페이지 조건 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품이 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetPrivateWorldImagesError = GetPrivateWorldImagesErrors[keyof GetPrivateWorldImagesErrors];
+
 export type GetPrivateWorldImagesResponses = {
     /**
-     * OK
+     * 개인 이미지 목록 조회 성공
      */
     200: CommonResponsePageResponsePrivateWorldImageResponse;
 };
@@ -7306,9 +7323,34 @@ export type UploadPrivateWorldImageData = {
     url: '/api/v1/works/{workId}/private-world-images';
 };
 
+export type UploadPrivateWorldImageErrors = {
+    /**
+     * 암호문·메타데이터 오류, 보관함 없음 또는 이미지 개수 초과
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품이 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
+    /**
+     * 이미지 중복 또는 작품·이미지 상태 충돌
+     */
+    409: CommonErrorResponse;
+    /**
+     * 이미지 저장소 처리 실패
+     */
+    500: CommonErrorResponse;
+};
+
+export type UploadPrivateWorldImageError = UploadPrivateWorldImageErrors[keyof UploadPrivateWorldImageErrors];
+
 export type UploadPrivateWorldImageResponses = {
     /**
-     * OK
+     * 개인 이미지 저장 완료
      */
     200: CommonResponsePrivateWorldImageResponse;
 };
@@ -9595,7 +9637,7 @@ export type GetWorldImageCatalogData = {
         page?: number;
         size?: number;
     };
-    url: '/api/v1/world-image-catalog';
+    url: '/api/v1/world-image-catalogs';
 };
 
 export type GetWorldImageCatalogErrors = {
@@ -9607,6 +9649,10 @@ export type GetWorldImageCatalogErrors = {
      * 인증 필요
      */
     401: CommonErrorResponse;
+    /**
+     * 작품이 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
 };
 
 export type GetWorldImageCatalogError = GetWorldImageCatalogErrors[keyof GetWorldImageCatalogErrors];
@@ -9890,11 +9936,32 @@ export type GetPrivateWorldImageThumbnailData = {
     url: '/api/v1/works/{workId}/private-world-images/{imageId}/thumbnail';
 };
 
+export type GetPrivateWorldImageThumbnailErrors = {
+    /**
+     * 잘못된 식별자
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품·이미지가 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
+    /**
+     * 이미지 저장소 조회 실패
+     */
+    500: CommonErrorResponse;
+};
+
+export type GetPrivateWorldImageThumbnailError = GetPrivateWorldImageThumbnailErrors[keyof GetPrivateWorldImageThumbnailErrors];
+
 export type GetPrivateWorldImageThumbnailResponses = {
     /**
-     * OK
+     * 개인 이미지 썸네일 암호문 조회 성공
      */
-    200: string;
+    200: Blob | File;
 };
 
 export type GetPrivateWorldImageThumbnailResponse = GetPrivateWorldImageThumbnailResponses[keyof GetPrivateWorldImageThumbnailResponses];
@@ -9909,11 +9976,32 @@ export type GetPrivateWorldImageContentData = {
     url: '/api/v1/works/{workId}/private-world-images/{imageId}/image';
 };
 
+export type GetPrivateWorldImageContentErrors = {
+    /**
+     * 잘못된 식별자
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품·이미지가 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
+    /**
+     * 이미지 저장소 조회 실패
+     */
+    500: CommonErrorResponse;
+};
+
+export type GetPrivateWorldImageContentError = GetPrivateWorldImageContentErrors[keyof GetPrivateWorldImageContentErrors];
+
 export type GetPrivateWorldImageContentResponses = {
     /**
-     * OK
+     * 개인 이미지 암호문 조회 성공
      */
-    200: string;
+    200: Blob | File;
 };
 
 export type GetPrivateWorldImageContentResponse = GetPrivateWorldImageContentResponses[keyof GetPrivateWorldImageContentResponses];
@@ -10676,9 +10764,34 @@ export type DeletePrivateWorldImageData = {
     url: '/api/v1/works/{workId}/private-world-images/{imageId}';
 };
 
+export type DeletePrivateWorldImageErrors = {
+    /**
+     * 잘못된 식별자
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품·이미지가 없거나 소유자가 아님
+     */
+    404: CommonErrorResponse;
+    /**
+     * 사용 중이거나 업로드·작품 파기 진행 중
+     */
+    409: CommonErrorResponse;
+    /**
+     * 이미지 삭제 실패, 정리 재시도 예정
+     */
+    500: CommonErrorResponse;
+};
+
+export type DeletePrivateWorldImageError = DeletePrivateWorldImageErrors[keyof DeletePrivateWorldImageErrors];
+
 export type DeletePrivateWorldImageResponses = {
     /**
-     * OK
+     * 개인 이미지 삭제 완료
      */
     200: CommonResponseVoid;
 };

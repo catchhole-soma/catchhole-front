@@ -133,6 +133,8 @@ test('다회차의 자동 반영 정책을 안내하고 5단계를 URL에서 복
   await page.keyboard.press('ArrowRight');
   await expect(dialog).toContainText('직접 검토 선택은 단일 회차에서 제공돼요.');
   await page.keyboard.press('ArrowRight');
+  await expect(page).toHaveURL(/guideStep=3(?:&|$)/);
+  await expect(dialog.getByRole('heading', { name: '명확한 설정은 AI가 바로 반영해요' })).toBeVisible();
   await page.reload();
   await expect(dialog.getByRole('heading', { name: '명확한 설정은 AI가 바로 반영해요' })).toBeVisible();
   await page.keyboard.press('Escape');

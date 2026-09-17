@@ -34,7 +34,7 @@
 
 `GET /works/{workId}/world-image-theme`는 인증된 작품 소유자에게 `{theme, overview, defaults}`를 반환한다. 키는 기존 분류 enum이고 `overview`만 `ALL`이 있다. 실제 경로 앞에는 `/api/v1`이 붙는다.
 
-`GET /world-image-catalog`에 `workId`와 `recommended=true`를 보내면 작품 장르의 추천을 조회한다. `recommended=false` 또는 생략은 같은 분류 전체 도감이며 기존 캐릭터 호출과 호환된다. 추천 조회는 작품 ID가 필요하고, 전달한 작품 ID는 전체 조회에서도 소유권을 검증한다.
+`GET /world-image-catalogs`에 `workId`와 `recommended=true`를 보내면 작품 장르의 추천을 조회한다. `recommended=false` 또는 생략은 같은 분류 전체 도감이며 기존 캐릭터 호출과 호환된다. 추천 조회는 작품 ID가 필요하고, 전달한 작품 ID는 전체 조회에서도 소유권을 검증한다.
 
 `WorldImageThemeProvider`가 작품별 응답을 공유한다. 작품 정보 수정 성공 시 테마·세계관 목록/상세·해당 작품 추천 목록을 무효화한다. OpenAPI에서 생성한 SDK를 사용하며 경로는 공개 SHA 자산 API만 허용한다.
 

@@ -43,7 +43,7 @@ test('장르별 초기·기본 그림과 공용 추천·전체 도감 선택을 
       const detail = (await (await request.get(detailUrl, { headers })).json()).data;
       expect(detail.image).toMatchObject({ source: 'AUTO', version: 0, imageUrl: result.defaults.LOCATION.imageUrl });
       expect(detail.version).toBe(0);
-      const catalog = await request.get(`${api}/api/v1/world-image-catalog`, {
+      const catalog = await request.get(`${api}/api/v1/world-image-catalogs`, {
         headers, params: { workId, recommended: true, category: 'LOCATION', q: '숲' },
       });
       const forest = (await catalog.json()).data.content.find((item: { id: string }) => item.id === 'location-forest');
