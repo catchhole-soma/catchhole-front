@@ -58,6 +58,7 @@ import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
 import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
+import { AnalysisModeGuide } from './onboarding/AnalysisModeGuide';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -1444,6 +1445,8 @@ export default function SEpisodeUpload() {
                   onSelect={() => selectUploadType('MULTI_EPISODE_MULTI_FILE')}
                 />
               </div>
+
+              <AnalysisModeGuide active={Boolean(uploadType)} multiple={uploadType !== null && uploadType !== 'SINGLE_EPISODE'} disabled={submitting || detectEpisodesMutation.isPending} />
 
               {uploadPolicyQuery.isError && (
                 <div className="episode-upload-policy" role="status">

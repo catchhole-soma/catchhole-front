@@ -2384,6 +2384,42 @@ export type EmailVerificationConfirmResponse = {
 };
 
 /**
+ * 계정별 최초 분석 반영 방식 안내
+ */
+export type AnalysisGuideResponse = {
+    /**
+     * 분석 이력과 안내 노출 기록이 없으면 true. claim은 true인 요청만 자동 표시합니다.
+     */
+    shouldShow?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseAnalysisGuideResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: AnalysisGuideResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * 추가 AI 사용량 요청
  */
 export type AiTokenExtensionCreateRequest = {
@@ -7877,6 +7913,31 @@ export type ConfirmEmailVerificationResponses = {
 
 export type ConfirmEmailVerificationResponse = ConfirmEmailVerificationResponses[keyof ConfirmEmailVerificationResponses];
 
+export type ClaimMyAnalysisGuideData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analysis-mode-guide/claim';
+};
+
+export type ClaimMyAnalysisGuideErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+};
+
+export type ClaimMyAnalysisGuideError = ClaimMyAnalysisGuideErrors[keyof ClaimMyAnalysisGuideErrors];
+
+export type ClaimMyAnalysisGuideResponses = {
+    /**
+     * 안내 대상 또는 일회 노출 결과
+     */
+    200: CommonResponseAnalysisGuideResponse;
+};
+
+export type ClaimMyAnalysisGuideResponse = ClaimMyAnalysisGuideResponses[keyof ClaimMyAnalysisGuideResponses];
+
 export type CreateMyAiTokenExtensionRequestData = {
     body: AiTokenExtensionCreateRequest;
     path?: never;
@@ -10406,6 +10467,31 @@ export type GetMeResponses = {
 };
 
 export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
+export type GetMyAnalysisGuideData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analysis-mode-guide';
+};
+
+export type GetMyAnalysisGuideErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+};
+
+export type GetMyAnalysisGuideError = GetMyAnalysisGuideErrors[keyof GetMyAnalysisGuideErrors];
+
+export type GetMyAnalysisGuideResponses = {
+    /**
+     * 안내 대상 또는 일회 노출 결과
+     */
+    200: CommonResponseAnalysisGuideResponse;
+};
+
+export type GetMyAnalysisGuideResponse = GetMyAnalysisGuideResponses[keyof GetMyAnalysisGuideResponses];
 
 export type GetMyAiTokenUsageData = {
     body?: never;

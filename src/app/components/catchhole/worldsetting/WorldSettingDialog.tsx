@@ -1,11 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode, type KeyboardEventHandler } from 'react';
 import { X } from 'lucide-react';
 
 /** Shared world-setting dialog: keeps focus and scrolling inside the active layer. */
 export function WorldSettingDialog({
   title, description, children, onClose, pending = false, className = '',
-  modal = true, role = 'dialog', returnFocusId,
+  modal = true, role = 'dialog', returnFocusId, onKeyDown,
 }: {
   title: string;
   description?: string;
@@ -16,6 +16,7 @@ export function WorldSettingDialog({
   modal?: boolean;
   role?: 'dialog' | 'alertdialog';
   returnFocusId?: string;
+  onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
 }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -27,6 +28,7 @@ export function WorldSettingDialog({
           <Dialog.Overlay className="world-setting-dialog-backdrop" />
           <Dialog.Content
             role={role}
+            onKeyDown={onKeyDown}
             className={`database-modal world-setting-dialog ${className}`}
             {...(description ? {} : { 'aria-describedby': undefined })}
             onOpenAutoFocus={event => {

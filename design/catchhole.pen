@@ -448444,6 +448444,42 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideDesktop",
+      "x": 90600,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / First Analysis Guide",
+      "context": "계정 전체 첫 분석 전 1회 안내. 실제 V64 로컬 서버 격리 계정 화면. 예시 2/4: 자동 저장 2건·직접 확인 1건, 수동 저장 0건·확인 3건. 방향키/확정 실습은 실제 작품을 변경하지 않음. 모바일은 탭 비교.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideMobile",
+      "x": 92140,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Mobile / First Analysis Guide",
+      "context": "계정 전체 첫 분석 전 1회 안내. 실제 V64 로컬 서버 격리 계정 화면. 예시 2/4: 자동 저장 2건·직접 확인 1건, 수동 저장 0건·확인 3건. 방향키/확정 실습은 실제 작품을 변경하지 않음. 모바일은 탭 비교.",
+      "clip": true,
+      "width": 320,
+      "height": 568,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-mobile.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
     }
   ],
   "variables": {
