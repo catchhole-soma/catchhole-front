@@ -21,7 +21,7 @@
 - `PrivateSubjectImage`: 인증된 SDK로 암호문을 받고 메모리에서 Blob URL 생성. Query cache에는 암호문만 저장한다. URL은 키 변경/언마운트 때 revoke한다.
 - SDK는 Backend OpenAPI에서 자동 생성했다. multipart JSON metadata의 Content-Type은 업로드 요청의 bodySerializer로 지정한다. 생성 파일은 직접 수정하지 않는다.
 - `e2e/private-images.spec.ts`는 실제 브라우저 암호화, 변조·잘못된 키·다른 대상 AAD 거절과 세션 키 제거를 검증한다.
-- `e2e/private-images-live.spec.ts`는 보관함 없는 일회용 계정으로 실제 업로드/선택/잠금/복구/삭제를 검증한다. `CATCHHOLE_E2E_API_BASE_URL`, `CATCHHOLE_PRIVATE_E2E_EMAIL`, `CATCHHOLE_PRIVATE_E2E_PASSWORD`가 필요하다. 일반 사용자 계정으로 실행하지 않는다. 테스트 작품은 finally에서 purge한다.
+- `e2e/private-images-live.spec.ts`는 보관함 없는 일회용 계정으로 실제 업로드/선택/잠금/복구/삭제를 검증한다. 공통 로컬 fixture의 API·DB·seed 계정 환경 변수를 사용한다. 일반 사용자 계정으로 실행하지 않으며 테스트 작품과 생성 계정은 fixture 종료 시 정리한다.
 
 Backend 프로토콜·위협 범위·V59 명세는 Java 저장소 `docs/private-world-images.md`에 정리했다. `/demo`에는 보관함/API를 연결하지 않는다.
 
@@ -35,3 +35,5 @@ Backend 프로토콜·위협 범위·V59 명세는 Java 저장소 `docs/private-
 ## 캐릭터와 함께 사용
 
 같은 작품의 캐릭터 이미지 선택에서도 이 보관함·업로드·조회 API와 CHI1 계약을 재사용한다. 서버 경로/저장 키는 호환성을 위해 유지한다. 개인 이미지 삭제는 세계관과 캐릭터 선택을 모두 확인한다. 자세한 선택 우선순위와 V60은 [캐릭터 이미지](character-images.md)를 참고한다.
+
+실서버 테스트의 계정 준비·반복 실행·정리는 [공통 로컬 fixture 안내](local-image-live-tests.md)를 따른다. 이전의 고정 계정·작품 ID 환경 변수 대신 실행마다 새 상태를 준비한다.

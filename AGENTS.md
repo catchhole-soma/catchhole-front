@@ -185,3 +185,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - GH194 장르별 초기 8장·기본 7장은 작품 소유권을 검증한 `world-image-theme` API로 조회한다. 추천은 `workId`/`recommended`로 필터링하고 전체 도감에서는 타 장르도 선택할 수 있다. 로맨스·코미디·일상·기타는 modern-common을 공유한다. 작품 수정은 관련 Query를 무효화하되 수동/개인 선택을 재저장하지 않는다. 자세한 계약은 `docs/world-image-themes.md`를 따른다.
 
 - GH194 V63부터 캐릭터·세계관 자동 이미지는 확정/수정 시 Backend에 저장된다. FE는 image 응답만 사용한다. 세계관 자동 복귀는 useAutomatic=true, 기본 고정은 기존 null 선택 요청이며 직접 선택과 자동 상태를 구분한다.
+
+- GH194 개인 이미지·캐릭터 이미지·최초 안내 live E2E는 계정당 한 번인 상태를 검증하므로 `e2e/local-live-fixture.ts`와 `scripts/local-live-account.py`로 실행마다 별도 로컬 계정을 준비한다. 회원가입은 호출하지 않고 사전 인증된 전용 seed 계정의 해시를 복사한다. localhost API와 명시한 로컬 테스트 DB만 허용하고 생성한 작품·계정은 fixture 종료 시 정리한다. 환경 변수와 반복 실행 방법은 `docs/local-image-live-tests.md`를 따른다.

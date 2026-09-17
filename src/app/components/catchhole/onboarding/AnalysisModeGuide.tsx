@@ -22,6 +22,8 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
   const rawStep = Number(params.get('guideStep') ?? 1);
   const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= 5 ? rawStep - 1 : 0;
   const attempted = useRef(false);
+  const manualAttempted = useRef(false);
+  const recorded = useRef(false);
   const scopedKey = { ...getMyAnalysisGuideQueryKey()[0], memberId };
   const queryKey: ReturnType<typeof getMyAnalysisGuideQueryKey> = [scopedKey];
   const prompt = useQuery({
@@ -31,6 +33,7 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
   });
   const { mutateAsync: claim } = useMutation({ ...claimMyAnalysisGuideMutation(), retry: false });
   const rememberAttempt = useCallback(() => {
+    recorded.current = true;
     client.setQueryData([{ ...getMyAnalysisGuideQueryKey()[0], memberId }], { success: true, data: { shouldShow: false } });
   }, [client, memberId]);
   const show = useCallback((automatic: boolean) => {
@@ -59,7 +62,8 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
 
   // 도움말·직접 링크로 이미 본 사람에게도 자동 안내를 다시 띄우지 않는다.
   useEffect(() => {
-    if (!open || !memberId || attempted.current) return;
+    if (!open || !memberId || recorded.current || manualAttempted.current) return;
+    manualAttempted.current = true;
     attempted.current = true;
     void claim({}).then(rememberAttempt).catch(() => { /* 수동 안내는 노출 기록 실패와 무관하게 사용할 수 있다. */ });
   }, [open, memberId, claim, rememberAttempt]);

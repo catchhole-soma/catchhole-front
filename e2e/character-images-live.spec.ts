@@ -1,13 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './local-live-fixture';
 
-const api = process.env.CATCHHOLE_E2E_API_BASE_URL;
-const email = process.env.CATCHHOLE_PRIVATE_E2E_EMAIL;
-const password = process.env.CATCHHOLE_PRIVATE_E2E_PASSWORD;
-const workId = process.env.CATCHHOLE_CHARACTER_E2E_WORK_ID;
-const characterId = process.env.CATCHHOLE_CHARACTER_E2E_CHARACTER_ID;
 
-test('캐릭터 카드·종족 선택·개인 보관함 공유를 실제 서버에 연결한다', async ({ page, request }) => {
-  test.skip(!api || !email || !password || !workId || !characterId, '격리된 로컬 캐릭터 이미지 fixture가 필요합니다.');
+test('캐릭터 카드·종족 선택·개인 보관함 공유를 실제 서버에 연결한다', async ({ page, request, liveAccount }) => {
+  const { api, email, password, workId, characterId } = liveAccount;
   test.setTimeout(120_000);
   const login = await request.post(`${api}/api/v1/auth/login`, { data: { email, password } });
   expect(login.ok()).toBeTruthy();

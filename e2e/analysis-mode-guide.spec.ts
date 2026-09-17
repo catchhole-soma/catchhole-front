@@ -2,10 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const otherWorkId = '22222222-2222-4222-8222-222222222222';
-async function setup(page: Page, { eligible = true, fail = false, claimEligible = true } = {}) {
+async function setup(page: Page, { eligible = true, fail = false, claimEligible = true, failFirstClaim = false } = {}) {
   const mutations: string[] = [];
   const requests: string[] = [];
   let consumed = false;
+  let claims = 0;
   await page.route('**/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
@@ -18,6 +19,7 @@ async function setup(page: Page, { eligible = true, fail = false, claimEligible 
       if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false }) });
       data = { shouldShow: eligible && !consumed };
     } else if (path.endsWith('/analysis-mode-guide/claim')) {
+      if (failFirstClaim && claims++ === 0) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false }) });
       data = { shouldShow: eligible && claimEligible && !consumed }; consumed = true;
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
@@ -168,4 +170,19 @@ test('320px에서 단계 바는 한 줄이고 실제 컴포넌트가 재배치�
   await expect(steps.getByRole('button', { name: /5.*검토 완료/ })).toBeInViewport();
   expect(Math.round((await dialog.getByRole('button', { name: '알겠어요' }).boundingBox())!.height)).toBeGreaterThanOrEqual(44);
   await expect(dialog.getByRole('button', { name: '알겠어요' })).toBeInViewport();
+});
+
+
+test('자동 기록 실패 뒤 수동으로 본 안내도 계정에 기록한다', async ({ page }) => {
+  const { mutations } = await setup(page, { failFirstClaim: true });
+  await enter(page);
+  await expect.poll(() => mutations.filter(path => path.endsWith('/claim')).length).toBe(1);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '두 방식의 차이 보기', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect.poll(() => mutations.filter(path => path.endsWith('/claim')).length).toBe(2);
+  await page.reload();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });

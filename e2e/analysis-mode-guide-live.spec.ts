@@ -1,12 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './local-live-fixture';
 import { purgeWorkAndWait } from './live-work-purge';
 
-const api = process.env.CATCHHOLE_E2E_API_BASE_URL;
-const email = process.env.CATCHHOLE_GUIDE_E2E_EMAIL;
-const password = process.env.CATCHHOLE_GUIDE_E2E_PASSWORD;
 
-test('첫 분석 안내는 실제 계정에 한 번 기록하고 예시 화면 탐색은 실제 작품에 저장하지 않는다', async ({ page, request }) => {
-  test.skip(!api || !email || !password, '분석 이력 없는 격리 계정과 로컬 서버가 필요합니다.');
+test('첫 분석 안내는 실제 계정에 한 번 기록하고 예시 화면 탐색은 실제 작품에 저장하지 않는다', async ({ page, request, liveAccount }) => {
+  const { api, email, password } = liveAccount;
   const login = await request.post(`${api}/api/v1/auth/login`, { data: { email, password } });
   expect(login.ok()).toBeTruthy();
   const token = (await login.json()).data.accessToken;

@@ -37,6 +37,8 @@
 ## 검증과 디자인
 
 - `e2e/analysis-mode-guide.spec.ts`: 계정 1회, 새 작품/새로고침, 오류/동시 선점, 수동 도움말, 5단계 URL 복원, 한 줄 바, 방향키·초점 유지, 실제 DOM·PNG 부재, 예시 이벤트 차단, 업로드 선택 보존, 320px 본문 스크롤·재배치·44px 버튼.
-- `e2e/analysis-mode-guide-live.spec.ts`: 격리 계정용 `CATCHHOLE_GUIDE_E2E_EMAIL/PASSWORD`와 `CATCHHOLE_E2E_API_BASE_URL`이 있을 때 실제 Java/PostgreSQL 안내 기록 및 캐릭터·세계관·분석 미생성을 검증하고 fixture를 정리한다.
+- `e2e/analysis-mode-guide-live.spec.ts`: 공통 로컬 fixture 환경 변수가 있을 때 실제 Java/PostgreSQL 안내 기록 및 캐릭터·세계관·분석 미생성을 검증하고 fixture를 정리한다.
 - Pencil: `gh194AnalysisGuideDesktop`, `gh194AnalysisGuideManualDesktop`, `gh194AnalysisGuideExceptionDesktop`, `gh194AnalysisGuideMobile`. `docs/screens/gh194/analysis-guide-*.png`는 리뷰 기록용으로만 쓰며 제품의 안내 UI에는 로드하지 않는다.
 - 서버 구현·V64·계정 이력 보존은 Java의 `docs/analysis-mode-guide.md`를 따른다. 이번 안내 표현 변경에는 새 API·migration이 필요하지 않다.
+
+실서버 테스트의 계정 준비·반복 실행·정리는 [공통 로컬 fixture 안내](local-image-live-tests.md)를 따른다. 이전의 고정 계정·작품 ID 환경 변수 대신 실행마다 새 상태를 준비한다.

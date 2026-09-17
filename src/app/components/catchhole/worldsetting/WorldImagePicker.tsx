@@ -107,7 +107,7 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
             <div className="world-image-picker__grid" aria-label="대표 이미지 도감">
               {entries?.content?.map(entry => <button key={entry.id} type="button" className="world-image-picker__option"
                 aria-label={`${entry.name} 이미지 선택`} aria-pressed={selection?.id === entry.id} disabled={pending} onClick={() => { setSelection(entry); setPrivateId(undefined); setUseDefault(false); }}>
-                <WorldSubjectImage category={category} path={entry.thumbnailUrl} />
+          <WorldSubjectImage category={category} path={entry.thumbnailUrl} fallbackSrc={character ? CHARACTER_DEFAULT_IMAGE : undefined} />
                 <span>{entry.name}{selection?.id === entry.id && <Check size={15} aria-hidden="true" />}</span>
               </button>)}
             </div>

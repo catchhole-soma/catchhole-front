@@ -7572,12 +7572,21 @@ export type GetPrivateImageVaultData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/private-image-vault';
+    url: '/api/v1/private-image-vaults';
 };
+
+export type GetPrivateImageVaultErrors = {
+    /**
+     * 로그인 필요
+     */
+    401: CommonErrorResponse;
+};
+
+export type GetPrivateImageVaultError = GetPrivateImageVaultErrors[keyof GetPrivateImageVaultErrors];
 
 export type GetPrivateImageVaultResponses = {
     /**
-     * OK
+     * 보관함 조회 성공, 없으면 data=null
      */
     200: CommonResponsePrivateImageVaultResponse;
 };
@@ -7588,12 +7597,29 @@ export type CreatePrivateImageVaultData = {
     body: PrivateImageVaultCreateRequest;
     path?: never;
     query?: never;
-    url: '/api/v1/private-image-vault';
+    url: '/api/v1/private-image-vaults';
 };
+
+export type CreatePrivateImageVaultErrors = {
+    /**
+     * 입력 또는 검증 암호문 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 로그인 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 이미 다른 보관함이 존재함
+     */
+    409: CommonErrorResponse;
+};
+
+export type CreatePrivateImageVaultError = CreatePrivateImageVaultErrors[keyof CreatePrivateImageVaultErrors];
 
 export type CreatePrivateImageVaultResponses = {
     /**
-     * OK
+     * 보관함 생성 또는 동일 요청 재시도 성공
      */
     200: CommonResponsePrivateImageVaultResponse;
 };

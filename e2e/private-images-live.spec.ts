@@ -1,19 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './local-live-fixture';
 import { purgeWorkAndWait } from './live-work-purge';
 
-const api = process.env.CATCHHOLE_E2E_API_BASE_URL;
 // Dedicated disposable account: this test creates a vault and never uses an author's recovery key.
-const email = process.env.CATCHHOLE_PRIVATE_E2E_EMAIL;
-const password = process.env.CATCHHOLE_PRIVATE_E2E_PASSWORD;
-test('개인 이미지 생성·업로드·선택·잠금·복구·삭제를 실제 서버에 연결한다', async ({ page, request }) => {
-  test.skip(!api || !email || !password, '보관함이 없는 일회용 로컬 테스트 계정이 필요합니다.');
+test('개인 이미지 생성·업로드·선택·잠금·복구·삭제를 실제 서버에 연결한다', async ({ page, request, liveAccount }) => {
+  const { api, email, password } = liveAccount;
   test.setTimeout(90_000);
   const login = await request.post(`${api}/api/v1/auth/login`, { data: { email, password } });
   expect(login.ok()).toBeTruthy();
   const token = (await login.json()).data.accessToken;
   const authorization = `Bearer ${token}`;
   const headers = { Authorization: authorization };
-  const existing = await request.get(`${api}/api/v1/private-image-vault`, { headers });
+  const existing = await request.get(`${api}/api/v1/private-image-vaults`, { headers });
   expect((await existing.json()).data).toBeNull();
   const created = await request.post(`${api}/api/v1/works`, { headers, data: { title: '암호화 이미지 검증', genre: '판타지', description: '일회용 테스트' } });
   expect(created.ok()).toBeTruthy();

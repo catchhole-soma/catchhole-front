@@ -1,18 +1,26 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LockKeyhole } from 'lucide-react';
 import { createPrivateImageVaultMutation, getPrivateImageVaultOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import { createPrivateImageVault, openPrivateImageVault } from '../../../lib/private-image-crypto';
-import { clearPrivateImageKeys, privateImageSessionEpoch, unlockPrivateImageKey } from '../../../lib/private-image-keys';
+import { clearPrivateImageKeys, privateImageSessionEpoch, subscribePrivateImageKeys, unlockPrivateImageKey } from '../../../lib/private-image-keys';
 import { toApiError } from '../../../lib/api-errors';
 import { usePrivateImageKey } from '../../../lib/use-private-image-key';
 
 type NewVault = Awaited<ReturnType<typeof createPrivateImageVault>>;
-export function PrivateImageVaultGate({ children, onBusy, pending }: {
+type VaultGateProps = {
   children: (vaultId: string, key: CryptoKey) => ReactNode;
   onBusy: (busy: boolean) => void;
   pending: boolean;
-}) {
+};
+
+export function PrivateImageVaultGate(props: VaultGateProps) {
+  const sessionEpoch = useSyncExternalStore(subscribePrivateImageKeys, privateImageSessionEpoch);
+  // 계정 변경·잠금 시 코드와 준비 초안까지 함께 폐기한다.
+  return <PrivateImageVaultSession key={sessionEpoch} {...props} sessionEpoch={sessionEpoch} />;
+}
+
+function PrivateImageVaultSession({ children, onBusy, pending, sessionEpoch }: VaultGateProps & { sessionEpoch: number }) {
   const queryClient = useQueryClient();
   const vault = useQuery(getPrivateImageVaultOptions());
   const current = vault.data?.data;
@@ -52,7 +60,7 @@ export function PrivateImageVaultGate({ children, onBusy, pending }: {
     finally { endAction(); }
   }
   async function handleCreate() {
-    if (!draft) return;
+    if (!draft || privateImageSessionEpoch() !== sessionEpoch) return;
     const epoch = beginAction();
     try {
       await mutation.mutateAsync({ body: { id: draft.id, keyCheck: draft.keyCheck } });

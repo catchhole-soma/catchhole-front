@@ -36,3 +36,5 @@ Style: refined semi-realistic fantasy concept art, subtle natural light, atmosph
 Composition: centered large silhouette, plenty of breathing room, readily legible at 110px thumbnail, comfortable square and portrait crops. Restrained cool grey-blue midtones with a little warm light; clear tonal separation without dramatic blackness.
 Constraints: single image, no text, no lettering, no watermark, no border, no multi-panel layout.
 ```
+
+실서버 테스트의 계정 준비·반복 실행·정리는 [공통 로컬 fixture 안내](local-image-live-tests.md)를 따른다. 이전의 고정 계정·작품 ID 환경 변수 대신 실행마다 새 상태를 준비한다.

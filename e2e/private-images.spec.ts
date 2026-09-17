@@ -52,3 +52,26 @@ test('세션 종료나 다른 탭의 계정 변경은 메모리 키를 지우고
   });
   expect(result).toEqual({ opened: 1, remaining: 0, lateRejected: true });
 });
+
+test('다른 탭에서 계정을 바꾸면 준비한 보관용 코드와 생성 초안도 폐기한다', async ({ page }) => {
+  const creations: string[] = [];
+  await page.route('**/api/v1/private-image-vaults', async route => {
+    if (route.request().method() === 'POST') creations.push(route.request().postDataJSON().id);
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+  });
+  await page.goto('/login');
+  await page.evaluate(async () => {
+    const path = '/e2e/fixtures/private-image-vault.tsx';
+    (await import(/* @vite-ignore */ path)).mountVaultGate();
+  });
+  await page.getByRole('button', { name: '내 이미지 시작하기', exact: true }).click();
+  const originalCode = await page.getByLabel('내 보관용 코드', { exact: true }).inputValue();
+  await page.getByRole('checkbox', { name: '코드를 안전한 곳에 저장했어요.' }).check();
+  await page.evaluate(() => window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: 'changed-account' })));
+  await expect(page.getByLabel('내 보관용 코드', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '보관함 사용하기', exact: true })).toHaveCount(0);
+  expect(creations).toHaveLength(0);
+  await page.getByRole('button', { name: '내 이미지 시작하기', exact: true }).click();
+  await expect(page.getByLabel('내 보관용 코드', { exact: true })).not.toHaveValue(originalCode);
+  await expect(page.getByRole('button', { name: '보관함 사용하기', exact: true })).toBeDisabled();
+});
