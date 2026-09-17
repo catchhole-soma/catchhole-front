@@ -621,7 +621,7 @@ function EvidenceButton({
   );
 }
 
-function SimpleSettingList({
+export function SimpleSettingList({
   settings,
   emptyLabel,
   columns = 1,

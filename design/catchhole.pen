@@ -448451,7 +448451,7 @@
       "x": 90600,
       "y": 31174,
       "name": "Active / GH194 / Upload / First Analysis Guide",
-      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -448469,7 +448469,7 @@
       "x": 92140,
       "y": 31174,
       "name": "Active / GH194 / Upload / Mobile / First Analysis Guide",
-      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
       "clip": true,
       "width": 320,
       "height": 568,
@@ -448487,7 +448487,7 @@
       "x": 92600,
       "y": 31174,
       "name": "Active / GH194 / Upload / Manual Review Guide",
-      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -448495,6 +448495,24 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-manual-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideExceptionDesktop",
+      "x": 94150,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Automatic Review Exception",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-exception-desktop.png",
         "mode": "fit"
       },
       "layout": "vertical"

@@ -20,7 +20,7 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
   const memberId = member.data?.data?.id;
   const open = params.get('guide') === 'analysis-mode';
   const rawStep = Number(params.get('guideStep') ?? 1);
-  const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= 4 ? rawStep - 1 : 0;
+  const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= 5 ? rawStep - 1 : 0;
   const attempted = useRef(false);
   const scopedKey = { ...getMyAnalysisGuideQueryKey()[0], memberId };
   const queryKey: ReturnType<typeof getMyAnalysisGuideQueryKey> = [scopedKey];
@@ -68,9 +68,7 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
     {active && <button type="button" className="analysis-mode-guide-trigger" disabled={disabled} onClick={() => show(false)}>
       <CircleHelp size={16} aria-hidden="true" />{multiple ? '자동 반영 과정 보기' : '두 방식의 차이 보기'}
     </button>}
-    {open && <AnalysisModeGuideDialog mode={params.get('guideMode') === 'manual' ? 'manual' : 'automatic'} onModeChange={mode => {
-      setParams(current => { const next = new URLSearchParams(current); next.set('guideMode', mode); return next; }, { replace: true, preventScrollReset: true });
-    }} multiple={params.get('guideVariant') === 'multiple'} step={step} onStepChange={nextStep => {
+    {open && <AnalysisModeGuideDialog multiple={params.get('guideVariant') === 'multiple'} step={step} onStepChange={nextStep => {
       setParams(current => { const next = new URLSearchParams(current); next.set('guideStep', String(nextStep + 1)); return next; }, { replace: true, preventScrollReset: true });
     }} onClose={() => {
       setParams(current => { const next = new URLSearchParams(current); next.delete('guide'); next.delete('guideStep'); next.delete('guideVariant'); next.delete('guideMode'); return next; }, { replace: true, preventScrollReset: true });

@@ -437,7 +437,7 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
   );
 }
 
-function CandidateGroupCard({
+export function CandidateGroupCard({
   group,
   selected,
   disabled = false,
@@ -489,7 +489,7 @@ function CandidateGroupCard({
   );
 }
 
-function ActionButton({
+export function ActionButton({
   children,
   disabled = false,
   disabledTitle,
@@ -1030,7 +1030,7 @@ function CharacterMatchModal({
   );
 }
 
-function CandidateDetail({
+export function CandidateDetail({
   candidate,
   applicationMode,
   actionError,
@@ -1277,7 +1277,7 @@ function CandidateDetail({
   );
 }
 
-function QueryState({
+export function QueryState({
   icon,
   title,
   description,
