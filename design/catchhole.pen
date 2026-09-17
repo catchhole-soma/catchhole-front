@@ -448451,7 +448451,7 @@
       "x": 90600,
       "y": 31174,
       "name": "Active / GH194 / Upload / First Analysis Guide",
-      "context": "계정 전체 첫 분석 전 1회 안내. 실제 V64 로컬 서버 격리 계정 화면. 예시 2/4: 자동 저장 2건·직접 확인 1건, 수동 저장 0건·확인 3건. 방향키/확정 실습은 실제 작품을 변경하지 않음. 모바일은 탭 비교.",
+      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -448469,7 +448469,7 @@
       "x": 92140,
       "y": 31174,
       "name": "Active / GH194 / Upload / Mobile / First Analysis Guide",
-      "context": "계정 전체 첫 분석 전 1회 안내. 실제 V64 로컬 서버 격리 계정 화면. 예시 2/4: 자동 저장 2건·직접 확인 1건, 수동 저장 0건·확인 3건. 방향키/확정 실습은 실제 작품을 변경하지 않음. 모바일은 탭 비교.",
+      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
       "clip": true,
       "width": 320,
       "height": 568,
@@ -448477,6 +448477,24 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-mobile.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideManualDesktop",
+      "x": 92600,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Manual Review Guide",
+      "context": "계정 전체 첫 분석 전 1회 안내. 최대 1320px 모달에서 실제 업로드·검토 UI의 예시 캡처를 표시. 자동은 미확인 1개, 직접 검토는 전체 3개. 모든 크기에서 탭 비교하며 모바일 캡처를 별도 사용. 입력·확정 실습 없이 이전·다음으로 탐색.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-manual-desktop.png",
         "mode": "fit"
       },
       "layout": "vertical"

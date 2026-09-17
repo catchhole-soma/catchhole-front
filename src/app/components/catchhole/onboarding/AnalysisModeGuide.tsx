@@ -36,7 +36,7 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
   const show = useCallback((automatic: boolean) => {
     setParams(current => {
       const next = new URLSearchParams(current);
-      next.set('guide', 'analysis-mode'); next.set('guideStep', '1');
+      next.set('guide', 'analysis-mode'); next.set('guideStep', '1'); next.delete('guideMode');
       if (multiple) next.set('guideVariant', 'multiple'); else next.delete('guideVariant');
       return next;
     }, { replace: automatic, preventScrollReset: true });
@@ -61,17 +61,19 @@ export function AnalysisModeGuide({ multiple, disabled, active }: { multiple: bo
   useEffect(() => {
     if (!open || !memberId || attempted.current) return;
     attempted.current = true;
-    void claim({}).then(rememberAttempt).catch(() => { /* 수동 체험은 안내 기록 실패와 무관하게 사용할 수 있다. */ });
+    void claim({}).then(rememberAttempt).catch(() => { /* 수동 안내는 노출 기록 실패와 무관하게 사용할 수 있다. */ });
   }, [open, memberId, claim, rememberAttempt]);
 
   return <>
     {active && <button type="button" className="analysis-mode-guide-trigger" disabled={disabled} onClick={() => show(false)}>
-      <CircleHelp size={16} aria-hidden="true" />{multiple ? '자동 반영 과정 체험하기' : '두 방식의 차이 체험하기'}
+      <CircleHelp size={16} aria-hidden="true" />{multiple ? '자동 반영 과정 보기' : '두 방식의 차이 보기'}
     </button>}
-    {open && <AnalysisModeGuideDialog multiple={params.get('guideVariant') === 'multiple'} step={step} onStepChange={nextStep => {
+    {open && <AnalysisModeGuideDialog mode={params.get('guideMode') === 'manual' ? 'manual' : 'automatic'} onModeChange={mode => {
+      setParams(current => { const next = new URLSearchParams(current); next.set('guideMode', mode); return next; }, { replace: true, preventScrollReset: true });
+    }} multiple={params.get('guideVariant') === 'multiple'} step={step} onStepChange={nextStep => {
       setParams(current => { const next = new URLSearchParams(current); next.set('guideStep', String(nextStep + 1)); return next; }, { replace: true, preventScrollReset: true });
     }} onClose={() => {
-      setParams(current => { const next = new URLSearchParams(current); next.delete('guide'); next.delete('guideStep'); next.delete('guideVariant'); return next; }, { replace: true, preventScrollReset: true });
+      setParams(current => { const next = new URLSearchParams(current); next.delete('guide'); next.delete('guideStep'); next.delete('guideVariant'); next.delete('guideMode'); return next; }, { replace: true, preventScrollReset: true });
     }} />}
   </>;
 }

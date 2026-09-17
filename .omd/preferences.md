@@ -478,3 +478,19 @@ source_context: "Java issue #196; AppSidebar.tsx; FeedbackDialog.tsx"
 Remove the workspace remaining-usage display, emphasize feedback with a visible mobile label, and invite experienced users once per account; lower the general feedback minimum to accept shorter opinions.
 
 This supersedes the prior workspace usage-gauge preference for this surface. The approved trigger is at least three actual uploaded episodes across active works, excluding prior feedback authors, shown on the manuscript list after activity settles. The user requested a lower minimum; 10 Unicode characters after trimming is the implementation choice. Quota-exhaustion requests retain their separate policy.
+
+
+## 2026-09-17 — analysis-guide-real-screens
+
+```omd-meta
+id: pref_gh194_analysis_guide_real_screens
+timestamp: 2026-09-17
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "AnalysisModeGuideDialog.tsx; GH194"
+```
+
+첫 분석 안내 모달은 더 크게 표시하고 실제 업로드·검토 화면으로 두 방식의 차이를 보여 준다. 자동 반영은 미확인 하나만, 직접 검토는 모든 설정을 확인하는 모습을 표시한다. 사용자가 대상을 고르거나 확정하는 실습 이벤트를 요구하지 않는다. 단계와 비교 방식 탐색만 제공한다.

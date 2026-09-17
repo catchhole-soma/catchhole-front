@@ -22,7 +22,7 @@ npm run doctor
 
 ## OpenAPI와 생성 코드
 
-- 최초 분석 방식 안내는 계정 전체 기준이다. `analysis-mode-guide` 조회/선점 API의 결과만 자동 노출에 사용하고 브라우저 저장소나 현재 작품의 개수로 대체하지 않는다. 한 번 선점한 뒤에는 수동 도움말만 제공한다. 안내 내부의 명시적 예시는 메모리에서만 확정하며 실제 분석·설정 변경과 업로드 선택은 유지한다. 상세 계약은 `docs/analysis-mode-guide.md`를 따른다.
+- 최초 분석 방식 안내는 계정 전체 기준이다. `analysis-mode-guide` 조회/선점 API의 결과만 자동 노출에 사용하고 브라우저 저장소나 현재 작품의 개수로 대체하지 않는다. 한 번 선점한 뒤에는 수동 도움말만 제공한다. 안내 내부는 실제 업로드·검토 UI의 예시 캡처를 단계별로 보여주는 읽기 전용 화면이다. 대상 선택·확정 실습이나 실제 분석·설정 변경 요청을 넣지 않고 기존 업로드 선택을 유지한다. 상세 계약은 `docs/analysis-mode-guide.md`를 따른다.
 
 - 백엔드 Swagger/OpenAPI가 API 계약의 단일 출처입니다.
 - Hey API 설정은 `openapi-ts.config.ts`, 런타임 설정은 `src/app/api/client-config.ts`에 둡니다.

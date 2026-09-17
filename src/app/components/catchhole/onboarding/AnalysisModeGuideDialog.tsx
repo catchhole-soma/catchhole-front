@@ -1,110 +1,95 @@
-import { useState, type KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, FileText, RotateCcw } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 import { WorldSettingDialog } from '../worldsetting/WorldSettingDialog';
+import { GUIDE_SCREENS, type GuideMode } from './analysis-guide-screens';
 import './analysis-mode-guide.css';
 
-const STEPS = ['원고', '분석 결과', '직접 확인', '저장 결과'];
-type Mode = 'automatic' | 'manual';
-const EXAMPLE_SETTINGS = [
-  { subject: '레온', name: '종족', value: '엘프' },
-  { subject: '은빛숲', name: '위치', value: '왕국 북부' },
-  { subject: '대상 미확인', name: '능력', value: '상처 치유' },
-];
+const STEPS = ['반영 방식', '분석 결과', '검토 화면', '확정 후'];
+const MODES: GuideMode[] = ['automatic', 'manual'];
+const MODE_LABELS = { automatic: 'AI 판단으로 설정 자동 반영', manual: '모든 설정 직접 검토' };
+const SCENES = {
+  automatic: [
+    { title: '명확한 설정은 AI가 먼저 반영해요', description: '분석 전에 자동 반영을 선택한 화면이에요. 확인이 필요한 설정만 나중에 직접 검토해요.', alt: '설정 반영 방식에서 AI 판단으로 설정 자동 반영을 선택한 실제 업로드 화면.' },
+    { title: '명확한 2개는 저장되고, 미확인 1개만 남아요', description: '레온의 종족·직업은 이미 반영됐어요. 누구의 치유 능력인지 확인할 1개만 미처리 목록에 보여요.', alt: '실제 검토 목록: 반영됨 2개, 제외됨 0개, 직접 확인 1개. 미처리 목록에는 치유 능력 1개만 표시된다.' },
+    { title: '남은 1개만 원문과 대상을 확인해요', description: '원문에서 “그”가 누구인지 확인하고 캐릭터를 연결하는 화면이에요. 이미 저장된 종족·직업은 다시 확정할 필요가 없어요.', alt: '실제 캐릭터 검토 상세: 치유 능력 1개, 원문 근거와 캐릭터 연결 확인, 1개 설정을 함께 확정하는 영역.' },
+    { title: '남은 1개까지 확정하면 검토가 끝나요', description: '치유 능력의 대상을 직접 확인해 확정한 뒤의 예시예요. 총 3개가 반영되고 직접 확인할 설정은 0개가 돼요.', alt: '실제 검토 완료 화면: 반영됨 3개, 직접 확인 0개. 모든 설정 후보 검토를 완료했으며 원고 목록으로 이동할 수 있다.' },
+  ],
+  manual: [
+    { title: '모든 설정을 내가 확인한 뒤 반영해요', description: '분석 전에 직접 검토를 선택한 화면이에요. AI 판단이 명확해도 내가 확정하기 전에는 작품에 저장되지 않아요.', alt: '설정 반영 방식에서 모든 설정 직접 검토를 선택한 실제 업로드 화면.' },
+    { title: '아직 저장된 설정 없이, 3개 모두 남아요', description: '레온의 종족·직업·치유 능력이 모두 미처리 목록에 있어요. 명확한 설정도 직접 살펴보고 확정해야 해요.', alt: '실제 검토 목록: 반영됨 0개, 제외됨 0개, 직접 확인 3개. 종족, 직업, 치유 능력이 모두 검토 대상이다.' },
+    { title: '3개 설정을 모두 살펴보고 확정해요', description: '각 설정의 원문과 AI 비교 결과를 확인해요. 모호한 대상도 연결한 다음, 같은 캐릭터의 설정을 함께 확정할 수 있어요.', alt: '실제 캐릭터 검토 상세: 종족 엘프, 직업 정찰병, 치유 능력의 원문 근거와 판단 결과. 3개 설정을 함께 확정하는 영역.' },
+    { title: '모두 직접 확정한 뒤 3개가 저장돼요', description: '3개 설정을 확인하고 확정한 뒤의 예시예요. 자동 반영과 최종 결과는 같지만, 저장 전에 확인하는 범위가 달라요.', alt: '실제 검토 완료 화면: 반영됨 3개, 직접 확인 0개. 모든 설정 후보 검토를 완료했으며 원고 목록으로 이동할 수 있다.' },
+  ],
+};
 
-export function AnalysisModeGuideDialog({ step, onStepChange, onClose, multiple }: {
-  step: number; onStepChange: (step: number) => void; onClose: () => void; multiple: boolean;
+function ScreenPreview({ mode, step }: { mode: GuideMode; step: number }) {
+  const [failed, setFailed] = useState(false);
+  const screen = GUIDE_SCREENS[mode][step];
+  return failed ? <p className="analysis-mode-guide__image-error" role="status">예시 화면을 불러오지 못했어요. 위 설명을 확인하거나 다른 단계로 이동해 주세요.</p> : (
+    <picture className={`analysis-mode-guide__picture${step === 0 ? ' is-choice' : ''}${step === 2 ? ' is-detail' : ''}`}>
+      <source media="(max-width: 600px)" srcSet={screen.mobile} />
+      <img src={screen.desktop} alt={SCENES[mode][step].alt} draggable={false} onError={() => setFailed(true)} />
+    </picture>
+  );
+}
+
+export function AnalysisModeGuideDialog({ step, onStepChange, onClose, multiple, mode, onModeChange }: {
+  step: number;
+  onStepChange: (step: number) => void;
+  onClose: () => void;
+  multiple: boolean;
+  mode: GuideMode;
+  onModeChange: (mode: GuideMode) => void;
 }) {
-  const [mobileMode, setMobileMode] = useState<Mode>('automatic');
-  const [confirmed, setConfirmed] = useState<Record<Mode, boolean>>({ automatic: false, manual: false });
-  const [targets, setTargets] = useState<Record<Mode, string>>({ automatic: '', manual: '' });
-  const modes: Mode[] = multiple ? ['automatic'] : ['automatic', 'manual'];
+  const id = useId();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeMode = multiple ? 'automatic' : mode;
+  const scene = SCENES[activeMode][step];
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [activeMode, step]);
   const handleKeys = (event: KeyboardEvent) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-      || (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [role="tablist"], [contenteditable="true"]'))) return;
+      || (event.target instanceof HTMLElement && event.target.closest('[role="tablist"]'))) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       onStepChange(Math.max(0, Math.min(3, step + (event.key === 'ArrowRight' ? 1 : -1))));
     }
   };
-  return <WorldSettingDialog title={multiple ? '자동 반영 과정을 살펴볼까요?' : '설정은 언제 작품에 저장될까요?'}
-    description="예시 원고로 확인해 보세요. 실제 작품에는 저장되지 않아요."
+  return <WorldSettingDialog title={multiple ? '자동 반영 과정을 살펴볼까요?' : '설정 반영 방식을 비교해 보세요'}
+    description="실제 서비스 화면에 예시 데이터를 넣었어요. 이전·다음으로 흐름을 살펴보세요."
     className="analysis-mode-guide" onClose={onClose} onKeyDown={handleKeys}>
     <div className="analysis-mode-guide__layout">
       <nav className="analysis-mode-guide__steps" aria-label="안내 단계">
         {STEPS.map((label, index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined}
           onClick={() => onStepChange(index)}><span>{index + 1}</span>{label}</button>)}
       </nav>
-      <div className="analysis-mode-guide__scroll">
+      {!multiple && <div className="analysis-mode-guide__modes" role="tablist" aria-label="비교할 반영 방식">
+        {MODES.map(item => <button type="button" role="tab" id={`${id}-${item}`} aria-selected={activeMode === item}
+          aria-controls={`${id}-screen`} tabIndex={activeMode === item ? 0 : -1} key={item}
+          onClick={() => onModeChange(item)} onKeyDown={event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const next = event.key === 'Home' ? 'automatic' : event.key === 'End' ? 'manual' : item === 'automatic' ? 'manual' : 'automatic';
+            onModeChange(next);
+            document.getElementById(`${id}-${next}`)?.focus();
+          }}>{MODE_LABELS[item]}</button>)}
+      </div>}
+      <div ref={scrollRef} className="analysis-mode-guide__scroll" id={`${id}-screen`}
+        role={multiple ? 'region' : 'tabpanel'} aria-labelledby={multiple ? undefined : `${id}-${activeMode}`}
+        aria-label={multiple ? '자동 반영 예시' : undefined} tabIndex={0}>
         <div className="analysis-mode-guide__intro" aria-live="polite">
           <span className="analysis-mode-guide__eyebrow">{step + 1} / 4 · {STEPS[step]}</span>
-          <h3>{['같은 원고에서 출발해요', '저장되는 시점이 달라요', '확정 버튼을 직접 눌러 보세요', '작품에 남는 내용을 확인해요'][step]}</h3>
-          <p>{[
-            '캐릭터와 세계관 설정 3개를 발견한 상황을 살펴볼게요.',
-            multiple ? '명확한 설정은 자동 저장되고, 확인이 필요한 내용은 남겨 둬요.' : '자동 반영은 명확한 설정부터 저장하고, 직접 검토는 모든 설정을 기다려요.',
-            '“그”가 누구인지 원고를 확인한 뒤 대상을 선택해 보세요.',
-            '아직 확정하지 않은 설정은 작품에 저장되지 않고 직접 확인할 목록에 남아요.',
-          ][step]}</p>
+          <h3>{scene.title}</h3>
+          <p>{scene.description}</p>
+          {multiple && <p className="analysis-mode-guide__multiple">여러 회차는 앞 회차의 설정을 자동 저장한 뒤 다음 회차를 분석해요. 확인할 항목은 분석 후 살펴볼 수 있어요.</p>}
         </div>
-        {step === 0 ? <>
-          <article className="analysis-mode-guide__manuscript">
-            <span><FileText size={16} aria-hidden="true" /> 예시 원고 · 1화</span>
-            <p><mark>레온은 엘프였다.</mark><br /><mark>은빛숲은 왕국 북부에 있었다.</mark></p>
-            <p>레온과 유나가 동굴에 들어섰다.<br /><mark className="is-unclear">그는 손끝으로 상처를 아물게 했다.</mark></p>
-          </article>
-          <p className="analysis-mode-guide__hint"><CircleHelp size={17} aria-hidden="true" /> 마지막 문장의 능력을 누구에게 연결할지 확인이 필요한 예시예요.</p>
-        </> : <>
-          {!multiple && <div className="analysis-mode-guide__mobile-modes" role="tablist" aria-label="비교할 반영 방식">
-            {modes.map(mode => <button type="button" role="tab" aria-selected={mobileMode === mode} key={mode}
-              onClick={() => setMobileMode(mode)} onKeyDown={event => {
-                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-                event.preventDefault();
-                setMobileMode(mode === 'automatic' ? 'manual' : 'automatic');
-                const sibling = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[aria-selected="false"]`);
-                sibling?.focus();
-              }}>{mode === 'automatic' ? '자동 반영' : '직접 검토'}</button>)}
-          </div>}
-          <div className={`analysis-mode-guide__comparison${multiple ? ' is-single' : ''}`}>
-            {modes.map(mode => {
-              const saved = step > 1 && confirmed[mode] ? 3 : mode === 'automatic' ? 2 : 0;
-              return <section key={mode} aria-label={mode === 'automatic' ? '자동 반영 예시' : '직접 검토 예시'}
-                className={`analysis-mode-guide__panel${!multiple && mobileMode !== mode ? ' is-mobile-hidden' : ''}`}>
-                <div className="analysis-mode-guide__panel-heading"><strong>{mode === 'automatic' ? 'AI 판단으로 자동 반영' : '모든 설정 직접 검토'}</strong>
-                  <small>{mode === 'automatic' ? '명확한 내용은 먼저 저장해요' : '내가 확정한 뒤 저장해요'}</small></div>
-                <div className="analysis-mode-guide__counts" aria-live="polite">
-                  <span className="is-saved">반영됨 <b>{saved}</b></span><span>직접 확인 <b>{3 - saved}</b></span>
-                </div>
-                <ul className="analysis-mode-guide__settings">
-                  {EXAMPLE_SETTINGS.map((setting, index) => {
-                    const isSaved = saved === 3 || mode === 'automatic' && index < 2;
-                    return <li key={setting.name}><div><strong>{index === 2 && saved === 3 ? targets[mode] : setting.subject}</strong>
-                      <span>{setting.name} · {setting.value}</span></div>
-                      <span className={isSaved ? 'analysis-mode-guide__status is-saved' : 'analysis-mode-guide__status'}>
-                        {isSaved ? <><CheckCircle2 size={13} aria-hidden="true" /> 저장됨</> : '확인 필요'}</span></li>;
-                  })}
-                </ul>
-                {step === 2 && !confirmed[mode] && <div className="analysis-mode-guide__practice">
-                  <label>치유 능력의 대상<select value={targets[mode]} onChange={event => setTargets({ ...targets, [mode]: event.target.value })}>
-                    <option value="">대상 선택</option><option value="레온">레온</option><option value="유나">유나</option>
-                  </select></label>
-                  <button type="button" className="database-button is-primary" disabled={!targets[mode]}
-                    onClick={() => setConfirmed({ ...confirmed, [mode]: true })}>
-                    {mode === 'automatic' ? '남은 설정 1개 확정해 보기' : '확인한 설정 3개 확정해 보기'}</button>
-                </div>}
-                {step > 1 && confirmed[mode] && <p className="analysis-mode-guide__saved" role="status"><CheckCircle2 size={16} aria-hidden="true" /> 예시 설정을 모두 확정했어요.</p>}
-                {step === 3 && saved < 3 && <button type="button" className="database-button" onClick={() => onStepChange(2)}>남은 설정 확인해 보기</button>}
-              </section>;
-            })}
-          </div>
-          {step === 1 && <p className="analysis-mode-guide__hint">다음 단계에서 대상을 선택하고 확정해 볼 수 있어요.</p>}
-          {step === 3 && <p className="analysis-mode-guide__hint">이미 반영된 설정은 작품의 캐릭터·세계관 설정 화면에서 확인하고 수정할 수 있어요.</p>}
-        </>}
-        {multiple && <p className="analysis-mode-guide__hint">여러 회차는 앞 회차의 설정을 자동 저장한 뒤 다음 회차를 분석해요. 직접 확인할 항목은 분석 후 살펴볼 수 있어요.</p>}
+        <figure className="analysis-mode-guide__screen">
+          <figcaption>예시 화면 · 화면 속 버튼을 누르지 않아도 돼요.</figcaption>
+          <ScreenPreview key={`${activeMode}-${step}`} mode={activeMode} step={step} />
+        </figure>
       </div>
       <div className="analysis-mode-guide__footer">
         <button type="button" className="database-button" disabled={step === 0} onClick={() => onStepChange(step - 1)}><ArrowLeft size={16} aria-hidden="true" /> 이전</button>
-        <button type="button" className="analysis-mode-guide__restart" aria-label="예시 처음부터 다시 보기" onClick={() => {
-          setConfirmed({ automatic: false, manual: false }); setTargets({ automatic: '', manual: '' }); onStepChange(0);
-        }}><RotateCcw size={16} aria-hidden="true" /><span>처음부터</span></button>
+        <button type="button" className="analysis-mode-guide__restart" aria-label="예시 처음부터 다시 보기" onClick={() => onStepChange(0)}><RotateCcw size={16} aria-hidden="true" /><span>처음부터</span></button>
         {step < 3 ? <button type="button" className="database-button is-primary" onClick={() => onStepChange(step + 1)}>다음 <ArrowRight size={16} aria-hidden="true" /></button>
           : <button type="button" className="database-button is-primary" onClick={onClose}>알겠어요</button>}
       </div>
