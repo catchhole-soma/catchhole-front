@@ -54,6 +54,8 @@ import {
 } from './character-timeline-filter';
 import { getDemoCharacterEvidence, saveDemoCharacterState } from './demoCharacters';
 import './character-evidence.css';
+import { CharacterSubjectImage } from './CharacterSubjectImage';
+import { CharacterImagePicker } from '../worldsetting/WorldImagePicker';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 type SettingGroupKey = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
@@ -98,6 +100,9 @@ interface Props {
   selectedCharacterId: string | null;
   selectedEvidenceFactId: string | null;
   isEditing: boolean;
+  imagePickerOpen?: boolean;
+  onImageOpen?: () => void;
+  onImageClose?: () => void;
   demoMode: boolean;
   archiveOpen: boolean;
   demoCharacters: CharacterDetailResponse[];
@@ -566,27 +571,13 @@ function CharacterCard({
         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
       }}
     >
-      <div className="character-card__header" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-        <div className="character-card__identity" style={{ flex: 1, minWidth: 0 }}>
-          <span className="character-card__eyebrow">CHARACTER</span>
-          <strong className="character-card__name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {character.name || '이름 없음'}
-          </strong>
-        </div>
-        <ChevronRight size={17} color={hovered || selected ? color : C.t3} />
-      </div>
-      {[
-        ['나이', character.currentAge == null ? '—' : `${character.currentAge}세`],
-        [character.representativeAttributeLabel ?? '대표 설정', character.representativeAttributeValue ?? '—'],
-        ['첫 등장', character.firstAppearanceEpisodeNo == null
-          ? '—'
-          : `${character.firstAppearanceEpisodeNo}화`],
-      ].map(([label, value]) => (
-        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 7 }}>
-          <span style={{ color: C.t3, fontSize: 12 }}>{label}</span>
-          <span style={{ color: C.t2, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
-        </div>
-      ))}
+      <CharacterSubjectImage image={character.image} className="character-card__image" />
+      <span className="character-card__content">
+        <strong className="character-card__name">{character.name || '이름 없음'}</strong>
+        <span className="character-card__appearance">{character.firstAppearanceEpisodeNo == null
+          ? '첫 등장 회차 미확인' : `첫 등장 ${character.firstAppearanceEpisodeNo}화`}</span>
+      </span>
+      <ChevronRight className="character-card__arrow" size={17} aria-hidden="true" />
     </button>
   );
 }
@@ -630,7 +621,7 @@ function EvidenceButton({
   );
 }
 
-function SimpleSettingList({
+export function SimpleSettingList({
   settings,
   emptyLabel,
   columns = 1,
@@ -1108,6 +1099,9 @@ export function CharacterDatabase({
   selectedCharacterId,
   selectedEvidenceFactId,
   isEditing,
+  imagePickerOpen = false,
+  onImageOpen,
+  onImageClose,
   demoMode,
   archiveOpen,
   demoCharacters,
@@ -1723,13 +1717,23 @@ export function CharacterDatabase({
         />
       )}
 
+      {!demoMode && imagePickerOpen && detail && onImageClose && <CharacterImagePicker key={`${workId}-${detail.id}`} workId={workId} detail={detail}
+        onClose={onImageClose}
+        onSaved={async () => {
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
+            queryClient.invalidateQueries({ queryKey: getCharacterQueryKey({ path: { workId, characterId: detail.id! } }) }),
+            queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+          ]);
+        }}
+        onReload={async () => { const result = await detailQuery.refetch(); if (result.error) throw result.error; return result.data?.data?.image?.version ?? 0; }} />}
       {selectedCharacterId && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           data-testid="character-modal-backdrop"
           onClick={() => {
             // 타임라인 원문 패널이 상세 모달 위에 열린 동안에는 어두워진 영역 클릭을 닫기 동작으로 해석하지 않는다.
-            if (!timelineEvidenceOpen) closeDetail();
+            if (!timelineEvidenceOpen && !imagePickerOpen) closeDetail();
           }}
           className={`character-detail-backdrop${timelineOpen ? ' character-detail-backdrop--with-timeline' : ''}${timelineEvidenceOpen ? ' character-detail-backdrop--timeline-evidence-open' : ''}`}
           style={{ position: 'fixed', inset: 0, zIndex: 200, padding: '36px 20px', overflowY: 'auto', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
@@ -1828,6 +1832,12 @@ export function CharacterDatabase({
                     </div>
                   )}
 
+                  {!isEditing && !timelineOpen && <div className="character-detail-image">
+                    <CharacterSubjectImage image={detail.image} eager className="character-detail-image__preview" />
+                    <div><strong>대표 이미지</strong><p>{detail.image?.source === 'PRIVATE' ? '내 이미지' : '공용 예시 이미지'}</p>
+                      {!demoMode && onImageOpen && <button type="button" className="database-button" onClick={onImageOpen}>이미지 변경</button>}
+                    </div>
+                  </div>}
                   <SectionTitle>기본 정보</SectionTitle>
                   <div className="character-basic-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.bg, marginBottom: 20 }}>
                     {isEditing && draft ? (

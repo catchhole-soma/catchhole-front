@@ -2653,7 +2653,7 @@ ${evidenceEpilogue}`;
 
   const characterCard = page.getByRole('button', { name: /수아/ });
   await expect(characterCard).toContainText('첫 등장');
-  await expect(characterCard).toContainText('—');
+  await expect(characterCard).toContainText('첫 등장 회차 미확인');
 
   failCharacterListRefetch = true;
   await page.evaluate(() => {
@@ -3301,6 +3301,11 @@ test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조
 test('작품 목록은 최신 회차 유무를 표시하고 선택한 workId를 URL에 유지한다', async ({ page }) => {
   const newWorkId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const existingWorkId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  await page.route('**/api/v1/feedbacks/prompt', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: { shouldShow: false }, error: null }),
+  }));
   await page.route('**/api/v1/auth/me', route => route.fulfill({
     status: 200,
     contentType: 'application/json',

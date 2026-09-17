@@ -1,3 +1,4 @@
+import { AnalysisReviewModeSelector } from './onboarding/AnalysisReviewModeSelector';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -58,6 +59,7 @@ import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
 import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
+import { AnalysisModeGuide } from './onboarding/AnalysisModeGuide';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -1445,6 +1447,8 @@ export default function SEpisodeUpload() {
                 />
               </div>
 
+              <AnalysisModeGuide active={Boolean(uploadType)} multiple={uploadType !== null && uploadType !== 'SINGLE_EPISODE'} disabled={submitting || detectEpisodesMutation.isPending} />
+
               {uploadPolicyQuery.isError && (
                 <div className="episode-upload-policy" role="status">
                   미확정 설정 정보를 불러오지 못했습니다. 업로드는 계속할 수 있습니다.
@@ -1580,21 +1584,7 @@ export default function SEpisodeUpload() {
                     disabled={submitting}
                   />
                   {uploadType === 'SINGLE_EPISODE' ? (
-                    <fieldset className="episode-analysis-mode" disabled={submitting}>
-                      <legend>설정 반영 방식</legend>
-                      <label>
-                        <input type="radio" name="review-mode" value="AUTOMATIC"
-                          checked={reviewMode === 'AUTOMATIC'} onChange={() => setReviewMode('AUTOMATIC')} />
-                        <span><strong>AI 판단으로 설정 자동 반영</strong>
-                          <small>판단이 명확한 설정은 작품에 자동 저장하고, 인물이나 내용이 불분명한 설정만 검토합니다. 기본 방식입니다.</small></span>
-                      </label>
-                      <label>
-                        <input type="radio" name="review-mode" value="MANUAL"
-                          checked={reviewMode === 'MANUAL'} onChange={() => setReviewMode('MANUAL')} />
-                        <span><strong>모든 설정 직접 검토</strong>
-                          <small>분석 결과를 직접 확인하고 확정한 설정만 작품에 저장합니다.</small></span>
-                      </label>
-                    </fieldset>
+                    <AnalysisReviewModeSelector value={reviewMode} onChange={setReviewMode} disabled={submitting} />
                   ) : (
                     <div className="episode-upload-alert episode-upload-auto-notice" role="note">
                       <Info className="episode-upload-auto-notice__icon" size={16} aria-hidden="true" />

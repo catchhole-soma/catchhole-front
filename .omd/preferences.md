@@ -478,3 +478,35 @@ source_context: "Java issue #196; AppSidebar.tsx; FeedbackDialog.tsx"
 Remove the workspace remaining-usage display, emphasize feedback with a visible mobile label, and invite experienced users once per account; lower the general feedback minimum to accept shorter opinions.
 
 This supersedes the prior workspace usage-gauge preference for this surface. The approved trigger is at least three actual uploaded episodes across active works, excluding prior feedback authors, shown on the manuscript list after activity settles. The user requested a lower minimum; 10 Unicode characters after trimming is the implementation choice. Quota-exhaustion requests retain their separate policy.
+
+
+## 2026-09-17 — analysis-guide-real-screens
+
+```omd-meta
+id: pref_gh194_analysis_guide_real_screens
+timestamp: 2026-09-17
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "AnalysisModeGuideDialog.tsx; GH194"
+```
+
+첫 분석 안내 모달은 더 크게 표시하고 실제 업로드·검토 화면으로 두 방식의 차이를 보여 준다. 자동 반영은 미확인 하나만, 직접 검토는 모든 설정을 확인하는 모습을 표시한다. 사용자가 대상을 고르거나 확정하는 실습 이벤트를 요구하지 않는다. 단계와 비교 방식 탐색만 제공한다.
+
+
+## 2026-09-17 — analysis-guide-one-row-live-components
+
+```omd-meta
+id: pref_gh194_guide_live_components
+timestamp: 2026-09-17
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "AnalysisModeGuideDialog.tsx; GH194"
+```
+
+첫 분석 안내의 단계와 방식 탭을 이중으로 두지 않는다. 반영 방식 → 모든 설정 직접 검토 → AI 자동 반영 → 자동 반영에서도 필요한 직접 검토 → 검토 완료 순서의 한 줄 단계 바를 사용한다. 캡처 이미지를 쓰지 않고 실제 서비스 컴포넌트를 예시 데이터로 렌더링한다. 예시 내부의 이벤트는 작동하지 않으며 탐색만 허용한다. 이 교정은 앞선 캡처·방식 탭 구성을 대체한다.

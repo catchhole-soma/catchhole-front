@@ -326455,7 +326455,8 @@
               "fill": "$ch-text-muted",
               "content": "원고와 분석 결과 모두에 적용됩니다.",
               "fontFamily": "Pretendard Variable",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -446102,299 +446103,298 @@
     {
       "type": "frame",
       "id": "gh180EpisodeAutoPolicy",
-      "name": "SEpisodeUpload / GH180 업로드 조건과 회차별 자동 반영",
       "x": 100860,
       "y": 5184,
+      "name": "SEpisodeUpload / GH180 업로드 조건과 회차별 자동 반영",
+      "metadata": {
+        "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
+      },
       "width": 1200,
-      "height": "fit_content",
       "fill": "$ch-canvas",
       "layout": "vertical",
-      "padding": 36,
       "gap": 24,
+      "padding": 36,
       "children": [
         {
           "type": "text",
           "id": "gh180PolicyText1",
           "name": "GH180 · 회차 업로드와 자동 반영",
-          "fill": "$ch-ink",
-          "content": "GH180 · 회차 업로드와 자동 반영",
-          "fontFamily": "$ch-font",
-          "fontSize": 30,
-          "fontWeight": "500",
-          "textGrowth": "fixed-width",
-          "width": "fill_container",
-          "lineHeight": 1.65,
           "metadata": {
             "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-          }
+          },
+          "fill": "$ch-ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "GH180 · 회차 업로드와 자동 반영",
+          "lineHeight": 1.65,
+          "fontFamily": "$ch-font",
+          "fontSize": 30,
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "gh180PolicyPanel2",
           "name": "1. 업로드 방식 · 단일 분석 완료 9회차 예시",
+          "metadata": {
+            "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
+          },
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 12,
-          "padding": 24,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-md",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
           "children": [
             {
               "type": "text",
               "id": "gh180PolicyText3",
               "name": "1. 업로드 방식 · 선행 회차 개수 조건 없음",
-              "fill": "$ch-ink",
-              "content": "1. 업로드 방식 · 선행 회차 개수 조건 없음",
-              "fontFamily": "$ch-font",
-              "fontSize": 20,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "1. 업로드 방식 · 선행 회차 개수 조건 없음",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 20,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText4",
               "name": "추천 · 단일 회차 업로드 — 사용 가능",
-              "fill": "$ch-ink",
-              "content": "추천 · 단일 회차 업로드 — 사용 가능",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "추천 · 단일 회차 업로드 — 사용 가능",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText5",
               "name": "다회차 · 단일 파일 / 다회차 · 여러 파일 — 바로 사용 가능",
               "fill": "$ch-ink",
-              "content": "다회차 · 단일 파일 / 다회차 · 여러 파일 — 바로 사용 가능",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "다회차 · 단일 파일 / 다회차 · 여러 파일 — 바로 사용 가능",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText6",
               "name": "새 작품도 단일·다회차 업로드를 선택할 수 있습니다.",
-              "fill": "$ch-ink",
-              "content": "새 작품도 단일·다회차 업로드를 선택할 수 있습니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "새 작품도 단일·다회차 업로드를 선택할 수 있습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText7",
               "name": "미확정 정보 조회 실패: 모든 업로드 유지 · 미확정 설정 다시 확인",
-              "fill": "$ch-ink",
-              "content": "미확정 정보 조회 실패: 모든 업로드 유지 · 미확정 설정 다시 확인",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "미확정 정보 조회 실패: 모든 업로드 유지 · 미확정 설정 다시 확인",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
-          ],
-          "metadata": {
-            "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-          }
+          ]
         },
         {
           "type": "frame",
           "id": "gh180PolicyPanel8",
           "name": "2. 미확정 후보 안내 · 업로드 차단 없음",
+          "metadata": {
+            "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
+          },
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 12,
-          "padding": 24,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-md",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
           "children": [
             {
               "type": "text",
               "id": "gh180PolicyText9",
               "name": "2. 미확정 후보 안내 · 업로드 차단 없음",
-              "fill": "$ch-ink",
-              "content": "2. 미확정 후보 안내 · 업로드 차단 없음",
-              "fontFamily": "$ch-font",
-              "fontSize": 20,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "2. 미확정 후보 안내 · 업로드 차단 없음",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 20,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText10",
               "name": "캐릭터 7개 · 세계관 3개 검토 대기",
               "fill": "$ch-ink",
-              "content": "캐릭터 7개 · 세계관 3개 검토 대기",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "캐릭터 7개 · 세계관 3개 검토 대기",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText11",
               "name": "먼저 검토·확정하면 새 회차 분석에 도움이 됩니다. 지금 업로드해도 괜찮습니다.",
-              "fill": "$ch-ink",
-              "content": "먼저 검토·확정하면 새 회차 분석에 도움이 됩니다. 지금 업로드해도 괜찮습니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "먼저 검토·확정하면 새 회차 분석에 도움이 됩니다. 지금 업로드해도 괜찮습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText12",
               "name": "분석 결과에서 확인 → 해당 작품 분석 목록",
               "fill": "$ch-ink",
-              "content": "분석 결과에서 확인 → 해당 작품 분석 목록",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "분석 결과에서 확인 → 해당 작품 분석 목록",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
-          ],
-          "metadata": {
-            "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-          }
+          ]
         },
         {
           "type": "frame",
           "id": "gh180PolicyPanel13",
           "name": "3. 반영 방식과 원고 제한",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 12,
-          "padding": 24,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-md",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
           "children": [
             {
               "type": "text",
               "id": "gh180PolicyText14",
               "name": "3. 반영 방식과 원고 제한",
               "fill": "$ch-ink",
-              "content": "3. 반영 방식과 원고 제한",
-              "fontFamily": "$ch-font",
-              "fontSize": 20,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "3. 반영 방식과 원고 제한",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 20,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText15",
               "name": "단일 회차: ● AI 판단으로 설정 자동 반영 (기본) / ○ 모든 설정 직접 검토",
               "fill": "$ch-ink",
-              "content": "단일 회차: ● AI 판단으로 설정 자동 반영 (기본) / ○ 모든 설정 직접 검토",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "단일 회차: ● AI 판단으로 설정 자동 반영 (기본) / ○ 모든 설정 직접 검토",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText16",
               "name": "다회차: 회차 번호 순서대로 분석 → 명확한 설정 저장 → 다음 회차 분석",
               "fill": "$ch-ink",
-              "content": "다회차: 회차 번호 순서대로 분석 → 명확한 설정 저장 → 다음 회차 분석",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "다회차: 회차 번호 순서대로 분석 → 명확한 설정 저장 → 다음 회차 분석",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText17",
               "name": "확정된 설정과 앞 회차 미확정 제안은 구분해서 참고 · 확인이 필요한 설정만 보류",
               "fill": "$ch-ink",
-              "content": "확정된 설정과 앞 회차 미확정 제안은 구분해서 참고 · 확인이 필요한 설정만 보류",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "확정된 설정과 앞 회차 미확정 제안은 구분해서 참고 · 확인이 필요한 설정만 보류",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText18",
               "name": "모든 업로드: 원고 전체 합계 250,000자 이하 · 공백 포함",
-              "fill": "$ch-ink",
-              "content": "모든 업로드: 원고 전체 합계 250,000자 이하 · 공백 포함",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "lineHeight": 1.65,
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-              }
+              },
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "모든 업로드: 원고 전체 합계 250,000자 이하 · 공백 포함",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText19",
               "name": "250,000자 허용 / 250,001자 거부 · 기존 공백 제외 집계와 구분",
               "fill": "$ch-ink",
-              "content": "250,000자 허용 / 250,001자 거부 · 기존 공백 제외 집계와 구분",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "250,000자 허용 / 250,001자 거부 · 기존 공백 제외 집계와 구분",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446403,79 +446403,78 @@
           "id": "gh180PolicyPanel20",
           "name": "4. 자동 반영 완료와 재개",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 12,
-          "padding": 24,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-md",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
           "children": [
             {
               "type": "text",
               "id": "gh180PolicyText21",
               "name": "4. 자동 반영 완료와 재개",
               "fill": "$ch-ink",
-              "content": "4. 자동 반영 완료와 재개",
-              "fontFamily": "$ch-font",
-              "fontSize": 20,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "4. 자동 반영 완료와 재개",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 20,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText22",
               "name": "완료: 판단이 명확한 설정은 작품에 자동 반영했습니다.",
               "fill": "$ch-ink",
-              "content": "완료: 판단이 명확한 설정은 작품에 자동 반영했습니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "완료: 판단이 명확한 설정은 작품에 자동 반영했습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText23",
               "name": "분석 완료 · N개 확인 가능 → 원할 때 결과 보기",
               "fill": "$ch-ink",
-              "content": "분석 완료 · N개 확인 가능 → 원할 때 결과 보기. 확인 대기 설정이 남아도 다음 회차는 계속합니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "분석 완료 · N개 확인 가능 → 원할 때 결과 보기. 확인 대기 설정이 남아도 다음 회차는 계속합니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText24",
               "name": "중간 실패: 완료한 저장을 유지하고 중단 회차부터 재개",
               "fill": "$ch-ink",
-              "content": "중간 실패: 완료한 저장을 유지하고 중단 회차부터 재개. 막힌 뒤 회차를 분석 중으로 표시하지 않습니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "중간 실패: 완료한 저장을 유지하고 중단 회차부터 재개. 막힌 뒤 회차를 분석 중으로 표시하지 않습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText25",
               "name": "새 순차 분석 확인창: 회차별 자동 반영과 AI 사용량 재차감을 안내",
               "fill": "$ch-ink",
-              "content": "새 순차 분석 확인창: 회차별 자동 반영과 AI 사용량 재차감을 안내. 후보 변경 전에는 진행 중인 뒤 회차가 중단될 수 있음을 알립니다. 수정 예약은 아직 제공하지 않습니다.",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "새 순차 분석 확인창: 회차별 자동 반영과 AI 사용량 재차감을 안내. 후보 변경 전에는 진행 중인 뒤 회차가 중단될 수 있음을 알립니다. 수정 예약은 아직 제공하지 않습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446484,139 +446483,133 @@
           "id": "gh180PolicyPanel26",
           "name": "모바일 · 접근성",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 12,
-          "padding": 24,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-md",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
           "children": [
             {
               "type": "text",
               "id": "gh180PolicyText27",
               "name": "모바일 · 접근성",
               "fill": "$ch-ink",
-              "content": "모바일 · 접근성",
-              "fontFamily": "$ch-font",
-              "fontSize": 20,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "모바일 · 접근성",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 20,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText28",
               "name": "320px에서 방식 카드와 설명을 세로 배치 · 수평 넘침 없음",
               "fill": "$ch-ink",
-              "content": "320px에서 방식 카드와 설명을 세로 배치 · 수평 넘침 없음",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "320px에서 방식 카드와 설명을 세로 배치 · 수평 넘침 없음",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText29",
               "name": "방식 카드는 native button · 키보드 Enter/Space · 선택 상태와 비활성 상태 전달",
               "fill": "$ch-ink",
-              "content": "방식 카드는 native button · 키보드 Enter/Space · 선택 상태와 비활성 상태 전달",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "방식 카드는 native button · 키보드 Enter/Space · 선택 상태와 비활성 상태 전달",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180PolicyText30",
               "name": "검토 방식은 이름이 있는 fieldset과 native radio · 경고와 문자 수는 상태 안내",
               "fill": "$ch-ink",
-              "content": "검토 방식은 이름이 있는 fieldset과 native radio · 경고와 문자 수는 상태 안내",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.65
+              "content": "검토 방식은 이름이 있는 fieldset과 native radio · 경고와 문자 수는 상태 안내",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         }
-      ],
-      "metadata": {
-        "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-      }
+      ]
     },
     {
       "type": "frame",
       "id": "gh180ScopeReview20260910",
-      "name": "WorldSettingReview / 범위 비교 필요와 직접 확인 안내",
       "x": 102160,
       "y": 5184,
+      "name": "WorldSettingReview / 범위 비교 필요와 직접 확인 안내",
       "width": 1100,
-      "height": "fit_content",
-      "layout": "vertical",
-      "padding": 32,
-      "gap": 18,
       "fill": "$ch-canvas",
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 32,
       "children": [
         {
           "type": "text",
           "id": "gh180ScopeReview20260910Title",
           "name": "세계관 후보 · 범위 비교 필요",
-          "content": "세계관 후보 · 범위 비교 필요",
           "fill": "$ch-ink",
-          "fontFamily": "$ch-font",
-          "fontSize": 26,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "세계관 후보 · 범위 비교 필요",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 26,
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "gh180ScopeReview20260910NeedsReview",
           "name": "범위 비교 필요",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-warning",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ReviewTitle",
               "name": "범위 비교 필요",
-              "content": "범위 비교 필요",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "범위 비교 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ReviewBody",
               "name": "원문에서 추출한 범위와 비교한 기존 범위가 다릅니다. 같은 대상을 가리키는지 확인한 뒤 반영할 범위와 값을 정해 주세요.",
-              "content": "원문에서 추출한 범위와 비교한 기존 범위가 다릅니다. 같은 대상을 가리키는지 확인한 뒤 반영할 범위와 값을 정해 주세요.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "원문에서 추출한 범위와 비교한 기존 범위가 다릅니다. 같은 대상을 가리키는지 확인한 뒤 반영할 범위와 값을 정해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446624,63 +446617,60 @@
           "type": "frame",
           "id": "gh180ScopeReview20260910Paths",
           "name": "기존과 원문 경로 비교 · 모바일은 세로 배치",
-          "layout": "horizontal",
-          "gap": 16,
           "width": "fill_container",
-          "height": "fit_content",
+          "gap": 16,
           "children": [
             {
               "type": "frame",
               "id": "gh180ScopeReview20260910Existing",
               "name": "비교한 기존 설정",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "gap": 10,
-              "padding": 20,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
               "stroke": "$ch-border",
               "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 20,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910ExistingLabel",
                   "name": "비교한 기존 설정",
-                  "content": "비교한 기존 설정",
                   "fill": "$ch-warning-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 13,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "비교한 기존 설정",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910ExistingPath",
                   "name": "1층 › 광원",
-                  "content": "1층 › 광원",
                   "fill": "$ch-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 18,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "1층 › 광원",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 18,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910ExistingValue",
                   "name": "벽의 수정들이 주변을 밝힌다.",
-                  "content": "벽의 수정들이 주변을 밝힌다.",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 14,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "벽의 수정들이 주변을 밝힌다.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -446689,53 +446679,52 @@
               "id": "gh180ScopeReview20260910Source",
               "name": "원문에서 추출한 설정",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "gap": 10,
-              "padding": 20,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
               "stroke": "$ch-border",
               "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 20,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910SourceLabel",
                   "name": "원문에서 추출한 설정",
-                  "content": "원문에서 추출한 설정",
                   "fill": "$ch-warning-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 13,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "원문에서 추출한 설정",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910SourcePath",
                   "name": "외곽 지역 › 조명 환경",
-                  "content": "외곽 지역 › 조명 환경",
                   "fill": "$ch-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 18,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "외곽 지역 › 조명 환경",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 18,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180ScopeReview20260910SourceValue",
                   "name": "수정들이 적어지며 어둠이 드리운다.",
-                  "content": "수정들이 적어지며 어둠이 드리운다.",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 14,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "수정들이 적어지며 어둠이 드리운다.",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "500"
                 }
               ]
             }
@@ -446746,40 +446735,39 @@
           "id": "gh180ScopeReview20260910Reason",
           "name": "검토 안내",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-border",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ReasonTitle",
               "name": "검토 안내",
-              "content": "검토 안내",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "검토 안내",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ReasonBody",
               "name": "외곽 지역과 1층이 같은 장소인지 확실하지 않아 적용 범위를 확인해야 합니다.",
-              "content": "외곽 지역과 1층이 같은 장소인지 확실하지 않아 적용 범위를 확인해야 합니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "외곽 지역과 1층이 같은 장소인지 확실하지 않아 적용 범위를 확인해야 합니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446788,40 +446776,39 @@
           "id": "gh180ScopeReview20260910Manual",
           "name": "직접 확인 필요",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-warning",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ManualTitle",
               "name": "직접 확인이 필요합니다",
-              "content": "직접 확인이 필요합니다",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "직접 확인이 필요합니다",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ScopeReview20260910ManualBody",
               "name": "직접 확인해서 반영을 눌러 대상·설정값·반영 방식을 확인해 주세요. AI 분석을 다시 실행하지 않습니다.",
-              "content": "직접 확인해서 반영을 눌러 대상·설정값·반영 방식을 확인해 주세요. AI 분석을 다시 실행하지 않습니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "직접 확인해서 반영을 눌러 대상·설정값·반영 방식을 확인해 주세요. AI 분석을 다시 실행하지 않습니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446830,40 +446817,39 @@
           "id": "gh180ScopeReview20260910Saved",
           "name": "확인한 반영안 저장 완료",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-primary",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ScopeReview20260910SavedTitle",
               "name": "확인한 내용 저장 완료",
-              "content": "확인한 내용 저장 완료",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "확인한 내용 저장 완료",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ScopeReview20260910SavedBody",
               "name": "직접 확인한 내용을 저장했습니다. 아래의 모두 확정으로 작품 설정에 반영해 주세요.",
-              "content": "직접 확인한 내용을 저장했습니다. 아래의 모두 확정으로 작품 설정에 반영해 주세요.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "직접 확인한 내용을 저장했습니다. 아래의 모두 확정으로 작품 설정에 반영해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446871,82 +446857,80 @@
           "type": "text",
           "id": "gh180ScopeReview20260910Behavior",
           "name": "원문 경로 유지 → 두 범위 비교 → 최종 범위와 작업 직접 저장 → 남은 모든 후보가 준비되면 모두 확정. 320px에서는 두 값 카드를 세로 배치합니다.",
-          "content": "원문 경로 유지 → 두 범위 비교 → 최종 범위와 작업 직접 저장 → 남은 모든 후보가 준비되면 모두 확정. 320px에서는 두 값 카드를 세로 배치합니다.",
           "fill": "$ch-text",
-          "fontFamily": "$ch-font",
-          "fontSize": 13,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "원문 경로 유지 → 두 범위 비교 → 최종 범위와 작업 직접 저장 → 남은 모든 후보가 준비되면 모두 확정. 320px에서는 두 값 카드를 세로 배치합니다.",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 13,
+          "fontWeight": "500"
         }
       ]
     },
     {
       "type": "frame",
       "id": "gh180ReviewReasons20260910",
-      "name": "WorldSettingReview / 대상·범위·분량 사유와 선택 기록",
       "x": 103500,
       "y": 5184,
+      "name": "WorldSettingReview / 대상·범위·분량 사유와 선택 기록",
       "width": 1100,
-      "height": "fit_content",
-      "layout": "vertical",
-      "padding": 32,
-      "gap": 18,
       "fill": "$ch-canvas",
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 32,
       "children": [
         {
           "type": "text",
           "id": "gh180ReviewReasons20260910Title",
           "name": "세계관 후보 · 보류 사유를 구분해서 확인",
-          "content": "세계관 후보 · 보류 사유를 구분해서 확인",
           "fill": "$ch-ink",
-          "fontFamily": "$ch-font",
-          "fontSize": 26,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "세계관 후보 · 보류 사유를 구분해서 확인",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 26,
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "gh180ReviewReasons20260910Subject",
           "name": "대상 연결 확인 필요",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-warning",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910SubjectTitle",
               "name": "대상 연결 확인 필요",
-              "content": "대상 연결 확인 필요",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "대상 연결 확인 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910SubjectBody",
               "name": "비교 대상 미정\n추출된 내용이 어느 세계관 대상에 속하는지 연결하지 못했습니다. 원문과 대상 이름을 확인한 뒤 반영할 대상을 정해 주세요.",
-              "content": "비교 대상 미정\n추출된 내용이 어느 세계관 대상에 속하는지 연결하지 못했습니다. 원문과 대상 이름을 확인한 뒤 반영할 대상을 정해 주세요.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비교 대상 미정\n추출된 내용이 어느 세계관 대상에 속하는지 연결하지 못했습니다. 원문과 대상 이름을 확인한 뒤 반영할 대상을 정해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446955,40 +446939,39 @@
           "id": "gh180ReviewReasons20260910Scope",
           "name": "범위 확인 필요",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-warning",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910ScopeTitle",
               "name": "범위 확인 필요",
-              "content": "범위 확인 필요",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "범위 확인 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910ScopeBody",
               "name": "비교한 기존 설정: 불의 정령 › 소환 유지 시간 / 20분\n원문에서 추출한 설정: 범위 미정 › 소환 지속 시간 / 정령은 30분 동안 머문다.\n이름이 달라도 원문을 유지하며 직접 저장하기 전에는 확정하지 않습니다.",
-              "content": "비교한 기존 설정: 불의 정령 › 소환 유지 시간 / 20분\n원문에서 추출한 설정: 범위 미정 › 소환 지속 시간 / 정령은 30분 동안 머문다.\n이름이 달라도 원문을 유지하며 직접 저장하기 전에는 확정하지 않습니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비교한 기존 설정: 불의 정령 › 소환 유지 시간 / 20분\n원문에서 추출한 설정: 범위 미정 › 소환 지속 시간 / 정령은 30분 동안 머문다.\n이름이 달라도 원문을 유지하며 직접 저장하기 전에는 확정하지 않습니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -446997,40 +446980,39 @@
           "id": "gh180ReviewReasons20260910Batch",
           "name": "비교 분량 확인 필요",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-warning",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910BatchTitle",
               "name": "비교 분량 확인 필요",
-              "content": "비교 분량 확인 필요",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비교 분량 확인 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910BatchBody",
               "name": "한 번에 비교할 수 있는 분량을 넘어 이 설정의 비교를 보류했습니다. 원문을 확인한 뒤 반영할 내용을 직접 정해 주세요.",
-              "content": "한 번에 비교할 수 있는 분량을 넘어 이 설정의 비교를 보류했습니다. 원문을 확인한 뒤 반영할 내용을 직접 정해 주세요.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "한 번에 비교할 수 있는 분량을 넘어 이 설정의 비교를 보류했습니다. 원문을 확인한 뒤 반영할 내용을 직접 정해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447039,40 +447021,39 @@
           "id": "gh180ReviewReasons20260910Failure",
           "name": "비교 실패 안내",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-primary",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910FailureTitle",
               "name": "검토 필요",
-              "content": "검토 필요",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "검토 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910FailureBody",
               "name": "자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.",
-              "content": "자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447081,40 +447062,39 @@
           "id": "gh180ReviewReasons20260910Selection",
           "name": "마지막 비교에서 선택한 기존 설정",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 20,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
           "stroke": "$ch-primary",
           "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
           "children": [
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910SelectionTitle",
               "name": "마지막 비교에서 선택한 기존 설정",
-              "content": "마지막 비교에서 선택한 기존 설정",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 18,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "마지막 비교에서 선택한 기존 설정",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 18,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180ReviewReasons20260910SelectionBody",
               "name": "불의 정령 › 소환 유지 시간\n비교 중 선택한 기록입니다. 반영할 대상이나 설정으로 확정된 것은 아닙니다.",
-              "content": "불의 정령 › 소환 유지 시간\n비교 중 선택한 기록입니다. 반영할 대상이나 설정으로 확정된 것은 아닙니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "불의 정령 › 소환 유지 시간\n비교 중 선택한 기록입니다. 반영할 대상이나 설정으로 확정된 것은 아닙니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447122,117 +447102,115 @@
           "type": "text",
           "id": "gh180ReviewReasons20260910Rules",
           "name": "검토 안내와 실제 분석 중단을 구분합니다.",
-          "content": "직접 해결 가능한 비교 미완료는 검토 필요로 안내하고 실제 회차 중단·사용량 부족은 유지합니다. 일반 보류는 대상·내용 확인 필요로, 반영 방식 필터는 AI 판단 보류로 표시합니다. 직접 수정이 잠긴 항목은 원문 확인·제외를 안내합니다. 320px에서는 두 값 카드를 세로 배치합니다.",
           "fill": "$ch-text",
-          "fontFamily": "$ch-font",
-          "fontSize": 13,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "직접 해결 가능한 비교 미완료는 검토 필요로 안내하고 실제 회차 중단·사용량 부족은 유지합니다. 일반 보류는 대상·내용 확인 필요로, 반영 방식 필터는 AI 판단 보류로 표시합니다. 직접 수정이 잠긴 항목은 원문 확인·제외를 안내합니다. 320px에서는 두 값 카드를 세로 배치합니다.",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 13,
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180ReviewGroupIdentity20260910",
           "name": "검토 묶음은 분류·이름 기준",
-          "content": "검토 묶음은 분류·이름 기준입니다. 같은 주체로 확정된 것은 아닙니다. 서로 다른 기존 대상 연결이 응답에 명시된 경우만 연결 확인을 안내합니다. 신규 대상의 연결 정보나 보류 사유가 없으면 원인을 추측하지 않습니다.",
           "fill": "$ch-text",
-          "fontFamily": "$ch-font",
-          "fontSize": 14,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "검토 묶음은 분류·이름 기준입니다. 같은 주체로 확정된 것은 아닙니다. 서로 다른 기존 대상 연결이 응답에 명시된 경우만 연결 확인을 안내합니다. 신규 대상의 연결 정보나 보류 사유가 없으면 원인을 추측하지 않습니다.",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 14,
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180ReviewAttention20260910",
           "name": "공통 직접 확인 집계",
-          "content": "반영됨·제외됨·직접 확인을 중심으로 표시하고 분석 중은 분리합니다. 자동 반영 보류·연결 대기·수정 저장 후 미확정도 직접 확인에 한 번씩 셉니다. 두 탭·필터·페이지와 무관한 전체 집계를 사용합니다. 사유가 명시된 경우만 상세 배지로 안내하며 원문·이름·값은 바꾸지 않습니다.",
           "fill": "$ch-text",
-          "fontFamily": "$ch-font",
-          "fontSize": 14,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "반영됨·제외됨·직접 확인을 중심으로 표시하고 분석 중은 분리합니다. 자동 반영 보류·연결 대기·수정 저장 후 미확정도 직접 확인에 한 번씩 셉니다. 두 탭·필터·페이지와 무관한 전체 집계를 사용합니다. 사유가 명시된 경우만 상세 배지로 안내하며 원문·이름·값은 바꾸지 않습니다.",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 14,
+          "fontWeight": "500"
         }
       ]
     },
     {
       "type": "frame",
       "id": "gh180DirectReview20260910Desktop",
+      "x": 104720,
+      "y": 5184,
       "name": "설정 후보 검토 / 직접 확인 공통 요약 1280px",
       "width": 1100,
-      "height": "fit_content",
-      "layout": "vertical",
-      "padding": 32,
-      "gap": 18,
       "fill": "$ch-canvas",
       "cornerRadius": "$ch-radius-sm",
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 32,
       "children": [
         {
           "type": "text",
           "id": "gh180DirectReview20260910DesktopTitle",
           "name": "캐릭터 후보 확정",
-          "content": "캐릭터 후보 확정",
           "fill": "$ch-ink",
-          "fontFamily": "$ch-font",
-          "fontSize": 18,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "캐릭터 후보 확정",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 18,
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "gh180DirectReview20260910DesktopSummary",
           "name": "반영됨·제외됨·직접 확인",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 24,
-          "gap": 14,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 24,
           "children": [
             {
               "type": "frame",
               "id": "gh180DirectReview20260910DesktopHeading",
               "name": "회차 범위와 전체 설정 수",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 0,
-              "gap": 4,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopRange",
                   "name": "23–28화 · 6개 회차",
-                  "content": "23–28화 · 6개 회차",
                   "fill": "$ch-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 14,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "23–28화 · 6개 회차",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopTotal",
                   "name": "전체 129개 설정",
-                  "content": "전체 129개 설정",
                   "fill": "$ch-text-muted",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "전체 129개 설정",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -447241,138 +447219,132 @@
               "id": "gh180DirectReview20260910DesktopMetrics",
               "name": "서로 겹치지 않는 세 집계",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "horizontal",
-              "padding": 0,
-              "gap": 14,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "gap": 14,
               "children": [
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910DesktopApplied",
                   "name": "반영됨",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 16,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 16,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopAppliedLabel",
                       "name": "반영됨",
-                      "content": "반영됨",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 12,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "반영됨",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopAppliedValue",
                       "name": "120개",
-                      "content": "120개",
                       "fill": "$ch-success-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 24,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "120개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 24,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-border",
-                  "strokeWidth": 1
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910DesktopDismissed",
                   "name": "제외됨",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 16,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 16,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopDismissedLabel",
                       "name": "제외됨",
-                      "content": "제외됨",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 12,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "제외됨",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopDismissedValue",
                       "name": "5개",
-                      "content": "5개",
                       "fill": "$ch-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 24,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "5개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 24,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-border",
-                  "strokeWidth": 1
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910DesktopDirect",
                   "name": "직접 확인",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 16,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-warning",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 16,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopDirectLabel",
                       "name": "직접 확인",
-                      "content": "직접 확인",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 12,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "직접 확인",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910DesktopDirectValue",
                       "name": "4개",
-                      "content": "4개",
                       "fill": "$ch-warning-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 24,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "4개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 24,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-warning",
-                  "strokeWidth": 1
+                  ]
                 }
               ]
             },
@@ -447380,14 +447352,14 @@
               "type": "text",
               "id": "gh180DirectReview20260910DesktopHelp",
               "name": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
-              "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
               "fill": "$ch-text-muted",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447396,10 +447368,6 @@
           "id": "gh180DirectReview20260910DesktopTabs",
           "name": "종류별 직접 확인",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "horizontal",
-          "padding": 0,
-          "gap": 0,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "children": [
@@ -447408,38 +447376,37 @@
               "id": "gh180DirectReview20260910DesktopCharTab",
               "name": "캐릭터 후보",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 12,
-              "gap": 4,
               "fill": "$ch-surface-soft",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 12,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopCharLabel",
                   "name": "캐릭터 후보",
-                  "content": "캐릭터 후보",
                   "fill": "$ch-primary-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "캐릭터 후보",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopCharCount",
                   "name": "직접 확인 3개",
-                  "content": "직접 확인 3개",
                   "fill": "$ch-primary-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "직접 확인 3개",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 10,
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -447448,38 +447415,37 @@
               "id": "gh180DirectReview20260910DesktopWorldTab",
               "name": "세계관 후보",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 12,
-              "gap": 4,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 12,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopWorldLabel",
                   "name": "세계관 후보",
-                  "content": "세계관 후보",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "세계관 후보",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910DesktopWorldCount",
                   "name": "직접 확인 1개",
-                  "content": "직접 확인 1개",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "직접 확인 1개",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 10,
+                  "fontWeight": "500"
                 }
               ]
             }
@@ -447490,38 +447456,37 @@
           "id": "gh180DirectReview20260910DesktopPending",
           "name": "미처리 설정",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 16,
-          "gap": 8,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910DesktopPendingTitle",
               "name": "비요른 · 직접 확인 2개",
-              "content": "비요른 · 직접 확인 2개",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비요른 · 직접 확인 2개",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180DirectReview20260910DesktopPendingReasons",
               "name": "비교 실패 · 캐릭터 연결 확인 필요",
-              "content": "비교 실패 · 캐릭터 연결 확인 필요",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비교 실패 · 캐릭터 연결 확인 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447530,119 +447495,114 @@
           "id": "gh180DirectReview20260910DesktopProcessExample",
           "name": "진행 중일 때 별도 표시",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 16,
-          "gap": 8,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910DesktopProcessTitle",
               "name": "분석 중 2개",
-              "content": "분석 중 2개",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "분석 중 2개",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180DirectReview20260910DesktopProcessBody",
               "name": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
-              "content": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         }
-      ],
-      "x": 104720,
-      "y": 5184
+      ]
     },
     {
       "type": "frame",
       "id": "gh180DirectReview20260910Mobile",
+      "x": 105950,
+      "y": 5184,
       "name": "설정 후보 검토 / 직접 확인 공통 요약 320px",
       "width": 320,
-      "height": "fit_content",
-      "layout": "vertical",
-      "padding": 16,
-      "gap": 18,
       "fill": "$ch-canvas",
       "cornerRadius": "$ch-radius-sm",
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 16,
       "children": [
         {
           "type": "text",
           "id": "gh180DirectReview20260910MobileTitle",
           "name": "캐릭터 후보 확정",
-          "content": "캐릭터 후보 확정",
           "fill": "$ch-ink",
-          "fontFamily": "$ch-font",
-          "fontSize": 18,
-          "fontWeight": "500",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "lineHeight": 1.6
+          "content": "캐릭터 후보 확정",
+          "lineHeight": 1.6,
+          "fontFamily": "$ch-font",
+          "fontSize": 18,
+          "fontWeight": "500"
         },
         {
           "type": "frame",
           "id": "gh180DirectReview20260910MobileSummary",
           "name": "반영됨·제외됨·직접 확인",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 16,
-          "gap": 14,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 16,
           "children": [
             {
               "type": "frame",
               "id": "gh180DirectReview20260910MobileHeading",
               "name": "회차 범위와 전체 설정 수",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 0,
-              "gap": 4,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileRange",
                   "name": "23–28화 · 6개 회차",
-                  "content": "23–28화 · 6개 회차",
                   "fill": "$ch-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 14,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "23–28화 · 6개 회차",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 14,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileTotal",
                   "name": "전체 129개 설정",
-                  "content": "전체 129개 설정",
                   "fill": "$ch-text-muted",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "전체 129개 설정",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -447651,138 +447611,132 @@
               "id": "gh180DirectReview20260910MobileMetrics",
               "name": "서로 겹치지 않는 세 집계",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "horizontal",
-              "padding": 0,
-              "gap": 8,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "gap": 8,
               "children": [
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910MobileApplied",
                   "name": "반영됨",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 8,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 8,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileAppliedLabel",
                       "name": "반영됨",
-                      "content": "반영됨",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 11,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "반영됨",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 11,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileAppliedValue",
                       "name": "120개",
-                      "content": "120개",
                       "fill": "$ch-success-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 20,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "120개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 20,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-border",
-                  "strokeWidth": 1
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910MobileDismissed",
                   "name": "제외됨",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 8,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 8,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileDismissedLabel",
                       "name": "제외됨",
-                      "content": "제외됨",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 11,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "제외됨",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 11,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileDismissedValue",
                       "name": "5개",
-                      "content": "5개",
                       "fill": "$ch-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 20,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "5개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 20,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-border",
-                  "strokeWidth": 1
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "gh180DirectReview20260910MobileDirect",
                   "name": "직접 확인",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "layout": "vertical",
-                  "padding": 8,
-                  "gap": 5,
                   "fill": "$ch-canvas",
                   "cornerRadius": "$ch-radius-sm",
+                  "stroke": "$ch-warning",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 5,
+                  "padding": 8,
                   "children": [
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileDirectLabel",
                       "name": "직접 확인",
-                      "content": "직접 확인",
                       "fill": "$ch-text-muted",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 11,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "직접 확인",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 11,
+                      "fontWeight": "500"
                     },
                     {
                       "type": "text",
                       "id": "gh180DirectReview20260910MobileDirectValue",
                       "name": "4개",
-                      "content": "4개",
                       "fill": "$ch-warning-ink",
-                      "fontFamily": "$ch-font",
-                      "fontSize": 20,
-                      "fontWeight": "500",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "lineHeight": 1.6
+                      "content": "4개",
+                      "lineHeight": 1.6,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 20,
+                      "fontWeight": "500"
                     }
-                  ],
-                  "stroke": "$ch-warning",
-                  "strokeWidth": 1
+                  ]
                 }
               ]
             },
@@ -447790,14 +447744,14 @@
               "type": "text",
               "id": "gh180DirectReview20260910MobileHelp",
               "name": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
-              "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
               "fill": "$ch-text-muted",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         },
@@ -447806,10 +447760,6 @@
           "id": "gh180DirectReview20260910MobileTabs",
           "name": "종류별 직접 확인",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "horizontal",
-          "padding": 0,
-          "gap": 0,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
           "children": [
@@ -447818,38 +447768,37 @@
               "id": "gh180DirectReview20260910MobileCharTab",
               "name": "캐릭터 후보",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 12,
-              "gap": 4,
               "fill": "$ch-surface-soft",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 12,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileCharLabel",
                   "name": "캐릭터 후보",
-                  "content": "캐릭터 후보",
                   "fill": "$ch-primary-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "캐릭터 후보",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileCharCount",
                   "name": "직접 확인 3개",
-                  "content": "직접 확인 3개",
                   "fill": "$ch-primary-ink",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "직접 확인 3개",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 10,
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -447858,38 +447807,37 @@
               "id": "gh180DirectReview20260910MobileWorldTab",
               "name": "세계관 후보",
               "width": "fill_container",
-              "height": "fit_content",
-              "layout": "vertical",
-              "padding": 12,
-              "gap": 4,
               "fill": "$ch-surface",
               "cornerRadius": "$ch-radius-sm",
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 12,
               "children": [
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileWorldLabel",
                   "name": "세계관 후보",
-                  "content": "세계관 후보",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 12,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "세계관 후보",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "500"
                 },
                 {
                   "type": "text",
                   "id": "gh180DirectReview20260910MobileWorldCount",
                   "name": "직접 확인 1개",
-                  "content": "직접 확인 1개",
                   "fill": "$ch-text",
-                  "fontFamily": "$ch-font",
-                  "fontSize": 10,
-                  "fontWeight": "500",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "lineHeight": 1.6
+                  "content": "직접 확인 1개",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 10,
+                  "fontWeight": "500"
                 }
               ]
             }
@@ -447901,26 +447849,20 @@
           "name": "밝은 목록 복귀 · ‹ 대상 목록으로",
           "width": "fill_container",
           "height": 44,
-          "layout": "horizontal",
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-sm",
           "padding": [
             0,
             13
           ],
           "alignItems": "center",
-          "fill": "$ch-surface",
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "$ch-border"
-          },
-          "cornerRadius": "$ch-radius-sm",
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobileWorldBackLabel",
               "name": "‹ 대상 목록으로",
-              "content": "‹ 대상 목록으로",
               "fill": "$ch-primary-ink",
+              "content": "‹ 대상 목록으로",
               "fontFamily": "$ch-font",
               "fontSize": 12,
               "fontWeight": "600"
@@ -447933,26 +447875,20 @@
           "name": "밝은 목록 복귀 · ‹ 후보 목록으로",
           "width": "fill_container",
           "height": 44,
-          "layout": "horizontal",
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-sm",
           "padding": [
             0,
             13
           ],
           "alignItems": "center",
-          "fill": "$ch-surface",
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "$ch-border"
-          },
-          "cornerRadius": "$ch-radius-sm",
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobileCharacterBackLabel",
               "name": "‹ 후보 목록으로",
-              "content": "‹ 후보 목록으로",
               "fill": "$ch-primary-ink",
+              "content": "‹ 후보 목록으로",
               "fontFamily": "$ch-font",
               "fontSize": 12,
               "fontWeight": "600"
@@ -447964,38 +447900,37 @@
           "id": "gh180DirectReview20260910MobilePending",
           "name": "미처리 설정",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 16,
-          "gap": 8,
           "fill": "$ch-surface",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobilePendingTitle",
               "name": "비요른 · 직접 확인 2개",
-              "content": "비요른 · 직접 확인 2개",
               "fill": "$ch-warning-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비요른 · 직접 확인 2개",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobilePendingReasons",
               "name": "비교 실패 · 캐릭터 연결 확인 필요",
-              "content": "비교 실패 · 캐릭터 연결 확인 필요",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "비교 실패 · 캐릭터 연결 확인 필요",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         },
@@ -448004,138 +447939,297 @@
           "id": "gh180DirectReview20260910MobileProcessExample",
           "name": "진행 중일 때 별도 표시",
           "width": "fill_container",
-          "height": "fit_content",
-          "layout": "vertical",
-          "padding": 16,
-          "gap": 8,
           "fill": "$ch-surface-soft",
           "cornerRadius": "$ch-radius-sm",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
           "children": [
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobileProcessTitle",
               "name": "분석 중 2개",
-              "content": "분석 중 2개",
               "fill": "$ch-primary-ink",
-              "fontFamily": "$ch-font",
-              "fontSize": 14,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "분석 중 2개",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
             },
             {
               "type": "text",
               "id": "gh180DirectReview20260910MobileProcessBody",
               "name": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
-              "content": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
               "fill": "$ch-text",
-              "fontFamily": "$ch-font",
-              "fontSize": 12,
-              "fontWeight": "500",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "lineHeight": 1.6
+              "content": "이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.\n해당 회차의 수정·확정은 잠깁니다. 이전 완료 회차의 보류는 계속 확인할 수 있습니다.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 12,
+              "fontWeight": "500"
             }
           ]
         }
-      ],
-      "x": 105950,
-      "y": 5184
+      ]
     },
     {
       "type": "frame",
       "id": "gh180LandingAutoCopy20260910",
-      "name": "SLanding / 자동 반영 기본 안내",
       "x": 106520,
       "y": 5184,
+      "name": "SLanding / 자동 반영 기본 안내",
       "width": 620,
-      "height": "fit_content",
-      "layout": "vertical",
-      "padding": 24,
-      "gap": 20,
       "fill": "$ch-surface",
       "cornerRadius": "$ch-radius-md",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
       "children": [
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910Title",
           "name": "랜딩 · 자동 반영 기본 안내",
+          "fill": "$ch-ink",
           "content": "랜딩 · 자동 반영 기본 안내",
           "fontFamily": "$ch-font",
           "fontSize": 22,
-          "fontWeight": "700",
-          "fill": "$ch-ink"
+          "fontWeight": "700"
         },
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910Hero",
           "name": "AI가 명확한 설정을 원문 근거와 함께 자동으로 반영해요. 확인이 필요한 내용만 직접 검토하세요.",
+          "fill": "$ch-text",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
           "content": "AI가 명확한 설정을 원문 근거와 함께 자동으로 반영해요. 확인이 필요한 내용만 직접 검토하세요.",
+          "lineHeight": 1.65,
           "fontFamily": "$ch-font",
           "fontSize": 14,
-          "fontWeight": "500",
-          "fill": "$ch-text",
-          "width": "fill_container",
-          "textGrowth": "fixed-width",
-          "lineHeight": 1.65
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910Trust",
           "name": "필요한 내용만 직접 확인",
+          "fill": "$ch-text",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
           "content": "필요한 내용만 직접 확인",
+          "lineHeight": 1.65,
           "fontFamily": "$ch-font",
           "fontSize": 14,
-          "fontWeight": "500",
-          "fill": "$ch-text",
-          "width": "fill_container",
-          "textGrowth": "fixed-width",
-          "lineHeight": 1.65
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910Feature",
           "name": "자동 반영·직접 확인 — 명확한 설정은 자동 반영하고 필요한 내용만 확인해요.",
+          "fill": "$ch-text",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
           "content": "자동 반영·직접 확인 — 명확한 설정은 자동 반영하고 필요한 내용만 확인해요.",
+          "lineHeight": 1.65,
           "fontFamily": "$ch-font",
           "fontSize": 14,
-          "fontWeight": "500",
-          "fill": "$ch-text",
-          "width": "fill_container",
-          "textGrowth": "fixed-width",
-          "lineHeight": 1.65
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910ManualDemo",
           "name": "단일 회차에서 직접 검토를 선택한 예시예요. 단계를 선택해 화면을 살펴보세요.",
+          "fill": "$ch-text",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
           "content": "단일 회차에서 직접 검토를 선택한 예시예요. 단계를 선택해 화면을 살펴보세요.",
+          "lineHeight": 1.65,
           "fontFamily": "$ch-font",
           "fontSize": 14,
-          "fontWeight": "500",
-          "fill": "$ch-text",
-          "width": "fill_container",
-          "textGrowth": "fixed-width",
-          "lineHeight": 1.65
+          "fontWeight": "500"
         },
         {
           "type": "text",
           "id": "gh180LandingAutoCopy20260910DemoComplete",
           "name": "이번 체험에서는 원문 근거를 확인하고 설정을 직접 검토했습니다. 실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.",
-          "content": "이번 체험에서는 원문 근거를 확인하고 설정을 직접 검토했습니다. 실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.",
-          "fontFamily": "$ch-font",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "fill": "$ch-text",
-          "width": "fill_container",
-          "textGrowth": "fixed-width",
-          "lineHeight": 1.65,
           "metadata": {
             "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
-          }
+          },
+          "fill": "$ch-text",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "이번 체험에서는 원문 근거를 확인하고 설정을 직접 검토했습니다. 실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.",
+          "lineHeight": 1.65,
+          "fontFamily": "$ch-font",
+          "fontSize": 14,
+          "fontWeight": "500"
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "qg188",
+      "x": 84140,
+      "y": 31064,
+      "name": "GH194 / 세계관 이미지 도감 · 검증 화면",
+      "width": 6000,
+      "height": 70,
+      "fill": "#FFFFFF",
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "AEB15",
+          "name": "검증 흐름",
+          "fill": "#172137",
+          "content": "GH194 · 분류 선택 → 대상 목록 → 상세 모달 → 공용 이미지 도감 | 2026-09-15 실제 API·PostgreSQL 검증",
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "r8anb",
+      "x": 84140,
+      "y": 31174,
+      "name": "Active / GH194 / World / SF Category Selection",
+      "context": "실제 Java/PostgreSQL 연결 화면. 장르별 초기/기본 이미지, 장르 추천·전체 도감 전환과 타 장르 수동 선택을 지원한다. 개인 이미지 우선순위는 유지한다. docs/world-image-themes.md 참고.",
+      "clip": true,
+      "width": 1440,
+      "height": 1100,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/theme-sf-overview.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "LQUZc",
+      "x": 85660,
+      "y": 31174,
+      "name": "Active / GH194 / World / Subject List",
+      "context": "실제 브라우저 캡처. 구현: worldsetting/WorldSettingDatabase.tsx 및 WorldImagePicker.tsx. 공용 예시 이미지는 수동 선택하며 설정 추출은 변경하지 않음.",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/image-list-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "oYBX0",
+      "x": 87180,
+      "y": 31174,
+      "name": "Active / GH194 / World / Detail Modal",
+      "context": "실제 브라우저 캡처. 구현: worldsetting/WorldSettingDatabase.tsx 및 WorldImagePicker.tsx. 공용 예시 이미지는 수동 선택하며 설정 추출은 변경하지 않음.",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/image-detail-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "eToFP",
+      "x": 88700,
+      "y": 31174,
+      "name": "Active / GH194 / World / Genre Image Catalog",
+      "context": "실제 V63 Java/PostgreSQL 연결 화면. 확정 시 자동 이미지 결과 저장. 대상 이름에 따라 자동 선택 복귀 / 분류 기본 이미지 고정 / 공용 도감·개인 이미지 직접 선택을 구분한다. 장르 추천·전체 도감과 수동 선택 우선순위 유지. docs/world-image-themes.md 참고.",
+      "clip": true,
+      "width": 1440,
+      "height": 1100,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/theme-picker-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "AV3ZP",
+      "x": 84140,
+      "y": 32344,
+      "name": "Active / GH194 / World / Mobile / Category Selection",
+      "context": "모바일 실제 브라우저 캡처. 도감 검색·선택·고정 저장 영역·초점 복귀 검증.",
+      "clip": true,
+      "width": 390,
+      "height": 1600,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/world-categories-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "NHFGy",
+      "x": 84610,
+      "y": 32344,
+      "name": "Active / GH194 / World / Mobile / Subject List",
+      "context": "모바일 실제 브라우저 캡처. 도감 검색·선택·고정 저장 영역·초점 복귀 검증.",
+      "clip": true,
+      "width": 320,
+      "height": 740,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/image-list-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "ZtPJb",
+      "x": 85080,
+      "y": 32344,
+      "name": "Active / GH194 / World / Mobile / Detail Modal",
+      "context": "모바일 실제 브라우저 캡처. 도감 검색·선택·고정 저장 영역·초점 복귀 검증.",
+      "clip": true,
+      "width": 320,
+      "height": 740,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/image-detail-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "F4dds",
+      "x": 85550,
+      "y": 32344,
+      "name": "Active / GH194 / World / Mobile / Genre Image Catalog",
+      "context": "실제 V63 Java/PostgreSQL 연결 화면. 확정 시 자동 이미지 결과 저장. 대상 이름에 따라 자동 선택 복귀 / 분류 기본 이미지 고정 / 공용 도감·개인 이미지 직접 선택을 구분한다. 장르 추천·전체 도감과 수동 선택 우선순위 유지. docs/world-image-themes.md 참고.",
+      "clip": true,
+      "width": 320,
+      "height": 568,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/theme-picker-mobile.png",
+        "mode": "fit"
+      }
     },
     {
       "type": "frame",
@@ -448350,6 +448444,78 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideDesktop",
+      "x": 90600,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / First Analysis Guide",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideMobile",
+      "x": 92140,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Mobile / First Analysis Guide",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
+      "clip": true,
+      "width": 320,
+      "height": 568,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-mobile.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideManualDesktop",
+      "x": 92600,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Manual Review Guide",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-manual-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "gh194AnalysisGuideExceptionDesktop",
+      "x": 94150,
+      "y": 31174,
+      "name": "Active / GH194 / Upload / Automatic Review Exception",
+      "context": "계정 최초 안내. 1320px 모달의 한 줄 5단계: 반영 방식, 모든 설정 직접 검토, AI 자동 반영, 자동 반영 후 직접 검토, 검토 완료. 실제 업로드·검토·프로필 컴포넌트를 공유하고 예시 안 이벤트는 inert로 차단. PNG·방식 탭 없음. 작은 화면은 단계 바만 가로 이동.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/gh194/analysis-guide-exception-desktop.png",
+        "mode": "fit"
+      },
+      "layout": "vertical"
     }
   ],
   "variables": {

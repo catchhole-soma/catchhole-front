@@ -1,3 +1,5 @@
+import { clearPrivateImageKeys } from './private-image-keys';
+
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
@@ -12,5 +14,6 @@ export function setAccessToken(accessToken: string): void {
 }
 
 export function clearAccessToken(): void {
+  clearPrivateImageKeys();
   localStorage.removeItem(ACCESS_TOKEN_KEY);
 }

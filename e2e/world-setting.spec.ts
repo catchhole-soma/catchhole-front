@@ -2168,7 +2168,7 @@ test('Job이 없는 비교 대기 후보를 자동 복구하고 대기 아이콘
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   await expect.poll(() => retryAttempts).toBe(1);
-  const spinner = page.getByRole('article').locator('svg.spin');
+  const spinner = page.getByRole('article').getByRole('status').locator('svg.spin');
   await expect(spinner).toBeVisible();
   await expect.poll(() => spinner.evaluate(element => getComputedStyle(element).animationName))
     .toBe('catchhole-spin');
@@ -2344,7 +2344,7 @@ test('설정 검색 상태는 복원하고 세계관 설정 재진입은 분류 
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBeNull();
   await expect(page.getByRole('heading', { name: '어떤 세계관 설정을 볼까요?' })).toBeVisible();
-  await page.getByRole('button', { name: '전체 설정 보기' }).click();
+  await page.getByRole('button', { name: '전체 보기', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
   await page.getByRole('button', { name: '세계관 설정', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
@@ -2403,28 +2403,261 @@ test('모바일 세계관 DB는 사용자가 대상을 고를 때까지 목록�
     elements.map(element => Math.round(element.getBoundingClientRect().top))
   ));
   expect(filterMetrics.scrollWidth).toBeLessThanOrEqual(filterMetrics.clientWidth);
-  expect(new Set(filterTops).size).toBe(3);
+  expect(new Set(filterTops).size).toBe(2);
 
-  const categorySelect = page.getByRole('combobox', { name: '세계관 분류', exact: true });
-  await categorySelect.selectOption('RACE');
+  await expect(page.getByRole('combobox', { name: '세계관 분류', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '분류 선택으로' }).click();
+  await page.getByRole('button', { name: '종족 설정 보기' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('RACE');
   await page.reload();
-  await expect(categorySelect).toHaveValue('RACE');
+  await expect(page.getByRole('heading', { name: '종족', exact: true })).toBeVisible();
 
   const list = page.locator('.world-setting-db-list');
   await expect(list).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
   await list.getByText('바바리안', { exact: true }).click();
-  await expect(page.getByRole('button', { name: '대상 목록으로' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '바바리안 세계관 상세' })).toBeVisible();
 
-  await page.getByRole('button', { name: '대상 목록으로' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '닫기', exact: true }).click();
   await expect(list).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
   await page.waitForTimeout(250);
   expect(new URL(page.url()).searchParams.get('settingId')).toBeNull();
 });
 
-test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 충돌 뒤 입력 보존을 처리한다', async ({ page }) => {
+test('세계관 목록은 화면에 따라 12·18·24개를 표시하고 보던 항목과 페이지 경계를 유지한다', async ({ page }, testInfo) => {
+  const rows = Array.from({ length: 52 }, (_, index) => ({
+    id: `responsive-world-${index + 1}`,
+    category: 'RACE', subjectName: `종족 ${String(index + 1).padStart(2, '0')}`, propertyCount: 5,
+  }));
+  const requests: Array<{ page: number; size: number }> = [];
+  await page.route('**/api/v1/**', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.endsWith('/auth/me')) return success(route, member);
+    if (path === '/api/v1/works') return success(route, [{ id: workId, title: '세계관 탐색', genre: '판타지' }]);
+    if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '세계관 탐색', genre: '판타지' });
+    if (path === `/api/v1/works/${workId}/world-settings`) {
+      const apiPage = Number(url.searchParams.get('page'));
+      const size = Number(url.searchParams.get('size'));
+      requests.push({ page: apiPage, size });
+      const start = apiPage * size;
+      return success(route, { totalWorldSettingCount: rows.length, worldSettings: {
+        content: rows.slice(start, start + size), page: apiPage, size,
+        totalElements: rows.length, totalPages: Math.ceil(rows.length / size), hasNext: start + size < rows.length,
+      } });
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.setViewportSize({ width: 1440, height: 780 });
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&worldSize=20`);
+  const cards = page.locator('.world-setting-list-item');
+  const params = () => new URL(page.url()).searchParams;
+  await expect(cards).toHaveCount(12);
+  await expect.poll(() => params().get('worldSize')).toBe('12');
+  expect(requests.every(request => [12, 18, 24].includes(request.size))).toBe(true);
+  const header = page.locator('.world-setting-database__header--list');
+  expect((await header.boundingBox())!.height).toBeLessThanOrEqual(48);
+  expect((await cards.first().boundingBox())!.height).toBeLessThanOrEqual(104);
+  await expect(page.locator('.world-setting-database__title')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '종족', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '새 대상 추가', exact: true })).toBeVisible();
+  await page.waitForFunction(() => {
+    for (let element = document.querySelector('.world-setting-database'); element; element = element.parentElement) {
+      if (Number(getComputedStyle(element).opacity) < 1) return false;
+    }
+    return true;
+  });
+  await testInfo.attach('world-compact-list-desktop', { body: await page.screenshot({ path: testInfo.outputPath('world-compact-list-desktop.png') }), contentType: 'image/png' });
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect(cards.first()).toContainText('종족 13');
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect(cards.first()).toContainText('종족 25');
+
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await expect(cards).toHaveCount(18);
+  await expect.poll(() => params().get('page')).toBe('2');
+  await expect(cards.filter({ hasText: '종족 25' })).toBeVisible();
+  await expect(cards.first()).toContainText('종족 19');
+  await page.setViewportSize({ width: 1440, height: 1400 });
+  await expect(cards).toHaveCount(24);
+  await expect.poll(() => params().get('page')).toBe('1');
+  await expect(cards.filter({ hasText: '종족 19' })).toBeVisible();
+  await page.getByRole('button', { name: '다음 페이지' }).click();
+  await expect(cards.first()).toContainText('종족 25');
+  await page.reload();
+  await expect(cards).toHaveCount(24);
+  await expect(cards.first()).toContainText('종족 25');
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(cards).toHaveCount(12);
+  await expect.poll(() => params().get('page')).toBe('3');
+  await expect(cards.first()).toContainText('종족 25');
+  expect(await page.locator('.world-setting-subject-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
+  // A link saved on a larger screen restores its exact page boundary first.
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&worldSize=18&page=2`);
+  await expect(cards).toHaveCount(18);
+  await expect(cards.first()).toContainText('종족 19');
+  await page.reload();
+  await expect(cards).toHaveCount(18);
+  await expect(cards.first()).toContainText('종족 19');
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(cards).toHaveCount(12);
+  await expect(cards.filter({ hasText: '종족 19' })).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1400 });
+  await expect(cards).toHaveCount(24);
+  await expect(cards.filter({ hasText: '종족 13' })).toBeVisible();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(cards).toHaveCount(12);
+  expect((await cards.first().boundingBox())!.height).toBeLessThanOrEqual(94);
+  expect(await page.locator('.world-setting-database').evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  expect((await page.getByRole('button', { name: '분류 선택으로' }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await testInfo.attach('world-compact-list-mobile', { body: await page.screenshot({ path: testInfo.outputPath('world-compact-list-mobile.png') }), contentType: 'image/png' });
+  await page.getByRole('button', { name: '분류 선택으로' }).click();
+  await expect.poll(() => params().get('worldSize')).toBeNull();
+  await page.getByRole('button', { name: '종족 설정 보기' }).click();
+  await expect.poll(() => params().get('worldSize')).toBe('12');
+  await expect(cards.first()).toContainText('종족 01');
+});
+
+test('세계관 목록과 상세 모달은 검색·페이지·스크롤·뒤로가기를 보존한다', async ({ page }, testInfo) => {
+  let detailRequests = 0;
+  let missing = false;
+  const rows = (size: number) => Array.from({ length: size }, (_, index) => ({
+    id: index === size - 1 ? worldSettingId : `world-row-${index}`,
+    category: 'RACE',
+    subjectName: index === size - 1 ? '북부 바바리안' : `설원의 종족 ${index + 1}`,
+    propertyCount: 25,
+    matchedSettingName: '서식지',
+    matchedSettingValue: '북부 설원',
+  }));
+  await page.route('**/api/v1/**', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.endsWith('/auth/me')) return success(route, member);
+    if (path === '/api/v1/works') return success(route, [{ id: workId, title: '세계관 탐색', genre: '판타지' }]);
+    if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '세계관 탐색', genre: '판타지' });
+    if (path === `/api/v1/works/${workId}/world-settings`) {
+      const empty = url.searchParams.get('q') === '없는 검색어';
+      const size = Number(url.searchParams.get('size'));
+      return success(route, { totalWorldSettingCount: 40, worldSettings: {
+        content: empty ? [] : rows(size), page: Number(url.searchParams.get('page') ?? 0), size,
+        totalElements: empty ? 0 : 40, totalPages: empty ? 0 : Math.ceil(40 / size), hasNext: false,
+      } });
+    }
+    if (path === `/api/v1/works/${workId}/world-settings/${worldSettingId}`) {
+      detailRequests += 1;
+      if (missing) return failure(route, 404, '대상을 찾을 수 없습니다.', 'WORLD_SETTING_NOT_FOUND');
+      return success(route, {
+        id: worldSettingId, category: 'RACE', subjectName: '북부 바바리안', version: 1,
+        properties: Array.from({ length: 25 }, (_, index) => ({ settingName: `설정 ${index + 1}`, value: '북부 설원에서 살아가는 종족의 설정입니다.' })),
+      });
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const listUrl = `/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&q=설원&sort=UPDATED_DESC&page=2`;
+  await page.goto(listUrl);
+  const item = page.getByRole('button', { name: '북부 바바리안 세계관 대상 보기' });
+  await expect(item).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(detailRequests).toBe(0);
+  expect(await computedContrastRatio(item.locator('strong'), item)).toBeGreaterThanOrEqual(4.5);
+  const backButton = page.getByRole('button', { name: '분류 선택으로' });
+  expect(await computedContrastRatio(backButton, backButton)).toBeGreaterThanOrEqual(4.5);
+  await expect(item).toContainText('서식지 · 북부 설원');
+  await expect(page.getByRole('combobox', { name: '세계관 분류', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: '세계관 분류', exact: true })).toHaveCount(0);
+  await page.waitForFunction(() => {
+    for (let element = document.querySelector('.world-setting-database'); element; element = element.parentElement) {
+      if (Number(getComputedStyle(element).opacity) < 1) return false;
+    }
+    return true;
+  });
+  await testInfo.attach('world-subject-list-desktop', { body: await page.screenshot({ path: testInfo.outputPath('world-subject-list-desktop.png'), fullPage: true }), contentType: 'image/png' });
+
+  await item.scrollIntoViewIfNeeded();
+  const scrollPositions = () => item.evaluate(element => {
+    const values: number[] = [];
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) values.push(ancestor.scrollTop);
+    return values;
+  });
+  const before = await scrollPositions();
+  await item.click();
+  const dialog = page.getByRole('dialog', { name: '북부 바바리안 세계관 상세' });
+  await expect(dialog).toBeVisible();
+  await expect.poll(() => detailRequests).toBe(1);
+  await expect(dialog.getByRole('heading', { name: '북부 바바리안 세계관 상세' })).toBeFocused();
+  expect(await dialog.evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)');
+  await testInfo.attach('world-detail-desktop', { body: await page.screenshot({ path: testInfo.outputPath('world-detail-desktop.png') }), contentType: 'image/png' });
+  await dialog.getByRole('button', { name: '설정 25 설정 수정', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: '닫기', exact: true })).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(item).toBeFocused();
+  expect(await scrollPositions()).toEqual(before);
+  for (const [key, value] of Object.entries({ category: 'RACE', q: '설원', sort: 'UPDATED_DESC', page: '2' })) {
+    expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+  }
+  await item.click();
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await page.goForward();
+  await expect(dialog).toBeVisible();
+  await page.reload();
+  await expect(dialog).toBeVisible();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(dialog.getByRole('button', { name: '닫기', exact: true })).toBeInViewport();
+  expect(await dialog.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  await dialog.getByRole('button', { name: '설정 25 설정 수정', exact: true }).click();
+  await dialog.getByLabel('설정값').fill('작성 중인 변경');
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await page.goForward();
+  await expect(dialog.getByLabel('설정값')).toHaveValue('작성 중인 변경');
+  await dialog.getByRole('button', { name: '저장', exact: true }).scrollIntoViewIfNeeded();
+  await expect(dialog.getByRole('button', { name: '저장', exact: true })).toBeInViewport();
+  expect((await dialog.getByRole('button', { name: '저장', exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await testInfo.attach('world-detail-mobile', { body: await page.screenshot({ path: testInfo.outputPath('world-detail-mobile.png') }), contentType: 'image/png' });
+  await page.keyboard.press('Escape');
+  const discard = page.getByRole('alertdialog');
+  await expect(discard).toBeVisible();
+  await discard.getByRole('button', { name: '계속 작성', exact: true }).click();
+  await expect(dialog.getByLabel('설정값')).toHaveValue('작성 중인 변경');
+  await page.keyboard.press('Escape');
+  await discard.getByRole('button', { name: '작성 취소', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(item).toBeFocused();
+
+  await page.getByRole('button', { name: '분류 선택으로' }).click();
+  await expect(page.getByRole('heading', { name: '어떤 세계관 설정을 볼까요?' })).toBeVisible();
+  await page.getByRole('button', { name: '종족 설정 보기' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.world-setting-list-item__match')).toHaveCount(0);
+  await testInfo.attach('world-subject-list-mobile', { body: await page.screenshot({ path: testInfo.outputPath('world-subject-list-mobile.png'), fullPage: true }), contentType: 'image/png' });
+
+  // Shared detail links still work even when the filtered list is empty or its page is clamped.
+  await page.goto(`${listUrl}&settingId=${worldSettingId}`.replace('q=설원', 'q=없는%20검색어'));
+  await expect(dialog).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('settingId')).toBe(worldSettingId);
+  await dialog.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '검색어 지우기' }).click();
+  expect(new URL(page.url()).searchParams.get('category')).toBe('RACE');
+
+  missing = true;
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&settingId=${worldSettingId}`);
+  await expect(page.getByRole('dialog').getByText('대상을 찾을 수 없습니다.')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: '닫기', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '전체 세계관', exact: true })).toBeVisible();
+});
+
+test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 충돌 뒤 입력 보존을 처리한다', async ({ page }, testInfo) => {
   let createAttempts = 0;
   let propertyAttempts = 0;
   let identityAttempts = 0;
@@ -2576,11 +2809,44 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBeNull();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
   await expect(page.getByRole('button', { name: '종족 설정 보기' })).toBeVisible();
-  await page.getByRole('button', { name: '전체 설정 보기' }).click();
+  const cards = page.locator('.world-setting-category-overview__card');
+  await expect(cards).toHaveCount(8);
+  await expect.poll(() => cards.locator('img').evaluateAll(images => (
+    images.filter(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0).length
+  ))).toBe(8);
+  expect(await computedContrastRatio(cards.first().locator('.world-setting-category-overview__card-label'), cards.first())).toBeGreaterThanOrEqual(4.5);
+  expect(await computedContrastRatio(cards.first().locator('.world-setting-category-overview__card-description'), cards.first())).toBeGreaterThanOrEqual(4.5);
+  await page.waitForFunction(() => {
+    for (let element = document.querySelector('.world-setting-database'); element; element = element.parentElement) {
+      if (Number(getComputedStyle(element).opacity) < 1) return false;
+    }
+    return true;
+  });
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1440 ? 1100 : 1600 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    const screenshot = await page.screenshot({ path: testInfo.outputPath(`world-categories-${width}.png`), fullPage: true });
+    await testInfo.attach(`world-categories-${width}`, { body: screenshot, contentType: 'image/png' });
+  }
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.getByRole('button', { name: '전체 보기', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('button', { name: '전체 보기', exact: true })).toBeInViewport();
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await cards.first().focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(cards.first()).toHaveCSS('outline-style', 'solid');
+  await expect(cards.first()).toHaveCSS('transition-duration', '0s');
+  await page.getByRole('button', { name: '전체 보기', exact: true }).focus();
+  await page.keyboard.press('Enter');
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
   await expect(page.locator('.database-v2')).toHaveCount(1);
   await expect(page.locator('.world-setting-db-filters')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await expect(page.locator('.world-setting-list-item').first()).toHaveCSS('background-color', 'rgb(231, 243, 255)');
+  await expect(page.locator('.world-setting-list-item').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(() => new URL(page.url()).searchParams.get('settingId')).toBeNull();
+  await page.getByRole('button', { name: '바바리안 세계관 대상 보기' }).click();
   await expect(page.locator('.world-setting-detail-card')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(page.locator('.world-setting-detail-header')).not.toContainText('버전');
   await expect(page.getByText('바바리안', { exact: true }).first()).toBeVisible();
@@ -2592,11 +2858,13 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(page.getByText('그들은 오래전부터 설원 지대에 정착했다.')).toBeVisible();
   await expect(page.locator('.world-setting-property-row__evidence')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-  await page.getByRole('button', { name: '분류: 종족' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '닫기', exact: true }).click();
+  await expect(page.getByRole('button', { name: '바바리안 세계관 대상 보기' })).toBeFocused();
+  await page.getByRole('button', { name: '분류 선택으로' }).click();
+  await page.getByRole('button', { name: '종족 설정 보기' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('RACE');
-  await expect(page.getByRole('button', { name: '분류: 종족' })).toHaveAttribute('aria-current', 'true');
-  await expect(page.getByRole('button', { name: '분류: 종족' })).toHaveCSS('background-color', 'rgb(231, 243, 255)');
-  await page.getByRole('button', { name: '분류: 전체' }).click();
+  await page.getByRole('button', { name: '분류 선택으로' }).click();
+  await page.getByRole('button', { name: '전체 보기', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('ALL');
 
   await page.getByRole('textbox', { name: '세계관 설정 검색', exact: true }).fill('사회 구조');
@@ -2605,7 +2873,7 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect.poll(() => latestListQuery?.searchParams.get('q') ?? null).toBe('사회 구조');
 
   await page.getByRole('button', { name: '새 대상 추가', exact: true }).click();
-  const createForm = page.getByText('새 세계관 대상 추가', { exact: true }).locator('..').locator('..').locator('..');
+  const createForm = page.getByRole('dialog', { name: '새 세계관 대상 추가', exact: true });
   await expect(page.getByText('첫 설정', { exact: true })).toHaveCSS('color', 'rgb(25, 30, 38)');
   await expect(page.getByLabel('설정값')).toHaveCSS('background-color', 'rgb(245, 247, 251)');
   await expect(page.getByLabel('설정값')).toHaveCSS('color', 'rgb(25, 30, 38)');
@@ -2669,7 +2937,7 @@ test('세계관 DB는 URL 검색과 직접 생성 중복 오류, 설정 버전 �
   await expect(detailPanel.getByLabel('설정명')).toHaveCount(0);
 
   await page.getByRole('button', { name: '대상 정보 수정' }).click();
-  const identityModal = page.locator('.database-modal').filter({ hasText: '대상 정보 수정' });
+  const identityModal = page.getByRole('dialog', { name: '대상 정보 수정', exact: true });
   await expect(identityModal.locator('.database-modal__close')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(identityModal.locator('.database-modal__notice')).toHaveCSS('background-color', 'rgb(238, 247, 255)');
   await expect(identityModal.locator('.database-modal__footer')).toHaveCSS('border-top-color', 'rgb(225, 229, 236)');
@@ -2844,3 +3112,106 @@ test(scopeUnresolved
   ))).toBe(true);
 });
 }
+
+test('다른 세션이 분류와 이미지를 바꿔도 충돌 새로고침에서 선택 초안을 유지한다', async ({ page }) => {
+  const base = `/api/v1/works/${workId}/world-settings`;
+  const item = { id: worldSettingId, category: 'RACE', subjectName: '고블린', propertyCount: 1,
+    image: { source: 'AUTO', catalogId: 'race-goblin', name: '고블린', version: 0 } };
+  const saves: unknown[] = [];
+  const catalogCategories: string[] = [];
+  await page.route('**/api/v1/**', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.endsWith('/auth/me')) return success(route, member);
+    if (path === '/api/v1/works') return success(route, [{ id: workId, title: '이미지 충돌 확인', genre: '판타지' }]);
+    if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '이미지 충돌 확인', genre: '판타지' });
+    if (path === base) return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([item]) });
+    if (path === `${base}/${worldSettingId}`) return success(route, { ...item, version: 0, properties: [] });
+    if (path === '/api/v1/world-image-catalogs') {
+      catalogCategories.push(url.searchParams.get('category')!);
+      return success(route, pageResponse([]));
+    }
+    if (path === `${base}/${worldSettingId}/image`) {
+      saves.push(route.request().postDataJSON());
+      if (saves.length === 1) {
+        item.category = 'LOCATION';
+        item.image = { source: 'MANUAL', catalogId: 'location-forest', name: '숲', version: 3 };
+        return failure(route, 409, '최신 이미지를 확인해 주세요.', 'WORLD_IMAGE_VERSION_CONFLICT');
+      }
+      item.image = { source: 'DEFAULT', catalogId: 'location-default', name: '장소 기본', version: 4 };
+      return success(route, item.image);
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&settingId=${worldSettingId}&modal=world-setting-image`);
+  const picker = page.getByRole('dialog', { name: '대표 이미지 선택', exact: true });
+  const defaultOption = picker.getByRole('button', { name: /^분류 기본 이미지/ });
+  await defaultOption.click();
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await picker.getByRole('button', { name: '최신 이미지 확인', exact: true }).click();
+  await expect.poll(() => catalogCategories).toContain('LOCATION');
+  await expect(defaultOption).toHaveAttribute('aria-pressed', 'true');
+  await expect(picker.locator('.world-image-picker__selection')).toContainText('분류 기본 이미지 선택');
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  expect(saves).toEqual([
+    { catalogId: null, privateImageId: null, version: 0 },
+    { catalogId: null, privateImageId: null, version: 3 },
+  ]);
+});
+
+test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초안을 유지한다', async ({ page }) => {
+  const imagePath = `/api/v1/world-image-assets/${'a'.repeat(64)}.webp`;
+  const themeFallback = `/api/v1/world-image-assets/${'b'.repeat(64)}.webp`;
+  let catalogFailed = true;
+  let saveFailed = true;
+  let selected = false;
+  const base = `/api/v1/works/${workId}/world-settings`;
+  const item = { id: worldSettingId, category: 'RACE', subjectName: '고블린', propertyCount: 1,
+    image: { catalogId: selected ? 'race-goblin' : 'race-default', thumbnailUrl: imagePath, imageUrl: imagePath, source: selected ? 'MANUAL' : 'DEFAULT', version: selected ? 1 : 0 } };
+  await page.route('**/api/v1/**', async route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.endsWith('/auth/me')) return success(route, member);
+    if (path === '/api/v1/works') return success(route, [{ id: workId, title: '도감 오류 확인', genre: '판타지' }]);
+    if (path === `/api/v1/works/${workId}`) return success(route, { id: workId, title: '도감 오류 확인', genre: '판타지' });
+    if (path === `/api/v1/works/${workId}/world-image-theme`) return success(route, {
+      theme: 'fantasy', defaults: { RACE: { thumbnailUrl: themeFallback } }, overview: {},
+    });
+    if (path === imagePath || path === themeFallback) return route.fulfill({ status: 404 });
+    if (path === base) return success(route, { totalWorldSettingCount: 1, worldSettings: pageResponse([item]) });
+    if (path === `${base}/${worldSettingId}`) return success(route, { ...item, version: 0, properties: [{ settingName: '성격', value: '경계한다' }] });
+    if (path === '/api/v1/world-image-catalogs') {
+      if (catalogFailed) return failure(route, 400, '도감 조회 실패', 'TEST_FAILURE');
+      return success(route, pageResponse([{ id: 'race-goblin', category: 'RACE', name: '고블린', thumbnailUrl: imagePath, imageUrl: imagePath }]));
+    }
+    if (path === `${base}/${worldSettingId}/image`) {
+      expect(route.request().postDataJSON()).toEqual({ catalogId: 'race-goblin', privateImageId: null, version: 0 });
+      if (saveFailed) return failure(route, 503, '잠시 후 다시 시도해 주세요.', 'TEST_FAILURE');
+      selected = true;
+      item.image = { ...item.image, catalogId: 'race-goblin', source: 'MANUAL', version: 1 };
+      return success(route, item.image);
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE`);
+  const card = page.getByRole('button', { name: '고블린 세계관 대상 보기' });
+  await expect(card.locator('img')).toHaveAttribute('src', /world-defaults\/race.webp/);
+  await card.click();
+  await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: '대표 이미지 선택', exact: true });
+  await expect(picker.getByRole('alert')).toContainText('도감을 불러오지 못했어요.');
+  catalogFailed = false;
+  await picker.getByRole('button', { name: '다시 시도', exact: true }).click();
+  const option = picker.getByRole('button', { name: '고블린 이미지 선택', exact: true });
+  await option.click();
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await expect(picker.getByRole('alert')).toContainText('잠시 후 다시 시도해 주세요.');
+  await expect(option).toHaveAttribute('aria-pressed', 'true');
+  saveFailed = false;
+  await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('경계한다');
+});

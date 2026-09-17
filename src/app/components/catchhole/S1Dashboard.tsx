@@ -349,6 +349,7 @@ export default function S1Dashboard() {
     setSearchParams(prev => {
       const next = switchSettingTabQueryState(prev, settingTab, id);
       next.set('tab', id);
+      next.delete('worldSize');
       if (openCategoryOverview) {
         next.delete('category');
         next.delete('q');
@@ -932,6 +933,9 @@ export default function S1Dashboard() {
                           selectedCharacterId={selectedCharDetail}
                           selectedEvidenceFactId={selectedCharacterFactId}
                           isEditing={selectedCharEditing}
+                          imagePickerOpen={selectedCharDetail !== null && searchParams.get('mode') === 'image'}
+                          onImageOpen={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('mode', 'image'); next.delete('factId'); return next; })}
+                          onImageClose={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('mode'); return next; }, { replace: true })}
                           demoMode={demoMode}
                           archiveOpen={characterArchiveOpen}
                           demoCharacters={demoCharacters}
