@@ -1692,9 +1692,7 @@ export function CharacterSettingReview() {
     ...updateSettingCandidateMutation(),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
-      if (response.data?.manualReviewAvailable) {
-        setManuallyReviewedCandidateIds(previous => new Set([...previous, variables.path.candidateId]));
-      }
+      setManuallyReviewedCandidateIds(previous => new Set([...previous, variables.path.candidateId]));
       setEditCandidate(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
@@ -1895,8 +1893,8 @@ export function CharacterSettingReview() {
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 
-  const hasManualReview = (candidate: SettingCandidateResponse) => candidate.manualReviewAvailable === true
-    && Boolean(candidate.id && manuallyReviewedCandidateIds.has(candidate.id));
+  const hasManualReview = (candidate: SettingCandidateResponse) =>
+    Boolean(candidate.id && manuallyReviewedCandidateIds.has(candidate.id));
   const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
     ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'
     : pendingGroupCandidates.length === 0
