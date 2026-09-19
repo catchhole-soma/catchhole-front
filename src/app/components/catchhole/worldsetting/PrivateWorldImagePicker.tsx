@@ -14,9 +14,12 @@ function PrivateImageOption({ image, workId, selected, pending, onSelect, onDele
   selected: boolean; pending: boolean; onSelect: () => void; onDelete: () => void;
 }) {
   const name = image.name ?? (image.vaultId ? '이전 방식으로 보관한 이미지' : '내 이미지');
+  const needsReplacement = Boolean(image.vaultId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   return <div className="private-image-option">
-    <button type="button" className="world-image-picker__option" aria-label={`${name} 이미지 선택`} aria-pressed={selected} disabled={pending} onClick={onSelect}>
+    <button type="button" className="world-image-picker__option"
+      aria-label={needsReplacement ? `${name}: 원본을 다시 올린 뒤 선택할 수 있어요` : `${name} 이미지 선택`}
+      aria-pressed={selected} disabled={pending || needsReplacement} onClick={onSelect}>
       <PrivateSubjectImage workId={workId} imageId={image.id!} vaultId={image.vaultId} />
       <span><span className="private-image-name">{name}</span>{selected && <Check size={15} aria-hidden="true" />}</span>
     </button>

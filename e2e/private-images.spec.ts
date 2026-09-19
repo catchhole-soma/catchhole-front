@@ -35,6 +35,7 @@ test('계정 변경은 이전 세션의 이미지와 목록을 숨기고 기존 
     (await import(/* @vite-ignore */ path)).mountPrivatePicker();
   });
   await expect(page.getByText('이미지를 다시 올려 주세요', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '이전 방식으로 보관한 이미지: 원본을 다시 올린 뒤 선택할 수 있어요' })).toBeDisabled();
   await expect(page.getByLabel('내 이미지 파일 선택')).toBeAttached();
   await expect(page.getByLabel('보관용 코드', { exact: true })).toHaveCount(0);
   await page.route('**/api/v1/works/fixture/private-world-images*', route => route.fulfill({ status: 404,
