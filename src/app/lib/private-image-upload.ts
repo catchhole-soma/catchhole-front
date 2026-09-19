@@ -7,7 +7,7 @@ function imageMime(bytes: Uint8Array): string {
 
 /** 파일 입력 형식은 유지하되 개인 이미지 API에는 실행 가능한 메타데이터 없는 PNG를 보낸다. */
 export async function preparePrivateImage(file: File) {
-  if (!file.size || file.size > 8 * 1024 * 1024) throw new Error('이미지는 8MB 이하로 선택해 주세요.');
+  if (!file.size || file.size > 5 * 1024 * 1024) throw new Error('이미지는 5MB 이하로 선택해 주세요.');
   const bytes = await file.arrayBuffer();
   const mime = imageMime(new Uint8Array(bytes));
   const bitmap = await createImageBitmap(new Blob([bytes], { type: mime })).catch(() => {
@@ -30,7 +30,7 @@ export async function preparePrivateImage(file: File) {
       if (blob.size > limit) throw new Error('변환한 이미지가 커요. 해상도를 줄인 뒤 다시 올려 주세요.');
       return blob;
     }
-    const image = await png(16384, 8 * 1024 * 1024);
+    const image = await png(16384, 5 * 1024 * 1024);
     const thumbnail = await png(480, 512 * 1024);
     return { id: crypto.randomUUID(), name: file.name.slice(0, 180), image, thumbnail };
   } finally { bitmap.close(); }

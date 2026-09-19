@@ -92,7 +92,7 @@ function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect,
           void uploadFile(file);
         }} />
       </label>
-      <small>PNG · JPG · WebP, 최대 8MB · 작품당 50개</small>
+      <small>PNG · JPG · WebP, 최대 5MB · 작품당 50개</small>
     </div>
     {error && <p role="alert" className="world-image-picker__error">{error}</p>}
     {list.isPending ? <p role="status">내 이미지를 불러오고 있어요.</p>

@@ -9,16 +9,20 @@ test('새 이미지 준비는 코드 없이 PNG와 썸네일을 만들고 잘못
     canvas.getContext('2d')!.fillRect(0, 0, 800, 600);
     const jpeg = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/jpeg'));
     const prepared = await preparePrivateImage(new File([jpeg], '고블린.jpg', { type: 'image/jpeg' }));
+    const atLimit = new Uint8Array(5 * 1024 * 1024);
+    atLimit.set(new Uint8Array(await jpeg.arrayBuffer()));
+    const accepted = await preparePrivateImage(new File([atLimit], '한도.jpg', { type: 'image/jpeg' }));
+    const overLimit = new Uint8Array(atLimit.length + 1); overLimit.set(atLimit);
     const thumbnail = await createImageBitmap(prepared.thumbnail);
     async function rejected(file: File) { try { await preparePrivateImage(file); return false; } catch { return true; } }
-    const result = { name: prepared.name, type: prepared.image.type, width: thumbnail.width, height: thumbnail.height,
+    const result = { limitAccepted: accepted.image.type === 'image/png', name: prepared.name, type: prepared.image.type, width: thumbnail.width, height: thumbnail.height,
       signature: Array.from(new Uint8Array(await prepared.image.arrayBuffer()).slice(0, 8)),
       noKey: !('vaultId' in prepared) && !('encryptedMetadata' in prepared),
       svg: await rejected(new File(['<svg/>'], 'image.png', { type: 'image/png' })),
-      empty: await rejected(new File([], 'empty.png')), oversized: await rejected(new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'large.png')) };
+      empty: await rejected(new File([], 'empty.png')), oversized: await rejected(new File([overLimit], 'large.jpg', { type: 'image/jpeg' })) };
     thumbnail.close(); return result;
   });
-  expect(result).toEqual({ name: '고블린.jpg', type: 'image/png', width: 480, height: 360,
+  expect(result).toEqual({ limitAccepted: true, name: '고블린.jpg', type: 'image/png', width: 480, height: 360,
     signature: [137, 80, 78, 71, 13, 10, 26, 10], noKey: true, svg: true, empty: true, oversized: true });
 });
 
