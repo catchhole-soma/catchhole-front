@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, Upload } from 'lucide-react';
 import { deletePrivateWorldImageMutation, getPrivateWorldImagesOptions, uploadPrivateWorldImageMutation } from '../../../api/generated/@tanstack/react-query.gen';
@@ -27,13 +27,18 @@ function PrivateImageOption({ image, workId, selected, pending, onSelect, onDele
 
 export function PrivateWorldImagePicker(props: Parameters<typeof AccountPrivateWorldImagePicker>[0]) {
   const session = usePrivateImageSession();
-  return <AccountPrivateWorldImagePicker key={session} {...props} />;
+  return <AccountPrivateWorldImagePicker key={`${session}:${props.workId}`} {...props} />;
 }
 
 function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect, onBusy }: {
   workId: string; selectedId?: string; pending: boolean;
   onSelect: (image: PrivateWorldImageResponse | null) => void; onBusy: (busy: boolean) => void;
 }) {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; onBusy(false); };
+  }, [onBusy]);
   const [page, setPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +52,12 @@ function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect,
     setBusy(true); onBusy(true); setError('');
     return privateImageSessionEpoch();
   }
-  function endAction() { setBusy(false); onBusy(false); }
+  function isCurrentAction(epoch: number) {
+    return mounted.current && epoch === privateImageSessionEpoch();
+  }
+  function endAction(epoch: number) {
+    if (isCurrentAction(epoch)) { setBusy(false); onBusy(false); }
+  }
   async function reportError(cause: unknown) {
     setError(toApiError(cause)?.message ?? (cause instanceof Error ? cause.message : '이미지 작업을 마치지 못했어요. 목록을 확인한 뒤 다시 시도해 주세요.'));
     await list.refetch();
@@ -56,7 +66,7 @@ function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect,
     const epoch = beginAction();
     try {
       const prepared = await preparePrivateImage(file);
-      if (epoch !== privateImageSessionEpoch()) return;
+      if (!isCurrentAction(epoch)) return;
       const result = await upload.mutateAsync({ path: { workId }, body: {
         metadata: { id: prepared.id, name: prepared.name }, image: prepared.image, thumbnail: prepared.thumbnail,
       }, bodySerializer: body => {
@@ -66,22 +76,22 @@ function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect,
         data.append('image', value.image, 'image.png'); data.append('thumbnail', value.thumbnail, 'thumbnail.png');
         return data;
       } });
-      if (epoch !== privateImageSessionEpoch()) return;
+      if (!isCurrentAction(epoch)) return;
       if (result.data) onSelect(result.data);
       setPage(0); await list.refetch();
-    } catch (cause) { if (epoch === privateImageSessionEpoch()) await reportError(cause); }
-    finally { endAction(); }
+    } catch (cause) { if (isCurrentAction(epoch)) await reportError(cause); }
+    finally { endAction(epoch); }
   }
   async function deleteImage(image: PrivateWorldImageResponse) {
     const epoch = beginAction();
     try {
       await remove.mutateAsync({ path: { workId, imageId: image.id! } });
-      if (epoch !== privateImageSessionEpoch()) return;
+      if (!isCurrentAction(epoch)) return;
       if (selectedId === image.id) onSelect(null);
       if (entries?.content?.length === 1 && page > 0) setPage(page - 1);
       await list.refetch();
-    } catch (cause) { if (epoch === privateImageSessionEpoch()) await reportError(cause); }
-    finally { endAction(); }
+    } catch (cause) { if (isCurrentAction(epoch)) await reportError(cause); }
+    finally { endAction(epoch); }
   }
   return <>
     <p className="world-image-picker__description">이 작품에만 사용하는 이미지이며, 나만 볼 수 있어요.</p>

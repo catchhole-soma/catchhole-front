@@ -42,3 +42,37 @@ test('계정 변경은 이전 세션의 이미지와 목록을 숨기고 기존 
   await page.evaluate(() => window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: 'changed-account' })));
   await expect(page.getByText('이미지를 다시 올려 주세요', { exact: true })).toHaveCount(0);
 });
+
+
+test('계정 변경 전 업로드 응답은 새 업로드의 처리 상태를 해제하지 않는다', async ({ page }) => {
+  const release: (() => void)[] = [];
+  await page.route('**/api/v1/works/fixture/private-world-images*', async route => {
+    if (route.request().method() === 'POST') {
+      await new Promise<void>(resolve => release.push(resolve));
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+    } else {
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { content: [], totalPages: 0 } }) });
+    }
+  });
+  await page.goto('/login');
+  const png = await page.evaluate(async () => {
+    const path = '/e2e/fixtures/private-image-picker.tsx';
+    (await import(/* @vite-ignore */ path)).mountPrivatePicker();
+    const canvas = document.createElement('canvas'); canvas.width = 2; canvas.height = 2;
+    return canvas.toDataURL().split(',')[1];
+  });
+  const file = { name: 'test.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') };
+  await page.getByLabel('내 이미지 파일 선택').setInputFiles(file);
+  await expect.poll(() => release.length).toBe(1);
+  await page.evaluate(() => window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: 'changed-account' })));
+  await expect(page.getByLabel('내 이미지 파일 선택')).toBeEnabled();
+  await page.getByLabel('내 이미지 파일 선택').setInputFiles(file);
+  await expect.poll(() => release.length).toBe(2);
+  const oldResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('private-world-images'));
+  release[0](); await oldResponse;
+  await expect(page.getByLabel('상위 처리 상태')).toHaveText('처리 중');
+  await expect(page.getByLabel('내 이미지 파일 선택')).toBeDisabled();
+  release[1]();
+  await expect(page.getByLabel('상위 처리 상태')).toHaveText('준비');
+  await expect(page.getByLabel('내 이미지 파일 선택')).toBeEnabled();
+});
