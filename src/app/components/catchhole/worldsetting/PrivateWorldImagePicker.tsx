@@ -84,7 +84,7 @@ function AccountPrivateWorldImagePicker({ workId, selectedId, pending, onSelect,
     finally { endAction(); }
   }
   return <>
-    <p className="world-image-picker__description">이 작품에서만 사용하는 이미지입니다. 로그인하면 별도 코드 없이 볼 수 있어요.</p>
+    <p className="world-image-picker__description">이 작품에만 사용하는 이미지이며, 나만 볼 수 있어요.</p>
     <div className="private-image-upload">
       <label className={`database-button private-image-upload__button${disabled ? ' is-disabled' : ''}`}><Upload size={16} aria-hidden="true" />{busy ? '처리 중…' : '이미지 올리기'}
         <input type="file" aria-label="내 이미지 파일 선택" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={event => {
