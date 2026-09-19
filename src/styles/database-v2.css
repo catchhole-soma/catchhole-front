@@ -1002,6 +1002,7 @@
 .database-v2 .world-image-picker__option,
 .database-v2 .world-image-picker__default { border: 1px solid var(--ch-border); background: var(--ch-surface); border-radius: 10px; color: var(--ch-ink); font: inherit; cursor: pointer; }
 .database-v2 .world-image-picker__option { padding: 0; overflow: hidden; }
+.database-v2 .world-image-picker__option:disabled { cursor: not-allowed; opacity: .68; }
 .database-v2 .world-image-picker__option img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .database-v2 .world-image-picker__option > span { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 9px 10px; font-size: 13px; font-weight: 700; }
 .database-v2 .world-image-picker [aria-pressed="true"] { border-color: var(--ch-primary); box-shadow: 0 0 0 1px var(--ch-primary); }

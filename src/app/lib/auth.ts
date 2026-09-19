@@ -2,7 +2,7 @@ import type { CommonResponseAuthTokenResponse } from '../api/generated/types.gen
 import { clearAccessToken, setAccessToken } from './api-config';
 import { ApiError } from './api-errors';
 import { invalidateAuthRefresh } from './auth-fetch';
-import { clearPrivateImageKeys } from './private-image-keys';
+import { invalidatePrivateImageSession } from './private-image-session';
 
 export function saveAuthToken(response: CommonResponseAuthTokenResponse): void {
   const accessToken = response.data?.accessToken;
@@ -20,7 +20,7 @@ export function saveAuthToken(response: CommonResponseAuthTokenResponse): void {
     );
   }
 
-  clearPrivateImageKeys();
+  invalidatePrivateImageSession();
   setAccessToken(accessToken);
 }
 

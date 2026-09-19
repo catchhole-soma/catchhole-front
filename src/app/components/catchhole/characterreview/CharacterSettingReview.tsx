@@ -1169,7 +1169,7 @@ export function CandidateDetail({
         }}>
           {reviewStatus === 'CONFIRMED' ? <CheckCircle2 size={14} color={C.success} /> : <LockKeyhole size={14} color={C.t3} />}
           {reviewStatus === 'CONFIRMED'
-            ? '확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'
+            ? candidate.historyOnly ? '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'
             : '연결하지 않고 무시한 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'}
         </div>
       )}
@@ -1692,9 +1692,15 @@ export function CharacterSettingReview() {
     ...updateSettingCandidateMutation(),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
-      if (response.data?.manualReviewAvailable) {
-        setManuallyReviewedCandidateIds(previous => new Set([...previous, variables.path.candidateId]));
-      }
+      setManuallyReviewedCandidateIds(previous => {
+        const next = new Set(previous);
+        if (response.data?.analysisMode === 'ORDERED_PROVISIONAL') {
+          next.add(variables.path.candidateId);
+        } else {
+          next.delete(variables.path.candidateId);
+        }
+        return next;
+      });
       setEditCandidate(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
@@ -1895,8 +1901,8 @@ export function CharacterSettingReview() {
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 
-  const hasManualReview = (candidate: SettingCandidateResponse) => candidate.manualReviewAvailable === true
-    && Boolean(candidate.id && manuallyReviewedCandidateIds.has(candidate.id));
+  const hasManualReview = (candidate: SettingCandidateResponse) =>
+    Boolean(candidate.id && manuallyReviewedCandidateIds.has(candidate.id));
   const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
     ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'
     : pendingGroupCandidates.length === 0
@@ -1931,7 +1937,9 @@ export function CharacterSettingReview() {
         comparisonRevision,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
-          applicationMode: hasManualReview(candidate) ? 'APPLY_PROPOSAL' : applicationModeForCandidate(candidate),
+          applicationMode: hasManualReview(candidate) && candidate.manualReviewAvailable
+            ? 'APPLY_PROPOSAL'
+            : applicationModeForCandidate(candidate),
           baseSnapshotVersion: candidate.comparisonBaseSnapshotVersion ?? null,
           applyEditedValue: hasManualReview(candidate) ? true : undefined,
         })),

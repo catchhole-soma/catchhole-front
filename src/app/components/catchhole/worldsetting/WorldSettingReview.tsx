@@ -819,6 +819,7 @@ function WorldKeyDiffRow({
       </div>
 
       {automaticPending && <AutomaticApplicationNotice />}
+      {candidate.historyOnly && <p role="status" className="world-setting-manual-notice is-saved">현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.</p>}
 
       {candidate.manualReviewAvailable && !isQuotaInterruptedCandidate(candidate) && !scopeMismatch && !automaticPending && (
         <div role="status" className={`world-setting-manual-notice ${candidate.userModified && candidate.finalOperation ? 'is-saved' : 'is-review'}`}>

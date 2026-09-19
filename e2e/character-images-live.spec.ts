@@ -26,12 +26,12 @@ test('캐릭터 카드·종족 선택·개인 보관함 공유를 실제 서버�
   await expect(card.locator('img')).toHaveJSProperty('naturalWidth', 640);
   expect(Math.round((await card.boundingBox())!.height)).toBe(177);
   await expect(page.locator('.app-route-layer')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: 'docs/screens/gh194/character-images-desktop.png', animations: 'disabled' });
+  await page.screenshot({ path: 'docs/screens/gh199/character-images-desktop.png', animations: 'disabled' });
   await page.setViewportSize({ width: 320, height: 740 });
   await expect(card).toBeVisible();
   expect(Math.round((await card.boundingBox())!.height)).toBe(177);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: 'docs/screens/gh194/character-images-mobile.png', animations: 'disabled' });
+  await page.screenshot({ path: 'docs/screens/gh199/character-images-mobile.png', animations: 'disabled' });
   await page.setViewportSize({ width: 1280, height: 800 });
   await card.click();
   const detail = page.getByRole('dialog', { name: '이름만 있는 인물 캐릭터 상세', exact: true });
@@ -64,10 +64,6 @@ test('캐릭터 카드·종족 선택·개인 보관함 공유를 실제 서버�
   await page.reload();
   await expect(picker).toBeVisible();
   await picker.getByRole('button', { name: '내 이미지', exact: true }).click();
-  await picker.getByRole('button', { name: '내 이미지 시작하기', exact: true }).click();
-  const recoveryKey = await picker.getByLabel('내 보관용 코드', { exact: true }).inputValue();
-  await picker.getByRole('checkbox').check();
-  await picker.getByRole('button', { name: '보관함 사용하기', exact: true }).click();
   await picker.getByLabel('내 이미지 파일 선택').setInputFiles('src/assets/characters/character-neutral-v1.webp');
   await expect(picker.getByRole('button', { name: 'character-neutral-v1.webp 이미지 선택', exact: true }).locator('img')).toHaveJSProperty('naturalWidth', 480);
   await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
@@ -75,26 +71,21 @@ test('캐릭터 카드·종족 선택·개인 보관함 공유를 실제 서버�
   const chosen = (await read()).image;
   expect(chosen.source).toBe('PRIVATE');
   const cipher = await request.get(`${api}${chosen.imageUrl}`, { headers });
-  expect((await cipher.body()).subarray(0, 4).toString()).toBe('CHI1');
+  expect((await cipher.body()).subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   expect(cipher.headers()['cache-control']).toContain('no-store');
   await expect(detail.locator('.character-detail-image img')).toHaveJSProperty('naturalWidth', 640);
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.screenshot({ path: 'docs/screens/gh194/character-private-image-mobile.png', animations: 'disabled' });
+  await page.screenshot({ path: 'docs/screens/gh199/character-private-image-mobile.png', animations: 'disabled' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.reload();
-  await expect(detail.locator('.character-detail-image')).toContainText('잠긴 내 이미지');
+  await expect(detail.locator('.character-detail-image img')).toHaveJSProperty('naturalWidth', 640);
   await detail.getByRole('button', { name: '이미지 변경', exact: true }).click();
-  await picker.getByLabel('보관용 코드', { exact: true }).fill(recoveryKey);
-  await picker.getByRole('button', { name: '잠금 풀기', exact: true }).click();
   await expect(picker.getByRole('button', { name: 'character-neutral-v1.webp 이미지 선택', exact: true })).toBeVisible();
   await picker.getByRole('button', { name: '취소', exact: true }).click();
   // Same browser session and work: no second vault or duplicate upload.
   await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldsettings&category=RACE&settingId=${settingId}`);
   await page.getByRole('button', { name: '이미지 변경', exact: true }).click();
   await picker.getByRole('button', { name: '내 이미지', exact: true }).click();
-  // A full navigation intentionally locks the memory-only key.
-  await picker.getByLabel('보관용 코드', { exact: true }).fill(recoveryKey);
-  await picker.getByRole('button', { name: '잠금 풀기', exact: true }).click();
   await picker.getByRole('button', { name: 'character-neutral-v1.webp 이미지 선택', exact: true }).click();
   await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
   await expect(picker).toHaveCount(0);

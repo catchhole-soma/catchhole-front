@@ -313,9 +313,9 @@ export const getPrivateWorldImages = <ThrowOnError extends boolean = true>(optio
 });
 
 /**
- * 암호화한 개인 이미지 업로드
+ * 개인 이미지 업로드
  *
- * image·thumbnail은 CHI1 인증 암호문입니다. 이미지 내용이나 복구키를 전송하지 않습니다.
+ * 새 업로드는 metadata의 id·name과 PNG로 변환한 image·thumbnail을 보냅니다. 별도 보관용 코드는 필요 없습니다. 기존 vaultId·encryptedMetadata 방식도 호환합니다.
  */
 export const uploadPrivateWorldImage = <ThrowOnError extends boolean = true>(options: Options<UploadPrivateWorldImageData, ThrowOnError>): RequestResult<UploadPrivateWorldImageResponses, UploadPrivateWorldImageErrors, ThrowOnError> => (options.client ?? client).post<UploadPrivateWorldImageResponses, UploadPrivateWorldImageErrors, ThrowOnError>({
     ...formDataBodySerializer,
@@ -1302,9 +1302,9 @@ export const getWorkPurgeRequestByWork = <ThrowOnError extends boolean = true>(o
 });
 
 /**
- * 개인 이미지 썸네일 암호문 조회
+ * 개인 이미지 썸네일 파일 조회
  *
- * 작품 소유자에게 썸네일 암호문을 캐시 금지로 반환합니다.
+ * 작품 소유자에게 썸네일 파일을 캐시 금지로 반환합니다.
  */
 export const getPrivateWorldImageThumbnail = <ThrowOnError extends boolean = true>(options: Options<GetPrivateWorldImageThumbnailData, ThrowOnError>): RequestResult<GetPrivateWorldImageThumbnailResponses, GetPrivateWorldImageThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetPrivateWorldImageThumbnailResponses, GetPrivateWorldImageThumbnailErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -1313,9 +1313,9 @@ export const getPrivateWorldImageThumbnail = <ThrowOnError extends boolean = tru
 });
 
 /**
- * 개인 이미지 암호문 조회
+ * 개인 이미지 파일 조회
  *
- * 작품 소유자에게 저장이 완료된 이미지 암호문을 캐시 금지로 반환합니다.
+ * 작품 소유자에게 저장이 완료된 이미지 파일을 캐시 금지로 반환합니다.
  */
 export const getPrivateWorldImageContent = <ThrowOnError extends boolean = true>(options: Options<GetPrivateWorldImageContentData, ThrowOnError>): RequestResult<GetPrivateWorldImageContentResponses, GetPrivateWorldImageContentErrors, ThrowOnError> => (options.client ?? client).get<GetPrivateWorldImageContentResponses, GetPrivateWorldImageContentErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

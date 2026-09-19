@@ -19,8 +19,8 @@ export function WorldSubjectImage({ category, path, vaultId, className, alt = ''
   const defaultPath = theme?.defaults?.[category ?? 'RACE']?.thumbnailUrl;
   const [failedFallback, setFailedFallback] = useState<string | null>();
   const [failedPath, setFailedPath] = useState<string | null>();
-  const privatePath = vaultId && path?.match(/^\/api\/v1\/works\/([a-f0-9-]{36})\/private-world-images\/([a-f0-9-]{36})\/(image|thumbnail)$/);
-  if (privatePath) return <PrivateSubjectImage workId={privatePath[1]} imageId={privatePath[2]} vaultId={vaultId!}
+  const privatePath = path?.match(/^\/api\/v1\/works\/([a-f0-9-]{36})\/private-world-images\/([a-f0-9-]{36})\/(image|thumbnail)$/);
+  if (privatePath) return <PrivateSubjectImage workId={privatePath[1]} imageId={privatePath[2]} vaultId={vaultId}
     thumbnail={privatePath[3] === 'thumbnail'} className={className} alt={alt} />;
   const validPath = path && /^\/api\/v1\/world-image-assets\/[a-f0-9]{64}\.webp$/.test(path);
   const primary = validPath && path !== failedPath ? path : undefined;
