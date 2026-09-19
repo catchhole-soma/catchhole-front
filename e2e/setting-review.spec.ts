@@ -1156,6 +1156,7 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
   await page.setViewportSize({ width: 390, height: 844 });
   let confirmed = false;
   let confirmBody: unknown;
+  let updateBody: unknown;
   const comparedCandidate = {
     ...candidates[0],
     candidateKind: 'SETTING' as const,
@@ -1211,6 +1212,14 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
       confirmBody = request.postDataJSON();
       confirmed = true;
       return fulfill(route, { id: firstCandidateId, reviewStatus: 'CONFIRMED' });
+    }
+    if (pathname === `${listPath}/${firstCandidateId}` && request.method() === 'PATCH') {
+      updateBody = request.postDataJSON();
+      return fulfill(route, {
+        ...comparedCandidate,
+        analysisMode: 'CONFIRMED_ONLY',
+        attributeValue: (updateBody as { attributeValue: string }).attributeValue,
+      });
     }
     if (pathname === `${listPath}/${firstCandidateId}`) {
       return fulfill(route, {
@@ -1280,6 +1289,14 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
   await page.setViewportSize({ width: 390, height: 844 });
 
   await historyButton.click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  const editDialog = page.getByRole('dialog', { name: '설정 후보 수정' });
+  await editDialog.getByLabel('설정값', { exact: true }).fill('진한 갈색');
+  await editDialog.getByRole('button', { name: '저장', exact: true }).click();
+  await expect.poll(() => updateBody).toEqual({
+    attributeName: 'profile.eye_color',
+    attributeValue: '진한 갈색',
+  });
   await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
 
   await expect.poll(() => confirmBody).toEqual({

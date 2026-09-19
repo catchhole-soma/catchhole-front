@@ -1692,7 +1692,15 @@ export function CharacterSettingReview() {
     ...updateSettingCandidateMutation(),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
-      setManuallyReviewedCandidateIds(previous => new Set([...previous, variables.path.candidateId]));
+      setManuallyReviewedCandidateIds(previous => {
+        const next = new Set(previous);
+        if (response.data?.analysisMode === 'ORDERED_PROVISIONAL') {
+          next.add(variables.path.candidateId);
+        } else {
+          next.delete(variables.path.candidateId);
+        }
+        return next;
+      });
       setEditCandidate(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
@@ -1929,7 +1937,9 @@ export function CharacterSettingReview() {
         comparisonRevision,
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
-          applicationMode: hasManualReview(candidate) ? 'APPLY_PROPOSAL' : applicationModeForCandidate(candidate),
+          applicationMode: hasManualReview(candidate) && candidate.manualReviewAvailable
+            ? 'APPLY_PROPOSAL'
+            : applicationModeForCandidate(candidate),
           baseSnapshotVersion: candidate.comparisonBaseSnapshotVersion ?? null,
           applyEditedValue: hasManualReview(candidate) ? true : undefined,
         })),
