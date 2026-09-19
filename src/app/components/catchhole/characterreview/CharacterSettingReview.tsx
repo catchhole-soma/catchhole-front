@@ -1169,7 +1169,7 @@ export function CandidateDetail({
         }}>
           {reviewStatus === 'CONFIRMED' ? <CheckCircle2 size={14} color={C.success} /> : <LockKeyhole size={14} color={C.t3} />}
           {reviewStatus === 'CONFIRMED'
-            ? '확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'
+            ? candidate.historyOnly ? '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'
             : '연결하지 않고 무시한 후보입니다. 모든 정보는 읽기 전용으로 표시됩니다.'}
         </div>
       )}

@@ -634,9 +634,9 @@ export const getPrivateWorldImagesInfiniteOptions = (options: Options<GetPrivate
 export const uploadPrivateWorldImageMutationKey = (options?: Partial<Options<UploadPrivateWorldImageData>>) => createMutationKey('uploadPrivateWorldImage', options);
 
 /**
- * 암호화한 개인 이미지 업로드
+ * 개인 이미지 업로드
  *
- * image·thumbnail은 CHI1 인증 암호문입니다. 이미지 내용이나 복구키를 전송하지 않습니다.
+ * 새 업로드는 metadata의 id·name과 PNG로 변환한 image·thumbnail을 보냅니다. 별도 보관용 코드는 필요 없습니다. 기존 vaultId·encryptedMetadata 방식도 호환합니다.
  */
 export const uploadPrivateWorldImageMutation = (options?: Partial<Options<UploadPrivateWorldImageData>>): UseMutationOptions<UploadPrivateWorldImageResponse, UploadPrivateWorldImageError, Options<UploadPrivateWorldImageData>> => {
     const mutationOptions: UseMutationOptions<UploadPrivateWorldImageResponse, UploadPrivateWorldImageError, Options<UploadPrivateWorldImageData>> = {
@@ -2402,9 +2402,9 @@ export const getWorkPurgeRequestByWorkOptions = (options: Options<GetWorkPurgeRe
 export const getPrivateWorldImageThumbnailQueryKey = (options: Options<GetPrivateWorldImageThumbnailData>) => createQueryKey('getPrivateWorldImageThumbnail', options);
 
 /**
- * 개인 이미지 썸네일 암호문 조회
+ * 개인 이미지 썸네일 파일 조회
  *
- * 작품 소유자에게 썸네일 암호문을 캐시 금지로 반환합니다.
+ * 작품 소유자에게 썸네일 파일을 캐시 금지로 반환합니다.
  */
 export const getPrivateWorldImageThumbnailOptions = (options: Options<GetPrivateWorldImageThumbnailData>) => queryOptions<GetPrivateWorldImageThumbnailResponse, GetPrivateWorldImageThumbnailError, GetPrivateWorldImageThumbnailResponse, ReturnType<typeof getPrivateWorldImageThumbnailQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -2422,9 +2422,9 @@ export const getPrivateWorldImageThumbnailOptions = (options: Options<GetPrivate
 export const getPrivateWorldImageContentQueryKey = (options: Options<GetPrivateWorldImageContentData>) => createQueryKey('getPrivateWorldImageContent', options);
 
 /**
- * 개인 이미지 암호문 조회
+ * 개인 이미지 파일 조회
  *
- * 작품 소유자에게 저장이 완료된 이미지 암호문을 캐시 금지로 반환합니다.
+ * 작품 소유자에게 저장이 완료된 이미지 파일을 캐시 금지로 반환합니다.
  */
 export const getPrivateWorldImageContentOptions = (options: Options<GetPrivateWorldImageContentData>) => queryOptions<GetPrivateWorldImageContentResponse, GetPrivateWorldImageContentError, GetPrivateWorldImageContentResponse, ReturnType<typeof getPrivateWorldImageContentQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

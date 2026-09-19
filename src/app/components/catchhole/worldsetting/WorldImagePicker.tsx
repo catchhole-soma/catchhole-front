@@ -8,7 +8,6 @@ import { shouldRetryQuery } from '../../../lib/query-client';
 import { PageNavigation } from '../PageNavigation';
 import { WorldSettingDialog } from './WorldSettingDialog';
 import { WorldSubjectImage } from './WorldSubjectImage';
-import { PrivateImageVaultGate } from './PrivateImageVaultGate';
 import { PrivateWorldImagePicker } from './PrivateWorldImagePicker';
 import { CHARACTER_DEFAULT_IMAGE } from '../character/CharacterSubjectImage';
 
@@ -74,10 +73,9 @@ function SubjectImagePicker({ workId, name, category, image, character = false, 
         <button className="database-button" aria-pressed={tab === 'catalog'} disabled={pending} onClick={() => setTab('catalog')}>{character ? '종족 도감' : '공용 도감'}</button>
         <button className="database-button" aria-pressed={tab === 'private'} disabled={pending} onClick={() => setTab('private')}>내 이미지</button>
       </div>
-      {tab === 'private' ? <PrivateImageVaultGate onBusy={setPrivateBusy} pending={pending}>
-        {(vaultId, key) => <PrivateWorldImagePicker workId={workId} vaultId={vaultId} vaultKey={key} selectedId={privateId}
-          pending={pending} onBusy={setPrivateBusy} onSelect={image => { setPrivateId(image?.id); setSelection(null); setUseDefault(false); }} />}
-      </PrivateImageVaultGate> : <>
+      {tab === 'private' ? <PrivateWorldImagePicker workId={workId} selectedId={privateId}
+          pending={pending} onBusy={setPrivateBusy} onSelect={image => { setPrivateId(image?.id); setSelection(null); setUseDefault(false); }} />
+      : <>
       {!character && <div className="private-image-tabs" role="group" aria-label="도감 범위">
         <button type="button" className="database-button" aria-pressed={recommended} disabled={pending}
           onClick={() => { setRecommended(true); setPage(0); }}>장르 추천</button>

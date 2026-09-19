@@ -232,7 +232,7 @@ for (const scenario of [
     }
     await page.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '설정 직접 확인' });
-    await expect(dialog.getByRole('note')).toContainText('뒤 회차를 분석 중이라면 해당 분석이 중단');
+    await expect(dialog.getByRole('note')).toContainText('이미 완료된 다른 회차의 분석 결과를 바꾸지 않습니다.');
     await dialog.getByLabel('설정값', { exact: true }).fill(scenario.value);
     await dialog.getByRole('button', { name: '확인한 값 저장' }).click();
     await expect.poll(() => updateBody).toEqual({ attributeName: 'profile.eye_color', attributeValue: scenario.value });

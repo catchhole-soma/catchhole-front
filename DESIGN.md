@@ -273,10 +273,14 @@ Record, review, and validate changes before adoption.
 - Explain review and error messages through manuscript meaning and the next author action. Preserve quoted evidence, proper names, and setting values; do not replace technical-looking words across arbitrary content.
 - Reference frames: `gh180DirectReview20260910Desktop`, `gh180DirectReview20260910Mobile`.
 
-- Treat candidates awaiting automatic application as analyzing until their episode completes automatic saving, including candidates whose individual comparison already completed or failed. Lock only those candidates and group writes containing them. Earlier completed episodes remain reviewable. If an open edit modal becomes locked after refresh, retain the draft and allow cancellation while disabling submission.
+- Treat candidates awaiting automatic application as analyzing until their episode completes automatic saving, including candidates whose individual comparison already completed or failed. Lock only those candidates and group writes containing them. After ordered analysis finishes, earlier completed episodes remain reviewable without canceling later results; during an active ordered run, saving candidate changes is temporarily refused with an explanation. If an open edit modal becomes locked after refresh, retain the draft and allow cancellation while disabling submission.
 
 - Mobile review detail back-to-list actions use the same light secondary button treatment in both tabs: surface, border, primary-ink tokens, a minimum 44px touch height, and visible keyboard focus.
 
 ### GH180 자동 반영 기본값과 공개 체험 안내
 
 랜딩의 일반 소개는 명확한 설정의 자동 반영과 필요한 항목의 직접 확인을 설명한다. 모든 내용을 작가가 확인한 뒤에만 저장한다고 안내하지 않는다. 8단계 예시와 공개 체험은 단일 회차에서 직접 검토를 선택한 흐름임을 명시하며 기존 단계·버튼·결과를 유지한다. 체험 완료에서는 실제 업로드의 자동 반영 기본값과 단일 회차의 전체 직접 검토 선택지를 구분해 알린다. 일반 소개 문구만 갱신하며 레이아웃·동작·원문·확정 예시는 바꾸지 않는다. Pencil 참고: `gh180LandingAutoCopy20260910`.
+
+### GH199 늦은 검토와 내 이미지
+
+과거 후보 편집은 이미 완료된 다른 회차를 바꾸지 않는다고 안내한다. 현재값 보호로 이력에만 저장되면 `현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.`로 표시한다. 이미지 선택은 기존 밝은 테마와 버튼을 사용하며 보관용 코드 단계 없이 `이미지 올리기`를 제공한다. 기존 암호화 이미지는 교체 안내를 표시한다.

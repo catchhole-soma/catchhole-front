@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/main.tsx", "postcss.config.mjs", "e2e/fixtures/private-image-vault.tsx"],
+  "entry": ["src/main.tsx", "postcss.config.mjs", "e2e/fixtures/private-image-picker.tsx"],
   "paths": {
     "/src/*": ["./src/*"]
   },
