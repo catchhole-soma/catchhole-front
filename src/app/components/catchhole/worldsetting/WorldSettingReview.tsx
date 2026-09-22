@@ -54,7 +54,8 @@ import {
   isAutomaticApplicationPending,
   isReviewableComparisonFailure,
   REVIEWABLE_COMPARISON_FAILURE_MESSAGE,
-  ORDERED_COMPARISON_RECOVERY_MESSAGE,
+  orderedComparisonRecoveryMessage,
+  AUTOMATIC_APPLICATION_PENDING_MESSAGE,
   combinedSettingReviewProgress,
   isCandidateComparisonProcessing,
   needsDirectCandidateReview,
@@ -377,10 +378,20 @@ function groupDecisionIdentity(
 function userFacingComparisonReason(
   candidate: WorldSettingCandidateResponse,
   includeRootMoveNotice: boolean,
+  activeComparisonJobCount: number,
+  canResumeTokenInterrupted: boolean,
 ): string | null {
+  if (isAutomaticApplicationPending(candidate)) return AUTOMATIC_APPLICATION_PENDING_MESSAGE;
+  if (candidate.comparisonStatus === 'FAILED' || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED') {
+    const orderedMessage = orderedComparisonRecoveryMessage(candidate, activeComparisonJobCount);
+    if (orderedMessage) return isQuotaInterruptedCandidate(candidate)
+      ? `사용량이 부족해 비교를 완료하지 못했습니다. ${orderedMessage}` : orderedMessage;
+  }
   if (candidate.comparisonStatus === 'FAILED') {
     if (candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED') {
-      return '사용량이 부족해 비교를 완료하지 못했습니다. 남은 비교 재개로 이어서 처리할 수 있습니다.';
+      return canResumeTokenInterrupted
+        ? '사용량이 부족해 비교를 완료하지 못했습니다. 남은 비교 재개로 이어서 처리할 수 있습니다.'
+        : '사용량이 부족해 비교를 완료하지 못했습니다. 분석 목록에서 회차별 상태와 재개 방법을 확인해 주세요.';
     }
     return isReviewableComparisonFailure(candidate)
       ? REVIEWABLE_COMPARISON_FAILURE_MESSAGE
@@ -642,20 +653,45 @@ function WorldCandidateGroupCard({
   );
 }
 
-function RecomparisonNotice({ group }: { group: WorldSettingCandidateGroupResponse }) {
+function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInterrupted }: {
+  group: WorldSettingCandidateGroupResponse;
+  activeComparisonJobCount: number;
+  canResumeTokenInterrupted: boolean;
+}) {
   if (group.status === 'READY' || group.candidates?.some(isAutomaticApplicationPending)) return null;
   const status = groupStatusMeta(group);
   const failureKind = groupFailureKind(group);
   const manualReviewAvailable = group.candidates?.some(candidate => candidate.manualReviewAvailable);
-  const description = group.status === 'FAILED'
+  const orderedMessages = [...new Set((group.candidates ?? []).filter(candidate => (
+    candidate.comparisonStatus === 'FAILED' || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
+    || candidate.comparisonStatus === 'PENDING' || candidate.comparisonStatus === 'PROCESSING'
+  )).map(candidate => orderedComparisonRecoveryMessage(candidate, activeComparisonJobCount)).filter(Boolean))];
+  const quotaInstruction = canResumeTokenInterrupted
+    ? '사용량 부족으로 중단된 항목은 상단에서 재개할 수 있습니다.'
+    : '사용량 부족으로 중단된 항목은 분석 목록에서 회차별 상태와 재개 방법을 확인해 주세요.';
+  const description = orderedMessages.length ? [
+    ...orderedMessages,
+    group.candidates?.some(candidate => candidate.analysisMode !== 'ORDERED_PROVISIONAL' && isQuotaInterruptedCandidate(candidate))
+      ? quotaInstruction : null,
+    group.candidates?.some(candidate => candidate.analysisMode !== 'ORDERED_PROVISIONAL'
+      && candidate.comparisonStatus === 'FAILED' && !isQuotaInterruptedCandidate(candidate)
+      && !isReviewableComparisonFailure(candidate))
+      ? '일반 분석에서 실패한 항목은 하단의 다시 비교로 처리해 주세요.' : null,
+    group.candidates?.some(isReviewableComparisonFailure)
+      ? '검토가 필요한 항목은 원문을 확인하고 직접 반영할 내용을 저장해 주세요.' : null,
+  ].filter(Boolean).join(' ') : group.status === 'FAILED'
     ? failureKind === 'TOKEN_INTERRUPTED'
-      ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
+      ? canResumeTokenInterrupted
+        ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
+        : quotaInstruction
       : failureKind === 'MANUAL_REVIEW'
         ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.`
       : failureKind === 'MIXED_REVIEW'
-        ? '사용량 부족으로 중단된 항목은 상단에서 재개할 수 있습니다. 검토가 필요한 항목은 원문을 확인하고 직접 반영할 내용을 저장해 주세요.'
+        ? `${quotaInstruction} 검토가 필요한 항목은 원문을 확인하고 직접 반영할 내용을 저장해 주세요.`
       : failureKind === 'MIXED'
-        ? '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.'
+        ? canResumeTokenInterrupted
+          ? '사용량 부족으로 중단된 항목은 상단에서 재개하고, 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.'
+          : `${quotaInstruction} 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.`
         : manualReviewAvailable
           ? '다시 비교해야 하는 항목이 남아 있습니다. 직접 확인해서 반영할 수 있는 항목은 원문과 내용을 확인해 주세요.'
           : '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
@@ -689,6 +725,8 @@ function WorldKeyDiffRow({
   conflictResolved,
   recompared,
   includeRootMoveNotice,
+  activeComparisonJobCount,
+  canResumeTokenInterrupted,
   disabled,
   onExclude,
   onEdit,
@@ -699,6 +737,8 @@ function WorldKeyDiffRow({
   conflictResolved: boolean;
   recompared: boolean;
   includeRootMoveNotice: boolean;
+  activeComparisonJobCount: number;
+  canResumeTokenInterrupted: boolean;
   disabled: boolean;
   onExclude: () => void;
   onEdit: () => void;
@@ -762,6 +802,8 @@ function WorldKeyDiffRow({
   const comparisonReason = userFacingComparisonReason(
     candidate,
     includeRootMoveNotice,
+    activeComparisonJobCount,
+    canResumeTokenInterrupted,
   );
   const comparisonReasonTitle = reviewableFailure ? '검토 안내' : candidate.comparisonStatus === 'FAILED'
     ? '비교 실패 안내' : reviewRequired ? '검토 안내' : 'AI 비교 판단';
@@ -1020,6 +1062,8 @@ function WorldCandidateGroupDetail({
   onConfirm,
   onRetry,
   confirmationFiltered,
+  activeComparisonJobCount,
+  canResumeTokenInterrupted,
 }: {
   group: WorldSettingCandidateGroupResponse;
   resolvedConflictIds: Set<string>;
@@ -1034,6 +1078,8 @@ function WorldCandidateGroupDetail({
   onConfirm: () => void;
   onRetry: () => void;
   confirmationFiltered: boolean;
+  activeComparisonJobCount: number;
+  canResumeTokenInterrupted: boolean;
 }) {
   const candidates = group.candidates ?? [];
   const identity = groupDecisionIdentity(group, decisions);
@@ -1113,11 +1159,6 @@ function WorldCandidateGroupDetail({
     candidate.comparisonStatus === 'FAILED'
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
-  const orderedRecoveryRequired = candidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL'
-    && candidate.reviewStatus === 'PENDING_REVIEW'
-    && !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable
-    && (candidate.comparisonStatus === 'FAILED' || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
-      || candidate.comparisonStatus === 'PENDING'));
   const confirmable = !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
     .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
       && (candidate.comparisonStatus === 'COMPLETED'
@@ -1184,7 +1225,8 @@ function WorldCandidateGroupDetail({
         </p>
       </header>
 
-      <RecomparisonNotice group={group} />
+      <RecomparisonNotice group={group} activeComparisonJobCount={activeComparisonJobCount}
+        canResumeTokenInterrupted={canResumeTokenInterrupted} />
       {candidates.map(candidate => {
         if (!candidate.id) return null;
         const linkedScopeCandidateIds = scopeMergeSources(candidate);
@@ -1196,6 +1238,8 @@ function WorldCandidateGroupDetail({
             conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
             recompared={recomparedIds.has(candidate.id)}
             includeRootMoveNotice={includeRootMoveNotice(candidate)}
+            activeComparisonJobCount={activeComparisonJobCount}
+            canResumeTokenInterrupted={canResumeTokenInterrupted}
             disabled={actionPending}
             onExclude={() => onExclude(candidate.id!)}
             onEdit={() => onEdit(candidate)}
@@ -1255,9 +1299,6 @@ function WorldCandidateGroupDetail({
         {!groupAutomaticPending && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
           <div style={{ flexBasis: '100%' }}><OrderedReviewImpactNotice /></div>
         )}
-        {orderedRecoveryRequired && <p role="status" style={{ flexBasis: '100%', color: REVIEW_TEXT.warning, fontSize: 12 }}>
-          {ORDERED_COMPARISON_RECOVERY_MESSAGE}
-        </p>}
         {retryAvailable && (
           <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
             <RefreshCw size={12} /> 다시 비교
@@ -2151,9 +2192,11 @@ export function WorldSettingReview() {
               <AlertCircle size={17} />
               <div className="world-token-resume-banner__body">
                 <strong>{tokenInterruptedCount}개 세계관 설정 비교가 사용량 부족으로 중단됐습니다.</strong>
-                <span>완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.</span>
+                <span>{canResumeTokenInterrupted
+                  ? '완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 남은 비교만 이어서 처리할 수 있습니다.'
+                  : '완료된 추출과 비교 결과는 유지됩니다. 분석 목록에서 회차별 상태와 재개 방법을 확인해 주세요.'}</span>
               </div>
-              <ActionButton
+              {canResumeTokenInterrupted ? <ActionButton
                 disabled={!canResumeTokenInterrupted
                   || activeWorldComparisonCount > 0
                   || resumeRequestPending}
@@ -2163,7 +2206,7 @@ export function WorldSettingReview() {
                 {resumeRequestPending
                   ? <><Loader2 size={13} className="spin" /> 재개 요청 중…</>
                   : <><RefreshCw size={13} /> 남은 비교 재개</>}
-              </ActionButton>
+              </ActionButton> : <ActionButton tone={C.warning} onClick={backToAnalysisList}>분석 목록으로</ActionButton>}
             </div>
           )}
 
@@ -2392,6 +2435,8 @@ export function WorldSettingReview() {
                         onConfirm={confirmAll}
                         onRetry={retryGroup}
                         confirmationFiltered={confirmationFiltered}
+                        activeComparisonJobCount={activeComparisonJobCount}
+                        canResumeTokenInterrupted={canResumeTokenInterrupted}
                       />
                     )}
                   </section>

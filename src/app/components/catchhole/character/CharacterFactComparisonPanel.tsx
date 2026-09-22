@@ -8,7 +8,7 @@ import {
   type CharacterFactApplicationMode,
 } from './character-fact-comparison-policy';
 import './character-evidence.css';
-import { isReviewableComparisonFailure, ORDERED_COMPARISON_RECOVERY_MESSAGE, REVIEWABLE_COMPARISON_FAILURE_MESSAGE } from '../../../lib/setting-review-progress';
+import { isReviewableComparisonFailure, orderedComparisonRecoveryMessage, REVIEWABLE_COMPARISON_FAILURE_MESSAGE } from '../../../lib/setting-review-progress';
 
 type CharacterFactComparisonStatus = NonNullable<SettingCandidateResponse['comparisonStatus']>;
 type CharacterFactOperation = NonNullable<SettingCandidateResponse['suggestedOperation']>;
@@ -227,7 +227,7 @@ export function CharacterFactComparisonPanel({
       {retryAvailable && (
         <div style={{ marginTop: 12 }}>
           <div role="alert" style={{ color: comparisonStatus === 'FAILED' && !reviewableFailure && !quotaInterrupted ? REVIEW_TEXT.danger : REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.65 }}>
-            {orderedRetryBlocked ? ORDERED_COMPARISON_RECOVERY_MESSAGE
+            {orderedRetryBlocked ? orderedComparisonRecoveryMessage(candidate) ?? REVIEWABLE_COMPARISON_FAILURE_MESSAGE
               : reviewableFailure ? REVIEWABLE_COMPARISON_FAILURE_MESSAGE
               : quotaInterrupted ? '사용량이 부족해 비교가 중단되었습니다. 사용량을 추가한 뒤 다시 비교해 주세요.'
               : comparisonStatus === 'FAILED'

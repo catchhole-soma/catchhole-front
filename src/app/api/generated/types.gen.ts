@@ -675,6 +675,14 @@ export type WorldSettingCandidateResponse = {
      * 현재 설정을 유지하고 원문 회차 이력에만 확정했는지 여부
      */
     historyOnly?: boolean;
+    /**
+     * 후보를 생성한 원본 회차 분석 작업의 상태. 별도 재비교 작업의 상태와 구분한다
+     */
+    sourceAnalysisJobStatus?: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+    /**
+     * 후보를 생성한 원본 회차 분석의 누적 기록 상태. 일반 분석은 없을 수 있다
+     */
+    sourceAnalysisJournalStatus?: 'PENDING' | 'SEALED' | 'INCOMPLETE' | 'INVALIDATED';
 };
 
 /**
