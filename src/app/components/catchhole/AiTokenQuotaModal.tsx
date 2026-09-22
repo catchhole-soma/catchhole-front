@@ -186,9 +186,9 @@ export function AiTokenQuotaModal() {
             : '회차 분석이 중단되었습니다'
       : '기본 사용량을 모두 소진했습니다';
   const description = analysisInterrupted
-    ? `${interruptedCount > 0 ? `${interruptedCount}개 ` : ''}세계관 설정 비교가 사용량 부족으로 중단됐습니다. 이미 완료된 추출과 비교 결과는 유지되며, 추가 사용량을 받은 뒤 검토 화면에서 남은 비교만 재개할 수 있습니다.`
+    ? `${interruptedCount > 0 ? `${interruptedCount}개 ` : ''}세계관 설정 비교가 사용량 부족으로 중단됐습니다. 이미 완료된 추출과 비교 결과는 유지되며, 추가 사용량을 받은 뒤 분석 목록이나 검토 화면의 안내에 따라 이어서 처리해 주세요.`
     : analysisFailed
-      ? `${failedEpisodeCount > 0 ? `${failedEpisodeCount}개 ` : ''}회차 분석이 사용량 부족으로 중단됐습니다. 추가 사용량을 받은 뒤 실패한 회차만 다시 시도해 주세요.${mixedAnalysisInterruption ? ` ${interruptedCount > 0 ? `${interruptedCount}개 ` : '일부 '}세계관 설정 비교도 중단됐지만 완료된 추출과 비교 결과는 유지됩니다. 검토 화면에서 남은 비교만 재개할 수 있습니다.` : ''}`
+      ? `${failedEpisodeCount > 0 ? `${failedEpisodeCount}개 ` : ''}회차 분석이 사용량 부족으로 중단됐습니다. 추가 사용량을 받은 뒤 실패한 회차만 다시 시도해 주세요.${mixedAnalysisInterruption ? ` ${interruptedCount > 0 ? `${interruptedCount}개 ` : '일부 '}세계관 설정 비교도 중단됐지만 완료된 추출과 비교 결과는 유지됩니다. 분석 목록이나 검토 화면의 안내에 따라 이어서 처리해 주세요.` : ''}`
       : '서비스를 이용해 주셔서 감사합니다. 아래에서 추가 사용량을 바로 요청할 수 있습니다.';
   const contactEmail = usageQuery.data?.data?.contactEmail;
 

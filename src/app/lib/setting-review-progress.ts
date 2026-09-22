@@ -2,6 +2,7 @@ import type {
   SettingCandidateListResponse,
   SettingCandidateResponse,
   WorldSettingCandidateListResponse,
+  WorldSettingCandidateResponse,
 } from '../api/generated/types.gen';
 
 type CandidateSummary = SettingCandidateListResponse | WorldSettingCandidateListResponse;
@@ -37,6 +38,32 @@ type CandidateReviewState = Partial<Pick<SettingCandidateResponse,
 
 export const AUTOMATIC_APPLICATION_PENDING_MESSAGE = '이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.';
 export const REVIEWABLE_COMPARISON_FAILURE_MESSAGE = '자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.';
+/** 후보 비교 상태만으로 원본 회차 분석이 중단됐다고 판단하지 않는다. */
+export function orderedComparisonRecoveryMessage(
+  candidate: CandidateReviewState & Partial<Pick<WorldSettingCandidateResponse,
+    'analysisMode' | 'manualReviewAvailable' | 'comparisonFailureCode'
+    | 'sourceAnalysisJobStatus' | 'sourceAnalysisJournalStatus'>>,
+  activeComparisonJobCount = 0,
+): string | null {
+  if (candidate.analysisMode !== 'ORDERED_PROVISIONAL'
+      || candidate.reviewStatus !== 'PENDING_REVIEW'
+      || isAutomaticApplicationPending(candidate)
+      || (candidate.manualReviewAvailable && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED')) return null;
+  if (candidate.sourceAnalysisJournalStatus === 'INVALIDATED') {
+    return '원고나 설정이 변경되어 기존 분석을 이어서 처리할 수 없습니다. 분석 목록에서 현재 상태를 확인해 주세요.';
+  }
+  if (candidate.sourceAnalysisJobStatus === 'PENDING' || candidate.sourceAnalysisJobStatus === 'RUNNING') {
+    return '이 회차의 분석을 진행하고 있습니다. 완료되면 같은 화면에서 검토할 수 있습니다.';
+  }
+  if (candidate.sourceAnalysisJobStatus === 'FAILED' || candidate.sourceAnalysisJournalStatus === 'INCOMPLETE') {
+    return '순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 중단된 회차의 재개 여부를 확인해 주세요.';
+  }
+  if (candidate.sourceAnalysisJobStatus == null && candidate.sourceAnalysisJournalStatus == null
+      && activeComparisonJobCount > 0) {
+    return '설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.';
+  }
+  return '순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 회차별 진행 상태를 확인해 주세요.';
+}
 
 /** 서버가 직접 확인을 허용한 후보만 사용자 검토로 안내하며 저장된 실패 상태는 유지한다. */
 export function isReviewableComparisonFailure(candidate: CandidateReviewState & Partial<Pick<SettingCandidateResponse,

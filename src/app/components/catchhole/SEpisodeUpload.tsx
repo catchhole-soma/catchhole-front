@@ -596,7 +596,12 @@ export default function SEpisodeUpload() {
       : initialTrackedAnalysisJobIds,
   );
   const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
+  const [blockedAnalysisStart, setBlockedAnalysisStart] = useState<{
+    batchId: string;
+    reason: 'future-history' | 'resume-existing';
+  } | null>(null);
   const [batchRetryPending, setBatchRetryPending] = useState(false);
+  const [supersededJobIds, setSupersededJobIds] = useState<Set<string>>(() => new Set());
   const [orderedRestartOpen, setOrderedRestartOpen] = useState(false);
   const [orderedRestartError, setOrderedRestartError] = useState<string | null>(null);
   const orderedRestartInFlight = useRef(false);
@@ -758,13 +763,13 @@ export default function SEpisodeUpload() {
   const jobQueries = useQueries({
     queries: trackedAnalysisJobIds.map(analysisJobId => ({
       ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
-      enabled: step === 'processing' && UUID_PATTERN.test(workId),
+      enabled: step === 'processing' && UUID_PATTERN.test(workId) && !supersededJobIds.has(analysisJobId),
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
-        if (!currentAnalysisJobIdSet.has(analysisJobId)) return false;
+        if (!currentAnalysisJobIdSet.has(analysisJobId) || supersededJobIds.has(analysisJobId)) return false;
         const job = query.state.data?.data;
         const status = job?.status;
-        // 같은 Job 재개와 완료 뒤 사용자 변경에 따른 무효화를 계속 확인한다.
+        // 같은 Job 재개와 원문 변경에 따른 무효화를 계속 확인한다.
         if (job && isOrderedAnalysis(job) && !isInvalidatedAnalysis(job) && status !== 'CANCELED') return 3_000;
         return status === 'SUCCEEDED' || status === 'FAILED' || status === 'CANCELED'
           ? false
@@ -804,9 +809,15 @@ export default function SEpisodeUpload() {
   const orderedAnalysis = currentAnalysisJobs.some(isOrderedAnalysis);
   const automaticAnalysis = currentAnalysisJobs.length > 0 && currentAnalysisJobs.every(job => job.reviewMode === 'AUTOMATIC');
   const analysisInvalidated = currentAnalysisJobs.some(isInvalidatedAnalysis);
+  const analysisStartRecovery = blockedAnalysisStart?.batchId === episodeUploadBatchId
+    ? blockedAnalysisStart.reason : null;
+  const automaticStartBlocked = analysisStartRecovery !== null;
+  const analysisNotStarted = currentAnalysisJobIds.length === 0 && Boolean(analysisStartError);
+  const analysisSuperseded = currentAnalysisJobIds.some(id => supersededJobIds.has(id));
   const hasActiveCurrentJobs = currentAnalysisJobs.some(job => job.status === 'PENDING' || job.status === 'RUNNING');
   const canRestartOrderedAnalysis = analysisInvalidated && Boolean(episodeUploadBatchId)
-    && currentAnalysisJobsLoaded && !hasActiveCurrentJobs && routeWork?.lifecycleStatus !== 'PURGING';
+    && currentAnalysisJobsLoaded && !hasActiveCurrentJobs && !automaticStartBlocked
+    && routeWork?.lifecycleStatus !== 'PURGING';
   const blockedOrderedJobs = currentAnalysisJobs.filter(job => isBlockedOrderedAnalysis(job, currentAnalysisJobs));
   const analysisRunning = !analysisInvalidated && currentAnalysisJobs.some(
     job => job.status === 'RUNNING'
@@ -823,6 +834,7 @@ export default function SEpisodeUpload() {
   const retryableFailedAnalysisJobIds = currentAnalysisJobs.flatMap(job =>
     (isOrderedAnalysis(job) ? canResumeOrderedAnalysis(job, currentAnalysisJobs) : job.status === 'FAILED')
       && job.id
+      && !supersededJobIds.has(job.id)
       && !analysisInvalidated
       && !job.tokenInterruptedAfterExtraction
       && !job.episodes?.some(episode => episode.status === 'ARCHIVED')
@@ -838,7 +850,7 @@ export default function SEpisodeUpload() {
     && !analysisInvalidated
     && !analysisRunning
     && !analysisCanceled
-    && (retryableFailedAnalysisJobIds.length > 0 || hasUnfinishedOrderedStorage);
+    && (retryableFailedAnalysisJobIds.length > 0 || hasUnfinishedOrderedStorage || analysisSuperseded);
   const analysisFailureTitle = progressEpisodes.length <= 1
     ? '회차 분석에 실패했습니다'
     : retryableFailedAnalysisJobIds.length === currentAnalysisJobs.length
@@ -1110,6 +1122,7 @@ export default function SEpisodeUpload() {
   };
 
   const createBatchAnalysisJob = async (batchId: string) => {
+    if (blockedAnalysisStart?.batchId === batchId || createAnalysisJobMutation.isPending) return;
     setAnalysisStartError(null);
     try {
       const response = await createAnalysisJobMutation.mutateAsync({
@@ -1128,7 +1141,15 @@ export default function SEpisodeUpload() {
       setCurrentAnalysisJobIds(analysisJobIds);
       persistAnalysisRoute(batchId, analysisJobIds, analysisJobIds);
     } catch (error) {
-      setAnalysisStartError(errorMessage(error, '회차는 저장했지만 분석을 시작하지 못했습니다.'));
+      if (toApiError(error)?.code === 'ANALYSIS_FUTURE_HISTORY_CONFLICT') {
+        setBlockedAnalysisStart({ batchId, reason: 'future-history' });
+        setAnalysisStartError('원고는 저장되었습니다. 이미 확정한 뒤 회차의 설정이 있어 이 원고를 자동으로 분석할 수 없습니다. 다시 업로드하지 말고 원고 목록에서 해당 회차의 ‘재분석’을 선택해 직접 검토해 주세요.');
+      } else if (toApiError(error)?.code === 'ANALYSIS_ORDERED_JOB_RETRY_REQUIRED') {
+        setBlockedAnalysisStart({ batchId, reason: 'resume-existing' });
+        setAnalysisStartError('원고와 기존 분석 기록이 저장되어 있습니다. 다시 업로드하거나 새 분석을 만들지 말고 분석 목록에서 중단된 회차를 재개해 주세요.');
+      } else {
+        setAnalysisStartError(errorMessage(error, '회차는 저장했지만 분석을 시작하지 못했습니다.'));
+      }
     }
   };
 
@@ -1212,6 +1233,7 @@ export default function SEpisodeUpload() {
       routeWork?.lifecycleStatus === 'PURGING'
       || retryableFailedAnalysisJobIds.length === 0
       || !episodeUploadBatchId
+      || analysisSuperseded
       || batchRetryInFlight.current
     ) return;
     batchRetryInFlight.current = true;
@@ -1226,10 +1248,14 @@ export default function SEpisodeUpload() {
       const successfullyRetriedJobIds = new Set<string>();
       const retryAnalysisJobIds: string[] = [];
       let retryError: unknown = null;
+      let invalidRetryResponse = false;
 
       responses.forEach((response, index) => {
         const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
         if (response.status === 'rejected') {
+          if (toApiError(response.reason)?.code === 'ANALYSIS_JOB_SUPERSEDED') {
+            setSupersededJobIds(previous => new Set([...previous, failedAnalysisJobId]));
+          }
           retryError ??= response.reason;
           return;
         }
@@ -1237,11 +1263,13 @@ export default function SEpisodeUpload() {
         const expectedJobType = jobsById.get(failedAnalysisJobId)?.jobType ?? analysisJobType;
         const responseJobs = response.value.data ?? [];
         if (responseJobs.some(job => job.jobType && job.jobType !== expectedJobType)) {
+          invalidRetryResponse = true;
           retryError ??= new Error(RETRY_JOB_TYPE_MISMATCH_MESSAGE);
           return;
         }
         const responseJobIds = responseJobs.flatMap(job => job.id ? [job.id] : []);
         if (responseJobIds.length === 0) {
+          invalidRetryResponse = true;
           retryError ??= new Error('분석 재시작을 확인하지 못했습니다. 다시 시도해 주세요.');
           return;
         }
@@ -1283,7 +1311,23 @@ export default function SEpisodeUpload() {
         })));
       }
 
-      if (retryError) {
+      // 응답이 유실되어도 서버가 같은 Job을 재개했을 수 있다. 기존 ID를 조회해 새 생성을 유도하지 않는다.
+      await Promise.all(responses.flatMap((response, index) => response.status === 'rejected'
+        && toApiError(response.reason)?.code !== 'ANALYSIS_JOB_SUPERSEDED'
+        ? [queryClient.invalidateQueries({
+            queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId: retryableFailedAnalysisJobIds[index] } }).queryKey,
+          })]
+        : []));
+      const unresolvedRetryFailure = responses.some((response, index) => {
+        if (response.status !== 'rejected') return false;
+        const latest = queryClient.getQueryData<GetAnalysisJobResponse>(getAnalysisJobOptions({
+          path: { workId, analysisJobId: retryableFailedAnalysisJobIds[index] },
+        }).queryKey)?.data;
+        return !latest || latest.status === 'FAILED'
+          || latest.status === 'SUCCEEDED' && isOrderedAnalysis(latest) && !isCompletedOrderedAnalysis(latest)
+          || isInvalidatedAnalysis(latest);
+      });
+      if (retryError && (unresolvedRetryFailure || invalidRetryResponse)) {
         setAnalysisStartError(
           retryError instanceof Error && retryError.message === RETRY_JOB_TYPE_MISMATCH_MESSAGE
             ? RETRY_JOB_TYPE_MISMATCH_MESSAGE
@@ -1329,6 +1373,12 @@ export default function SEpisodeUpload() {
       const apiError = toApiError(error);
       if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
         setOrderedRestartOpen(false);
+      } else if (apiError?.code === 'ANALYSIS_FUTURE_HISTORY_CONFLICT') {
+        setBlockedAnalysisStart({ batchId: episodeUploadBatchId, reason: 'future-history' });
+        setOrderedRestartError('이 회차 이후에 확정한 설정이 있어 묶음 전체를 자동으로 다시 분석할 수 없습니다. 기존 기록은 유지됩니다. 원고 목록에서 회차 상태를 확인해 주세요.');
+      } else if (apiError?.code === 'ANALYSIS_ORDERED_JOB_RETRY_REQUIRED') {
+        setBlockedAnalysisStart({ batchId: episodeUploadBatchId, reason: 'resume-existing' });
+        setOrderedRestartError('이어갈 수 있는 기존 분석이 있습니다. 새 분석을 만들지 말고 분석 목록에서 중단된 회차를 재개해 주세요.');
       } else {
         setOrderedRestartError(errorMessage(error, '새 분석을 시작하지 못했습니다. 기존 분석 기록은 유지됩니다.'));
       }
@@ -1772,7 +1822,9 @@ export default function SEpisodeUpload() {
           {step === 'processing' && (
             <div className="episode-processing">
               <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
-                {analysisInvalidated
+                {analysisNotStarted
+                  ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
+                  : analysisInvalidated
                   ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                   : analysisSucceeded
                   ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
@@ -1786,7 +1838,8 @@ export default function SEpisodeUpload() {
                       ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
                 <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
-                  {analysisInvalidated ? '변경된 내용으로 새 분석이 필요합니다'
+                  {analysisNotStarted ? '원고는 저장했지만 분석을 시작하지 못했습니다'
+                    : analysisInvalidated ? '기존 분석을 이어갈 수 없습니다'
                     : analysisSucceeded ? '분석이 완료되었습니다'
                     : analysisCanceled ? (orderedAnalysis ? '순차 분석이 중단되었습니다' : '작품 삭제로 분석이 취소되었습니다')
                     : analysisFailed ? (orderedAnalysis ? '순차 분석이 중단되었습니다' : analysisFailureTitle)
@@ -1820,18 +1873,24 @@ export default function SEpisodeUpload() {
               {analysisStartError && (
                 <ErrorBanner
                   message={analysisStartError}
-                  onRetry={episodeUploadBatchId && currentAnalysisJobIds.length === 0
+                  onRetry={episodeUploadBatchId && currentAnalysisJobIds.length === 0 && !automaticStartBlocked
                     ? () => void createBatchAnalysisJob(episodeUploadBatchId)
                     : undefined}
                 />
               )}
               {analysisInvalidated && (
                 <div className="episode-upload-alert episode-upload-alert--warning" role="status">
-                  원문이나 검토 내용이 바뀌어 이 분석을 이어갈 수 없습니다. 변경된 내용을 확인한 뒤 이 업로드 묶음의 새 순차 분석을 시작할 수 있습니다. 이전 분석 기록은 유지됩니다.
+                  {analysisStartRecovery === 'resume-existing'
+                    ? '이어갈 수 있는 기존 분석이 있습니다. 분석 목록에서 중단된 회차를 재개해 주세요.'
+                    : automaticStartBlocked
+                    ? '이미 확정한 뒤 회차의 설정이 있어 이 묶음의 새 순차 분석을 시작할 수 없습니다. 기존 분석 기록은 유지됩니다. 원고 목록에서 회차 상태를 확인해 주세요.'
+                    : '원문이나 설정이 바뀌어 이 분석을 이어갈 수 없습니다. 현재 회차와 확정 설정에 따라 새 순차 분석이 제한될 수 있습니다. 이전 분석 기록은 유지됩니다.'}
                 </div>
               )}
               {analysisFailed && (
-                <ErrorBanner message={orderedAnalysis
+                <ErrorBanner message={analysisSuperseded
+                  ? '이 회차에는 더 최근의 분석이 있습니다. 분석 목록에서 최신 결과와 재개 여부를 확인해 주세요.'
+                  : orderedAnalysis
                   ? retryableFailedAnalysisJobIds.length > 0
                     ? '완료된 추출과 비교 결과는 유지됩니다. 중단된 회차를 재개하면 대기 중인 뒤 회차도 순서대로 이어집니다.'
                     : '분석 결과의 저장 완료를 확인하지 못했습니다. 완료된 결과는 유지됩니다. 잠시 후 상태를 다시 확인해 주세요.'
@@ -1948,7 +2007,12 @@ export default function SEpisodeUpload() {
               <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
                 <div style={{ flex: 1 }}>
-                  {analysisInvalidated ? (
+                  {analysisNotStarted ? (
+                    <PrimaryButton onClick={() => navigate(analysisStartRecovery === 'resume-existing'
+                      ? resolvedAnalysisListUrl : `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}>
+                      {analysisStartRecovery === 'resume-existing' ? '기존 분석 목록에서 확인' : '원고 목록에서 확인'}
+                    </PrimaryButton>
+                  ) : analysisInvalidated ? (
                     <div className="episode-upload-actions">
                       <SecondaryButton onClick={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}>
                         원고 목록에서 확인
@@ -1958,7 +2022,7 @@ export default function SEpisodeUpload() {
                         setOrderedRestartOpen(true);
                         void episodesQuery.refetch();
                       }}>
-                        새 순차 분석
+                        {automaticStartBlocked ? '새 순차 분석 불가' : '새 순차 분석'}
                       </PrimaryButton>
                     </div>
                   ) : analysisSucceeded || (analysisPartiallyInterrupted
@@ -1990,6 +2054,10 @@ export default function SEpisodeUpload() {
                   ) : analysisCanceled ? (
                     <PrimaryButton disabled onClick={() => undefined}>
                       분석이 취소되었습니다
+                    </PrimaryButton>
+                  ) : analysisSuperseded ? (
+                    <PrimaryButton onClick={() => navigate(resolvedAnalysisListUrl, 'dissolve')}>
+                      최신 분석 목록에서 확인
                     </PrimaryButton>
                   ) : analysisFailed && retryableFailedAnalysisJobIds.length > 0 ? (
                     <PrimaryButton
@@ -2029,10 +2097,14 @@ export default function SEpisodeUpload() {
           loadFailed={episodesQuery.isError}
           submitting={createAnalysisJobMutation.isPending}
           startBlocked={!canRestartOrderedAnalysis}
+          recoveryRequired={automaticStartBlocked}
           error={orderedRestartError}
           onReload={() => { void episodesQuery.refetch(); }}
           onClose={() => setOrderedRestartOpen(false)}
           onConfirm={() => { void restartInvalidatedAnalysis(); }}
+          recoveryActionLabel={analysisStartRecovery === 'resume-existing' ? '기존 분석 목록에서 확인' : '원고 목록에서 확인'}
+          onRecover={() => navigate(analysisStartRecovery === 'resume-existing'
+            ? resolvedAnalysisListUrl : `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}
         />
       )}
     </div>
