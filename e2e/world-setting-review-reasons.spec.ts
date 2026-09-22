@@ -185,9 +185,9 @@ for (const width of [1280, 320]) {
   });
 }
 
-test('직접 해결할 수 없는 비교 실패는 재시도 안내를 유지한다', async ({ page }) => {
+test('일반 분석의 직접 해결할 수 없는 비교 실패는 재시도 안내를 유지한다', async ({ page }) => {
   const state = await mockReview(page, { comparisonStatus: 'FAILED', comparisonReviewReason: null,
-    suggestedOperation: null, manualReviewAvailable: false });
+    suggestedOperation: null, manualReviewAvailable: false, analysisMode: 'CONFIRMED_ONLY' });
   const row = page.locator('.world-setting-diff-row');
   await expect(row.locator('.world-setting-diff-row__header')).toContainText('비교 실패');
   await expect(row.locator('.world-setting-comparison-reason__title')).toHaveText('비교 실패 안내');

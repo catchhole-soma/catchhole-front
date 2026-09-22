@@ -56,7 +56,7 @@ for (const candidateType of ['character', 'world']) {
       });
       await authenticate(page);
       await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}${candidateType === 'world' ? '&candidateType=world' : ''}`);
-      await expect(page.getByText('순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 중단된 회차의 재개 여부를 확인해 주세요.')).toBeVisible();
+      await expect(page.getByText('순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 회차별 진행 상태를 확인해 주세요.').first()).toBeVisible();
       await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
       await expect(page.getByRole('button', { name: '현재 설정 비교 시작', exact: true })).toHaveCount(0);
       expect(retryCalls).toBe(0);
