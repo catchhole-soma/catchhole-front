@@ -49,17 +49,18 @@ export function orderedComparisonRecoveryMessage(
       || candidate.reviewStatus !== 'PENDING_REVIEW'
       || isAutomaticApplicationPending(candidate)
       || (candidate.manualReviewAvailable && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED')) return null;
-  if (candidate.sourceAnalysisJobStatus === 'PENDING' || candidate.sourceAnalysisJobStatus === 'RUNNING') {
-    return '이 회차의 분석을 진행하고 있습니다. 완료되면 같은 화면에서 검토할 수 있습니다.';
-  }
-  if (activeComparisonJobCount > 0) {
-    return '설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.';
-  }
   if (candidate.sourceAnalysisJournalStatus === 'INVALIDATED') {
     return '원고나 설정이 변경되어 기존 분석을 이어서 처리할 수 없습니다. 분석 목록에서 현재 상태를 확인해 주세요.';
   }
+  if (candidate.sourceAnalysisJobStatus === 'PENDING' || candidate.sourceAnalysisJobStatus === 'RUNNING') {
+    return '이 회차의 분석을 진행하고 있습니다. 완료되면 같은 화면에서 검토할 수 있습니다.';
+  }
   if (candidate.sourceAnalysisJobStatus === 'FAILED' || candidate.sourceAnalysisJournalStatus === 'INCOMPLETE') {
     return '순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 중단된 회차의 재개 여부를 확인해 주세요.';
+  }
+  if (candidate.sourceAnalysisJobStatus == null && candidate.sourceAnalysisJournalStatus == null
+      && activeComparisonJobCount > 0) {
+    return '설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.';
   }
   return '순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 회차별 진행 상태를 확인해 주세요.';
 }

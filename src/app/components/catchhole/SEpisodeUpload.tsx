@@ -763,10 +763,10 @@ export default function SEpisodeUpload() {
   const jobQueries = useQueries({
     queries: trackedAnalysisJobIds.map(analysisJobId => ({
       ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
-      enabled: step === 'processing' && UUID_PATTERN.test(workId),
+      enabled: step === 'processing' && UUID_PATTERN.test(workId) && !supersededJobIds.has(analysisJobId),
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
-        if (!currentAnalysisJobIdSet.has(analysisJobId)) return false;
+        if (!currentAnalysisJobIdSet.has(analysisJobId) || supersededJobIds.has(analysisJobId)) return false;
         const job = query.state.data?.data;
         const status = job?.status;
         // 같은 Job 재개와 원문 변경에 따른 무효화를 계속 확인한다.
@@ -1313,6 +1313,7 @@ export default function SEpisodeUpload() {
 
       // 응답이 유실되어도 서버가 같은 Job을 재개했을 수 있다. 기존 ID를 조회해 새 생성을 유도하지 않는다.
       await Promise.all(responses.flatMap((response, index) => response.status === 'rejected'
+        && toApiError(response.reason)?.code !== 'ANALYSIS_JOB_SUPERSEDED'
         ? [queryClient.invalidateQueries({
             queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId: retryableFailedAnalysisJobIds[index] } }).queryKey,
           })]
