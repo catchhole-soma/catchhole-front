@@ -62,26 +62,38 @@ for (const source of [
   { sourceAnalysisJobStatus: 'FAILED', sourceAnalysisJournalStatus: 'PENDING' },
   { sourceAnalysisJobStatus: 'SUCCEEDED', sourceAnalysisJournalStatus: 'INCOMPLETE' },
 ]) {
-  test(`실패·미완료 순차 분석은 개별 비교 대신 원본 회차 재개를 안내한다: ${source.sourceAnalysisJobStatus}`, async ({ page }) => {
-    const state = await openReview(page, { ...source, comparisonStatus: 'FAILED' });
-    await expect(page.locator('.world-setting-comparison-reason__text')).toContainText(stoppedMessage);
-    await expect(page.locator('.world-candidate-detail-card')).not.toContainText('다시 비교하거나 설정을 수정');
-    await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
-    expect(state.retryCalls()).toBe(0);
+  for (const activeComparisonJobCount of [0, 1]) {
+    test(`실패·미완료 원본 회차의 재개 안내는 다른 비교 작업보다 우선한다: ${source.sourceAnalysisJobStatus}, 비교 ${activeComparisonJobCount}개`, async ({ page }) => {
+      const state = await openReview(page, { ...source, comparisonStatus: 'FAILED' }, { activeComparisonJobCount });
+      await expect(page.locator('.world-setting-comparison-reason__text')).toContainText(stoppedMessage);
+      await expect(page.locator('.world-candidate-detail-card')).not.toContainText('다시 비교하거나 설정을 수정');
+      await expect(page.locator('.world-candidate-detail-card')).not.toContainText('설정 비교가 진행 중입니다.');
+      await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
+      expect(state.retryCalls()).toBe(0);
+    });
+  }
+}
+
+for (const sourceAnalysisJobStatus of ['FAILED', 'RUNNING']) {
+  test(`무효화된 원본 분석은 다른 비교가 진행 중이어도 상태 확인을 안내한다: ${sourceAnalysisJobStatus}`, async ({ page }) => {
+    await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus,
+      sourceAnalysisJournalStatus: 'INVALIDATED' }, { activeComparisonJobCount: 1 });
+    await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('기존 분석을 이어서 처리할 수 없습니다.');
+    await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
+    await expect(page.locator('.world-candidate-detail-card')).not.toContainText('진행 중입니다.');
   });
 }
 
-test('무효화된 순차 분석은 재개를 약속하지 않고 상태 확인을 안내한다', async ({ page }) => {
-  await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'FAILED',
-    sourceAnalysisJournalStatus: 'INVALIDATED' });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('기존 분석을 이어서 처리할 수 없습니다.');
+test('원본 상태가 없는 후보에만 별도 비교 작업의 진행 상태를 참고한다', async ({ page }) => {
+  await openReview(page, { comparisonStatus: 'FAILED' }, { activeComparisonJobCount: 1 });
+  await expect(page.locator('.world-setting-comparison-reason__text')).toHaveText('설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.');
   await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
 });
 
-test('별도 비교 작업이 진행 중이면 실패 후보만 보고 회차가 중단됐다고 단정하지 않는다', async ({ page }) => {
-  await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'FAILED' }, { activeComparisonJobCount: 1 });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toHaveText('설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.');
-  await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
+test('종료된 원본 분석이 있으면 다른 비교 작업을 해당 회차의 진행으로 안내하지 않는다', async ({ page }) => {
+  await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'CANCELED' }, { activeComparisonJobCount: 1 });
+  await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('분석 목록에서 회차별 진행 상태를 확인해 주세요.');
+  await expect(page.locator('.world-candidate-detail-card')).not.toContainText('설정 비교가 진행 중입니다.');
 });
 
 test('원본 상태가 없는 옛 순차 후보는 진행 상태 확인으로 안내한다', async ({ page }) => {

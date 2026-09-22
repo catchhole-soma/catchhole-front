@@ -285,9 +285,11 @@ for (const response of ['lost', 'conflict']) {
   });
 }
 
-test('더 최근 분석이 생긴 과거 Job은 재개를 반복하지 않고 최신 분석 목록으로 안내한다', async ({ page }) => {
+test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈추고 최신 분석 목록으로 안내한다', async ({ page }) => {
   await installBaseRoutes(page);
+  await page.clock.install();
   let retries = 0;
+  const reads = { superseded: 0, current: 0 };
   await page.route('**/analysis-jobs/**', route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/retry')) {
@@ -297,11 +299,21 @@ test('더 최근 분석이 생긴 과거 Job은 재개를 반복하지 않고 �
         error: { code: 'ANALYSIS_JOB_SUPERSEDED', status: 409 } }) });
     }
     const index = path.endsWith(jobIds[1]) ? 1 : 0;
+    reads[index ? 'current' : 'superseded'] += 1;
     return success(route, job(index, index ? 'PENDING' : 'FAILED', index ? 'PENDING' : 'INCOMPLETE'));
   });
   await page.goto(progressUrl());
+  await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toBeVisible();
+  const supersededReads = reads.superseded;
   await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
   await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
+  expect(new URL(page.url()).searchParams.get('analysisJobIds')?.split(',')).toEqual(jobIds);
+  const currentReads = reads.current;
+  await page.clock.fastForward(9_000);
+  await expect.poll(() => reads.current).toBeGreaterThan(currentReads);
+  expect(reads.superseded).toBe(supersededReads);
   await page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`workId=${workId}&nav=analyses`));
   expect(retries).toBe(1);
