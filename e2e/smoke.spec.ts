@@ -1427,7 +1427,8 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
 
   const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
   await expect(reanalysisDialog).toBeVisible();
-  await expect(reanalysisDialog.getByText(/중복되거나 시간 순서가 맞지 않는 후보/)).toBeVisible();
+  await expect(reanalysisDialog.getByText(/이미 완료된 뒤 회차의 분석 결과는 유지됩니다/)).toBeVisible();
+  await expect(reanalysisDialog.getByText(/현재 설정을 유지하고 이력에 저장합니다/)).toBeVisible();
   await expect(reanalysisDialog.locator('.episode-reanalysis-warning')).toHaveCSS('color', 'rgb(138, 75, 0)');
   await expectReadableDialogText(
     reanalysisDialog.getByRole('button', { name: '취소' }),

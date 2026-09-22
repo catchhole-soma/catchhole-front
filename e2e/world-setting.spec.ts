@@ -151,6 +151,42 @@ function worldCandidateGroup(candidates: Array<ReturnType<typeof worldCandidate>
   };
 }
 
+for (const historyOnly of [false, true]) test(`개별 직접 검토의 완료 세계관 후보는 서버의 이력 저장 여부를 표시한다 (${historyOnly})`, async ({ page }) => {
+  const candidate = worldCandidate({
+    analysisMode: 'CONFIRMED_ONLY',
+    reviewMode: 'MANUAL',
+    reviewStatus: 'CONFIRMED',
+    historyOnly,
+  });
+  await page.route('**/api/v1/**', route => {
+    expect(route.request().method()).toBe('GET');
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, { batchId, totalCandidateCount: 0, reviewedCandidateCount: 0,
+        pendingCandidateCount: 0, matchRequiredCandidateCount: 0, candidates: pageResponse([]) });
+    }
+    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+      return success(route, { batchId, episodeStartNo: 3, episodeEndNo: 3, episodeCount: 1,
+        totalCandidateCount: 1, reviewedCandidateCount: 1, pendingCandidateCount: 0,
+        pendingComparisonCount: 0, processingComparisonCount: 0, failedComparisonCount: 0,
+        recomparisonRequiredCount: 0, groups: pageResponse([worldCandidateGroup([candidate])]) });
+    }
+    return success(route, []);
+  });
+
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&reviewStatus=CONFIRMED`);
+  const row = page.locator('.world-setting-diff-row');
+  await expect(row).toBeVisible();
+  const historyNotice = row.getByRole('status').filter({ hasText: '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' });
+  if (historyOnly) await expect(historyNotice).toBeVisible();
+  else await expect(historyNotice).toHaveCount(0);
+  await expect(row.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
+  await expect(row.getByRole('button', { name: /제외/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+});
+
 test('새 범위로 함께 이동할 기존 root 설정을 검토 판단에 명시한다', async ({ page }) => {
   const candidate = worldCandidate({
     settingName: '근력 기댓값',

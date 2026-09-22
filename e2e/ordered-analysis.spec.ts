@@ -149,7 +149,7 @@ test('완료된 분석도 무효화되면 새 분석 안내를 표시하고 재�
     return success(route, invalid);
   });
   await page.goto(progressUrl());
-  await expect(page.getByText('변경된 내용으로 새 분석이 필요합니다', { exact: true })).toBeVisible();
+  await expect(page.getByText('기존 분석을 이어갈 수 없습니다', { exact: true })).toBeVisible();
   await expect(page.getByText('private-internal-reason')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '설정 후보 검토', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
@@ -212,6 +212,8 @@ test('완료 뒤 무효화된 분석은 업로드 없이 범위 확인 후 새 �
 for (const failure of [
   { status: 400, code: 'ANALYSIS_RUN_MODE_INVALID', message: '시작 회차 이후의 확정 이력이 있어 현재 설정으로 과거 분석을 시작할 수 없습니다.' },
   { status: 409, code: 'ANALYSIS_JOB_ALREADY_IN_PROGRESS', message: '이미 진행 중인 분석 작업이 있습니다.' },
+  { status: 400, code: 'ANALYSIS_FUTURE_HISTORY_CONFLICT', message: '뒤 회차의 확정 이력이 있습니다.', recovery: 'manuscripts' },
+  { status: 409, code: 'ANALYSIS_ORDERED_JOB_RETRY_REQUIRED', message: '기존 분석을 재개해 주세요.', recovery: 'analyses' },
 ]) {
   test(`새 순차 분석이 ${failure.code}로 거절되면 서버 안내를 유지하고 기본 분석으로 전환하지 않는다`, async ({ page }) => {
     await installBaseRoutes(page);
@@ -231,12 +233,79 @@ for (const failure of [
     await page.getByRole('button', { name: '새 순차 분석', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true }).click();
-    await expect(dialog.getByRole('alert')).toHaveText(failure.message);
-    await expect(dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true })).toBeEnabled();
+    if (failure.recovery) {
+      await expect(dialog.getByRole('alert')).toContainText(failure.recovery === 'manuscripts'
+        ? '묶음 전체를 자동으로 다시 분석할 수 없습니다' : '이어갈 수 있는 기존 분석');
+      await expect(dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '새 순차 분석 불가', exact: true, includeHidden: true })).toBeDisabled();
+      const action = dialog.getByRole('button', { name: failure.recovery === 'manuscripts'
+        ? '원고 목록에서 확인' : '기존 분석 목록에서 확인', exact: true });
+      await action.click();
+      await expect(page).toHaveURL(new RegExp(`nav=${failure.recovery}`));
+    } else {
+      await expect(dialog.getByRole('alert')).toHaveText(failure.message);
+      await expect(dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true })).toBeEnabled();
+      expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
+    }
     expect(calls).toBe(1);
-    expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
   });
 }
+
+for (const response of ['lost', 'conflict']) {
+  test(`재개 응답이 ${response}여도 기존 Job을 다시 조회해 실제 진행 상태를 복원한다`, async ({ page }) => {
+    await installBaseRoutes(page);
+    let resumed = false;
+    let resumeCalls = 0;
+    let creates = 0;
+    await page.route(`**/works/${workId}/analysis-jobs`, route => {
+      creates++;
+      return success(route, []);
+    });
+    await page.route('**/analysis-jobs/**', route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/retry')) {
+        resumed = true;
+        resumeCalls++;
+        return response === 'lost' ? route.abort('failed') : route.fulfill({ status: 409,
+          contentType: 'application/json', body: JSON.stringify({ success: false,
+            message: '이미 재개된 분석입니다.', error: { code: 'ANALYSIS_JOB_ALREADY_IN_PROGRESS', status: 409 } }) });
+      }
+      const index = path.endsWith(jobIds[1]) ? 1 : 0;
+      return success(route, job(index, index ? 'PENDING' : resumed ? 'RUNNING' : 'FAILED', index || resumed ? 'PENDING' : 'INCOMPLETE'));
+    });
+    await page.goto(progressUrl());
+    await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+    await expect(page.getByText('회차를 분석하고 있습니다', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
+    await expect(page.getByText('이미 재개된 분석입니다.', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('실패 회차 분석을 다시 요청하지 못했습니다.', { exact: true })).toHaveCount(0);
+    expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
+    expect(resumeCalls).toBe(1);
+    expect(creates).toBe(0);
+  });
+}
+
+test('더 최근 분석이 생긴 과거 Job은 재개를 반복하지 않고 최신 분석 목록으로 안내한다', async ({ page }) => {
+  await installBaseRoutes(page);
+  let retries = 0;
+  await page.route('**/analysis-jobs/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/retry')) {
+      retries++;
+      return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ success: false,
+        message: '더 최근의 분석이 있어 이전 작업을 재개할 수 없습니다.',
+        error: { code: 'ANALYSIS_JOB_SUPERSEDED', status: 409 } }) });
+    }
+    const index = path.endsWith(jobIds[1]) ? 1 : 0;
+    return success(route, job(index, index ? 'PENDING' : 'FAILED', index ? 'PENDING' : 'INCOMPLETE'));
+  });
+  await page.goto(progressUrl());
+  await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+  await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`workId=${workId}&nav=analyses`));
+  expect(retries).toBe(1);
+});
 
 test('무효화되었어도 아직 실행 중인 Job이 있으면 새 분석 버튼을 잠근다', async ({ page }) => {
   await installBaseRoutes(page);

@@ -27,6 +27,43 @@ async function authenticate(page: Page) {
 const member = { id: 1, email: 'automatic-review@example.com', displayName: '검토 테스트',
   role: 'AUTHOR', status: 'ACTIVE', phoneVerified: false };
 
+for (const candidateType of ['character', 'world']) {
+  for (const comparisonStatus of ['FAILED', 'RECOMPARISON_REQUIRED']) {
+    test(`직접 검토가 허용되지 않은 순차 ${candidateType} ${comparisonStatus} 후보는 개별 재비교하지 않는다`, async ({ page }) => {
+      let retryCalls = 0;
+      const characterCandidate = { id: candidateId, workId, episodeNo: 11, candidateKind: 'SETTING',
+        entityType: 'CHARACTER', entityName: '수아', matchedCharacterId: characterId, matchStatus: 'MATCHED',
+        attributeName: 'profile.eye_color', attributeValue: '갈색', valueType: 'STRING',
+        evidenceSpans: [], reviewStatus: 'PENDING_REVIEW', comparisonStatus,
+        analysisMode: 'ORDERED_PROVISIONAL', manualReviewAvailable: false };
+      const worldCandidate = { id: candidateId, workId, sourceEpisodeNo: 11, category: 'RACE',
+        subjectName: '설인', settingName: '서식지', extractedValue: '북부 설원', evidenceSpans: [],
+        reviewStatus: 'PENDING_REVIEW', comparisonStatus, consolidationStatus: 'SINGLE',
+        analysisMode: 'ORDERED_PROVISIONAL', manualReviewAvailable: false };
+      await page.route('**/api/v1/**', route => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname.endsWith('/auth/me')) return success(route, member);
+        if (pathname.endsWith('/recompare')) retryCalls++;
+        if (pathname.endsWith('/world-setting-candidates')) return success(route, { batchId,
+          totalCandidateCount: 1, pendingCandidateCount: 1, failedComparisonCount: 1, activeComparisonJobCount: 0,
+          groups: pageOf([{ groupKey: 'RACE|설인', category: 'RACE', subjectName: '설인',
+            changeCount: 1, status: 'FAILED', candidates: [worldCandidate], evidenceEpisodeNos: [11] }]) });
+        if (pathname.endsWith('/setting-candidates')) return success(route, { batchId,
+          totalCandidateCount: 1, pendingCandidateCount: 1, matchRequiredCandidateCount: 0,
+          groups: pageOf([{ groupKey: '수아', entityName: '수아', candidateCount: 1,
+            pendingCandidateCount: 1, candidates: [characterCandidate] }]) });
+        return success(route, []);
+      });
+      await authenticate(page);
+      await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}${candidateType === 'world' ? '&candidateType=world' : ''}`);
+      await expect(page.getByText('순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 중단된 회차의 재개 여부를 확인해 주세요.')).toBeVisible();
+      await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '현재 설정 비교 시작', exact: true })).toHaveCount(0);
+      expect(retryCalls).toBe(0);
+    });
+  }
+}
+
 for (const grouped of [false, true]) {
   test(`직접 검토한 캐릭터의 ${grouped ? '일괄' : '단건'} 연결 변경 성공 후에는 새 대상에 대한 검토를 다시 요구한다`, async ({ page }) => {
     const nextCharacterId = '55555555-5555-4555-8555-555555555555';
