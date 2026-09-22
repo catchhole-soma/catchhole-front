@@ -37,6 +37,7 @@ type CandidateReviewState = Partial<Pick<SettingCandidateResponse,
 
 export const AUTOMATIC_APPLICATION_PENDING_MESSAGE = '이 회차의 설정을 자동으로 반영하고 있습니다. 완료된 뒤 다시 확인해 주세요.';
 export const REVIEWABLE_COMPARISON_FAILURE_MESSAGE = '자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.';
+export const ORDERED_COMPARISON_RECOVERY_MESSAGE = '순차 분석의 설정은 개별로 다시 비교할 수 없습니다. 분석 목록에서 중단된 회차의 재개 여부를 확인해 주세요.';
 
 /** 서버가 직접 확인을 허용한 후보만 사용자 검토로 안내하며 저장된 실패 상태는 유지한다. */
 export function isReviewableComparisonFailure(candidate: CandidateReviewState & Partial<Pick<SettingCandidateResponse,

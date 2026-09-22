@@ -54,6 +54,7 @@ import {
   isAutomaticApplicationPending,
   isReviewableComparisonFailure,
   REVIEWABLE_COMPARISON_FAILURE_MESSAGE,
+  ORDERED_COMPARISON_RECOVERY_MESSAGE,
   combinedSettingReviewProgress,
   isCandidateComparisonProcessing,
   needsDirectCandidateReview,
@@ -1107,10 +1108,16 @@ function WorldCandidateGroupDetail({
     && !resolvedConflictIds.has(candidate.id)
     && !candidate.userModified
     && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
-  const retryAvailable = candidates.some(candidate => !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable && ((
+  const retryAvailable = candidates.some(candidate => candidate.analysisMode !== 'ORDERED_PROVISIONAL'
+    && !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable && ((
     candidate.comparisonStatus === 'FAILED'
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
+  const orderedRecoveryRequired = candidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL'
+    && candidate.reviewStatus === 'PENDING_REVIEW'
+    && !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable
+    && (candidate.comparisonStatus === 'FAILED' || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
+      || candidate.comparisonStatus === 'PENDING'));
   const confirmable = !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
     .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
       && (candidate.comparisonStatus === 'COMPLETED'
@@ -1248,6 +1255,9 @@ function WorldCandidateGroupDetail({
         {!groupAutomaticPending && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
           <div style={{ flexBasis: '100%' }}><OrderedReviewImpactNotice /></div>
         )}
+        {orderedRecoveryRequired && <p role="status" style={{ flexBasis: '100%', color: REVIEW_TEXT.warning, fontSize: 12 }}>
+          {ORDERED_COMPARISON_RECOVERY_MESSAGE}
+        </p>}
         {retryAvailable && (
           <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
             <RefreshCw size={12} /> 다시 비교
@@ -1821,6 +1831,7 @@ export function WorldSettingReview() {
       setRecomparedIds(previous => new Set([...previous, ...recoveredIds]));
     }
     const retryCandidate = candidates.find(candidate => candidate.id
+      && candidate.analysisMode !== 'ORDERED_PROVISIONAL'
       && !isAutomaticApplicationPending(candidate)
       && !candidate.manualReviewAvailable
       && (candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'
@@ -1946,6 +1957,7 @@ export function WorldSettingReview() {
   const retryGroup = () => {
     if (!selectedGroup || actionPending) return;
     const candidate = selectedGroup.candidates?.find(item => item.id
+      && item.analysisMode !== 'ORDERED_PROVISIONAL'
       && !isAutomaticApplicationPending(item)
       && !item.manualReviewAvailable
       && (
