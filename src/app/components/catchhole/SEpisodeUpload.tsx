@@ -535,6 +535,7 @@ export default function SEpisodeUpload() {
   const routeWorkId = searchParams.get('workId');
   const workId = routeWorkId ?? selectedWork;
   const initialTrackedAnalysisJobIds = (searchParams.get('analysisJobIds') ?? '').split(',').filter(Boolean);
+  const initialTrackedAnalysisJobIdSet = new Set(initialTrackedAnalysisJobIds);
   const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
   const viewingExistingAnalysis = initialTrackedAnalysisJobIds.length > 0;
 
@@ -601,7 +602,8 @@ export default function SEpisodeUpload() {
     reason: 'future-history' | 'resume-existing';
   } | null>(null);
   const [batchRetryPending, setBatchRetryPending] = useState(false);
-  const [supersededJobIds, setSupersededJobIds] = useState<Set<string>>(() => new Set());
+  const supersededJobIds = new Set((searchParams.get('supersededJobIds') ?? '').split(',')
+    .filter(id => UUID_PATTERN.test(id) && initialTrackedAnalysisJobIdSet.has(id)));
   const [orderedRestartOpen, setOrderedRestartOpen] = useState(false);
   const [orderedRestartError, setOrderedRestartError] = useState<string | null>(null);
   const orderedRestartInFlight = useRef(false);
@@ -763,7 +765,10 @@ export default function SEpisodeUpload() {
   const jobQueries = useQueries({
     queries: trackedAnalysisJobIds.map(analysisJobId => ({
       ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
-      enabled: step === 'processing' && UUID_PATTERN.test(workId) && !supersededJobIds.has(analysisJobId),
+      // 새로고침 때 이력은 한 번 읽되, 이미 대체된 작업을 반복 조회하지 않는다.
+      enabled: (query: { state: { data?: GetAnalysisJobResponse } }) => step === 'processing'
+        && UUID_PATTERN.test(workId) && (!supersededJobIds.has(analysisJobId) || !query.state.data),
+      refetchOnReconnect: !supersededJobIds.has(analysisJobId),
       retry: false,
       refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
         if (!currentAnalysisJobIdSet.has(analysisJobId) || supersededJobIds.has(analysisJobId)) return false;
@@ -983,12 +988,16 @@ export default function SEpisodeUpload() {
     batchId: string,
     nextTrackedAnalysisJobIds: string[],
     nextCurrentAnalysisJobIds: string[],
+    nextSupersededJobIds: Set<string> = supersededJobIds,
   ) => {
     setSearchParams(params => {
       params.set('workId', workId);
       params.set('batchId', batchId);
       params.set('analysisJobIds', nextTrackedAnalysisJobIds.join(','));
       params.set('currentAnalysisJobIds', nextCurrentAnalysisJobIds.join(','));
+      const retainedSupersededIds = nextTrackedAnalysisJobIds.filter(id => nextSupersededJobIds.has(id));
+      if (retainedSupersededIds.length > 0) params.set('supersededJobIds', retainedSupersededIds.join(','));
+      else params.delete('supersededJobIds');
       params.set('jobType', analysisJobType);
       return params;
     }, { replace: true, state: location.state });
@@ -1246,6 +1255,7 @@ export default function SEpisodeUpload() {
         })),
       );
       const successfullyRetriedJobIds = new Set<string>();
+      const nextSupersededJobIds = new Set(supersededJobIds);
       const retryAnalysisJobIds: string[] = [];
       let retryError: unknown = null;
       let invalidRetryResponse = false;
@@ -1254,7 +1264,7 @@ export default function SEpisodeUpload() {
         const failedAnalysisJobId = retryableFailedAnalysisJobIds[index];
         if (response.status === 'rejected') {
           if (toApiError(response.reason)?.code === 'ANALYSIS_JOB_SUPERSEDED') {
-            setSupersededJobIds(previous => new Set([...previous, failedAnalysisJobId]));
+            nextSupersededJobIds.add(failedAnalysisJobId);
           }
           retryError ??= response.reason;
           return;
@@ -1305,10 +1315,14 @@ export default function SEpisodeUpload() {
           episodeUploadBatchId,
           nextTrackedAnalysisJobIds,
           nextCurrentAnalysisJobIds,
+          nextSupersededJobIds,
         );
-        await Promise.all(nextCurrentAnalysisJobIds.map(analysisJobId => queryClient.invalidateQueries({
-          queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId } }).queryKey,
-        })));
+        await Promise.all(nextCurrentAnalysisJobIds.flatMap(analysisJobId => nextSupersededJobIds.has(analysisJobId)
+          ? [] : [queryClient.invalidateQueries({
+              queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId } }).queryKey,
+            })]));
+      } else if (nextSupersededJobIds.size !== supersededJobIds.size) {
+        persistAnalysisRoute(episodeUploadBatchId, trackedAnalysisJobIds, currentAnalysisJobIds, nextSupersededJobIds);
       }
 
       // 응답이 유실되어도 서버가 같은 Job을 재개했을 수 있다. 기존 ID를 조회해 새 생성을 유도하지 않는다.

@@ -1242,7 +1242,7 @@ export default function S1Dashboard() {
           title="회차 파일 변경"
           description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
           currentFilename={replaceEpisodeTarget.originalFilename}
-          warning="파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 변경한 회차만 직접 재분석해 주세요."
+        warning="파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요."
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}
