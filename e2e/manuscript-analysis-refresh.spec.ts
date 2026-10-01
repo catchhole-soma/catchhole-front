@@ -148,6 +148,10 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
   await replacedRow.getByRole('button', { name: '파일 변경', exact: true }).click();
   const replaceDialog = page.getByRole('dialog', { name: '회차 파일 변경', exact: true });
   await expect(replaceDialog.getByText(/확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다/)).toBeVisible();
+  await expect(replaceDialog.getByText(/아직 완료되지 않은 뒤 회차의 순차 분석은/)).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(replaceDialog.getByRole('button', { name: '취소', exact: true })).toBeInViewport();
+  await expect(replaceDialog.getByRole('button', { name: '파일 변경', exact: true })).toBeInViewport();
   await replaceDialog.locator('input[type=file]').setInputFiles({
     name: '29-revised.txt', mimeType: 'text/plain', buffer: Buffer.from('29화의 수정한 원고입니다.'),
   });

@@ -280,6 +280,7 @@ for (const response of ['lost', 'conflict']) {
     await expect(page.getByText('이미 재개된 분석입니다.', { exact: true })).toHaveCount(0);
     await expect(page.getByText('실패 회차 분석을 다시 요청하지 못했습니다.', { exact: true })).toHaveCount(0);
     expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
+    expect(new URL(page.url()).searchParams.has('supersededJobIds')).toBe(false);
     expect(resumeCalls).toBe(1);
     expect(creates).toBe(0);
   });
@@ -314,6 +315,17 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
   await page.clock.fastForward(9_000);
   await expect.poll(() => reads.current).toBeGreaterThan(currentReads);
   expect(reads.superseded).toBe(supersededReads);
+  expect(new URL(page.url()).searchParams.get('supersededJobIds')).toBe(jobIds[0]);
+  await page.reload();
+  await expect(page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toHaveCount(0);
+  await expect(page.locator('.episode-processing-card')).toHaveCount(2);
+  const reloadedSupersededReads = reads.superseded;
+  expect(reloadedSupersededReads).toBe(supersededReads + 1);
+  const reloadedCurrentReads = reads.current;
+  await page.clock.fastForward(9_000);
+  await expect.poll(() => reads.current).toBeGreaterThan(reloadedCurrentReads);
+  expect(reads.superseded).toBe(reloadedSupersededReads);
   await page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`workId=${workId}&nav=analyses`));
   expect(retries).toBe(1);
