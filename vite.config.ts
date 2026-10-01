@@ -3,7 +3,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-const META_PIXEL_ID = '3483583581809046'
+const META_PIXEL_ID = '1089308590752584'
 
 function metaPixelPlugin(): Plugin {
   return {
