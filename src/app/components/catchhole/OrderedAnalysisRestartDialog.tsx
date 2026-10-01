@@ -7,13 +7,16 @@ type Props = {
   loadFailed: boolean;
   submitting: boolean;
   startBlocked: boolean;
+  recoveryRequired: boolean;
   error: string | null;
   onReload: () => void;
   onClose: () => void;
   onConfirm: () => void;
+  recoveryActionLabel: string;
+  onRecover: () => void;
 };
 
-export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, submitting, startBlocked, error, onReload, onClose, onConfirm }: Props) {
+export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, submitting, startBlocked, recoveryRequired, error, onReload, onClose, onConfirm, recoveryActionLabel, onRecover }: Props) {
   return (
     <Dialog.Root open onOpenChange={open => { if (!open && !submitting) onClose(); }}>
       <Dialog.Portal>
@@ -35,10 +38,12 @@ export function OrderedAnalysisRestartDialog({ episodes, loading, loadFailed, su
           {error && <p className="ordered-analysis-restart__error" role="alert">{error}</p>}
           <div className="ordered-analysis-restart__actions">
             <button type="button" disabled={submitting} onClick={onClose}>취소</button>
-            <button type="button" className="ordered-analysis-restart__confirm"
+            {recoveryRequired ? <button type="button" className="ordered-analysis-restart__confirm" onClick={onRecover}>
+              {recoveryActionLabel}
+            </button> : <button type="button" className="ordered-analysis-restart__confirm"
               disabled={submitting || startBlocked || loading || loadFailed || episodes.length === 0} onClick={onConfirm}>
               {submitting ? '새 분석 요청 중...' : '새 순차 분석 시작'}
-            </button>
+            </button>}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

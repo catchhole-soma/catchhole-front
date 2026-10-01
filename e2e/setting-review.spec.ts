@@ -1387,9 +1387,10 @@ test('동일 상태 종료 제안을 현재 설정에서 제거하는 방식으�
   });
 });
 
-for (const historyOnly of [false, true]) test(`검토 완료 후보를 읽기 전용으로 표시하고 이력 저장 여부를 알린다 (${historyOnly})`, async ({ page }) => {
+for (const historyOnly of [false, true]) test(`개별 직접 검토의 완료 후보를 읽기 전용으로 표시하고 이력 저장 여부를 알린다 (${historyOnly})`, async ({ page }) => {
   const confirmedCandidate = {
     ...candidates[0],
+    analysisMode: 'CONFIRMED_ONLY' as const,
     historyOnly,
     reviewStatus: 'CONFIRMED' as const,
     candidateKind: 'SETTING' as const,

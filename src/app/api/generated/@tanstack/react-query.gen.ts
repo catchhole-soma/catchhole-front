@@ -40,7 +40,7 @@ export const replaceEpisodeFileMutationKey = (options?: Partial<Options<ReplaceE
 /**
  * 회차 원문 파일 변경
  *
- * 회차 번호와 제목을 유지하고 새 TXT 또는 DOCX 원본으로 교체합니다. 자동 분석은 시작하지 않습니다.
+ * 회차 번호와 제목을 유지하고 새 TXT 또는 DOCX 원본으로 교체합니다. 해당 회차는 재분석 필요로 표시하고 완료된 후행 분석은 보존합니다. 영향을 받는 미완료 순차 입력은 무효화하며 자동 분석은 시작하지 않습니다.
  */
 export const replaceEpisodeFileMutation = (options?: Partial<Options<ReplaceEpisodeFileData>>): UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> => {
     const mutationOptions: UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> = {
@@ -764,7 +764,7 @@ export const retryAnalysisJobMutationKey = (options?: Partial<Options<RetryAnaly
 /**
  * 실패 회차 분석 재시도
  *
- * 기존 실패 작업은 유지하고 서버가 확인한 FAILED 회차만 새 분석 작업으로 생성합니다.
+ * 순차 분석은 같은 Job·실행·입력·완료 단계를 보존해 실패 회차부터 재개합니다. 기존 일반 분석은 실패 회차만 재시도하며, 더 최근의 분석으로 대체된 순차 작업은 재개하지 않습니다.
  */
 export const retryAnalysisJobMutation = (options?: Partial<Options<RetryAnalysisJobData>>): UseMutationOptions<RetryAnalysisJobResponse, RetryAnalysisJobError, Options<RetryAnalysisJobData>> => {
     const mutationOptions: UseMutationOptions<RetryAnalysisJobResponse, RetryAnalysisJobError, Options<RetryAnalysisJobData>> = {

@@ -675,6 +675,14 @@ export type WorldSettingCandidateResponse = {
      * 현재 설정을 유지하고 원문 회차 이력에만 확정했는지 여부
      */
     historyOnly?: boolean;
+    /**
+     * 후보를 생성한 원본 회차 분석 작업의 상태. 별도 재비교 작업의 상태와 구분한다
+     */
+    sourceAnalysisJobStatus?: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+    /**
+     * 후보를 생성한 원본 회차 분석의 누적 기록 상태. 일반 분석은 없을 수 있다
+     */
+    sourceAnalysisJournalStatus?: 'PENDING' | 'SEALED' | 'INCOMPLETE' | 'INVALIDATED';
 };
 
 /**
@@ -7521,9 +7529,9 @@ export type CreateAnalysisJobData = {
 
 export type CreateAnalysisJobErrors = {
     /**
-     * 요청 값 검증 실패
+     * 요청 값 검증 실패 또는 시작 회차 이후 확정 이력으로 자동 순차 분석 불가(ANALYSIS_FUTURE_HISTORY_CONFLICT)
      */
-    400: CommonResponseListAnalysisJobResponse;
+    400: CommonErrorResponse;
     /**
      * 액세스 토큰 없음, 만료 또는 검증 실패
      */
@@ -7533,7 +7541,7 @@ export type CreateAnalysisJobErrors = {
      */
     404: CommonResponseListAnalysisJobResponse;
     /**
-     * AI 토큰 한도 소진 또는 같은 대상 분석 진행 중
+     * AI 토큰 한도 소진, 같은 대상 분석 진행 중 또는 기존 순차 분석 재개 필요(ANALYSIS_ORDERED_JOB_RETRY_REQUIRED)
      */
     409: CommonErrorResponse;
 };
@@ -7569,7 +7577,7 @@ export type RetryAnalysisJobErrors = {
      */
     404: CommonResponseListAnalysisJobResponse;
     /**
-     * AI 토큰 한도 소진, 실패 상태가 아니거나 같은 batch의 전체 작업이 진행 중
+     * AI 토큰 한도 소진, 재개 불가 상태, 같은 대상 작업 진행 중 또는 더 최근 분석으로 대체됨(ANALYSIS_JOB_SUPERSEDED)
      */
     409: CommonErrorResponse;
 };

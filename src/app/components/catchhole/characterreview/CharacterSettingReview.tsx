@@ -1897,7 +1897,8 @@ export function CharacterSettingReview() {
   };
   const retryCandidateComparison = (candidateId: string) => {
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
-    if (actionPending || !candidate || isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate)) return;
+    if (actionPending || !candidate || candidate.analysisMode === 'ORDERED_PROVISIONAL'
+      || isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate)) return;
     retryComparisonMutation.mutate({ path: { workId, candidateId } });
   };
 

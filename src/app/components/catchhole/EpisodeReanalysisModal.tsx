@@ -56,11 +56,12 @@ export function EpisodeReanalysisModal({
         style={{
           width: 'min(500px, 100%)', borderRadius: 12, border: `1px solid ${C.border}`,
           background: C.surface, boxShadow: '0 24px 80px rgba(0,0,0,0.62)', overflow: 'hidden',
+          maxHeight: 'calc(100dvh - 40px)', display: 'flex', flexDirection: 'column',
         }}
       >
         <div className="theme-modal__header" style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '18px 22px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${C.border}`, flexShrink: 0,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, background: `${C.warning}14`, color: C.warning,
@@ -73,9 +74,10 @@ export function EpisodeReanalysisModal({
           </div>
         </div>
 
-        <div className="theme-modal__body" style={{ padding: 22 }}>
+        <div className="theme-modal__body" style={{ padding: 22, overflowY: 'auto', minHeight: 0 }}>
           <p style={{ margin: '0 0 10px', color: C.t2, fontSize: 13, lineHeight: 1.65 }}>
             변경된 원고를 기준으로 {episode.episodeNo}화만 다시 분석합니다.
+            {' '}이미 완료된 뒤 회차의 분석 결과는 유지됩니다.
           </p>
           <div className="episode-reanalysis-warning" style={{
             display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 12px', borderRadius: 7,
@@ -83,8 +85,9 @@ export function EpisodeReanalysisModal({
           }}>
             <AlertTriangle size={15} style={{ marginTop: 2, flexShrink: 0 }} />
             <span>
-              이후 회차에서 쌓인 설정이 함께 참고되어, 중복되거나 시간 순서가 맞지 않는 후보가 생길 수 있습니다.
-              확정된 설정은 자동으로 변경되지 않습니다.
+              확정된 설정은 자동으로 변경되지 않습니다. 추출한 설정을 직접 검토한 뒤 확정해 주세요.
+              {' '}뒤 회차에서 같은 항목이 확정됐거나 직접 수정한 값이 있으면 현재 설정을 유지하고 이력에 저장합니다.
+              {' '}그 외에는 선택한 반영 방식에 따라 현재 설정에도 반영할 수 있습니다.
             </span>
           </div>
           {laterAnalyzedEpisodeCount > 0 && (
@@ -104,7 +107,7 @@ export function EpisodeReanalysisModal({
 
         <div className="theme-modal__footer" style={{
           display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '16px 22px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${C.border}`, flexShrink: 0,
         }}>
           <button type="button" autoFocus disabled={submitting} onClick={onClose} style={{
             height: 36, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`,

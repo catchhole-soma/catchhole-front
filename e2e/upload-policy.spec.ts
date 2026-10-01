@@ -248,3 +248,65 @@ test('미확정 정보 확인 중에도 단일 기본 자동 업로드와 다회
     releasePolicy();
   }
 });
+
+for (const uploadType of ['SINGLE_EPISODE', 'MULTI_EPISODE_MULTI_FILE']) {
+  test(`${uploadType} 과거 회차 저장 후 자동 분석이 거절되면 재업로드 없이 기존 직접 검토 경로를 안내한다`, async ({ page }) => {
+    const requests = await setup(page);
+    await detected(page, uploadType);
+    let saved = false;
+    let attempts = 0;
+    const createdEpisodes = Array.from({ length: uploadType === 'SINGLE_EPISODE' ? 1 : 2 }, (_, index) => ({
+      id: index ? episodeId.replace(/^44444444/, '55555555') : episodeId,
+      batchId, episodeNo: 11 + index, title: `과거 원고 ${11 + index}`, status: 'UPLOADED', analysisStatus: 'REANALYSIS_REQUIRED',
+    }));
+    await page.route(`**/works/${workId}/episodes`, route => {
+      if (route.request().method() === 'POST') {
+        requests.uploads.push(route.request().postData() ?? '');
+        saved = true;
+        return success(route, { batchId, createdEpisodes });
+      }
+      return success(route, [{ id: 'later-episode', episodeNo: 80, status: 'ANALYZED' }, ...(saved ? createdEpisodes : [])]);
+    });
+    await page.route(`**/works/${workId}/analysis-jobs`, route => {
+      attempts++;
+      expect(route.request().postDataJSON()).toEqual({ jobType: 'SETTING_EXTRACTION', batchId,
+        analysisMode: 'ORDERED_PROVISIONAL', reviewMode: 'AUTOMATIC' });
+      return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false,
+        message: '뒤 회차의 확정 이력이 있습니다.', error: { code: 'ANALYSIS_FUTURE_HISTORY_CONFLICT', status: 400 } }) });
+    });
+    await page.goto(`/episode-upload?workId=${workId}`);
+    await page.getByRole('button', { name: uploadType === 'SINGLE_EPISODE' ? /단일 회차 업로드/ : /다회차 - 여러 파일/ }).click();
+    await chooseFile(page, uploadType !== 'SINGLE_EPISODE');
+    if (uploadType === 'SINGLE_EPISODE') await page.getByRole('spinbutton').fill('11');
+    await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+    await expect(page.getByText('원고는 저장했지만 분석을 시작하지 못했습니다', { exact: true })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('다시 업로드하지 말고 원고 목록');
+    await expect(page.getByRole('button', { name: '다시 시도', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: '원고 목록에서 확인', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`workId=${workId}&nav=manuscripts`));
+    await expect(page.getByRole('button', { name: '재분석', exact: true })).toHaveCount(createdEpisodes.length);
+    expect(attempts).toBe(1);
+    expect(requests.uploads).toHaveLength(1);
+  });
+}
+
+test('원고 저장 뒤 기존 재개 가능한 분석이 확인되면 새 생성 대신 기존 분석 목록으로 안내한다', async ({ page }) => {
+  const requests = await setup(page);
+  await detected(page, 'SINGLE_EPISODE');
+  let attempts = 0;
+  await page.route(`**/works/${workId}/analysis-jobs`, route => {
+    attempts++;
+    return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ success: false,
+      message: '기존 분석을 재개해 주세요.', error: { code: 'ANALYSIS_ORDERED_JOB_RETRY_REQUIRED', status: 409 } }) });
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await chooseFile(page);
+  await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+  await expect(page.getByRole('alert')).toContainText('원고와 기존 분석 기록이 저장되어 있습니다');
+  await expect(page.getByRole('button', { name: '다시 시도', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '기존 분석 목록에서 확인', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`workId=${workId}&nav=analyses`));
+  expect(attempts).toBe(1);
+  expect(requests.uploads).toHaveLength(1);
+});

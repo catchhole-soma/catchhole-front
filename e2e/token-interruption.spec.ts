@@ -926,7 +926,7 @@ test('추출 전 회차 실패와 추출 후 비교 중단을 한 알림에 함�
   await expect.poll(() => summaryRequestCount).toBeGreaterThanOrEqual(2);
   await expect(quotaDialog).toContainText('1개 회차 분석이 사용량 부족으로 중단됐습니다.');
   await expect(quotaDialog).toContainText('7개 세계관 설정 비교도 중단됐지만');
-  await expect(quotaDialog).toContainText('검토 화면에서 남은 비교만 재개할 수 있습니다.');
+  await expect(quotaDialog).toContainText('분석 목록이나 검토 화면의 안내에 따라 이어서 처리해 주세요.');
 });
 
 test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도하지 않는다', async ({ page }) => {
