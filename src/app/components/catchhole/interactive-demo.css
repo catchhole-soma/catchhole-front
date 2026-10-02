@@ -4025,3 +4025,12 @@ textarea.interactive-demo-guided-target {
     transition: none;
   }
 }
+
+/* Shared production review surfaces inside the memory-only public walkthrough. */
+.interactive-demo-candidate-detail.review-clear-blue { display: block; height: auto; padding: 20px; background: var(--ch-canvas); }
+.public-review-badge { display: inline-flex; padding: 4px 8px; border-radius: 8px; background: color-mix(in srgb, var(--ch-warning) 12%, var(--ch-surface)); color: var(--ch-warning-ink); font-size: 11px; font-weight: 700; }
+.public-review-badge.is-saved { background: color-mix(in srgb, var(--ch-success) 12%, var(--ch-surface)); color: var(--ch-success-ink); }
+.interactive-demo-candidate-detail .review-cb-setting-card { background: var(--ch-surface); }
+@media (max-width: 520px) {
+  .interactive-demo-candidate-detail.review-clear-blue { padding: 12px; }
+}

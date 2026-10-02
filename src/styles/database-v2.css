@@ -755,11 +755,12 @@
 .database-v2 .world-setting-detail-note div { color: var(--ch-text-muted) !important; }
 
 .database-v2 .database-modal { color: var(--ch-text); }
-.database-v2 .database-modal strong { color: var(--ch-ink) !important; }
+.database-v2 .database-modal strong:not(:where(.analysis-guide-preview *)) { color: var(--ch-ink) !important; }
 .database-v2 .database-modal__section-title { color: var(--ch-ink) !important; }
-.database-v2 .database-modal span,
-.database-v2 .database-modal p,
-.database-v2 .database-modal label { color: var(--ch-text-muted) !important; }
+/* Native review previews own their semantic colors inside the guide dialog. */
+.database-v2 .database-modal span:not(:where(.analysis-guide-preview *)),
+.database-v2 .database-modal p:not(:where(.analysis-guide-preview *)),
+.database-v2 .database-modal label:not(:where(.analysis-guide-preview *)) { color: var(--ch-text-muted) !important; }
 .database-v2 .database-modal input,
 .database-v2 .database-modal select,
 .database-v2 .database-modal textarea {

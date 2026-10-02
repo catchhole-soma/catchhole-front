@@ -4,21 +4,18 @@ import {
   BarChart3,
   BookOpen,
   Check,
-  CheckCircle2,
   Clock3,
   FileText,
   Files,
-  Globe2,
   ListChecks,
   MessageSquare,
   Network,
   RefreshCcw,
-  Sparkles,
   Trash2,
   Upload,
-  Users,
 } from 'lucide-react';
 import { BrandLogo } from './ui-v2/BrandLogo';
+import { LandingReviewScene } from './LandingReviewScene';
 
 export type LandingDemoStep = {
   label: string;
@@ -160,53 +157,12 @@ function AnalysisScene() {
   );
 }
 
-function ReviewSummary() {
-  return <div className="landing-native-review-summary"><span><small>분석 대상</small><strong>6화 · 1개 회차</strong></span><span><small>전체 후보</small><strong>17개</strong></span><span><small>검토 완료</small><strong>0개</strong></span><span><small>검토 대기</small><strong>17개</strong></span><em>0/17 검토</em></div>;
-}
-
-function ReviewTabs({ active }: { active: 'character' | 'world' }) {
-  return <div className="landing-native-review-tabs"><span className={active === 'character' ? 'is-active' : ''}><Users />캐릭터 후보 <b>0/8</b></span><span className={active === 'world' ? 'is-active' : ''}><Globe2 />세계관 후보 <b>0/9</b></span></div>;
-}
-
-function ReviewSidebar({ mode }: { mode: 'character' | 'world' }) {
-  if (mode === 'character') {
-    return (
-      <aside className="landing-native-review-sidebar">
-        <small>검토 상태</small><div><button>전체</button><button className="is-active">검토 대기</button><button>확정</button><button>무시</button></div>
-        <small>캐릭터 연결 상태</small><div><button className="is-active">전체</button><button>연결됨</button><button>새 캐릭터 후보</button><button>연결 확인 필요</button></div>
-        <small>대상별 변경 묶음 · 생성 순</small>
-        <article className="is-selected"><b>기존</b><strong>에단 렌</strong><span>3개 설정</span><small>6화 근거 · 기존 캐릭터 연결됨</small></article>
-        <article><b>기존</b><strong>세라 바인</strong><span>2개 설정</span><small>6화 근거 · 기존 캐릭터 연결됨</small></article>
-      </aside>
-    );
-  }
-  return (
-    <aside className="landing-native-review-sidebar">
-      <small>검토 상태</small><div><button>전체</button><button className="is-active">검토 대기</button><button>확정</button><button>제외됨</button></div>
-      <small>세계관 분류</small><div><button className="is-active">전체 분류</button><button>장소</button><button>규칙·역사</button><button>몬스터</button></div>
-      <small>대상별 변경 묶음 · 생성 순</small>
-      <article className="is-selected"><b>장소</b><strong>거꾸로숲</strong><span>6개 설정</span><small>3화·5화·7화 근거</small></article>
-      <article><b>규칙·역사</b><strong>거꾸로숲의 규칙</strong><span>4개 설정</span><small>5화·7화 근거</small></article>
-    </aside>
-  );
-}
-
 function CandidateScene() {
-  return (
-    <div className="landing-native-screen">
-      <DemoHeader eyebrow="AI ANALYSIS" title="세계관 후보 확정" back />
-      <main className="landing-native-review-page"><ReviewSummary /><ReviewTabs active="world" /><div className="landing-native-review-layout"><ReviewSidebar mode="world" /><section className="landing-native-candidate-detail"><header><span><small>장소 · 거꾸로숲</small><strong>환경 설정 후보</strong></span><b>3개 설정</b></header><div className="landing-native-diff"><strong>하늘과 땅의 방향</strong><span>추가</span><div><small>− 기존값</small><p>없음</p></div><div><small>+ 제안값</small><p>해가 아래에서 뜨고 나무뿌리가 하늘을 향한다.</p></div><aside><Sparkles /> AI 비교 판단 · 기존 설정에 없어 새 속성으로 추가합니다.</aside><blockquote><FileText /> 1차 추출 원문 · “거꾸로숲에서는 해가 아래에서 떴다.”</blockquote></div><div className="landing-native-diff"><strong>귀환문의 조건</strong><span>추가</span><div><small>− 기존값</small><p>없음</p></div><div><small>+ 제안값</small><p>수호자의 이름이 지워지면 모든 귀환문이 닫힌다.</p></div></div></section></div></main>
-    </div>
-  );
+  return <LandingReviewScene kind="world" />;
 }
 
 function ConfirmScene() {
-  return (
-    <div className="landing-native-screen">
-      <DemoHeader eyebrow="AI ANALYSIS" title="캐릭터 후보 확정" back />
-      <main className="landing-native-review-page"><ReviewSummary /><ReviewTabs active="character" /><div className="landing-native-review-layout"><ReviewSidebar mode="character" /><section className="landing-native-candidate-detail"><header><span><small>에단 렌 · 직업</small><strong>AI 현재 설정 비교</strong></span><b>근거 명확도 98%</b></header><div className="landing-native-confirm-source"><FileText /><span><strong>1차 추출 원문 · 6화</strong><p>“전직을 확정합니다. 직업 변경: 짐꾼 → 재액 운반자.”</p></span></div><div className="landing-native-confirm-compare"><div><small>− 기존값</small><strong>짐꾼</strong></div><div><small>+ 제안값</small><strong>재액 운반자</strong></div></div><div className="landing-native-ai-judge"><Sparkles /> 재액 적재 Lv.2와 동료 구조 조건을 충족해 새로운 직업으로 변경되었습니다.</div><footer><button>무시</button><button>수정</button><button><CheckCircle2 /> 확정</button></footer></section></div></main>
-    </div>
-  );
+  return <LandingReviewScene kind="character" />;
 }
 
 function CharacterDetail() {

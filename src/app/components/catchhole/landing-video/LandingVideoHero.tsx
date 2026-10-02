@@ -2,6 +2,9 @@ import type { RefObject } from 'react';
 import { ArrowDown, ArrowRight, Check, CheckCircle2, Pause, Play, RotateCcw } from 'lucide-react';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { useLandingVideo } from './useLandingVideo';
+import worldImage from '../../../../assets/world-defaults/location.webp';
+import characterImage from '../../../../assets/landing/rien-fire-mage.webp';
+import magicImage from '../../../../assets/world-defaults/power-system.webp';
 
 type LandingVideoHeroProps = {
   scrollContainerRef: RefObject<HTMLDivElement>;
@@ -25,16 +28,16 @@ function PlaybackControl({ extracting, completed, playing, ended, onToggle }: {
 
 const settingGroups = [
   {
-    key: 'world', title: '세계관 설정',
+    key: 'world', title: '세계관 설정', image: worldImage,
     facts: [
       { name: '북쪽 성문', value: '첫 햇빛이 닿는 순간에만 열림' },
       { name: '소년이 운반하는 봉인함', value: '살아 있는 사람이 만지고 있을 때만 봉인 유지' },
       { name: '성벽 위의 구리 종', value: '성문 근처에서 마력이 모일 때마다 울림' },
     ],
   },
-  { key: 'character', title: '캐릭터 설정', facts: [{ name: '리엔', value: '마법사' }] },
+  { key: 'character', title: '캐릭터 설정', image: characterImage, facts: [{ name: '리엔', value: '마법사' }] },
   {
-    key: 'magic', title: '마법 설정',
+    key: 'magic', title: '마법 설정', image: magicImage,
     facts: [
       { name: '리엔의 불 마법', value: '마법으로 불을 피울 때마다 소중한 기억 하나를 잃음' },
       { name: '성 안의 금지 마법', value: '불 마법 사용 금지' },
@@ -83,7 +86,10 @@ export function LandingVideoHero({ scrollContainerRef, headerRef, onDemo, onSign
                 <section key={group.key} className={`lvh-setting lvh-setting--${group.key}`}
                   data-setting-group={group.key} aria-label={group.title} aria-hidden={!shown}>
                   <header className="lvh-setting__header">
-                    <h3>{group.title}</h3>
+                    <div className="lvh-setting__identity">
+                      <img className="lvh-setting__image" src={group.image} alt="" width={44} height={44} draggable={false} loading="lazy" />
+                      <h3>{group.title}<small>설정 {group.facts.length}개</small></h3>
+                    </div>
                     <span className="lvh-setting__status" data-confirmed={confirmed}>
                       {confirmed && <Check size={17} aria-hidden="true" />}{confirmed ? '확정' : '추출됨'}
                     </span>
@@ -96,7 +102,7 @@ export function LandingVideoHero({ scrollContainerRef, headerRef, onDemo, onSign
                   ))}
                   <button type="button" className="lvh-confirm" aria-label={`${group.title} ${confirmed ? '확정됨' : '확정'}`}
                     disabled={confirmed} tabIndex={interactive && !confirmed ? 0 : -1} onClick={() => confirm(index)}>
-                    {confirmed ? '확정됨' : '확정'}
+                    {confirmed && <Check size={17} aria-hidden="true" />}{confirmed ? `${group.facts.length}개 반영됨` : `설정 ${group.facts.length}개${group.facts.length > 1 ? ' 함께' : ''} 확정`}
                   </button>
                 </section>
               );

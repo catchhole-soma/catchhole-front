@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CatchHole · Clear Blue 구현 화면</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#202631;font:15px/1.8 system-ui,sans-serif}
+  main{max-width:1440px;margin:auto;padding:48px 28px}header{margin-bottom:36px}small{color:#005aaf;font-weight:700;letter-spacing:.08em}
+  h1{font-size:32px;letter-spacing:-.04em;margin:6px 0}p{color:#52627a;margin:6px 0}a{color:#005aaf}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}figure{margin:0;background:white;border:1px solid #dce3ef;border-radius:18px;overflow:hidden}
+  figcaption{padding:20px 24px;border-bottom:1px solid #e3e8f1}figcaption strong{display:block;font-size:19px}figcaption span{color:#52627a;font-size:13px}
+  figure img{display:block;width:100%;height:auto}.mobile img{width:min(100%,320px);margin:16px auto}.full{grid-column:1/-1}
+  @media(max-width:800px){main{padding:28px 16px}.grid{grid-template-columns:1fr}h1{font-size:26px}}
+</style>
+<main>
+  <header><small>CATCHHOLE · GH215</small><h1>Clear Blue로 바꾼 후보 검토 화면</h1>
+    <p>실제 React 컴포넌트의 캡처입니다. 검토 화면과 함께 랜딩, 공개 체험, 첫 업로드 안내를 같은 디자인으로 맞췄습니다. 원래 시안과 팀 공유 문서는 그대로 보존했습니다.</p>
+    <p>사진을 누르면 원래 크기로 볼 수 있습니다. <a href="review-clear-blue.md">43개 상태 대응표와 검증 내역</a> · <a href="https://github.com/catchhole-soma/catchhole-backend-java/issues/215">작업 이슈</a></p>
+  </header>
+  <div class="grid">
+    <figure class="full"><figcaption><strong>같은 회차의 수정·제외를 그대로 확정</strong><span>10월 3일 · 실제 로컬 Spring/H2 서버 · 한 후보 수정 → 다른 후보 제외 → 새로고침 → 남은 2개 확정, 전체 AI 재비교 없음</span></figcaption><a href="screens/gh215/manual-final-review-completed.png"><img src="screens/gh215/manual-final-review-completed.png" alt="수정한 소속이 저장되고 두 후보 반영과 한 후보 제외가 완료된 검토 화면"></a></figure>
+    <figure><figcaption><strong>확정 전에는 언제든 다시 선택</strong><span>후속 수정 · 목 API와 실제 컴포넌트 · 저장·새로고침 뒤에도 포함/별도 선택 유지, 비교 본문 높이 정렬</span></figcaption><a href="screens/gh215/world-reselect-before-confirm.png"><img src="screens/gh215/world-reselect-before-confirm.png" alt="초안을 저장한 뒤에도 포함과 별도 저장 선택지를 유지한 세계관 검토"></a></figure>
+    <figure><figcaption><strong>비교를 마치지 못했다면 무엇을 확인하나요?</strong><span>후속 수정 · case 09의 목 API 예시 · 먼저 내용과 선택지를 표시하고 필요한 경우에만 수정 폼 열기</span></figcaption><a href="screens/gh215/world-comparison-failure-choices.png"><img src="screens/gh215/world-comparison-failure-choices.png" alt="상위종 분류 기준의 비교 실패 안내와 그대로 추가 또는 내용과 저장 위치 수정 선택"></a></figure>
+    <figure><figcaption><strong>기존 범위에 포함되는 내용인가요?</strong><span>실제 로컬 Spring 서버 · 선택한 병합값을 저장하고 그룹 확정 후 현재값까지 확인</span></figcaption><a href="screens/gh215/world-scope-choice.png"><img src="screens/gh215/world-scope-choice.png" alt="세계관 범위 미정 후보의 기존값 비교와 포함 여부 선택"></a></figure>
+    <figure><figcaption><strong>기존 내용과 무엇이 달라지나요?</strong><span>10월 3일 조작 정리 · 연결 변경·수정·제외는 제목 옆에, 반복 확정 안내와 하단 연결 행은 제거 · 상태별 목 API</span></figcaption><a href="screens/gh215/character-diff-1280.png"><img src="screens/gh215/character-diff-1280.png" alt="캐릭터 병합 제안의 변경 전후 diff와 간결한 저장 방식 선택 및 제목 옆 연결 변경 버튼"></a></figure>
+    <figure><figcaption><strong>누구에 관한 내용인가요?</strong><span>실제 로컬 Spring 서버 · 저장된 인물 목록에서 선택하거나 새 인물로 연결</span></figcaption><a href="screens/gh215/character-target-choice.png"><img loading="lazy" src="screens/gh215/character-target-choice.png" alt="미상 인물의 설정을 기존 인물 또는 새로운 인물에 연결하는 선택 카드"></a></figure>
+    <figure><figcaption><strong>현재 설정인가요, 이력인가요?</strong><span>실제 로컬 Spring 서버 · 선택한 초안을 서버에 저장하고 새로고침 뒤 복원</span></figcaption><a href="screens/gh215/character-semantic-choice.png"><img loading="lazy" src="screens/gh215/character-semantic-choice.png" alt="캐릭터 시점 판단이 필요한 후보의 현재 반영과 이력 저장 선택"></a></figure>
+    <figure class="mobile"><figcaption><strong>좁은 화면의 대상 선택</strong><span>320px · 실제 로컬 서버의 등록된 인물</span></figcaption><a href="screens/gh215/character-mobile.png"><img loading="lazy" src="screens/gh215/character-mobile.png" alt="320픽셀 화면에서 세로로 배치한 인물 선택 카드"></a></figure>
+    <figure class="mobile"><figcaption><strong>좁은 화면의 내용 비교</strong><span>320px · 상태별 목 API · 기존값 다음에 반영값 표시</span></figcaption><a href="screens/gh215/character-diff-320.png"><img loading="lazy" src="screens/gh215/character-diff-320.png" alt="320픽셀 화면에서 위아래로 배치한 기존값과 새 값 비교"></a></figure>
+    <figure><figcaption><strong>랜딩의 캐릭터 검토 예시</strong><span>사진과 변경 전후를 실제 검토 컴포넌트로 표시 · 예시 버튼은 조작하지 않음</span></figcaption><a href="screens/gh215/landing-character-1280.png"><img loading="lazy" src="screens/gh215/landing-character-1280.png" alt="랜딩에서 보여 주는 새 캐릭터 검토 화면"></a></figure>
+    <figure><figcaption><strong>랜딩의 세계관 검토 예시</strong><span>신규 설정은 새 내용만 표시 · 기존값 없음 칸 제거</span></figcaption><a href="screens/gh215/landing-world-1280.png"><img loading="lazy" src="screens/gh215/landing-world-1280.png" alt="랜딩에서 보여 주는 새 세계관 검토 화면"></a></figure>
+    <figure><figcaption><strong>로그인 없이 체험하기</strong><span>공통 컴포넌트로 바뀐 캐릭터 비교 · 체험 상태는 메모리에만 유지</span></figcaption><a href="screens/gh215/demo-character-1280.png"><img loading="lazy" src="screens/gh215/demo-character-1280.png" alt="공개 체험의 실제 변경 전후 비교와 반영 방식 선택"></a></figure>
+    <figure><figcaption><strong>체험에서도 같은 화면에서 수정</strong><span>세계관 최종 내용을 바로 다듬고 묶음 확정 · 실제 작품에 저장하지 않음</span></figcaption><a href="screens/gh215/demo-world-inline-1280.png"><img loading="lazy" src="screens/gh215/demo-world-inline-1280.png" alt="공개 체험의 세계관 인라인 최종 내용 수정"></a></figure>
+    <figure><figcaption><strong>첫 업로드 · 모든 설정 직접 검토</strong><span>5단계 안내 중 2단계 · 실제 컴포넌트의 변경 전후 예시</span></figcaption><a href="screens/gh215/analysis-guide-diff-desktop.png"><img loading="lazy" src="screens/gh215/analysis-guide-diff-desktop.png" alt="첫 업로드 안내에서 보여 주는 직업 변경 비교"></a></figure>
+    <figure><figcaption><strong>첫 업로드 · 자동 반영 후 직접 검토</strong><span>5단계 안내 중 4단계 · 모호한 인물만 선택하는 과정을 읽기 전용으로 표시</span></figcaption><a href="screens/gh215/analysis-guide-exception-desktop.png"><img loading="lazy" src="screens/gh215/analysis-guide-exception-desktop.png" alt="첫 업로드 안내의 미상 인물 선택 예시"></a></figure>
+  </div>
+</main>
+</html>

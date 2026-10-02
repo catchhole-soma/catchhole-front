@@ -157,16 +157,16 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expectGuideCenteredOn(page, editWorldButton);
   await activate(editWorldButton, keyboard);
 
-  const worldEditor = page.getByRole('textbox', { name: '최종 설정값' });
+  const worldEditor = page.getByRole('textbox', { name: '최종 내용' });
   await expect(worldEditor).toBeFocused();
   await expectGuideCenteredOn(page, worldEditor);
-  await expect(page.getByRole('button', { name: '수정안 적용' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '이 내용으로 검토 완료' })).toBeEnabled();
   await worldEditor.fill(EDITED_WORLD_VALUE);
-  await expect(page.getByRole('button', { name: '수정안 적용' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '이 내용으로 검토 완료' })).toBeEnabled();
   await expect(page.getByText('추천 문장 사용', { exact: true })).toHaveCount(0);
   await checkLayout();
-  await activate(page.getByRole('button', { name: '수정안 적용' }), keyboard);
-  await expect(page.getByText('수정안이 적용되었습니다. 대상 그룹을 확정하면 세계관 설정에 반영됩니다.')).toBeVisible();
+  await activate(page.getByRole('button', { name: '이 내용으로 검토 완료' }), keyboard);
+  await expect(page.getByText('선택한 내용이 준비됐어요')).toBeVisible();
   await activate(page.getByRole('button', { name: '모두 확정' }), keyboard);
 
   await expect(page.getByRole('heading', { name: '징조', exact: true })).toBeVisible();
@@ -382,3 +382,43 @@ test('모바일에서도 전체 흐름이 가로로 넘치지 않고 다시 체�
   await expect.poll(() => demoPage.evaluate(element => element.scrollTop)).toBe(0);
   await expectNoHorizontalOverflow(page);
 });
+
+for (const width of [1280, 320]) {
+  test(`Clear Blue 체험은 실제 비교와 인라인 편집을 사용하고 원문·로컬 상태를 보존한다 (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 2400 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const requests: string[] = [];
+    page.on('request', request => { if (['fetch', 'xhr'].includes(request.resourceType())) requests.push(request.url()); });
+    await page.goto('/demo');
+    await page.getByRole('button', { name: 'AI 분석 시작', exact: true }).click();
+    await page.getByRole('button', { name: '설정 후보 검토', exact: true }).click();
+    const character = page.getByRole('region', { name: '직업 설정 후보', exact: true });
+    await expect(character.locator('.review-cb-heading__image img')).toBeVisible();
+    await expect(character.locator('.review-cb-comparison.is-change')).toBeVisible();
+    await character.getByRole('button', { name: /이력에만 저장/ }).click();
+    await expect(character.locator('.review-cb-comparison.is-neutral')).toBeVisible();
+    await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeDisabled();
+    await character.getByRole('button', { name: /현재 설정에 반영/ }).click();
+    await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeEnabled();
+    await expectNoHorizontalOverflow(page);
+    await character.screenshot({ path: `docs/screens/gh215/demo-character-${width}.png` });
+    await page.getByRole('button', { name: '1개 설정 모두 확정' }).click();
+    const world = page.locator('.world-setting-diff-row');
+    await expect(world.locator('.review-cb-heading__image img')).toBeVisible();
+    await expect(world.locator('.review-cb-comparison')).toHaveCount(0);
+    await expect(world.getByText('없음', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: '수정', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    const editor = page.getByRole('textbox', { name: '최종 내용', exact: true });
+    await editor.fill('');
+    await expect(page.getByRole('button', { name: '이 내용으로 검토 완료' })).toBeDisabled();
+    await editor.fill(EDITED_WORLD_VALUE);
+    await expectNoHorizontalOverflow(page);
+    await world.screenshot({ path: `docs/screens/gh215/demo-world-inline-${width}.png` });
+    await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
+    await expect(world.getByText(EDITED_WORLD_VALUE, { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
+    expect(requests).toEqual([]);
+    expect(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length }))).toEqual({ local: 0, session: 0 });
+  });
+}

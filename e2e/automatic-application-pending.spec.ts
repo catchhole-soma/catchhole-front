@@ -86,23 +86,23 @@ for (const width of [1280, 320]) {
       const rows = page.locator(candidateType === 'character' ? '.setting-candidate-detail' : '.world-setting-diff-row');
       const pendingRow = rows.first();
       const earlierRow = rows.nth(1);
-      const notice = pendingRow.locator('.automatic-application-notice');
-      await expect(notice).toContainText('이 회차의 설정을 자동으로 반영하고 있습니다.');
+      const notice = pendingRow.locator('.review-cb-notice').filter({ hasText: '분석이 진행 중이에요' });
+      await expect(notice).toContainText('분석이 끝나면 설정을 수정하고 확정할 수 있어요.');
       await expect(pendingRow.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
       await expect(pendingRow.getByRole('button', { name: /제외/, exact: false })).toBeDisabled();
       if (candidateType === 'character') {
-        await expect(pendingRow.getByRole('button', { name: '기존 캐릭터 변경' })).toBeDisabled();
-        await expect(pendingRow.getByRole('button', { name: '새 캐릭터로 등록' })).toBeDisabled();
-        await expect(pendingRow.getByRole('button', { name: /^AI 제안대로/ })).toBeDisabled();
+        await expect(pendingRow.getByRole('button', { name: '캐릭터 연결 변경' })).toHaveCount(0);
+        await expect(pendingRow.getByRole('button', { name: '새 캐릭터로 등록' })).toHaveCount(0);
+        await expect(pendingRow.locator('.review-cb-choice')).toHaveCount(0);
         await expect(page.getByRole('button', { name: '캐릭터 일괄 연결' })).toBeDisabled();
         await expect(page.getByRole('button', { name: /설정 모두 확정/ })).toBeDisabled();
       } else {
         await expect(page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true })).toBeDisabled();
         await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
       }
-      await expect(earlierRow.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeEnabled();
+      await expect(earlierRow.getByRole('button', { name: '수정', exact: true })).toBeEnabled();
       await expect(earlierRow.getByRole('button', { name: /제외/ })).toBeEnabled();
-      expect(await computedContrastRatio(notice.locator('p'), notice)).toBeGreaterThanOrEqual(4.5);
+      expect(await computedContrastRatio(notice.locator('.review-cb-notice__content'), notice)).toBeGreaterThanOrEqual(4.5);
       if (width === 320) {
         const back = page.getByRole('button', { name: candidateType === 'character' ? '후보 목록으로' : '대상 목록으로', exact: true });
         expect(await computedContrastRatio(back, back)).toBeGreaterThanOrEqual(4.5);
@@ -118,7 +118,10 @@ for (const width of [1280, 320]) {
       await expect(page.locator('.app-route-layer')).toHaveCSS('opacity', '1');
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
       await page.screenshot({ path: `docs/screens/gh180-auto-pending-${candidateType}-${width}.png`, fullPage: true });
-      await earlierRow.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
+      await earlierRow.getByRole('button', { name: '수정', exact: true }).click();
+      if (candidateType === 'character') {
+        await page.locator('.review-modal').getByRole('button', { name: /이력에만 저장/ }).click();
+      }
       await expect(page.locator('.review-modal').getByRole('button', { name: candidateType === 'character' ? '확인한 값 저장' : '수정안 적용' })).toBeEnabled();
       expect(mutations).toBe(0);
     });
@@ -233,12 +236,13 @@ test('자동 반영 대기의 개별 비교 실패·재비교 대기·연결 대
   await expectCounts(page, 0, 4);
   await expect(page.locator('.world-candidate-group-card')).toContainText('분석 중 3개');
   await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
-  await expect(page.locator('.automatic-application-notice')).toHaveCount(3);
+  await expect(page.locator('.review-cb-notice').filter({ hasText: '분석이 진행 중이에요' })).toHaveCount(3);
   await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: /^캐릭터 후보/ }).click();
   await expect(page.locator('.candidate-group-card')).toContainText('분석 중 1개');
   await expect(page.locator('.candidate-group-card')).not.toContainText('직접 확인');
-  await expect(page.getByRole('button', { name: '기존 캐릭터에 연결', exact: true })).toBeDisabled();
+  await expect(page.locator('.setting-candidate-detail .review-cb-choice')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeDisabled();
   expect(writes).toBe(0);
 });
 

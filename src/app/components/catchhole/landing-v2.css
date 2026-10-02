@@ -326,8 +326,8 @@
 .landing-demo-panel:nth-child(1) { --landing-demo-art: url('../../../assets/landing/catchhole-step-01-work-v1.webp'); }
 .landing-demo-panel:nth-child(2) { --landing-demo-art: url('../../../assets/landing/catchhole-step-02-upload-v1.webp'); }
 .landing-demo-panel:nth-child(3) { --landing-demo-art: url('../../../assets/landing/catchhole-step-03-analysis-v1.webp'); }
-.landing-demo-panel:nth-child(4) { --landing-demo-art: url('../../../assets/landing/catchhole-step-04-candidates-v1.webp'); }
-.landing-demo-panel:nth-child(5) { --landing-demo-art: url('../../../assets/landing/catchhole-step-05-compare-v1.webp'); }
+.landing-demo-panel:nth-child(4),
+.landing-demo-panel:nth-child(5) { --landing-demo-art: linear-gradient(150deg, #e7f2ff, #ffffff); }
 .landing-demo-panel:nth-child(6) { --landing-demo-art: url('../../../assets/landing/catchhole-step-06-database-v1.webp'); }
 .landing-demo-panel:nth-child(7) { --landing-demo-art: url('../../../assets/landing/catchhole-step-07-character-v1.webp'); }
 .landing-demo-panel:nth-child(8) { --landing-demo-art: url('../../../assets/landing/catchhole-step-08-history-v1.webp'); }
@@ -2815,4 +2815,53 @@
     padding-top: 28px;
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
+}
+
+/* GH215: live review components replace the old miniature screenshots. */
+.landing-review-scene { display: flex; flex-direction: column; padding: 14px; gap: 10px; }
+.landing-review-scene__heading { display: flex; flex-direction: column; gap: 5px; color: var(--ch-ink); }
+.landing-review-scene__heading small { color: var(--ch-primary-ink); font-size: 10px; }
+.landing-review-scene__heading strong { font-size: 18px; }
+.landing-review-scene .landing-native-review-tabs { flex-shrink: 0; margin: 0; }
+.landing-review-scene__viewport { display: flex; justify-content: center; align-items: flex-start; min-height: 0; flex: 1; overflow: hidden; }
+.landing-review-scene__source { flex-shrink: 0; }
+.landing-review-scene__confirm { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px; font-size: 13px; }
+.landing-review-scene__confirm button { border: 0; border-radius: 9px; padding: 14px 22px; background: var(--ch-primary); color: var(--ch-primary-contrast); font-size: 14px; font-weight: 700; }
+
+.landing-review-scene__source.setting-review-screen { display: block; height: auto; }
+@media (min-width: 1025px) {
+  .landing-demo-panel:nth-child(4).is-active .landing-demo-panel__trigger:focus-visible > *,
+  .landing-demo-panel:nth-child(5).is-active .landing-demo-panel__trigger:focus-visible > * { opacity: 0; }
+}
+
+/* Keep the noninteractive mobile preview readable: focus on the same title, diff and choices. */
+@media (max-width: 680px) {
+  .landing-review-scene .setting-candidate-detail { padding: 12px; }
+  .landing-review-scene .review-cb-heading__actions,
+  .landing-review-scene .review-cb-evidence,
+  .landing-review-scene .review-cb-comparison__tools,
+  .landing-review-scene .review-cb-choice__identity > span,
+  .landing-review-scene .review-cb-choice__preview,
+  .landing-review-scene .review-cb-choice__effect,
+  .landing-review-scene .review-cb-decisions__question > small { display: none; }
+  .landing-review-scene .review-cb-heading { gap: 8px; margin-bottom: 12px; }
+  .landing-review-scene .review-cb-heading__image { width: 48px; height: 48px; }
+  .landing-review-scene .review-cb-heading__title h3 { font-size: 17px; }
+  .landing-review-scene .review-cb-comparison { margin: 10px 0; }
+  .landing-review-scene .review-cb-comparison__toolbar,
+  .landing-review-scene .review-cb-comparison__label { padding: 8px 10px; }
+  .landing-review-scene .review-cb-comparison__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .landing-review-scene .review-cb-comparison__column + .review-cb-comparison__column { border-top: 0; border-left: 1px solid var(--ch-border); }
+  .landing-review-scene .review-cb-comparison__value { min-height: 50px; }
+  .landing-review-scene .review-cb-comparison__value p { padding: 10px; }
+  .landing-review-scene .review-cb-comparison__sign { width: 24px; padding-top: 10px; }
+  .landing-review-scene .review-cb-decisions { margin: 12px 0 0; }
+  .landing-review-scene .review-cb-decisions__question { margin-bottom: 8px; }
+  .landing-review-scene .review-cb-decisions__question h4 { font-size: 14px; }
+  .landing-review-scene .review-cb-choices.has-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .landing-review-scene .review-cb-choice { min-height: 46px; padding: 9px; }
+  .landing-review-scene .review-cb-choice__identity strong { font-size: 13px; }
+  .landing-review-scene__confirm { padding: 10px 0 0; }
+  .landing-review-scene__confirm > span { display: none; }
+  .landing-review-scene__confirm button { width: 100%; padding: 10px; }
 }

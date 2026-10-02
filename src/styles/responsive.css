@@ -387,8 +387,7 @@ body,
     cursor: pointer;
   }
 
-  .setting-candidate-fields,
-  .setting-candidate-match-actions {
+  .setting-candidate-fields {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 

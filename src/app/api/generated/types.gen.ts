@@ -1050,7 +1050,7 @@ export type SettingCandidateResponse = {
      */
     updatedAt?: string;
     /**
-     * 자동 분석 뒤 보류된 후보를 작가가 직접 수정·확정할 수 있는지 여부
+     * 자동 분석의 보류 후보 또는 완료된 수동 분석의 판단 보류·저장 초안을 직접 확인할 수 있는지 여부
      */
     manualReviewAvailable?: boolean;
     /**
@@ -1069,6 +1069,14 @@ export type SettingCandidateResponse = {
      * 현재 설정을 유지하고 원문 회차 이력에만 확정했는지 여부
      */
     historyOnly?: boolean;
+    /**
+     * 후보 내용 또는 캐릭터 연결을 사용자가 수정했는지 여부. 내용 검토 완료와 같지 않습니다.
+     */
+    userModified?: boolean;
+    /**
+     * 작가가 확인해 저장한 방식. 연결/내용 변경 시 해제되며, null이면 명시적 내용 판단을 저장하지 않았습니다.
+     */
+    reviewedApplicationMode?: 'APPLY_PROPOSAL' | 'HISTORY_ONLY';
 };
 
 /**
@@ -1162,6 +1170,10 @@ export type SettingCandidateConfirmRequest = {
      * 사용자가 수정한 값을 현재 실제 설정에 직접 검증하여 적용할지 여부. 누적 분석의 명시적 수정 확정에만 사용합니다.
      */
     applyEditedValue?: boolean;
+    /**
+     * 직접 저장한 검토 결정을 확정할 때 마지막으로 확인한 후보 updatedAt. 완료된 누적 분석의 사용자 수정 확정에 필요합니다.
+     */
+    expectedUpdatedAt?: string | null;
 };
 
 /**
@@ -1172,9 +1184,13 @@ export type SettingCandidateGroupConfirmDecision = {
     applicationMode: 'APPLY_PROPOSAL' | 'HISTORY_ONLY';
     baseSnapshotVersion?: number | null;
     /**
-     * 사용자가 수정한 값을 현재 실제 설정에 직접 검증하여 적용할지 여부. 누적 분석의 명시적 수정 확정에만 사용합니다.
+     * 사용자가 수정한 값을 현재 실제 설정에 직접 검증하여 적용할지 여부. 저장된 reviewedApplicationMode가 있는 초안에 사용합니다.
      */
     applyEditedValue?: boolean;
+    /**
+     * 직접 저장한 검토 결정을 확정할 때 마지막으로 확인한 후보 updatedAt. 수정 초안 확정과 acceptDisplayedResults 요청의 모든 후보에 필요합니다.
+     */
+    expectedUpdatedAt?: string | null;
 };
 
 /**
@@ -1184,6 +1200,10 @@ export type SettingCandidateGroupConfirmRequest = {
     batchId: string;
     comparisonRevision?: string;
     candidates: Array<SettingCandidateGroupConfirmDecision>;
+    /**
+     * 완료된 같은 회차의 수동 검토에서 표시된 최종 결과를 승인합니다. 모든 후보의 expectedUpdatedAt이 필요하며 수정·제외에 따른 그룹 내부 재비교는 수행하지 않습니다.
+     */
+    acceptDisplayedResults?: boolean;
 };
 
 /**
@@ -3890,6 +3910,14 @@ export type SettingCandidateUpdateRequest = {
      * 목록/검색 표시용 보정 값. null이면 표시용 값을 비웁니다.
      */
     attributeValue?: string | null;
+    /**
+     * 완료된 후보에 대해 직접 선택한 저장 방식. 수동 단일 회차의 내용 수정은 생략 시 이전 선택 또는 현재값 반영을 저장하며 AI 재비교하지 않습니다.
+     */
+    reviewedApplicationMode?: 'APPLY_PROPOSAL' | 'HISTORY_ONLY';
+    /**
+     * 직접 저장 방식을 선택할 때 화면에서 확인한 후보의 updatedAt. reviewedApplicationMode가 있거나 완료된 수동 단일 회차의 값을 수정하면 필수입니다.
+     */
+    expectedUpdatedAt?: string | null;
 };
 
 /**
