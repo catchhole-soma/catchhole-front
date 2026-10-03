@@ -6,7 +6,8 @@ type SettingCandidateType = 'character' | 'world';
 interface CandidateTabCount {
   directReview?: number;
   processing?: number;
-  total: number;
+  total?: number;
+  unavailable?: boolean;
 }
 
 interface SettingReviewTabsProps {
@@ -137,7 +138,9 @@ export function SettingReviewTabs({
             <Icon size={16} />
             <span>{tab.label}</span>
             <span className="setting-review-tabs__count">
-              {[
+              {tab.count.directReview == null && tab.count.total == null
+                ? tab.count.unavailable ? '확인 불가' : '불러오는 중'
+                : [
                 tab.count.directReview != null ? `직접 확인 ${tab.count.directReview}개` : `전체 ${tab.count.total}개`,
                 (tab.count.processing ?? 0) > 0 ? `분석 중 ${tab.count.processing}개` : null,
               ].filter(Boolean).join(' · ')}
@@ -147,4 +150,16 @@ export function SettingReviewTabs({
       })}
     </nav>
   );
+}
+
+/** Continue with the remaining review queue, regardless of the other tab's last filter. */
+export function OtherSettingReviewAction({ current }: { current: SettingCandidateType }) {
+  const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
+  const target = current === 'world' ? 'character' : 'world';
+  return <button type="button" className="review-cb-primary" onClick={() => setSearchParams(previous => {
+    const next = switchSettingCandidateType(previous, current, target);
+    for (const key of ['reviewStatus', 'page', 'group', 'candidate', 'matchStatus', 'worldCategory', 'operation']) next.delete(key);
+    return next;
+  }, { replace: true, state: location.state })}>{target === 'character' ? '캐릭터' : '세계관'} 후보 검토로</button>;
 }

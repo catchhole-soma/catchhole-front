@@ -6,9 +6,7 @@ import {
   Check,
   CheckCircle2,
   FileCheck2,
-  FileText,
   Globe2,
-  Info,
   LoaderCircle,
   MousePointer2,
   PencilLine,
@@ -18,7 +16,6 @@ import {
   Sparkles,
   ThumbsDown,
   Users,
-  X,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
@@ -44,6 +41,8 @@ import {
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
 import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
+import { PublicCharacterReviewExample, PublicWorldReviewExample } from './PublicReviewExamples';
+import type { CharacterFactApplicationMode } from './character/character-fact-comparison-policy';
 import './interactive-demo.css';
 
 type DemoScreen = 'analysis' | 'character-review' | 'complete' | 'database' | 'manuscript' | 'unsupported-review' | 'world-review';
@@ -448,7 +447,7 @@ function CandidateRail({ active, completed }: { active: CandidateKey; completed:
     <aside className="interactive-demo-candidate-rail" aria-label="데모 설정 후보">
       <div className="interactive-demo-review-filter">
         <small>검토 상태</small>
-        <span className="is-active">검토 대기</span><span>전체</span><span>확정</span><span>{characterActive ? '무시' : '제외됨'}</span>
+        <span className="is-active">미처리</span><span>전체</span><span>반영됨</span><span>제외됨</span>
       </div>
       {!characterActive && <div className="interactive-demo-review-filter"><small>세계관 분류</small><span className="is-active">전체</span><span>장소</span><span>규칙·역사</span></div>}
       <small className="interactive-demo-candidate-rail__order">{characterActive ? '↑ 회차 번호 · 생성 순' : '대상별 변경 묶음 · 생성 순'}</small>
@@ -482,9 +481,9 @@ function ReviewShell({ active, children, completed }: ReviewShellProps) {
       <div className="interactive-demo-review-summary">
         <span><small>분석 대상</small><strong>6화 · 1개 회차</strong></span>
         <span><small>전체 후보</small><strong>3개</strong></span>
-        <span><small>검토 완료</small><strong>{reviewed}개</strong></span>
-        <span><small>검토 대기</small><strong>{3 - reviewed}개</strong></span>
-        <span><small>확인 필요</small><strong>{completed.includes('unsupported') ? '0개' : '1개'}</strong></span>
+        <span><small>반영됨</small><strong>{completed.filter(item => item !== 'unsupported').length}개</strong></span>
+        <span><small>직접 확인</small><strong>{3 - reviewed}개</strong></span>
+        <span><small>제외됨</small><strong>{completed.includes('unsupported') ? '1개' : '0개'}</strong></span>
         <em>{reviewed}/3 검토</em>
       </div>
       <nav className="interactive-demo-review-tabs" aria-label="설정 후보 종류">
@@ -493,53 +492,26 @@ function ReviewShell({ active, children, completed }: ReviewShellProps) {
       </nav>
       <div className="interactive-demo-review-layout">
         <CandidateRail active={active} completed={completed} />
-        <main className="interactive-demo-candidate-detail">{children}</main>
+        <main className="interactive-demo-candidate-detail setting-review-screen review-clear-blue">{children}</main>
       </div>
     </section>
   );
 }
 
-function EvidenceCard({ children }: { children: ReactNode }) {
-  return (
-    <blockquote className="interactive-demo-evidence">
-      <FileText size={18} />
-      <div><strong>1차 추출 원문 · 6화</strong><p>{children}</p></div>
-    </blockquote>
-  );
-}
-
 function CharacterReviewScreen({ onApprove }: { onApprove: () => void }) {
-  const candidate = INTERACTIVE_DEMO_CANDIDATES.character;
-  return (
-    <ReviewShell active="character" completed={[]}>
-      <header className="interactive-demo-review-group-heading">
-        <div><small>같은 캐릭터 후보</small><h2>에단 렌 <span>1개 설정</span></h2></div>
-        <span>캐릭터 일괄 연결</span>
-        <p>같은 캐릭터에서 추출된 설정을 아래로 이어서 검토하고 남은 항목을 함께 확정합니다.</p>
-      </header>
-      <header className="interactive-demo-candidate-detail__title">
-        <div><small>프로필 · {candidate.settingName}</small><h2>{candidate.subject}</h2></div>
-        <div className="interactive-demo-candidate-row-actions">
-          <span className="interactive-demo-confidence">근거 명확도 98%</span>
-          <ActionButton size="compact" variant="secondary" disabled>수정</ActionButton>
-          <ActionButton size="compact" variant="secondary" disabled>제외</ActionButton>
-        </div>
-      </header>
-      <EvidenceCard>{candidate.evidence}</EvidenceCard>
-      <div className="interactive-demo-diff">
-        <div><small>− 기존값</small><strong>{candidate.beforeValue}</strong></div>
-        <ArrowRight size={20} />
-        <div className="is-proposed"><small>+ 제안값</small><strong>{candidate.proposedValue}</strong></div>
-      </div>
-      <div className="interactive-demo-ai-reasoning"><Sparkles size={17} /><p><strong>AI 비교 판단</strong>{candidate.reasoning}</p></div>
-      <footer className="interactive-demo-group-confirm">
-        <p><strong>에단 렌의 1개 설정을 함께 확정합니다.</strong><small>각 항목의 제안을 함께 처리합니다.</small></p>
-        <ActionButton className="interactive-demo-guided-target" data-demo-focus="true" icon={<CheckCircle2 size={16} />} onClick={onApprove}>
-          1개 설정 모두 확정
-        </ActionButton>
-      </footer>
-    </ReviewShell>
-  );
+  const [mode, setMode] = useState<CharacterFactApplicationMode>('APPLY_PROPOSAL');
+  return <ReviewShell active="character" completed={[]}>
+    <header className="interactive-demo-review-group-heading">
+      <div><small>캐릭터 후보 · 6화</small><h2>에단 렌 <span>1개 설정</span></h2></div>
+      <p>직업이 바뀐 원문과 반영할 내용을 비교해 보세요.</p>
+    </header>
+    <PublicCharacterReviewExample mode={mode} onModeChange={setMode} />
+    <footer className="interactive-demo-group-confirm">
+      <p><strong>에단 렌의 1개 설정을 함께 확정합니다.</strong><small>{mode === 'HISTORY_ONLY' ? '이 예시는 직업이 실제로 바뀐 장면입니다. 현재 설정에 반영을 선택해 주세요.' : '선택한 직업 변경을 작품 설정에 반영합니다.'}</small></p>
+      <ActionButton className="interactive-demo-guided-target" data-demo-focus="true" icon={<CheckCircle2 size={16} />}
+        disabled={mode !== 'APPLY_PROPOSAL'} onClick={onApprove}>1개 설정 모두 확정</ActionButton>
+    </footer>
+  </ReviewShell>;
 }
 
 type WorldReviewScreenProps = {
@@ -557,113 +529,51 @@ function WorldReviewScreen({ draft, editApplied, editing, onApplyEdit, onCancelE
   const focusEditor = useCallback((element: HTMLTextAreaElement | null) => {
     element?.focus({ preventScroll: true });
   }, []);
-  const candidate = INTERACTIVE_DEMO_CANDIDATES.world;
-  const validEdit = draft.trim().length > 0 && draft.trim() !== candidate.proposedValue;
-  return (
-    <ReviewShell active="world" completed={['character']}>
-      <header className="interactive-demo-review-group-heading">
-        <div><small>같은 세계관 대상</small><h2>장소 · 거꾸로숲 <span>1개 설정</span></h2></div>
-        <span>분류·대상 일괄 수정</span>
-        <p>같은 대상에서 추출된 설정을 항목별로 검토합니다.</p>
-      </header>
-      <header className="interactive-demo-candidate-detail__title">
-        <div><small>설정 항목</small><h2>{candidate.settingName}</h2></div>
-        <div className="interactive-demo-candidate-row-actions">
-          <span className="interactive-demo-operation">추가</span>
-          <span className="interactive-demo-evidence-badge">6화 근거</span>
-          <ActionButton
-            className={!editApplied && !editing ? 'interactive-demo-guided-target' : undefined}
-            data-demo-focus={!editApplied && !editing ? 'true' : undefined}
-            size="compact"
-            variant="secondary"
-            icon={<PencilLine size={13} />}
-            onClick={onEdit}
-          >
-            수정
-          </ActionButton>
-          <ActionButton size="compact" variant="secondary" disabled>제외</ActionButton>
-        </div>
-      </header>
-      <div className="interactive-demo-diff">
-        <div><small>− 기존값</small><strong>{candidate.beforeValue}</strong></div>
-        <ArrowRight size={20} />
-        <div className="is-proposed"><small>+ 제안값</small><strong>{editApplied ? draft : candidate.proposedValue}</strong></div>
-      </div>
-      <div className="interactive-demo-ai-reasoning is-warning"><Sparkles size={17} /><p><strong>AI 비교 판단</strong>{candidate.reasoning}</p></div>
-      <EvidenceCard>{candidate.evidence}</EvidenceCard>
-      {editApplied && <div className="interactive-demo-edit-applied" role="status"><CheckCircle2 size={15} /> 수정안이 적용되었습니다. 대상 그룹을 확정하면 세계관 설정에 반영됩니다.</div>}
-      <footer className="interactive-demo-group-confirm">
-        <p><strong>거꾸로숲의 1개 설정을 함께 확정합니다.</strong><small>{editApplied ? '수정한 최종 설정값을 반영합니다.' : '수정에서 최종 설정값을 먼저 정해 주세요.'}</small></p>
-        <ActionButton
-          className={editApplied ? 'interactive-demo-guided-target' : undefined}
-          data-demo-focus={editApplied ? 'true' : undefined}
-          icon={<Check size={15} />}
-          disabled={!editApplied}
-          onClick={onConfirm}
-        >
-          모두 확정
-        </ActionButton>
-      </footer>
-
-      {editing && (
-        <div className="interactive-demo-review-modal-layer" role="presentation">
-          <form className="interactive-demo-review-modal interactive-demo-guided-target" onSubmit={event => { event.preventDefault(); if (validEdit) onApplyEdit(); }}>
-            <header><strong>귀환문의 조건 반영 내용 수정</strong><button type="button" aria-label="닫기" onClick={onCancelEdit}><X size={18} /></button></header>
-            <div className="interactive-demo-review-modal__body">
-              <p>이 항목을 어디에 어떤 내용으로 반영할지 정해 주세요. 다른 항목은 바뀌지 않습니다.</p>
-              <div className="interactive-demo-review-modal__identity">
-                <label>분류<select aria-label="분류" defaultValue="LOCATION"><option value="LOCATION">장소</option><option value="WORLD_RULE_HISTORY">규칙·역사</option></select></label>
-                <label>대상<input aria-label="대상" defaultValue="거꾸로숲" /></label>
-              </div>
-              <div className="interactive-demo-review-modal__property">
-                <label>범위 (선택)<input aria-label="범위 (선택)" placeholder="예: 1층" /></label>
-                <label>설정명<input aria-label="설정명" defaultValue={candidate.settingName} /></label>
-              </div>
-              <div className="interactive-demo-review-modal__value">
-                <label>반영 방식<select aria-label="반영 방식" defaultValue="ADD"><option value="ADD">추가</option><option value="UPDATE">수정</option><option value="EXCLUDE">제외</option></select></label>
-                <label htmlFor="interactive-demo-world-value">최종 설정값<textarea ref={focusEditor} id="interactive-demo-world-value" data-demo-focus="true" value={draft} onChange={event => onChange(event.target.value)} rows={4} /></label>
-              </div>
-              {!validEdit && <div className="interactive-demo-review-modal__hint">AI 제안과 다른 최종 설정값을 입력해 주세요.</div>}
-            </div>
-            <footer><ActionButton type="button" variant="secondary" onClick={onCancelEdit}>취소</ActionButton><ActionButton type="submit" disabled={!validEdit}>수정안 적용</ActionButton></footer>
-          </form>
-        </div>
-      )}
-    </ReviewShell>
-  );
+  const validEdit = draft.trim().length > 0;
+  return <ReviewShell active="world" completed={['character']}>
+    <header className="interactive-demo-review-group-heading">
+      <div><small>세계관 후보 · 6화</small><h2>거꾸로숲 <span>1개 설정</span></h2></div>
+      <p>새 설정은 추출된 내용과 원문을 보고 최종 내용을 정합니다.</p>
+    </header>
+    <PublicWorldReviewExample value={editApplied ? draft : undefined} saved={editApplied} actions={<>
+      <ActionButton className={!editApplied && !editing ? 'interactive-demo-guided-target' : undefined}
+        data-demo-focus={!editApplied && !editing ? 'true' : undefined} size="compact" variant="secondary"
+        icon={<PencilLine size={13} />} onClick={onEdit}>수정</ActionButton>
+      <ActionButton size="compact" variant="secondary" disabled>제외</ActionButton>
+    </>}>
+      {editing && <form className="review-cb-inline-editor" onSubmit={event => { event.preventDefault(); if (validEdit) onApplyEdit(); }}>
+        <strong>반영할 내용을 정해 주세요</strong>
+        <p className="review-cb-help">거꾸로숲에 새 설정으로 추가합니다. 이번 체험에서는 최종 내용만 다듬어 보세요.</p>
+        <label htmlFor="interactive-demo-world-value">최종 내용<textarea ref={focusEditor} id="interactive-demo-world-value" data-demo-focus="true"
+          value={draft} onChange={event => onChange(event.target.value)} rows={4} /></label>
+        {!validEdit && <div role="alert">반영할 내용을 입력해 주세요.</div>}
+        <div className="review-inline-actions"><ActionButton type="button" variant="secondary" onClick={onCancelEdit}>취소</ActionButton>
+          <ActionButton type="submit" disabled={!validEdit}>이 내용으로 검토 완료</ActionButton></div>
+        <p className="review-cb-help">선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.</p>
+      </form>}
+    </PublicWorldReviewExample>
+    <footer className="interactive-demo-group-confirm">
+      <p><strong>거꾸로숲의 1개 설정을 함께 확정합니다.</strong><small>{editApplied ? '준비된 최종 설정값을 반영합니다.' : '원문을 확인하고 최종 내용을 정해 주세요.'}</small></p>
+      <ActionButton className={editApplied ? 'interactive-demo-guided-target' : undefined} data-demo-focus={editApplied ? 'true' : undefined}
+        icon={<Check size={15} />} disabled={!editApplied || editing} onClick={onConfirm}>모두 확정</ActionButton>
+    </footer>
+  </ReviewShell>;
 }
 
 function UnsupportedReviewScreen({ onExclude }: { onExclude: () => void }) {
-  const candidate = INTERACTIVE_DEMO_CANDIDATES.unsupported;
-  return (
-    <ReviewShell active="unsupported" completed={['character', 'world']}>
-      <header className="interactive-demo-review-group-heading">
-        <div><small>같은 세계관 대상</small><h2>규칙·역사 · 검은 달 <span>1개 설정</span></h2></div>
-        <span>분류·대상 일괄 수정</span>
-        <p>같은 대상에서 추출된 설정을 항목별로 검토합니다.</p>
-      </header>
-      <header className="interactive-demo-candidate-detail__title">
-        <div><small>설정 항목</small><h2>{candidate.settingName}</h2></div>
-        <div className="interactive-demo-candidate-row-actions">
-          <span className="interactive-demo-operation">추가</span>
-          <span className="interactive-demo-evidence-badge">6화 근거</span>
-          <ActionButton size="compact" variant="secondary" disabled>수정</ActionButton>
-          <ActionButton className="interactive-demo-action--danger interactive-demo-guided-target" data-demo-focus="true" size="compact" variant="secondary" onClick={onExclude}>제외</ActionButton>
-        </div>
-      </header>
-      <div className="interactive-demo-diff">
-        <div><small>− 기존값</small><strong>{candidate.beforeValue}</strong></div>
-        <ArrowRight size={20} />
-        <div className="is-proposed"><small>+ 제안값</small><strong>{candidate.proposedValue}</strong></div>
-      </div>
-      <div className="interactive-demo-ai-reasoning is-danger"><Info size={17} /><p><strong>AI 비교 판단</strong>{candidate.reasoning}</p></div>
-      <EvidenceCard>{candidate.evidence}</EvidenceCard>
-      <footer className="interactive-demo-group-confirm">
-        <p><strong>검은 달의 1개 설정을 검토 중입니다.</strong><small>근거가 부족한 항목은 제외하면 세계관 설정에 저장되지 않습니다.</small></p>
-        <ActionButton disabled>모두 확정</ActionButton>
-      </footer>
-    </ReviewShell>
-  );
+  return <ReviewShell active="unsupported" completed={['character', 'world']}>
+    <header className="interactive-demo-review-group-heading">
+      <div><small>세계관 후보 · 6화</small><h2>검은 달 <span>1개 설정</span></h2></div>
+      <p>추출된 설명을 뒷받침할 원문이 있는지 확인해 보세요.</p>
+    </header>
+    <PublicWorldReviewExample kind="unsupported" actions={<>
+      <ActionButton size="compact" variant="secondary" disabled>수정</ActionButton>
+      <ActionButton className="interactive-demo-action--danger interactive-demo-guided-target" data-demo-focus="true"
+        size="compact" variant="secondary" onClick={onExclude}>제외</ActionButton>
+    </>} />
+    <footer className="interactive-demo-group-confirm"><p><strong>검은 달의 1개 설정을 검토 중입니다.</strong>
+      <small>근거가 부족한 항목은 제외하면 세계관 설정에 저장되지 않습니다.</small></p><ActionButton disabled>모두 확정</ActionButton></footer>
+  </ReviewShell>;
 }
 
 type DatabaseScreenProps = {
@@ -1107,10 +1017,10 @@ export default function SInteractiveDemo() {
     coachmark = { current: 3, title: '명확한 캐릭터 설정을 확정하세요', description: '실제 캐릭터 후보 화면과 같은 ‘1개 설정 모두 확정’을 눌러 직업 변경을 반영해 보세요.' };
   } else if (state.screen === 'world-review') {
     coachmark = state.worldEditing
-      ? { current: 4, title: '최종 설정값을 직접 다듬으세요', description: '실제 수정 모달에서 최종 설정값을 바꾼 뒤 ‘수정안 적용’을 눌러 주세요.' }
+      ? { current: 4, title: '최종 설정값을 직접 다듬으세요', description: '원문에 맞게 내용을 다듬거나 그대로 확인한 뒤 ‘이 내용으로 검토 완료’를 눌러 주세요.' }
       : state.worldEditApplied
         ? { current: 4, title: '수정한 세계관 대상을 확정하세요', description: '수정안이 적용됐습니다. 실제 화면의 ‘모두 확정’을 눌러 세계관 설정에 반영해 보세요.' }
-        : { current: 4, title: '세계관 설정 후보를 수정하세요', description: '실제 후보 항목의 ‘수정’을 눌러 귀환문 규칙의 범위와 시점을 직접 다듬어 보세요.' };
+        : { current: 4, title: '세계관 설정 후보를 수정하세요', description: '사진 옆 제목과 추출된 내용을 확인하고 ‘수정’을 눌러 최종 내용을 같은 화면에서 다듬어 보세요.' };
   } else if (state.screen === 'unsupported-review') {
     coachmark = { current: 5, title: '근거가 부족한 후보는 제외하세요', description: '원문에는 검은 달만 등장합니다. 실제 후보 항목의 ‘제외’를 눌러 세계관 설정에 저장하지 않습니다.' };
   } else if (state.screen === 'database') {

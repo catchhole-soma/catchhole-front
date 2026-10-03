@@ -79,60 +79,59 @@ for (const width of [1280, 320]) {
     await page.evaluate(() => localStorage.setItem('accessToken', 'isolated-scope-review-test'));
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&group=${encodeURIComponent(groupKey)}`);
     const row = page.locator('.world-setting-diff-row').first();
-    const scopeNotice = row.locator('.world-setting-scope-review');
-    await expect(scopeNotice).toContainText('범위 비교 필요');
-    await expect(row.locator('.world-setting-diff-row__header > strong')).toHaveText('외곽 지역 › 조명 환경');
-    const compared = row.locator('.world-setting-key-diff-values > div').first();
-    const source = row.locator('.world-setting-key-diff-values > div').last();
-    await expect(compared).toContainText('비교한 기존 설정');
-    await expect(compared).toContainText('1층 › 광원');
-    await expect(source).toContainText('원문에서 추출한 설정');
-    await expect(source).toContainText('외곽 지역 › 조명 환경');
+    const scopeChoice = row.getByRole('region', { name: '어느 범위에 반영할까요?' });
+    await expect(row.locator('.review-cb-heading')).toContainText('범위 비교 필요');
+    await expect(row.locator('.review-cb-heading__title h3')).toHaveText('조명 환경');
+    await expect(row.locator('.review-cb-heading__subtitle')).toContainText('범위: 외곽 지역');
+    const compared = row.locator('.review-cb-comparison__column.is-before').first();
+    const source = row.locator('.review-cb-comparison__column.is-after').first();
+    await expect(compared).toContainText('기존 설정');
+    await expect(compared).toContainText('범위: 1층 · 광원');
+    await expect(source).toContainText('이번 원고에서 찾은 내용');
+    await expect(source).toContainText('범위: 외곽 지역 · 조명 환경');
     await expect(source).toContainText('수정들이 적어지며 어둠이 드리운다.');
     await expect(source).not.toContainText('AI가 합친 비교값');
+    await row.locator('.review-cb-evidence summary').click();
     await expect(row.locator('.world-setting-comparison-reason')).toContainText('같은 장소인지 확실하지 않아');
     const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
     await expect(confirm).toBeDisabled();
-    for (const state of ['is-review', 'is-saved']) {
-      const notice = page.locator(`.world-setting-manual-notice.${state}`).first();
+    const pendingNotice = page.locator('.world-setting-diff-row').last().locator('.review-cb-notice.is-warning');
+    const savedNotice = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"] .review-cb-notice.is-success`);
+    for (const notice of [pendingNotice, savedNotice]) {
       await expect(notice).toBeVisible();
       expect(await computedContrastRatio(notice.locator('strong'), notice)).toBeGreaterThanOrEqual(4.5);
-      expect(await computedContrastRatio(notice.locator('p'), notice)).toBeGreaterThanOrEqual(4.5);
+      expect(await computedContrastRatio(notice.locator('.review-cb-notice__content'), notice)).toBeGreaterThanOrEqual(4.5);
       const background = await notice.evaluate(element => getComputedStyle(element).backgroundColor);
       expect(background).not.toBe('rgb(15, 15, 19)');
     }
-    expect(await computedContrastRatio(scopeNotice.locator('strong'), scopeNotice)).toBeGreaterThanOrEqual(4.5);
+    expect(await computedContrastRatio(scopeChoice.locator('h4'), row)).toBeGreaterThanOrEqual(4.5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await row.scrollIntoViewIfNeeded();
     if (process.env.GH180_REVIEW_SCREENSHOTS === '1') {
       await page.screenshot({ path: `docs/screens/gh180-world-scope-review-${width}.png` });
-      await page.locator('.world-setting-manual-notice.is-saved').screenshot({
-        path: `docs/screens/gh180-world-saved-notice-${width}.png`,
-      });
-      await page.locator('.world-setting-manual-notice.is-review').screenshot({
-        path: `docs/screens/gh180-world-review-notice-${width}.png`,
-      });
+      await savedNotice.screenshot({ path: `docs/screens/gh180-world-saved-notice-${width}.png` });
+      await pendingNotice.screenshot({ path: `docs/screens/gh180-world-review-notice-${width}.png` });
     }
-    await row.getByRole('button', { name: '직접 확인해서 반영' }).click();
-    const modal = page.locator('.review-modal');
-    await expect(modal).toContainText('외곽 지역 › 조명 환경');
-    await expect(modal).toContainText('1층 › 광원');
-    await expect(modal.getByLabel('범위 (선택)')).toHaveValue('외곽 지역');
-    await expect(modal.getByLabel('설정명', { exact: true })).toHaveValue('조명 환경');
-    await modal.getByLabel('반영 방식').selectOption('UPDATE');
-    await modal.getByLabel('범위 (선택)').fill('1층');
-    await modal.getByLabel('설정명', { exact: true }).fill('광원');
-    await modal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+    await scopeChoice.getByRole('button', { name: /기존 범위에 합치기/ }).click();
+    await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(() => savedBody).toEqual({ batchId, candidates: [{ candidateId, category: 'LOCATION',
-      subjectName: '미궁', scopeName: '1층', settingName: '광원', value: '수정들이 적어지며 어둠이 드리운다.', operation: 'UPDATE' }] });
-    await expect(scopeNotice).toBeHidden();
+      subjectName: '미궁', scopeName: '1층', settingName: '광원', value: '벽의 수정들이 주변을 밝힌다.\n수정들이 적어지며 어둠이 드리운다.', operation: 'MERGE' }] });
+    await expect(scopeChoice).toBeVisible();
+    await expect(scopeChoice.getByRole('button', { name: /기존 범위에 합치기/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(row.locator('.review-cb-heading__title h3')).toHaveText('광원');
+    await expect(row.locator('.review-cb-comparison__column.is-after')).toContainText('벽의 수정들이 주변을 밝힌다.');
+    await expect(row.locator('.review-cb-comparison__column.is-after')).toContainText('수정들이 적어지며 어둠이 드리운다.');
     // 다른 실패 후보가 아직 직접 확인되지 않았으므로 그룹 전체는 계속 잠긴다.
     await expect(confirm).toBeDisabled();
-    await expect(row.locator('.world-setting-manual-notice.is-saved')).toBeVisible();
-    await page.locator('.world-setting-diff-row').last().getByRole('button', { name: '직접 확인해서 반영' }).click();
-    await modal.getByLabel('범위 (선택)').fill('북쪽 통로');
-    await modal.getByLabel('설정명', { exact: true }).fill('통행 상태');
-    await modal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+    await expect(row.locator('.review-cb-notice.is-success')).toBeVisible();
+    const failedRow = page.locator(`.world-setting-diff-row[data-candidate-id="${failedId}"]`);
+    await failedRow.getByRole('button', { name: '최종 내용 직접 다듬기', exact: true }).click();
+    await failedRow.getByRole('textbox', { name: '반영할 범위', exact: true }).fill('북쪽 통로');
+    await failedRow.getByRole('textbox', { name: '반영할 설정명', exact: true }).fill('통행 상태');
+    await failedRow.getByRole('combobox', { name: '저장 방법', exact: true }).selectOption('ADD');
+    await failedRow.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
+    await expect.poll(() => savedBody).toEqual({ batchId, candidates: [{ candidateId: failedId, category: 'LOCATION',
+      subjectName: '미궁', scopeName: '북쪽 통로', settingName: '통행 상태', value: '통로를 지나갈 수 있다.', operation: 'ADD' }] });
     await expect(confirm).toBeEnabled();
     expect(confirmRequests).toBe(0);
     expect(recompareRequests).toBe(0);

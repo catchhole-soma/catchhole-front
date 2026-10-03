@@ -108,8 +108,8 @@ for (const width of [1280, 320]) {
     await page.screenshot({ path: `docs/screens/gh180-direct-review-${width}.png`, fullPage: true });
     await page.locator('.candidate-group-card').click();
     await expect(page.getByText('특징', { exact: true })).toBeVisible();
-    await expect(page.locator('.setting-candidate-detail').first()).toContainText('검토 필요');
-    await expect(page.locator('.setting-candidate-detail').first()).toContainText('자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.');
+    await expect(page.locator('.setting-candidate-detail').first()).toContainText('확인 필요');
+    await expect(page.locator('.setting-candidate-detail').first()).toContainText('자동 비교를 마치지 못했어요');
     await expect(page.locator('.setting-candidate-detail').first()).not.toContainText('비교 실패');
     await expect(page.getByText('attribute', { exact: true })).toHaveCount(0);
     await expect(page.getByText('끝까지 포기하지 않는다.', { exact: true }).first()).toBeVisible();
@@ -127,7 +127,7 @@ for (const width of [1280, 320]) {
     await expectProgress(page, { confirmed: 120, dismissed: 5, direct: 4 });
     await expect(page.locator('.world-candidate-group-card')).toContainText('직접 확인 1개');
     await page.locator('.world-candidate-group-card').click();
-    await expect(page.locator('.world-setting-diff-row__header')).toContainText('같은 대상인지 확인');
+    await expect(page.locator('.world-setting-diff-row .review-cb-heading')).toContainText('같은 대상인지 확인');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     expect(mutations).toBe(0);
   });

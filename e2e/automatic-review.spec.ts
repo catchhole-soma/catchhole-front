@@ -73,6 +73,7 @@ for (const grouped of [false, true]) {
       attributeName: 'profile.eye_color', attributeValue: '갈색', valueType: 'STRING',
       evidenceSpans: [{ quote: '수아의 눈동자는 짙은 갈색으로 빛났다.' }],
       reviewStatus: 'PENDING_REVIEW', comparisonStatus: 'FAILED', manualReviewAvailable: true,
+      userModified: false, reviewedApplicationMode: null as string | null, updatedAt: '2026-10-02T01:00:00',
     };
     let matchRequests = 0;
     let confirmRequests = 0;
@@ -83,7 +84,7 @@ for (const grouped of [false, true]) {
       if (path.endsWith('/auth/me')) return success(route, member);
       if (path.endsWith('/characters')) return success(route, pageOf([{ id: nextCharacterId, name: '다른 수아' }]));
       if (path === `${listPath}/${candidateId}` && request.method() === 'PATCH') {
-        candidate = { ...candidate, comparisonStatus: 'RECOMPARISON_REQUIRED' };
+        candidate = { ...candidate, comparisonStatus: 'RECOMPARISON_REQUIRED', userModified: true, reviewedApplicationMode: request.postDataJSON().reviewedApplicationMode };
         return success(route, candidate);
       }
       if (path.endsWith(grouped ? '/group-character-match' : `/${candidateId}/character-match`)) {
@@ -92,7 +93,7 @@ for (const grouped of [false, true]) {
           body: JSON.stringify({ success: false, message: '캐릭터 연결을 저장하지 못했습니다.',
             error: { code: 'SETTING_CANDIDATE_CHARACTER_MATCH_FAILED', status: 409, details: [] } }) });
         expect(request.postDataJSON().matchedCharacterId).toBe(nextCharacterId);
-        candidate = { ...candidate, matchedCharacterId: nextCharacterId, comparisonStatus: 'PENDING' };
+        candidate = { ...candidate, matchedCharacterId: nextCharacterId, comparisonStatus: 'PENDING', reviewedApplicationMode: null };
         return success(route, grouped ? { groupKey: '수아', candidates: [candidate] } : candidate);
       }
       if (path.endsWith('/group-confirm')) {
@@ -110,14 +111,12 @@ for (const grouped of [false, true]) {
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
     const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
     const saveManualReview = async () => {
-      await page.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
-      await page.getByRole('dialog', { name: '설정 직접 확인' })
-        .getByRole('button', { name: '확인한 값 저장' }).click();
+      await page.getByRole('button', { name: /현재 설정에 반영/ }).click();
       await expect(confirm).toBeEnabled();
     };
     await saveManualReview();
     const openMatch = async () => {
-      await page.getByRole('button', { name: grouped ? '캐릭터 일괄 연결' : '기존 캐릭터 변경', exact: true }).click();
+      await page.getByRole('button', { name: grouped ? '캐릭터 일괄 연결' : '캐릭터 연결 변경', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: grouped ? '캐릭터 일괄 연결' : '캐릭터 연결 확인' });
       await dialog.getByRole('button', { name: /다른 수아/ }).click();
       await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
@@ -131,9 +130,9 @@ for (const grouped of [false, true]) {
     const matchedDialog = await openMatch();
     await expect(matchedDialog).toHaveCount(0);
     await expect(confirm).toBeDisabled();
-    await expect(page.getByText('확인한 값을 저장했습니다.', { exact: false })).toHaveCount(0);
+    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toHaveCount(0);
     candidate = { ...candidate, comparisonStatus: 'FAILED' };
-    await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /현재 설정에 반영/ })).toBeEnabled();
     await expect(confirm).toBeDisabled();
     expect(confirmRequests).toBe(0);
     await saveManualReview();
@@ -192,7 +191,7 @@ for (const scenario of [
       evidenceSpans: [{ quote: '수아의 눈동자는 짙은 갈색으로 빛났다.' }], confidence: 0.9,
       reviewStatus: 'PENDING_REVIEW', comparisonStatus: scenario.status,
       automaticReviewHoldReason: scenario.status === 'FAILED' ? 'SUBJECT_RESOLUTION_FAILED' : 'COMPARISON_INPUT_TOO_LARGE',
-      manualReviewAvailable: true,
+      manualReviewAvailable: true, userModified: false, reviewedApplicationMode: null as string | null, updatedAt: '2026-10-02T01:00:00',
     };
     let updateBody: unknown;
     let confirmBody: unknown;
@@ -206,7 +205,7 @@ for (const scenario of [
       if (pathname === `${listPath}/${candidateId}` && request.method() === 'PATCH') {
         updateBody = request.postDataJSON();
         candidate = { ...candidate, attributeValue: (updateBody as { attributeValue: string }).attributeValue,
-          comparisonStatus: 'RECOMPARISON_REQUIRED' };
+          comparisonStatus: 'RECOMPARISON_REQUIRED', userModified: true, reviewedApplicationMode: request.postDataJSON().reviewedApplicationMode };
         return success(route, candidate);
       }
       if (pathname === `${listPath}/group-confirm`) {
@@ -231,34 +230,27 @@ for (const scenario of [
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent('수아')}`);
     const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
-    await expect(page.getByText(scenario.status === 'FAILED' ? '연결할 대상 확인' : '비교할 내용 확인', { exact: true })).toBeVisible();
-    if (scenario.status === 'FAILED') {
-      const detail = page.locator('.setting-candidate-detail');
-      await expect(detail).toContainText('검토 필요');
-      await expect(detail).toContainText(scenario.invalid ? '자동 비교를 마치지 못했습니다.' : '자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.');
+    const detail = page.locator('.setting-candidate-detail');
+    await detail.locator('.review-cb-evidence summary').click();
+    await expect(detail).toContainText(scenario.status === 'FAILED' ? '연결할 대상 확인' : '비교할 내용 확인');
+    if (scenario.status === 'FAILED' && !scenario.invalid) {
+      await expect(detail).toContainText('확인 필요');
+      await expect(detail).toContainText('자동 비교를 마치지 못했어요');
       await expect(detail).not.toContainText('비교 실패');
       expect(candidate.comparisonStatus).toBe('FAILED');
     }
     await expect(confirm).toBeDisabled();
-    const notice = page.locator('.character-direct-review-notice');
-    await expect(notice).toBeVisible();
-    // The notice must remain readable outside the broad legacy override selector.
-    const standalone = await notice.evaluateHandle(element => {
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.id = 'isolated-character-notice';
-      document.body.appendChild(clone);
-      return clone;
-    });
-    const isolated = page.locator('#isolated-character-notice');
-    expect(await computedContrastRatio(isolated)).toBeGreaterThanOrEqual(4.5);
-    await standalone.evaluate(element => element.remove());
+    const notice = detail.locator('.review-cb-notice').last();
+    if (scenario.status === 'FAILED') {
+      await expect(notice).toBeVisible();
+      expect(await computedContrastRatio(notice.locator('.review-cb-notice__content'), notice)).toBeGreaterThanOrEqual(4.5);
+    }
     if (scenario.invalid) {
-      const detail = page.locator('.setting-candidate-detail');
-      await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeDisabled();
+      await expect(detail.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
       await expect(detail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
-      await expect(detail.getByRole('status')).toContainText('이 항목은 지금 직접 수정할 수 없습니다.');
-      await expect(detail.getByRole('status')).toContainText('이 후보를 제외하면 나머지 설정을 검토할 수 있습니다.');
-      await expect(detail.getByRole('alert')).toContainText('설정값의 형식을 확인해야 합니다.');
+      await expect(detail.getByRole('alert')).toContainText('지금은 이 항목을 수정할 수 없습니다.');
+      await expect(detail.getByRole('alert')).toContainText('제외하면 나머지 설정을 검토할 수 있어요.');
+      await expect(detail.getByRole('alert')).toContainText('설정값의 형식을 확인해 주세요');
       await expect(detail).not.toContainText('입력해 주세요.');
       await expect(detail).not.toContainText('눌러 값을 저장해 주세요.');
       expect(comparisonRequests).toBe(0);
@@ -267,19 +259,20 @@ for (const scenario of [
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
       return;
     }
-    await page.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
+    await page.getByRole('button', { name: '수정', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '설정 직접 확인' });
     await expect(dialog.getByRole('note')).toContainText('이미 완료된 다른 회차의 분석 결과를 바꾸지 않습니다.');
     await dialog.getByLabel('설정값', { exact: true }).fill(scenario.value);
+    await dialog.getByRole('button', { name: /현재 설정에 반영/ }).click();
     await dialog.getByRole('button', { name: '확인한 값 저장' }).click();
-    await expect.poll(() => updateBody).toEqual({ attributeName: 'profile.eye_color', attributeValue: scenario.value });
-    await expect(page.getByText('확인한 값을 저장했습니다.', { exact: false })).toBeVisible();
+    await expect.poll(() => updateBody).toEqual({ attributeName: 'profile.eye_color', attributeValue: scenario.value, reviewedApplicationMode: 'APPLY_PROPOSAL', expectedUpdatedAt: '2026-10-02T01:00:00' });
+    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toBeVisible();
     await expect(confirm).toBeEnabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await confirm.click();
     await expect.poll(() => confirmBody).toEqual({ batchId, candidates: [{ candidateId,
-      applicationMode: 'APPLY_PROPOSAL', baseSnapshotVersion: null, applyEditedValue: true }] });
+      applicationMode: 'APPLY_PROPOSAL', baseSnapshotVersion: null, applyEditedValue: true, expectedUpdatedAt: '2026-10-02T01:00:00' }] });
     expect(comparisonRequests).toBe(0);
   });
 }
@@ -336,13 +329,13 @@ for (const { status, width } of [
     const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
     await expect(confirm).toBeDisabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: '직접 확인해서 반영', exact: true }).click();
+    await page.locator('.world-setting-diff-row').getByRole('button', { name: '수정', exact: true }).click();
     const dialog = page.locator('.review-modal');
     await dialog.getByLabel('반영 방식').selectOption('ADD');
     await dialog.getByRole('button', { name: '수정안 적용', exact: true }).click();
     await expect.poll(() => draftBody).toEqual({ batchId, candidates: [{ candidateId,
       operation: 'ADD', category: 'RACE', subjectName: '설인', settingName: '서식지', value: '북부 설원' }] });
-    await expect(page.getByText('직접 확인한 내용을 저장했습니다.', { exact: false })).toBeVisible();
+    await expect(page.getByText('선택한 내용이 준비됐어요', { exact: false })).toBeVisible();
     expect(candidate.comparisonStatus).toBe(status);
     await expect(confirm).toBeEnabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();

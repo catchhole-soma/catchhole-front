@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Check,
   ChevronLeft,
-  FileText,
   Globe2,
   Loader2,
   Pencil,
@@ -68,7 +67,12 @@ import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
-import { SettingReviewTabs } from './SettingReviewTabs';
+import { OtherSettingReviewAction, SettingReviewTabs } from './SettingReviewTabs';
+import { ReviewSettingHeading, ReviewValueComparison, ReviewEvidence, ReviewNotice, ReviewInlineValue } from '../review-ui/ReviewPrimitives';
+import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
+import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
+import { WorldReviewDecisionPanel } from './WorldReviewDecisionPanel';
+import { compatibleWorldReviewSources, combineWorldReviewValues } from './worldReviewDecisions';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 type WorldSuggestedOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
@@ -122,20 +126,6 @@ const OPERATION_OPTIONS: Array<{ value: WorldOperation; label: string }> = [
   { value: 'MERGE', label: OPERATION_META.MERGE.label },
   { value: 'EXCLUDE', label: OPERATION_META.EXCLUDE.label },
 ];
-
-const REVIEW_META: Record<ReviewStatus, { label: string; color: string }> = {
-  PENDING_REVIEW: { label: '직접 확인', color: C.warning },
-  CONFIRMED: { label: '반영됨', color: C.success },
-  DISMISSED: { label: '제외됨', color: C.t3 },
-};
-
-const COMPARISON_META: Record<ComparisonStatus, { label: string; color: string }> = {
-  PENDING: { label: '비교 대기', color: C.t3 },
-  PROCESSING: { label: '비교 중', color: C.primary },
-  COMPLETED: { label: '비교 완료', color: C.success },
-  FAILED: { label: '비교 실패', color: C.danger },
-  RECOMPARISON_REQUIRED: { label: '재비교 필요', color: C.warning },
-};
 
 const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
@@ -263,6 +253,7 @@ function operationSummary(group: WorldSettingCandidateGroupResponse): string {
   const reviewableFailures = (group.candidates ?? []).filter(candidate => (
     isReviewableComparisonFailure(candidate) && candidate.suggestedOperation !== 'REVIEW_REQUIRED'
   )).length;
+  if (allPendingDraftsPrepared(group)) return '검토한 내용을 모두 확정해 주세요';
   const entries = [
     [group.addCount, '추가'],
     [group.updateCount, '수정'],
@@ -395,7 +386,7 @@ function userFacingComparisonReason(
     }
     return isReviewableComparisonFailure(candidate)
       ? REVIEWABLE_COMPARISON_FAILURE_MESSAGE
-      : '설정 비교를 완료하지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.';
+      : '설정 비교를 완료하지 못했습니다. 아래의 다시 비교로 이어서 처리해 주세요.';
   }
   if (candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED') {
     return '추출된 내용이 어느 세계관 대상에 속하는지 연결하지 못했습니다. 원문과 대상 이름을 확인한 뒤 반영할 대상을 정해 주세요.';
@@ -420,17 +411,19 @@ function userFacingComparisonReason(
 function Badge({
   label,
   color,
+  neutral = false,
   textColor = reviewToneInk(color),
 }: {
   label: string;
   color: string;
+  neutral?: boolean;
   textColor?: string;
 }) {
   return (
     <span className="review-badge" style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
-      padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
-      background: `${color}18`, color: textColor, fontSize: 10, fontWeight: 750,
+      padding: '2px 8px', borderRadius: 12, border: neutral ? '1px solid var(--ch-border-strong)' : `1px solid ${color}55`,
+      background: neutral ? 'var(--ch-canvas)' : `${color}18`, color: neutral ? 'var(--ch-text)' : textColor, fontSize: 10, fontWeight: 750,
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -565,6 +558,13 @@ function FilterGroup<T extends string>({
   );
 }
 
+function allPendingDraftsPrepared(group: WorldSettingCandidateGroupResponse): boolean {
+  const pending = (group.candidates ?? []).filter(candidate => candidate.reviewStatus === 'PENDING_REVIEW');
+  return pending.length > 0 && pending.every(candidate => candidate.userModified && candidate.finalOperation
+    && candidateDecision(candidate) !== null && !isAutomaticApplicationPending(candidate) && !isQuotaInterruptedCandidate(candidate)
+    && (candidate.comparisonStatus === 'COMPLETED' || candidate.manualReviewAvailable === true));
+}
+
 function groupFailureKind(group: WorldSettingCandidateGroupResponse) {
   const failedCandidates = group.candidates?.filter(candidate => (
     candidate.comparisonStatus === 'FAILED'
@@ -583,6 +583,7 @@ function groupFailureKind(group: WorldSettingCandidateGroupResponse) {
 
 function groupStatusMeta(group: WorldSettingCandidateGroupResponse): StatusPresentation {
   if (group.candidates?.some(isAutomaticApplicationPending)) return { label: '분석 중', color: C.primary };
+  if (allPendingDraftsPrepared(group)) return { label: '확정 준비됨', color: C.success };
   const failureKind = groupFailureKind(group);
   switch (group.status) {
     case 'PENDING': return { label: '비교 대기', color: C.t3 };
@@ -646,7 +647,7 @@ function WorldCandidateGroupCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
         <Badge label={episodeEvidenceLabel(group.evidenceEpisodeNos)} color={C.t2} />
         <Badge label={status.label} color={status.color} textColor={status.textColor} />
-        {directReviewCount > 0 && <Badge label={`직접 확인 ${directReviewCount}개`} color={C.warning} />}
+        {directReviewCount > 0 && <Badge label={`${allPendingDraftsPrepared(group) ? '확정 대기' : '직접 확인'} ${directReviewCount}개`} color={C.warning} />}
         {processingCount > 0 && <Badge label={`분석 중 ${processingCount}개`} color={C.primary} />}
       </div>
     </button>
@@ -659,6 +660,9 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
   canResumeTokenInterrupted: boolean;
 }) {
   if (group.status === 'READY' || group.candidates?.some(isAutomaticApplicationPending)) return null;
+  if (allPendingDraftsPrepared(group)) return <div style={{ margin: '0 22px 16px' }}><ReviewNotice tone="success" title="확정할 내용이 준비됐어요">
+    검토한 내용을 아래의 모두 확정으로 작품에 반영해 주세요.
+  </ReviewNotice></div>;
   const status = groupStatusMeta(group);
   const failureKind = groupFailureKind(group);
   const manualReviewAvailable = group.candidates?.some(candidate => candidate.manualReviewAvailable);
@@ -694,7 +698,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
           : `${quotaInstruction} 그 외 실패 항목은 하단의 다시 비교로 처리해 주세요.`
         : manualReviewAvailable
           ? '다시 비교해야 하는 항목이 남아 있습니다. 직접 확인해서 반영할 수 있는 항목은 원문과 내용을 확인해 주세요.'
-          : '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.'
+          : '기존 세계관과 비교 결과를 만들지 못했습니다. 아래의 다시 비교로 이어서 처리해 주세요.'
     : manualReviewAvailable
       ? '자동으로 확정하지 못한 설정이 남았습니다. 원문을 확인하고 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.'
       : group.status === 'RECOMPARISON_REQUIRED'
@@ -719,18 +723,10 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
   );
 }
 
-function WorldKeyDiffRow({
-  candidate,
-  decision,
-  conflictResolved,
-  recompared,
-  includeRootMoveNotice,
-  activeComparisonJobCount,
-  canResumeTokenInterrupted,
-  disabled,
-  onExclude,
-  onEdit,
-  onUseMatchedScope,
+export function WorldKeyDiffRow({
+  candidate, decision, conflictResolved, recompared, includeRootMoveNotice,
+  activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
+  linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -742,322 +738,146 @@ function WorldKeyDiffRow({
   disabled: boolean;
   onExclude: () => void;
   onEdit: () => void;
-  onUseMatchedScope?: () => void;
+  onDecide: (draft: DecisionDraft, candidateIds: string[]) => void;
+  linkedCandidateIds: string[];
+  sourceValue?: string;
+  onAnalysis: () => void;
+  originalHoldReason?: WorldSettingCandidateResponse['automaticReviewHoldReason'];
+  onDirtyChange?: (candidateId: string, dirty: boolean) => void;
+  inlineDirty?: boolean;
 }) {
-  const automaticPending = isAutomaticApplicationPending(candidate);
-  const reviewableFailure = isReviewableComparisonFailure(candidate);
+  const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
+  const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
+  const pending = candidate.reviewStatus === 'PENDING_REVIEW';
+  const automaticPending = pending && isAutomaticApplicationPending(candidate);
+  const saved = Boolean(candidate.userModified && candidate.finalOperation);
   const operation = decision?.operation ?? candidate.suggestedOperation;
-  const scopeUnresolved = isScopeUnresolvedCandidate(candidate);
-  const scopeMismatch = isScopeMismatchCandidate(candidate);
-  const scopeNeedsReview = scopeUnresolved || scopeMismatch;
-  const subjectUnresolved = candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED';
-  const reviewRequired = candidate.suggestedOperation === 'REVIEW_REQUIRED';
-  const batchLimitExceeded = isBatchLimitExceededCandidate(candidate);
-  const consolidationStatus = candidate.consolidationStatus ?? 'SINGLE';
-  const hasConflict = consolidationStatus === 'CONFLICT';
-  const sourceValues = (candidate.extractedValue ?? '').split('\n').map(value => value.trim()).filter(Boolean);
-  const operationMeta = operation
-    ? batchLimitExceeded
-      ? { label: '출력 한도 검토', color: C.warning }
-      : OPERATION_META[operation]
-    : null;
-  const comparison: StatusPresentation = candidate.comparisonStatus === 'FAILED'
-    && candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
-    ? { label: '사용량 부족으로 중단', color: C.warning, textColor: 'var(--ch-warning-ink)' }
-    : reviewableFailure ? { label: '검토 필요', color: C.warning }
-      : COMPARISON_META[candidate.comparisonStatus ?? 'PENDING'];
+  const reviewableFailure = isReviewableComparisonFailure(candidate);
+  const hasConflict = candidate.consolidationStatus === 'CONFLICT' && !conflictResolved && pending;
+  const holdLabel = pending && !saved ? automaticReviewHoldLabel(candidate) : null;
+  const needsReview = pending && !saved && (candidate.suggestedOperation === 'REVIEW_REQUIRED' || candidate.manualReviewAvailable || reviewableFailure || hasConflict || Boolean(holdLabel));
+  const scopeNeedsReview = pending && needsScopeReview(candidate);
+  const scopeName = scopeNeedsReview ? candidate.scopeName : decision
+    ? decision.scopeName ?? null : candidate.proposedScopeName ?? candidate.scopeName;
+  const keyName = (scopeNeedsReview ? candidate.settingName : decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName) || '설정명 없음';
+  const subjectName = decision?.subjectName ?? candidate.targetSubjectName ?? candidate.subjectName;
+  const category = decision?.category ?? candidate.category;
+  const propertyPath = scopeName ? `${scopeName} › ${keyName}` : keyName;
+  const proposedValue = scopeNeedsReview ? candidate.extractedValue : decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
   const evidence = evidenceSpans(candidate.evidenceSpans);
-  const scopeName = scopeNeedsReview ? candidate.scopeName ?? null : decision
-    ? decision.scopeName ?? null
-    : candidate.proposedScopeName ?? candidate.scopeName ?? null;
-  const keyName = (scopeNeedsReview ? candidate.settingName : decision?.settingName ?? candidate.proposedSettingName ?? candidate.settingName) ?? '설정명 없음';
-  const propertyPath = scopeName
-    ? `${scopeName} › ${keyName}`
-    : keyName;
-  const proposedValue = decision?.value ?? candidate.proposedValue ?? candidate.extractedValue;
-  const proposedTone = (reviewRequired || reviewableFailure) && !candidate.finalOperation
-    ? C.warning
-    : hasConflict && !conflictResolved
-    ? C.warning
-    : operation === 'EXCLUDE' ? C.primary : C.success;
-  const proposedLabel = scopeNeedsReview
-    ? '원문에서 추출한 설정'
-    : (reviewRequired || reviewableFailure) && !candidate.finalOperation
-    ? '확인할 추출값'
-    : hasConflict && !conflictResolved
-    ? '확인이 필요한 추출값'
-    : operation === 'EXCLUDE' ? '추출된 값' : '+ 제안값';
-  const preservesExistingValue = operation === 'EXCLUDE' || reviewRequired || reviewableFailure;
-  const beforeTone = reviewRequired || reviewableFailure ? C.warning : preservesExistingValue ? C.t2 : C.danger;
-  const beforeLabel = scopeNeedsReview
-    ? '비교한 기존 설정'
-    : preservesExistingValue
-    ? (candidate.beforeValue ? '비교한 기존값' : '비교 대상')
-    : '− 기존값';
-  const beforeValue = subjectUnresolved ? '비교 대상 미정' : candidate.beforeValue
-    || (candidate.comparisonStatus === 'FAILED' ? '비교를 완료하지 못했습니다.'
-      : batchLimitExceeded ? '기존 설정과 자동 비교하지 않음'
-      : reviewRequired ? '비교한 기존값 정보 없음'
-      : operation === 'EXCLUDE' ? '비교 대상 없음' : '없음');
-  const comparisonReason = userFacingComparisonReason(
-    candidate,
-    includeRootMoveNotice,
-    activeComparisonJobCount,
-    canResumeTokenInterrupted,
-  );
-  const comparisonReasonTitle = reviewableFailure ? '검토 안내' : candidate.comparisonStatus === 'FAILED'
-    ? '비교 실패 안내' : reviewRequired ? '검토 안내' : 'AI 비교 판단';
-  const selectedComparisonPaths = candidate.comparisonStatus === 'FAILED' || reviewRequired
-    ? lastComparisonSelectedPaths(candidate) : [];
-  const matchedPropertyPath = candidate.matchedPropertyName
-    ? candidate.matchedScopeName
-      ? `${candidate.matchedScopeName} › ${candidate.matchedPropertyName}`
-      : candidate.matchedPropertyName
-    : null;
-  const canEdit = candidate.reviewStatus === 'PENDING_REVIEW' && !automaticPending
-    && !isQuotaInterruptedCandidate(candidate)
+  const canEdit = pending && !automaticPending && !isQuotaInterruptedCandidate(candidate)
     && (candidate.comparisonStatus === 'COMPLETED' || candidate.manualReviewAvailable === true)
     && candidateEditDecision(candidate) !== null;
-  const canExclude = candidate.reviewStatus === 'PENDING_REVIEW';
-  const holdLabel = automaticReviewHoldLabel(candidate);
-  return (
-    <section className="world-setting-diff-row" style={{
-      padding: '18px 22px', borderTop: `1px solid ${C.border}`,
-      opacity: candidate.reviewStatus === 'PENDING_REVIEW' ? 1 : 0.68,
-    }}>
-      <div className="world-setting-diff-row__header" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <strong style={{ color: REVIEW_TEXT.ink, fontSize: 14, overflowWrap: 'anywhere' }}>{propertyPath}</strong>
-        <div className="world-setting-diff-row__spacer" style={{ flex: 1 }} />
-        {!automaticPending && operationMeta && <Badge label={operation === 'REVIEW_REQUIRED' ? reviewReasonLabel(candidate) : operationMeta.label} color={operationMeta.color} />}
-        {holdLabel && <Badge label={holdLabel} color={C.warning} />}
-        {consolidationStatus === 'MERGED' && <Badge label="여러 내용 정리됨" color={C.primary} />}
-        {!automaticPending && hasConflict && (
-          <Badge label={conflictResolved ? '내용 확인 완료' : '내용 확인 필요'} color={conflictResolved ? C.success : C.warning} />
-        )}
-        <Badge
-          label={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화 근거`}
-          color={C.t2}
-        />
-        {automaticPending ? <Badge label="분석 중" color={C.primary} /> : candidate.comparisonStatus !== 'COMPLETED' && (
-          <Badge label={comparison.label} color={comparison.color} textColor={comparison.textColor} />
-        )}
-        {recompared && <Badge label="재비교됨" color={C.success} />}
-        {candidate.reviewStatus && candidate.reviewStatus !== 'PENDING_REVIEW' && (
-          <Badge label={isCandidateComparisonProcessing(candidate) ? '분석 중' : REVIEW_META[candidate.reviewStatus].label} color={REVIEW_META[candidate.reviewStatus].color} />
-        )}
-        <button type="button" disabled={disabled || !canEdit} onClick={onEdit} style={{
-          minHeight: 28, padding: '0 8px', borderRadius: 6, border: `1px solid ${C.border}`,
-          background: 'transparent', color: disabled || !canEdit ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
-          fontFamily: 'inherit', fontSize: 10, cursor: disabled || !canEdit ? 'not-allowed' : 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-        }}><Pencil size={10} /> {candidate.manualReviewAvailable ? '직접 확인해서 반영' : '수정'}</button>
-        {canExclude && (
-          <button type="button" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`} style={{
-            minHeight: 28, padding: '0 9px', borderRadius: 6, border: `1px solid ${C.danger}66`,
-            background: `${C.danger}0D`, color: disabled || automaticPending ? REVIEW_TEXT.muted : REVIEW_TEXT.danger,
-            fontFamily: 'inherit', fontSize: 10, fontWeight: 750,
-            cursor: disabled || automaticPending ? 'not-allowed' : 'pointer',
-          }}>제외</button>
-        )}
+  const initialDraft = candidateEditDecision(candidate);
+  const originalTargetChanged = saved && (decision?.subjectName !== resolvedTargetSubjectName(candidate) || decision?.category !== candidate.category);
+  const before = originalTargetChanged || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
+    || choiceCandidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
+    || choiceCandidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED' ? null : candidate.beforeValue;
+  const comparisonReason = userFacingComparisonReason(candidate, includeRootMoveNotice,
+    activeComparisonJobCount, canResumeTokenInterrupted);
+  const reasonInEvidence = !includeRootMoveNotice && (scopeNeedsReview || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED');
+  const selectedComparisonPaths = candidate.comparisonStatus === 'FAILED' || needsReview
+    ? lastComparisonSelectedPaths(candidate) : [];
+  const resolved = !pending || saved;
+  const executionLabel = !saved && !reviewableFailure && candidate.comparisonStatus !== 'COMPLETED'
+    ? candidate.comparisonStatus === 'FAILED' ? isQuotaInterruptedCandidate(candidate) ? '사용량 부족으로 중단' : '비교 실패'
+      : candidate.comparisonStatus === 'RECOMPARISON_REQUIRED' ? '재비교 필요'
+      : candidate.comparisonStatus === 'PROCESSING' ? '비교 중' : '비교 대기'
+    : null;
+  const stateLabel = !pending ? candidate.reviewStatus === 'DISMISSED' ? '제외됨' : candidate.historyOnly ? '이력 저장됨' : '반영됨'
+    : automaticPending ? '분석 중' : executionLabel ?? (saved ? inlineDirty ? '수정 중' : '검토 완료' : hasConflict && !isBatchLimitExceededCandidate(candidate) ? '내용 확인 필요' : needsReview ? holdLabel ?? reviewReasonLabel(candidate)
+    : operation === 'ADD' ? '새 설정' : operation === 'EXCLUDE' ? before ? '중복·반영 안 함' : '반영 안 함'
+    : OPERATION_META[operation ?? 'REVIEW_REQUIRED'].label);
+  const excluded = candidate.reviewStatus === 'DISMISSED' || operation === 'EXCLUDE';
+  const stateTone = inlineDirty ? C.warning : resolved ? C.success : automaticPending ? C.primary
+    : executionLabel ? candidate.comparisonStatus === 'FAILED' && !isQuotaInterruptedCandidate(candidate) ? C.danger : C.warning
+    : needsReview ? C.warning : C.success;
+  const finalSavedValue = pending && saved && Boolean(candidate.finalValue);
+  const neutral = operation === 'EXCLUDE' || candidate.historyOnly || candidate.reviewStatus === 'DISMISSED';
+  const actualChange = !needsReview && !neutral && !automaticPending
+    && candidate.comparisonStatus === 'COMPLETED' && (operation === 'MERGE' || operation === 'UPDATE')
+    && Boolean(before && proposedValue && before !== proposedValue);
+  const noticeTitle = reviewableFailure ? '자동 비교를 마치지 못했어요' : undefined;
+  return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id}>
+    <ReviewSettingHeading title={keyName}
+      subtitle={[category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ')}
+      image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
+      badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
+      episode={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화에서 찾은 설정`}
+      actions={<>
+        <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
+        {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
+      </>} />
+
+    {automaticPending && <ReviewNotice tone="info" title="분석이 진행 중이에요"
+      action={<button type="button" className="review-cb-secondary" onClick={onAnalysis}>분석 진행 보기</button>}>
+      분석이 끝나면 설정을 수정하고 확정할 수 있어요.
+    </ReviewNotice>}
+    {candidate.historyOnly && <ReviewNotice tone="info">현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.</ReviewNotice>}
+    {saved && pending && !inlineDirty && <ReviewNotice tone="success" title="선택한 내용이 준비됐어요">모두 확정 전까지 아래 선택지를 다시 고르거나 수정할 수 있어요.</ReviewNotice>}
+
+    {before ? <ReviewValueComparison before={before} after={proposedValue}
+      mode={needsReview ? 'ambiguous' : actualChange ? 'change' : 'neutral'}
+      beforeLabel={neutral ? '유지되는 기존 설정' : '기존 설정'}
+      afterLabel={needsReview ? '이번 원고에서 찾은 내용' : finalSavedValue ? '선택한 최종 내용' : operation === 'EXCLUDE' ? '이번에 추출된 내용' : '반영할 내용'}
+      beforeMeta={candidate.matchedPropertyName ? <span>{candidate.matchedScopeName && <span>범위: {candidate.matchedScopeName} · </span>}{candidate.matchedPropertyName}</span> : undefined}
+      afterMeta={<span>{scopeNeedsReview ? (candidate.scopeName ? `범위: ${candidate.scopeName}` : '범위가 정해지지 않음') : scopeName ? `범위: ${scopeName}` : '공통 설정'} · {keyName}</span>}
+    /> : <ReviewInlineValue label={needsReview || candidate.comparisonStatus !== 'COMPLETED'
+      ? '이번 원고에서 찾은 내용' : neutral ? '추출된 내용' : '반영할 내용'} tone={!needsReview && !neutral && candidate.comparisonStatus === 'COMPLETED' ? 'new' : 'neutral'}>
+      {proposedValue || candidate.extractedValue || '설정값이 없습니다.'}
+    </ReviewInlineValue>}
+
+    {operation === 'EXCLUDE' && pending && <ReviewNotice tone="info" title={before ? "기존 내용은 그대로 유지해요" : "이 설정은 추가하지 않아요"}>이 항목은 모두 확정 시 추가하지 않고 제외됩니다. 내용이 다르면 수정에서 반영할 내용을 정할 수 있어요.</ReviewNotice>}
+    {candidate.consolidationStatus === 'MERGED' && <p className="review-cb-help">여러 원문에서 추출된 내용을 하나로 정리했습니다.</p>}
+
+    {(needsReview || saved || operation === 'MERGE' || operation === 'UPDATE') && canEdit && initialDraft
+      && <WorldReviewDecisionPanel candidate={choiceCandidate}
+        key={JSON.stringify([candidate.finalOperation, candidate.finalCategory, candidate.finalSubjectName,
+          candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue])}
+        initialDraft={initialDraft} disabled={disabled || automaticPending} sharedChoiceAvailable={linkedCandidateIds.length > 0}
+        sourceValue={sourceValue}
+        onDirtyChange={reportDirty}
+        onSave={draft => onDecide(draft, linkedCandidateIds.length ? linkedCandidateIds : [candidate.id!])} />}
+
+    {comparisonReason && !reasonInEvidence && !automaticPending && (!resolved || includeRootMoveNotice) && <div className="world-setting-comparison-reason">
+      <ReviewNotice tone={needsReview ? 'warning' : 'info'} title={noticeTitle ?? (needsReview ? '확인이 필요한 이유' : '반영 안내')}>
+        {comparisonReason}
+      </ReviewNotice>
+    </div>}
+    {!canEdit && pending && !automaticPending && candidate.analysisMode === 'ORDERED_PROVISIONAL' && candidate.comparisonStatus !== 'COMPLETED'
+      && <button type="button" className="review-cb-secondary" onClick={onAnalysis}>분석 상태 확인</button>}
+
+    <ReviewEvidence summary={`원문 근거 확인${candidate.sourceEpisodeNo == null ? '' : ` · ${candidate.sourceEpisodeNo}화`}`}>
+      {reasonInEvidence && comparisonReason && !resolved && <div className="world-setting-comparison-reason"><strong>확인이 필요한 이유</strong><p>{comparisonReason}</p></div>}
+      {saved && pending && <div><strong>처음 추출한 설정</strong><p>{candidate.subjectName} · {candidate.scopeName ? `범위: ${candidate.scopeName} · ` : ''}{candidate.settingName}</p><p>{candidate.extractedValue}</p></div>}
+      <div className="world-setting-evidence-card">
+        {evidence.length ? evidence.map((span, index) => <blockquote className="theme-evidence__quote" key={`${span.startOffset ?? index}-${span.quote}`}>
+          {evidence.length > 1 && <strong>근거 {index + 1}</strong>}<p>“{span.quote}”</p>
+        </blockquote>) : <p>표시할 원문 근거가 없습니다.</p>}
       </div>
-
-      {automaticPending && <AutomaticApplicationNotice />}
-      {candidate.historyOnly && <p role="status" className="world-setting-manual-notice is-saved">현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.</p>}
-
-      {candidate.manualReviewAvailable && !isQuotaInterruptedCandidate(candidate) && !scopeMismatch && !automaticPending && (
-        <div role="status" className={`world-setting-manual-notice ${candidate.userModified && candidate.finalOperation ? 'is-saved' : 'is-review'}`}>
-          {candidate.userModified && candidate.finalOperation ? <Check size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
-          <div>
-            <strong>{candidate.userModified && candidate.finalOperation ? '확인한 내용 저장 완료' : reviewableFailure ? '검토 필요' : '직접 확인이 필요합니다'}</strong>
-            <p>{candidate.userModified && candidate.finalOperation
-              ? '직접 확인한 내용을 저장했습니다. 아래의 모두 확정으로 작품 설정에 반영해 주세요.'
-              : reviewableFailure
-                ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} ‘직접 확인해서 반영’을 눌러 값을 저장해 주세요. AI 분석을 다시 실행하지 않습니다.`
-                : '직접 확인해서 반영을 눌러 대상·설정값·반영 방식을 확인해 주세요. AI 분석을 다시 실행하지 않습니다.'}</p>
-          </div>
-        </div>
-      )}
-
-      {scopeMismatch && !automaticPending && (
-        <div className="world-setting-scope-review is-mismatch" role="alert">
-          <AlertCircle size={18} aria-hidden="true" />
-          <div>
-            <strong>범위 비교 필요</strong>
-            <p>원문에서 추출한 범위와 비교한 기존 범위가 다릅니다. 같은 대상을 가리키는지 확인한 뒤 반영할 범위와 값을 정해 주세요.</p>
-          </div>
-        </div>
-      )}
-
-      <div className={`world-setting-key-diff-values${scopeNeedsReview ? ' is-scope-unresolved' : ''}${scopeNeedsReview ? ' has-source-paths' : ''}${reviewRequired && !candidate.finalOperation ? ' is-review-required' : ''}`} style={{
-        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10,
-        margin: '13px 0 0',
-      }}>
-        <div style={{
-          minHeight: 72, padding: '12px 14px', borderRadius: 8,
-          border: `1px solid ${preservesExistingValue ? C.border : `${C.danger}2F`}`,
-          background: preservesExistingValue ? `${C.t2}08` : `${C.danger}0B`,
-        }}>
-          <div style={{ color: reviewToneInk(beforeTone), fontSize: 10, fontWeight: 750, marginBottom: 7 }}>{beforeLabel}</div>
-          {scopeNeedsReview && <strong className="world-setting-scope-path">{settingPath(candidate.matchedScopeName, candidate.matchedPropertyName)}</strong>}
-          <div style={{ color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-            {beforeValue}
-          </div>
-        </div>
-        <div style={{
-          minHeight: 72, padding: '12px 14px', borderRadius: 8,
-          border: `1px solid ${proposedTone}77`, background: `${proposedTone}16`,
-          boxShadow: `inset 3px 0 0 ${proposedTone}`,
-        }}>
-          <div style={{ color: reviewToneInk(proposedTone), fontSize: 10, fontWeight: 800, marginBottom: 7 }}>{proposedLabel}</div>
-          {scopeNeedsReview && <strong className="world-setting-scope-path">{sourceSettingPath(candidate)}</strong>}
-          {hasConflict && !conflictResolved && sourceValues.length > 1 ? (
-            <div style={{ display: 'grid', gap: 7 }}>
-              {sourceValues.map((value, index) => (
-                <div key={`${index}-${value}`} style={{ color: REVIEW_TEXT.ink, fontSize: 12, fontWeight: 700, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-                  <span style={{ color: REVIEW_TEXT.warning, fontSize: 9, marginRight: 7 }}>추출 {index + 1}</span>
-                  {value}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: REVIEW_TEXT.ink, fontSize: 13, fontWeight: 750, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-              {(scopeNeedsReview ? candidate.extractedValue : proposedValue) || '값 없음'}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {consolidationStatus === 'MERGED' && (
-        <div style={{
-          margin: '10px 0 0', padding: '9px 12px', borderRadius: 7,
-          border: `1px solid ${C.primary}3D`, background: `${C.primary}0A`,
-          color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.6,
-        }}>
-          여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.
-        </div>
-      )}
-      {hasConflict && !conflictResolved && (
-        <div role="alert" style={{
-          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
-          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          color: REVIEW_TEXT.warning, fontSize: 11, lineHeight: 1.6,
-        }}>
-          원문 내용이 서로 달라 자동으로 하나로 합치지 않았습니다. 수정에서 최종 설정값을 정해 주세요.
-        </div>
-      )}
-
-      {batchLimitExceeded && (
-        <div className="world-setting-batch-limit-review" role="alert" style={{
-          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
-          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-        }}>
-          <AlertCircle size={13} color={C.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ color: REVIEW_TEXT.warning, fontSize: 10, fontWeight: 800, marginBottom: 4 }}>
-              출력 한도 검토 필요
-            </div>
-            <div style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.65, overflowWrap: 'anywhere' }}>
-              AI 비교 결과가 한 번에 반환할 수 있는 크기를 넘어 자동 판단을 생략했습니다.
-              수정을 눌러 원문에서 추출한 경로·값과 반영 방식을 확인하거나, 반영하지 않으려면 제외해 주세요.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {scopeUnresolved && matchedPropertyPath && (
-        <div className="world-setting-scope-review" role="alert" style={{
-          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
-          border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-        }}>
-          <AlertCircle size={13} color={C.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ color: REVIEW_TEXT.warning, fontSize: 10, fontWeight: 800, marginBottom: 4 }}>
-              범위 확인 필요
-            </div>
-            <div style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.65, overflowWrap: 'anywhere' }}>
-              후보에는 범위가 없지만 기존 설정에 일치할 수 있는 ‘{matchedPropertyPath}’ 항목이 있습니다.
-              수정을 눌러 기존 범위에 수정·병합하거나, 범위를 비운 채 새 설정으로 추가해 주세요.
-              반영하지 않으려면 제외할 수 있습니다.
-            </div>
-            {onUseMatchedScope && (
-              <div style={{ marginTop: 10 }}>
-                <ActionButton disabled={disabled} tone={C.warning} onClick={onUseMatchedScope}>
-                  기존 ‘{matchedPropertyPath}’에 병합
-                </ActionButton>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {comparisonReason && (
-        <div className="world-setting-comparison-reason" style={{
-          margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
-          border: `1px solid ${C.primary}44`, background: `${C.primary}0C`,
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-        }}>
-          {comparisonReasonTitle === 'AI 비교 판단'
-            ? <Sparkles size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
-            : <AlertCircle size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />}
-          <div style={{ minWidth: 0 }}>
-            <div className="world-setting-comparison-reason__title" style={{ color: REVIEW_TEXT.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>{comparisonReasonTitle}</div>
-            <div className="world-setting-comparison-reason__text" style={{ color: REVIEW_TEXT.text, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-              {comparisonReason}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedComparisonPaths.length > 0 && (
-        <div className="world-setting-comparison-selection">
-          <strong>마지막 비교에서 선택한 기존 설정</strong>
-          <ul>{selectedComparisonPaths.map(path => <li key={path}>{path}</li>)}</ul>
-          <p>비교 중 선택한 기록입니다. 반영할 대상이나 설정으로 확정된 것은 아닙니다.</p>
-        </div>
-      )}
-
-      <div className="theme-evidence world-setting-evidence-card" style={{
-        margin: '10px 0 0', padding: '10px 12px', borderRadius: 7,
-        border: `1px solid ${C.border}`, background: C.bg,
-        display: 'flex', alignItems: 'flex-start', gap: 8,
-      }}>
-        <FileText size={13} color={C.primary} style={{ marginTop: 2, flexShrink: 0 }} />
-        <div style={{ minWidth: 0 }}>
-          <div style={{ color: REVIEW_TEXT.primary, fontSize: 10, fontWeight: 750, marginBottom: 4 }}>1차 추출 원문</div>
-          {evidence.length ? (
-            <div style={{ display: 'grid', gap: 7 }}>
-              {evidence.map((span, index) => (
-                <div className="theme-evidence__quote" key={`${span.startOffset ?? 'unknown'}-${span.endOffset ?? index}-${span.quote}`} style={{
-                  color: REVIEW_TEXT.ink, fontSize: 11, lineHeight: 1.6, overflowWrap: 'anywhere',
-                }}>
-                  {evidence.length > 1 && (
-                    <span style={{ color: REVIEW_TEXT.muted, fontSize: 9, marginRight: 7 }}>근거 {index + 1}</span>
-                  )}
-                  “{span.quote}”
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="theme-evidence__empty" style={{ color: REVIEW_TEXT.muted, fontSize: 11, lineHeight: 1.6 }}>표시할 원문 근거가 없습니다.</div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
+      {selectedComparisonPaths.length > 0 && <div className="world-setting-comparison-selection">
+        <strong>마지막 비교에서 확인한 기존 설정</strong>
+        <ul>{selectedComparisonPaths.map(path => <li key={path}>{path}</li>)}</ul>
+        <p>비교 중 확인한 기록이며, 반영 대상으로 확정된 것은 아닙니다.</p>
+      </div>}
+    </ReviewEvidence>
+  </section>;
 }
 
 function WorldCandidateGroupDetail({
   group,
+  originalHoldReasons,
   resolvedConflictIds,
   recomparedIds,
   decisions,
   actionPending,
   actionError,
+  decisionRecoveryRequired,
+  onRecoverDecision,
   onExclude,
   onEdit,
-  onUseMatchedScope,
+  onDecide,
+  onAnalysis,
   onEditIdentity,
   onConfirm,
   onRetry,
@@ -1066,14 +886,18 @@ function WorldCandidateGroupDetail({
   canResumeTokenInterrupted,
 }: {
   group: WorldSettingCandidateGroupResponse;
+  originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
   resolvedConflictIds: Set<string>;
   recomparedIds: Set<string>;
   decisions: Record<string, DecisionDraft>;
   actionPending: boolean;
   actionError?: string | null;
+  decisionRecoveryRequired: boolean;
+  onRecoverDecision: () => void;
   onExclude: (candidateId: string) => void;
   onEdit: (candidate: WorldSettingCandidateResponse) => void;
-  onUseMatchedScope: (candidate: WorldSettingCandidateResponse, linkedCandidateIds: string[]) => void;
+  onDecide: (candidate: WorldSettingCandidateResponse, draft: DecisionDraft, linkedCandidateIds: string[]) => void;
+  onAnalysis: () => void;
   onEditIdentity: () => void;
   onConfirm: () => void;
   onRetry: () => void;
@@ -1081,7 +905,17 @@ function WorldCandidateGroupDetail({
   activeComparisonJobCount: number;
   canResumeTokenInterrupted: boolean;
 }) {
+  const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
+  const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
+    setDirtyCandidateIds(previous => {
+      if (previous.has(candidateId) === dirty) return previous;
+      const next = new Set(previous);
+      if (dirty) next.add(candidateId); else next.delete(candidateId);
+      return next;
+    });
+  }, []);
   const candidates = group.candidates ?? [];
+  const hasUnsavedChanges = candidates.some(candidate => candidate.id && dirtyCandidateIds.has(candidate.id));
   const identity = groupDecisionIdentity(group, decisions);
   const category = identity.category ? CATEGORY_META[identity.category] : null;
   const pendingCandidates = candidates.filter(candidate => candidate.id && candidate.reviewStatus === 'PENDING_REVIEW');
@@ -1159,8 +993,9 @@ function WorldCandidateGroupDetail({
     candidate.comparisonStatus === 'FAILED'
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
-  const confirmable = !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
+  const confirmable = !hasUnsavedChanges && !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
     .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
+      && (!automaticReviewHoldLabel(candidate) || Boolean(candidate.userModified && candidate.finalOperation))
       && (candidate.comparisonStatus === 'COMPLETED'
         || (candidate.manualReviewAvailable === true && candidate.userModified && candidate.finalOperation != null))
       && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
@@ -1177,29 +1012,6 @@ function WorldCandidateGroupDetail({
       const sourceDecision = decisions[source.id] ?? candidateDecision(source);
       return sourceDecision?.operation === 'ADD';
     });
-  };
-  const scopeMergeSources = (candidate: WorldSettingCandidateResponse): string[] => {
-    if (confirmationFiltered
-        || !candidate.id
-        || !isScopeUnresolvedCandidate(candidate)
-        || !candidate.matchedScopeName
-        || !candidate.matchedPropertyName) return [];
-    const linkedSources = candidate.comparisonDecisionId
-      ? candidates.filter(source => source.comparisonDecisionId === candidate.comparisonDecisionId)
-      : [candidate];
-    const proposedValue = candidate.proposedValue ?? candidate.extractedValue;
-    const compatible = linkedSources.length > 0 && linkedSources.every(source => (
-      Boolean(source.id)
-      && source.reviewStatus === 'PENDING_REVIEW'
-      && source.comparisonStatus === 'COMPLETED'
-      && !isAutomaticApplicationPending(source)
-      && isScopeUnresolvedCandidate(source)
-      && source.targetWorldSettingId === candidate.targetWorldSettingId
-      && source.matchedScopeName === candidate.matchedScopeName
-      && source.matchedPropertyName === candidate.matchedPropertyName
-      && (source.proposedValue ?? source.extractedValue) === proposedValue
-    ));
-    return compatible ? linkedSources.map(source => source.id!) : [];
   };
   return (
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
@@ -1229,23 +1041,30 @@ function WorldCandidateGroupDetail({
         canResumeTokenInterrupted={canResumeTokenInterrupted} />
       {candidates.map(candidate => {
         if (!candidate.id) return null;
-        const linkedScopeCandidateIds = scopeMergeSources(candidate);
+        const linkedScopeCandidateIds = compatibleWorldReviewSources(candidate, candidates, confirmationFiltered);
+        const sourceValue = [...new Set(candidates
+          .filter(source => source.id && linkedScopeCandidateIds.includes(source.id))
+          .map(source => source.extractedValue?.trim()).filter((value): value is string => Boolean(value)))].join('\n') || undefined;
         return (
           <WorldKeyDiffRow
             key={candidate.id}
             candidate={candidate}
+            originalHoldReason={originalHoldReasons[candidate.id]}
+            onDirtyChange={onInlineDirtyChange}
+            inlineDirty={dirtyCandidateIds.has(candidate.id)}
             decision={decisions[candidate.id] ?? candidateDecision(candidate)}
             conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
             recompared={recomparedIds.has(candidate.id)}
             includeRootMoveNotice={includeRootMoveNotice(candidate)}
             activeComparisonJobCount={activeComparisonJobCount}
             canResumeTokenInterrupted={canResumeTokenInterrupted}
-            disabled={actionPending}
+            disabled={actionPending || decisionRecoveryRequired}
             onExclude={() => onExclude(candidate.id!)}
             onEdit={() => onEdit(candidate)}
-            onUseMatchedScope={linkedScopeCandidateIds.length
-              ? () => onUseMatchedScope(candidate, linkedScopeCandidateIds)
-              : undefined}
+            linkedCandidateIds={linkedScopeCandidateIds}
+            sourceValue={sourceValue}
+            onDecide={(draft, candidateIds) => onDecide(candidate, draft, candidateIds)}
+            onAnalysis={onAnalysis}
           />
         );
       })}
@@ -1267,17 +1086,18 @@ function WorldCandidateGroupDetail({
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
         }}>
-          원문마다 내용이 다른 설정입니다. 수정에서 최종 내용을 정하거나 해당 항목을 제외해 주세요.
+          원문마다 내용이 다른 설정입니다. 위에서 최종 내용을 정하거나 해당 항목을 제외해 주세요.
         </div>
       )}
 
-      {actionError && (
+      {(actionError || decisionRecoveryRequired) && (
         <div role="alert" style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
           color: REVIEW_TEXT.danger, fontSize: 12, lineHeight: 1.55,
         }}>
           {actionError}
+          {decisionRecoveryRequired && <div><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지됩니다. 최신 상태를 확인한 뒤 계속해 주세요.</p><button type="button" className="review-cb-secondary" onClick={onRecoverDecision}>최신 상태 다시 확인</button></div>}
         </div>
       )}
 
@@ -1291,6 +1111,9 @@ function WorldCandidateGroupDetail({
         </div>
       )}
 
+      {hasUnsavedChanges && <div style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
+        수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.
+      </ReviewNotice></div>}
       <footer style={{
         position: 'sticky', bottom: 0, zIndex: 2, marginTop: 18, padding: '16px 22px',
         borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
@@ -1304,7 +1127,7 @@ function WorldCandidateGroupDetail({
             <RefreshCw size={12} /> 다시 비교
           </ActionButton>
         )}
-        <button type="button" disabled={actionPending || !confirmable} onClick={onConfirm} style={{
+        <button type="button" disabled={actionPending || decisionRecoveryRequired || !confirmable} onClick={() => { if (!hasUnsavedChanges) onConfirm(); }} style={{
           minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
           background: actionPending || !confirmable ? C.border : C.primary,
           color: actionPending || !confirmable ? REVIEW_TEXT.muted : '#fff', fontFamily: 'inherit',
@@ -1510,7 +1333,12 @@ export function WorldSettingReview() {
   const urlPage = parsePositiveInteger(searchParams.get('page'), 1);
   const size = parsePositiveInteger(searchParams.get('size'), DEFAULT_PAGE_SIZE, 100);
   const apiPage = urlPage - 1;
+  const { mainRef, contentRef, preserveViewport } = useReviewScrollStability(
+    JSON.stringify([workId, batchId, reviewFilter, categoryFilter, operationFilter, apiPage, size]),
+  );
   const hasContext = Boolean(workId && batchId);
+  const [decisionRecoveryRequired, setDecisionRecoveryRequired] = useState(false);
+  const [originalHoldReasons, setOriginalHoldReasons] = useState<Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>>({});
   const [resolvedConflictIds, setResolvedConflictIds] = useState<Set<string>>(new Set());
   const [recomparedIds, setRecomparedIds] = useState<Set<string>>(new Set());
   const [decisionOverrides, setDecisionOverrides] = useState<Record<string, DecisionDraft>>({});
@@ -1710,6 +1538,7 @@ export function WorldSettingReview() {
 
   useEffect(() => {
     selectionGroupRef.current = null;
+    setDecisionRecoveryRequired(false);
     setResolvedConflictIds(new Set());
     setRecomparedIds(new Set());
     setDecisionOverrides({});
@@ -1781,7 +1610,8 @@ export function WorldSettingReview() {
       await invalidateReviewState();
     },
     onError: async () => {
-      await invalidateReviewState();
+      setDecisionRecoveryRequired(true);
+      await recoverDecision();
     },
   });
   const dismissMutation = useMutation({
@@ -1822,10 +1652,18 @@ export function WorldSettingReview() {
     exact: true,
   });
   const resumeRequestPending = resumeInterruptedMutation.isPending || activeResumeRequestCount > 0;
+  const recoverDecision = async () => {
+    const refreshed = await listQuery.refetch();
+    setDecisionRecoveryRequired(!refreshed.isSuccess);
+  };
   const updateDecisionMutation = useMutation({
     ...updateWorldSettingCandidateDecisionsMutation(),
-    onError: refreshAutomaticApplicationState,
+    onError: async () => {
+      setDecisionRecoveryRequired(true);
+      await recoverDecision();
+    },
     onSuccess: async (response, variables) => {
+      setDecisionRecoveryRequired(false);
       const updatedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
       const firstDecision = variables.body.candidates[0];
       const nextGroupKey = response.data?.groupKey;
@@ -1932,6 +1770,7 @@ export function WorldSettingReview() {
   };
 
   const selectGroup = (groupKey: string) => {
+    preserveViewport();
     setMobileDetailOpen(true);
     setEditCandidate(null);
     setEditIdentityOnly(false);
@@ -1970,7 +1809,7 @@ export function WorldSettingReview() {
       && candidate.consolidationStatus !== 'SINGLE'
     )));
   const confirmAll = () => {
-    if (!selectedGroup || !batchId || actionPending || confirmationFiltered || groupAutomaticPending
+    if (!selectedGroup || !batchId || actionPending || decisionRecoveryRequired || confirmationFiltered || groupAutomaticPending
         || pendingCandidates.some(isQuotaInterruptedCandidate)) return;
     const candidates = pendingCandidates.flatMap(candidate => {
       if (!candidate.id) return [];
@@ -2012,7 +1851,7 @@ export function WorldSettingReview() {
   };
 
   const submitEditedCandidate = (draft: DecisionDraft) => {
-    if (!editCandidate?.id || actionPending || candidateAutomaticPending(editCandidate.id)
+    if (!editCandidate?.id || actionPending || decisionRecoveryRequired || candidateAutomaticPending(editCandidate.id)
       || (editIdentityOnly && groupAutomaticPending)) return;
     const linkedScopeCandidates = !editIdentityOnly && scopeMergeCandidateIds.length
       ? scopeMergeCandidateIds.flatMap(candidateId => {
@@ -2104,10 +1943,12 @@ export function WorldSettingReview() {
     worldSummaryLoaded,
   ]);
 
-  const characterTotal = characterSummary?.totalCandidateCount ?? 0;
   const characterPending = characterSummary?.pendingCandidateCount ?? 0;
   const combinedPending = characterPending + worldPending;
   const reviewProgress = combinedSettingReviewProgress(characterSummary, listData);
+  const worldReviewComplete = reviewFilter === 'PENDING_REVIEW' && listQuery.isSuccess
+    && listData?.pendingCandidateCount === 0 && (listData.processingCandidateCount ?? 0) === 0
+    && worldTotal > 0 && groups.length === 0;
   const remainingWorldComparisonIssueCount = (listData?.failedComparisonCount ?? 0)
     + (listData?.recomparisonRequiredCount ?? 0);
   const summaryUnavailable = characterSummaryQuery.isError;
@@ -2129,6 +1970,7 @@ export function WorldSettingReview() {
       operation: 'MERGE' as const,
       scopeName: editCandidate.matchedScopeName,
       settingName: editCandidate.matchedPropertyName,
+      value: combineWorldReviewValues(editCandidate.beforeValue, editCandidate.extractedValue),
     }
     : baseEditDecision;
   const scopeReviewPath = editCandidate && isScopeUnresolvedCandidate(editCandidate)
@@ -2175,16 +2017,17 @@ export function WorldSettingReview() {
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
     }}>
       <ReviewHeader onBack={backToAnalysisList} />
-      <main className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="world-setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
+      <main ref={mainRef} className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
+        <div ref={contentRef} className="world-setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
           <SettingReviewSummary
-            episodeRange={formatEpisodeRange(listData?.episodeStartNo, listData?.episodeEndNo, listData?.episodeCount ?? 0)}
+            episodeRange={listData ? formatEpisodeRange(listData.episodeStartNo, listData.episodeEndNo, listData.episodeCount ?? 0) : listQuery.isError ? '회차 정보 확인 불가' : undefined}
             progress={reviewProgress}
+            unavailable={listQuery.isError && !listData || characterSummaryQuery.isError && !characterSummary}
           />
           <SettingReviewTabs
             active="world"
-            character={{ total: characterTotal, directReview: characterSummary?.directReviewCandidateCount, processing: characterSummary?.processingCandidateCount }}
-            world={{ total: worldTotal, directReview: listData?.directReviewCandidateCount, processing: listData?.processingCandidateCount }}
+            character={{ total: characterSummary?.totalCandidateCount, directReview: characterSummary?.directReviewCandidateCount, processing: characterSummary?.processingCandidateCount, unavailable: characterSummaryQuery.isError && !characterSummary }}
+            world={{ total: listData?.totalCandidateCount, directReview: listData?.directReviewCandidateCount, processing: listData?.processingCandidateCount, unavailable: listQuery.isError && !listData }}
           />
 
           {tokenInterruptedCount > 0 && (
@@ -2372,11 +2215,12 @@ export function WorldSettingReview() {
                         padding: '30px 18px', borderRadius: 9, border: `1px solid ${C.border}`,
                         background: C.surface, textAlign: 'center', color: REVIEW_TEXT.muted, fontSize: 12,
                       }}>
-                        <div className="review-empty-state__title">조건에 맞는 세계관 대상이 없습니다.</div>
-                        <button className="review-empty-state__action" type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
+                        <div className="review-empty-state__title">{worldReviewComplete ? '세계관 검토를 마쳤어요' : '조건에 맞는 세계관 대상이 없습니다.'}</div>
+                        {worldReviewComplete && characterPending > 0 && <div className="review-type-complete-mobile-action"><OtherSettingReviewAction current="world" /></div>}
+                        {!worldReviewComplete && <button className="review-empty-state__action" type="button" onClick={() => updateFilters('PENDING_REVIEW', 'ALL', 'ALL')} style={{
                           display: 'block', margin: '10px auto 0', border: 'none', background: 'none',
                           color: REVIEW_TEXT.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
-                        }}>필터 초기화</button>
+                        }}>필터 초기화</button>}
                       </div>
                     )}
                     <PageNavigation page={currentPage} totalPages={totalPages}
@@ -2391,17 +2235,25 @@ export function WorldSettingReview() {
                     {!selectedGroup ? (
                       <QueryState
                         icon={<Sparkles size={26} color={C.primary} />}
-                        title="세계관 대상을 선택해 주세요."
-                        description="목록에서 대상을 선택하면 같은 대상의 설정 항목과 1차 원문 근거를 함께 확인할 수 있습니다."
+                        title={worldReviewComplete ? '세계관 검토를 마쳤어요'
+                          : groups.length === 0 ? '조건에 맞는 세계관 대상이 없습니다.' : '세계관 대상을 선택해 주세요.'}
+                        description={worldReviewComplete
+                          ? characterPending > 0 ? '남은 캐릭터 후보를 확인해 주세요. 반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.' : '반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
+                          : groups.length === 0 ? '검토 상태·분류·반영 방식 필터를 바꾸면 다른 대상을 확인할 수 있어요.'
+                          : '목록에서 대상을 선택하면 같은 대상의 설정 항목과 1차 원문 근거를 함께 확인할 수 있습니다.'}
+                        action={worldReviewComplete && characterPending > 0 ? <OtherSettingReviewAction current="world" /> : undefined}
                       />
                     ) : (
                       <WorldCandidateGroupDetail
                         group={selectedGroup}
+                        originalHoldReasons={originalHoldReasons}
                         resolvedConflictIds={resolvedConflictIds}
                         recomparedIds={recomparedIds}
                         decisions={decisionOverrides}
                         actionPending={actionPending}
                         actionError={actionError}
+                        decisionRecoveryRequired={decisionRecoveryRequired}
+                        onRecoverDecision={() => void recoverDecision()}
                         onExclude={dismissCandidate}
                         onEditIdentity={() => {
                           if (groupAutomaticPending) return;
@@ -2423,15 +2275,22 @@ export function WorldSettingReview() {
                           setScopeMergeCandidateIds([]);
                           setEditCandidate(candidate);
                         }}
-                        onUseMatchedScope={(candidate, linkedCandidateIds) => {
-                          if (linkedCandidateIds.some(candidateAutomaticPending)) return;
-                          confirmMutation.reset();
-                          dismissMutation.reset();
-                          updateDecisionMutation.reset();
-                          setEditIdentityOnly(false);
-                          setScopeMergeCandidateIds(linkedCandidateIds);
-                          setEditCandidate(candidate);
+                        onDecide={(candidate, draft, candidateIds) => {
+                          if (actionPending || decisionRecoveryRequired || !candidate.id
+                            || candidateIds.some(candidateAutomaticPending)) return;
+                          const sources = candidateIds.flatMap(id => pendingCandidates.filter(item => item.id === id));
+                          if (sources.length !== candidateIds.length || sources.some(isQuotaInterruptedCandidate)) return;
+                          setOriginalHoldReasons(previous => ({ ...previous, ...Object.fromEntries(sources
+                            .filter(source => source.id && source.automaticReviewHoldReason)
+                            .map(source => [source.id!, source.automaticReviewHoldReason])) }));
+                          updateDecisionMutation.mutate({ path: { workId }, body: { batchId,
+                            candidates: sources.map(source => ({ candidateId: source.id!, ...draft,
+                              conflictResolved: source.consolidationStatus === 'CONFLICT' ? true : undefined })),
+                          } }, { onSuccess: () => setResolvedConflictIds(previous => new Set([
+                            ...previous, ...sources.filter(source => source.consolidationStatus === 'CONFLICT').map(source => source.id!),
+                          ])) });
                         }}
+                        onAnalysis={backToAnalysisList}
                         onConfirm={confirmAll}
                         onRetry={retryGroup}
                         confirmationFiltered={confirmationFiltered}

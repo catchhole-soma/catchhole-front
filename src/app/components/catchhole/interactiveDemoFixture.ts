@@ -4,6 +4,7 @@ import type {
   CharacterSettingResponse,
   CharacterTimelineFactResponse,
   CharacterTimelineSummaryResponse,
+  SettingCandidateResponse,
   WorldSettingDetailResponse,
 } from '../../api/generated/types.gen';
 
@@ -145,6 +146,21 @@ export const INTERACTIVE_DEMO_CANDIDATES = {
     reasoning: '검은 달이 등장했다는 사실만 확인되며 왕실의 멸망과 연결할 근거는 없습니다.',
   },
 } as const;
+
+/** Public walkthroughs render production review components without a work ID or API requests. */
+export const INTERACTIVE_DEMO_REVIEW_CHARACTER: SettingCandidateResponse = {
+  id: 'demo-character-job', attributeNameEditable: false, automaticApplicationPending: false, candidateKind: 'SETTING', entityType: 'CHARACTER', entityName: '에단 렌',
+  rawEntityMention: '에단', matchStatus: 'MATCHED', attributeName: 'profile.occupation',
+  attributeValue: INTERACTIVE_DEMO_CANDIDATES.character.proposedValue, episodeNo: 6,
+  reviewStatus: 'PENDING_REVIEW', comparisonStatus: 'COMPLETED', suggestedOperation: 'UPDATE',
+  analysisMode: 'CONFIRMED_ONLY', valueType: 'STRING', valueValidation: { status: 'VALID', repairable: true },
+  proposedFactValue: INTERACTIVE_DEMO_CANDIDATES.character.proposedValue,
+  comparisonReason: INTERACTIVE_DEMO_CANDIDATES.character.reasoning,
+  snapshotChanges: [{ action: 'UPSERT', factKey: 'profile.occupation',
+    beforeFactValue: INTERACTIVE_DEMO_CANDIDATES.character.beforeValue,
+    proposedFactValue: INTERACTIVE_DEMO_CANDIDATES.character.proposedValue }],
+  evidenceSpans: [{ quote: INTERACTIVE_DEMO_CANDIDATES.character.evidence }], confidence: 0.98,
+};
 
 const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
   {

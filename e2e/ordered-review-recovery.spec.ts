@@ -65,7 +65,7 @@ for (const source of [
   for (const activeComparisonJobCount of [0, 1]) {
     test(`실패·미완료 원본 회차의 재개 안내는 다른 비교 작업보다 우선한다: ${source.sourceAnalysisJobStatus}, 비교 ${activeComparisonJobCount}개`, async ({ page }) => {
       const state = await openReview(page, { ...source, comparisonStatus: 'FAILED' }, { activeComparisonJobCount });
-      await expect(page.locator('.world-setting-comparison-reason__text')).toContainText(stoppedMessage);
+      await expect(page.locator('.world-setting-diff-row')).toContainText(stoppedMessage);
       await expect(page.locator('.world-candidate-detail-card')).not.toContainText('다시 비교하거나 설정을 수정');
       await expect(page.locator('.world-candidate-detail-card')).not.toContainText('설정 비교가 진행 중입니다.');
       await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
@@ -78,7 +78,7 @@ for (const sourceAnalysisJobStatus of ['FAILED', 'RUNNING']) {
   test(`무효화된 원본 분석은 다른 비교가 진행 중이어도 상태 확인을 안내한다: ${sourceAnalysisJobStatus}`, async ({ page }) => {
     await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus,
       sourceAnalysisJournalStatus: 'INVALIDATED' }, { activeComparisonJobCount: 1 });
-    await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('기존 분석을 이어서 처리할 수 없습니다.');
+    await expect(page.locator('.world-setting-diff-row')).toContainText('기존 분석을 이어서 처리할 수 없습니다.');
     await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
     await expect(page.locator('.world-candidate-detail-card')).not.toContainText('진행 중입니다.');
   });
@@ -86,30 +86,30 @@ for (const sourceAnalysisJobStatus of ['FAILED', 'RUNNING']) {
 
 test('원본 상태가 없는 후보에만 별도 비교 작업의 진행 상태를 참고한다', async ({ page }) => {
   await openReview(page, { comparisonStatus: 'FAILED' }, { activeComparisonJobCount: 1 });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toHaveText('설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.');
+  await expect(page.locator('.world-setting-diff-row')).toContainText('설정 비교가 진행 중입니다. 완료된 뒤 회차별 상태를 확인해 주세요.');
   await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
 });
 
 test('종료된 원본 분석이 있으면 다른 비교 작업을 해당 회차의 진행으로 안내하지 않는다', async ({ page }) => {
   await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'CANCELED' }, { activeComparisonJobCount: 1 });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('분석 목록에서 회차별 진행 상태를 확인해 주세요.');
+  await expect(page.locator('.world-setting-diff-row')).toContainText('분석 목록에서 회차별 진행 상태를 확인해 주세요.');
   await expect(page.locator('.world-candidate-detail-card')).not.toContainText('설정 비교가 진행 중입니다.');
 });
 
 test('원본 상태가 없는 옛 순차 후보는 진행 상태 확인으로 안내한다', async ({ page }) => {
   await openReview(page, { comparisonStatus: 'FAILED' });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toContainText('분석 목록에서 회차별 진행 상태를 확인해 주세요.');
+  await expect(page.locator('.world-setting-diff-row')).toContainText('분석 목록에서 회차별 진행 상태를 확인해 주세요.');
   await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
 });
 
 test('자동 반영 대기와 직접 검토 허용은 원본 실패 상태보다 우선한다', async ({ page }) => {
   await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'FAILED', automaticApplicationPending: true });
   await expect(page.locator('.world-candidate-detail-card')).not.toContainText(stoppedMessage);
-  await expect(page.locator('.world-candidate-detail-card')).toContainText('자동으로 반영하고 있습니다.');
+  await expect(page.locator('.world-candidate-detail-card')).toContainText('분석이 진행 중이에요');
   await openReview(page, { comparisonStatus: 'FAILED', sourceAnalysisJobStatus: 'SUCCEEDED',
     sourceAnalysisJournalStatus: 'SEALED', manualReviewAvailable: true });
-  await expect(page.locator('.world-setting-comparison-reason__text')).toHaveText('자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.');
-  await expect(page.getByRole('button', { name: '직접 확인해서 반영', exact: true })).toBeEnabled();
+  await expect(page.locator('.world-setting-diff-row')).toContainText('자동 비교를 마치지 못해 대상과 내용을 확인해 주세요.');
+  await expect(page.locator('.world-setting-diff-row').getByRole('button', { name: '수정', exact: true })).toBeEnabled();
 });
 
 for (const scenario of [

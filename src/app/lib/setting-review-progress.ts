@@ -9,7 +9,7 @@ type CandidateSummary = SettingCandidateListResponse | WorldSettingCandidateList
 type Count = number | null;
 
 export interface SettingReviewProgress {
-  total: number;
+  total: Count;
   confirmed: Count;
   dismissed: Count;
   directReview: Count;
@@ -25,7 +25,7 @@ export function combinedSettingReviewProgress(
   world?: CandidateSummary,
 ): SettingReviewProgress {
   return {
-    total: (character?.totalCandidateCount ?? 0) + (world?.totalCandidateCount ?? 0),
+    total: sumKnown(character?.totalCandidateCount, world?.totalCandidateCount),
     confirmed: sumKnown(character?.confirmedCandidateCount, world?.confirmedCandidateCount),
     dismissed: sumKnown(character?.dismissedCandidateCount, world?.dismissedCandidateCount),
     directReview: sumKnown(character?.directReviewCandidateCount, world?.directReviewCandidateCount),

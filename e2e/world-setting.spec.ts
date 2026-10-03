@@ -235,8 +235,9 @@ test('새 범위로 함께 이동할 기존 root 설정을 검토 판단에 명�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
-  await expect(page.locator('.world-setting-diff-row__header strong'))
-    .toHaveText('신체 능력 › 근력 기댓값');
+  await expect(page.locator('.world-setting-diff-row .review-cb-heading h3'))
+    .toHaveText('근력 기댓값');
+  await expect(page.locator('.review-cb-heading__subtitle')).toContainText('범위: 신체 능력');
   await expect(page.locator('.world-setting-comparison-reason')).toContainText(
     '확정하면 기존 설정도 함께 이동합니다: ‘생명력’ → ‘신체 능력 › 생명력’.',
   );
@@ -294,7 +295,7 @@ test('분류 필터로 묶음 판단의 다른 후보가 가려지면 root 이�
 
   await expect(page.getByText('확정하면 기존 설정도 함께 이동합니다')).toHaveCount(0);
   await expect(page.getByText('분류·반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.')).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
 });
 
 test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비교 안내만 표시한다', async ({ page }) => {
@@ -343,7 +344,7 @@ test('세계관 비교 실패 시 내부 검증 오류를 숨기고 다시 비�
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   await expect(page.getByText(
-    '기존 세계관과 비교 결과를 만들지 못했습니다. 다시 비교하거나 설정을 수정해 주세요.',
+    '기존 세계관과 비교 결과를 만들지 못했습니다. 아래의 다시 비교로 이어서 처리해 주세요.',
   )).toBeVisible();
   await expect(page.getByText(rawError)).toHaveCount(0);
   await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toBeVisible();
@@ -458,23 +459,15 @@ test(scopeUnresolved
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
-  const scopeReview = page.locator('.world-setting-scope-review');
-  await expect(page.locator('.world-setting-diff-row__header strong')).toHaveText(['광원', '광원']);
-  await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toHaveCount(0);
-  await expect(scopeReview).toHaveCount(scopeUnresolved ? 2 : 1);
-  await expect(scopeReview.first()).toContainText('범위 확인 필요');
-  await expect(scopeReview.first()).toContainText('1층 › 광원');
-  await expect(scopeReview.first()).toContainText('기존 범위에 수정·병합');
+  const scopeReview = page.locator('.review-cb-decisions').filter({ hasText: '포함된 내용인가요?' });
+  await expect(page.locator('.world-setting-diff-row .review-cb-heading h3')).toHaveText(['광원', '광원']);
+  await expect(scopeReview).toHaveCount(2);
+  await expect(scopeReview.first()).toContainText('1층 · 광원');
   await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: '분류·대상 일괄 수정' })).toBeDisabled();
-
-  await page.getByRole('button', { name: "기존 ‘1층 › 광원’에 병합", exact: true }).first().click();
-  const editModal = page.locator('.review-modal');
-  await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('1층');
-  await expect(editModal.getByLabel('반영 방식')).toHaveValue('MERGE');
-  await expect(editModal).toContainText("기존 ‘1층 › 광원’에 반영하려면");
-  await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
+  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).first().click();
+  await expect(page.locator('.review-modal')).toHaveCount(0);
 
   await expect.poll(() => updatedBody).toEqual({
     batchId,
@@ -485,7 +478,7 @@ test(scopeUnresolved
       subjectName: '미궁',
       scopeName: '1층',
       settingName: '광원',
-      value: '벽과 천장의 수정들이 주변을 밝힌다.',
+      value: '벽면 수정이 은은한 빛을 낸다.\n벽과 천장의 수정들이 주변을 밝힌다.\n천장의 수정도 통로 전체를 비춘다.',
     }, {
       candidateId: secondWorldCandidateId,
       operation: 'MERGE',
@@ -493,16 +486,17 @@ test(scopeUnresolved
       subjectName: '미궁',
       scopeName: '1층',
       settingName: '광원',
-      value: '벽과 천장의 수정들이 주변을 밝힌다.',
+      value: '벽면 수정이 은은한 빛을 낸다.\n벽과 천장의 수정들이 주변을 밝힌다.\n천장의 수정도 통로 전체를 비춘다.',
     }],
   });
-  await expect(scopeReview).toHaveCount(0);
-  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
+  await expect(scopeReview).toHaveCount(2);
+  await expect(scopeReview.first().getByRole('button', { name: /예, 포함된 내용이에요/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
 
   await page.getByRole('button', { name: /미궁/ }).first().click();
   await page.setViewportSize({ width: 320, height: 900 });
-  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' }).first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth <= document.documentElement.clientWidth
   ))).toBe(true);
@@ -620,11 +614,13 @@ test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   await expect(page.getByText('비교 분량 확인 필요', { exact: true })).toHaveCount(2);
-  await expect(page.locator('.world-setting-batch-limit-review')).toHaveCount(2);
-  await expect(page.getByText('AI 비교 결과가 한 번에 반환할 수 있는 크기를 넘어 자동 판단을 생략했습니다.').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.locator('.review-cb-inline-editor')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /이 내용 그대로 추가/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /내용·저장 위치 수정/ })).toBeVisible();
+  await expect(page.getByText('한 번에 비교할 수 있는 분량을 넘어 이 설정의 비교를 보류했습니다. 원문을 확인한 뒤 반영할 내용을 직접 정해 주세요.').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
 
-  const lightRow = page.locator('.world-setting-diff-row').filter({ hasText: '환경 › 광원' });
+  const lightRow = page.locator('.world-setting-diff-row').filter({ has: page.getByRole('heading', { name: '광원', exact: true }) });
   await lightRow.getByRole('button', { name: '수정', exact: true }).click();
   let editModal = page.locator('.review-modal');
   await expect(editModal.getByLabel('범위 (선택)')).toHaveValue('환경');
@@ -646,11 +642,10 @@ test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한
       value: '벽과 천장의 수정이 통로를 밝힌다.',
     }],
   });
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
 
-  const weaponRow = page.locator('.world-setting-diff-row').filter({ hasText: '장비 › 무기' });
-  await expect(weaponRow.getByText('추출 1').locator('..')).toContainText('검');
-  await expect(weaponRow.getByText('추출 2').locator('..')).toContainText('몽둥이');
+  const weaponRow = page.locator('.world-setting-diff-row').filter({ has: page.getByRole('heading', { name: '무기', exact: true }) });
+  await expect(weaponRow.getByLabel('최종 내용', { exact: true })).toHaveValue('검\n몽둥이');
   await weaponRow.getByRole('button', { name: '수정', exact: true }).click();
   editModal = page.locator('.review-modal');
   await expect(editModal.getByText('최종 내용을 하나로 정해 주세요.', { exact: false })).toBeVisible();
@@ -660,14 +655,14 @@ test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한
     await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
     await expect(editModal.getByRole('alert')).toHaveText('서로 다른 추출값을 하나의 최종 설정값으로 정리해 주세요.');
     expect(updatedBodies).toHaveLength(1);
-    await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
   }
   await editModal.getByLabel('최종 설정값').fill('검 또는 몽둥이');
   await editModal.getByRole('button', { name: '수정안 적용', exact: true }).click();
 
-  await expect(page.getByText('내용 확인 완료')).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
-  await page.getByRole('button', { name: '모두 확정' }).click();
+  await expect(page.getByText('검토 완료', { exact: true }).last()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
     batchId,
     candidates: [{
@@ -846,30 +841,30 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
   const summary = page.getByRole('region', { name: '설정 후보 검토 요약' });
   await expect(summary).toContainText('전체 3개 설정');
   await expect(summary).toContainText('3개');
-  await expect(page.getByText('종족 · 바바리안')).toBeVisible();
+  await expect(page.getByText('종족 · 바바리안').first()).toBeVisible();
   const selectedGroupCard = page.getByRole('button').filter({ hasText: '바바리안' }).first();
   const categoryBadge = selectedGroupCard.getByText('종족', { exact: true }).first();
   await expect(categoryBadge).toHaveCSS('color', 'rgb(0, 90, 175)');
   expect(await computedContrastRatio(categoryBadge, categoryBadge, selectedGroupCard))
     .toBeGreaterThanOrEqual(4.5);
   await expect(page.getByText('2개 설정').first()).toBeVisible();
+  for (const disclosure of await page.locator('.world-setting-diff-row details > summary').all()) await disclosure.click();
   await expect(page.getByText('바바리안 부족은 북부 설원의 혹한 속에서 살아왔다.')).toBeVisible();
   await expect(page.getByText('혹한의 땅은 바바리안의 오랜 터전이었다.')).toBeVisible();
   await expect(page.getByText('근거 1')).toBeVisible();
   await expect(page.getByText('근거 2')).toBeVisible();
   await expect(page.getByText('그들은 강인한 신체로 혹한과 전투를 버텼다.')).toBeVisible();
-  await expect(page.getByText('− 기존값').first()).toBeVisible();
-  await expect(page.getByText('+ 제안값').first()).toBeVisible();
-  await expect(page.getByText('1차 추출 원문').first()).toBeVisible();
-  await expect(page.locator('.world-setting-evidence-card').first())
-    .toHaveCSS('background-color', 'rgb(248, 251, 255)');
+  await expect(page.getByText('기존 설정', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('반영할 내용', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('원문 근거 확인 · 3화').first()).toBeVisible();
+  await expect(page.locator('.world-setting-evidence-card').first()).toBeVisible();
   await expect(page.locator('.world-setting-evidence-card .theme-evidence__quote').first())
     .toHaveCSS('color', 'rgb(51, 58, 70)');
-  await expect(page.getByText('여러 내용 정리됨')).toBeVisible();
-  await expect(page.getByText('여러 원문에서 추출된 내용을 하나의 설정으로 정리했습니다.')).toBeVisible();
+  await expect(page.getByText('여러 원문에서 추출된 내용을 하나로 정리했습니다.')).toBeVisible();
+  await expect(page.locator('.world-setting-diff-row').first()).toContainText('여러 원문');
   const comparisonReasonPanel = page.locator('.world-setting-comparison-reason').first();
-  const comparisonReason = comparisonReasonPanel.locator('.world-setting-comparison-reason__text');
-  await expect(comparisonReason).toHaveCSS('color', 'rgb(51, 58, 70)');
+  const comparisonReason = comparisonReasonPanel.locator('.review-cb-notice__content');
+  await expect(comparisonReason).toHaveCSS('color', 'rgb(0, 90, 175)');
   expect(await computedContrastRatio(
     comparisonReason,
     comparisonReasonPanel,
@@ -961,7 +956,7 @@ test('세계관 후보 탭은 대상별 설정과 여러 1차 원문을 묶어 �
       },
     ],
   });
-  await expect(page.getByText('종족 · 북부 바바리안', { exact: true })).toBeVisible();
+  await expect(page.getByText('종족 · 북부 바바리안', { exact: true }).first()).toBeVisible();
 
   await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
@@ -1217,8 +1212,8 @@ test('개별 설정 수정안은 다른 대상 그룹을 다녀와도 해당 row
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
-  await expect(page.getByText('몬스터 · 구울', { exact: true })).toBeVisible();
-  await page.getByText('식성', { exact: true }).locator('..').getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.getByText('몬스터 · 구울', { exact: true }).first()).toBeVisible();
+  await page.locator('.world-setting-diff-row').filter({ has: page.getByRole('heading', { name: '식성', exact: true }) }).getByRole('button', { name: '수정', exact: true }).click();
   await page.getByRole('combobox', { name: '분류', exact: true }).selectOption('LOCATION');
   await page.getByRole('textbox', { name: '대상', exact: true }).fill('2층');
   await page.getByLabel('설정명', { exact: true }).fill('섭식 습관');
@@ -1235,15 +1230,15 @@ test('개별 설정 수정안은 다른 대상 그룹을 다녀와도 해당 row
     }],
   });
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('LOCATION|2층');
-  await expect(page.getByText('장소 · 2층', { exact: true })).toBeVisible();
+  await expect(page.getByText('장소 · 2층', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('섭식 습관', { exact: true })).toBeVisible();
   await expect(page.getByText('최종 대상 · 장소 · 2층', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button').filter({ hasText: '구울' }).first()).toBeVisible();
 
   await page.getByRole('button').filter({ hasText: '요정' }).first().click();
-  await expect(page.getByText('종족 · 요정', { exact: true })).toBeVisible();
+  await expect(page.getByText('종족 · 요정', { exact: true }).first()).toBeVisible();
   await page.getByRole('button').filter({ hasText: '2층' }).first().click();
-  await expect(page.getByText('장소 · 2층', { exact: true })).toBeVisible();
+  await expect(page.getByText('장소 · 2층', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('섭식 습관', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '모두 확정', exact: true }).click();
@@ -1340,8 +1335,8 @@ test('같은 설정명도 범위가 다르면 함께 모두 확정한다', async
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
-  await expect(page.getByText('1층 › 출몰 규칙', { exact: true })).toBeVisible();
-  await expect(page.getByText('2층 › 출몰 규칙', { exact: true })).toBeVisible();
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' })).toBeVisible();
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 2층' })).toBeVisible();
   await expect(page.getByText(/같은 범위와 설정명/)).toHaveCount(0);
   await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
@@ -1476,8 +1471,8 @@ test('작가 수정안은 LLM 재비교 없이 유지하고 ADD 경로 중복을
   await expect.poll(() => decisionUpdateCount).toBe(2);
   expect(candidatePatchCount).toBe(0);
   expect(recompareCount).toBe(0);
-  await expect(page.getByText('장소 · 미궁', { exact: true })).toBeVisible();
-  await expect(page.getByText('1층 › 폐쇄 시점', { exact: true })).toBeVisible();
+  await expect(page.getByText('장소 · 미궁', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.world-setting-diff-row').filter({ has: page.getByRole('heading', { name: '폐쇄 시점', exact: true }) }).locator('.review-cb-heading__subtitle')).toBeVisible();
   await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
     batchId,
@@ -1595,23 +1590,22 @@ test('서로 다른 원문 값은 사용자가 최종값을 정한 뒤에만 모
   await expect(page.getByRole('region', { name: '설정 후보 검토 요약' }).locator('.is-direct')).toContainText('1개');
   await expect(page.getByRole('checkbox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '통신 반경 제외', exact: true })).toBeVisible();
-  await expect(page.getByText('내용 확인 필요')).toBeVisible();
-  await expect(page.getByText('원문 내용이 서로 달라 자동으로 하나로 합치지 않았습니다.')).toBeVisible();
-  await expect(page.getByText('추출 1').locator('..')).toContainText('약 300m');
-  await expect(page.getByText('추출 2').locator('..')).toContainText('약 3km');
+  await expect(page.getByText('내용 확인 필요', { exact: true })).toBeVisible();
+  await expect(page.getByText('최종 내용을 확인해 주세요', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('최종 내용', { exact: true })).toHaveValue('약 300m\n약 3km');
 
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
-  await expect(page.getByText('원문마다 내용이 다른 설정입니다.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByText('원문마다 내용이 다른 설정입니다.', { exact: false })).toBeVisible();
 
   await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).click();
   await page.getByLabel('최종 설정값').fill('약 300m');
   await page.getByRole('button', { name: '수정안 적용' }).click();
 
-  await expect(page.getByText('내용 확인 완료')).toBeVisible();
+  await expect(page.getByText('검토 완료', { exact: true }).last()).toBeVisible();
   await page.reload();
-  await expect(page.getByText('내용 확인 완료')).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
-  await page.getByRole('button', { name: '모두 확정' }).click();
+  await expect(page.getByText('검토 완료', { exact: true }).last()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
 
   await expect.poll(() => confirmedBody).toEqual({
     batchId,
@@ -1696,7 +1690,7 @@ test('현재 페이지 밖 세계관 후보 공유 링크를 실제 대상 그�
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('LOCATION|심층 미궁');
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
-  await expect(page.getByText('장소 · 심층 미궁', { exact: true })).toBeVisible();
+  await expect(page.getByText('장소 · 심층 미궁', { exact: true }).first()).toBeVisible();
   expect(requestedPages).toContain(1);
 });
 
@@ -1858,7 +1852,7 @@ test('동일 설정명이 남은 기존 배치는 중복 항목을 제외한 뒤
 
   const duplicateAlert = page.getByRole('alert').filter({ hasText: '같은 범위와 설정명 ‘기능’이 여러 번 있습니다.' });
   await expect(duplicateAlert).toContainText('내용을 하나로 합치거나 중복 항목을 제외해 주세요.');
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
 
   await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).first().click();
   await page.getByLabel('최종 설정값').fill('작가가 정리한 메시지 스톤 기능');
@@ -1872,8 +1866,8 @@ test('동일 설정명이 남은 기존 배치는 중복 항목을 제외한 뒤
   await duplicateRow.getByRole('button', { name: '기능 제외', exact: true }).click();
   await expect.poll(() => dismissedBody).toEqual({ batchId, candidateIds: [secondWorldCandidateId] });
   await expect(duplicateAlert).toBeHidden();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
-  await page.getByRole('button', { name: '모두 확정' }).click();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await expect.poll(() => confirmedBody).toEqual({
     batchId,
     candidates: [{
@@ -1970,15 +1964,16 @@ test('AI가 반영하지 않음을 제안한 설정도 원문과 판단 이유�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
-  await expect(page.getByText('중요 아이템 · 포션')).toBeVisible();
+  await expect(page.getByText('중요 아이템 · 포션').first()).toBeVisible();
+  for (const disclosure of await page.locator('.world-setting-diff-row details > summary').all()) await disclosure.click();
   await expect(page.getByText('피가 부글부글 끓더니 빠르게 재생된다.')).toBeVisible();
   await expect(page.getByText('사용하면 신체를 빠르게 재생시킨다.', { exact: true })).toBeVisible();
   await expect(page.getByText('사용하면 축적된 통증이 한꺼번에 느껴질 정도의 극심한 고통을 동반한다.', { exact: true })).toBeVisible();
-  await expect(page.getByText('비교한 기존값', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('유지되는 기존 설정', { exact: true })).toHaveCount(2);
   await expect(page.getByText('− 기존값', { exact: true })).toHaveCount(0);
   await expect(page.getByText("기존 ‘포션’의 회복 효과와 의미가 겹쳐 별도 설정으로 추가하지 않는 편이 좋습니다.")).toBeVisible();
-  await expect(page.getByText('추출된 값', { exact: true })).toHaveCount(2);
-  await expect(page.getByRole('article').getByText('반영하지 않음', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('이번에 추출된 내용', { exact: true })).toHaveCount(2);
+  await expect(page.getByRole('article').getByText('중복·반영 안 함', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: '선택 항목 제외', exact: true })).toHaveCount(0);
 
   await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).first().click();
@@ -3102,7 +3097,7 @@ test(scopeUnresolved
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   const scopeReview = page.locator('.world-setting-scope-review');
-  await expect(page.locator('.world-setting-diff-row__header strong')).toHaveText('광원');
+  await expect(page.locator('.world-setting-diff-row .review-cb-heading h3')).toHaveText('광원');
   await expect(page.getByText('범위 미지정 › 광원', { exact: true })).toHaveCount(0);
   if (scopeUnresolved) {
     await expect(scopeReview).toContainText('범위 확인 필요');
@@ -3110,7 +3105,7 @@ test(scopeUnresolved
     await expect(scopeReview).toContainText('기존 범위에 수정·병합');
   }
   await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: '분류·대상 일괄 수정' })).toBeDisabled();
 
   await page.getByRole('article').getByRole('button', { name: '수정', exact: true }).click();
@@ -3137,12 +3132,12 @@ test(scopeUnresolved
     }],
   });
   await expect(scopeReview).toBeHidden();
-  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
 
   await page.getByRole('button', { name: /미궁/ }).first().click();
   await page.setViewportSize({ width: 320, height: 900 });
-  await expect(page.getByText('1층 › 광원', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' }).first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth <= document.documentElement.clientWidth
   ))).toBe(true);

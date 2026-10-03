@@ -1,9 +1,10 @@
 import { Loader2 } from 'lucide-react';
 import type { SettingReviewProgress } from '../../lib/setting-review-progress';
 
-export function SettingReviewSummary({ episodeRange, progress }: {
-  episodeRange: string;
+export function SettingReviewSummary({ episodeRange, progress, unavailable = false }: {
+  episodeRange?: string;
   progress: SettingReviewProgress;
+  unavailable?: boolean;
 }) {
   const items = [
     { label: '반영됨', count: progress.confirmed, tone: 'confirmed' },
@@ -11,10 +12,10 @@ export function SettingReviewSummary({ episodeRange, progress }: {
     { label: '직접 확인', count: progress.directReview, tone: 'direct' },
   ];
   return (
-    <section className="setting-review-summary setting-review-summary--decisions" aria-label="설정 후보 검토 요약">
+    <section className="setting-review-summary setting-review-summary--decisions" aria-label="설정 후보 검토 요약" aria-busy={progress.total == null && !unavailable}>
       <div className="setting-review-summary__heading">
-        <strong>{episodeRange}</strong>
-        <span>전체 {progress.total}개 설정</span>
+        <strong>{episodeRange ?? '회차 정보 확인 중'}</strong>
+        <span>{progress.total == null ? unavailable ? '설정 개수 확인 불가' : '설정 개수 확인 중' : `전체 ${progress.total}개 설정`}</span>
       </div>
       <div className="setting-review-summary__metrics">
         {items.map(item => (

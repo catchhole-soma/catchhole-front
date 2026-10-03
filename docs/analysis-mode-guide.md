@@ -15,9 +15,9 @@
 | 단계 | 실제 컴포넌트로 보여주는 예시 |
 | --- | --- |
 | 1. 반영 방식 | 업로드의 반영 방식 선택 UI. 자동 반영이 기본이며 모든 설정 직접 검토도 선택할 수 있음을 설명한다. |
-| 2. 모든 설정 직접 검토 | 반영됨 0개/직접 확인 3개. 레온의 종족·직업·치유 능력을 원문 및 AI 비교 결과와 함께 모두 검토하는 화면이다. |
-| 3. AI 자동 반영 | 반영됨 2개/직접 확인 1개. 종족 엘프·직업 정찰병이 별도 확정 없이 캐릭터 프로필에 저장된 모습을 보여준다. |
-| 4. 자동 반영 후 직접 검토 | 대상이 모호한 치유 능력 1개만 실제 검토 카드로 보여준다. 자동 반영을 선택해도 불분명한 설정은 직접 확인한다. |
+| 2. 모든 설정 직접 검토 | 반영됨 0개/직접 확인 3개. 레온 2개·인물 미상 1개를 실제 인물별 묶음으로 보여준다. 선택된 레온의 종족은 새 설정 한 칸, 직업은 왕국 정찰병 → 북부 원정대 정찰병의 빨강·초록 변경 비교로 표시한다. 레온의 2개를 함께 확정한 뒤 미상 1개도 검토해야 한다. |
+| 3. AI 자동 반영 | 반영됨 2개/직접 확인 1개. 종족 엘프·직업 북부 원정대 정찰병이 별도 확정 없이 캐릭터 프로필에 저장된 모습을 보여준다. |
+| 4. 자동 반영 후 직접 검토 | 대상이 모호한 치유 능력 1개만 실제 검토 카드로 보여준다. 인물 기본 사진, “누구에 관한 내용인가요?”와 레온·유나·새로운 인물 3개 선택 카드를 사용한다. 대상 미확인을 실행 실패처럼 표시하지 않는다. 선택 전에는 묶음 확정 버튼이 잠겨 있다. |
 | 5. 검토 완료 | 사람이 남은 설정을 확인하고 확정한 뒤의 예시로 반영됨 3개/직접 확인 0개와 실제 완료 화면을 보여준다. |
 
 - 별도의 방식 탭 없이 이 순서의 단계 바 하나만 제공한다. 모달 최대 너비 1,320px/높이 1,080px를 유지하며 작은 화면에서는 단계 바만 가로로 스크롤한다. 현재 단계는 바 안에서 드러내되 문서 전체를 이동하지 않는다.
@@ -27,18 +27,19 @@
 
 ## 실제 컴포넌트와 데이터 경계
 
-`AnalysisGuidePreview`는 가상의 원고·인물·설정을 로컬 상수로 전달한다. 실제 업로드와 공유하는 `AnalysisReviewModeSelector`, 검토의 `SettingReviewSummary`·`CandidateGroupCard`·`CandidateDetail`·`QueryState`·`ActionButton`, 캐릭터 프로필의 `SimpleSettingList`를 사용한다. 화면의 설명과 배치만 안내에 맞게 구성한다.
+`AnalysisGuidePreview`는 `analysisGuideFixture.ts`의 가상 원고·인물·설정을 로컬 상수로 전달한다. 실제 업로드와 공유하는 `AnalysisReviewModeSelector`, 검토의 `SettingReviewSummary`·`CandidateGroupCard`·`CandidateDetail`·`QueryState`·`ActionButton`, 캐릭터 프로필의 `SimpleSettingList`를 사용한다. 화면의 설명과 배치만 안내에 맞게 구성한다. GH215의 `CharacterReviewComparison`·`CharacterTargetChoices`·공유 사진·diff·선택 카드가 실제 검토와 동일하게 사용된다.
 
-- 스크린샷 이미지·iframe·별도 fixture API·Query 캐시 주입을 사용하지 않는다. 이전 PNG 16장과 캡처 생성 테스트는 제거했다. 실제 화면 UI 수정이 공유 컴포넌트에 반영되면 안내에도 반영된다.
+- 스크린샷으로 화면을 대체하거나 iframe·별도 fixture API·Query 캐시 주입을 사용하지 않는다. 제목 및 인물 선택에 있는 이미지는 실제 검토의 번들 기본 썸네일이며 예시 화면을 찍은 PNG가 아니다. 이전 PNG 16장과 캡처 생성 테스트는 제거했다. 실제 화면 UI 수정이 공유 컴포넌트에 반영되면 안내에도 반영된다.
 - 예시 안은 네이티브 `inert`로 포인터·키보드·폼 이벤트를 차단하고 데이터 변경 핸들러를 연결하지 않는다. 조작할 수 있는 것처럼 탭 이동하지 않으며 스크린리더에는 단계별 상세 대체 설명을 제공한다. 바깥 탐색 버튼만 동작한다.
 - 예시와 실제 업로드의 radio 이름은 컴포넌트별 `useId`로 분리해 현재 반영 선택을 바꾸지 않는다.
+- `CandidateDetail.previewCharacters`에 로컬 인물 목록을 전달하고 실제 `workId`는 전달하지 않는다. 대상 목록 Query는 비활성화되며 대상 사진도 번들 기본 이미지로 표시한다. 개인 이미지·작품·인물 조회를 예시에서 시작하지 않는다.
 - 실제 분석·원고 업로드·설정 생성/확정 API와 LLM을 호출하지 않는다. 서버에 남는 것은 계정의 안내 기록뿐이다. 서버 조회 실패를 예시 데이터로 대체하는 기능이 아니다.
 
 ## 검증과 디자인
 
-- `e2e/analysis-mode-guide.spec.ts`: 계정 1회, 새 작품/새로고침, 오류/동시 선점, 수동 도움말, 5단계 URL 복원, 한 줄 바, 방향키·초점 유지, 실제 DOM·PNG 부재, 예시 이벤트 차단, 업로드 선택 보존, 320px 본문 스크롤·재배치·44px 버튼.
+- `e2e/analysis-mode-guide.spec.ts`: 계정 1회, 새 작품/새로고침, 오류/동시 선점, 수동 도움말, 5단계 URL 복원, 한 줄 바, 방향키·초점 유지, 실제 DOM·기본 썸네일·변경 diff·대상 3선택 카드, 예시 포인터/초점 차단, API 미호출·브라우저 저장소 미변경, 업로드 선택 보존, 320px 본문 스크롤·재배치·44px 버튼.
 - `e2e/analysis-mode-guide-live.spec.ts`: 공통 로컬 fixture 환경 변수가 있을 때 실제 Java/PostgreSQL 안내 기록 및 캐릭터·세계관·분석 미생성을 검증하고 fixture를 정리한다.
-- Pencil: `gh194AnalysisGuideDesktop`, `gh194AnalysisGuideManualDesktop`, `gh194AnalysisGuideExceptionDesktop`, `gh194AnalysisGuideMobile`. `docs/screens/gh194/analysis-guide-*.png`는 리뷰 기록용으로만 쓰며 제품의 안내 UI에는 로드하지 않는다.
+- 과거 Pencil 참조: `gh194AnalysisGuideDesktop`, `gh194AnalysisGuideManualDesktop`, `gh194AnalysisGuideExceptionDesktop`, `gh194AnalysisGuideMobile`. Clear Blue 적용 검증은 현재 실제 컴포넌트를 렌더링해 갱신한 아래 스크린샷과 E2E를 기준으로 한다. `docs/screens/gh215/analysis-guide-*.png`는 리뷰 기록용으로만 쓰며 제품의 안내 UI에는 로드하지 않는다.
 - 서버 구현·V64·계정 이력 보존은 Java의 `docs/analysis-mode-guide.md`를 따른다. 이번 안내 표현 변경에는 새 API·migration이 필요하지 않다.
 
 실서버 테스트의 계정 준비·반복 실행·정리는 [공통 로컬 fixture 안내](local-image-live-tests.md)를 따른다. 이전의 고정 계정·작품 ID 환경 변수 대신 실행마다 새 상태를 준비한다.

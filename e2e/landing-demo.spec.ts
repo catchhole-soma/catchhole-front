@@ -196,11 +196,11 @@ test('랜딩 데모는 전체 설정 관리 흐름을 직접 탐색하고 재생
 
   await demo.getByRole('tab', { name: '4단계 설정 후보 추출' }).focus();
   await expect(stage.locator('.landing-native-review-tabs .is-active')).toContainText('세계관 후보');
-  await expect(stage.getByText('거꾸로숲', { exact: true }).first()).toBeVisible();
+  await expect(stage.locator('.review-cb-heading')).toContainText('거꾸로숲');
 
   await demo.getByRole('tab', { name: '5단계 후보 비교와 확정' }).focus();
   await expect(stage.locator('.landing-native-review-tabs .is-active')).toContainText('캐릭터 후보');
-  await expect(stage.getByText('에단 렌', { exact: true }).first()).toBeVisible();
+  await expect(stage.locator('.review-cb-heading')).toContainText('에단 렌');
   await expect(stage.getByText('재액 운반자', { exact: true }).first()).toBeVisible();
 
   await demo.getByRole('tab', { name: '6단계 작품 설정 전체 목록' }).focus();
@@ -336,6 +336,25 @@ test('모바일 헤더의 로그인 버튼은 로그인 라우트 모달을 연�
 });
 
 for (const width of [320, 1280]) {
+  test(`랜딩 검토 예시는 실제 컴포넌트이며 단건 확정과 빈 기존값을 보여주지 않는다 (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/landing');
+    const demo = page.locator('.landing-demo-accordion');
+    await demo.getByRole('tab', { name: '4단계 설정 후보 추출' }).focus();
+    const stage = demo.locator('.landing-demo-panel.is-active');
+    await expect(stage.locator('.world-setting-diff-row .review-cb-heading__image img')).toBeVisible();
+    await expect(stage.locator('.review-cb-comparison')).toHaveCount(0);
+    await expect(stage.getByText('없음', { exact: true })).toHaveCount(0);
+    await expect(stage.locator('.landing-review-scene')).toHaveAttribute('inert', '');
+    await stage.locator('.landing-demo-panel__content').screenshot({ path: `docs/screens/gh215/landing-world-${width}.png` });
+    await demo.getByRole('tab', { name: '5단계 후보 비교와 확정' }).focus();
+    await expect(stage.locator('.setting-candidate-detail .review-cb-heading__image img')).toBeVisible();
+    await expect(stage.locator('.review-cb-comparison.is-change')).toBeVisible();
+    await expect(stage.getByRole('button', { name: '확정', exact: true, includeHidden: true })).toHaveCount(0);
+    await stage.locator('.landing-demo-panel__content').screenshot({ path: `docs/screens/gh215/landing-character-${width}.png` });
+  });
+
   test(`일반 소개는 자동 반영 기본값을 알리고 수동 검토 데모와 구분한다 (${width}px)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });

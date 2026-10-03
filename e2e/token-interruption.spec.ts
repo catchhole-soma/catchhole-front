@@ -1009,7 +1009,7 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
     .filter({ hasText: '사용량 부족으로 중단' });
   const rowQuotaBadge = page.locator('.world-setting-diff-row .review-badge')
     .filter({ hasText: '사용량 부족으로 중단' });
-  const quotaDetailNotice = page.locator('.world-candidate-detail-card').getByRole('status');
+  const quotaDetailNotice = page.locator('.world-candidate-detail-card').getByRole('status').filter({ hasText: '사용량 부족으로 중단' });
   for (const label of [groupQuotaBadge, rowQuotaBadge, quotaDetailNotice]) {
     await expect(label).toHaveCSS('color', 'rgb(138, 75, 0)');
   }

@@ -519,3 +519,39 @@ source_context: "AnalysisModeGuideDialog.tsx; GH194"
 - GH199 안내 문구 추가 수정: 로그인/코드 설명 대신 작품 전용·본인에게만 보이는 이미지임을 강조한다. `이 작품에만 사용하는 이미지이며, 나만 볼 수 있어요.`로 반영했다.
 
 - GH199 용량 정책 사용자 결정: 작품당 50개 유지, 이미지 한 장은 5MB 이하. 선택 파일과 PNG 변환 결과 모두 검사하고 화면 안내에 반영한다.
+
+## 2026-10-02 — clear-blue-review-implementation
+
+```omd-meta
+id: pref_gh215_clear_blue_review
+timestamp: 2026-10-02
+scope: setting-review
+signal: user-statement
+confidence: explicit
+status: applied
+source_agent: codex
+source_context: "Java issue #215; approved separate Clear Blue HTML based on v8 43-state review atlas"
+```
+
+승인된 Clear Blue 테마와 사진·질문·결과 선택 카드·변경 diff를 실제 캐릭터/세계관 후보 검토에 적용한다. 기존 시안과 팀 공유 문서는 보존한다. 분석 진행 화면은 이미 있으므로 검토를 위한 새 진행 화면을 만들지 않고 필요한 짧은 잠금 안내와 기존 화면 연결로 통합한다. 모든 실제 검토 상태를 확인하며, 기존 그룹 확정·기본 미처리 필터·원문·버전/현재값 보호를 유지한다. 과거 범위 병합의 모달 선입력 선호는 일반 선택의 인라인 결정으로 대체하고 고급 수정은 유지한다.
+
+동일한 화면을 소개하는 랜딩 예시·로그인 없이 체험하기·첫 업로드 안내도 함께 갱신한다. 실제 컴포넌트를 재사용해 소개와 제품의 모습이 어긋나지 않도록 한다. 예시에서 실제 작품 저장이나 인증 저장소 변경을 수행하지 않는다.
+
+## 2026-10-03 — compact-character-review-actions
+
+```omd-meta
+id: pref_gh215_compact_character_actions
+timestamp: 2026-10-03
+scope: setting-review
+signal: user-correction
+confidence: explicit
+status: applied
+source_agent: codex
+source_context: "캐릭터 선택 카드의 반복 확정 안내 삭제, 연결 변경을 수정 왼쪽에 배치, 신규 등록은 모달 안으로 이동 요청"
+```
+
+현재 반영·이력 카드의 하단 반복 안내를 제거한다. 캐릭터 연결 변경·수정·제외를 제목 옆에 모으고 기존 연결 상태·변경·신규 등록을 나열하던 별도 행은 제거한다. 새 캐릭터 등록은 연결 모달 안에서 선택한다. 그룹 확정과 확정 전 재선택, 미상 인물의 직접 선택은 유지한다. DESIGN.md에 함께 반영했다.
+
+## 2026-10-03 같은 회차의 수동 최종 결과 존중
+
+사용자는 같은 회차 후보를 수정·제외한 선택과 화면에 남아 있는 최종 문장을 그대로 승인하기로 결정했다. 제외한 선행 후보 때문에 다른 후보의 병합 문장을 다시 생성하거나 AI 재비교를 강제하지 않는다. 수정한 값은 저장된 최종 초안, 제외는 해당 후보만 제외, 나머지 선택은 보존한다. 원문 변경·동시 수정·대상 연결·후행 현재값 보호는 별도 검증한다. 관련 작업은 Java 이슈 #215 및 프론트/Java `feat/gh-215-review-clear-blue` 브랜치에서 함께 관리한다.
