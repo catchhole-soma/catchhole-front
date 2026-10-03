@@ -27,6 +27,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
   let candidate = { ...initialCandidate, ...overrides };
   const requests: { method: string; path: string; body: Record<string, unknown> }[] = [];
   let rejectReview = false;
+  let rejectMatch = false;
   let matchResponse: Record<string, unknown> = {};
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
@@ -44,6 +45,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
       return success(route, candidate);
     }
     if (path.endsWith('/character-match')) {
+      if (rejectMatch) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, message: '연결 요청에 실패했습니다.' }) });
       candidate = { ...candidate, matchedCharacterId: request.postDataJSON().matchedCharacterId,
         matchStatus: 'MATCHED', userModified: true, reviewedApplicationMode: null, updatedAt: '2026-10-02T01:01:00Z', ...matchResponse };
       return success(route, candidate);
@@ -68,7 +70,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'clear-blue-character-test'));
   await page.goto(url);
-  return { requests, rejectReview: (value: boolean) => { rejectReview = value; },
+  return { requests, rejectMatch: (value: boolean) => { rejectMatch = value; }, rejectReview: (value: boolean) => { rejectReview = value; },
     setMatchResponse: (values: Record<string, unknown>) => { matchResponse = values; },
     setCandidate: (values: Record<string, unknown>) => { candidate = { ...candidate, ...values }; } };
 }
@@ -464,3 +466,36 @@ for (const state of ['CONFIRMED', 'DISMISSED'] as const) {
     }
   });
 }
+
+for (const width of [1280, 320]) {
+  test(`${width}px 캐릭터 연결 실패는 선택을 보존하고 같은 인물로 재시도한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const state = await fixture(page, { matchStatus: 'AMBIGUOUS', matchedCharacterId: null, comparisonStatus: 'WAITING_FOR_CHARACTER_MATCH' });
+    const openDetail = page.getByRole('button', { name: /루안.*1개 설정/ });
+    if (width < 768 && await openDetail.isVisible()) await openDetail.click();
+    state.rejectMatch(true);
+    const target = card(page).getByRole('button', { name: /루안 게르/ });
+    await target.click();
+    const retry = card(page).getByRole('button', { name: '선택한 인물로 다시 연결' });
+    await expect(retry).toBeVisible();
+    await expect(target).toHaveAttribute('aria-pressed', 'true');
+    await expect(confirm(page)).toBeDisabled();
+    expect(state.requests.filter(request => request.path.endsWith('/character-match'))).toHaveLength(1);
+    state.rejectMatch(false);
+    await retry.click();
+    await expect(retry).toHaveCount(0);
+    const matches = state.requests.filter(request => request.path.endsWith('/character-match'));
+    expect(matches).toHaveLength(2);
+    expect(matches.map(request => request.body.matchedCharacterId)).toEqual([character2Id, character2Id]);
+    expect(state.requests.some(request => request.path.endsWith('/group-confirm'))).toBe(false);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
+test('이력 선택에 과거 직업 예시를 별도 줄로 보여 준다', async ({ page }) => {
+  await fixture(page);
+  const choice = card(page).getByRole('button', { name: /이력에만 저장/ });
+  await expect(choice).toContainText('과거에는 용병이었다');
+  await expect(choice).toContainText('현재 직업은 바꾸지 않습니다.');
+  await expect(choice.locator('.review-cb-choice__identity br')).toHaveCount(1);
+});

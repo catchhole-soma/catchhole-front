@@ -22,6 +22,7 @@ async function setup(page: Page, overrides: Partial<WorldSettingCandidateRespons
   let candidates: WorldSettingCandidateResponse[] = [{ ...base, ...overrides }];
   if (options.second) candidates.push({ ...candidates[0], ...(typeof options.second === 'object' ? options.second : {}), id: '55555555-5555-4555-8555-555555555555' });
   let readbackFailure = Boolean(options.failReadback);
+  let targetFailure: 'http' | 'incomplete' | null = null;
   const saved: DecisionRequest[] = [];
   const confirmed: DecisionRequest[] = [];
   const requests: string[] = [];
@@ -64,7 +65,10 @@ async function setup(page: Page, overrides: Partial<WorldSettingCandidateRespons
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0, candidates: pageData([]) });
     if (path.endsWith('/world-settings')) return success(route, { totalWorldSettingCount: options.searchTargets ? 2 : 0,
       worldSettings: pageData(options.searchTargets ? [{ id: targetId, category: 'LOCATION', subjectName: '북부 미궁', propertyCount: 1 },
-        { id: '66666666-6666-4666-8666-666666666666', category: 'LOCATION', subjectName: '왕도 미궁', propertyCount: 0 }] : []) });
+        { id: '66666666-6666-4666-8666-666666666666', category: 'LOCATION', subjectName: '왕도 미궁', propertyCount: 0 }]
+        .filter(target => target.subjectName.includes(url.searchParams.get('q') ?? '')) : []) });
+    if (path.includes('/world-settings/') && targetFailure === 'http') return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false, message: '대상 상세를 읽지 못했습니다.' }) });
+    if (path.includes('/world-settings/') && targetFailure === 'incomplete') return success(route, {});
     if (path.includes('/world-settings/')) return success(route, { id: path.split('/').at(-1), workId, category: 'LOCATION', subjectName: path.endsWith(targetId) ? '북부 미궁' : '왕도 미궁', version: 1, properties: options.targetValue ? [{ scopeName: null, settingName: '위험 기준', value: options.targetValue }] : [] });
     return success(route, {});
   });
@@ -73,7 +77,7 @@ async function setup(page: Page, overrides: Partial<WorldSettingCandidateRespons
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
   if ((page.viewportSize()?.width ?? 1280) < 768) await page.locator('.world-candidate-group-card').first().click();
   await expect(page.locator('.world-setting-diff-row').first()).toBeVisible();
-  return { saved, confirmed, requests, allowReadback: () => { readbackFailure = false; } };
+  return { saved, confirmed, requests, setTargetFailure: (value: 'http' | 'incomplete' | null) => { targetFailure = value; }, allowReadback: () => { readbackFailure = false; } };
 }
 
 test('범위 미정은 예 한 번으로 기존 내용과 이번 내용을 함께 저장하고 마지막에 그룹 확정한다', async ({ page }) => {
@@ -419,4 +423,62 @@ test('기존 저장안이 있어도 재저장 실패 후 미저장 입력을 확
   expect(confirmed).toHaveLength(0);
   await page.getByRole('button', { name: '수정 닫기', exact: true }).click();
   await expect(confirm).toBeEnabled();
+});
+
+for (const failure of ['http', 'incomplete'] as const) {
+  test(`대상 상세 ${failure} 실패에도 선택을 보존하고 조회 재시도 후에만 저장한다`, async ({ page }) => {
+    const state = await setup(page, { comparisonReviewReason: 'SUBJECT_UNRESOLVED', beforeValue: null }, { searchTargets: true });
+    state.setTargetFailure(failure);
+    const target = page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ });
+    await target.click();
+    const retry = page.getByRole('button', { name: '선택한 대상 다시 불러오기' });
+    await expect(retry).toBeVisible();
+    await expect(target).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+    expect(state.saved).toHaveLength(0);
+    if (failure === 'http') {
+      await page.getByLabel('기존 세계관 대상 검색', { exact: true }).fill('왕도');
+      await expect(target).toHaveCount(0);
+    }
+    state.setTargetFailure(null);
+    await retry.click();
+    await expect.poll(() => state.saved.length).toBe(1);
+    expect(state.saved[0].candidates[0]).toMatchObject({ subjectName: '북부 미궁', operation: 'ADD' });
+    await expect(retry).toHaveCount(0);
+  });
+}
+
+test('저장된 대상에서 다른 대상 조회가 실패해도 이전 초안을 잘못 확정하지 않는다', async ({ page }) => {
+  const state = await setup(page, { comparisonReviewReason: 'SUBJECT_UNRESOLVED', beforeValue: null }, { searchTargets: true });
+  await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await expect.poll(() => state.saved.length).toBe(1);
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  state.setTargetFailure('http');
+  const other = page.getByRole('button', { name: /왕도 미궁.*이 대상에 연결/ });
+  await other.click();
+  await expect(page.getByRole('button', { name: '선택한 대상 다시 불러오기' })).toBeVisible();
+  await expect(other).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  expect(state.saved).toHaveLength(1);
+  state.setTargetFailure(null);
+  await page.getByRole('button', { name: '선택한 대상 다시 불러오기' }).click();
+  await expect.poll(() => state.saved.length).toBe(2);
+  expect(state.saved[1].candidates[0].subjectName).toBe('왕도 미궁');
+});
+
+test('세계관 제외 배지는 밝은 테마 중립색과 읽을 수 있는 대비를 사용한다', async ({ page }) => {
+  await setup(page, { suggestedOperation: 'EXCLUDE', comparisonReviewReason: undefined, manualReviewAvailable: false });
+  const badge = page.locator('.world-setting-diff-row .review-badge').first();
+  await expect(badge).toHaveText('중복·반영 안 함');
+  await expect(badge).toHaveCSS('color', 'rgb(51, 58, 70)');
+  await expect(badge).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(badge).toHaveCSS('border-top-color', 'rgb(207, 214, 226)');
+  const contrast = await badge.evaluate(node => {
+    const style = getComputedStyle(node);
+    const luminance = (rgb: string) => rgb.match(/\d+/g)!.slice(0, 3).map(Number).map(n => n / 255)
+      .map(n => n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4)
+      .reduce((sum, n, i) => sum + n * [0.2126, 0.7152, 0.0722][i], 0);
+    return (luminance(style.backgroundColor) + 0.05) / (luminance(style.color) + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
 });

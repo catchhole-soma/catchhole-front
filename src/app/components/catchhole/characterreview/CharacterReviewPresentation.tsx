@@ -32,15 +32,17 @@ function characterReviewValues(candidate: SettingCandidateResponse) {
 }
 
 /** Registered characters are a paginated directory, not an invented AI recommendation list. */
-export function CharacterTargetChoices({ workId, previewCharacters, candidate, disabled, onResolve, onBrowse }: {
+export function CharacterTargetChoices({ workId, previewCharacters, candidate, disabled, resolutionError, onResolve, onBrowse }: {
   workId?: string;
   previewCharacters?: CharacterSummaryResponse[];
   candidate: SettingCandidateResponse;
   disabled: boolean;
+  resolutionError?: string | null;
   onResolve: (resolution: 'MATCH_EXISTING' | 'CREATE_NEW', value: string) => void;
   onBrowse: () => void;
 }) {
   const [createNew, setCreateNew] = useState(false);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [name, setName] = useState(candidate.entityName === '미상' ? '' : candidate.entityName ?? '');
   const query = useQuery({ ...getCharactersOptions({ path: { workId: workId ?? '' }, query: { page, size: 6 } }),
@@ -48,7 +50,7 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
   const characters = previewCharacters ?? query.data?.data?.content ?? [];
   return <div className="review-character-targets">
     <ReviewChoiceCards label="누구에 관한 내용인가요?"
-      value={createNew ? 'new' : candidate.matchedCharacterId ?? null} disabled={disabled || query.isFetching}
+      value={createNew ? 'new' : selectedCharacterId ?? candidate.matchedCharacterId ?? null} disabled={disabled || query.isFetching}
       choices={[
         ...characters.flatMap(character => character.id ? [{ id: character.id, title: character.name || '이름 없는 인물',
           description: [character.representativeAttributeLabel && character.representativeAttributeValue
@@ -58,7 +60,9 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
         }] : []),
         { id: 'new', title: '새로운 인물', description: '이름을 입력해 새로 등록', image: <CharacterSubjectImage />, footnote: '기존 인물과 다른 사람이에요' },
       ]}
-      onChange={id => { setCreateNew(id === 'new'); if (id !== 'new') onResolve('MATCH_EXISTING', id); }} />
+      onChange={id => { setCreateNew(id === 'new'); if (id !== 'new') { setSelectedCharacterId(id); onResolve('MATCH_EXISTING', id); } }} />
+    {resolutionError && !createNew && selectedCharacterId && <button type="button" className="review-cb-secondary" disabled={disabled}
+      onClick={() => onResolve('MATCH_EXISTING', selectedCharacterId)}>선택한 인물로 다시 연결</button>}
     <div className="review-inline-actions">
       <span>{!previewCharacters && query.isPending ? '등록된 인물을 불러오고 있어요.' : '등록된 인물 중에서 선택해 주세요.'}</span>
       <button type="button" className="review-action" disabled={disabled} onClick={onBrowse}>다른 인물 찾기</button>
@@ -156,7 +160,7 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
           description: manual ? '확인한 이번 내용으로 현재 설정을 바꿉니다.' : '위에 표시된 제안값을 현재 설정에 반영합니다.',
           preview: operation === 'REMOVE' && !manual ? '이전 내용은 이력에 남아요.' : manual ? candidate.attributeValue : values.after ?? undefined }] : []),
         ...(policy.canSaveHistory || canReviewCurrent ? [{ id: 'HISTORY_ONLY', title: '이력에만 저장',
-          description: '회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.',
+          description: <>회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.<br />예: ‘과거에는 용병이었다’는 이력에 남기되 현재 직업은 바꾸지 않습니다.</>,
           preview: values.before ? `현재 설정 유지 · ${values.before}` : '현재 설정을 바꾸지 않습니다.' }] : []),
         ...(!policy.canApplyProposal && !canReviewCurrent && onEdit ? [{ id: 'edit', title: '현재 반영할 내용 수정',
           description: '현재 설정을 바꿔야 한다면 값을 수정해 주세요.', footnote: '수정 창 열기' }] : []),

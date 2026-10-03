@@ -1155,7 +1155,7 @@ export function CandidateDetail({
       {needsTarget && !readOnly && <>
         <ReviewInlineValue label="이번 원고에서">{candidate.attributeValue || '인물의 등장'}</ReviewInlineValue>
         {(workId || previewCharacters) && onResolveTarget ? <CharacterTargetChoices candidate={candidate} workId={workId} previewCharacters={previewCharacters}
-          disabled={disabled || invalidValue} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING')} />
+          disabled={disabled || invalidValue} resolutionError={actionError} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING')} />
           : <ReviewNotice title="누구에 관한 내용인가요?" action={<ActionButton disabled={disabled || invalidValue} onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결</ActionButton>}>원문에 등장한 인물을 선택해 주세요.</ReviewNotice>}
       </>}
       {comparisonEnabled && !invalidValue && <CharacterReviewComparison candidate={candidate}

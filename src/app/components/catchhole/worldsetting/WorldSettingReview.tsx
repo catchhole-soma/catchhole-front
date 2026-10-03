@@ -411,17 +411,19 @@ function userFacingComparisonReason(
 function Badge({
   label,
   color,
+  neutral = false,
   textColor = reviewToneInk(color),
 }: {
   label: string;
   color: string;
+  neutral?: boolean;
   textColor?: string;
 }) {
   return (
     <span className="review-badge" style={{
       display: 'inline-flex', alignItems: 'center', minHeight: 24,
-      padding: '2px 8px', borderRadius: 12, border: `1px solid ${color}55`,
-      background: `${color}18`, color: textColor, fontSize: 10, fontWeight: 750,
+      padding: '2px 8px', borderRadius: 12, border: neutral ? '1px solid var(--ch-border-strong)' : `1px solid ${color}55`,
+      background: neutral ? 'var(--ch-canvas)' : `${color}18`, color: neutral ? 'var(--ch-text)' : textColor, fontSize: 10, fontWeight: 750,
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -786,8 +788,8 @@ export function WorldKeyDiffRow({
     : automaticPending ? '분석 중' : executionLabel ?? (saved ? inlineDirty ? '수정 중' : '검토 완료' : hasConflict && !isBatchLimitExceededCandidate(candidate) ? '내용 확인 필요' : needsReview ? holdLabel ?? reviewReasonLabel(candidate)
     : operation === 'ADD' ? '새 설정' : operation === 'EXCLUDE' ? before ? '중복·반영 안 함' : '반영 안 함'
     : OPERATION_META[operation ?? 'REVIEW_REQUIRED'].label);
-  const stateTone = !pending && candidate.reviewStatus === 'DISMISSED' || operation === 'EXCLUDE' ? C.t2
-    : inlineDirty ? C.warning : resolved ? C.success : automaticPending ? C.primary
+  const excluded = candidate.reviewStatus === 'DISMISSED' || operation === 'EXCLUDE';
+  const stateTone = inlineDirty ? C.warning : resolved ? C.success : automaticPending ? C.primary
     : executionLabel ? candidate.comparisonStatus === 'FAILED' && !isQuotaInterruptedCandidate(candidate) ? C.danger : C.warning
     : needsReview ? C.warning : C.success;
   const finalSavedValue = pending && saved && Boolean(candidate.finalValue);
@@ -800,7 +802,7 @@ export function WorldKeyDiffRow({
     <ReviewSettingHeading title={keyName}
       subtitle={[category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ')}
       image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
-      badge={<><Badge label={stateLabel} color={stateTone} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
+      badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
       episode={candidate.sourceEpisodeNo == null ? '회차 근거 없음' : `${candidate.sourceEpisodeNo}화에서 찾은 설정`}
       actions={<>
         <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>

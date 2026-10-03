@@ -25,6 +25,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
   const [targetQuery, setTargetQuery] = useState('');
   const [targetPage, setTargetPage] = useState(0);
   const [targetLoading, setTargetLoading] = useState(false);
+  const [targetLoadFailed, setTargetLoadFailed] = useState(false);
   const [targetBefore, setTargetBefore] = useState<string | null>(null);
   const saved = Boolean(candidate.finalOperation);
   const sourceDraft = worldReviewSourceDraft(candidate, initialDraft);
@@ -44,7 +45,8 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dirty = !sameWorldReviewDraft(draft, initialDraft);
+  const targetBlocked = targetLoading || targetLoadFailed;
+  const dirty = !sameWorldReviewDraft(draft, initialDraft) || targetBlocked;
   useLayoutEffect(() => {
     onDirtyChange?.(dirty);
     return () => onDirtyChange?.(false);
@@ -55,6 +57,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
     setError(null);
     setSelected(null);
     setSelectedTargetId(null);
+    setTargetLoadFailed(false);
     setTargetBefore(null);
   };
   const unresolved = candidate.comparisonReviewReason === 'SCOPE_UNRESOLVED';
@@ -93,7 +96,12 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
   };
   const chooseTarget = async (id: string) => {
     const target = targets?.content?.find(item => item.id === id);
-    if (!target?.id || !target.subjectName || !target.category || disabled || targetLoading) return;
+    if (disabled || targetLoading || !candidate.workId) return;
+    // 검색·페이지가 바뀌어도 실패한 선택은 동일 ID로 다시 조회한다.
+    if (id !== selectedTargetId && (!target?.id || !target.subjectName || !target.category)) return;
+    setSelectedTargetId(id);
+    setTargetBefore(null);
+    setTargetLoadFailed(false);
     setTargetLoading(true);
     setError(null);
     try {
@@ -106,7 +114,6 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       const normalized = (value?: string | null) => (value ?? '').trim().normalize('NFC').toLocaleLowerCase('ko-KR');
       const existing = detail.properties?.find(property => normalized(property.scopeName) === normalized(next.scopeName)
         && normalized(property.settingName) === normalized(next.settingName));
-      setSelectedTargetId(id);
       setDraft(next);
       if (existing?.value) {
         setTargetBefore(existing.value);
@@ -114,7 +121,8 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       } else if (conflict) setEditing(true);
       else save(next);
     } catch {
-      setError('대상의 현재 설정을 불러오지 못했습니다. 선택을 유지했으니 다시 선택해 주세요.');
+      setTargetLoadFailed(true);
+      setError('대상의 현재 설정을 불러오지 못했습니다. 선택한 대상을 다시 불러와 주세요.');
     } finally { setTargetLoading(false); }
   };
   const choose = (id: string, value: WorldReviewDraft) => {
@@ -151,7 +159,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
     && savedTarget.subjectName === initialDraft.subjectName && savedTarget.category === initialDraft.category
     ? savedTarget.properties?.find(property => (property.scopeName?.trim() || null) === (initialDraft.scopeName?.trim() || null)
       && property.settingName?.trim() === initialDraft.settingName.trim())?.value ?? null : null;
-  const currentTargetBefore = targetBefore ?? savedTargetBefore;
+  const currentTargetBefore = targetBlocked ? null : targetBefore ?? savedTargetBefore;
   const editorBefore = currentTargetBefore ?? (!subjectUnresolved ? candidate.beforeValue : null);
 
   return <div className="review-cb-decision-panel">
@@ -167,7 +175,9 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
             footnote: '이 대상에 연결' }] : []),
           { id: 'new-target', title: '새로운 대상', description: candidate.subjectName ?? '', footnote: '기존 대상과 다른 이름으로 새로 추가' },
         ]}
-        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }} />
+        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }} />
+      {targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
+        onClick={() => void chooseTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
       {targetsQuery.isPending && <p role="status">기존 대상을 불러오고 있어요.</p>}
       {targetsQuery.isError && <ReviewNotice tone="warning" action={<button type="button" className="review-cb-secondary" onClick={() => void targetsQuery.refetch()}>다시 불러오기</button>}>기존 대상을 불러오지 못했어요. 새 대상이 없다는 뜻은 아니에요.</ReviewNotice>}
       {(targetPage > 0 || targets?.hasNext) && <div className="review-cb-actions">
@@ -202,7 +212,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
         { id: 'edit', title: '내용·저장 위치 수정', description: '대상, 범위, 최종 내용을 직접 정할 수 있어요.', footnote: '같은 설정이 이미 있다면 여기에서 반영 방법 선택' },
       ]}
       onChange={id => { if (id === 'edit') setEditing(true); else choose('keep', sourceDraft); }} />}
-    {editorVisible && <form className="review-cb-inline-editor" onSubmit={event => { event.preventDefault(); if (!disabled) save(draft); }}>
+    {editorVisible && <form className="review-cb-inline-editor" onSubmit={event => { event.preventDefault(); if (!disabled && !targetBlocked) save(draft); }}>
       <strong>{conflict ? '최종 내용을 확인해 주세요' : '반영할 내용을 정해 주세요'}</strong>
       {candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED' && <p>어느 대상의 설정인지 원문을 확인해 대상 이름을 입력해 주세요. 기존 대상의 정확한 이름을 입력하면 해당 대상에 반영합니다.</p>}
       <div className="review-cb-inline-fields">
@@ -222,7 +232,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       {editorBefore && <ReviewValueComparison before={editorBefore} after={draft.value}
         mode={draft.operation === 'ADD' ? 'neutral' : 'change'} beforeLabel="현재 저장된 내용" afterLabel="저장할 최종 내용" />}
       {error && <ReviewNotice tone="danger">{error}</ReviewNotice>}
-      <button type="submit" className="review-cb-primary" disabled={disabled || targetLoading}>이 내용으로 검토 완료</button>
+      <button type="submit" className="review-cb-primary" disabled={disabled || targetBlocked}>이 내용으로 검토 완료</button>
       <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.'}</p>
     </form>}
     {error && !editorVisible && <ReviewNotice tone="danger">{error}</ReviewNotice>}
