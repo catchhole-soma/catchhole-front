@@ -273,6 +273,40 @@ test('노출 기록 응답이 늦게 도착해도 검토 화면으로 이동한 
   await expect(page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' })).toHaveCount(0);
 });
 
+test('의견 안내 응답을 기다리는 동안 원고 페이지를 바꿔도 같은 화면에서 한 번 안내한다', async ({ page }) => {
+  await mockFeedbackPrompt(page);
+  await page.route(`**/works/${WORK_ID}/episodes`, route => success(route,
+    Array.from({ length: 21 }, (_, index) => ({
+      id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      episodeNo: index + 1, title: `${index + 1}화`, status: 'ANALYZED',
+      analysisStatus: 'COMPLETED', charCount: 1000,
+    })),
+  ));
+  let release: () => void = () => {};
+  const responseReady = new Promise<void>(resolve => { release = resolve; });
+  let claims = 0;
+  await page.route('**/feedbacks/prompt/claim', async route => {
+    claims += 1;
+    await responseReady;
+    await success(route, { shouldShow: true });
+  });
+  const claim = page.waitForRequest('**/feedbacks/prompt/claim');
+  await page.goto(manuscriptUrl);
+  await claim;
+  await page.getByRole('button', { name: '다음 →', exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
+  release();
+  const invitation = page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' });
+  await expect(invitation).toBeVisible();
+  await invitation.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '← 이전', exact: true }).click();
+  await expect(page).not.toHaveURL(/page=2/);
+  await page.waitForTimeout(2600);
+  await expect(invitation).toHaveCount(0);
+  expect(claims).toBe(1);
+});
+
 for (const destination of [
   `/dashboard?workId=${WORK_ID}&nav=settingDB`,
   `/setting-review?workId=${WORK_ID}`,
