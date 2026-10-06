@@ -1208,7 +1208,7 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 > **사용자용 설정 문구 표시 정책**
 > - 조회 화면의 문구 변환만으로는 저장된 `attributeName`을 변경하지 않는다. 사용자가 동적 후보의 설정명을 편집해 저장할 때만 기존 prefix를 고정하고 suffix를 새 이름에 맞게 변경한다.
 > - `age`, `level`은 `나이/레벨` 유형으로 묶고, `profile`, `stats`, `skill`, `item`, `status`, `time` 접두어는 각각 `프로필`, `스탯`, `스킬`, `아이템`, `상태`, `시간/사건`으로 표시한다. 알 수 없는 접두어는 `기타`로 표시한다.
-> - `profile.gender`처럼 고정 표시명이 있는 key는 `성별`처럼 FE에 정의한 한글 표시명을 사용한다. 일반 프로필 항목 `profile.attribute`는 `특징`으로 표시하되 원래 key와 설정값은 유지한다. 동적 key는 첫 번째 `.` 뒤의 문자열에서 `_`를 공백으로 바꿔 표시한다.
+> - 검토 행과 고정 설정명 수정창은 서버의 `attributeDisplayName`을 우선 사용한다. 고정·별칭 schema는 DB 표시명, 동적 pattern은 개별 설정 이름을 받으므로 새 schema를 추가할 때 FE 번역 목록을 늘리지 않는다. 필드가 없거나 비어 있는 구버전 응답은 기존 한글 매핑과 key suffix의 `_`를 공백으로 바꾸는 표시 방식을 사용한다. 저장 요청에는 표시명이 아닌 원래 `attributeName`을 유지한다.
 > - 사용자용 설정값은 `attributeValue`만 표시하고 `valueType`, `valueJson`, `rawAiResultJson`은 노출하지 않는다.
 > - 유효하지 않은 scalar 후보도 화면이 `valueJson`을 대신 표시해 숨기지 않는다. 기존 `attributeValue`와 인라인 오류 안내를 함께 보여주고 사용자가 수정하거나 무시하도록 한다.
 > - 이 변환은 표시 전용이며 후보 분류나 key 유효성을 보정하지 않는다. exact/alias/pattern 판정과 편집 가능한 prefix는 Backend 응답을 따르고, 활성 schema와 맞지 않는 접두어·key·type은 Backend가 거절한다.
@@ -1396,8 +1396,8 @@ snapshot 기여 여부는 실제 서사상 현재 상태를 보장하지 않으�
 | 출처 회차 식별자·번호 | 목록 항목별 단일 값·선택 | 출처 회차가 없으면 `null` |
 | 캐릭터 후보명 | 목록 항목별 문자열·필수 | 없음 |
 | 원문 캐릭터 표현 | 목록 항목별 문자열·선택 | 없으면 `null` |
-| 저장용 설정 key (`attributeName`) | 목록 항목별 문자열·필수 | FE가 표시용 유형·설정명을 계산하며 별도 서버 유형·표시명과 필터는 후속 |
-| 설정명 | 목록 항목별 문자열·필수 | 없음 |
+| 저장용 설정 key (`attributeName`) | 목록 항목별 문자열·선택 | 캐릭터 발견 후보는 `null`. FE는 prefix로 유형을 표시하고 저장 요청에 원래 key를 사용 |
+| 화면용 설정명 (`attributeDisplayName`) | 목록 항목별 문자열·선택 | 활성 schema로 계산. 캐릭터 발견·해석 불가 후보는 `null`; 미제공·빈 값은 기존 표시 방식으로 대체 |
 | 표시용 설정값 | 목록 항목별 문자열·선택 | 없으면 `null` |
 | 값 유형 | 목록 항목별 단일 값·필수 | 없음 |
 | 값 정합성 | 목록 항목별 객체·필수 | `status`는 `VALID`/`INVALID`/`NOT_APPLICABLE`, 오류가 없으면 `errorCode`·`message`는 `null`, `repairable`은 현재 수정 API로 오류를 복구할 수 있는지 표시 |
