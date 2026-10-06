@@ -499,3 +499,70 @@ test('이력 선택에 과거 직업 예시를 별도 줄로 보여 준다', asy
   await expect(choice).toContainText('현재 직업은 바꾸지 않습니다.');
   await expect(choice.locator('.review-cb-choice__identity br')).toHaveCount(1);
 });
+
+test('확정된 REMOVE는 현재 설정 제거와 이력 보존을 명시한다', async ({ page }) => {
+  await fixture(page, { reviewStatus: 'CONFIRMED', suggestedOperation: 'REMOVE', attributeValue: '다시 살아남',
+    snapshotChanges: [], historyOnly: false });
+  await page.getByRole('group', { name: '검토 상태', exact: true }).getByRole('button', { name: '전체', exact: true }).click();
+  await expect(card(page).getByText('현재 설정에서 제거됨', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('이번 원고에서 확인한 변화', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('다시 살아남', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('현재 설정에서 제거한 내용', { exact: true })).toHaveCount(0);
+  await expect(card(page).getByText('이 설정은 현재 설정에서 제거되었고, 이전 내용과 이번 변경은 이력에 남아 있습니다.', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('반영된 설정', { exact: true })).toHaveCount(0);
+});
+
+test('확정된 순차 REMOVE는 비교 당시 기존값과 회복 내용을 혼동하지 않는다', async ({ page }) => {
+  await fixture(page, { reviewStatus: 'CONFIRMED', suggestedOperation: 'REMOVE', analysisMode: 'ORDERED_PROVISIONAL',
+    attributeValue: '부상이 회복되어 멀쩡히 착지함', historyOnly: false,
+    snapshotChanges: [{ action: 'REMOVE', factKey: 'status.wound', beforeFactValue: '복부에 깊은 자상을 입은 상태' }] });
+  await page.getByRole('group', { name: '검토 상태', exact: true }).getByRole('button', { name: '전체', exact: true }).click();
+  await expect(card(page).getByText('비교한 기존 설정', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('복부에 깊은 자상을 입은 상태', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('이번 원고에서 확인한 변화', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('부상이 회복되어 멀쩡히 착지함', { exact: true })).toBeVisible();
+});
+
+test('같은 항목에 두 현재 반영을 선택하면 하나를 이력으로 바꾼 뒤 확정할 수 있다', async ({ page }) => {
+  await fixture(page);
+  const candidates = [0, 1].map(index => ({ ...initialCandidate, id: `${candidateId}-${index}`, analysisMode: 'ORDERED_PROVISIONAL',
+    manualReviewAvailable: true, reviewedApplicationMode: 'APPLY_PROPOSAL', resolvedCanonicalFactKey: 'profile.affiliation' }));
+  await page.route(`**${listPath}**`, async route => {
+    if (route.request().method() === 'PATCH') {
+      const item = candidates.find(candidate => route.request().url().endsWith(candidate.id))!;
+      Object.assign(item, route.request().postDataJSON());
+      return success(route, item);
+    }
+    return success(route, { batchId, totalCandidateCount: 2, pendingCandidateCount: 2, directReviewCandidateCount: 2, processingCandidateCount: 0,
+      groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
+  });
+  await page.reload();
+  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  await expect(button).toBeDisabled();
+  await expect(page.getByText(/‘소속’에 현재 반영을 여러 번 선택했어요/)).toBeVisible();
+  await card(page).last().getByRole('button', { name: /이력에만 저장/ }).click();
+  await expect(button).toBeEnabled();
+});
+
+test('기존 다회차 직접 검토는 동일 항목의 순차 반영을 막지 않는다', async ({ page }) => {
+  await fixture(page);
+  const candidates = [0, 1].map(index => ({ ...initialCandidate, id: `${candidateId}-${index}`,
+    analysisJobId: `manual-job-${index}`, episodeNo: index + 3, resolvedCanonicalFactKey: 'profile.affiliation' }));
+  let confirmation: Record<string, unknown> | undefined;
+  await page.route(`**${listPath}**`, async route => {
+    if (route.request().method() === 'POST') {
+      confirmation = route.request().postDataJSON();
+      return success(route, { candidates });
+    }
+    return success(route, { batchId, totalCandidateCount: 2, pendingCandidateCount: 2, directReviewCandidateCount: 2,
+      groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
+  });
+  await page.reload();
+  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  await expect(button).toBeEnabled();
+  await expect(page.getByText(/현재 반영을 여러 번 선택했어요/)).toHaveCount(0);
+  await button.click();
+  await expect.poll(() => confirmation).toMatchObject({ comparisonRevision: 'revision-1',
+    candidates: candidates.map(candidate => ({ candidateId: candidate.id, applicationMode: 'APPLY_PROPOSAL' })) });
+  expect(confirmation).not.toHaveProperty('acceptDisplayedResults');
+});

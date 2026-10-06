@@ -65,3 +65,48 @@ for (const kind of ['character', 'world'] as const) {
     expect(await main.evaluate(el => el.scrollTop)).toBe(before);
   });
 }
+
+for (const mode of ['APPLY_PROPOSAL', 'HISTORY_ONLY']) {
+  test(`기존 캐릭터의 ${mode} 선택 저장 후 같은 그룹과 읽던 위치를 유지한다`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const selectedKey = 'existing:character-1';
+    const groups = Array.from({ length: 2 }, (_, index) => ({
+      groupKey: `existing:character-${index}`, entityName: `인물 ${index}`, candidateCount: 5, pendingCandidateCount: 5,
+      candidates: Array.from({ length: 5 }, (_, n) => ({
+        id: `candidate-${index}-${n}`, workId, entityName: `인물 ${index}`, candidateKind: 'SETTING', entityType: 'CHARACTER',
+        matchedCharacterId: `character-${index}`, matchStatus: 'MATCHED', attributeName: `status.wound${n}`, attributeDisplayName: `부상 ${n}`,
+        attributeValue: '부상을 입었다.', valueType: 'STRING', episodeNo: 3, reviewStatus: 'PENDING_REVIEW',
+        comparisonStatus: 'COMPLETED', suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true,
+        analysisMode: 'ORDERED_PROVISIONAL', reviewedApplicationMode: null as string | null,
+        updatedAt: '2026-10-06T00:00:00', evidenceSpans: [],
+      })),
+    }));
+    await page.route('**/api/v1/**', async route => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      let data: unknown = [];
+      if (request.method() === 'PATCH') {
+        const candidate = groups.flatMap(group => group.candidates).find(item => path.endsWith(item.id))!;
+        Object.assign(candidate, request.postDataJSON(), { updatedAt: '2026-10-06T00:01:00' });
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: candidate }) });
+      }
+      if (path.endsWith('/auth/me')) data = { id: 1, email: 'scroll@example.invalid', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
+      else if (path.endsWith('/setting-candidates')) data = { batchId, totalCandidateCount: 10, pendingCandidateCount: 10, directReviewCandidateCount: 10, processingCandidateCount: 0, groups: pageOf(groups) };
+      else if (path.endsWith('/world-setting-candidates')) data = { batchId, totalCandidateCount: 0, pendingCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) };
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) });
+    });
+    await page.addInitScript(() => localStorage.setItem('accessToken', 'scroll-save-fixture'));
+    await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent(selectedKey)}`);
+    const detail = page.locator('.setting-candidate-detail').nth(3);
+    const choice = detail.getByRole('button', { name: mode === 'APPLY_PROPOSAL' ? /현재 설정에 반영/ : /이력에만 저장/ });
+    await choice.scrollIntoViewIfNeeded();
+    const main = page.locator('.setting-review-main');
+    const before = await main.evaluate(el => el.scrollTop);
+    expect(before).toBeGreaterThan(300);
+    await choice.click();
+    await expect(choice).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe(selectedKey);
+    await expect.poll(() => main.evaluate(el => el.scrollTop)).toBe(before);
+    await expect(page.locator('.candidate-group-card.is-selected')).toContainText('인물 1');
+  });
+}
