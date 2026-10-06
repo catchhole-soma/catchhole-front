@@ -12,6 +12,13 @@ function canShowPrompt(): boolean {
     && !document.activeElement?.matches('input, textarea, select, [contenteditable="true"]');
 }
 
+function getPromptScreenUrl(): string {
+  const url = new URL(window.location.href);
+  // 원고 목록의 페이지 번호만 바뀌면 같은 안내 대상 화면이다.
+  url.searchParams.delete('page');
+  return url.href;
+}
+
 /** Server grants the prompt once per account. Only request it while the UI is idle. */
 export function useFeedbackPrompt({
   memberId, allowed, onShow,
@@ -43,9 +50,9 @@ export function useFeedbackPrompt({
   useEffect(() => {
     if (!allowed || !memberId || !prompt.isSuccess || !prompt.data.data?.shouldShow || attempted.current) return;
     let active = true;
-    const promptUrl = window.location.href;
+    const promptUrl = getPromptScreenUrl();
     const timer = window.setInterval(() => {
-      if (window.location.href !== promptUrl) {
+      if (getPromptScreenUrl() !== promptUrl) {
         window.clearInterval(timer);
         return;
       }
@@ -55,7 +62,7 @@ export function useFeedbackPrompt({
       void claim({}).then(response => {
         markFeedbackSubmitted();
         // URL 변경이 React의 effect 정리보다 먼저 반영되어도 이전 화면의 응답은 표시하지 않는다.
-        if (active && window.location.href === promptUrl && response.data?.shouldShow && canShowPrompt()) {
+        if (active && getPromptScreenUrl() === promptUrl && response.data?.shouldShow && canShowPrompt()) {
           onShow();
         }
       }).catch(() => {
