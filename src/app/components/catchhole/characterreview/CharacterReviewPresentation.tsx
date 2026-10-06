@@ -107,6 +107,7 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
   const finalValue = manual || candidate.reviewedApplicationMode != null || history || candidate.historyOnly
     ? candidate.attributeValue : values.after;
   const exclude = operation === 'EXCLUDE' || candidate.reviewStatus === 'DISMISSED';
+  const removed = !pending && operation === 'REMOVE' && !history && !exclude;
   const completed = status === 'COMPLETED';
   const needsTarget = candidate.matchStatus === 'AMBIGUOUS';
   const active = status === 'PENDING' || status === 'PROCESSING';
@@ -122,8 +123,15 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
     : operation === 'ADD' && !manual && candidate.reviewedApplicationMode == null ? '추가할 설정' : '반영할 최종 내용';
   return <section className="review-character-comparison" aria-label="캐릭터 설정 AI 비교 결과">
     {!needsTarget && (showProposal || uncertain || exclude || !pending) && <>
-      {/* Snapshot changes are calculated against the current snapshot, not a saved historical before-image. */}
-      {values.before != null && (pending || history || exclude) ? <ReviewValueComparison before={values.before}
+      {/* Ordered comparisons preserve their before-image; legacy comparisons read the current snapshot. */}
+      {removed ? <>
+        {candidate.analysisMode === 'ORDERED_PROVISIONAL' && values.before != null && <ReviewInlineValue tone="neutral" label="비교한 기존 설정">
+          {values.before}
+        </ReviewInlineValue>}
+        <ReviewInlineValue tone="neutral" label="이번 원고에서 확인한 변화">
+          {candidate.attributeValue || '값 없음'}
+        </ReviewInlineValue>
+      </> : values.before != null && (pending || history || exclude) ? <ReviewValueComparison before={values.before}
         after={exclude ? candidate.attributeValue : operation === 'REMOVE' && !history && !manual ? '현재 설정에서 종료' : finalValue}
         mode={exclude || history || candidate.historyOnly ? 'neutral' : uncertain ? 'ambiguous' : 'change'}
         beforeLabel={exclude ? '유지되는 기존 설정' : history || candidate.historyOnly ? '유지되는 현재 설정' : '기존 설정'}

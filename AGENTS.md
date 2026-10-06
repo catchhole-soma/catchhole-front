@@ -73,7 +73,7 @@ npm run doctor
 - 회원가입은 `signup-policy`의 서버 지정 `EMAIL`/`PHONE` 인증을 사용합니다. 정책 조회 실패 시 가입을 막고 재시도를 제공합니다. EMAIL은 전화번호 입력 없이 `email-verifications` 확인 뒤 `emailVerificationToken`을, PHONE은 기존 `phoneVerificationToken`을 보냅니다. 이메일은 trim만 적용하고 대소문자를 보존합니다. 인증 대상 변경 시 토큰·진행 상태와 이전 발송·확인의 늦은 응답을 폐기합니다.
 - 회원가입 화면은 Backend의 현재 `PUBLISHED` 이용약관·개인정보처리방침을 조회해 한 체크박스로 동의·확인을 함께 표시하고, 만 14세 이상 확인은 별도 필수 체크로 표시합니다. 가입 요청에는 `termsAccepted`, `privacyPolicyAcknowledged`, `age14OrOlderConfirmed`와 사용자가 본 `termsDocumentId`, `privacyPolicyDocumentId`를 보냅니다.
 - Backend가 가입 시점의 현재 게시본과 문서 ID를 같은 트랜잭션에서 검증하고 문서 FK·종류·버전·행위·서버 기록 시각을 저장합니다. 문서가 교체된 409 응답에서는 체크를 해제하고 최신 게시본을 다시 조회해 재확인받습니다. Front에 문서 원문이나 현재 버전을 하드코딩하지 않습니다.
-- AI 원고 처리 고지는 개인정보처리방침에 포함하며 회원가입 이후 업로드·재시도·재분석마다 별도 동의나 반복 고지를 표시하지 않습니다.
+- AI 원고 처리 정책은 개인정보처리방침에 포함한다. GH219 사용자 요청에 따라 회차 업로드의 모든 방식과 분리 확인 화면에 “원고와 분석 결과는 AI 학습에 사용하지 않습니다.”를 짧게 표시한다. 별도 동의·확인창은 추가하지 않는다.
 - GA4·Meta Pixel의 자동 수집 항목·목적·보유기간·국외 처리·거부방법은 개인정보처리방침에 공개합니다. 별도 쿠키 배너나 회원가입 선택 체크박스는 두지 않으며 실제 측정 코드는 NVM-308·NVM-309 범위에서 방침과 일치하도록 설치합니다.
 - 인증 진행 복원에는 이메일·전화번호별 sessionStorage 키에 `verificationId`, 인증 대상, 인증 만료 시각, 재전송 가능 시각만 보관합니다. 인증번호·비밀번호·가입 토큰은 컴포넌트 메모리에만 두고 브라우저 저장소·로그·공유 Mutation 캐시에 남기지 않습니다.
 - 실제 Backend를 사용하는 live E2E는 매 실행마다 가입하지 않고 사전에 휴대폰 인증된 전용 계정으로 로그인합니다.
@@ -200,3 +200,6 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - GH194 V63부터 캐릭터·세계관 자동 이미지는 확정/수정 시 Backend에 저장된다. FE는 image 응답만 사용한다. 세계관 자동 복귀는 useAutomatic=true, 기본 고정은 기존 null 선택 요청이며 직접 선택과 자동 상태를 구분한다.
 
 - GH194 개인 이미지·캐릭터 이미지·최초 안내 live E2E는 계정당 한 번인 상태를 검증하므로 `e2e/local-live-fixture.ts`와 `scripts/local-live-account.py`로 실행마다 별도 로컬 계정을 준비한다. 회원가입은 호출하지 않고 사전 인증된 전용 seed 계정의 해시를 복사한다. localhost API와 명시한 로컬 테스트 DB만 허용하고 생성한 작품·계정은 fixture 종료 시 정리한다. 환경 변수와 반복 실행 방법은 `docs/local-image-live-tests.md`를 따른다.
+
+- GH219: 다회차 여러 파일은 감지 후 회차 번호순으로 표시하고 번호 수정 후 재정렬 버튼을 제공한다. detectionOrder/sourceFileIndex와 원본 파일 배열을 보존한다. 정상 번호에 반복 순서 경고는 추가하지 않는다.
+- GH219: 후보 선택 저장은 서버의 groupKey를 유지한다. 최종 현재 반영 선택은 캐릭터 snapshot 변경만으로 막거나 이력으로 강등하지 않는다. 후보 동시 수정·원문 변경 검증은 유지하며 최종 결과 승인과 완료된 순차 분석 그룹에서는 같은 항목의 여러 현재 반영 중 하나를 고르도록 안내한다. 구형 다회차 직접 검토는 서버의 회차 간 비교 체인을 유지하므로 이 제한을 적용하지 않는다.

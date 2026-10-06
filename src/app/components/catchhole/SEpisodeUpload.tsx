@@ -17,6 +17,7 @@ import {
   Files,
   Info,
   RefreshCw,
+  ShieldCheck,
   Upload,
 } from 'lucide-react';
 import {
@@ -123,6 +124,10 @@ function toEpisodeConfirmations(
     content: detectedEpisode.content,
     charCount: detectedEpisode.charCount,
   }));
+}
+
+function sortEpisodeConfirmations(confirmations: EpisodeConfirmation[]): EpisodeConfirmation[] {
+  return [...confirmations].sort((left, right) => left.episodeNo - right.episodeNo);
 }
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -445,7 +450,8 @@ function SettingsFileInput({ include, setInclude, file, error, setFile, disabled
   );
 }
 
-function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
+function EpisodeConfirmationRows({ episodeConfirmations, sourceFiles, onChange, disabled }: {
+  sourceFiles: File[];
   episodeConfirmations: EpisodeConfirmation[];
   onChange: (episodeConfirmations: EpisodeConfirmation[]) => void;
   disabled: boolean;
@@ -478,6 +484,7 @@ function EpisodeConfirmationRows({ episodeConfirmations, onChange, disabled }: {
           <span style={{ color: C.t3, fontSize: 12, textAlign: 'right' }}>
             {confirmation.charCount.toLocaleString()}자
           </span>
+          <span className="episode-confirmation-source">{sourceFiles[confirmation.sourceFileIndex]?.name}</span>
         </div>
       ))}
     </div>
@@ -492,7 +499,8 @@ function getEpisodeConfirmationValidationError(
   let previousEpisodeNo = 0;
   for (const confirmation of episodeConfirmations) {
     if (confirmation.episodeNo < 1) return '회차 번호는 1 이상의 정수여야 합니다.';
-    if (confirmation.episodeNo <= previousEpisodeNo) {
+    if (confirmation.episodeNo === previousEpisodeNo) return '회차 번호가 중복됩니다. 각 파일의 번호를 확인해 주세요.';
+    if (confirmation.episodeNo < previousEpisodeNo) {
       return '회차 번호는 원문 순서대로 중복 없이 오름차순이어야 합니다.';
     }
     if (confirmation.title.trim().length > 100) {
@@ -1033,6 +1041,7 @@ export default function SEpisodeUpload() {
       const nextEpisodeConfirmations = toEpisodeConfirmations(
         response.data?.detectedEpisodes,
       );
+      if (nextUploadType === 'MULTI_EPISODE_MULTI_FILE') nextEpisodeConfirmations.sort((left, right) => left.episodeNo - right.episodeNo);
       replaceEpisodeConfirmations(nextUploadType, nextEpisodeConfirmations);
       if (nextUploadType === 'MULTI_EPISODE_SINGLE_FILE') {
         setSelectedDetectionOrder(nextEpisodeConfirmations[0]?.detectionOrder ?? null);
@@ -1408,8 +1417,10 @@ export default function SEpisodeUpload() {
     && singleNo >= 1
     && !existingEpisodeNos.has(singleNo)
     && episodeTitle.trim().length <= 100;
+  const analysisOrder = uploadType === 'MULTI_EPISODE_MULTI_FILE' ? sortEpisodeConfirmations(episodeConfirmations) : episodeConfirmations;
+  const displayOrderDiffers = analysisOrder.some((confirmation, index) => confirmation.detectionOrder !== episodeConfirmations[index].detectionOrder);
   const episodeConfirmationValidationError = getEpisodeConfirmationValidationError(
-    episodeConfirmations,
+    analysisOrder,
     existingEpisodeNos,
   );
   const episodeConfirmationsValid = episodeConfirmations.length > 0
@@ -1473,7 +1484,8 @@ export default function SEpisodeUpload() {
           {step === 'select-mode' && (
             <>
               <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>{workTitle} · 회차 업로드</div>
-              <div className="episode-upload-description" style={{ color: C.t2, fontSize: 13, marginBottom: 24 }}>업로드 방식과 분석 목적을 선택하세요.</div>
+              <div className="episode-upload-description" style={{ color: C.t2, fontSize: 13, marginBottom: 12 }}>업로드 방식과 분석 목적을 선택하세요.</div>
+              <p className="episode-upload-training-note"><ShieldCheck size={16} aria-hidden="true" /> 원고와 분석 결과는 AI 학습에 사용하지 않습니다.</p>
 
               {episodesQuery.isError && (
                 <ErrorBanner message="기존 회차 번호를 불러오지 못했습니다. 번호를 직접 확인해주세요." onRetry={() => void episodesQuery.refetch()} />
@@ -1626,9 +1638,17 @@ export default function SEpisodeUpload() {
                   )}
                   {episodeConfirmations.length > 0 && (
                     <>
-                      <FieldLabel>파일별 회차 정보 확인</FieldLabel>
+                      <div className="episode-upload-order-toolbar">
+                        <FieldLabel>분석 순서 · 파일별 회차 정보</FieldLabel>
+                        <button type="button" disabled={submitting || detectEpisodesMutation.isPending}
+                          onClick={() => setEpisodeConfirmations(sortEpisodeConfirmations(episodeConfirmations))}>회차 번호순 정렬</button>
+                      </div>
+                      {displayOrderDiffers && !episodeConfirmationValidationError && <p className="episode-upload-order-preview">
+                        분석 순서: {analysisOrder.map(confirmation => `${confirmation.episodeNo}화`).join(' → ')}
+                      </p>}
                       <EpisodeConfirmationRows
                         episodeConfirmations={episodeConfirmations}
+                        sourceFiles={multiFiles}
                         onChange={setEpisodeConfirmations}
                         disabled={submitting}
                       />
@@ -1736,6 +1756,7 @@ export default function SEpisodeUpload() {
           {step === 'boundary-preview' && (
             <>
               <div className="episode-upload-heading" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>회차 분리 확인</div>
+              <p className="episode-upload-training-note"><ShieldCheck size={16} aria-hidden="true" /> 원고와 분석 결과는 AI 학습에 사용하지 않습니다.</p>
               <div className="episode-upload-description" style={{ color: C.t2, fontSize: 13, marginBottom: 20 }}>
                 감지 경계는 고정됩니다. 번호와 제목만 확인·수정할 수 있습니다.
               </div>
@@ -1865,6 +1886,12 @@ export default function SEpisodeUpload() {
                   {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
                   {automaticAnalysis ? ' · 회차별 설정 자동 반영' : orderedAnalysis && ' · 앞 회차 제안을 이어서 분석'}
                 </div>
+                {analysisRunning && !analysisUnavailable && !statusQueryFailed && (
+                  <p className="episode-processing__background-note">
+                    이 화면을 벗어나도 분석은 계속됩니다.<br />
+                    진행 상황과 결과는 분석 목록에서 확인할 수 있어요.
+                  </p>
+                )}
               </div>
 
               {analysisSucceeded && automaticAnalysis && (

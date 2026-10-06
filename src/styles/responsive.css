@@ -686,7 +686,7 @@ body,
   }
 
   .character-edit-setting-row--complex {
-    grid-template-columns: minmax(0, 1fr) minmax(90px, 0.7fr) auto !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
   }
 
   .character-detail-actions {
@@ -718,7 +718,7 @@ body,
     grid-column: 1 / 2;
   }
 
-  .character-edit-setting-row--complex > button:last-child {
+  .character-edit-setting-row--complex > .character-edit-setting-actions {
     grid-column: 2;
     grid-row: 1 / span 2;
   }

@@ -738,18 +738,11 @@ function EditSettingList({
         const evidenceFactId = firstEvidenceFactId(item.sourceFacts);
         const dynamicNameEditable = item.attributeNameEditable && Boolean(item.attributeNamePrefix);
         const editableName = dynamicNameEditable || item.displayNameEditable;
+        const stacked = complex || columns === 2 || dynamicNameEditable;
         return (
           <div className={`character-edit-setting-row${complex ? ' character-edit-setting-row--complex' : ''}`} key={item.draftId} style={{
             display: 'grid',
-            gridTemplateColumns: complex
-              ? 'minmax(120px, 1fr) minmax(100px, 0.7fr) auto'
-              : dynamicNameEditable
-                ? columns === 2
-                  ? '135px minmax(0, 1fr) auto'
-                  : '160px minmax(0, 1fr) auto'
-                : columns === 2
-                  ? '80px minmax(0, 1fr) auto'
-                  : '110px minmax(0, 1fr) auto',
+            gridTemplateColumns: stacked ? 'minmax(0, 1fr) auto' : '110px minmax(0, 1fr) auto',
             minWidth: 0,
             gap: 8, alignItems: 'center', padding: complex ? 8 : '7px 12px',
             border: complex ? `1px solid ${C.border}` : 'none',
@@ -829,9 +822,9 @@ function EditSettingList({
               aria-label={`${item.displayName} 값`}
               value={item.value}
               onChange={event => onChange(index, { ...item, value: event.target.value })}
-              style={inputStyle}
+              style={{ ...inputStyle, minWidth: 0, ...(stacked ? { gridColumn: 1 } : {}) }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <div className="character-edit-setting-actions" style={{ display: 'flex', alignItems: 'center', gap: 2, ...(stacked ? { gridColumn: 2, gridRow: '1 / span 2' } : {}) }}>
               <EvidenceButton
                 enabled={Boolean(evidenceFactId && onEvidence)}
                 label={item.displayName}

@@ -283,6 +283,10 @@ function characterGroupKey(entityName?: string | null): string {
   return (entityName ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
+function candidateGroupKey(candidate?: SettingCandidateResponse): string {
+  return candidate?.matchedCharacterId ? `existing:${candidate.matchedCharacterId}` : characterGroupKey(candidate?.entityName);
+}
+
 function withSelectableGroupKey(
   group: SettingCandidateGroupResponse,
   index: number,
@@ -1123,7 +1127,8 @@ export function CandidateDetail({
     : needsTarget ? '인물 확인' : existingCharacterConnected ? '인물 연결' : '새로운 인물';
   const disabled = actionPending || automaticPending;
   const holdLabel = automaticReviewHoldLabel(candidate);
-  const statusLabel = readOnly ? REVIEW_LABELS[reviewStatus]
+  const removed = reviewStatus === 'CONFIRMED' && candidate.suggestedOperation === 'REMOVE' && !candidate.historyOnly;
+  const statusLabel = removed ? '현재 설정에서 제거됨' : readOnly ? REVIEW_LABELS[reviewStatus]
     : processing ? '분석 중' : invalidValue ? '값 확인 필요' : manuallyReviewed ? '반영 준비'
     : needsTarget ? '인물 확인 필요' : candidate.comparisonStatus === 'FAILED' && !candidate.manualReviewAvailable
       ? candidate.comparisonFailureCode === 'AI_TOKEN_QUOTA_EXHAUSTED' ? '사용량 확인 필요' : '비교 실패'
@@ -1147,8 +1152,8 @@ export function CandidateDetail({
       </>} />
 
     {automaticPending ? <ReviewNotice title="분석이 진행 중이에요">분석이 끝나면 설정을 수정하고 확정할 수 있어요.</ReviewNotice> : <>
-      {readOnly && <ReviewNotice tone={reviewStatus === 'CONFIRMED' ? 'success' : 'info'} title={reviewStatus === 'CONFIRMED' ? '반영을 마친 설정이에요' : '검토 목록에서 제외했어요'}>
-        {reviewStatus === 'CONFIRMED' ? candidate.historyOnly ? '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 저장된 내용과 근거를 확인할 수 있어요.' : '이 후보는 추가하지 않았어요. 기존 설정과 이력은 그대로 유지됩니다.'}
+      {readOnly && <ReviewNotice tone={reviewStatus === 'CONFIRMED' ? 'success' : 'info'} title={removed ? '현재 설정에서 제거했어요' : reviewStatus === 'CONFIRMED' ? '반영을 마친 설정이에요' : '검토 목록에서 제외했어요'}>
+        {removed ? '이 설정은 현재 설정에서 제거되었고, 이전 내용과 이번 변경은 이력에 남아 있습니다.' : reviewStatus === 'CONFIRMED' ? candidate.historyOnly ? '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 저장된 내용과 근거를 확인할 수 있어요.' : '이 후보는 추가하지 않았어요. 기존 설정과 이력은 그대로 유지됩니다.'}
       </ReviewNotice>}
       {invalidValue && <ReviewNotice tone="danger" title="설정값의 형식을 확인해 주세요">
         {invalidValueRepairable ? candidate.valueValidation?.message ?? '이 설정값을 올바르게 읽지 못했습니다.' : '지금은 이 항목을 수정할 수 없습니다. 원문을 확인한 뒤 제외하면 나머지 설정을 검토할 수 있어요.'}
@@ -1612,11 +1617,15 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       setEditCandidate(null);
-      selectionGroupRef.current = null;
+      preserveViewport();
       if (isCharacterReviewLocation()) {
         setSearchParams(previous => {
           const next = new URLSearchParams(previous);
-          const nextGroupKey = characterGroupKey(response.data?.entityName);
+          // Saving a decision does not change the server's character group identity.
+          const original = selectedGroupCandidates.find(candidate => candidate.id === variables.path.candidateId);
+          const identityChanged = original && (original.matchedCharacterId !== response.data?.matchedCharacterId
+            || !original.matchedCharacterId && original.entityName !== response.data?.entityName);
+          const nextGroupKey = identityChanged ? candidateGroupKey(response.data) : selectedGroup?.groupKey;
           if (nextGroupKey) next.set('group', nextGroupKey);
           next.delete('candidate');
           return next;
@@ -1639,7 +1648,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           if (!matchesMatchFilter(response.data?.matchStatus, activeMatchFilter)) {
             next.delete('group');
           } else {
-            const nextGroupKey = characterGroupKey(response.data?.entityName);
+            const nextGroupKey = candidateGroupKey(response.data);
             if (nextGroupKey) next.set('group', nextGroupKey);
           }
           next.delete('candidate');
@@ -1812,6 +1821,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const hasManualReview = (candidate: SettingCandidateResponse) =>
     candidate.reviewedApplicationMode != null
     && candidate.manualReviewAvailable === true;
+  const currentSelections = new Map<string, SettingCandidateResponse[]>();
+  for (const candidate of pendingGroupCandidates) {
+    if (!hasCharacterFactComparison(candidate) || isGroupExclusionProposal(candidate)
+      || applicationModeForCandidate(candidate) !== 'APPLY_PROPOSAL') continue;
+    const key = candidate.resolvedCanonicalFactKey || candidate.attributeName;
+    if (key) currentSelections.set(key, [...(currentSelections.get(key) ?? []), candidate]);
+  }
+  // 구형 다회차 검토는 같은 항목을 앞 회차부터 적용하는 비교 체인을 유지한다.
+  const usesFinalCurrentSelection = acceptsDisplayedResults
+    || pendingGroupCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
+  const duplicateCurrentSelection = usesFinalCurrentSelection
+    ? [...currentSelections.values()].find(candidates => candidates.length > 1)
+    : undefined;
   const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
     ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'
     : pendingGroupCandidates.length === 0
@@ -1831,6 +1853,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       : pendingGroupCandidates.some(candidate => candidate.suggestedOperation === 'REVIEW_REQUIRED'
           && !hasManualReview(candidate) && (!candidate.id || !applicationModes[candidate.id]))
         ? '판단이 필요한 설정에서 저장할 방법을 선택해 주세요.'
+      : duplicateCurrentSelection
+        ? `‘${toSettingDisplay(duplicateCurrentSelection[0].attributeName, duplicateCurrentSelection[0].attributeDisplayName).nameLabel}’에 현재 반영을 여러 번 선택했어요. 현재로 남길 하나를 선택하고 나머지는 이력에 저장하거나 제외해 주세요.`
       : !groupHasSharedComparisonRevision
         ? '모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'
       : pendingGroupCandidates.some(candidate => (
