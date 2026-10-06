@@ -2143,6 +2143,55 @@ test('연결 모달이 열린 뒤 후보가 INVALID로 바뀌어도 단건과 �
   expect(groupMatchRequestCount).toBe(0);
 });
 
+for (const [attributeName, attributeDisplayName] of [
+  ['profile.hometown', '출신지'],
+  ['profile.eye_color', '눈동자 색상'],
+]) {
+  test(`서버 표시명 반영: ${attributeDisplayName} — 검토와 수정창의 저장 키를 유지한다`, async ({ page }) => {
+    let submittedBody: unknown;
+    const candidate = {
+      ...candidates[0], attributeName, attributeDisplayName,
+      attributeValue: '북부', valueJson: { value: '북부' },
+    };
+    const listPath = `/api/v1/works/${workId}/setting-candidates`;
+    await page.route('**/api/v1/**', route => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname.endsWith('/auth/me')) return fulfill(route, member);
+      if (pathname === listPath) {
+        return fulfill(route, {
+          batchId, episodeStartNo: 1, episodeEndNo: 1, episodeCount: 1,
+          totalCandidateCount: 1, reviewedCandidateCount: 0, pendingCandidateCount: 1,
+          matchRequiredCandidateCount: 0,
+          groups: {
+            content: [{ groupKey: '수아', entityName: '수아', candidateCount: 1,
+              evidenceEpisodeNos: [1], candidates: [candidate] }],
+            page: 0, size: 20, totalElements: 1, totalPages: 1, hasNext: false,
+          },
+        });
+      }
+      if (pathname === `${listPath}/${firstCandidateId}`) {
+        if (route.request().method() === 'PATCH') {
+          submittedBody = route.request().postDataJSON();
+          candidate.attributeValue = '남부';
+        }
+        return fulfill(route, candidate);
+      }
+      return fulfill(route, []);
+    });
+    await authenticate(page);
+    await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
+    const detail = page.getByRole('region', { name: `${attributeDisplayName} 설정 후보` });
+    await expect(detail).toBeVisible();
+    await detail.getByRole('button', { name: '수정', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '설정 후보 수정' });
+    await expect(dialog.getByLabel('설정명')).toHaveValue(attributeDisplayName);
+    await expect(dialog.getByLabel('설정명')).toHaveAttribute('readonly', '');
+    await dialog.getByLabel('설정값').fill('남부');
+    await dialog.getByRole('button', { name: '저장', exact: true }).click();
+    await expect.poll(() => submittedBody).toEqual({ attributeName, attributeValue: '남부' });
+  });
+}
+
 test('고정 설정명은 잠그고 표시값만 두 필드 수정 요청으로 저장한다', async ({ page }) => {
   let attributeValue = '갈색';
   let submittedBody: unknown;
