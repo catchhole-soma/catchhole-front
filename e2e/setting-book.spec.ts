@@ -220,3 +220,39 @@ test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보�
   await expect(page).not.toHaveURL(/settingBookFileId=/);
   await expect(page.locator('[data-testid^="setting-book-row-"]')).toHaveCount(1);
 });
+
+for (const extension of ['hwp', 'hwpx']) {
+  test(`설정집 ${extension.toUpperCase()}를 선택하고 원본 형식을 표시한다`, async ({ page }) => {
+    let uploaded = false;
+    const row = { id: settingBookId, originalFilename: `세계관.${extension}`,
+      mimeType: extension === 'hwp' ? 'application/x-hwp' : 'application/hwp+zip', fileSize: 8000,
+      uploadedAt: '2026-10-06T10:00:00' };
+    await page.route('**/api/v1/**', route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/auth/me')) return success(route, member);
+      if (path.endsWith('/setting-books')) {
+        if (route.request().method() === 'POST') {
+          expect(route.request().postData()).toContain(`filename="세계관.${extension}"`);
+          uploaded = true;
+          return success(route, row);
+        }
+        return success(route, uploaded ? [row] : []);
+      }
+      if (path.endsWith(`/works/${workId}`)) return success(route, { id: workId, title: '한글 설정집 테스트', genre: '로맨스' });
+      return success(route, []);
+    });
+    await authenticate(page);
+    await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=worldrules`);
+    await page.getByTestId('open-empty-setting-book-upload').click();
+    const input = page.getByTestId('setting-book-file-input');
+    await expect(input).toHaveAttribute('accept', '.txt,.docx,.hwp,.hwpx');
+    const { readFileSync } = await import('node:fs');
+    await input.setInputFiles({ name: row.originalFilename, mimeType: 'application/octet-stream',
+      buffer: readFileSync(`e2e/fixtures/hangul/${extension === 'hwp' ? 'episode-1.hwp' : 'episode-2.hwpx'}`) });
+    await expect(page.getByRole('dialog', { name: '설정집 업로드' }).getByText(new RegExp(`^${extension.toUpperCase()} ·`))).toBeVisible();
+    await page.getByTestId('setting-book-upload-submit').click();
+    const item = page.getByTestId(`setting-book-row-${settingBookId}`);
+    await expect(item).toContainText(row.originalFilename);
+    await expect(item).toContainText(extension.toUpperCase());
+  });
+}

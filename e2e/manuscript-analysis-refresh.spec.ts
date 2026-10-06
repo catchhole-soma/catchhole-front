@@ -118,7 +118,7 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
     if (path.endsWith(`/${episodeId}/file`) && request.method() === 'PUT') {
       replacementRequests += 1;
       replaced = true;
-      return success(route, { ...episode('REANALYSIS_REQUIRED'), originalFilename: '29-revised.txt' });
+      return success(route, { ...episode('REANALYSIS_REQUIRED'), originalFilename: '29-revised.hwp' });
     }
     if (path.endsWith(`/${workId}/analysis-jobs`) && request.method() === 'POST') {
       analysisRequests.push(request.postDataJSON());
@@ -130,7 +130,7 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
     });
     if (path.endsWith(`/${workId}/episodes`)) return success(route, [
       { ...episode(replaced ? 'REANALYSIS_REQUIRED' : 'COMPLETED'), title: '교체 대상 29화',
-        originalFilename: replaced ? '29-revised.txt' : '29.txt' },
+        originalFilename: replaced ? '29-revised.hwp' : '29.txt' },
       { ...episode('COMPLETED'), id: laterEpisodeId, episodeNo: 30, title: '완료 결과 보존 30화', originalFilename: '30.txt' },
     ]);
     if (path.endsWith(`/${workId}/analysis-jobs/batches`)) return success(route, overview('COMPLETED'));
@@ -153,7 +153,7 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
   await expect(replaceDialog.getByRole('button', { name: '취소', exact: true })).toBeInViewport();
   await expect(replaceDialog.getByRole('button', { name: '파일 변경', exact: true })).toBeInViewport();
   await replaceDialog.locator('input[type=file]').setInputFiles({
-    name: '29-revised.txt', mimeType: 'text/plain', buffer: Buffer.from('29화의 수정한 원고입니다.'),
+    name: '29-revised.hwp', mimeType: 'application/x-hwp', buffer: (await import('node:fs')).readFileSync('e2e/fixtures/hangul/episode-1.hwp'),
   });
   await replaceDialog.getByRole('button', { name: '파일 변경', exact: true }).click();
   await expect(replaceDialog).toHaveCount(0);
