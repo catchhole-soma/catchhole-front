@@ -29,6 +29,13 @@ export function AnalysisModeGuideDialog({ step, onStepChange, onClose, multiple 
     if (bar && item) bar.scrollTo({ left: Math.max(0, item.offsetLeft - (bar.clientWidth - item.clientWidth) / 2) });
   }, [step]);
   const handleKeys = (event: KeyboardEvent) => {
+    if (event.defaultPrevented) return;
+    // 초점을 받은 직후 전역 모달 처리가 준비되기 전에도 Escape로 닫을 수 있게 한다.
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
