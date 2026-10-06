@@ -154,7 +154,10 @@ interface SettingDisplay {
 /**
  * 저장용 attributeName은 유지하고, 목록과 상세에서 사용할 사용자용 문구만 만든다.
  */
-function toSettingDisplay(attributeName?: string | null): SettingDisplay {
+function toSettingDisplay(
+  attributeName?: string | null,
+  attributeDisplayName?: string | null,
+): SettingDisplay {
   const normalized = attributeName?.trim();
   if (!normalized) return { typeLabel: '설정', nameLabel: '설정명 없음' };
 
@@ -162,8 +165,8 @@ function toSettingDisplay(attributeName?: string | null): SettingDisplay {
   const suffix = suffixParts.join('.');
   return {
     typeLabel: SETTING_TYPE_LABELS[prefix] ?? '기타',
-    nameLabel: SETTING_NAME_LABELS[normalized]
-      ?? (suffix ? suffix.replace(/_/g, ' ') : normalized.replace(/_/g, ' ')),
+    nameLabel: attributeDisplayName?.trim() || (SETTING_NAME_LABELS[normalized]
+      ?? (suffix ? suffix.replace(/_/g, ' ') : normalized.replace(/_/g, ' '))),
   };
 }
 
@@ -736,7 +739,7 @@ function CandidateEditModal({
             <>
               <input
                 id="candidate-attribute-name"
-                value={toSettingDisplay(originalName).nameLabel}
+                value={toSettingDisplay(originalName, candidate.attributeDisplayName).nameLabel}
                 readOnly
                 aria-describedby="candidate-attribute-name-help"
                 style={{ ...modalInputStyle, marginTop: 7, color: REVIEW_TEXT.muted }}
@@ -1110,7 +1113,7 @@ export function CandidateDetail({
   const processing = isCandidateComparisonProcessing(candidate);
   const confidence = confidenceDescription(candidate.confidence ?? undefined);
   const quotes = evidenceQuotes(candidate.evidenceSpans);
-  const settingDisplay = toSettingDisplay(candidate.attributeName ?? undefined);
+  const settingDisplay = toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
   const invalidValueRepairable = isCandidateValueRepairable(candidate);
