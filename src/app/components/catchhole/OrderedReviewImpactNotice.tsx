@@ -6,7 +6,7 @@ export function OrderedReviewImpactNotice() {
       color: 'var(--ch-text-muted)', fontSize: 12, lineHeight: 1.6,
     }}>
       이 변경은 이미 완료된 다른 회차의 분석 결과를 바꾸지 않습니다.
-      {' '}최신 설정이나 직접 수정한 값이 있으면 현재 값은 유지하고 이력에 저장합니다.
+      {' '}현재 설정에 반영을 선택하면 확정 시점의 해당 설정을 바꾸고, 이력에만 저장을 선택하면 현재 설정을 유지합니다.
     </p>
   );
 }

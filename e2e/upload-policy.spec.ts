@@ -310,3 +310,45 @@ test('원고 저장 뒤 기존 재개 가능한 분석이 확인되면 새 생�
   expect(attempts).toBe(1);
   expect(requests.uploads).toHaveLength(1);
 });
+
+for (const mode of ['단일 회차 업로드', '다회차 - 단일 파일', '다회차 - 여러 파일']) {
+  test(`${mode}에 별도 동의 없이 학습 미사용을 안내한다`, async ({ page }) => {
+    await setup(page);
+    await page.goto(`/episode-upload?workId=${workId}`);
+    await page.getByRole('button', { name: new RegExp(mode) }).click();
+    await expect(page.getByText('원고와 분석 결과는 AI 학습에 사용하지 않습니다.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /학습|동의/ })).toHaveCount(0);
+  });
+}
+
+test('다회차 여러 파일은 숫자로 정렬하고 번호 수정·재정렬 뒤에도 원본 연결을 보존한다', async ({ page }) => {
+  const requests = await setup(page);
+  const episodes = [2, 10, 3];
+  await page.route('**/episodes/detect', route => success(route, { uploadType: 'MULTI_EPISODE_MULTI_FILE', totalUploadCharacters: 30,
+    detectedEpisodes: episodes.map((episodeNo, index) => ({ detectionOrder: index, sourceFileIndex: index, episodeNo,
+      title: `제목 ${episodeNo}`, content: `본문 ${episodeNo}`, sourceHeading: null, charCount: 10 })) }));
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /다회차 - 여러 파일/ }).click();
+  await page.locator('input[type=file]').first().setInputFiles(episodes.map(number => ({ name: `${number}화.txt`, mimeType: 'text/plain', buffer: Buffer.from(`본문 ${number}`) })));
+  const rows = page.locator('.episode-confirmation-row');
+  await expect(rows).toHaveCount(3);
+  await expect.poll(() => rows.locator('input[type=number]').evaluateAll(inputs => inputs.map(input => (input as HTMLInputElement).value))).toEqual(['2', '3', '10']);
+  await expect(rows.locator('.episode-confirmation-source')).toHaveText(['2화.txt', '3화.txt', '10화.txt']);
+  await rows.first().locator('input[type=number]').fill('11');
+  await expect(page.getByText('분석 순서: 3화 → 10화 → 11화', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '회차 번호순 정렬' }).click();
+  await expect.poll(() => rows.locator('input[type=number]').evaluateAll(inputs => inputs.map(input => (input as HTMLInputElement).value))).toEqual(['3', '10', '11']);
+  await expect(rows.locator('.episode-confirmation-source')).toHaveText(['3화.txt', '10화.txt', '2화.txt']);
+  await expect(page.locator('.episode-upload-order-preview')).toHaveCount(0);
+  await page.screenshot({ path: '/tmp/catchhole-gh219-upload.png', fullPage: true });
+  await expect.poll(() => rows.locator('input:not([type=number])').evaluateAll(inputs => inputs.map(input => (input as HTMLInputElement).value))).toEqual(['제목 3', '제목 10', '제목 2']);
+  await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+  await expect.poll(() => requests.uploads.length).toBe(1);
+  const payload = requests.uploads[0];
+  const metadata = JSON.parse(payload.match(/\r\n\r\n(\{[^\r\n]+\})\r\n/)![1]);
+  expect(metadata.episodeConfirmations).toEqual([
+    { detectionOrder: 2, episodeNo: 3, title: '제목 3' }, { detectionOrder: 1, episodeNo: 10, title: '제목 10' }, { detectionOrder: 0, episodeNo: 11, title: '제목 2' },
+  ]);
+  expect(payload.indexOf('filename="2화.txt"')).toBeLessThan(payload.indexOf('filename="10화.txt"'));
+  expect(payload.indexOf('filename="10화.txt"')).toBeLessThan(payload.indexOf('filename="3화.txt"'));
+});
