@@ -40,7 +40,7 @@ export const replaceEpisodeFileMutationKey = (options?: Partial<Options<ReplaceE
 /**
  * 회차 원문 파일 변경
  *
- * 회차 번호와 제목을 유지하고 새 TXT 또는 DOCX 원본으로 교체합니다. 해당 회차는 재분석 필요로 표시하고 완료된 후행 분석은 보존합니다. 영향을 받는 미완료 순차 입력은 무효화하며 자동 분석은 시작하지 않습니다.
+ * 회차 번호와 제목을 유지하고 새 TXT, DOCX, HWP 또는 HWPX 원본으로 교체합니다. 해당 회차는 재분석 필요로 표시하고 완료된 후행 분석은 보존합니다. 영향을 받는 미완료 순차 입력은 무효화하며 자동 분석은 시작하지 않습니다.
  */
 export const replaceEpisodeFileMutation = (options?: Partial<Options<ReplaceEpisodeFileData>>): UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> => {
     const mutationOptions: UseMutationOptions<ReplaceEpisodeFileResponse, DefaultError, Options<ReplaceEpisodeFileData>> = {
@@ -562,7 +562,7 @@ export const uploadSettingBookMutationKey = (options?: Partial<Options<UploadSet
 /**
  * 설정집 원본 단독 업로드
  *
- * TXT 또는 DOCX 원본 한 개를 새 설정집으로 추가합니다. 같은 파일명도 새 항목으로 누적합니다.
+ * TXT, DOCX, HWP 또는 HWPX 원본 한 개를 새 설정집으로 추가합니다. 같은 파일명도 새 항목으로 누적합니다.
  */
 export const uploadSettingBookMutation = (options?: Partial<Options<UploadSettingBookData>>): UseMutationOptions<UploadSettingBookResponse, UploadSettingBookError, Options<UploadSettingBookData>> => {
     const mutationOptions: UseMutationOptions<UploadSettingBookResponse, UploadSettingBookError, Options<UploadSettingBookData>> = {

@@ -50,7 +50,7 @@ import {
   notifyAiTokenQuotaExhausted,
   observeAnalysisInterruption,
 } from '../../lib/ai-token-quota';
-import { validateManuscriptFile } from '../../lib/fileValidation';
+import { ALLOWED_EXTENSIONS, validateManuscriptFile } from '../../lib/fileValidation';
 import { trackMetaEpisodeUploaded } from '../../lib/meta-pixel';
 import { canResumeOrderedAnalysis, isBlockedOrderedAnalysis, isCompletedOrderedAnalysis, isInvalidatedAnalysis, isOrderedAnalysis } from '../../lib/ordered-analysis';
 import { C } from './constants';
@@ -379,13 +379,13 @@ function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
     const nextFiles = Array.from(fileList);
-    const invalid = nextFiles.find(file => validateManuscriptFile(file) || !file.name.toLowerCase().endsWith('.txt'));
+    const invalid = nextFiles.find(file => validateManuscriptFile(file));
     if (invalid) {
-      onFilesChange([], validateManuscriptFile(invalid) ?? '여러 파일 업로드는 TXT 파일만 지원합니다.');
+      onFilesChange([], validateManuscriptFile(invalid));
       return;
     }
     if (nextFiles.length < 2) {
-      onFilesChange(nextFiles, '두 개 이상의 TXT 파일을 선택해주세요.');
+      onFilesChange(nextFiles, '두 개 이상의 회차 파일을 선택해주세요.');
       return;
     }
     onFilesChange(nextFiles, null);
@@ -403,27 +403,26 @@ function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
         <input
           ref={inputRef}
           type="file"
-          accept=".txt"
+          accept={ALLOWED_EXTENSIONS.join(',')}
           multiple
           hidden
           onChange={event => handleFiles(event.target.files)}
         />
         <Upload size={22} style={{ margin: '0 auto 8px' }} />
-        {files.length > 0 ? `${files.length}개 파일 선택됨` : '회차별 TXT 파일을 두 개 이상 선택하세요'}
+        {files.length > 0 ? `${files.length}개 파일 선택됨` : '회차별 파일을 두 개 이상 선택하세요'}
       </button>
       {error && <div className="episode-upload-error" style={{ color: C.danger, fontSize: 12, marginTop: 6 }}>{error}</div>}
     </div>
   );
 }
 
-function SettingsFileInput({ include, setInclude, file, error, setFile, disabled, txtOnly = false }: {
+function SettingsFileInput({ include, setInclude, file, error, setFile, disabled }: {
   include: boolean;
   setInclude: (include: boolean) => void;
   file: File | null;
   error: string | null;
   setFile: (file: File | null, error: string | null) => void;
   disabled: boolean;
-  txtOnly?: boolean;
 }) {
   return (
     <div className="episode-settings-file" style={{ marginBottom: 18 }}>
@@ -442,8 +441,7 @@ function SettingsFileInput({ include, setInclude, file, error, setFile, disabled
           file={file}
           error={error}
           onFileChange={setFile}
-          fileLabel={txtOnly ? '설정집.txt' : '설정집.txt 또는 설정집.docx'}
-          allowedExtensions={txtOnly ? ['.txt'] : undefined}
+          fileLabel="설정집 파일 · TXT, DOCX, HWP, HWPX"
         />
       )}
     </div>
@@ -1425,11 +1423,7 @@ export default function SEpisodeUpload() {
   );
   const episodeConfirmationsValid = episodeConfirmations.length > 0
     && !episodeConfirmationValidationError;
-  const settingsModeError = uploadType === 'MULTI_EPISODE_MULTI_FILE'
-    && settingsFile
-    && !settingsFile.name.toLowerCase().endsWith('.txt')
-    ? '다회차 여러 파일 업로드에서는 설정집도 TXT 파일만 지원합니다.'
-    : settingsFileError
+  const settingsModeError = settingsFileError
       ?? (settingSaveStatus !== 'success'
         && settingsFile
         && existingSettingBookNames.has(settingsFile.name)
@@ -1515,7 +1509,7 @@ export default function SEpisodeUpload() {
                 <ModeCard
                   icon={<Files size={22} />}
                   title="다회차 - 여러 파일"
-                  desc="TXT 파일마다 한 회차로 등록합니다"
+                  desc="파일마다 한 회차로 등록합니다"
                   color={C.warning}
                   disabled={submitting}
                   selected={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
@@ -1578,7 +1572,7 @@ export default function SEpisodeUpload() {
                     file={singleFile}
                     error={singleFileError}
                     onFileChange={(file, error) => void handleSingleFile(file, error)}
-                    fileLabel="회차파일.txt 또는 회차파일.docx"
+                    fileLabel="회차 파일 · TXT, DOCX, HWP, HWPX"
                   />
                   {detectEpisodesMutation.isPending && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.t2, fontSize: 12, marginBottom: 14 }}>
@@ -1595,7 +1589,7 @@ export default function SEpisodeUpload() {
                     file={bulkFile}
                     error={bulkFileError}
                     onFileChange={(file, error) => void handleBulkFile(file, error)}
-                    fileLabel="제 N화, EP N, Episode N, Chapter N 제목 행이 있는 TXT 또는 DOCX"
+                    fileLabel="회차 제목 행(제 N화, EP N 등)이 있는 TXT, DOCX, HWP, HWPX"
                   />
                   {detectEpisodesMutation.isPending && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.t2, fontSize: 12, marginBottom: 14 }}>
@@ -1624,7 +1618,7 @@ export default function SEpisodeUpload() {
 
               {uploadType === 'MULTI_EPISODE_MULTI_FILE' && (
                 <div className="episode-upload-form-section" style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                  <FieldLabel>회차별 TXT 파일</FieldLabel>
+                  <FieldLabel>회차별 파일 · TXT, DOCX, HWP, HWPX</FieldLabel>
                   <MultiFileDropArea
                     files={multiFiles}
                     error={multiFilesError}
@@ -1701,7 +1695,6 @@ export default function SEpisodeUpload() {
                       setSettingUploadError(null);
                     }}
                     disabled={submitting}
-                    txtOnly={uploadType === 'MULTI_EPISODE_MULTI_FILE'}
                   />
                   {includeSettings
                     && settingSaveStatus !== 'success'

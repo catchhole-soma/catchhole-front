@@ -214,7 +214,7 @@ function SourceFileModal({
           file={file}
           error={fileError}
           onFileChange={onFileChange}
-          fileLabel="TXT 또는 DOCX · 최대 10MB"
+          fileLabel="TXT, DOCX, HWP, HWPX · 최대 10MB"
           disabled={pending}
         />
         {warning && <div style={{ padding: '9px 11px', marginBottom: 12, borderRadius: 6, background: `${C.warning}12`, color: C.warning, fontSize: 12 }}>{warning}</div>}

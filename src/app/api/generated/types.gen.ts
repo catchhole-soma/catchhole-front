@@ -4029,7 +4029,7 @@ export type SettingBookResponse = {
      */
     fileSize: number;
     /**
-     * TXT 또는 DOCX에서 변환한 텍스트 원문
+     * TXT, DOCX, HWP 또는 HWPX에서 변환한 텍스트 원문
      */
     content: string;
     /**

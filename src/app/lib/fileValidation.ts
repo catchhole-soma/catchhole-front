@@ -1,4 +1,4 @@
-export const ALLOWED_EXTENSIONS = ['.txt', '.docx'];
+export const ALLOWED_EXTENSIONS = ['.txt', '.docx', '.hwp', '.hwpx'];
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 export function validateManuscriptFile(
@@ -27,4 +27,9 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+export function manuscriptFormatLabel(filename: string): string {
+  const extension = filename.toLowerCase().match(/\.(txt|docx|hwp|hwpx)$/)?.[1];
+  return extension?.toUpperCase() ?? '파일';
 }

@@ -203,3 +203,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 - GH219: 다회차 여러 파일은 감지 후 회차 번호순으로 표시하고 번호 수정 후 재정렬 버튼을 제공한다. detectionOrder/sourceFileIndex와 원본 파일 배열을 보존한다. 정상 번호에 반복 순서 경고는 추가하지 않는다.
 - GH219: 후보 선택 저장은 서버의 groupKey를 유지한다. 최종 현재 반영 선택은 캐릭터 snapshot 변경만으로 막거나 이력으로 강등하지 않는다. 후보 동시 수정·원문 변경 검증은 유지하며 최종 결과 승인과 완료된 순차 분석 그룹에서는 같은 항목의 여러 현재 반영 중 하나를 고르도록 안내한다. 구형 다회차 직접 검토는 서버의 회차 간 비교 체인을 유지하므로 이 제한을 적용하지 않는다.
+
+- GH224: 모든 원고/설정집/원고 교체 입력은 `fileValidation.ALLOWED_EXTENSIONS`의 TXT/DOCX/HWP/HWPX를 공유한다. 다회차 여러 파일과 동반 설정집에 TXT 전용 제한을 두지 않는다. 본문 추출·실제 형식 검증·암호/손상/읽기 한도는 서버가 수행한다. 상세 계약은 `docs/hangul-upload.md`를 따른다.
