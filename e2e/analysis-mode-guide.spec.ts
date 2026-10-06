@@ -163,6 +163,25 @@ for (const mode of ['existing', 'failed', 'claimed-elsewhere']) {
   });
 }
 
+test('안내 제목에 초점이 들어오는 즉시 Escape를 눌러도 닫힌다', async ({ page }) => {
+  await setup(page, { eligible: false });
+  await enter(page);
+  await page.evaluate(dialogTitle => {
+    const closeOnFocus = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || target.textContent !== dialogTitle) return;
+      document.removeEventListener('focusin', closeOnFocus);
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      document.body.dataset.guideEscapeDispatched = 'true';
+    };
+    document.addEventListener('focusin', closeOnFocus);
+  }, title);
+  await page.getByRole('button', { name: '두 방식의 차이 보기' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-guide-escape-dispatched', 'true');
+  await expect(page.getByRole('dialog', { name: title })).toHaveCount(0);
+  await expect(page).not.toHaveURL(/guide=analysis-mode/);
+});
+
 test('다회차의 자동 반영 정책을 안내하고 5단계를 URL에서 복원한다', async ({ page }) => {
   await setup(page);
   await enter(page, true);

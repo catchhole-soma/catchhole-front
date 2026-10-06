@@ -273,6 +273,75 @@ test('노출 기록 응답이 늦게 도착해도 검토 화면으로 이동한 
   await expect(page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' })).toHaveCount(0);
 });
 
+test('의견 안내 응답을 기다리는 동안 원고 페이지를 바꿔도 같은 화면에서 한 번 안내한다', async ({ page }) => {
+  await mockFeedbackPrompt(page);
+  await page.route(`**/works/${WORK_ID}/episodes`, route => success(route,
+    Array.from({ length: 21 }, (_, index) => ({
+      id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      episodeNo: index + 1, title: `${index + 1}화`, status: 'ANALYZED',
+      analysisStatus: 'COMPLETED', charCount: 1000,
+    })),
+  ));
+  let release: () => void = () => {};
+  const responseReady = new Promise<void>(resolve => { release = resolve; });
+  let claims = 0;
+  await page.route('**/feedbacks/prompt/claim', async route => {
+    claims += 1;
+    await responseReady;
+    await success(route, { shouldShow: true });
+  });
+  const claim = page.waitForRequest('**/feedbacks/prompt/claim');
+  await page.goto(manuscriptUrl);
+  await claim;
+  await page.getByRole('button', { name: '다음 →', exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.getByText('2 / 2', { exact: true })).toBeVisible();
+  release();
+  const invitation = page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' });
+  await expect(invitation).toBeVisible();
+  await invitation.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '← 이전', exact: true }).click();
+  await expect(page).not.toHaveURL(/page=2/);
+  await page.waitForTimeout(2600);
+  await expect(invitation).toHaveCount(0);
+  expect(claims).toBe(1);
+});
+
+for (const destination of [
+  `/dashboard?workId=${WORK_ID}&nav=settingDB`,
+  `/setting-review?workId=${WORK_ID}`,
+]) {
+  test(`화면 정리가 늦어도 이동한 URL에서 이전 의견 요청 응답을 표시하지 않는다: ${destination}`, async ({ page }) => {
+    await mockFeedbackPrompt(page);
+    let release: () => void = () => {};
+    const responseReady = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/feedbacks/prompt/claim', async route => {
+      await responseReady;
+      await success(route, { shouldShow: true });
+    });
+    const claim = page.waitForRequest('**/feedbacks/prompt/claim');
+    await page.goto(manuscriptUrl);
+    await claim;
+
+    // CI 실패 시점처럼 URL은 이동했지만 이전 화면의 effect가 아직 정리되지 않은 구간을 유지한다.
+    await page.evaluate(url => window.history.pushState({}, '', url), destination);
+    const response = page.waitForResponse('**/feedbacks/prompt/claim');
+    release();
+    await response;
+    await expect.poll(() => page.evaluate(async () => {
+      const { queryClient } = await import('/src/app/lib/query-client.ts');
+      return queryClient.getQueryCache().getAll().some(query => {
+        const key = query.queryKey[0] as { _id?: string; memberId?: number };
+        const data = query.state.data as { data?: { shouldShow?: boolean } } | undefined;
+        return key._id === 'getMyFeedbackPrompt' && key.memberId === 314 && data?.data?.shouldShow === false;
+      });
+    })).toBe(true);
+    await expect(page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' })).toHaveCount(0);
+    await page.getByRole('button', { name: '의견 보내기', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: '서비스 의견 보내기' })).toBeVisible();
+  });
+}
+
 
 test('노출 응답을 기다리는 동안 시작한 원고 제목 입력의 포커스를 빼앗지 않는다', async ({ page }) => {
   await mockFeedbackPrompt(page);
