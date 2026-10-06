@@ -946,6 +946,10 @@ export type SettingCandidateResponse = {
      */
     attributeName?: string | null;
     /**
+     * 현재 활성 스키마 기준 화면 표시명. 캐릭터 발견 또는 스키마 해석 불가 후보는 null입니다.
+     */
+    attributeDisplayName?: string | null;
+    /**
      * 현재 활성 schema 기준 설정 속성명 편집 가능 여부
      */
     attributeNameEditable: boolean;

@@ -96,6 +96,8 @@ npm run doctor
 
 ## 설정 후보 검토
 
+- 캐릭터 후보의 화면 설정명은 Backend의 `attributeDisplayName`을 우선 사용한다. 응답에 없거나 비어 있을 때만 기존 표시명 fallback을 적용하며, 저장·수정 요청에는 원래 `attributeName`을 보낸다. DB에 추가한 스키마의 표시명을 프론트 번역 목록에 중복 등록하지 않는다.
+
 - 기본 검토 상태 필터는 `PENDING_REVIEW`로 유지한다. 이 기본 검토 흐름에서 확정·무시 후에는 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하고, `ALL`은 URL에 명시해 기본값과 구분한다.
 - 후보 수정 폼은 사용자용 설정명과 표시값만 전송한다. `valueType`, `valueJson`, 원문 근거와 raw AI payload를 클라이언트에서 재조립하거나 수정 요청에 포함하지 않는다.
 - 고정 schema 설정명은 잠그고, 동적 pattern 설정명은 기존 prefix를 잠근 채 suffix만 수정한다. 편집 가능 여부와 prefix는 Backend 응답의 `attributeNameEditable`, `attributeNamePrefix`만 사용하며 FE key 목록으로 추측하지 않는다. 최종 key 검증과 `valueJson.name` 동기화도 Backend 계약을 따른다.
