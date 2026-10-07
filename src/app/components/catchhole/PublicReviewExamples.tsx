@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import { CandidateDetail } from './characterreview/CharacterSettingReview';
 import type { CharacterFactApplicationMode } from './character/character-fact-comparison-policy';
 import { INTERACTIVE_DEMO_CANDIDATES, INTERACTIVE_DEMO_REVIEW_CHARACTER } from './interactiveDemoFixture';
@@ -11,9 +12,9 @@ export function PublicCharacterReviewExample({ mode = 'APPLY_PROPOSAL', onModeCh
   mode?: CharacterFactApplicationMode;
   onModeChange?: (mode: CharacterFactApplicationMode) => void;
 }) {
-  return <CandidateDetail candidate={INTERACTIVE_DEMO_REVIEW_CHARACTER} applicationMode={mode}
+  return <CharacterSettingLabelProvider genre="판타지"><CandidateDetail candidate={INTERACTIVE_DEMO_REVIEW_CHARACTER} applicationMode={mode}
     actionError={null} actionPending={false} dismissing={false} retrying={false} retryError={null}
-    manuallyReviewed={false} decisionChosen onApplicationModeChange={onModeChange} />;
+    manuallyReviewed={false} decisionChosen onApplicationModeChange={onModeChange} /></CharacterSettingLabelProvider>;
 }
 
 /** The walkthrough exposes only the final-value edit it can actually demonstrate in its local result DB. */

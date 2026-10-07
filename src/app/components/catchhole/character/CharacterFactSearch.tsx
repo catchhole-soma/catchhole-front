@@ -12,8 +12,10 @@ import type {
   SearchCharacterFactsData,
 } from '../../../api/generated/types.gen';
 import { toApiError } from '../../../lib/api-errors';
+import { CHARACTER_FACT_TYPE_LABELS, characterFactTypeLabel } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
+import { useCharacterSettingLabels } from './CharacterSettingLabelProvider';
 import { PageNavigation } from '../PageNavigation';
 
 type SearchQuery = NonNullable<SearchCharacterFactsData['query']>;
@@ -31,9 +33,9 @@ const FACT_TYPE_OPTIONS: ReadonlyArray<{ value: FactTypeFilter; label: string }>
   { value: 'ALL', label: '전체' },
   { value: 'AGE', label: '나이' },
   { value: 'LEVEL', label: '레벨' },
-  { value: 'STAT', label: '스탯' },
-  { value: 'SKILL', label: '스킬' },
-  { value: 'ITEM', label: '아이템' },
+  { value: 'STAT', label: CHARACTER_FACT_TYPE_LABELS.STAT },
+  { value: 'SKILL', label: CHARACTER_FACT_TYPE_LABELS.SKILL },
+  { value: 'ITEM', label: CHARACTER_FACT_TYPE_LABELS.ITEM },
   { value: 'STATUS', label: '상태' },
 ];
 const SCOPE_OPTIONS: ReadonlyArray<{ value: ScopeFilter; label: string }> = [
@@ -181,6 +183,10 @@ function StatePanel({
 }
 
 export function CharacterFactSearch({ workId, enabled }: Props) {
+  const labels = useCharacterSettingLabels();
+  const factTypeOptions = FACT_TYPE_OPTIONS.map(option => ({
+    ...option, label: characterFactTypeLabel(option.value, option.label, labels),
+  }));
   const [searchParams, setSearchParams] = useSearchParams();
   const rawQuery = searchParams.get('q');
   const appliedQuery = (rawQuery ?? '').trim();
@@ -391,9 +397,9 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
         <div className="character-fact-search__filter-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="character-fact-search__filter-label" style={{ width: 70, color: C.t2, fontSize: 12, fontWeight: 650 }}>설정 유형</span>
           <select className="character-fact-search__mobile-filter mobile-choice-select" aria-label="설정 유형" value={factType} onChange={event => setFilter('factType', event.target.value as FactTypeFilter)}>
-            {FACT_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            {factTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          {FACT_TYPE_OPTIONS.map(option => (
+          {factTypeOptions.map(option => (
             <Chip
               key={option.value}
               active={factType === option.value}
@@ -501,7 +507,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
                     fontSize: 11,
                     fontWeight: 650,
                   }}>
-                    {result.factTypeLabel ?? result.factType ?? '설정'}
+                    {characterFactTypeLabel(result.factType, result.factTypeLabel ?? result.factType ?? '설정', labels)}
                   </span>
                   <span style={{
                     padding: '3px 8px',
@@ -598,7 +604,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
               gap: 10,
             }}>
               <strong style={{ color: C.t1, fontSize: 20 }}>
-                {detail?.factTypeLabel ?? '설정 상세'}
+                {characterFactTypeLabel(detail?.factType, detail?.factTypeLabel ?? '설정 상세', labels)}
               </strong>
               {detail && (
                 <span style={{

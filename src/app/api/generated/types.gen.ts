@@ -4193,7 +4193,7 @@ export type CharacterSettingUpdateRequest = {
      */
     valueType: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON' | 'UNKNOWN';
     /**
-     * 스킬, 아이템, 상태 등 복합 설정의 세부 속성
+     * 스킬, 소지품, 상태 등 복합 설정의 세부 속성
      */
     properties: Array<CharacterSettingPropertyRequest>;
 };
@@ -4235,7 +4235,7 @@ export type CharacterUpdateRequest = {
      */
     skills: Array<CharacterSettingUpdateRequest>;
     /**
-     * 아이템 현재 설정 전체
+     * 소지품 현재 설정 전체
      */
     items: Array<CharacterSettingUpdateRequest>;
     /**
@@ -4305,7 +4305,7 @@ export type CharacterDetailResponse = {
      */
     skills?: Array<CharacterSettingResponse>;
     /**
-     * 아이템 현재 설정
+     * 소지품 현재 설정
      */
     items?: Array<CharacterSettingResponse>;
     /**

@@ -135,7 +135,7 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
           { factType: 'LEVEL', factTypeLabel: '레벨', count: 0 },
           { factType: 'STAT', factTypeLabel: '스탯', count: 0 },
           { factType: 'SKILL', factTypeLabel: '스킬', count: 0 },
-          { factType: 'ITEM', factTypeLabel: '아이템', count: 0 },
+          { factType: 'ITEM', factTypeLabel: '소지품', count: 0 },
           { factType: 'STATUS', factTypeLabel: '상태', count: 2 },
         ],
         factFacets: [
@@ -154,7 +154,7 @@ test('캐릭터 설정 이력을 필터·cursor로 조회하고 기존 원문 �
           { factType: 'LEVEL', factTypeLabel: '레벨', count: 0, factKeys: [] },
           { factType: 'STAT', factTypeLabel: '스탯', count: 0, factKeys: [] },
           { factType: 'SKILL', factTypeLabel: '스킬', count: 0, factKeys: [] },
-          { factType: 'ITEM', factTypeLabel: '아이템', count: 0, factKeys: [] },
+          { factType: 'ITEM', factTypeLabel: '소지품', count: 0, factKeys: [] },
           {
             factType: 'STATUS',
             factTypeLabel: '상태',

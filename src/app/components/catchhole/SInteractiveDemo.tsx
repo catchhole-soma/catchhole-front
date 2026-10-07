@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import {
   ArrowLeft,
   ArrowRight,
@@ -1155,6 +1156,7 @@ export default function SInteractiveDemo() {
   };
 
   return (
+    <CharacterSettingLabelProvider genre={'판타지'}>
     <div className="interactive-demo-page theme-v2" ref={pageRef}>
       <header className="interactive-demo-header">
         <div className="interactive-demo-header__brand">
@@ -1232,5 +1234,6 @@ export default function SInteractiveDemo() {
         {coachmark && <Coachmark {...coachmark} />}
       </AnimatePresence>
     </div>
+    </CharacterSettingLabelProvider>
   );
 }

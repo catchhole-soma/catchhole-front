@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router';
 import { getWorkOptions } from '../../api/generated/@tanstack/react-query.gen';
@@ -43,8 +44,10 @@ export default function SSettingReview() {
     return <div role="status">작품 상태를 확인하고 있습니다...</div>;
   }
 
-  return <WorldImageThemeProvider workId={workId} enabled={Boolean(work)}>
-    {/* 탭 왕복은 선택을 유지하고, 작품·업로드 묶음 변경은 저장하지 않은 선택을 초기화한다. */}
-    <SettingReviewContent key={`${workId}:${batchId}`} world={searchParams.get('candidateType') === 'world'} />
-  </WorldImageThemeProvider>;
+  return <CharacterSettingLabelProvider genre={work?.genre}>
+    <WorldImageThemeProvider workId={workId} enabled={Boolean(work)}>
+      {/* 탭 왕복은 선택을 유지하고, 작품·업로드 묶음 변경은 저장하지 않은 선택을 초기화한다. */}
+      <SettingReviewContent key={`${workId}:${batchId}`} world={searchParams.get('candidateType') === 'world'} />
+    </WorldImageThemeProvider>
+  </CharacterSettingLabelProvider>;
 }

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
@@ -820,6 +821,7 @@ export default function S1Dashboard() {
           }
         : null;
   return (
+    <CharacterSettingLabelProvider genre={apiWork?.genre ?? selectedWorkDisplay.genre}>
     <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' ? ' database-v2' : ''}`} style={{
       background: C.bg, width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
@@ -1295,5 +1297,6 @@ export default function S1Dashboard() {
       )}
       </AnimatePresence>
     </div>
+    </CharacterSettingLabelProvider>
   );
 }

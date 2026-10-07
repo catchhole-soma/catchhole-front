@@ -27,8 +27,10 @@ import type {
   GetCharacterTimelineSummaryData,
 } from '../../../api/generated/types.gen';
 import { toApiError } from '../../../lib/api-errors';
+import { CHARACTER_FACT_TYPE_LABELS, characterFactTypeLabel } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
+import { useCharacterSettingLabels } from './CharacterSettingLabelProvider';
 import { CharacterEvidencePanel } from './CharacterEvidencePanel';
 import {
   EMPTY_TIMELINE_SELECTION,
@@ -86,9 +88,9 @@ const FACT_FILTER_LABELS: Record<TimelineFactFilter, string> = {
   PROFILE: '프로필',
   AGE: '나이',
   LEVEL: '레벨',
-  STAT: '스탯',
-  SKILL: '스킬',
-  ITEM: '아이템',
+  STAT: CHARACTER_FACT_TYPE_LABELS.STAT,
+  SKILL: CHARACTER_FACT_TYPE_LABELS.SKILL,
+  ITEM: CHARACTER_FACT_TYPE_LABELS.ITEM,
   STATUS: '상태',
 };
 const FACT_COLORS: Record<Exclude<TimelineFactFilter, 'ALL'>, string> = {
@@ -135,6 +137,8 @@ function TimelineModal({
   onEvidenceClose,
   onClose,
 }: TimelineModalProps) {
+  const labels = useCharacterSettingLabels();
+  const factFilterLabels = useMemo(() => ({ ...FACT_FILTER_LABELS, ...labels }), [labels]);
   const queryClient = useQueryClient();
   const feedRef = useRef<HTMLElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -233,7 +237,7 @@ function TimelineModal({
       const facet = facets.find(item => item.factType === type);
       return {
         id: `type:${type}`,
-        label: `${facet?.factTypeLabel ?? FACT_FILTER_LABELS[type]} 전체 이력`,
+        label: `${characterFactTypeLabel(type, facet?.factTypeLabel ?? factFilterLabels[type], factFilterLabels)} 전체 이력`,
         selection: {
           factTypes: selection.factTypes.filter(selectedType => selectedType !== type),
           factKeys: selection.factKeys,
@@ -253,7 +257,7 @@ function TimelineModal({
       };
     });
     return [...parentItems, ...childItems];
-  }, [selection.factKeys, selection.factTypes, summary?.factFacets]);
+  }, [selection.factKeys, selection.factTypes, summary?.factFacets, factFilterLabels]);
   const queriedFacts = useMemo(() => {
     const seen = new Set<string>();
     return (timelineQuery.data?.pages ?? [])
@@ -424,7 +428,7 @@ function TimelineModal({
                   className={factType === filter ? 'is-active' : undefined}
                   onClick={() => onFactTypeChange(filter)}
                 >
-                  {FACT_FILTER_LABELS[filter]} <span>{count}</span>
+                  {factFilterLabels[filter]} <span>{count}</span>
                 </button>
               );
             })}
@@ -550,7 +554,7 @@ function TimelineModal({
                         <article key={fact.characterFactId} className={`character-timeline-fact${selected ? ' is-selected' : ''}`} style={{ '--fact-color': color } as React.CSSProperties}>
                           <span className="character-timeline-fact__bar" />
                           <div className="character-timeline-fact__copy">
-                            <span>{fact.factTypeLabel ?? FACT_FILTER_LABELS[filter] ?? fact.factType}</span>
+                            <span>{characterFactTypeLabel(fact.factType, fact.factTypeLabel ?? factFilterLabels[filter], factFilterLabels)}</span>
                             <strong>{fact.displayName ?? '설정명 없음'}</strong>
                             <p>{fact.factValue || '—'}</p>
                           </div>
@@ -606,7 +610,7 @@ function TimelineModal({
                     ? queryErrorMessage(evidenceQuery.error, '원문 근거를 불러오지 못했습니다.')
                     : null}
                   context={selectedFact ? {
-                    factTypeLabel: selectedFact.factTypeLabel ?? selectedFact.factType ?? '설정',
+                    factTypeLabel: characterFactTypeLabel(selectedFact.factType, selectedFact.factTypeLabel ?? selectedFact.factType ?? '설정', factFilterLabels),
                     displayName: selectedFact.displayName ?? '설정명 없음',
                     factValue: selectedFact.factValue ?? null,
                   } : undefined}

@@ -56,7 +56,7 @@ function searchResult(id = factId) {
   return {
     characterFactId: id,
     factType: 'SKILL',
-    factTypeLabel: '스킬',
+    factTypeLabel: '스킬', // 이전 Backend 응답도 화면에서는 공통 분류명으로 표시한다.
     displayName: id === missingFactId ? '사라진 기술' : '월광 검술',
     factValue: id === missingFactId ? 'Lv.0' : 'Lv.3',
     contributesToCurrentSnapshot: id !== retryFactId,
@@ -75,7 +75,7 @@ function detail(id = factId, evidenceQuotes: string[] = []) {
     characterFactId: id,
     factKey: 'skill.moonlight_sword',
     factType: 'SKILL',
-    factTypeLabel: '스킬',
+    factTypeLabel: '스킬', // 이전 Backend 응답도 화면에서는 공통 분류명으로 표시한다.
     displayName: '월광 검술',
     factValue: 'Lv.3',
     contributesToCurrentSnapshot: id !== retryFactId,
@@ -125,15 +125,15 @@ function routeDashboardBase(route: Route) {
     return success(route, [{
       id: workId,
       title: '설정 검색 작품',
-      genre: '판타지',
-      episodeCount: 12,
+      genre: '로맨스',
+      latestEpisodeNo: 12,
     }]);
   }
   if (pathname === `/api/v1/works/${workId}`) {
     return success(route, {
       id: workId,
       title: '설정 검색 작품',
-      genre: '판타지',
+      genre: '로맨스',
       latestEpisodeNo: 12,
     });
   }
@@ -186,6 +186,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await expect(firstResult).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(firstResult).toHaveCSS('border-radius', '16px');
   await expect(firstResult.getByText('월광 검술', { exact: true })).toBeVisible();
+  await expect(firstResult.getByText('기술·특기', { exact: true })).toBeVisible();
   await expect(firstResult.getByText('Lv.3', { exact: true })).toBeVisible();
   await expect.poll(() => requests.some(request => request.q === '검술' && request.page === '1'))
     .toBe(true);
@@ -207,7 +208,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('회복');
   expect(new URL(page.url()).searchParams.get('page')).toBe('1');
 
-  await page.getByRole('button', { name: '스킬', exact: true }).click();
+  await page.getByRole('button', { name: '기술·특기', exact: true }).click();
   await expect.poll(() => requests.some(request => (
     request.q === '회복' && request.factType === 'SKILL' && request.page === '0'
   ))).toBe(true);
@@ -232,6 +233,7 @@ test('검색 상태를 URL에 보존하고 300ms debounce와 UI/API 페이지 �
   await expect(dialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(dialog).toHaveCSS('border-radius', '20px');
   await expect(dialog.getByText('설정명', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('기술·특기', { exact: true })).toBeVisible();
   await expect(dialog.getByText('월광 검술', { exact: true })).toBeVisible();
   await expect(dialog.getByText('Lv.3', { exact: true })).toBeVisible();
   await expect(dialog.getByText('설정 키', { exact: true })).toHaveCount(0);
@@ -292,7 +294,7 @@ test('모바일 검색 선택 메뉴는 필터와 페이지를 URL·API에 반�
   expect(new URL(page.url()).searchParams.get('page')).toBe('1');
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(typeSelect).toBeHidden();
-  await expect(page.getByRole('button', { name: '스킬', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '기술·특기', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '현재값 근거', exact: true })).toBeVisible();
 });
 
