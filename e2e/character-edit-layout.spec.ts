@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const workId = '11111111-1111-4111-8111-111111111111';
 const characterId = '22222222-2222-4222-8222-222222222222';
 for (const width of [1440, 1280, 1024, 390, 320]) {
-  test(`${width}px 캐릭터 편집의 상태·소지품·능력 삭제 버튼이 잘리지 않고 동작한다`, async ({ page }) => {
+  test(`${width}px 캐릭터 편집의 상태·소지품·스탯 삭제 버튼이 잘리지 않고 동작한다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     const setting = (prefix: string, name: string) => ({ key: `${prefix}.${name}`, displayName: name, value: '설정 내용',
       valueType: 'STRING', attributeNameEditable: true, attributeNamePrefix: `${prefix}.`, displayNameEditable: true,
@@ -15,8 +15,8 @@ for (const width of [1440, 1280, 1024, 390, 320]) {
       const data = path.endsWith('/auth/me') ? { id: 1, email: 'layout@example.invalid', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' }
         : path.endsWith(`/characters/${characterId}`) ? detail
         : path.endsWith('/characters') ? { content: [detail], page: 0, totalPages: 1, totalElements: 1, size: 20 }
-        : path.endsWith(`/works/${workId}`) ? { id: workId, title: '검증 작품', genre: '판타지' }
-        : path.endsWith('/works') ? [{ id: workId, title: '검증 작품', genre: '판타지' }] : [];
+        : path.endsWith(`/works/${workId}`) ? { id: workId, title: '검증 작품', genre: '무협', latestEpisodeNo: 1 }
+        : path.endsWith('/works') ? [{ id: workId, title: '검증 작품', genre: '무협', latestEpisodeNo: 1 }] : [];
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) });
     });
     await page.addInitScript(() => localStorage.setItem('accessToken', 'layout-fixture'));
