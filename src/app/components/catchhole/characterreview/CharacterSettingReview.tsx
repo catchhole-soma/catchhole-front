@@ -40,6 +40,7 @@ import {
   type ReviewReturnState,
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
+import { CHARACTER_FACT_TYPE_LABELS, type CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import {
   AUTOMATIC_APPLICATION_PENDING_MESSAGE,
@@ -54,6 +55,7 @@ import { SettingReviewSummary } from '../SettingReviewSummary';
 import { AutomaticApplicationNotice } from '../AutomaticApplicationNotice';
 import { OrderedReviewImpactNotice } from '../OrderedReviewImpactNotice';
 import { C } from '../constants';
+import { useCharacterSettingLabels } from '../character/CharacterSettingLabelProvider';
 import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
@@ -99,19 +101,21 @@ const MATCH_LABELS: Record<MatchStatus, string> = {
   UNRESOLVED: '새 캐릭터 후보',
   AMBIGUOUS: '캐릭터 연결 확인 필요',
 };
-const SETTING_TYPE_LABELS: Record<string, string> = {
-  age: '나이/레벨',
-  level: '나이/레벨',
-  profile: '프로필',
-  stats: '스탯',
-  skill: '스킬',
-  skills: '스킬',
-  item: '아이템',
-  items: '아이템',
-  status: '상태',
-  statuses: '상태',
-  time: '시간/사건',
-};
+function settingTypeLabels(labels: CharacterFactTypeLabels): Record<string, string> {
+  return {
+    age: '나이/레벨',
+    level: '나이/레벨',
+    profile: '프로필',
+    stats: labels.STAT,
+    skill: labels.SKILL,
+    skills: labels.SKILL,
+    item: labels.ITEM,
+    items: labels.ITEM,
+    status: '상태',
+    statuses: '상태',
+    time: '시간/사건',
+  };
+}
 const SETTING_NAME_LABELS: Record<string, string> = {
   age: '나이',
   level: '레벨',
@@ -141,8 +145,8 @@ const SETTING_NAME_LABELS: Record<string, string> = {
   'stats.perception': '인지력',
   'stats.mental_power': '정신력',
   'statuses.condition': '상태',
-  'skills.skill': '스킬',
-  'items.item': '아이템',
+  'skills.skill': CHARACTER_FACT_TYPE_LABELS.SKILL,
+  'items.item': CHARACTER_FACT_TYPE_LABELS.ITEM,
 };
 const DECIMAL_VALUE_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 
@@ -157,6 +161,7 @@ interface SettingDisplay {
 function toSettingDisplay(
   attributeName?: string | null,
   attributeDisplayName?: string | null,
+  labels: CharacterFactTypeLabels = CHARACTER_FACT_TYPE_LABELS,
 ): SettingDisplay {
   const normalized = attributeName?.trim();
   if (!normalized) return { typeLabel: '설정', nameLabel: '설정명 없음' };
@@ -164,8 +169,8 @@ function toSettingDisplay(
   const [prefix, ...suffixParts] = normalized.split('.');
   const suffix = suffixParts.join('.');
   return {
-    typeLabel: SETTING_TYPE_LABELS[prefix] ?? '기타',
-    nameLabel: attributeDisplayName?.trim() || (SETTING_NAME_LABELS[normalized]
+    typeLabel: settingTypeLabels(labels)[prefix] ?? '기타',
+    nameLabel: attributeDisplayName?.trim() || ((normalized === 'skills.skill' ? labels.SKILL : SETTING_NAME_LABELS[normalized])
       ?? (suffix ? suffix.replace(/_/g, ' ') : normalized.replace(/_/g, ' '))),
   };
 }
@@ -691,6 +696,7 @@ function CandidateEditModal({
   onClose: () => void;
   onSubmit: (attributeName: string, attributeValue: string | null, reviewedApplicationMode?: CharacterFactApplicationMode) => void;
 }) {
+  const labels = useCharacterSettingLabels();
   const originalName = candidate.attributeName?.trim() ?? '';
   const editableName = candidate.attributeNameEditable === true
     && Boolean(candidate.attributeNamePrefix);
@@ -743,7 +749,7 @@ function CandidateEditModal({
             <>
               <input
                 id="candidate-attribute-name"
-                value={toSettingDisplay(originalName, candidate.attributeDisplayName).nameLabel}
+                value={toSettingDisplay(originalName, candidate.attributeDisplayName, labels).nameLabel}
                 readOnly
                 aria-describedby="candidate-attribute-name-help"
                 style={{ ...modalInputStyle, marginTop: 7, color: REVIEW_TEXT.muted }}
@@ -760,7 +766,7 @@ function CandidateEditModal({
                 color: REVIEW_TEXT.muted, display: 'inline-flex', alignItems: 'center', fontSize: 13,
                 flexShrink: 0, whiteSpace: 'nowrap',
               }}>
-                {SETTING_TYPE_LABELS[dynamicName.prefix.slice(0, -1)] ?? '설정'}
+                {settingTypeLabels(labels)[dynamicName.prefix.slice(0, -1)] ?? '설정'}
               </span>
               <input
                 id="candidate-attribute-name"
@@ -1110,6 +1116,7 @@ export function CandidateDetail({
   manuallyReviewed: boolean;
   decisionChosen?: boolean;
 }) {
+  const labels = useCharacterSettingLabels();
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
@@ -1117,7 +1124,7 @@ export function CandidateDetail({
   const processing = isCandidateComparisonProcessing(candidate);
   const confidence = confidenceDescription(candidate.confidence ?? undefined);
   const quotes = evidenceQuotes(candidate.evidenceSpans);
-  const settingDisplay = toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName);
+  const settingDisplay = toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName, labels);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
   const invalidValueRepairable = isCandidateValueRepairable(candidate);
@@ -1221,6 +1228,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   onApplicationModeChange: (candidateId: string, mode: CharacterFactApplicationMode) => void;
   onClearApplicationModes: (candidateIds: string[]) => void;
 }) {
+  const labels = useCharacterSettingLabels();
   const routerNavigate = useRouterNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -1854,7 +1862,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           && !hasManualReview(candidate) && (!candidate.id || !applicationModes[candidate.id]))
         ? '판단이 필요한 설정에서 저장할 방법을 선택해 주세요.'
       : duplicateCurrentSelection
-        ? `‘${toSettingDisplay(duplicateCurrentSelection[0].attributeName, duplicateCurrentSelection[0].attributeDisplayName).nameLabel}’에 현재 반영을 여러 번 선택했어요. 현재로 남길 하나를 선택하고 나머지는 이력에 저장하거나 제외해 주세요.`
+        ? `‘${toSettingDisplay(duplicateCurrentSelection[0].attributeName, duplicateCurrentSelection[0].attributeDisplayName, labels).nameLabel}’에 현재 반영을 여러 번 선택했어요. 현재로 남길 하나를 선택하고 나머지는 이력에 저장하거나 제외해 주세요.`
       : !groupHasSharedComparisonRevision
         ? '모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'
       : pendingGroupCandidates.some(candidate => (

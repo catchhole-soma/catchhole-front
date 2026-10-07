@@ -1,3 +1,4 @@
+import { characterFactTypeLabels } from '../../lib/character-setting-labels';
 import type {
   CharacterDetailResponse,
   CharacterFactEvidenceResponse,
@@ -17,7 +18,7 @@ export type DemoManuscriptParagraph = {
 };
 
 export type DemoCharacterName = '도리안 베일' | '리아 모렌' | '세리아 노크' | '에단 렌' | '카엘 로스크';
-type DemoCharacterSettingCategory = '스킬' | '스탯' | '아이템' | '프로필' | '상태';
+type DemoCharacterSettingCategory = '스킬' | '스탯' | '소지품' | '프로필' | '상태';
 
 type DemoCharacterEvidence = {
   episode: number;
@@ -172,13 +173,13 @@ const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
       { category: '프로필', settingName: '소속', value: '백야 원정대 임시 협력자', evidence: { id: 'ethan-affiliation-4', episode: 4, episodeTitle: '백야의 계약', quote: '세리아는 에단에게 백야 원정대의 임시 인장을 건넸다.' } },
       { category: '스탯', settingName: '현재 레벨', value: '8', evidence: { id: 'ethan-level-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '재액을 봉인한 대가로 에단의 등급 표식이 여덟 번째 눈금을 밝혔다.' } },
       { category: '스킬', settingName: '재액 적재', value: 'Lv.2 · 저주를 무게로 전환', evidence: { id: 'ethan-skill-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '재액 적재의 두 번째 고리가 열리며 흩어진 저주가 운반대 안으로 빨려 들었다.' } },
-      { category: '아이템', settingName: '균열석 운반대', value: '봉인 슬롯 3칸', evidence: { id: 'ethan-item-2', episode: 2, episodeTitle: '첫 운반', quote: '낡은 운반대에는 균열석을 고정할 봉인 슬롯이 세 칸 남아 있었다.' } },
+      { category: '소지품', settingName: '균열석 운반대', value: '봉인 슬롯 3칸', evidence: { id: 'ethan-item-2', episode: 2, episodeTitle: '첫 운반', quote: '낡은 운반대에는 균열석을 고정할 봉인 슬롯이 세 칸 남아 있었다.' } },
       { category: '상태', settingName: '마나 회로', value: '폐쇄 · 자연 회복 불가', evidence: { id: 'ethan-status-1', episode: 1, episodeTitle: '마나 0의 짐꾼', quote: '측정구의 바늘은 끝내 움직이지 않았다. 에단의 마나 회로는 완전히 닫혀 있었다.' } },
     ],
     timeline: [
       { category: '프로필', settingName: '직업', value: '짐꾼', current: false, evidence: { id: 'ethan-job-1', episode: 1, episodeTitle: '마나 0의 짐꾼', quote: '길드 명부의 에단 옆에는 전투직이 아닌 짐꾼이라는 두 글자만 적혀 있었다.' } },
       { category: '상태', settingName: '마나 회로', value: '폐쇄 · 자연 회복 불가', current: true, evidence: { id: 'ethan-status-1', episode: 1, episodeTitle: '마나 0의 짐꾼', quote: '측정구의 바늘은 끝내 움직이지 않았다. 에단의 마나 회로는 완전히 닫혀 있었다.' } },
-      { category: '아이템', settingName: '균열석 운반대', value: '봉인 슬롯 3칸', current: true, evidence: { id: 'ethan-item-2', episode: 2, episodeTitle: '첫 운반', quote: '낡은 운반대에는 균열석을 고정할 봉인 슬롯이 세 칸 남아 있었다.' } },
+      { category: '소지품', settingName: '균열석 운반대', value: '봉인 슬롯 3칸', current: true, evidence: { id: 'ethan-item-2', episode: 2, episodeTitle: '첫 운반', quote: '낡은 운반대에는 균열석을 고정할 봉인 슬롯이 세 칸 남아 있었다.' } },
       { category: '프로필', settingName: '소속', value: '백야 원정대 임시 협력자', current: true, evidence: { id: 'ethan-affiliation-4', episode: 4, episodeTitle: '백야의 계약', quote: '세리아는 에단에게 백야 원정대의 임시 인장을 건넸다.' } },
       { category: '스킬', settingName: '재액 적재', value: 'Lv.2 · 저주를 무게로 전환', current: true, evidence: { id: 'ethan-skill-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '재액 적재의 두 번째 고리가 열리며 흩어진 저주가 운반대 안으로 빨려 들었다.' } },
       { category: '프로필', settingName: '직업', value: '재액 운반자', current: true, updated: true, evidence: { id: 'ethan-job-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '“전직을 확정합니다. 직업 변경: 짐꾼 → 재액 운반자.”' } },
@@ -193,12 +194,12 @@ const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
       { category: '프로필', settingName: '소속', value: '백야 원정대', evidence: { id: 'seria-affiliation-2', episode: 2, episodeTitle: '첫 운반', quote: '그녀의 어깨에는 백야 원정대의 은빛 문장이 달려 있었다.' } },
       { category: '스탯', settingName: '현재 레벨', value: '12', evidence: { id: 'seria-level-4', episode: 4, episodeTitle: '백야의 계약', quote: '열두 개의 창 문양이 세리아의 발밑에서 차례로 빛났다.' } },
       { category: '스킬', settingName: '백야 진형', value: '반경 30m 방어 진형', evidence: { id: 'seria-skill-4', episode: 4, episodeTitle: '백야의 계약', quote: '세리아가 창끝을 세우자 대원들을 잇는 백야 진형이 펼쳐졌다.' } },
-      { category: '아이템', settingName: '은월창', value: '귀환문 반응 감지', evidence: { id: 'seria-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '은월창의 홈이 푸르게 떨리며 가까운 귀환문의 방향을 가리켰다.' } },
+      { category: '소지품', settingName: '은월창', value: '귀환문 반응 감지', evidence: { id: 'seria-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '은월창의 홈이 푸르게 떨리며 가까운 귀환문의 방향을 가리켰다.' } },
       { category: '상태', settingName: '왼팔 흉터', value: '무저갱 관문 원정에서 발생', evidence: { id: 'seria-status-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '왼팔의 오래된 흉터가 관문의 파장에 맞춰 다시 붉어졌다.' } },
     ],
     timeline: [
       { category: '프로필', settingName: '직책', value: '백야 원정대장', current: true, evidence: { id: 'seria-role-2', episode: 2, episodeTitle: '첫 운반', quote: '백야 원정대장 세리아가 직접 선발 명부를 펼쳤다.' } },
-      { category: '아이템', settingName: '은월창', value: '귀환문 반응 감지', current: true, evidence: { id: 'seria-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '은월창의 홈이 푸르게 떨리며 가까운 귀환문의 방향을 가리켰다.' } },
+      { category: '소지품', settingName: '은월창', value: '귀환문 반응 감지', current: true, evidence: { id: 'seria-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '은월창의 홈이 푸르게 떨리며 가까운 귀환문의 방향을 가리켰다.' } },
       { category: '스킬', settingName: '백야 진형', value: '반경 30m 방어 진형', current: true, evidence: { id: 'seria-skill-4', episode: 4, episodeTitle: '백야의 계약', quote: '세리아가 창끝을 세우자 대원들을 잇는 백야 진형이 펼쳐졌다.' } },
       { category: '상태', settingName: '왼팔 흉터', value: '무저갱 관문 원정에서 발생', current: true, evidence: { id: 'seria-status-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '왼팔의 오래된 흉터가 관문의 파장에 맞춰 다시 붉어졌다.' } },
     ],
@@ -210,12 +211,12 @@ const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
       { category: '프로필', settingName: '직업', value: '유적 감정사', evidence: { id: 'dorian-job-3', episode: 3, episodeTitle: '거꾸로숲', quote: '왕립유물원 출신 감정사 도리안이 석문의 연대를 짚어 냈다.' } },
       { category: '프로필', settingName: '전 소속', value: '왕립유물원 제2연구실', evidence: { id: 'dorian-affiliation-3', episode: 3, episodeTitle: '거꾸로숲', quote: '그는 왕립유물원 제2연구실의 낡은 조사표를 꺼냈다.' } },
       { category: '스킬', settingName: '잔향 판독', value: '사물에 남은 마력 기억 해석', evidence: { id: 'dorian-skill-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '도리안은 석판에 남은 마력의 잔향을 문장처럼 읽어 냈다.' } },
-      { category: '아이템', settingName: '황동 단안경', value: '고대 문자 확대·파장 분리', evidence: { id: 'dorian-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '황동 단안경의 세 겹 렌즈가 겹치며 지워진 문자를 되살렸다.' } },
+      { category: '소지품', settingName: '황동 단안경', value: '고대 문자 확대·파장 분리', evidence: { id: 'dorian-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '황동 단안경의 세 겹 렌즈가 겹치며 지워진 문자를 되살렸다.' } },
       { category: '상태', settingName: '시력', value: '왼눈 마력 시야 손상', evidence: { id: 'dorian-status-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '도리안은 흐려진 왼눈 대신 단안경의 마지막 렌즈를 내렸다.' } },
     ],
     timeline: [
       { category: '프로필', settingName: '직업', value: '유적 감정사', current: true, evidence: { id: 'dorian-job-3', episode: 3, episodeTitle: '거꾸로숲', quote: '왕립유물원 출신 감정사 도리안이 석문의 연대를 짚어 냈다.' } },
-      { category: '아이템', settingName: '황동 단안경', value: '고대 문자 확대·파장 분리', current: true, evidence: { id: 'dorian-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '황동 단안경의 세 겹 렌즈가 겹치며 지워진 문자를 되살렸다.' } },
+      { category: '소지품', settingName: '황동 단안경', value: '고대 문자 확대·파장 분리', current: true, evidence: { id: 'dorian-item-3', episode: 3, episodeTitle: '거꾸로숲', quote: '황동 단안경의 세 겹 렌즈가 겹치며 지워진 문자를 되살렸다.' } },
       { category: '스킬', settingName: '잔향 판독', value: '사물에 남은 마력 기억 해석', current: true, evidence: { id: 'dorian-skill-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '도리안은 석판에 남은 마력의 잔향을 문장처럼 읽어 냈다.' } },
     ],
   },
@@ -226,12 +227,12 @@ const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
       { category: '프로필', settingName: '직업', value: '봉합술사', evidence: { id: 'lia-job-4', episode: 4, episodeTitle: '백야의 계약', quote: '리아는 끊어진 마력 회로까지 꿰매는 봉합술사였다.' } },
       { category: '프로필', settingName: '소속', value: '백야 원정대 의무반', evidence: { id: 'lia-affiliation-4', episode: 4, episodeTitle: '백야의 계약', quote: '의무반 완장을 찬 리아가 부상자 사이를 빠르게 오갔다.' } },
       { category: '스킬', settingName: '맥박 추적', value: '차폐 너머 생체 반응 감지', evidence: { id: 'lia-skill-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '리아가 반쯤 무너진 석문 너머에서 희미한 맥박을 찾아냈다.' } },
-      { category: '아이템', settingName: '은실 봉합침', value: '마력 회로 임시 연결', evidence: { id: 'lia-item-4', episode: 4, episodeTitle: '백야의 계약', quote: '은실 봉합침이 끊어진 회로의 양 끝을 임시로 이어 붙였다.' } },
+      { category: '소지품', settingName: '은실 봉합침', value: '마력 회로 임시 연결', evidence: { id: 'lia-item-4', episode: 4, episodeTitle: '백야의 계약', quote: '은실 봉합침이 끊어진 회로의 양 끝을 임시로 이어 붙였다.' } },
       { category: '상태', settingName: '청각 과민', value: '맥박 추적 사용 후 심화', evidence: { id: 'lia-status-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '맥박 추적을 거둔 뒤에도 리아는 작은 심장 소리마다 고개를 돌렸다.' } },
     ],
     timeline: [
       { category: '프로필', settingName: '직업', value: '봉합술사', current: true, evidence: { id: 'lia-job-4', episode: 4, episodeTitle: '백야의 계약', quote: '리아는 끊어진 마력 회로까지 꿰매는 봉합술사였다.' } },
-      { category: '아이템', settingName: '은실 봉합침', value: '마력 회로 임시 연결', current: true, evidence: { id: 'lia-item-4', episode: 4, episodeTitle: '백야의 계약', quote: '은실 봉합침이 끊어진 회로의 양 끝을 임시로 이어 붙였다.' } },
+      { category: '소지품', settingName: '은실 봉합침', value: '마력 회로 임시 연결', current: true, evidence: { id: 'lia-item-4', episode: 4, episodeTitle: '백야의 계약', quote: '은실 봉합침이 끊어진 회로의 양 끝을 임시로 이어 붙였다.' } },
       { category: '스킬', settingName: '맥박 추적', value: '차폐 너머 생체 반응 감지', current: true, evidence: { id: 'lia-skill-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '리아가 반쯤 무너진 석문 너머에서 희미한 맥박을 찾아냈다.' } },
       { category: '상태', settingName: '청각 과민', value: '맥박 추적 사용 후 심화', current: true, evidence: { id: 'lia-status-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '맥박 추적을 거둔 뒤에도 리아는 작은 심장 소리마다 고개를 돌렸다.' } },
     ],
@@ -243,7 +244,7 @@ const INTERACTIVE_DEMO_CHARACTERS: DemoCharacterFixture[] = [
       { category: '프로필', settingName: '소속', value: '회색 장막', evidence: { id: 'kael-affiliation-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '회색 장막의 추적자 카엘이 무너진 회랑 끝에 모습을 드러냈다.' } },
       { category: '프로필', settingName: '목표', value: '에단의 재액 회수', evidence: { id: 'kael-goal-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '카엘의 표식은 에단의 팔에 번진 재액 문양을 향하고 있었다.' } },
       { category: '스킬', settingName: '그림자 표식', value: '대상 위치를 3시간 추적', evidence: { id: 'kael-skill-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '그림자 표식이 에단의 발밑에 붙어 이동 경로를 기록했다.' } },
-      { category: '아이템', settingName: '무음 쇠뇌', value: '마력 반응 없는 단발 쇠뇌', evidence: { id: 'kael-item-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '마력 파동도 소리도 없이 쇠뇌의 시위가 풀렸다.' } },
+      { category: '소지품', settingName: '무음 쇠뇌', value: '마력 반응 없는 단발 쇠뇌', evidence: { id: 'kael-item-5', episode: 5, episodeTitle: '무게 없는 저주', quote: '마력 파동도 소리도 없이 쇠뇌의 시위가 풀렸다.' } },
       { category: '상태', settingName: '귀환문 오염', value: '오른손부터 진행 중', evidence: { id: 'kael-status-6', episode: 6, episodeTitle: '숨겨진 전직', quote: '닫힌 귀환문의 검은 균열이 카엘의 오른손을 타고 번졌다.' } },
     ],
     timeline: [
@@ -258,19 +259,11 @@ const FACT_TYPE_BY_CATEGORY = {
   '프로필': 'PROFILE',
   '스탯': 'STAT',
   '스킬': 'SKILL',
-  '아이템': 'ITEM',
+  '소지품': 'ITEM',
   '상태': 'STATUS',
 } as const;
 
-const FACT_TYPE_LABELS = {
-  PROFILE: '프로필',
-  AGE: '나이',
-  LEVEL: '레벨',
-  STAT: '스탯',
-  SKILL: '스킬',
-  ITEM: '아이템',
-  STATUS: '상태',
-} as const;
+const FACT_TYPE_LABELS = characterFactTypeLabels('판타지');
 
 const FACT_TYPE_ORDER = ['PROFILE', 'AGE', 'LEVEL', 'STAT', 'SKILL', 'ITEM', 'STATUS'] as const;
 
@@ -286,7 +279,7 @@ function settingKey(category: DemoCharacterSettingCategory, settingName: string,
   if (category === '프로필' && settingName === '직책') return 'profile.position';
   if (category === '프로필' && settingName === '목표') return 'profile.goal';
   if (category === '스킬') return `skill.demo_${index}`;
-  if (category === '아이템') return `item.demo_${index}`;
+  if (category === '소지품') return `item.demo_${index}`;
   if (category === '상태') return `status.demo_${index}`;
   return `stats.demo_${index}`;
 }
@@ -327,7 +320,7 @@ function characterDetail(character: DemoCharacterFixture): CharacterDetailRespon
     .reduce<Record<DemoCharacterSettingCategory, CharacterSettingResponse[]>>((result, setting, index) => {
       result[setting.category].push(snapshotSetting(setting, index));
       return result;
-    }, { '프로필': [], '스탯': [], '스킬': [], '아이템': [], '상태': [] });
+    }, { '프로필': [], '스탯': [], '스킬': [], '소지품': [], '상태': [] });
 
   return {
     id: character.name,
@@ -343,7 +336,7 @@ function characterDetail(character: DemoCharacterFixture): CharacterDetailRespon
     profile: grouped['프로필'],
     stats: grouped['스탯'],
     skills: grouped['스킬'],
-    items: grouped['아이템'],
+    items: grouped['소지품'],
     statuses: grouped['상태'],
   };
 }

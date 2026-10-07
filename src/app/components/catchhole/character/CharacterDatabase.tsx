@@ -41,6 +41,8 @@ import type {
 } from '../../../api/generated/types.gen';
 import { useResponsiveGridPagination } from '../../../hooks/useResponsiveGridPagination';
 import { toApiError } from '../../../lib/api-errors';
+import type { CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
+import { useCharacterSettingLabels } from './CharacterSettingLabelProvider';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
@@ -131,13 +133,15 @@ interface Props {
 const CHARACTER_CARD_HEIGHT = 177;
 const CHARACTER_GRID_GAP = 16;
 const ARCHIVE_PAGE_SIZE = 9;
-const SETTING_GROUP_LABELS: Record<SettingGroupKey, string> = {
-  profile: '프로필',
-  stats: '스탯',
-  skills: '스킬',
-  items: '아이템',
-  statuses: '상태',
-};
+function settingGroupLabels(labels: CharacterFactTypeLabels): Record<SettingGroupKey, string> {
+  return {
+    profile: '프로필',
+    stats: labels.STAT,
+    skills: labels.SKILL,
+    items: labels.ITEM,
+    statuses: '상태',
+  };
+}
 const SETTING_GROUP_PREFIXES: Record<SettingGroupKey, string> = {
   profile: 'profile.',
   stats: 'stats.',
@@ -238,6 +242,7 @@ interface CurrentSnapshotEvidenceSelection {
 function findCurrentSnapshotEvidenceSelection(
   detail: CharacterDetailResponse,
   characterFactId: string,
+  labels: CharacterFactTypeLabels,
 ): CurrentSnapshotEvidenceSelection | null {
   const ageSources = sourceFactsWithLegacyFallback(
     detail.currentAgeSourceFacts,
@@ -274,9 +279,9 @@ function findCurrentSnapshotEvidenceSelection(
     settings: CharacterSettingResponse[] | undefined;
   }> = [
     { label: '프로필', settings: detail.profile },
-    { label: '스탯', settings: detail.stats },
-    { label: '스킬', settings: detail.skills },
-    { label: '아이템', settings: detail.items },
+    { label: labels.STAT, settings: detail.stats },
+    { label: labels.SKILL, settings: detail.skills },
+    { label: labels.ITEM, settings: detail.items },
     { label: '상태', settings: detail.statuses },
   ];
   for (const group of settingGroups) {
@@ -439,7 +444,7 @@ function toRequestSettings(
   });
 }
 
-function toRequest(draft: CharacterDraft): CharacterUpdateRequest {
+function toRequest(draft: CharacterDraft, labels: CharacterFactTypeLabels): CharacterUpdateRequest {
   if (!draft.name.trim()) throw new Error('이름을 입력해 주세요.');
   return {
     name: draft.name.trim(),
@@ -448,9 +453,9 @@ function toRequest(draft: CharacterDraft): CharacterUpdateRequest {
     currentLevel: optionalInteger(draft.currentLevel, 0, '현재 레벨'),
     firstAppearanceEpisodeNo: optionalInteger(draft.firstAppearanceEpisodeNo, 1, '첫 등장 회차'),
     profile: toRequestSettings(draft.profile, false, '프로필'),
-    stats: toRequestSettings(draft.stats, false, '스탯'),
-    skills: toRequestSettings(draft.skills, true, '스킬'),
-    items: toRequestSettings(draft.items, true, '아이템'),
+    stats: toRequestSettings(draft.stats, false, labels.STAT),
+    skills: toRequestSettings(draft.skills, true, labels.SKILL),
+    items: toRequestSettings(draft.items, true, labels.ITEM),
     statuses: toRequestSettings(draft.statuses, true, '상태'),
   };
 }
@@ -727,6 +732,7 @@ function EditSettingList({
   onAdd?: () => void;
   onEvidence?: (characterFactId: string) => void;
 }) {
+  const groupLabels = settingGroupLabels(useCharacterSettingLabels());
   return (
     <div className={`character-edit-settings character-setting-columns-${columns}`} style={{
       display: 'grid',
@@ -773,7 +779,7 @@ function EditSettingList({
                     fontSize: 11,
                   }}
                 >
-                  {SETTING_GROUP_LABELS[group]}
+                  {groupLabels[group]}
                 </span>
                 <input
                   className="character-edit-setting-input"
@@ -850,7 +856,7 @@ function EditSettingList({
           background: 'transparent', color: C.t3, fontSize: 12, fontFamily: 'inherit',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
         }}>
-          <Plus size={13} /> {SETTING_GROUP_LABELS[group]} 추가
+          <Plus size={13} /> {groupLabels[group]} 추가
         </button>
       )}
     </div>
@@ -1119,6 +1125,8 @@ export function CharacterDatabase({
   onEditComplete,
   onAnalyze,
 }: Props) {
+  const labels = useCharacterSettingLabels();
+  const groupLabels = settingGroupLabels(labels);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CharacterDraft | null>(null);
   const [confirming, setConfirming] = useState<'delete' | 'save' | null>(null);
@@ -1313,9 +1321,9 @@ export function CharacterDatabase({
     : null;
   const currentSnapshotEvidenceSelection = useMemo(
     () => detail && selectedEvidenceFactId
-      ? findCurrentSnapshotEvidenceSelection(detail, selectedEvidenceFactId)
+      ? findCurrentSnapshotEvidenceSelection(detail, selectedEvidenceFactId, labels)
       : null,
-    [detail, selectedEvidenceFactId],
+    [detail, selectedEvidenceFactId, labels],
   );
   const selectedEvidenceSources = currentSnapshotEvidenceSelection?.sourceFacts
     ?? (selectedEvidenceFactId
@@ -1434,7 +1442,7 @@ export function CharacterDatabase({
   };
 
   const addSimpleSetting = (group: 'profile' | 'stats') => {
-    const label = group === 'profile' ? '새 프로필' : '새 스탯';
+    const label = `새 ${groupLabels[group]}`;
     const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
@@ -1459,7 +1467,7 @@ export function CharacterDatabase({
   };
 
   const addComplexSetting = (group: 'skills' | 'items' | 'statuses') => {
-    const label = group === 'skills' ? '새 스킬' : group === 'items' ? '새 아이템' : '새 상태';
+    const label = `새 ${groupLabels[group]}`;
     const prefix = SETTING_GROUP_PREFIXES[group];
     setDraft(current => current ? {
       ...current,
@@ -1486,7 +1494,7 @@ export function CharacterDatabase({
   const save = () => {
     if (!draft || !selectedCharacterId || !detail) return;
     try {
-      const body = toRequest(draft);
+      const body = toRequest(draft, labels);
       if (demoMode) {
         const nextCharacters = demoCharacters.map(character => (
           character.id === selectedCharacterId ? draftToDemoDetail(character, draft) : character
@@ -1944,11 +1952,11 @@ export function CharacterDatabase({
                           factType="STAT"
                           selected={appliedTimelineSelection.factTypes.includes('STAT')}
                           onToggle={() => toggleTimelineType('STAT', currentFactKeys('stats'))}
-                        >스탯</SectionTitle>
+                        >{labels.STAT}</SectionTitle>
                         <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                           {isEditing && draft
-                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel="스탯" columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={onEvidenceOpen} />
-                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel="스탯" columns={2} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="STAT" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
+                            ? <EditSettingList settings={draft.stats} group="stats" emptyLabel={labels.STAT} columns={2} onChange={(index, value) => changeSetting('stats', index, value)} onRemove={index => removeSetting('stats', index)} onAdd={() => addSimpleSetting('stats')} onEvidence={onEvidenceOpen} />
+                            : <SimpleSettingList settings={detail.stats ?? []} emptyLabel={labels.STAT} columns={2} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="STAT" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                         </div>
                       </div>
 
@@ -1963,11 +1971,11 @@ export function CharacterDatabase({
                             factType="SKILL"
                             selected={appliedTimelineSelection.factTypes.includes('SKILL')}
                             onToggle={() => toggleTimelineType('SKILL', currentFactKeys('skills'))}
-                          >스킬</SectionTitle>
+                          >{labels.SKILL}</SectionTitle>
                           <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
-                              ? <EditSettingList settings={draft.skills} group="skills" emptyLabel="스킬" complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={onEvidenceOpen} />
-                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel="스킬" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="SKILL" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
+                              ? <EditSettingList settings={draft.skills} group="skills" emptyLabel={labels.SKILL} complex onChange={(index, value) => changeSetting('skills', index, value)} onRemove={index => removeSetting('skills', index)} onAdd={() => addComplexSetting('skills')} onEvidence={onEvidenceOpen} />
+                              : <SimpleSettingList settings={detail.skills ?? []} emptyLabel={labels.SKILL} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="SKILL" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                           </div>
                         </div>
                         <div data-testid="character-item-section" style={{ flex: '1 1 220px', minWidth: 0 }}>
@@ -1976,11 +1984,11 @@ export function CharacterDatabase({
                             factType="ITEM"
                             selected={appliedTimelineSelection.factTypes.includes('ITEM')}
                             onToggle={() => toggleTimelineType('ITEM', currentFactKeys('items'))}
-                          >아이템</SectionTitle>
+                          >{labels.ITEM}</SectionTitle>
                           <div className="character-setting-surface" style={{ borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, overflow: 'hidden' }}>
                             {isEditing && draft
-                              ? <EditSettingList settings={draft.items} group="items" emptyLabel="아이템" complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={onEvidenceOpen} />
-                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel="아이템" onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="ITEM" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
+                              ? <EditSettingList settings={draft.items} group="items" emptyLabel={labels.ITEM} complex onChange={(index, value) => changeSetting('items', index, value)} onRemove={index => removeSetting('items', index)} onAdd={() => addComplexSetting('items')} onEvidence={onEvidenceOpen} />
+                              : <SimpleSettingList settings={detail.items ?? []} emptyLabel={labels.ITEM} onEvidence={onEvidenceOpen} timelineOpen={timelineOpen} factType="ITEM" timelineSelection={appliedTimelineSelection} onTimelineKeyToggle={toggleTimelineKey} />}
                           </div>
                         </div>
                       </div>
