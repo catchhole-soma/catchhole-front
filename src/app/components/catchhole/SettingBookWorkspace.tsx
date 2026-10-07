@@ -32,6 +32,7 @@ import {
   formatFileSize,
   MAX_FILE_SIZE_BYTES,
   validateManuscriptFile,
+  manuscriptFormatLabel,
 } from '../../lib/fileValidation';
 import { SettingBookDeleteModal } from './SettingBookDeleteModal';
 import { C } from './constants';
@@ -64,7 +65,7 @@ function formatUploadedAt(value?: string): string {
 
 function fileType(settingBook: Pick<SettingBookSummaryResponse, 'originalFilename' | 'mimeType'>): string {
   const filename = settingBook.originalFilename?.toLowerCase() ?? '';
-  if (filename.endsWith('.docx')) return 'DOCX';
+  if (/\.(docx|hwp|hwpx)$/.test(filename)) return manuscriptFormatLabel(filename);
   if (filename.endsWith('.txt') || settingBook.mimeType?.startsWith(TEXT_MIME_PREFIX)) return 'TXT';
   return 'FILE';
 }
@@ -336,7 +337,7 @@ function SettingBookUploadModal({
               파일을 드래그하거나 클릭하여 선택
             </div>
             <div style={{ color: C.t3, fontSize: 11 }}>
-              TXT, DOCX · 파일당 최대 10MB
+              TXT, DOCX, HWP, HWPX · 파일당 최대 10MB
             </div>
           </div>
 
@@ -390,7 +391,7 @@ function SettingBookUploadModal({
                     {file.name}
                   </div>
                   <div style={{ color: C.t3, fontSize: 11, marginTop: 3 }}>
-                    {file.name.toLowerCase().endsWith('.docx') ? 'DOCX' : 'TXT'} · {formatFileSize(file.size)}
+                    {manuscriptFormatLabel(file.name)} · {formatFileSize(file.size)}
                   </div>
                 </div>
                 <button
