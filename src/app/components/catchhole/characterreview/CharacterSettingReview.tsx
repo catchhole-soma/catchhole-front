@@ -288,10 +288,6 @@ function characterGroupKey(entityName?: string | null): string {
   return (entityName ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
-function candidateGroupKey(candidate?: SettingCandidateResponse): string {
-  return candidate?.matchedCharacterId ? `existing:${candidate.matchedCharacterId}` : characterGroupKey(candidate?.entityName);
-}
-
 function withSelectableGroupKey(
   group: SettingCandidateGroupResponse,
   index: number,
@@ -1623,22 +1619,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const updateMutation = useMutation({
     ...updateSettingCandidateMutation(),
     onError: refreshAutomaticApplicationState,
-    onSuccess: async (response, variables) => {
+    onSuccess: async (_response, variables) => {
       setEditCandidate(null);
       preserveViewport();
-      if (isCharacterReviewLocation()) {
-        setSearchParams(previous => {
-          const next = new URLSearchParams(previous);
-          // Saving a decision does not change the server's character group identity.
-          const original = selectedGroupCandidates.find(candidate => candidate.id === variables.path.candidateId);
-          const identityChanged = original && (original.matchedCharacterId !== response.data?.matchedCharacterId
-            || !original.matchedCharacterId && original.entityName !== response.data?.entityName);
-          const nextGroupKey = identityChanged ? candidateGroupKey(response.data) : selectedGroup?.groupKey;
-          if (nextGroupKey) next.set('group', nextGroupKey);
-          next.delete('candidate');
-          return next;
-        }, { replace: true, state: location.state });
-      }
+      // 내용/반영 방식 저장은 대상 연결을 바꾸지 않으므로 서버의 그룹 키를 유지한다.
       await invalidateCandidateData(variables.path.workId);
     },
   });
@@ -1647,19 +1631,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       onClearApplicationModes([variables.path.candidateId]);
+      queryClient.setQueryData(getSettingCandidateOptions({
+        path: variables.path,
+        query: { batchId },
+      }).queryKey, response);
       setMatchTarget(null);
       selectionGroupRef.current = null;
       if (isCharacterReviewLocation()) {
         setSearchParams(previous => {
           const next = new URLSearchParams(previous);
           const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
+          next.delete('group');
           if (!matchesMatchFilter(response.data?.matchStatus, activeMatchFilter)) {
-            next.delete('group');
+            next.delete('candidate');
           } else {
-            const nextGroupKey = candidateGroupKey(response.data);
-            if (nextGroupKey) next.set('group', nextGroupKey);
+            // 단건 공유 링크와 같은 경로로 실제 소속 그룹과 페이지를 서버에서 찾는다.
+            // 이름으로 그룹 키를 추측하면 ID 기반 그룹 또는 다른 페이지로 이동한 후보를 잃는다.
+            next.set('candidate', variables.path.candidateId);
           }
-          next.delete('candidate');
           return next;
         }, { replace: true, state: location.state });
       }
