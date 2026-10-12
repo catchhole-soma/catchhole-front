@@ -42,7 +42,7 @@ test('랜딩의 주 CTA는 로그인 없이 체험하기다', async ({ page }) =
   await expect(page).toHaveURL('/demo');
 });
 
-test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 유지한다', async ({ page }) => {
+test('랜딩은 네 장면 제품 소개와 주요 서비스 카탈로그를 유지한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/landing');
 
@@ -58,21 +58,15 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
     name: '원고가 작품 설정이 되는 과정을 직접 확인하세요',
   })).toBeVisible();
 
-  const demo = page.locator('.landing-demo-accordion');
-  const firstTab = demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' });
-  await firstTab.focus();
-  await expect(firstTab).toHaveAttribute('aria-selected', 'true');
-  await expect(firstTab).toHaveCSS('opacity', '1');
-
-  const demoTrack = demo.locator('.landing-demo-accordion__track');
-  const demoPanels = page.locator('.landing-demo-panel');
-  await expect(demoTrack).toHaveCSS('display', 'flex');
-  await expect(demoTrack).toHaveCSS('height', '520px');
-  await expect(demoTrack).toHaveCSS('column-gap', '12px');
-  await expect(demoPanels).toHaveCount(8);
-  await expect(demoPanels.first()).toHaveCSS('flex-grow', '11');
-  await expect(demoPanels.nth(1)).toHaveCSS('flex-grow', '1');
-  await expect(demoPanels.first()).toHaveCSS('border-radius', '12px');
+  const productStory = page.locator('.landing-product-story');
+  await expect(productStory.locator('article')).toHaveCount(4);
+  await expect(productStory.getByRole('tab')).toHaveCount(0);
+  await expect(productStory.getByRole('button')).toHaveCount(0);
+  for (const card of await productStory.locator('article').all()) {
+    for (const text of await card.locator('h3, .product-story__copy > p, .product-story__eyebrow, .product-story__note').all()) {
+      expect(await computedContrastRatio(text, card)).toBeGreaterThanOrEqual(4.5);
+    }
+  }
 
   const quickActions = page.locator('.landing-quick-action');
   await expect(quickActions).toHaveCount(3);
@@ -81,7 +75,7 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
 
   const workflowRows = page.locator('.landing-feature-card');
   await expect(workflowRows).toHaveCount(8);
-  await expect(workflowRows.first()).toHaveCSS('border-radius', '0px');
+  await expect(workflowRows.first()).toHaveCSS('border-radius', '24px');
   await expect(workflowRows.first()).toHaveCSS('box-shadow', 'none');
   await expect(page.getByText('업데이트 예정', { exact: true })).toHaveCount(3);
   for (const service of [
@@ -99,8 +93,15 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
 
   const serviceCategories = page.locator('.landing-service-card__meta > span:first-child');
   await expect(serviceCategories).toHaveCount(8);
-  for (const category of await serviceCategories.all()) {
-    expect(await computedContrastRatio(category, page.locator('.landing-features'))).toBeGreaterThanOrEqual(4.5);
+  for (const card of await workflowRows.all()) {
+    const category = card.locator('.landing-service-card__meta > span:first-child');
+    expect(await computedContrastRatio(category, card)).toBeGreaterThanOrEqual(4.5);
+    expect(await computedContrastRatio(card.locator('h3'), card)).toBeGreaterThanOrEqual(4.5);
+    expect(await computedContrastRatio(card.locator('p'), card)).toBeGreaterThanOrEqual(4.5);
+  }
+  for (const card of await quickActions.all()) {
+    expect(await computedContrastRatio(card.locator('strong'), page.locator('.landing-quick-actions'))).toBeGreaterThanOrEqual(4.5);
+    expect(await computedContrastRatio(card.locator('.landing-quick-action__copy > span'), page.locator('.landing-quick-actions'))).toBeGreaterThanOrEqual(4.5);
   }
 
   const finalCta = page.locator('.landing-cta');
@@ -109,6 +110,20 @@ test('랜딩은 NHN형 제품 아코디언과 주요 서비스 카탈로그를 �
   await expect(finalCta).toHaveCSS('box-shadow', 'none');
 
   await expect(page.locator('.landing-trust__item')).toHaveCount(2);
+
+  const story = page.getByRole('region', { name: '다음 화를 기다리는 마음으로, 캐치홀을 만들어요.' });
+  await expect(story).toBeVisible();
+  await story.scrollIntoViewIfNeeded();
+  for (const text of await story.locator('[data-landing-reveal]').all()) {
+    await text.scrollIntoViewIfNeeded();
+    await expect(text).toHaveCSS('opacity', '1');
+  }
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await story.scrollIntoViewIfNeeded();
+  await story.screenshot({ path: 'docs/screens/landing-reader-story-desktop.png' });
+  for (const text of await story.locator('p, .landing-story__eyebrow, h2 span, .landing-story__idea span, .landing-story__signature strong, .landing-story__signature > span').all()) {
+    expect(await computedContrastRatio(text, story)).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test('원고 보호 안내는 데모 다음에 표시되고 개인정보 링크를 키보드로 읽고 사용할 수 있다', async ({ page }) => {
@@ -132,9 +147,7 @@ test('원고 보호 안내는 데모 다음에 표시되고 개인정보 링크�
     expect(await computedContrastRatio(privacyLink, privacyLink, notice)).toBeGreaterThanOrEqual(4.5);
     await expect(privacyLink).toHaveCSS('text-decoration-line', /underline/);
 
-    const demo = page.locator('.landing-demo-accordion');
-    await demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' }).focus();
-    await demo.getByRole('button', { name: '자동 재생 일시정지' }).press('Enter');
+    await page.getByRole('link', { name: '가상 원고로 직접 체험하기' }).focus();
     await page.keyboard.press('Tab');
     await expect(privacyLink).toBeFocused();
     await notice.scrollIntoViewIfNeeded();
@@ -179,96 +192,43 @@ test('원고 보호 안내는 데모 다음에 표시되고 개인정보 링크�
   }
 });
 
-test('랜딩 데모는 전체 설정 관리 흐름을 직접 탐색하고 재생을 제어할 수 있다', async ({ page }) => {
+test('네 장면은 현재 제품 화면을 보여주고 키보드로 직접 체험에 연결된다', async ({ page }) => {
   await page.goto('/landing');
-
-  const demo = page.locator('.landing-demo-accordion');
-  await expect(demo).toBeVisible();
-  const stage = demo.locator('.landing-demo__native-stage');
-  await expect(stage.getByText('마나 0의 짐꾼', { exact: true }).first()).toBeVisible();
-
-  const pauseButton = demo.getByRole('button', { name: '자동 재생 일시정지' });
-  await pauseButton.press('Enter');
-  await expect(demo.getByRole('button', { name: '자동 재생 시작' })).toBeVisible();
-
-  await demo.getByRole('tab', { name: '3단계 원고 분석' }).focus();
-  await expect(stage.locator('.landing-native-processing__spinner')).toBeVisible();
-
-  await demo.getByRole('tab', { name: '4단계 설정 후보 추출' }).focus();
-  await expect(stage.locator('.landing-native-review-tabs .is-active')).toContainText('세계관 후보');
-  await expect(stage.locator('.review-cb-heading')).toContainText('거꾸로숲');
-
-  await demo.getByRole('tab', { name: '5단계 후보 비교와 확정' }).focus();
-  await expect(stage.locator('.landing-native-review-tabs .is-active')).toContainText('캐릭터 후보');
-  await expect(stage.locator('.review-cb-heading')).toContainText('에단 렌');
-  await expect(stage.getByText('재액 운반자', { exact: true }).first()).toBeVisible();
-
-  await demo.getByRole('tab', { name: '6단계 작품 설정 전체 목록' }).focus();
-  await expect(stage.getByText('캐릭터 설정', { exact: true }).first()).toBeVisible();
-  await expect(stage.locator('.landing-native-character-modal')).toHaveCount(0);
-
-  await demo.getByRole('tab', { name: '7단계 캐릭터 상세 모달' }).focus();
-  await expect(stage.locator('.landing-native-character-modal')).toBeVisible();
-  await expect(stage.getByText('재액 운반자', { exact: true }).first()).toBeVisible();
-
-  await demo.getByRole('tab', { name: '8단계 변화 이력 전체 보기' }).focus();
-  await expect(stage.locator('.landing-native-timeline-modal')).toBeVisible();
-  await expect(stage.getByText('전체 보기', { exact: true })).toHaveClass(/is-active/);
-  await expect(stage.getByText('저주 반전', { exact: true })).toBeVisible();
-});
-
-test('랜딩 데모의 모든 장면은 휴대폰에서도 가려지거나 가로로 넘치지 않는다', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/landing');
-
-  const demo = page.locator('.landing-demo-accordion');
-  await demo.getByRole('button', { name: '자동 재생 일시정지' }).click();
-
-  const activeStepTab = demo.locator('.landing-demo-panel.is-active .landing-demo-panel__trigger');
-  const inactiveStepTab = demo.locator('.landing-demo-panel:not(.is-active) .landing-demo-panel__trigger').first();
-  expect(await computedContrastRatio(activeStepTab)).toBeGreaterThanOrEqual(4.5);
-  expect(await computedContrastRatio(inactiveStepTab)).toBeGreaterThanOrEqual(4.5);
-
-  for (const width of [320, 390]) {
-    await page.setViewportSize({ width, height: 844 });
-    for (let index = 1; index <= 8; index += 1) {
-      const tab = demo.getByRole('tab', { name: new RegExp(`^${index}단계`) });
-      await tab.click();
-      expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-      await expect.poll(() => demo.locator('.landing-demo-panel.is-active .landing-demo__viewport').evaluate(element => ({
-        horizontal: element.scrollWidth <= element.clientWidth + 1,
-        vertical: element.scrollHeight <= element.clientHeight + 1,
-      }))).toEqual({ horizontal: true, vertical: true });
-      await expect.poll(() => demo.locator('.landing-demo-panel.is-active').evaluate(panel => (
-        [...panel.querySelectorAll<HTMLElement>('.landing-demo-panel__content, [class*="landing-native-"]')]
-          .filter(element => element.clientWidth > 0)
-          .filter(element => element.scrollWidth > element.clientWidth + 2)
-          .map(element => element.className)
-      ))).toEqual([]);
-    }
+  const story = page.locator('.landing-product-story');
+  for (const picture of await story.locator('img').all()) {
+    await picture.scrollIntoViewIfNeeded();
+    await expect.poll(() => picture.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await expect(picture).toHaveAttribute('alt', /.+/);
   }
-
-  await expect.poll(() => page.locator('.landing-page').evaluate(element => (
-    element.scrollWidth <= element.clientWidth + 1
-  ))).toBe(true);
+  const demoLink = story.getByRole('link', { name: '가상 원고로 직접 체험하기' });
+  await demoLink.focus();
+  await expect(demoLink).toBeFocused();
+  await demoLink.press('Enter');
+  await expect(page).toHaveURL('/demo');
+  await expect(page.getByRole('button', { name: 'AI 분석 시작' })).toBeVisible();
 });
 
-test('랜딩 데모는 중간 폭에서도 활성 장면을 자르지 않는다', async ({ page }) => {
-  await page.setViewportSize({ width: 1025, height: 900 });
-  await page.goto('/landing');
-
-  const demo = page.locator('.landing-demo-accordion');
-  const firstTab = demo.getByRole('tab', { name: '1단계 작품 선택과 원고 목록' });
-  await firstTab.focus();
-  await expect(firstTab).toHaveAttribute('aria-selected', 'true');
-
-  await expect.poll(() => demo.locator('.landing-demo-panel.is-active').evaluate(panel => {
-    const content = panel.querySelector<HTMLElement>('.landing-demo-panel__content');
-    if (!content) return false;
-    return content.getBoundingClientRect().width <= panel.getBoundingClientRect().width + 1
-      && content.scrollWidth <= content.clientWidth + 1;
-  })).toBe(true);
-});
+for (const width of [320, 390, 820, 1231]) {
+  test(`네 장면의 설명과 실제 화면은 반응형으로 배치된다 (${width}px)`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1600 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/landing');
+    const cards = page.locator('.product-story');
+    for (const card of await cards.all()) {
+      await card.scrollIntoViewIfNeeded();
+      await expect(card).toHaveCSS('opacity', '1');
+      for (const picture of await card.locator('img').all()) {
+        await expect.poll(() => picture.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+      }
+      expect(await card.locator('.product-story__copy').evaluate(copy => [...copy.querySelectorAll<HTMLElement>('h3,p,a,span')].every(node => node.scrollWidth <= node.clientWidth + 1))).toBe(true);
+      expect(await page.locator('.landing-page').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      await card.screenshot({ path: testInfo.outputPath(`product-story-${width}-${await card.getAttribute('aria-labelledby')}.png`) });
+    }
+    if (width === 320) {
+      expect(await page.locator('.product-story__review img').evaluate(image => (image as HTMLImageElement).currentSrc)).toContain('review-mobile');
+    }
+  });
+}
 
 test('랜딩 헤더는 중간 너비에서도 주 CTA를 자르지 않는다', async ({ page }) => {
   for (const width of [521, 640]) {
@@ -336,25 +296,6 @@ test('모바일 헤더의 로그인 버튼은 로그인 라우트 모달을 연�
 });
 
 for (const width of [320, 1280]) {
-  test(`랜딩 검토 예시는 실제 컴포넌트이며 단건 확정과 빈 기존값을 보여주지 않는다 (${width}px)`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 1000 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/landing');
-    const demo = page.locator('.landing-demo-accordion');
-    await demo.getByRole('tab', { name: '4단계 설정 후보 추출' }).focus();
-    const stage = demo.locator('.landing-demo-panel.is-active');
-    await expect(stage.locator('.world-setting-diff-row .review-cb-heading__image img')).toBeVisible();
-    await expect(stage.locator('.review-cb-comparison')).toHaveCount(0);
-    await expect(stage.getByText('없음', { exact: true })).toHaveCount(0);
-    await expect(stage.locator('.landing-review-scene')).toHaveAttribute('inert', '');
-    await stage.locator('.landing-demo-panel__content').screenshot({ path: `docs/screens/gh215/landing-world-${width}.png` });
-    await demo.getByRole('tab', { name: '5단계 후보 비교와 확정' }).focus();
-    await expect(stage.locator('.setting-candidate-detail .review-cb-heading__image img')).toBeVisible();
-    await expect(stage.locator('.review-cb-comparison.is-change')).toBeVisible();
-    await expect(stage.getByRole('button', { name: '확정', exact: true, includeHidden: true })).toHaveCount(0);
-    await stage.locator('.landing-demo-panel__content').screenshot({ path: `docs/screens/gh215/landing-character-${width}.png` });
-  });
-
   test(`일반 소개는 자동 반영 기본값을 알리고 수동 검토 데모와 구분한다 (${width}px)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -362,7 +303,8 @@ for (const width of [320, 1280]) {
     await expect(page.locator('.landing-quick-actions')).toContainText('명확한 설정은 자동 반영하고 필요한 내용만 확인해요.');
     await expect(page.locator('.landing-quick-actions')).toContainText('자동 반영·직접 확인');
     await expect(page.locator('.landing-feature-card').filter({ hasText: '캐릭터·세계관 자동 추출' })).toContainText('명확한 설정은 자동으로 작품에 쌓고');
-    await expect(page.locator('.landing-demo-section__heading')).toContainText('단일 회차에서 직접 검토를 선택한 예시예요.');
+    await expect(page.locator('.product-story--review')).toContainText('명확한 설정은 자동으로 반영해요.');
+    await expect(page.locator('.landing-product-story__caption')).toContainText('가상 원고를 사용한 실제 서비스 화면 예시');
     for (const outdated of ['작가님이 확인한 내용만 작품 설정으로 확정합니다.', '작가가 직접 최종 확정', '검토한 내용만 작품 설정으로 저장해요.', '작가가 확인할 검토 목록']) {
       await expect(page.getByText(outdated, { exact: false })).toHaveCount(0);
     }
