@@ -3,6 +3,419 @@
   "children": [
     {
       "type": "frame",
+      "id": "demoFinishGuideMobile20261012",
+      "name": "Active / Demo / 안내 완료 후 자유 탐색 / mobile",
+      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
+      "x": 130300,
+      "y": 5000,
+      "width": 390,
+      "height": 844,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-finish-guide-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "demoFinishGuideDesktop20261012",
+      "name": "Active / Demo / 안내 완료 후 자유 탐색 / desktop",
+      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
+      "x": 128900,
+      "y": 5000,
+      "width": 1280,
+      "height": 720,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-finish-guide-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "demoCompleteMobile20261012",
+      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Mobile",
+      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
+      "x": 127400,
+      "y": 3800,
+      "width": 296,
+      "height": 692,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-complete-320.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "demoCompleteDesktop20261012",
+      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Desktop",
+      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
+      "x": 126000,
+      "y": 3800,
+      "width": 1240,
+      "height": 670,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-complete-1280.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "demoWorldGuideMobile20261012",
+      "name": "Active / Demo / 세계관 상세 안의 안내 / mobile",
+      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
+      "x": 127400,
+      "y": 2500,
+      "width": 390,
+      "height": 844,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-world-guide-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "demoWorldGuideDesktop20261012",
+      "name": "Active / Demo / 세계관 상세 안의 안내 / desktop",
+      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
+      "x": 126000,
+      "y": 2500,
+      "width": 1280,
+      "height": 720,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/demo-world-guide-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductHistoryMobile20261012",
+      "name": "Active / Landing / 변화의 기록 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 121260,
+      "y": 3300,
+      "width": 288,
+      "height": 896,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-history-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductLibraryMobile20261012",
+      "name": "Active / Landing / 나만의 설정집 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 120840,
+      "y": 3300,
+      "width": 288,
+      "height": 754,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-library-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductReviewMobile20261012",
+      "name": "Active / Landing / 원문과 함께 확인 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 120420,
+      "y": 3300,
+      "width": 288,
+      "height": 1303,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-review-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductExtractMobile20261012",
+      "name": "Active / Landing / 원고에서 발견 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 120000,
+      "y": 3300,
+      "width": 288,
+      "height": 683,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-extract-mobile.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductHistoryDesktop20261012",
+      "name": "Active / Landing / 변화의 기록 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 123900,
+      "y": 2500,
+      "width": 1183,
+      "height": 601,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-history-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductLibraryDesktop20261012",
+      "name": "Active / Landing / 나만의 설정집 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 122600,
+      "y": 2500,
+      "width": 1183,
+      "height": 621,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-library-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductReviewDesktop20261012",
+      "name": "Active / Landing / 원문과 함께 확인 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 121300,
+      "y": 2500,
+      "width": 1183,
+      "height": 705,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-review-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingProductExtractDesktop20261012",
+      "name": "Active / Landing / 원고에서 발견 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "x": 120000,
+      "y": 2500,
+      "width": 1183,
+      "height": 601,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-product-extract-desktop.png",
+        "mode": "fit"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingReaderStoryCapture20261012",
+      "name": "Active / Landing / 독자의 마음 · 실제 랜딩 서사",
+      "context": "웹소설 독자로 시작한 캐치홀의 제작 계기를 담은 현재 랜딩 서사.",
+      "x": 122000,
+      "y": 1000,
+      "width": 1440,
+      "height": 1200,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-reader-story-desktop.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingShowcaseMobile20261012",
+      "name": "Archive / Landing / 320px · 4열 단계 탭과 제품 화면",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
+      "x": 121420,
+      "y": 1000,
+      "width": 288,
+      "height": 674,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-showcase-mobile.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingShowcaseDesktop20261012",
+      "name": "Archive / Landing / 8단계 · 이미지 레일 없는 전체 폭 미리보기",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
+      "x": 120000,
+      "y": 1000,
+      "width": 1306,
+      "height": 661,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-showcase-desktop.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingReaderStory20261012",
+      "name": "Active / Landing / 독자의 마음으로 만든 캐치홀 · 2026-10-12",
+      "context": "주요 서비스 다음, 마지막 체험 CTA 앞. 제작자가 직접 설명한 웹소설 독자의 시작 계기. 문단별 스크롤 리빌, 모바일 왼쪽 정렬. 운영·후원 이력이나 완전 자동 검수를 주장하지 않는다.",
+      "x": 121740,
+      "y": 0,
+      "width": 856,
+      "layout": "vertical",
+      "gap": 28,
+      "padding": 48,
+      "fill": "$ch-surface",
+      "children": [
+        {
+          "type": "text",
+          "id": "readerStoryEyebrow",
+          "content": "캐치홀을 만드는 마음",
+          "fill": "$ch-primary-ink",
+          "fontFamily": "$ch-font",
+          "fontSize": 14,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "readerStoryTitle",
+          "content": "다음 화를 기다리는 마음으로,\n캐치홀을 만들어요.",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-ink",
+          "fontFamily": "$ch-font",
+          "fontSize": 40,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "readerStoryOrigin",
+          "content": "웹소설을 좋아하는 한 명의 독자로서,\n좋은 이야기를 써 주시는 작가님들의 수고를 조금 덜어드리고 싶었어요.",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-text",
+          "fontFamily": "$ch-font",
+          "fontSize": 17,
+          "lineHeight": 1.9
+        },
+        {
+          "type": "text",
+          "id": "readerStoryProblem",
+          "content": "회차가 쌓일수록 인물과 세계관의 설정도 늘어나죠.\n이미 쓴 내용을 다시 찾고, 설정을 정리하고 확인하는 데에도\n많은 시간과 노력이 든다는 걸 알게 됐어요.",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-text",
+          "fontFamily": "$ch-font",
+          "fontSize": 17,
+          "lineHeight": 1.9
+        },
+        {
+          "type": "text",
+          "id": "readerStoryIdea",
+          "content": "“원고에서 설정을 알아서 모아주면 어떨까?”\n캐치홀은 그 생각에서 시작했어요.",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-primary-ink",
+          "fontFamily": "$ch-font",
+          "fontSize": 20,
+          "lineHeight": 1.9
+        },
+        {
+          "type": "text",
+          "id": "readerStoryWish",
+          "content": "설정을 찾고 정리하는 일은 캐치홀이 돕고,\n작가님은 쓰고 싶은 이야기에 조금 더 집중하실 수 있도록.\n그런 도구를 만들어가고 싶어요.",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-text",
+          "fontFamily": "$ch-font",
+          "fontSize": 17,
+          "lineHeight": 1.9
+        },
+        {
+          "type": "text",
+          "id": "readerStorySignature",
+          "content": "작가님의 다음 이야기를, 독자의 마음으로 응원합니다.\n캐치홀 드림",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "fill": "$ch-ink",
+          "fontFamily": "$ch-font",
+          "fontSize": 17,
+          "lineHeight": 1.9
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "landingFriendlyDesktop20261012",
+      "name": "Active / Landing / Friendly service catalog · 2026-10-12",
+      "context": "업로드·AI 분석 대형 카드 2개와 설정 조회 카드 3개, 별도 예정 기능 3개. GPT 생성 투명 일러스트. 제품 소개 제목부터 72px·900ms 페이드 업, 180ms 시차, 흐림 2px·350ms. 모션 감소·키보드 포커스는 즉시 표시.",
+      "x": 120000,
+      "y": 0,
+      "width": 1231,
+      "height": 805,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-catalog-friendly-desktop.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "landingFriendlyMobile20261012",
+      "name": "Active / Landing / Friendly mobile service catalog · 2026-10-12",
+      "context": "320px 한 열. 이미지를 자르지 않고 카드 위에, 제목·설명을 아래에 표시. 제공 기능과 예정 기능의 원래 순서, 체험·회원가입 CTA 유지.",
+      "x": 121320,
+      "y": 0,
+      "width": 320,
+      "height": 805,
+      "clip": true,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../docs/screens/landing-catalog-friendly-mobile.png",
+        "mode": "stretch"
+      }
+    },
+    {
+      "type": "frame",
       "id": "bi8Au",
       "x": 56200,
       "y": 30880,
@@ -326512,7 +326925,7 @@
       "id": "y2tKZo",
       "x": 86840,
       "y": 144,
-      "name": "Active / Landing Demo 1 / 작품",
+      "name": "Archive / Landing Demo 1 / 작품",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326524,14 +326937,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "EySqw",
       "x": 88360,
       "y": 144,
-      "name": "Active / Landing Demo 2 / 업로드",
+      "name": "Archive / Landing Demo 2 / 업로드",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326543,14 +326957,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "BlkIV",
       "x": 89880,
       "y": 144,
-      "name": "Active / Landing Demo 3 / 분석",
+      "name": "Archive / Landing Demo 3 / 분석",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326562,14 +326977,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "cK7by",
       "x": 85320,
       "y": 1078,
-      "name": "Active / Landing Demo 4 / 후보",
+      "name": "Archive / Landing Demo 4 / 후보",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326581,14 +326997,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "E2RsD",
       "x": 86840,
       "y": 1078,
-      "name": "Active / Landing Demo 5 / 확정",
+      "name": "Archive / Landing Demo 5 / 확정",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326600,14 +327017,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "BAC3B",
       "x": 88360,
       "y": 1078,
-      "name": "Active / Landing Demo 6 / 설정",
+      "name": "Archive / Landing Demo 6 / 설정",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326619,14 +327037,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "k32SB",
       "x": 89880,
       "y": 1078,
-      "name": "Active / Landing Demo 7 / 상세",
+      "name": "Archive / Landing Demo 7 / 상세",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326638,14 +327057,15 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
       "id": "eCbQ8",
       "x": 85320,
       "y": 2012,
-      "name": "Active / Landing Demo 8 / 이력",
+      "name": "Archive / Landing Demo 8 / 이력",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -326657,7 +327077,8 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1
+      "strokeWidth": 1,
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
     },
     {
       "type": "frame",
@@ -411919,7 +412340,7 @@
       "id": "jNNUD",
       "x": 97820,
       "y": 24760,
-      "name": "Active / Demo / Complete / Signup Or Restart",
+      "name": "Archive / Demo / Complete / Signup Or Restart",
       "metadata": {
         "type": "screen",
         "route": "/demo",
@@ -413328,7 +413749,7 @@
       "id": "ToEIU",
       "x": 87430,
       "y": 25740,
-      "name": "Active / Mobile / Demo / Complete / Signup Restart",
+      "name": "Archive / Mobile / Demo / Complete / Signup Restart",
       "metadata": {
         "type": "screen",
         "route": "/demo",
@@ -414027,7 +414448,7 @@
       "id": "BE15b",
       "x": 58200,
       "y": 73580,
-      "name": "Workflow Board / WF-06 인터랙티브 데모",
+      "name": "Archive / WF-06 인터랙티브 데모 / 이전 완료 안내",
       "metadata": {
         "type": "workflowBoard",
         "workflowId": "WF-06",
@@ -417618,7 +418039,8 @@
             }
           ]
         }
-      ]
+      ],
+      "context": "원고·검토 단계의 이전 전체 Workflow 보존. 최종 결과 탐색·완료 전환은 demoWorkflow244 및 docs/screen-flow.md 1.1을 따른다."
     },
     {
       "type": "frame",
@@ -447978,6 +448400,16 @@
     {
       "type": "frame",
       "id": "gh180LandingAutoCopy20260910",
+      "metadata": {
+        "scrollReveal": {
+          "route": "/landing",
+          "start": "제품 소개 제목",
+          "targets": "제품 흐름 제목·설명·데모 → 원고 보호 → 핵심 기능 → 주요 서비스 제목과 8개 항목 → 체험 CTA → 푸터",
+          "motion": "72px fade-up, 900ms ease-out, 180ms stagger; subtle 2px blur clears in 350ms",
+          "trigger": "15% intersection within .landing-page, bottom root margin -64px; once per mount",
+          "accessibility": "Reduced motion and focus-within show content immediately; no observer support leaves content visible."
+        }
+      },
       "x": 106520,
       "y": 5184,
       "name": "SLanding / 자동 반영 기본 안내",
@@ -448516,6 +448948,90 @@
         "mode": "fit"
       },
       "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "demoWorkflow244",
+      "name": "Active / Workflow WF-06 / 결과 자유 탐색과 이미지 완료",
+      "context": "GH244 최종 승인 흐름. 대표 프레임은 실제 브라우저 캡처로 동기화. 단계 전체 계약은 docs/screen-flow.md 1.1 참조.",
+      "x": 126000,
+      "y": 6500,
+      "width": 1400,
+      "height": 840,
+      "layout": "none",
+      "fill": "#faf9f6",
+      "children": [
+        {
+          "type": "text",
+          "id": "wf244title",
+          "x": 30,
+          "y": 24,
+          "content": "WF-06 / 결과 탐색 → 사용자가 체험 마치기 → 회원가입 또는 재체험",
+          "fontFamily": "Pretendard",
+          "fontSize": 28,
+          "fill": "#252c29"
+        },
+        {
+          "type": "text",
+          "id": "wf244guidecopy",
+          "x": 30,
+          "y": 82,
+          "content": "원문 확인 후 완료 안내 유지 · 상세를 닫거나 다른 탭을 봐도 자유 탐색",
+          "fontFamily": "Pretendard",
+          "fontSize": 18,
+          "fill": "#252c29"
+        },
+        {
+          "type": "frame",
+          "id": "wf244guide",
+          "x": 30,
+          "y": 140,
+          "width": 640,
+          "height": 360,
+          "clip": true,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "../docs/screens/demo-finish-guide-desktop.png",
+            "mode": "fit"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "wf244complete",
+          "x": 720,
+          "y": 140,
+          "width": 640,
+          "height": 346,
+          "clip": true,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "../docs/screens/demo-complete-1280.png",
+            "mode": "fit"
+          }
+        },
+        {
+          "type": "text",
+          "id": "wf244transition",
+          "x": 720,
+          "y": 82,
+          "content": "「체험 마치기」는 탐색 중 항상 제공 · 자동 이동 없음",
+          "fontFamily": "Pretendard",
+          "fontSize": 18,
+          "fill": "#252c29"
+        },
+        {
+          "type": "text",
+          "id": "wf244outcome",
+          "x": 30,
+          "y": 690,
+          "content": "완료 화면: 생성 이미지 + 실제 문구·CTA / 하단 기록 없음\n내 작품으로 시작하기 → /signup (replace) / 다시 체험하기 → 처음 원고\n새로고침·재체험만 메모리 초기화 · 실제 API/저장소 사용 없음",
+          "fontFamily": "Pretendard",
+          "fontSize": 20,
+          "fill": "#252c29"
+        }
+      ]
     }
   ],
   "variables": {

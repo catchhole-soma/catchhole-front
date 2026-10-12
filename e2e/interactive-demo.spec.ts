@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const EDITED_WORLD_VALUE = '수호자의 이름이 지워지면 모든 귀환문이 즉시 닫힌다.';
 
@@ -180,7 +181,7 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expect.poll(() => page.getByRole('button', { name: /캐릭터 상세 보기/ }).count())
     .toBeGreaterThanOrEqual(4);
   await expect(page.getByRole('button', { name: '리아 모렌 캐릭터 상세 보기' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '체험 마치기' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '체험 마치기', exact: true })).toBeEnabled();
   await checkLayout();
 
   await activate(page.getByRole('button', { name: '에단 렌 캐릭터 상세 보기' }), keyboard);
@@ -262,6 +263,13 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expect(page.getByRole('heading', { name: '전체 세계관', exact: true })).toBeVisible();
 
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await activate(page.getByRole('button', { name: '백야 원정대 세계관 대상 보기' }), keyboard);
+  const otherWorldDialog = page.getByRole('dialog', { name: '백야 원정대 세계관 상세' });
+  await expectGuideCenteredOn(page, otherWorldDialog.getByRole('button', { name: '닫기', exact: true }));
+  await expect(page.getByTestId('demo-coachmark')).toContainText('상세를 닫고 안내를 이어가세요');
+  await page.screenshot({ path: `docs/screens/demo-world-guide-${mobile ? 'mobile' : 'desktop'}.png` });
+  await activate(otherWorldDialog.getByRole('button', { name: '닫기', exact: true }), keyboard);
+  await expectGuideCenteredOn(page, page.getByRole('button', { name: '거꾸로숲 세계관 대상 보기' }));
   await activate(page.getByRole('button', { name: '무저갱 관문 세계관 대상 보기' }), keyboard);
   await expect(page.getByText('무저갱 관문', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('서약자의 인장이 있어야 관문이 열린다.', { exact: true })).toBeVisible();
@@ -270,7 +278,7 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await activate(page.getByRole('button', { name: '거꾸로숲 세계관 대상 보기' }), keyboard);
   const worldDetail = page.locator('.world-setting-detail-card');
   await expect(worldDetail.getByText(EDITED_WORLD_VALUE, { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '체험 마치기' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '체험 마치기', exact: true })).toBeEnabled();
 
   await activate(worldDetail.getByRole('button', { name: '하늘과 땅의 방향 원문 근거 보기' }), keyboard);
   await expect(page.getByTestId('demo-coachmark')).toContainText('세계관 설정의 원문 근거를 열어 보세요');
@@ -285,20 +293,31 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expect(worldDetail.locator('.world-setting-evidence-row')).toHaveCount(0);
   await activate(guidedWorldEvidenceButton, keyboard);
   await expect(worldDetail.locator('.world-setting-evidence-row')).toContainText('수호자의 이름이 지워지는 순간');
-  await expectGuideCenteredOn(page, guidedWorldEvidenceButton);
-  const worldEvidenceHighlight = await guidedWorldEvidenceButton.evaluate(() => {
-    const overlay = document.querySelector<HTMLElement>('.interactive-demo-guide-focus-box.is-visible')!;
-    return {
-      borderRadius: getComputedStyle(overlay, '::before').borderTopLeftRadius,
-    };
-  });
-  expect(worldEvidenceHighlight.borderRadius).toBe('14px');
   const finishButton = page.getByRole('button', { name: '체험 마치기' });
-  await expect(finishButton).toBeEnabled();
+  const expectExplorationComplete = async () => {
+    await expect(page.getByTestId('demo-coachmark')).toContainText('체험을 모두 마쳤어요');
+    await expect(page.getByTestId('demo-coachmark')).toContainText('자유롭게 더 둘러보셔도 좋아요');
+    await expect(page.locator('[data-demo-focus="true"]')).toHaveCount(0);
+    await expect(page.locator('.interactive-demo-guide-focus-box.is-visible')).toHaveCount(0);
+    await expect(finishButton).toBeEnabled();
+  };
+  await expectExplorationComplete();
+  await activate(guidedWorldEvidenceButton, keyboard);
+  await expectExplorationComplete();
+  await activate(page.getByRole('dialog', { name: '거꾸로숲 세계관 상세' }).getByRole('button', { name: '닫기', exact: true }), keyboard);
+  await expectExplorationComplete();
+  await activate(page.getByRole('tab', { name: '캐릭터 설정', exact: true }), keyboard);
+  await expectExplorationComplete();
+  await activate(page.getByRole('tab', { name: '세계관 설정', exact: true }), keyboard);
+  await activate(page.getByRole('button', { name: '백야 원정대 세계관 대상 보기' }), keyboard);
+  await expectExplorationComplete();
+  await activate(page.getByRole('dialog', { name: '백야 원정대 세계관 상세' }).getByRole('button', { name: '닫기', exact: true }), keyboard);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.screenshot({ path: `docs/screens/demo-finish-guide-${mobile ? 'mobile' : 'desktop'}.png`, animations: 'disabled' });
   await checkLayout();
 
   await activate(finishButton, keyboard);
-  await expect(page.getByRole('heading', { name: /한 편의 원고가 작품의 기준이 되었습니다/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /이제, 작가님의 이야기를 이어가세요/ })).toBeVisible();
   await expect(focusBox).toHaveCount(0);
   await checkLayout();
 }
@@ -322,7 +341,8 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
   expect(renderUpdateWarnings).toEqual([]);
 
   await expect(page.getByRole('button', { name: '다시 체험하기' })).toBeVisible();
-  await expect(page.locator('.interactive-demo-complete')).toContainText('실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.');
+  await expect(page.locator('.interactive-demo-complete')).toContainText('가상 원고로 진행한 체험이에요. 실제 원고와 계정 정보는 저장되지 않았어요.');
+  await expect(page.locator('.interactive-demo-complete__record')).toHaveCount(0);
   await expect(page.getByText('CatchHole은 AI가 찾은 내용을 자동으로 덮어쓰지 않습니다.', { exact: false })).toHaveCount(0);
   expect(dataRequests).toEqual([]);
 
@@ -420,5 +440,52 @@ for (const width of [1280, 320]) {
     await expect(page.getByRole('button', { name: '모두 확정' })).toBeEnabled();
     expect(requests).toEqual([]);
     expect(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length }))).toEqual({ local: 0, session: 0 });
+  });
+}
+
+
+for (const width of [320, 1280]) {
+  test(`결과 탐색은 특정 근거를 열지 않아도 완료할 수 있다 (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/demo');
+    await page.getByRole('button', { name: 'AI 분석 시작', exact: true }).click();
+    await page.getByRole('button', { name: '설정 후보 검토', exact: true }).click();
+    await page.getByRole('button', { name: '1개 설정 모두 확정', exact: true }).click();
+    await page.getByRole('button', { name: '수정', exact: true }).click();
+    await page.getByRole('textbox', { name: '최종 내용' }).fill(EDITED_WORLD_VALUE);
+    await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
+    await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+    await page.getByRole('button', { name: '제외', exact: true }).click();
+    const finish = page.getByRole('button', { name: '체험 마치기', exact: true });
+    await expect(finish).toBeEnabled();
+    await expect(page.getByTestId('demo-coachmark')).toContainText('4 / 5');
+    if (width === 320) {
+      await page.getByRole('tab', { name: '세계관 설정', exact: true }).click();
+      await page.getByRole('button', { name: '백야 원정대 세계관 대상 보기' }).click();
+      await expect(page.getByRole('dialog', { name: '백야 원정대 세계관 상세' })).toBeVisible();
+    }
+    await finish.click();
+    await expect(page.getByRole('heading', { name: /이제, 작가님의 이야기를 이어가세요/ })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe('/demo');
+    expect(new URL(page.url()).searchParams.has('settingId')).toBe(false);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByText('이번 체험에 남은 기록')).toHaveCount(0);
+    const complete = page.locator('.interactive-demo-complete');
+    await expect(page.locator('.interactive-demo-page')).toHaveCSS('background-color', 'rgb(250, 249, 246)');
+    await expect(page.locator('.interactive-demo-page')).toHaveCSS('background-image', 'none');
+    const artwork = complete.locator('.interactive-demo-complete__artwork img');
+    await expect(artwork).toBeVisible();
+    await expect(artwork).toHaveJSProperty('naturalWidth', 1536);
+    for (const text of await complete.locator('.interactive-demo-complete__copy > p, .interactive-demo-complete__eyebrow, .interactive-demo-complete__note').all()) {
+      expect(await computedContrastRatio(text, complete)).toBeGreaterThanOrEqual(4.5);
+    }
+    const signup = complete.getByRole('button', { name: '내 작품으로 시작하기' });
+    expect(await computedContrastRatio(signup, signup)).toBeGreaterThanOrEqual(4.5);
+    await expectNoHorizontalOverflow(page);
+    await page.setViewportSize({ width, height: width === 320 ? 1600 : 1000 });
+    await page.locator('.interactive-demo-complete').screenshot({ path: `docs/screens/demo-complete-${width}.png`, animations: 'disabled' });
+    if (width === 1280) await page.screenshot({ path: 'docs/screens/demo-complete-context.png', animations: 'disabled' });
+    await page.getByRole('button', { name: '다시 체험하기' }).click();
+    await expect(page.getByRole('button', { name: 'AI 분석 시작' })).toBeVisible();
   });
 }

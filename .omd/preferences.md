@@ -565,3 +565,38 @@ source_context: "캐릭터 선택 카드의 반복 확정 안내 삭제, 연결 
 ## 2026-10-07 GH223 장르별 용어
 
 사용자는 일상·로맨스에서도 스탯이 등장하므로 모든 장르에 스탯을 유지하고, 아이템은 모두 소지품으로 바꾸기로 했다. 스킬 제목만 판타지=스킬, 무협=무공·기예, 나머지=기술·특기로 구분한다. 작품별 프롬프트 변경은 하지 않으며 공통 추출 기준을 유지한다. DESIGN.md에 반영했다.
+
+## 2026-10-12T07:07:36Z — landing-reveal-and-friendly-card-art
+
+```omd-meta
+id: pref_mv4wuepy_0605fb99
+timestamp: 2026-10-12T07:07:36Z
+scope: motion
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/SLanding.tsx; src/app/components/catchhole/landing-v2.css"
+```
+
+Landing scroll reveals should be clearly perceptible, start at the product walkthrough heading, and use only subtle, quickly clearing blur. The owner approved a substantial redesign of the lower cards and backgrounds, then requested friendly GPT-generated illustrations instead of the dark manuscript artwork.
+
+사용자 피드백: 기존 24px 등장 효과는 눈에 띄지 않았고 디자인도 밋밋했다. 카드·배경 재구성은 승인했으며, 적용 후 5px 흐림은 과해 2px·350ms로 줄였다. 제품 흐름 제목부터 전체 하단에 적용한다. 업로드·분석 이미지는 친근한 입체 일러스트로 교체한다.
+
+## 2026-10-12 — landing-product-showcase
+
+사용자는 8단계 미리보기의 장식 이미지도 제거하거나 화면을 보여주는 방식 자체를 바꾸길 요청했다. 세로 이미지 레일을 제거하고 상단 단계 선택·전체 너비 화면·짧은 설명으로 변경했다. 시작 계기는 웹소설을 좋아하는 한 독자로서 작가의 설정 관리 수고를 덜고 싶었다는 이야기이며, 하단에 편안한 해요체로 반영했다. 자동 설정 충돌 검수를 제공하거나 직접 확인이 전혀 필요 없다고 약속하지 않는다. 이 결정은 DESIGN.md의 기존 세로 아코디언·단계별 이미지 방향보다 우선하는 사용자 교정이다.
+
+## 2026-10-12 — 네 장면의 제품 이야기 승인
+
+사용자는 탭+전체 화면 구조가 투박하다고 평가한 뒤 실제 Craft·Linear 레퍼런스를 확인하고, Craft의 부드러운 분위기와 Linear의 핵심 화면 확대를 조합하는 방향을 승인했다. 기존 구조 유지 제약은 없으며 실제 제품 화면을 다시 확인해 쓰도록 요청했다. 원고 추출·원문 비교·설정집·변화 이력 네 장면으로 구성하고, 현재 제품 컴포넌트를 가상 데이터로 실행해 새로 캡처한다. 이전 8단계 탭·이미지 레일 지침보다 이 사용자 선택을 우선한다.
+
+## 2026-10-12 — 완료 화면과 자유 탐색 교정
+
+사용자는 Linear·Craft 방향을 완료 화면에도 실제로 적용하길 명시했다. 보라색 큰 박스와 좌우 카드 구성은 거절했다. 레퍼런스는 색만 가져오지 않고 실제 제목·CTA·여백·정보 위계로 반영한다. 완료 화면을 Linear 하단 CTA의 중앙 두 줄 제목과 pill 버튼, 따뜻한 중립 배경, 아래의 간결한 검토 기록으로 재구성했다. 안내가 끝나면 자유 탐색을 허용하면서 완료 사실을 계속 알려야 하며, 창을 닫았다는 이유로 이전 안내를 반복하지 않는다. 자동 완료 전환 없이 사용자가 마침 버튼을 누른다.
+
+### 2026-10-12 — 이미지부터 구성한 완료 화면 승인
+
+- 사용자: “이미지 생성해서 … 그걸 토대로 사이트 코드 구현”. 내장 GPT로 종이책에서 숲과 세계관이 펼쳐지는 이미지를 생성해 그 여백과 색을 기준으로 코드 구현.
+- 적용 후 사용자: “얘네는 빼도 될 거 같다 위에 디자인이 좋아서”. 이미지와 완료 CTA는 유지하고 아래 체험 기록 전체 제거.
+- 이 화면의 승인 방향은 크림·세이지 톤, 넉넉한 이미지 여백, 실제 텍스트와 절제된 pill 버튼. 이전 보라색 카드/중앙 텍스트만의 시안으로 되돌리지 않는다.

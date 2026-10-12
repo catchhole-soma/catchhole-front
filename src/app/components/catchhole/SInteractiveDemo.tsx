@@ -15,7 +15,6 @@ import {
   RotateCcw,
   Search,
   Sparkles,
-  ThumbsDown,
   Users,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -44,6 +43,7 @@ import { ProductBrand } from './ui-v2/ProductBrand';
 import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { PublicCharacterReviewExample, PublicWorldReviewExample } from './PublicReviewExamples';
 import type { CharacterFactApplicationMode } from './character/character-fact-comparison-policy';
+import storyWorldArtwork from '../../../assets/landing/catchhole-story-world-v1.png';
 import './interactive-demo.css';
 
 type DemoScreen = 'analysis' | 'character-review' | 'complete' | 'database' | 'manuscript' | 'unsupported-review' | 'world-review';
@@ -64,6 +64,7 @@ type DemoState = {
   visitedDatabaseTabs: Record<DemoDatabaseTab, boolean>;
   viewedCharacterEvidence: boolean;
   viewedCharacterTimelineEvidence: boolean;
+  viewedWorldEvidence: boolean;
   worldApproved: boolean;
   worldDraft: string;
   worldEditApplied: boolean;
@@ -111,6 +112,7 @@ function createInitialState(): DemoState {
     visitedDatabaseTabs: { character: false, world: false },
     viewedCharacterEvidence: false,
     viewedCharacterTimelineEvidence: false,
+    viewedWorldEvidence: false,
     worldApproved: false,
     worldDraft: INTERACTIVE_DEMO_CANDIDATES.world.proposedValue,
     worldEditApplied: false,
@@ -193,7 +195,11 @@ function demoReducer(state: DemoState, action: DemoAction): DemoState {
     case 'select-world-subject':
       return { ...state, expandedWorldEvidence: null, selectedWorldSubject: action.subject };
     case 'toggle-world-evidence':
-      return { ...state, expandedWorldEvidence: action.key };
+      return {
+        ...state,
+        expandedWorldEvidence: action.key,
+        viewedWorldEvidence: state.viewedWorldEvidence || action.key === '거꾸로숲:귀환문의 조건',
+      };
     case 'finish':
       return { ...state, screen: 'complete' };
     case 'reset':
@@ -229,10 +235,12 @@ function DemoMilestones({ activeIndex }: { activeIndex: number }) {
 }
 
 type CoachmarkProps = {
+  completed?: boolean;
   actionLabel?: string;
   current: number;
   description: string;
   onAction?: () => void;
+  onFinish?: () => void;
   title: string;
   waiting?: boolean;
 };
@@ -276,7 +284,7 @@ const coachmarkAccentVariants: Variants = {
   exit: { opacity: 0, scaleX: 0.6 },
 };
 
-function Coachmark({ actionLabel, current, description, onAction, title, waiting = false }: CoachmarkProps) {
+function Coachmark({ actionLabel, completed = false, current, description, onAction, onFinish, title, waiting = false }: CoachmarkProps) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -293,17 +301,18 @@ function Coachmark({ actionLabel, current, description, onAction, title, waiting
       <motion.span className="interactive-demo-coachmark__accent" aria-hidden="true" variants={reduceMotion ? undefined : coachmarkAccentVariants} />
       <motion.header variants={reduceMotion ? undefined : coachmarkItemVariants}>
         <span><Sparkles size={14} /> 따라하기 가이드</span>
-        <strong>{current} / 5</strong>
+        <strong>{completed ? '안내 완료' : `${current} / 5`}</strong>
       </motion.header>
       <motion.h2 variants={reduceMotion ? undefined : coachmarkItemVariants}>{title}</motion.h2>
       <motion.p variants={reduceMotion ? undefined : coachmarkItemVariants}>{description}</motion.p>
       <motion.footer variants={reduceMotion ? undefined : coachmarkItemVariants}>
         <span>
-          {waiting ? <LoaderCircle className="spin" size={15} /> : <MousePointer2 size={15} />}
-          {waiting ? '가상 원고 분석이 자동으로 진행됩니다.' : '파란색으로 강조된 곳에서 직접 행동해 보세요.'}
+          {completed ? <CheckCircle2 size={15} /> : waiting ? <LoaderCircle className="spin" size={15} /> : <MousePointer2 size={15} />}
+          {completed ? '원할 때 아래 버튼으로 체험을 마무리하세요.' : waiting ? '가상 원고 분석이 자동으로 진행됩니다.' : '파란색으로 강조된 곳에서 직접 행동해 보세요.'}
         </span>
         {actionLabel && onAction && <button type="button" onClick={onAction}>{actionLabel}<ArrowRight size={13} /></button>}
       </motion.footer>
+      {onFinish && <button className="interactive-demo-coachmark__finish" type="button" onClick={onFinish}>체험 마치기 <ArrowRight size={16} aria-hidden="true" /></button>}
     </motion.aside>
   );
 }
@@ -578,6 +587,7 @@ function UnsupportedReviewScreen({ onExclude }: { onExclude: () => void }) {
 }
 
 type DatabaseScreenProps = {
+  guideComplete: boolean;
   activeTab: DemoDatabaseTab;
   characterEvidenceId: string | null;
   characterTimelineOpen: boolean;
@@ -598,6 +608,7 @@ type DatabaseScreenProps = {
 };
 
 function DatabaseScreen({
+  guideComplete,
   activeTab,
   characterEvidenceId,
   characterTimelineOpen,
@@ -625,7 +636,7 @@ function DatabaseScreen({
   const [isEditingCharacter, setIsEditingCharacter] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const worldSettings = useMemo(() => createInteractiveDemoWorldSettings(worldValue), [worldValue]);
-  const guideWorldTab = activeTab === 'character' && !selectedCharacter && viewedCharacterTimelineEvidence;
+  const guideWorldTab = !guideComplete && activeTab === 'character' && !selectedCharacter && viewedCharacterTimelineEvidence;
 
   const applyTimelineSelection = (selection: TimelineSelection) => {
     setSearchParams(previous => {
@@ -743,20 +754,21 @@ function DatabaseScreen({
 function CompleteScreen({ onRestart, onSignup }: { onRestart: () => void; onSignup: () => void }) {
   return (
     <section className="interactive-demo-complete" aria-labelledby="interactive-demo-stage-title">
-      <div className="interactive-demo-complete__icon"><Check size={34} /></div>
-      <span>INTERACTIVE DEMO COMPLETE</span>
-      <h1 id="interactive-demo-stage-title">한 편의 원고가<br />작품의 기준이 되었습니다</h1>
-      <p>이번 체험에서는 원문 근거를 확인하고 설정을 직접 검토했습니다.<br />실제 업로드는 자동 반영이 기본이며, 단일 회차는 모든 설정을 직접 검토하는 방식도 선택할 수 있습니다.</p>
-      <div className="interactive-demo-complete__results">
-        <article><span className="is-success"><CheckCircle2 /></span><small>캐릭터 후보 확정</small><strong>에단 렌 · 재액 운반자</strong></article>
-        <article><span className="is-primary"><PencilLine /></span><small>세계관 수정안 적용·확정</small><strong>거꾸로숲 · 귀환문의 조건</strong></article>
-        <article><span className="is-danger"><ThumbsDown /></span><small>근거 부족 후보 제외</small><strong>검은 달 · 왕실의 멸망</strong></article>
+      <div className="interactive-demo-complete__hero">
+        <div className="interactive-demo-complete__artwork" aria-hidden="true">
+          <img src={storyWorldArtwork} alt="" width="1536" height="1024" />
+        </div>
+        <div className="interactive-demo-complete__copy">
+          <span className="interactive-demo-complete__eyebrow"><CheckCircle2 size={18} aria-hidden="true" /> 체험 완료</span>
+          <h1 id="interactive-demo-stage-title">이제, 작가님의<br />이야기를 이어가세요.</h1>
+          <p>설정을 정리하는 시간은 줄이고,<br />다음 이야기를 쓰는 시간은 더 길게.</p>
+          <div className="interactive-demo-complete__actions">
+            <ActionButton onClick={onSignup} icon={<ArrowRight size={16} />}>내 작품으로 시작하기</ActionButton>
+            <ActionButton onClick={onRestart} variant="secondary" icon={<RotateCcw size={15} />}>다시 체험하기</ActionButton>
+          </div>
+        </div>
       </div>
-      <div className="interactive-demo-complete__actions">
-        <ActionButton onClick={onSignup} icon={<ArrowRight size={16} />}>내 작품으로 시작하기</ActionButton>
-        <ActionButton onClick={onRestart} variant="secondary" icon={<RotateCcw size={16} />}>다시 체험하기</ActionButton>
-      </div>
-      <small className="interactive-demo-complete__note"><FileCheck2 size={14} /> 이 체험에서는 실제 원고와 계정 정보가 저장되지 않았습니다.</small>
+      <p className="interactive-demo-complete__note"><FileCheck2 size={16} aria-hidden="true" /> 가상 원고로 진행한 체험이에요. 실제 원고와 계정 정보는 저장되지 않았어요.</p>
     </section>
   );
 }
@@ -774,6 +786,7 @@ export default function SInteractiveDemo() {
   const timelineSelection = useMemo(() => readTimelineSelection(searchParams), [searchParams]);
 
   const timelineFactId = searchParams.get('timelineFactId');
+  const worldDetailOpen = searchParams.has('settingId');
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -840,6 +853,7 @@ export default function SInteractiveDemo() {
     const buttonWithText = (copy: string) => Array.from(page.querySelectorAll<HTMLButtonElement>('button'))
       .find(button => button.textContent?.includes(copy)) ?? null;
     const findTarget = () => {
+      if (state.viewedWorldEvidence) return null;
       let nextTarget: HTMLElement | null = null;
 
       if (state.databaseTab === 'character') {
@@ -864,8 +878,10 @@ export default function SInteractiveDemo() {
             nextTarget = byLabel('닫기');
           }
         }
-      } else if (state.selectedWorldSubject !== '거꾸로숲') {
+      } else if (!worldDetailOpen) {
         nextTarget = byLabel('거꾸로숲 세계관 대상 보기');
+      } else if (state.selectedWorldSubject !== '거꾸로숲') {
+        nextTarget = page.querySelector<HTMLElement>('.world-setting-detail-dialog [aria-label="닫기"]');
       } else {
         nextTarget = byLabel('귀환문의 조건 원문 근거 보기');
       }
@@ -919,9 +935,11 @@ export default function SInteractiveDemo() {
     state.selectedWorldSubject,
     state.viewedCharacterEvidence,
     state.viewedCharacterTimelineEvidence,
+    state.viewedWorldEvidence,
     timelineFactId,
     timelineSelection.factKeys,
     timelineSelection.factTypes,
+    worldDetailOpen,
   ]);
 
   useEffect(() => {
@@ -1025,7 +1043,14 @@ export default function SInteractiveDemo() {
   } else if (state.screen === 'unsupported-review') {
     coachmark = { current: 5, title: '근거가 부족한 후보는 제외하세요', description: '원문에는 검은 달만 등장합니다. 실제 후보 항목의 ‘제외’를 눌러 세계관 설정에 저장하지 않습니다.' };
   } else if (state.screen === 'database') {
-    if (state.databaseTab === 'character') {
+    if (state.viewedWorldEvidence) {
+      coachmark = {
+        completed: true,
+        current: 5,
+        title: '체험을 모두 마쳤어요',
+        description: '자유롭게 더 둘러보셔도 좋아요. 확인을 마치면 ‘체험 마치기’를 눌러 마무리하세요.',
+      };
+    } else if (state.databaseTab === 'character') {
       const occupationTimelineSelected = timelineSelection.factKeys.includes('profile.occupation')
         || timelineSelection.factTypes.includes('PROFILE');
       if (state.selectedCharacter === '에단 렌' && state.characterEvidenceId === 'ethan-job-6') {
@@ -1086,17 +1111,10 @@ export default function SInteractiveDemo() {
         coachmark = { current: 5, title: '이제 세계관 설정 DB를 확인하세요', description: '실제 설정 대시보드의 ‘세계관 설정’ 탭을 눌러 수정한 귀환문 규칙을 확인해 보세요.' };
       }
     } else {
-      const guidedWorldEvidence = '거꾸로숲:귀환문의 조건';
-      if (state.selectedWorldSubject !== '거꾸로숲') {
+      if (!worldDetailOpen) {
         coachmark = { current: 5, title: '수정한 세계관 대상을 다시 선택하세요', description: '대상 목록에서 ‘거꾸로숲’을 눌러 이번 체험에서 반영한 귀환문 규칙을 확인하세요.' };
-      } else if (state.expandedWorldEvidence === guidedWorldEvidence) {
-        coachmark = {
-          actionLabel: '체험 마치기',
-          current: 5,
-          title: '세계관 설정값과 6화 근거까지 확인했습니다',
-          description: '직접 다듬은 ‘귀환문의 조건’과 후보 확정에 사용한 원문이 설정 DB에 함께 남았습니다.',
-          onAction: () => dispatch({ type: 'finish' }),
-        };
+      } else if (state.selectedWorldSubject !== '거꾸로숲') {
+        coachmark = { current: 5, title: '상세를 닫고 안내를 이어가세요', description: '다른 세계관도 자유롭게 살펴볼 수 있어요. 확인을 마치면 오른쪽 위 닫기 버튼을 누르고, 목록에서 ‘거꾸로숲’을 선택하세요.' };
       } else {
         coachmark = { current: 5, title: '세계관 설정의 원문 근거를 열어 보세요', description: '‘귀환문의 조건’ 행에서 최근 근거 6화를 눌러 최종 설정값과 원문을 함께 확인하세요.' };
       }
@@ -1107,6 +1125,11 @@ export default function SInteractiveDemo() {
     setAnalysisPhase(0);
     setSearchParams(new URLSearchParams(), { replace: true });
     dispatch({ type: 'reset' });
+  };
+
+  const finishDemo = () => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+    dispatch({ type: 'finish' });
   };
 
   const clearTimelineParams = () => {
@@ -1157,7 +1180,7 @@ export default function SInteractiveDemo() {
 
   return (
     <CharacterSettingLabelProvider genre={'판타지'}>
-    <div className="interactive-demo-page theme-v2" ref={pageRef}>
+    <div className={`interactive-demo-page theme-v2${state.screen === 'complete' ? ' interactive-demo-page--complete' : ''}`} ref={pageRef}>
       <header className="interactive-demo-header">
         <div className="interactive-demo-header__brand">
           <ProductBrand compact />
@@ -1201,6 +1224,7 @@ export default function SInteractiveDemo() {
             {state.screen === 'unsupported-review' && <UnsupportedReviewScreen onExclude={() => dispatch({ type: 'reject-unsupported' })} />}
             {state.screen === 'database' && (
               <DatabaseScreen
+                guideComplete={state.viewedWorldEvidence}
                 activeTab={state.databaseTab}
                 characterEvidenceId={state.characterEvidenceId}
                 characterTimelineOpen={state.characterTimelineOpen}
@@ -1231,7 +1255,7 @@ export default function SInteractiveDemo() {
       </main>
 
       <AnimatePresence mode="wait">
-        {coachmark && <Coachmark {...coachmark} />}
+        {coachmark && <Coachmark {...coachmark} current={state.screen === 'database' ? 4 : coachmark.current} onFinish={state.screen === 'database' ? finishDemo : undefined} />}
       </AnimatePresence>
     </div>
     </CharacterSettingLabelProvider>

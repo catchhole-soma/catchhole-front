@@ -723,7 +723,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
   );
 }
 
-export function WorldKeyDiffRow({
+function WorldKeyDiffRow({
   candidate, decision, conflictResolved, recompared, includeRootMoveNotice,
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
