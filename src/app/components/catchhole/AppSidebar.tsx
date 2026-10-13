@@ -77,8 +77,8 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
         onClick={() => { onComingSoon?.('분석 리포트'); onClose?.(); }} />
       <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
         onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />
-      <NavItem icon={<MessageSquare size={14} />} label="챗봇" upcoming
-        onClick={() => { onComingSoon?.('챗봇'); onClose?.(); }} />
+      <NavItem icon={<MessageSquare size={14} />} label="챗봇" active={activeNav === 'chat'}
+        onClick={() => { if (selectedWork) navigate(`/chat?workId=${encodeURIComponent(selectedWork)}`, 'dissolve'); onClose?.(); }} />
 
     </aside>
   );

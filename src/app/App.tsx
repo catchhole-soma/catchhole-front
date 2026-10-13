@@ -10,6 +10,7 @@ import SLanding from './components/catchhole/SLanding';
 import SInteractiveDemo from './components/catchhole/SInteractiveDemo';
 import S0WorkPicker from './components/catchhole/S0WorkPicker';
 import S1Dashboard from './components/catchhole/S1Dashboard';
+import SChat from './components/catchhole/chat/SChat';
 import S2Editor from './components/catchhole/S2Editor';
 import SEpisodeUpload from './components/catchhole/SEpisodeUpload';
 import SSettingReview from './components/catchhole/SSettingReview';
@@ -242,7 +243,7 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
         <Route path="/works" element={<S0WorkPicker />} />
         <Route path="/dashboard" element={<S1Dashboard />} />
         <Route path="/editor" element={<S2Editor />} />
-        <Route path="/chat" element={<Navigate to="/works" replace />} />
+        <Route path="/chat" element={<SChat />} />
         <Route path="/loading" element={<Navigate to="/works" replace />} />
         <Route path="/report" element={<Navigate to="/works" replace />} />
         <Route path="/episode-upload" element={<SEpisodeUpload />} />

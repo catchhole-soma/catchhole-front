@@ -187,3 +187,8 @@ Precedence: pending explicit preference corrections > adopted Bound System
 graph/standalone DESIGN.md > your defaults. Fold pending corrections into the
 graph and regenerate the projection before clearing them.
 <!-- omd:end -->
+
+
+## 작품 대화
+
+`/chat`은 보호된 작품별 대화 화면이다. `workId`·`sessionId`·`messagePage`로 활성 대화를 복원하고, 명시적 종료/마지막 질문·답변 후 2시간 만료 정책을 따른다. Sidebar 챗봇은 실제 라우트로 연결한다. 전체 서버/문맥/캐시 계약과 검증 범위는 `docs/chat-sessions-v1.md`를 따른다.

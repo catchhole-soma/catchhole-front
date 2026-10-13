@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addWorldSettingProperty, approveAiTokenExtensionRequest, backfillSubjectImages, claimAnalysisJob, claimMyAnalysisGuide, claimMyFeedbackPrompt, claimNextWorkerCharacterFactComparison, claimNextWorkerCharacterFactComparisonBatch, claimNextWorkerWorldSettingComparison, claimNextWorkerWorldSettingComparisonBatch, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerCharacterFactComparisonBatch, completeWorkerWorldSettingComparison, completeWorkerWorldSettingComparisonBatch, confirmEmailVerification, confirmPhoneVerification, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, createAnalysisJob, createMyAiTokenExtensionRequest, createMyFeedback, createPrivateImageVault, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deletePrivateWorldImage, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerCharacterFactComparisonBatch, failWorkerWorldSettingComparison, failWorkerWorldSettingComparisonBatch, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getCurrentLegalDocuments, getEpisode, getEpisodes, getEpisodeUploadPolicy, getLegalDocument, getMe, getMyAiTokenUsage, getMyAnalysisGuide, getMyFeedbackPrompt, getMyPendingAiTokenExtensionRequest, getMyWorks, getPendingWorkerWorldSettingSubjectResolutions, getPrivateImageVault, getPrivateWorldImageContent, getPrivateWorldImages, getPrivateWorldImageThumbnail, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getSignupPolicy, getWork, getWorkerCharacterFactComparisonBatchContext, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonBatchContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldImageAsset, getWorldImageCatalog, getWorldImageTheme, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, login, logout, type Options, publishWorkerWorldSettingCandidates, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, requestEmailVerification, requestPhoneVerification, reserveAiTokens, resetStaleWorkerWorldSettingSubjectResolution, resolveWorkerWorldSettingSubjects, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, updateCharacter, updateCharacterImage, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingImage, updateWorldSettingProperty, uploadEpisodes, uploadPrivateWorldImage, uploadSettingBook, withdrawMe } from '../sdk.gen';
-import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, BackfillSubjectImagesData, BackfillSubjectImagesError, BackfillSubjectImagesResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimMyAnalysisGuideData, ClaimMyAnalysisGuideError, ClaimMyAnalysisGuideResponse, ClaimMyFeedbackPromptData, ClaimMyFeedbackPromptError, ClaimMyFeedbackPromptResponse, ClaimNextWorkerCharacterFactComparisonBatchData, ClaimNextWorkerCharacterFactComparisonBatchResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonBatchData, ClaimNextWorkerWorldSettingComparisonBatchResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonBatchData, CompleteWorkerCharacterFactComparisonBatchResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonBatchData, CompleteWorkerWorldSettingComparisonBatchResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmEmailVerificationData, ConfirmEmailVerificationError, ConfirmEmailVerificationResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupError, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreatePrivateImageVaultData, CreatePrivateImageVaultError, CreatePrivateImageVaultResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeletePrivateWorldImageData, DeletePrivateWorldImageError, DeletePrivateWorldImageResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonBatchData, FailWorkerCharacterFactComparisonBatchResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonBatchData, FailWorkerWorldSettingComparisonBatchResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetEpisodeUploadPolicyData, GetEpisodeUploadPolicyError, GetEpisodeUploadPolicyResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyAnalysisGuideData, GetMyAnalysisGuideError, GetMyAnalysisGuideResponse, GetMyFeedbackPromptData, GetMyFeedbackPromptError, GetMyFeedbackPromptResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetPendingWorkerWorldSettingSubjectResolutionsData, GetPendingWorkerWorldSettingSubjectResolutionsResponse, GetPrivateImageVaultData, GetPrivateImageVaultError, GetPrivateImageVaultResponse, GetPrivateWorldImageContentData, GetPrivateWorldImageContentError, GetPrivateWorldImageContentResponse, GetPrivateWorldImagesData, GetPrivateWorldImagesError, GetPrivateWorldImagesResponse, GetPrivateWorldImageThumbnailData, GetPrivateWorldImageThumbnailError, GetPrivateWorldImageThumbnailResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetSignupPolicyData, GetSignupPolicyResponse, GetWorkData, GetWorkerCharacterFactComparisonBatchContextData, GetWorkerCharacterFactComparisonBatchContextResponse, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonBatchContextData, GetWorkerWorldSettingComparisonBatchContextResponse, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldImageAssetData, GetWorldImageAssetError, GetWorldImageAssetResponse, GetWorldImageCatalogData, GetWorldImageCatalogError, GetWorldImageCatalogResponse, GetWorldImageThemeData, GetWorldImageThemeError, GetWorldImageThemeResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, RequestEmailVerificationData, RequestEmailVerificationError, RequestEmailVerificationResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, ResetStaleWorkerWorldSettingSubjectResolutionData, ResetStaleWorkerWorldSettingSubjectResolutionResponse, ResolveWorkerWorldSettingSubjectsData, ResolveWorkerWorldSettingSubjectsResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonError, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterImageData, UpdateCharacterImageError, UpdateCharacterImageResponse, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchError, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingImageData, UpdateWorldSettingImageError, UpdateWorldSettingImageResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadPrivateWorldImageData, UploadPrivateWorldImageError, UploadPrivateWorldImageResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse } from '../types.gen';
+import { addWorldSettingProperty, approveAiTokenExtensionRequest, backfillSubjectImages, claimAnalysisJob, claimMyAnalysisGuide, claimMyFeedbackPrompt, claimNextWorkerCharacterFactComparison, claimNextWorkerCharacterFactComparisonBatch, claimNextWorkerWorldSettingComparison, claimNextWorkerWorldSettingComparisonBatch, closeChatSession, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerCharacterFactComparisonBatch, completeWorkerWorldSettingComparison, completeWorkerWorldSettingComparisonBatch, confirmEmailVerification, confirmPhoneVerification, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, createAnalysisJob, createChatSession, createMyAiTokenExtensionRequest, createMyFeedback, createOperationalAiRun, createPrivateImageVault, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deletePrivateWorldImage, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerCharacterFactComparisonBatch, failWorkerWorldSettingComparison, failWorkerWorldSettingComparisonBatch, finishChatRun, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getChatQuestion, getChatRunContext, getChatSession, getCurrentLegalDocuments, getEpisode, getEpisodes, getEpisodeUploadPolicy, getLegalDocument, getMe, getMyAiTokenUsage, getMyAnalysisGuide, getMyFeedbackPrompt, getMyPendingAiTokenExtensionRequest, getMyWorks, getPendingWorkerWorldSettingSubjectResolutions, getPrivateImageVault, getPrivateWorldImageContent, getPrivateWorldImages, getPrivateWorldImageThumbnail, getSettingBook, getSettingBooks, getSettingCandidate, getSettingCandidates, getSignupPolicy, getWork, getWorkerCharacterFactComparisonBatchContext, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonBatchContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldImageAsset, getWorldImageCatalog, getWorldImageTheme, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, listChatMessages, listChatSessions, login, logout, type Options, publishWorkerWorldSettingCandidates, queryChatSettingTools, queryInternalSettingTools, querySettingTools, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, reportChatCall, requestEmailVerification, requestPhoneVerification, reserveAiTokens, reserveChatCall, resetStaleWorkerWorldSettingSubjectResolution, resolveWorkerWorldSettingSubjects, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retryChatQuestion, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, startChatRun, submitChatQuestion, updateCharacter, updateCharacterImage, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingImage, updateWorldSettingProperty, uploadEpisodes, uploadPrivateWorldImage, uploadSettingBook, verifyChatRetrievalSources, withdrawMe } from '../sdk.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, BackfillSubjectImagesData, BackfillSubjectImagesError, BackfillSubjectImagesResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimMyAnalysisGuideData, ClaimMyAnalysisGuideError, ClaimMyAnalysisGuideResponse, ClaimMyFeedbackPromptData, ClaimMyFeedbackPromptError, ClaimMyFeedbackPromptResponse, ClaimNextWorkerCharacterFactComparisonBatchData, ClaimNextWorkerCharacterFactComparisonBatchResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonBatchData, ClaimNextWorkerWorldSettingComparisonBatchResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CloseChatSessionData, CloseChatSessionError, CloseChatSessionResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonBatchData, CompleteWorkerCharacterFactComparisonBatchResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonBatchData, CompleteWorkerWorldSettingComparisonBatchResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmEmailVerificationData, ConfirmEmailVerificationError, ConfirmEmailVerificationResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupError, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateChatSessionData, CreateChatSessionError, CreateChatSessionResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreateOperationalAiRunData, CreateOperationalAiRunResponse, CreatePrivateImageVaultData, CreatePrivateImageVaultError, CreatePrivateImageVaultResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeletePrivateWorldImageData, DeletePrivateWorldImageError, DeletePrivateWorldImageResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonBatchData, FailWorkerCharacterFactComparisonBatchResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonBatchData, FailWorkerWorldSettingComparisonBatchResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, FinishChatRunData, FinishChatRunResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetChatQuestionData, GetChatQuestionResponse, GetChatRunContextData, GetChatRunContextResponse, GetChatSessionData, GetChatSessionError, GetChatSessionResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetEpisodeUploadPolicyData, GetEpisodeUploadPolicyError, GetEpisodeUploadPolicyResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyAnalysisGuideData, GetMyAnalysisGuideError, GetMyAnalysisGuideResponse, GetMyFeedbackPromptData, GetMyFeedbackPromptError, GetMyFeedbackPromptResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetPendingWorkerWorldSettingSubjectResolutionsData, GetPendingWorkerWorldSettingSubjectResolutionsResponse, GetPrivateImageVaultData, GetPrivateImageVaultError, GetPrivateImageVaultResponse, GetPrivateWorldImageContentData, GetPrivateWorldImageContentError, GetPrivateWorldImageContentResponse, GetPrivateWorldImagesData, GetPrivateWorldImagesError, GetPrivateWorldImagesResponse, GetPrivateWorldImageThumbnailData, GetPrivateWorldImageThumbnailError, GetPrivateWorldImageThumbnailResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetSignupPolicyData, GetSignupPolicyResponse, GetWorkData, GetWorkerCharacterFactComparisonBatchContextData, GetWorkerCharacterFactComparisonBatchContextResponse, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonBatchContextData, GetWorkerWorldSettingComparisonBatchContextResponse, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldImageAssetData, GetWorldImageAssetError, GetWorldImageAssetResponse, GetWorldImageCatalogData, GetWorldImageCatalogError, GetWorldImageCatalogResponse, GetWorldImageThemeData, GetWorldImageThemeError, GetWorldImageThemeResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, ListChatMessagesData, ListChatMessagesError, ListChatMessagesResponse, ListChatSessionsData, ListChatSessionsError, ListChatSessionsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, QueryChatSettingToolsData, QueryChatSettingToolsResponse, QueryInternalSettingToolsData, QueryInternalSettingToolsError, QueryInternalSettingToolsResponse, QuerySettingToolsData, QuerySettingToolsError, QuerySettingToolsResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, ReportChatCallData, ReportChatCallResponse, RequestEmailVerificationData, RequestEmailVerificationError, RequestEmailVerificationResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, ReserveChatCallData, ReserveChatCallResponse, ResetStaleWorkerWorldSettingSubjectResolutionData, ResetStaleWorkerWorldSettingSubjectResolutionResponse, ResolveWorkerWorldSettingSubjectsData, ResolveWorkerWorldSettingSubjectsResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetryChatQuestionData, RetryChatQuestionResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonError, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, StartChatRunData, StartChatRunResponse, SubmitChatQuestionData, SubmitChatQuestionResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterImageData, UpdateCharacterImageError, UpdateCharacterImageResponse, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchError, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingImageData, UpdateWorldSettingImageError, UpdateWorldSettingImageResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadPrivateWorldImageData, UploadPrivateWorldImageError, UploadPrivateWorldImageResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, VerifyChatRetrievalSourcesData, VerifyChatRetrievalSourcesResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse } from '../types.gen';
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -449,6 +449,28 @@ export const resumeTokenInterruptedWorldSettingComparisonsMutation = (options?: 
     return mutationOptions;
 };
 
+export const querySettingToolsMutationKey = (options?: Partial<Options<QuerySettingToolsData>>) => createMutationKey('querySettingTools', options);
+
+/**
+ * 설정 도구 조회
+ *
+ * 로그인한 회원의 활성 작품만 조회합니다. 회차 범위는 근거의 출처 필터이며 특정 회차의 전체 상태 복원이 아닙니다. 계약: docs/setting-tools-v1.md
+ */
+export const querySettingToolsMutation = (options?: Partial<Options<QuerySettingToolsData>>): UseMutationOptions<QuerySettingToolsResponse, QuerySettingToolsError, Options<QuerySettingToolsData>> => {
+    const mutationOptions: UseMutationOptions<QuerySettingToolsResponse, QuerySettingToolsError, Options<QuerySettingToolsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await querySettingTools({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: querySettingToolsMutationKey(options)
+    };
+    return mutationOptions;
+};
+
 export const retrySettingCandidateComparisonMutationKey = (options?: Partial<Options<RetrySettingCandidateComparisonData>>) => createMutationKey('retrySettingCandidateComparison', options);
 
 /**
@@ -713,6 +735,124 @@ export const detectEpisodesMutation = (options?: Partial<Options<DetectEpisodesD
             return data;
         },
         mutationKey: detectEpisodesMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const listChatSessionsQueryKey = (options: Options<ListChatSessionsData>) => createQueryKey('listChatSessions', options);
+
+/**
+ * 활성 대화 목록
+ *
+ * 생성 시각·ID 오름차순, 최대 50개. 종료로 항목이 제거되면 첫 페이지부터 새로 조회합니다.
+ */
+export const listChatSessionsOptions = (options: Options<ListChatSessionsData>) => queryOptions<ListChatSessionsResponse, ListChatSessionsError, ListChatSessionsResponse, ReturnType<typeof listChatSessionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listChatSessions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listChatSessionsQueryKey(options)
+});
+
+export const listChatSessionsInfiniteQueryKey = (options: Options<ListChatSessionsData>): QueryKey<Options<ListChatSessionsData>> => createQueryKey('listChatSessions', options, true);
+
+/**
+ * 활성 대화 목록
+ *
+ * 생성 시각·ID 오름차순, 최대 50개. 종료로 항목이 제거되면 첫 페이지부터 새로 조회합니다.
+ */
+export const listChatSessionsInfiniteOptions = (options: Options<ListChatSessionsData>) => {
+    const opts = infiniteQueryOptions<ListChatSessionsResponse, ListChatSessionsError, InfiniteData<ListChatSessionsResponse>, QueryKey<Options<ListChatSessionsData>>, number | Pick<QueryKey<Options<ListChatSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListChatSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listChatSessions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listChatSessionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const createChatSessionMutationKey = (options?: Partial<Options<CreateChatSessionData>>) => createMutationKey('createChatSession', options);
+
+/**
+ * 일회성 대화 생성
+ *
+ * 같은 requestId는 기존 대화를 반환하며 종료된 대화를 복구하지 않습니다. 비활성 503, 활성 대화 한도 409입니다.
+ */
+export const createChatSessionMutation = (options?: Partial<Options<CreateChatSessionData>>): UseMutationOptions<CreateChatSessionResponse, CreateChatSessionError, Options<CreateChatSessionData>> => {
+    const mutationOptions: UseMutationOptions<CreateChatSessionResponse, CreateChatSessionError, Options<CreateChatSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createChatSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: createChatSessionMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const submitChatQuestionMutationKey = (options?: Partial<Options<SubmitChatQuestionData>>) => createMutationKey('submitChatQuestion', options);
+
+/**
+ * 단일 질문 접수
+ *
+ * 같은 사용자·작품·Idempotency-Key와 같은 입력은 기존 실행을 반환합니다. 입력 충돌은 409, 한도 초과는 429입니다.
+ */
+export const submitChatQuestionMutation = (options?: Partial<Options<SubmitChatQuestionData>>): UseMutationOptions<SubmitChatQuestionResponse, DefaultError, Options<SubmitChatQuestionData>> => {
+    const mutationOptions: UseMutationOptions<SubmitChatQuestionResponse, DefaultError, Options<SubmitChatQuestionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await submitChatQuestion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: submitChatQuestionMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const retryChatQuestionMutationKey = (options?: Partial<Options<RetryChatQuestionData>>) => createMutationKey('retryChatQuestion', options);
+
+/**
+ * 실패·시간 초과 실행의 명시적 재시도
+ *
+ * previousAttemptId가 재시도 멱등성 키입니다. 이전 호출 사용량은 보존합니다.
+ */
+export const retryChatQuestionMutation = (options?: Partial<Options<RetryChatQuestionData>>): UseMutationOptions<RetryChatQuestionResponse, DefaultError, Options<RetryChatQuestionData>> => {
+    const mutationOptions: UseMutationOptions<RetryChatQuestionResponse, DefaultError, Options<RetryChatQuestionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await retryChatQuestion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: retryChatQuestionMutationKey(options)
     };
     return mutationOptions;
 };
@@ -1169,6 +1309,170 @@ export const approveAiTokenExtensionRequestMutation = (options?: Partial<Options
             return data;
         },
         mutationKey: approveAiTokenExtensionRequestMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const queryInternalSettingToolsMutationKey = (options?: Partial<Options<QueryInternalSettingToolsData>>) => createMutationKey('queryInternalSettingTools', options);
+
+/**
+ * 설정 도구 조회
+ *
+ * 내부 API key로 인증한 신뢰 서버가 사용자 범위를 헤더로 고정합니다. 모델 입력에서 회원·작품 범위를 받지 않습니다. 회차 범위는 근거의 출처 필터이며 특정 회차의 전체 상태 복원이 아닙니다. 계약: docs/setting-tools-v1.md
+ */
+export const queryInternalSettingToolsMutation = (options?: Partial<Options<QueryInternalSettingToolsData>>): UseMutationOptions<QueryInternalSettingToolsResponse, QueryInternalSettingToolsError, Options<QueryInternalSettingToolsData>> => {
+    const mutationOptions: UseMutationOptions<QueryInternalSettingToolsResponse, QueryInternalSettingToolsError, Options<QueryInternalSettingToolsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await queryInternalSettingTools({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: queryInternalSettingToolsMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const queryChatSettingToolsMutationKey = (options?: Partial<Options<QueryChatSettingToolsData>>) => createMutationKey('queryChatSettingTools', options);
+
+/**
+ * 실행에 고정된 회원·작품·출처 범위로 설정 조회
+ */
+export const queryChatSettingToolsMutation = (options?: Partial<Options<QueryChatSettingToolsData>>): UseMutationOptions<QueryChatSettingToolsResponse, DefaultError, Options<QueryChatSettingToolsData>> => {
+    const mutationOptions: UseMutationOptions<QueryChatSettingToolsResponse, DefaultError, Options<QueryChatSettingToolsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await queryChatSettingTools({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: queryChatSettingToolsMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const startChatRunMutationKey = (options?: Partial<Options<StartChatRunData>>) => createMutationKey('startChatRun', options);
+
+/**
+ * Python 실행 소유권 획득
+ */
+export const startChatRunMutation = (options?: Partial<Options<StartChatRunData>>): UseMutationOptions<StartChatRunResponse, DefaultError, Options<StartChatRunData>> => {
+    const mutationOptions: UseMutationOptions<StartChatRunResponse, DefaultError, Options<StartChatRunData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startChatRun({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: startChatRunMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const verifyChatRetrievalSourcesMutationKey = (options?: Partial<Options<VerifyChatRetrievalSourcesData>>) => createMutationKey('verifyChatRetrievalSources', options);
+
+/**
+ * 실행에 고정된 범위로 현재 원문 검색 인용을 검증하고 사용 허가
+ */
+export const verifyChatRetrievalSourcesMutation = (options?: Partial<Options<VerifyChatRetrievalSourcesData>>): UseMutationOptions<VerifyChatRetrievalSourcesResponse, DefaultError, Options<VerifyChatRetrievalSourcesData>> => {
+    const mutationOptions: UseMutationOptions<VerifyChatRetrievalSourcesResponse, DefaultError, Options<VerifyChatRetrievalSourcesData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await verifyChatRetrievalSources({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: verifyChatRetrievalSourcesMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const finishChatRunMutationKey = (options?: Partial<Options<FinishChatRunData>>) => createMutationKey('finishChatRun', options);
+
+/**
+ * 결과 저장. 정산은 별도 복구 가능
+ */
+export const finishChatRunMutation = (options?: Partial<Options<FinishChatRunData>>): UseMutationOptions<FinishChatRunResponse, DefaultError, Options<FinishChatRunData>> => {
+    const mutationOptions: UseMutationOptions<FinishChatRunResponse, DefaultError, Options<FinishChatRunData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await finishChatRun({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: finishChatRunMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const reserveChatCallMutationKey = (options?: Partial<Options<ReserveChatCallData>>) => createMutationKey('reserveChatCall', options);
+
+/**
+ * provider 호출 전 토큰 예약
+ */
+export const reserveChatCallMutation = (options?: Partial<Options<ReserveChatCallData>>): UseMutationOptions<ReserveChatCallResponse, DefaultError, Options<ReserveChatCallData>> => {
+    const mutationOptions: UseMutationOptions<ReserveChatCallResponse, DefaultError, Options<ReserveChatCallData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await reserveChatCall({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: reserveChatCallMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const reportChatCallMutationKey = (options?: Partial<Options<ReportChatCallData>>) => createMutationKey('reportChatCall', options);
+
+/**
+ * 실측 사용량 또는 호출 전 해제 보고
+ */
+export const reportChatCallMutation = (options?: Partial<Options<ReportChatCallData>>): UseMutationOptions<ReportChatCallResponse, DefaultError, Options<ReportChatCallData>> => {
+    const mutationOptions: UseMutationOptions<ReportChatCallResponse, DefaultError, Options<ReportChatCallData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await reportChatCall({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: reportChatCallMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const createOperationalAiRunMutationKey = (options?: Partial<Options<CreateOperationalAiRunData>>) => createMutationKey('createOperationalAiRun', options);
+
+/**
+ * 운영 백필 귀속·예산 생성
+ *
+ * 신뢰 운영자 전용. 사용자 잔액을 차감하지 않습니다. id는 재전송 멱등성 키입니다.
+ */
+export const createOperationalAiRunMutation = (options?: Partial<Options<CreateOperationalAiRunData>>): UseMutationOptions<CreateOperationalAiRunResponse, DefaultError, Options<CreateOperationalAiRunData>> => {
+    const mutationOptions: UseMutationOptions<CreateOperationalAiRunResponse, DefaultError, Options<CreateOperationalAiRunData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createOperationalAiRun({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: createOperationalAiRunMutationKey(options)
     };
     return mutationOptions;
 };
@@ -2459,6 +2763,118 @@ export const getEpisodeUploadPolicyOptions = (options: Options<GetEpisodeUploadP
     queryKey: getEpisodeUploadPolicyQueryKey(options)
 });
 
+export const closeChatSessionMutationKey = (options?: Partial<Options<CloseChatSessionData>>) => createMutationKey('closeChatSession', options);
+
+/**
+ * 대화 종료·본문 삭제
+ *
+ * 질문·답변·근거를 제거하고 늦은 답변을 막습니다. 실행·정산 메타데이터는 유지합니다. 같은 종료 요청은 멱등입니다.
+ */
+export const closeChatSessionMutation = (options?: Partial<Options<CloseChatSessionData>>): UseMutationOptions<CloseChatSessionResponse, CloseChatSessionError, Options<CloseChatSessionData>> => {
+    const mutationOptions: UseMutationOptions<CloseChatSessionResponse, CloseChatSessionError, Options<CloseChatSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await closeChatSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: closeChatSessionMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getChatSessionQueryKey = (options: Options<GetChatSessionData>) => createQueryKey('getChatSession', options);
+
+/**
+ * 활성 대화 조회
+ *
+ * 읽기·새로고침은 만료 시각을 연장하지 않습니다.
+ */
+export const getChatSessionOptions = (options: Options<GetChatSessionData>) => queryOptions<GetChatSessionResponse, GetChatSessionError, GetChatSessionResponse, ReturnType<typeof getChatSessionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getChatSession({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getChatSessionQueryKey(options)
+});
+
+export const listChatMessagesQueryKey = (options: Options<ListChatMessagesData>) => createQueryKey('listChatMessages', options);
+
+/**
+ * 대화의 질문·답변 조회
+ *
+ * 질문 접수 순서 오름차순, 최대 50개. 메시지는 추가만 하므로 다음 페이지에서도 순서가 유지됩니다.
+ */
+export const listChatMessagesOptions = (options: Options<ListChatMessagesData>) => queryOptions<ListChatMessagesResponse, ListChatMessagesError, ListChatMessagesResponse, ReturnType<typeof listChatMessagesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listChatMessages({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listChatMessagesQueryKey(options)
+});
+
+export const listChatMessagesInfiniteQueryKey = (options: Options<ListChatMessagesData>): QueryKey<Options<ListChatMessagesData>> => createQueryKey('listChatMessages', options, true);
+
+/**
+ * 대화의 질문·답변 조회
+ *
+ * 질문 접수 순서 오름차순, 최대 50개. 메시지는 추가만 하므로 다음 페이지에서도 순서가 유지됩니다.
+ */
+export const listChatMessagesInfiniteOptions = (options: Options<ListChatMessagesData>) => {
+    const opts = infiniteQueryOptions<ListChatMessagesResponse, ListChatMessagesError, InfiniteData<ListChatMessagesResponse>, QueryKey<Options<ListChatMessagesData>>, number | Pick<QueryKey<Options<ListChatMessagesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListChatMessagesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listChatMessages({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listChatMessagesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getChatQuestionQueryKey = (options: Options<GetChatQuestionData>) => createQueryKey('getChatQuestion', options);
+
+/**
+ * 실행 상태와 저장된 결과 조회
+ */
+export const getChatQuestionOptions = (options: Options<GetChatQuestionData>) => queryOptions<GetChatQuestionResponse, DefaultError, GetChatQuestionResponse, ReturnType<typeof getChatQuestionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getChatQuestion({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getChatQuestionQueryKey(options)
+});
+
 export const getCharactersQueryKey = (options: Options<GetCharactersData>) => createQueryKey('getCharacters', options);
 
 /**
@@ -3043,6 +3459,24 @@ export const getAiTokenExtensionRequestForAdminOptions = (options: Options<GetAi
         return data;
     },
     queryKey: getAiTokenExtensionRequestForAdminQueryKey(options)
+});
+
+export const getChatRunContextQueryKey = (options: Options<GetChatRunContextData>) => createQueryKey('getChatRunContext', options);
+
+/**
+ * 유효한 실행 문맥 재확인
+ */
+export const getChatRunContextOptions = (options: Options<GetChatRunContextData>) => queryOptions<GetChatRunContextResponse, DefaultError, GetChatRunContextResponse, ReturnType<typeof getChatRunContextQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getChatRunContext({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getChatRunContextQueryKey(options)
 });
 
 export const getWorkerWorldSettingSubjectsQueryKey = (options: Options<GetWorkerWorldSettingSubjectsData>) => createQueryKey('getWorkerWorldSettingSubjects', options);
