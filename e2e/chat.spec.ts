@@ -11,7 +11,7 @@ function success(route: Route, data: unknown) {
 }
 async function fixture(
   page: Page,
-  options: { lost?: boolean; waiting?: boolean } = {},
+  options: { lost?: boolean; waiting?: boolean; failed?: boolean } = {},
 ) {
   const state = {
     created: false,
@@ -20,6 +20,8 @@ async function fixture(
     keys: [] as string[],
     texts: [] as string[],
     complete: !options.waiting,
+    failed: !!options.failed,
+    retries: 0,
   };
   const result = {
     outcome: 'ANSWER',
@@ -41,8 +43,9 @@ async function fixture(
   const execution = () => ({
     questionId: question,
     attemptId: question,
-    state: state.complete ? 'SUCCEEDED' : 'RUNNING',
-    result: state.complete ? result : null,
+    state: state.failed ? 'FAILED' : state.complete ? 'SUCCEEDED' : 'RUNNING',
+    failure: state.failed ? 'PROVIDER_FAILURE' : null,
+    result: state.complete && !state.failed ? result : null,
   });
   const session = () => ({
     id: room,
@@ -120,6 +123,13 @@ async function fixture(
       state.texts.push(req.postDataJSON().question);
       state.submitted = true;
       if (options.lost && state.keys.length === 1) return route.abort('failed');
+      return success(route, execution());
+    }
+    if (path.endsWith('/retry') && req.method() === 'POST') {
+      expect(req.postDataJSON().previousAttemptId).toBe(question);
+      state.failed = false;
+      state.complete = true;
+      state.retries++;
       return success(route, execution());
     }
     if (path.includes('/chat-questions/')) return success(route, execution());
@@ -371,3 +381,31 @@ test('사용자가 작품 선택으로 이동한 뒤 늦은 전송 응답은 화
   await expect(page.getByText('작품 선택', { exact: true })).toBeVisible();
   await expect(page.locator('.chat-conversation')).toHaveCount(0);
 });
+
+for (const width of [1280, 320]) {
+  test(`실패 질문의 명시적 재시도와 근거 확인 (${width}px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 800 });
+    const state = await fixture(page, { failed: true });
+    await page
+      .getByRole('textbox', { name: '질문', exact: true })
+      .fill('아리아의 능력은?');
+    await page.getByRole('button', { name: '보내기', exact: true }).click();
+    const retry = page.getByRole('button', { name: '다시 시도', exact: true });
+    await expect(retry).toBeVisible();
+    expect(state.retries).toBe(0);
+    await retry.click();
+    await expect(
+      page.getByText('아리아의 현재 능력은 화염구입니다.', { exact: true }),
+    ).toBeVisible();
+    expect(state.retries).toBe(1);
+    await expect(page.locator('.chat-turn')).toHaveCount(1);
+    await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+    await expect(page.getByRole('dialog')).toContainText(
+      '아리아는 화염구를 배웠다.',
+    );
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+}
