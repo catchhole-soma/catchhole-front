@@ -169,33 +169,82 @@ async function fixture(
   return Object.assign(state, { result });
 }
 
-test('답변 안내는 정확히 같은 문장만 합치고 부분 조회·근거 누락을 계속 표시한다', async ({ page }) => {
-  const limitations = [
-    '일부 기록만 확인했습니다.',
-    '인용 원문을 확인하지 못했습니다.',
-    '일부 기록만 확인했습니다.',
-    '최근 대화 일부만 참고했습니다.',
-  ];
-  const text = 'R2 [ADD]는 작품에 등록된 장비 이름입니다.\n설정값은 A_B입니다.';
-  await fixture(page, { result: { text, limitations } });
+for (const width of [1280, 320]) {
+  test(`${width}px 답변 안내는 펼침·접힘에서 모든 다른 문장을 보존한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    const limitations = [
+      '일부 기록만 확인했습니다.',
+      '인용 원문을 확인하지 못했습니다.',
+      '일부 기록만 확인했습니다.',
+      '최근 대화 일부만 참고했습니다.',
+      'R2 [ADD]와 A_B의 연결 근거를 확인하지 못했습니다.',
+    ];
+    const uniqueNotes = [...new Set(limitations)];
+    const text = 'R2 [ADD]는 작품에 등록된 장비 이름입니다.\n설정값은 A_B입니다.';
+    await fixture(page, { result: { text, limitations } });
+    await page.getByRole('textbox', { name: '질문', exact: true }).fill('장비 이름은?');
+    await page.getByRole('button', { name: '보내기', exact: true }).click();
+    const notes = page.getByRole('complementary', { name: '답변에서 확인할 점' });
+    const toggle = notes.getByRole('button', { name: '답변에서 확인할 점 4가지 펼치기' });
+    const list = notes.locator('ul');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toHaveAttribute('aria-controls', await list.getAttribute('id') as string);
+    await expect(list).toBeHidden();
+    await expect(list.locator('li')).toHaveText(uniqueNotes);
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    const expandedToggle = notes.getByRole('button', { name: '답변에서 확인할 점 4가지 접기' });
+    await expect(expandedToggle).toBeFocused();
+    await expect(expandedToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(notes.getByRole('listitem')).toHaveCount(uniqueNotes.length);
+    for (const note of uniqueNotes) {
+      await expect(notes.getByText(note, { exact: true })).toBeVisible();
+    }
+    await expect(page.locator('.chat-answer > p')).toHaveText(text);
+    const bounds = await expandedToggle.boundingBox();
+    expect(bounds?.height).toBeGreaterThanOrEqual(44);
+    const overflows = await notes.evaluate((element) => element.scrollWidth > element.clientWidth);
+    expect(overflows).toBe(false);
+    await page.keyboard.press('Space');
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(list).toBeHidden();
+    await expect(list.locator('li')).toHaveText(uniqueNotes);
+    await toggle.click();
+    await expect(list).toBeVisible();
+    await expect(list.locator('li')).toHaveText(uniqueNotes);
+    await expect(page.locator('.chat-answer > p')).toHaveText(text);
+    const contrast = await notes.evaluate((element) => {
+      const color = getComputedStyle(element).color;
+      const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((value) => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      return 1.05 / (luminance + 0.05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+  });
+}
+
+test('서로 다른 안내가 하나면 펼침 없이 원문을 표시한다', async ({ page }) => {
+  const note = 'R2 [ADD]와 A_B의 원문을 확인하지 못했습니다.';
+  await fixture(page, { result: { limitations: [note, note] } });
   await page.getByRole('textbox', { name: '질문', exact: true }).fill('장비 이름은?');
   await page.getByRole('button', { name: '보내기', exact: true }).click();
   const notes = page.getByRole('complementary', { name: '답변에서 확인할 점' });
-  await expect(notes.getByRole('listitem')).toHaveCount(3);
-  for (const note of new Set(limitations)) {
-    await expect(notes.getByText(note, { exact: true })).toBeVisible();
-  }
-  await expect(page.locator('.chat-answer > p')).toHaveText(text);
-  const contrast = await notes.evaluate((element) => {
-    const color = getComputedStyle(element).color;
-    const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((value) => {
-      const channel = value / 255;
-      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-    });
-    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-    return 1.05 / (luminance + 0.05);
-  });
-  expect(contrast).toBeGreaterThanOrEqual(4.5);
+  await expect(notes.getByText(note, { exact: true })).toBeVisible();
+  await expect(notes.getByRole('button')).toHaveCount(0);
+  await expect(notes.locator('p')).toHaveCount(1);
+});
+
+test('안내가 없으면 답변 안내 영역을 만들지 않는다', async ({ page }) => {
+  await fixture(page, { result: { limitations: [] } });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('장비 이름은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.getByText('아리아의 현재 능력은 화염구입니다.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: '답변에서 확인할 점' })).toHaveCount(0);
 });
 
 test('직접 근거 하나를 읽지 못해도 성공한 직접 근거와 검색 인용을 함께 표시한다', async ({ page }) => {
