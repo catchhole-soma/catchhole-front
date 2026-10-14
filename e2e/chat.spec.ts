@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
+import type { ChatResultV1 } from '../src/app/api/generated/types.gen';
 const work = '11111111-1111-4111-8111-111111111111';
 const room = '22222222-2222-4222-8222-222222222222';
 const question = '33333333-3333-4333-8333-333333333333';
@@ -16,6 +17,7 @@ async function fixture(
     waiting?: boolean;
     failed?: boolean;
     settling?: boolean;
+    result?: Partial<ChatResultV1>;
   } = {},
 ) {
   const state = {
@@ -34,7 +36,7 @@ async function fixture(
     retries: 0,
     settling: !!options.settling,
   };
-  const result = {
+  const result: ChatResultV1 = {
     outcome: 'ANSWER',
     text: '아리아의 현재 능력은 화염구입니다.',
     limitations: ['최근 대화 일부만 참고했습니다.'],
@@ -50,6 +52,7 @@ async function fixture(
         endOffset: 16,
       },
     ],
+    ...options.result,
   };
   const execution = () => ({
     questionId: question,
@@ -163,7 +166,102 @@ async function fixture(
   await expect(
     page.getByRole('textbox', { name: '질문', exact: true }),
   ).toBeEnabled();
-  return state;
+  return Object.assign(state, { result });
+}
+
+test('답변 안내는 정확히 같은 문장만 합치고 부분 조회·근거 누락을 계속 표시한다', async ({ page }) => {
+  const limitations = [
+    '일부 기록만 확인했습니다.',
+    '인용 원문을 확인하지 못했습니다.',
+    '일부 기록만 확인했습니다.',
+    '최근 대화 일부만 참고했습니다.',
+  ];
+  const text = 'R2 [ADD]는 작품에 등록된 장비 이름입니다.\n설정값은 A_B입니다.';
+  await fixture(page, { result: { text, limitations } });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('장비 이름은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  const notes = page.getByRole('complementary', { name: '답변에서 확인할 점' });
+  await expect(notes.getByRole('listitem')).toHaveCount(3);
+  for (const note of new Set(limitations)) {
+    await expect(notes.getByText(note, { exact: true })).toBeVisible();
+  }
+  await expect(page.locator('.chat-answer > p')).toHaveText(text);
+  const contrast = await notes.evaluate((element) => {
+    const color = getComputedStyle(element).color;
+    const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((value) => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    return 1.05 / (luminance + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+});
+
+test('직접 근거 하나를 읽지 못해도 성공한 직접 근거와 검색 인용을 함께 표시한다', async ({ page }) => {
+  const unavailable = '44444444-4444-4444-8444-444444444444';
+  await fixture(page, {
+    result: {
+      sources: [
+        { tool: 'WORLD_EVIDENCE', targetId: unavailable },
+        { tool: 'CHARACTER_EVIDENCE', targetId: question },
+      ],
+    },
+  });
+  await page.route('**/setting-tools/queries', (route) => {
+    if (route.request().postDataJSON().targetId === unavailable) {
+      return route.fulfill({ status: 503, body: 'unavailable' });
+    }
+    return success(route, {
+      items: { content: [{
+        id: question,
+        subjectName: '아리아',
+        displayName: '화염구',
+        evidence: {
+          status: 'AVAILABLE',
+          sourceEpisodeNo: 3,
+          quotes: [{ text: '그녀의 손끝에서 화염구가 피어올랐다.' }],
+        },
+      }] },
+    });
+  });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('능력의 근거는?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('alert')).toContainText('직접 근거 1건을 확인하지 못했어요.');
+  await expect(dialog).toContainText('아리아는 화염구를 배웠다.');
+  await expect(dialog).toContainText('그녀의 손끝에서 화염구가 피어올랐다.');
+  await expect(dialog.getByRole('blockquote')).toHaveCount(2);
+  await expect(dialog.locator('article h3')).toHaveText([
+    '근거 2 · 아리아 · 화염구',
+    '근거 3 · 2화 · 원문 검색 인용',
+  ]);
+});
+
+for (const changed of ['failed', 'attempt'] as const) {
+  test(`근거 조회 후 질문 재검증이 ${changed}이면 이전 인용을 표시하지 않는다`, async ({ page }) => {
+    const state = await fixture(page);
+    let reads = 0;
+    await page.route(`**/chat-questions/${question}`, (route) => {
+      reads++;
+      if (reads > 1 && changed === 'failed') {
+        return route.fulfill({ status: 410, body: 'unavailable' });
+      }
+      return success(route, {
+        questionId: question,
+        attemptId: reads > 1 ? room : question,
+        state: 'SUCCEEDED',
+        result: state.result,
+      });
+    });
+    await page.getByRole('textbox', { name: '질문', exact: true }).fill('근거는?');
+    await page.getByRole('button', { name: '보내기', exact: true }).click();
+    await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('alert')).toContainText('현재 원문과 대화를 확인하지 못했습니다.');
+    await expect(dialog.getByRole('blockquote')).toHaveCount(0);
+  });
 }
 
 test('대화 생성·질문·근거·새로고침·종료와 본문 저장 금지', async ({ page }) => {

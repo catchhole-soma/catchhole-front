@@ -22,7 +22,8 @@ export function ChatEvidence({
 }) {
   const [data, setData] = useState<{
     result: ChatResultV1;
-    items: Array<SettingToolItemV1 & { domain: 'CHARACTER' | 'WORLD' }>;
+    items: Array<SettingToolItemV1 & { domain: 'CHARACTER' | 'WORLD'; sourceNumber: number }>;
+    unavailableSourceCount: number;
   } | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -37,30 +38,42 @@ export function ChatEvidence({
         const result = first.data.data?.result;
         if (!result) throw new Error('Unavailable');
         const items: Array<
-          SettingToolItemV1 & { domain: 'CHARACTER' | 'WORLD' }
+          SettingToolItemV1 & { domain: 'CHARACTER' | 'WORLD'; sourceNumber: number }
         > = [];
-        for (const source of result.sources) {
-          if (!source.tool || !source.targetId) continue;
-          const found = await querySettingTools({
-            path: { workId },
-            body: {
-              tool: source.tool,
-              targetId: source.targetId,
-              page: 0,
-              size: 20,
-            },
-            signal: abort.signal,
-            throwOnError: true,
-          });
-          items.push(
-            ...(found.data.data?.items?.content ?? []).map((item) => ({
-              ...item,
-              domain:
-                source.tool === 'CHARACTER_EVIDENCE'
-                  ? ('CHARACTER' as const)
-                  : ('WORLD' as const),
-            })),
-          );
+        let unavailableSourceCount = 0;
+        for (const [sourceIndex, source] of result.sources.entries()) {
+          if (!source.tool || !source.targetId) {
+            unavailableSourceCount++;
+            continue;
+          }
+          try {
+            const found = await querySettingTools({
+              path: { workId },
+              body: {
+                tool: source.tool,
+                targetId: source.targetId,
+                page: 0,
+                size: 20,
+              },
+              signal: abort.signal,
+              throwOnError: true,
+            });
+            const content = found.data.data?.items?.content ?? [];
+            if (content.length === 0) unavailableSourceCount++;
+            items.push(
+              ...content.map((item) => ({
+                ...item,
+                sourceNumber: sourceIndex + 1,
+                domain:
+                  source.tool === 'CHARACTER_EVIDENCE'
+                    ? ('CHARACTER' as const)
+                    : ('WORLD' as const),
+              })),
+            );
+          } catch (error) {
+            if (abort.signal.aborted) throw error;
+            unavailableSourceCount++;
+          }
         }
         const current = await getChatQuestion({
           path: { workId, questionId },
@@ -73,7 +86,11 @@ export function ChatEvidence({
         )
           throw new Error('Changed');
         if (!abort.signal.aborted)
-          setData({ result: current.data.data.result, items });
+          setData({
+            result: current.data.data.result,
+            items,
+            unavailableSourceCount,
+          });
       } catch {
         if (!abort.signal.aborted) setFailed(true);
       }
@@ -111,21 +128,16 @@ export function ChatEvidence({
             <p role="status">현재 근거를 확인하고 있어요.</p>
           ) : (
             <>
-              {data.result.retrievalSources?.map((source) => (
-                <article key={source.chunkId}>
-                  <h3>{source.sourceEpisodeNo}화 · 원문 검색 인용</h3>
-                  <blockquote>{source.quote}</blockquote>
-                  <Link
-                    to={`/editor?workId=${workId}&episodeId=${source.episodeId}`}
-                  >
-                    현재 원문 보기
-                  </Link>
-                </article>
-              ))}
+              {data.unavailableSourceCount > 0 && (
+                <p role="alert">
+                  직접 근거 {data.unavailableSourceCount}건을 확인하지 못했어요.
+                  아래에는 확인된 근거만 표시합니다. 창을 닫고 다시 확인해 주세요.
+                </p>
+              )}
               {data.items.map((item, index) => (
-                <article key={item.id ?? index}>
+                <article key={`${item.sourceNumber}:${item.id ?? index}`}>
                   <h3>
-                    {item.subjectName} · {item.displayName ?? '설정 근거'}
+                    근거 {item.sourceNumber} · {item.subjectName} · {item.displayName ?? '설정 근거'}
                   </h3>
                   {item.subjectId && (
                     <Link
@@ -162,6 +174,19 @@ export function ChatEvidence({
                   ) : (
                     <p>현재 확인 가능한 원문 인용이 없습니다.</p>
                   )}
+                </article>
+              ))}
+              {data.result.retrievalSources?.map((source, index) => (
+                <article key={source.chunkId}>
+                  <h3>
+                    근거 {data.result.sources.length + index + 1} · {source.sourceEpisodeNo}화 · 원문 검색 인용
+                  </h3>
+                  <blockquote>{source.quote}</blockquote>
+                  <Link
+                    to={`/editor?workId=${workId}&episodeId=${source.episodeId}`}
+                  >
+                    현재 원문 보기
+                  </Link>
                 </article>
               ))}
               <p className="chat-retention">

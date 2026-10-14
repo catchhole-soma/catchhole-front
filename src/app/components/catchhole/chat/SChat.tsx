@@ -23,6 +23,7 @@ import type {
   ChatSubmitV1,
 } from '../../../api/generated/types.gen';
 import { ChatEvidence } from './ChatEvidence';
+import { ChatAnswerNotes } from './ChatAnswerNotes';
 import './chat.css';
 
 const uuid = /^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
@@ -545,13 +546,9 @@ function Conversation({
                   {row.execution?.result ? (
                     <>
                       <p>{row.execution.result.text}</p>
-                      {row.execution.result.limitations.length > 0 && (
-                        <ul className="chat-limitations">
-                          {row.execution.result.limitations.map((note) => (
-                            <li key={note}>{note}</li>
-                          ))}
-                        </ul>
-                      )}
+                      <ChatAnswerNotes
+                        notes={row.execution.result.limitations}
+                      />
                       {(row.execution.result.sources.length > 0 ||
                         (row.execution.result.retrievalSources?.length ?? 0) >
                           0) && (
