@@ -27,7 +27,9 @@ import './chat.css';
 
 const uuid = /^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
 const pending = (m: ChatMessageV1) =>
-  ['QUEUED', 'RUNNING'].includes(m.execution?.state ?? '');
+  ['QUEUED', 'RUNNING', 'SETTLEMENT_PENDING'].includes(
+    m.execution?.state ?? '',
+  );
 const failureText: Record<string, string> = {
   PROVIDER_FAILURE: '답변을 만드는 중 문제가 생겼습니다. 다시 시도해 주세요.',
   NETWORK_FAILURE: '연결이 끊겨 답변을 완료하지 못했습니다.',
@@ -434,6 +436,8 @@ function Conversation({
       });
       if (!live.current) return;
       setDraft('');
+      setFrom('');
+      setTo('');
       setUnconfirmed(null);
       stick.current = true;
       const fresh = await session.refetch();

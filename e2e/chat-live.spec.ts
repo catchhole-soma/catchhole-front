@@ -46,11 +46,20 @@ test('실제 Front–Spring–Python·PostgreSQL 후속 질문은 수정된 설�
   expect(sessionId).toBeTruthy();
   try {
     const input = page.getByRole('textbox', { name: '질문', exact: true });
+    await page.getByText('근거를 찾을 출처 회차 범위', { exact: true }).click();
+    await page.getByRole('spinbutton', { name: '시작 회차' }).fill('1');
+    await page.getByRole('spinbutton', { name: '마지막 회차' }).fill('1');
     await input.fill('화염술의 소모 마력은?');
     await page.getByRole('button', { name: '보내기', exact: true }).click();
     await expect(page.locator('.chat-answer').first()).toContainText('35', {
       timeout: 20_000,
     });
+    await expect(
+      page.getByRole('spinbutton', { name: '시작 회차' }),
+    ).toHaveValue('');
+    await expect(
+      page.getByRole('spinbutton', { name: '마지막 회차' }),
+    ).toHaveValue('');
     const changed = await request.patch(
       `${base}/api/v1/works/${workId}/world-settings/${setting.id}/properties`,
       {

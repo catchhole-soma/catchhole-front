@@ -11,7 +11,12 @@ function success(route: Route, data: unknown) {
 }
 async function fixture(
   page: Page,
-  options: { lost?: boolean; waiting?: boolean; failed?: boolean } = {},
+  options: {
+    lost?: boolean;
+    waiting?: boolean;
+    failed?: boolean;
+    settling?: boolean;
+  } = {},
 ) {
   const state = {
     created: false,
@@ -19,9 +24,15 @@ async function fixture(
     submitted: false,
     keys: [] as string[],
     texts: [] as string[],
+    bodies: [] as Array<{
+      question: string;
+      episodeFrom?: number;
+      episodeTo?: number;
+    }>,
     complete: !options.waiting,
     failed: !!options.failed,
     retries: 0,
+    settling: !!options.settling,
   };
   const result = {
     outcome: 'ANSWER',
@@ -43,7 +54,13 @@ async function fixture(
   const execution = () => ({
     questionId: question,
     attemptId: question,
-    state: state.failed ? 'FAILED' : state.complete ? 'SUCCEEDED' : 'RUNNING',
+    state: state.failed
+      ? 'FAILED'
+      : state.settling
+        ? 'SETTLEMENT_PENDING'
+        : state.complete
+          ? 'SUCCEEDED'
+          : 'RUNNING',
     failure: state.failed ? 'PROVIDER_FAILURE' : null,
     result: state.complete && !state.failed ? result : null,
   });
@@ -121,6 +138,7 @@ async function fixture(
     if (path.endsWith('/chat-questions') && req.method() === 'POST') {
       state.keys.push(req.headers()['idempotency-key']);
       state.texts.push(req.postDataJSON().question);
+      state.bodies.push(req.postDataJSON());
       state.submitted = true;
       if (options.lost && state.keys.length === 1) return route.abort('failed');
       return success(route, execution());
@@ -190,6 +208,9 @@ test('전송 응답 유실은 입력을 보존하고 같은 키로 접수를 확
   page,
 }) => {
   const state = await fixture(page, { lost: true });
+  await page.getByText('근거를 찾을 출처 회차 범위', { exact: true }).click();
+  await page.getByRole('spinbutton', { name: '시작 회차' }).fill('3');
+  await page.getByRole('spinbutton', { name: '마지막 회차' }).fill('5');
   await page
     .getByRole('textbox', { name: '질문', exact: true })
     .fill('아리아의 능력은?');
@@ -200,12 +221,70 @@ test('전송 응답 유실은 입력을 보존하고 같은 키로 접수를 확
   await expect(
     page.getByRole('textbox', { name: '질문', exact: true }),
   ).toHaveValue('아리아의 능력은?');
+  await expect(page.getByRole('spinbutton', { name: '시작 회차' })).toHaveValue(
+    '3',
+  );
+  await expect(
+    page.getByRole('spinbutton', { name: '마지막 회차' }),
+  ).toHaveValue('5');
   await page.getByRole('button', { name: '접수 확인', exact: true }).click();
   await expect(
     page.getByRole('textbox', { name: '질문', exact: true }),
   ).toHaveValue('');
   expect(state.keys).toHaveLength(2);
   expect(new Set(state.keys).size).toBe(1);
+  expect(state.bodies[1]).toEqual(state.bodies[0]);
+  await expect(page.getByRole('spinbutton', { name: '시작 회차' })).toHaveValue(
+    '',
+  );
+  await expect(
+    page.getByRole('spinbutton', { name: '마지막 회차' }),
+  ).toHaveValue('');
+});
+
+test('접수된 질문의 회차 범위는 다음 질문에 계승하지 않는다', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await page.getByText('근거를 찾을 출처 회차 범위', { exact: true }).click();
+  await page.getByRole('spinbutton', { name: '시작 회차' }).fill('3');
+  await page.getByRole('spinbutton', { name: '마지막 회차' }).fill('5');
+  const input = page.getByRole('textbox', { name: '질문', exact: true });
+  await input.fill('아리아의 마력 변경 이력은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(input).toHaveValue('');
+  expect(state.bodies[0]).toMatchObject({ episodeFrom: 3, episodeTo: 5 });
+  await expect(page.getByRole('spinbutton', { name: '시작 회차' })).toHaveValue(
+    '',
+  );
+  await expect(
+    page.getByRole('spinbutton', { name: '마지막 회차' }),
+  ).toHaveValue('');
+  await input.fill('그 인물의 전체 마력 변경 이력은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect.poll(() => state.bodies.length).toBe(2);
+  expect(state.bodies[1]).not.toHaveProperty('episodeFrom');
+  expect(state.bodies[1]).not.toHaveProperty('episodeTo');
+});
+
+test('답변이 보여도 정산 완료 전에는 다음 질문을 전송하지 않는다', async ({
+  page,
+}) => {
+  const state = await fixture(page, { settling: true });
+  const input = page.getByRole('textbox', { name: '질문', exact: true });
+  await input.fill('아리아의 능력은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.locator('.chat-answer')).toContainText('화염구');
+  await input.fill('그건 언제 얻었어?');
+  await expect(
+    page.getByRole('button', { name: '보내기', exact: true }),
+  ).toBeDisabled();
+  await input.press('Enter');
+  expect(state.keys).toHaveLength(1);
+  state.settling = false;
+  await expect(
+    page.getByRole('button', { name: '보내기', exact: true }),
+  ).toBeEnabled();
 });
 
 test('한글 조합 Enter는 전송하지 않고 답변 대기 중 다음 전송을 막는다', async ({
