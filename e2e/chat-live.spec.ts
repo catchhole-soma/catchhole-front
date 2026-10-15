@@ -89,14 +89,14 @@ test('실제 Front–Spring–Python·PostgreSQL 후속 질문은 수정된 설�
       timeout: 20_000,
     });
     await page
-      .getByRole('button', { name: '근거 확인', exact: true })
+      .getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ })
       .last()
       .click();
     await expect(page.getByRole('dialog')).toContainText(
       '추적을 피하려고 반지를 강물에 던졌다.',
     );
     await expect(
-      page.getByRole('link', { name: '현재 원문 보기' }),
+      page.getByRole('link', { name: /\d+화 원문 보기/ }),
     ).toHaveAttribute(
       'href',
       `/editor?workId=${workId}&episodeId=${fixture.episodeId}`,

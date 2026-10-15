@@ -169,6 +169,227 @@ async function fixture(
   return Object.assign(state, { result });
 }
 
+async function multipleEvidenceFixture(page: Page) {
+  const first = '44444444-4444-4444-8444-444444444441';
+  const unavailable = '44444444-4444-4444-8444-444444444442';
+  const third = '44444444-4444-4444-8444-444444444443';
+  const last = '44444444-4444-4444-8444-444444444445';
+  const text = [
+    '하린의 공명력 기록 A: 12 (출처 2화) · 근거 1, 3',
+    '하린의 공명력 기록 B: 27 (출처 9화) (근거 2)',
+    '사건의 경위는 합성 원문에 기록돼요. 근거 4, 5',
+    '수치는 3이고 1회 증가했어요.',
+    '불명확한 참조 · 근거 99',
+    '확인되지 않은 혼합 번호 · 근거 1, 99',
+    '문장 안의 근거 3은 일반 문장입니다.',
+  ].join('\n');
+  await fixture(page, {
+    result: {
+      text,
+      limitations: [],
+      sources: [
+        { tool: 'CHARACTER_EVIDENCE', targetId: first },
+        { tool: 'WORLD_EVIDENCE', targetId: unavailable },
+        { tool: 'CHARACTER_EVIDENCE', targetId: third },
+      ],
+      retrievalSources: [
+        {
+          chunkId: question,
+          episodeId: question,
+          sourceEpisodeNo: 12,
+          sourceHash: 'a'.repeat(64),
+          quote: '합성 검색 원문: 하린은 문을 열고 연구실로 들어갔다.',
+          startOffset: 0,
+          endOffset: 30,
+        },
+        {
+          chunkId: last,
+          episodeId: last,
+          sourceEpisodeNo: 15,
+          sourceHash: 'b'.repeat(64),
+          quote: '합성 검색 원문: 연구실의 종이 울렸다.',
+          startOffset: 0,
+          endOffset: 22,
+        },
+      ],
+    },
+  });
+  await page.route('**/setting-tools/queries', (route) => {
+    const targetId = route.request().postDataJSON().targetId;
+    if (targetId === unavailable)
+      return route.fulfill({ status: 503, body: 'synthetic unavailable' });
+    expect([first, third]).toContain(targetId);
+    const episode = targetId === first ? 2 : 9;
+    return success(route, {
+      items: {
+        content: [{
+          id: targetId,
+          subjectId: room,
+          subjectName: '하린',
+          displayName: '공명력',
+          origin: 'CONFIRMED_ANALYSIS',
+          evidence: {
+            status: 'AVAILABLE',
+            episodeId: targetId,
+            sourceEpisodeNo: episode,
+            quotes: [{
+              text: episode === 2
+                ? '합성 직접 원문: 하린의 공명력은 12였다.'
+                : '합성 직접 원문: 하린의 공명력은 27이었다. ' + '긴 원문도 마지막까지 확인할 수 있다. '.repeat(35),
+            }],
+          },
+        }],
+      },
+    });
+  });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('하린의 변경 기록과 각 원문을 보여줘');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.locator('.chat-answer')).toContainText('하린의 공명력 기록 A');
+  return { first, third, unavailable };
+}
+
+test('본문의 확인된 근거 번호만 배지로 바꾸고 일반 숫자·불명 참조는 보존한다', async ({ page }) => {
+  await multipleEvidenceFixture(page);
+  const answer = page.locator('.chat-answer');
+  for (const number of [1, 2, 3, 4, 5]) {
+    const badge = answer.getByRole('button', { name: `근거 ${number} 보기`, exact: true });
+    await expect(badge).toHaveCount(1);
+    await expect(badge).toHaveText(`[${number}]`);
+  }
+  await expect(answer.getByRole('button', { name: '근거 99 보기', exact: true })).toHaveCount(0);
+  for (const unchanged of [
+    '수치는 3이고 1회 증가했어요.',
+    '불명확한 참조 · 근거 99',
+    '확인되지 않은 혼합 번호 · 근거 1, 99',
+    '문장 안의 근거 3은 일반 문장입니다.',
+  ]) await expect(answer).toContainText(unchanged);
+  await expect(answer.getByRole('button', { name: '답변 근거 5개 모두 보기', exact: true })).toHaveText('근거 5개');
+});
+
+test('한 줄의 여러 문장 근거는 연결하고 인용문·고유명사·HTML 모양 본문은 보존한다', async ({ page }) => {
+  const untouched = [
+    '알 수 없는 조합입니다. (근거 1, 99) 뒤 문장도 그대로입니다.',
+    '“근거 2”라는 유물은 3개의 조각으로 이루어져 있습니다.',
+    '인용문: “문을 열었다. (근거 2) 바람만 지나갔다.”',
+    '인용문: "문을 닫았다. (근거 2) 아무 소리도 없었다."',
+    "인용문: '발소리가 들렸다. (근거 2) 창문은 닫혀 있었다.'",
+    '인용문: ‘등불이 꺼졌다. (근거 2) 잠시 뒤 밝아졌다.’',
+    '인용문: 「빈 방이었다. (근거 2) 누군가 들어왔다.」',
+    '인용문: 『바람이 불었다. (근거 2) 문이 흔들렸다.』',
+    '작품의 코드 모양 문구: `설명문. (근거 2) 다음 문장.`',
+    '여러 줄 인용: “첫 줄의 원문입니다.\n다음 줄의 원문입니다. (근거 2) 마지막 줄입니다.”',
+    '<script>window.syntheticCitationExecuted=true</script>',
+    '알 수 없는 마지막 번호 · 근거 1, 99',
+  ];
+  await fixture(page, {
+    result: {
+      text: [
+        '첫 문장. (근거 1) 둘째 문장. (근거 3) 시점은 확인 못했습니다.',
+        "O'Neill의 첫 기록입니다. · 근거 1",
+        "O'Neill의 다음 기록입니다. · 근거 3",
+        ...untouched,
+      ].join('\n'),
+      limitations: [],
+      sources: [],
+      retrievalSources: [1, 2, 3].map((number) => ({
+        chunkId: `55555555-5555-4555-8555-55555555555${number}`,
+        episodeId: question,
+        sourceEpisodeNo: number,
+        sourceHash: 'c'.repeat(64),
+        quote: `합성 원문 ${number}`,
+        startOffset: 0,
+        endOffset: 7,
+      })),
+    },
+  });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('기록된 장면을 설명해줘');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  const answer = page.locator('.chat-answer');
+  await expect(answer.getByRole('button', { name: '근거 1 보기', exact: true })).toHaveCount(2);
+  await expect(answer.getByRole('button', { name: '근거 3 보기', exact: true })).toHaveCount(2);
+  await expect(answer.getByRole('button', { name: '근거 2 보기', exact: true })).toHaveCount(0);
+  await expect(answer.getByRole('button', { name: '근거 99 보기', exact: true })).toHaveCount(0);
+  await expect(answer).toContainText('첫 문장. [1] 둘째 문장. [3] 시점은 확인 못했습니다.');
+  await expect(answer).toContainText("O'Neill의 첫 기록입니다. [1]");
+  await expect(answer).toContainText("O'Neill의 다음 기록입니다. [3]");
+  for (const text of untouched) await expect(answer).toContainText(text);
+  await expect(answer.locator('script')).toHaveCount(0);
+  expect(await page.evaluate(() => 'syntheticCitationExecuted' in window)).toBe(false);
+});
+
+for (const width of [1280, 320]) {
+  test(`${width}px 근거 배지는 해당 번호를 열고 실패 항목·키보드·작은 화면을 보존한다`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 800 });
+    const { third } = await multipleEvidenceFixture(page);
+    const trigger = page.locator('.chat-answer').getByRole('button', { name: '근거 3 보기', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole('dialog', { name: '답변의 근거' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('article')).toHaveCount(5);
+    for (let index = 0; index < 5; index++)
+      await expect(dialog.getByRole('article').nth(index)).toHaveAttribute('aria-label', `근거 ${index + 1}`);
+    const selected = dialog.getByRole('article', { name: '근거 3', exact: true });
+    await expect(selected).toContainText('합성 직접 원문: 하린의 공명력은 27이었다.');
+    await expect(selected).toBeFocused();
+    await expect(selected.getByRole('heading')).toBeInViewport();
+    await expect(dialog.getByRole('button', { name: '근거 3으로 이동', exact: true })).toHaveAttribute('aria-current', 'true');
+    await expect(dialog.getByRole('article', { name: '근거 2', exact: true })).toContainText('확인할 수 없어요');
+    await expect(dialog.getByRole('article', { name: '근거 4', exact: true })).toContainText('합성 검색 원문: 하린은 문을 열고 연구실로 들어갔다.');
+    await expect(dialog.getByRole('article', { name: '근거 5', exact: true })).toContainText('합성 검색 원문: 연구실의 종이 울렸다.');
+    await expect(dialog.getByRole('button', { name: '근거 닫기', exact: true })).toBeInViewport();
+    await expect(selected.getByRole('link', { name: '9화 원문 보기', exact: true })).toHaveAttribute(
+      'href', `/editor?workId=${work}&episodeId=${third}`,
+    );
+    await expect(selected.getByRole('link', { name: '설정 보기', exact: true })).toHaveAttribute(
+      'href', `/dashboard?workId=${work}&nav=settingDB&tab=characters&modal=char-detail&charId=${room}`,
+    );
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`chat-evidence-${width}px.png`) });
+    const fourth = dialog.getByRole('article', { name: '근거 4', exact: true });
+    const fourthNavigation = dialog.getByRole('button', { name: '근거 4으로 이동', exact: true });
+    await fourthNavigation.click();
+    await expect(fourth).toBeFocused();
+    await expect(fourth.getByRole('heading')).toBeInViewport();
+    await expect(fourthNavigation).toHaveAttribute('aria-current', 'true');
+    await expect(fourth.getByRole('link', { name: '12화 원문 보기', exact: true })).toHaveAttribute(
+      'href', `/editor?workId=${work}&episodeId=${question}`,
+    );
+    await page.screenshot({ path: testInfo.outputPath(`chat-evidence-multiple-${width}px.png`) });
+    const unavailable = dialog.getByRole('article', { name: '근거 2', exact: true });
+    const unavailableNavigation = dialog.getByRole('button', { name: '근거 2으로 이동', exact: true });
+    await unavailableNavigation.click();
+    await expect(unavailable).toBeFocused();
+    await expect(unavailable.getByRole('heading')).toBeInViewport();
+    await expect(unavailableNavigation).toHaveAttribute('aria-current', 'true');
+    await expect(unavailable.getByRole('link')).toHaveCount(0);
+    await dialog.getByRole('button', { name: '근거 3으로 이동', exact: true }).click();
+    await expect(selected).toBeFocused();
+    await expect(selected.getByRole('heading')).toBeInViewport();
+    const originalLink = selected.getByRole('link', { name: '9화 원문 보기', exact: true });
+    await originalLink.scrollIntoViewIfNeeded();
+    await expect(originalLink).toBeInViewport();
+    const settingLink = selected.getByRole('link', { name: '설정 보기', exact: true });
+    await settingLink.scrollIntoViewIfNeeded();
+    await expect(settingLink).toBeInViewport();
+    await expect(dialog.getByRole('button', { name: '근거 닫기', exact: true })).toBeInViewport();
+    await originalLink.focus();
+    for (let step = 0; step < 12; step++) {
+      await page.keyboard.press('Tab');
+      expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await trigger.click();
+    await expect(dialog.getByRole('article', { name: '근거 3', exact: true }).getByRole('heading')).toBeInViewport();
+    await dialog.getByRole('button', { name: '근거 닫기', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+}
+
 for (const width of [1280, 320]) {
   test(`${width}px 답변 안내는 펼침·접힘에서 모든 다른 문장을 보존한다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
@@ -276,16 +497,16 @@ test('직접 근거 하나를 읽지 못해도 성공한 직접 근거와 검색
   });
   await page.getByRole('textbox', { name: '질문', exact: true }).fill('능력의 근거는?');
   await page.getByRole('button', { name: '보내기', exact: true }).click();
-  await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+  await page.getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('alert')).toContainText('직접 근거 1건을 확인하지 못했어요.');
+  await expect(dialog.getByRole('article', { name: '근거 1', exact: true })).toContainText('확인할 수 없어요');
   await expect(dialog).toContainText('아리아는 화염구를 배웠다.');
   await expect(dialog).toContainText('그녀의 손끝에서 화염구가 피어올랐다.');
   await expect(dialog.getByRole('blockquote')).toHaveCount(2);
-  await expect(dialog.locator('article h3')).toHaveText([
-    '근거 2 · 아리아 · 화염구',
-    '근거 3 · 2화 · 원문 검색 인용',
-  ]);
+  await expect(dialog.getByRole('article')).toHaveCount(3);
+  await expect(dialog.getByRole('article', { name: '근거 2', exact: true })).toContainText('아리아');
+  await expect(dialog.getByRole('article', { name: '근거 2', exact: true })).toContainText('화염구');
+  await expect(dialog.getByRole('article', { name: '근거 3', exact: true })).toContainText('2화');
 });
 
 for (const changed of ['failed', 'attempt'] as const) {
@@ -306,7 +527,7 @@ for (const changed of ['failed', 'attempt'] as const) {
     });
     await page.getByRole('textbox', { name: '질문', exact: true }).fill('근거는?');
     await page.getByRole('button', { name: '보내기', exact: true }).click();
-    await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+    await page.getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('alert')).toContainText('현재 원문과 대화를 확인하지 못했습니다.');
     await expect(dialog.getByRole('blockquote')).toHaveCount(0);
@@ -325,7 +546,7 @@ test('대화 생성·질문·근거·새로고침·종료와 본문 저장 금�
   await expect(
     page.getByText('최근 대화 일부만 참고했습니다.', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: '근거 확인' }).click();
+  await page.getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ }).click();
   await expect(page.getByRole('dialog')).toContainText(
     '아리아는 화염구를 배웠다.',
   );
@@ -462,7 +683,7 @@ test('열린 대화가 만료되면 본문과 근거 창을 숨긴다', async ({
     .getByRole('textbox', { name: '질문', exact: true })
     .fill('아리아의 능력은?');
   await page.getByRole('button', { name: '보내기', exact: true }).click();
-  await page.getByRole('button', { name: '근거 확인' }).click();
+  await page.getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ }).click();
   await expect(page.getByRole('dialog')).toContainText(
     '아리아는 화염구를 배웠다.',
   );
@@ -627,7 +848,7 @@ for (const width of [1280, 320]) {
     ).toBeVisible();
     expect(state.retries).toBe(1);
     await expect(page.locator('.chat-turn')).toHaveCount(1);
-    await page.getByRole('button', { name: '근거 확인', exact: true }).click();
+    await page.getByRole('button', { name: /^답변 근거 \d+개 모두 보기$/ }).click();
     await expect(page.getByRole('dialog')).toContainText(
       '아리아는 화염구를 배웠다.',
     );

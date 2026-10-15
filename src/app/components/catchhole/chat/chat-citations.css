@@ -1,0 +1,52 @@
+.chat-answer .chat-citations {
+  display: inline-flex;
+  flex-wrap: wrap;
+  vertical-align: baseline;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.chat-main .chat-answer .chat-citation {
+  min-width: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 2px 5px;
+  border: 1px solid var(--ch-border);
+  border-radius: 6px;
+  background: var(--ch-surface-soft);
+  color: var(--ch-primary-ink);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.chat-main .chat-answer .chat-citation:hover {
+  border-color: var(--ch-primary);
+  background: var(--ch-surface-accent);
+}
+
+.chat-main .chat-answer .chat-evidence-summary {
+  min-height: 36px;
+  padding: 6px 10px;
+  border-color: var(--ch-border);
+  background: var(--ch-surface);
+  color: var(--ch-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chat-main .chat-answer .chat-evidence-summary:hover {
+  background: var(--ch-surface-soft);
+  color: var(--ch-primary-ink);
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .chat-main .chat-answer .chat-citation {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .chat-main .chat-answer .chat-evidence-summary {
+    min-height: 44px;
+  }
+}

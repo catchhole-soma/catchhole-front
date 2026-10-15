@@ -1,5 +1,11 @@
 # React Doctor 즉시 정리 결과
 
+## 챗봇 근거 표시 (2026-10-15)
+
+- 전체 Doctor 186개 파일, 172건(오류 2·경고 170). 기존 WorldSettingDatabase callback 오류 2건은 그대로이며 이번 UI 변경의 오류로 분류하지 않는다.
+- `ChatAnswerText`의 인덱스 key는 서버 답변의 고정된 행/같은 행 안의 반복 근거 위치를 나타낸다. `ChatEvidence`의 인용/항목도 응답 후 재정렬하지 않는다. 원문이 같다는 이유로 서로 다른 인용을 합치지 않는다.
+- 근거 조회의 순차 await와 effect 안의 결과 반영은 기존 요청량 제한·AbortController·최종 질문/attempt 검증을 유지한다. 빠른 이탈/만료와 재검증 실패를 챗봇 E2E로 확인한다. 유지보수 경고 전체를 제거한 것으로 보고하지 않는다.
+
 ## 작품 대화 화면 (#241, 2026-10-13)
 
 - 전체 Doctor: 184개 파일, 171건(기존 오류 2·경고 169). 기존 WorldSettingDatabase callback 진단은 유지한다. lint 오류 0/기존 경고 2, Knip 미사용 오류 0이다.

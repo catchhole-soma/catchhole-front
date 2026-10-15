@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
-import { Menu, MessageSquare, Plus, Send, X } from 'lucide-react';
+import { BookOpen, Menu, MessageSquare, Plus, Send, X } from 'lucide-react';
 import { AppSidebar } from '../AppSidebar';
 import { WorkspaceTopbar } from '../ui-v2/WorkspaceTopbar';
 import { useAppContext } from '../../../context/AppContext';
@@ -24,7 +24,9 @@ import type {
 } from '../../../api/generated/types.gen';
 import { ChatEvidence } from './ChatEvidence';
 import { ChatAnswerNotes } from './ChatAnswerNotes';
+import { ChatAnswerText } from './ChatAnswerText';
 import './chat.css';
+import './chat-citations.css';
 
 const uuid = /^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
 const pending = (m: ChatMessageV1) =>
@@ -314,7 +316,11 @@ function Conversation({
     key: string;
     body: ChatSubmitV1;
   } | null>(null);
-  const [evidence, setEvidence] = useState<string | null>(null);
+  const [evidence, setEvidence] = useState<{
+    questionId: string;
+    sourceNumber?: number;
+  } | null>(null);
+  const evidenceTrigger = useRef<HTMLButtonElement | null>(null);
   const live = useRef(true);
   const stick = useRef(true);
   const scroller = useRef<HTMLDivElement>(null);
@@ -406,6 +412,15 @@ function Conversation({
   function setPage(value: number) {
     setParams({ workId, sessionId, messagePage: String(value + 1) });
     stick.current = true;
+  }
+  function openEvidence(
+    questionId: string | undefined,
+    trigger: HTMLButtonElement,
+    sourceNumber?: number,
+  ) {
+    if (!questionId) return;
+    evidenceTrigger.current = trigger;
+    setEvidence({ questionId, sourceNumber });
   }
   async function submit() {
     if (submitLock.current || working || inaccessible || busy || !draft.trim())
@@ -545,7 +560,16 @@ function Conversation({
                   <span>캐치홀</span>
                   {row.execution?.result ? (
                     <>
-                      <p>{row.execution.result.text}</p>
+                      <ChatAnswerText
+                        text={row.execution.result.text}
+                        sourceCount={
+                          row.execution.result.sources.length +
+                          (row.execution.result.retrievalSources?.length ?? 0)
+                        }
+                        onSourceClick={(number, trigger) =>
+                          openEvidence(row.questionId, trigger, number)
+                        }
+                      />
                       <ChatAnswerNotes
                         notes={row.execution.result.limitations}
                       />
@@ -553,9 +577,19 @@ function Conversation({
                         (row.execution.result.retrievalSources?.length ?? 0) >
                           0) && (
                         <button
-                          onClick={() => setEvidence(row.questionId ?? null)}
+                          type="button"
+                          className="chat-evidence-summary"
+                          aria-label={`답변 근거 ${row.execution.result.sources.length + (row.execution.result.retrievalSources?.length ?? 0)}개 모두 보기`}
+                          aria-haspopup="dialog"
+                          onClick={(event) =>
+                            openEvidence(row.questionId, event.currentTarget)
+                          }
                         >
-                          근거 확인
+                          <BookOpen size={14} aria-hidden="true" />
+                          근거{' '}
+                          {row.execution.result.sources.length +
+                            (row.execution.result.retrievalSources?.length ?? 0)}
+                          개
                         </button>
                       )}
                     </>
@@ -697,8 +731,13 @@ function Conversation({
       {evidence && !inaccessible && (
         <ChatEvidence
           workId={workId}
-          questionId={evidence}
+          questionId={evidence.questionId}
+          initialSourceNumber={evidence.sourceNumber}
           onClose={() => setEvidence(null)}
+          onReturnFocus={() => {
+            if (evidenceTrigger.current?.isConnected)
+              evidenceTrigger.current.focus();
+          }}
         />
       )}
     </section>
