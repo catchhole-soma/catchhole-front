@@ -723,6 +723,60 @@ test('320px에서도 입력·답변·종료와 회차 범위에 접근한다', a
   await page.screenshot({ path: testInfo.outputPath('chat-mobile.png') });
 });
 
+test('긴 답변 끝을 읽을 때 같은 메시지 polling이 질문으로 되돌리지 않는다', async ({ page }) => {
+  await fixture(page, { result: {
+    text: '확인한 내용을 자세히 설명합니다.\n'.repeat(100),
+    limitations: [], sources: [], retrievalSources: [],
+  } });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('변화 과정을 알려줘');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.locator('.chat-answer')).toContainText('확인한 내용을 자세히 설명합니다.');
+  const scroller = page.locator('.chat-messages');
+  await scroller.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  const bottom = await scroller.evaluate((el) => el.scrollTop);
+  expect(bottom).toBeGreaterThan(500);
+  for (let i = 0; i < 2; i++) {
+    await page.waitForResponse((response) => response.url().includes('/messages?'));
+    await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBe(bottom);
+  }
+});
+
+test('답변 완료와 재조회가 과거 대화를 읽던 위치를 유지한다', async ({ page }) => {
+  const state = await fixture(page, { waiting: true });
+  await page.route('**/chat-sessions/*/messages?*', (route) => success(route, {
+    content: [
+      { questionId: '44444444-4444-4444-8444-444444444444', question: '앞선 질문', execution: {
+        state: 'SUCCEEDED', result: { outcome: 'ANSWER', text: '앞선 긴 답변입니다.\n'.repeat(100), sources: [], limitations: [] },
+      } },
+      { questionId: question, question: '현재 질문', execution: {
+        state: state.complete ? 'SUCCEEDED' : 'RUNNING',
+        result: state.complete ? { outcome: 'ANSWER', text: '새로운 긴 답변입니다.\n'.repeat(100), sources: [], limitations: [] } : null,
+      } },
+    ], page: 0, size: 20, hasNext: false, totalElements: 2,
+  }));
+  await page.reload();
+  await expect(page.getByText('현재 질문', { exact: true })).toBeVisible();
+  const scroller = page.locator('.chat-messages');
+  await scroller.evaluate((el) => { el.scrollTop = 120; });
+  state.complete = true;
+  await expect(page.locator('.chat-answer').last()).toContainText('새로운 긴 답변입니다.');
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBe(120);
+});
+
+test('저장된 조건 답변은 관련 설정이 없는 수만 생략하고 불확실성과 인용은 보존한다', async ({ page }) => {
+  const prefix = '현재 등록된 인물 38명 중 질문한 조건에 맞는 것으로 확인한 인물은 1명이에요.';
+  await fixture(page, { result: {
+    text: `${prefix}\n- 아리아: 요정입니다.\n“확인한 결과에는 포함하지 않았어요: 관련 설정이 없는 30명.”\n확인한 결과에는 포함하지 않았어요: 관련 설정이 없는 30명, 조건 충족 여부가 불확실한 2명.`,
+    limitations: [], sources: [], retrievalSources: [],
+  } });
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('요정인 인물은?');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  const answer = page.locator('.chat-answer');
+  await expect(answer).toContainText('확인한 결과에는 포함하지 않았어요: 조건 충족 여부가 불확실한 2명.');
+  await expect(answer).toContainText('“확인한 결과에는 포함하지 않았어요: 관련 설정이 없는 30명.”');
+  await expect(answer).not.toContainText('관련 설정이 없는 30명,');
+});
+
 test('메시지 페이지와 새로고침은 URL의 순서를 복원한다', async ({ page }) => {
   await fixture(page);
   await page.route('**/chat-sessions/*/messages?*', (route) => {
@@ -760,6 +814,32 @@ test('메시지 페이지와 새로고침은 URL의 순서를 복원한다', asy
   await page.getByRole('button', { name: '이전', exact: true }).click();
   await expect(page.getByText('1페이지 답변', { exact: true })).toBeVisible();
 });
+
+for (const width of [1280, 320]) {
+  test(`${width}px 대화방 목록으로 전환하고 선택한 방을 다시 눌러도 읽던 페이지를 유지한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await fixture(page);
+    const otherRoom = '55555555-5555-4555-8555-555555555555';
+    await page.route('**/chat-sessions?*', (route) => success(route, { content: [
+      { id: room, createdAt: '2026-10-15T10:00:00', questionCount: 23 },
+      { id: otherRoom, createdAt: '2026-10-15T11:00:00', questionCount: 1 },
+    ], totalElements: 2 }));
+    await page.route('**/chat-sessions/*/messages?*', (route) => success(route, {
+      content: [{ questionId: question, question: route.request().url().includes(otherRoom) ? '두 번째 방 질문' : '첫 번째 방 질문', execution: { state: 'SUCCEEDED', result: { outcome: 'ANSWER', text: '답변입니다.', sources: [], limitations: [] } } }],
+      page: 1, size: 20, totalElements: 23, hasNext: false,
+    }));
+    await page.goto(`/chat?workId=${work}&sessionId=${room}&messagePage=2`);
+    if (width === 320) await page.getByRole('button', { name: '대화 목록', exact: true }).click();
+    await page.getByRole('button', { name: /23개 질문/ }).click();
+    await expect(page).toHaveURL(/messagePage=2/);
+    if (width === 320) await page.getByRole('button', { name: '대화 목록', exact: true }).click();
+    await page.getByRole('button', { name: /1개 질문/ }).click();
+    await expect(page).toHaveURL(new RegExp(otherRoom));
+    await expect(page.getByText('두 번째 방 질문', { exact: true })).toBeVisible();
+    if (width === 320) await expect(page.getByRole('button', { name: '대화 목록', exact: true })).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByText('Enter로 보내기 · Shift+Enter로 줄바꿈')).toHaveCount(0);
+  });
+}
 
 test('로그아웃 후 늦게 도착한 전송 응답이 대화를 복원하지 않는다', async ({
   page,

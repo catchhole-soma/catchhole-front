@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
-import { BookOpen, Menu, MessageSquare, Plus, Send, X } from 'lucide-react';
+import {
+  BookOpen, ChevronDown, Menu, MessageSquare, Plus, Send, X,
+} from 'lucide-react';
 import { AppSidebar } from '../AppSidebar';
 import { WorkspaceTopbar } from '../ui-v2/WorkspaceTopbar';
 import { useAppContext } from '../../../context/AppContext';
@@ -85,6 +87,7 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
   );
   const { setSelectedWork, setSelectedWorkInfo } = useAppContext();
   const [mobile, setMobile] = useState(false);
+  const [roomsOpen, setRoomsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const creationKey = useRef(crypto.randomUUID());
   const live = useRef(true);
@@ -160,6 +163,7 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
   }
   const sidebar = (
     <AppSidebar
+      className="desktop-app-sidebar"
       activeNav="chat"
       onClose={() => setMobile(false)}
       onNavChange={(nav) => navigate(`/dashboard?workId=${workId}&nav=${nav}`)}
@@ -181,7 +185,7 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
         }
       />
       <div className="chat-shell">
-        <div className="desktop-app-sidebar">{sidebar}</div>
+        {sidebar}
         <main className="chat-main">
           <header className="chat-heading">
             <div>
@@ -226,58 +230,76 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
               </button>
             </p>
           )}
-          {!!work && (
-            <label className="chat-room-picker">
-              진행 중인 대화
-              <select
-                aria-label="진행 중인 대화"
-                value={sessionId}
-                onChange={(e) =>
-                  setParams(
-                    e.target.value
-                      ? { workId, sessionId: e.target.value }
-                      : { workId },
-                  )
-                }
-              >
-                <option value="">대화 선택</option>
-                {!rooms.isError &&
-                  (rooms.data?.data?.content ?? []).map((room, index) => (
-                    <option key={room.id} value={room.id}>
-                      대화 {index + 1} · {room.questionCount ?? 0}개 질문
-                    </option>
-                  ))}
-              </select>
-            </label>
-          )}
-          {work && uuid.test(sessionId) ? (
-            <Conversation
-              key={`${epoch}:${workId}:${sessionId}`}
-              workId={workId}
-              sessionId={sessionId}
-              epoch={epoch}
-              onClose={() => {
-                setParams({ workId }, { replace: true });
-                void rooms.refetch();
-              }}
-            />
-          ) : (
-            work && (
-              <div className="chat-empty">
-                <MessageSquare size={36} />
-                <h2>궁금한 설정부터 물어보세요</h2>
-                <p>현재 능력, 설정의 변화, 원문 속 장면을 확인할 수 있어요.</p>
-                <p>예: “아리아의 현재 능력과 획득 과정을 알려줘.”</p>
+          <div className="chat-workspace">
+            {!!work && (
+              <aside className="chat-rooms" aria-label="대화 목록" data-open={roomsOpen}>
+                <h2>대화 목록</h2>
                 <button
-                  className="chat-primary"
-                  onClick={() => void newSession()}
-                  disabled={create.isPending}
+                  className="chat-rooms-toggle"
+                  aria-expanded={roomsOpen}
+                  aria-controls="chat-room-list"
+                  onClick={() => setRoomsOpen(!roomsOpen)}
                 >
-                  대화 시작
+                  <MessageSquare size={16} /> 대화 목록
+                  <ChevronDown size={16} />
                 </button>
-              </div>
-            )
-          )}
+                <div className="chat-room-list" id="chat-room-list">
+                  {rooms.isPending && <p role="status">대화를 불러오고 있어요.</p>}
+                  {!rooms.isError && (rooms.data?.data?.content ?? []).map((room) => (
+                    <button
+                      key={room.id}
+                      className="chat-room"
+                      aria-current={room.id === sessionId ? 'true' : undefined}
+                      onClick={() => {
+                        if (!room.id) return;
+                        if (room.id !== sessionId) setParams({ workId, sessionId: room.id });
+                        setRoomsOpen(false);
+                      }}
+                    >
+                      <MessageSquare size={17} />
+                      <span>
+                        <strong>{room.createdAt && !Number.isNaN(Date.parse(room.createdAt))
+                          ? `${new Date(room.createdAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} 대화`
+                          : '새 대화'}</strong>
+                        <small>{room.questionCount ? `${room.questionCount}개 질문` : '첫 질문을 기다리고 있어요'}</small>
+                      </span>
+                    </button>
+                  ))}
+                  {rooms.isSuccess && !rooms.data?.data?.content?.length && (
+                    <p>새 대화를 시작해 보세요.</p>
+                  )}
+                </div>
+              </aside>
+            )}
+            {work && uuid.test(sessionId) ? (
+              <Conversation
+                key={`${epoch}:${workId}:${sessionId}`}
+                workId={workId}
+                sessionId={sessionId}
+                epoch={epoch}
+                onClose={() => {
+                  setParams({ workId }, { replace: true });
+                  void rooms.refetch();
+                }}
+              />
+            ) : (
+              work && (
+                <div className="chat-empty">
+                  <MessageSquare size={36} />
+                  <h2>궁금한 설정부터 물어보세요</h2>
+                  <p>현재 능력, 설정의 변화, 원문 속 장면을 확인할 수 있어요.</p>
+                  <p>예: “아리아의 현재 능력과 획득 과정을 알려줘.”</p>
+                  <button
+                    className="chat-primary"
+                    onClick={() => void newSession()}
+                    disabled={create.isPending}
+                  >
+                    대화 시작
+                  </button>
+                </div>
+              )
+            )}
+          </div>
         </main>
       </div>
       {mobile && (
@@ -285,7 +307,12 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
           <button aria-label="메뉴 닫기" onClick={() => setMobile(false)}>
             <X />
           </button>
-          {sidebar}
+          <AppSidebar
+            activeNav="chat"
+            onClose={() => setMobile(false)}
+            onNavChange={(nav) => navigate(`/dashboard?workId=${workId}&nav=${nav}`)}
+            onComingSoon={() => setNotice('이 기능은 준비 중입니다.')}
+          />
         </div>
       )}
     </div>
@@ -322,7 +349,10 @@ function Conversation({
   } | null>(null);
   const evidenceTrigger = useRef<HTMLButtonElement | null>(null);
   const live = useRef(true);
-  const stick = useRef(true);
+  const scrollTarget = useRef<{ page: number; questionId?: string } | null>({
+    page,
+  });
+  const viewedPage = useRef(page);
   const scroller = useRef<HTMLDivElement>(null);
   const composition = useRef(false);
   const submitLock = useRef(false);
@@ -384,17 +414,32 @@ function Conversation({
     };
   }, [client, epoch, workId, sessionId]);
   useEffect(() => {
-    if (!stick.current || !scroller.current) return;
+    if (viewedPage.current !== page) {
+      viewedPage.current = page;
+      if (scrollTarget.current?.page !== page) scrollTarget.current = { page };
+    }
+    if (inaccessible || !messages.isSuccess || !scroller.current) return;
+    const request = scrollTarget.current;
+    if (!request || request.page !== page) return;
     const element = scroller.current;
-    const latest = element.lastElementChild;
-    if (latest) {
-      // Start at the latest turn so a long answer does not open at its footnotes.
+    const target = request.questionId
+      ? Array.from(element.children).find(
+          (child) => child instanceof HTMLElement &&
+            child.dataset.questionId === request.questionId,
+        )
+      : element.lastElementChild;
+    if (target) {
+      // Navigation and a submitted question move once. Polling and answer updates
+      // must never take the reader back to the beginning of the latest turn.
+      scrollTarget.current = null;
       element.scrollTop +=
-        latest.getBoundingClientRect().top -
+        target.getBoundingClientRect().top -
         element.getBoundingClientRect().top -
         12;
+    } else if (!request.questionId) {
+      scrollTarget.current = null;
     }
-  }, [messages.dataUpdatedAt]);
+  }, [page, inaccessible, messages.isSuccess, messages.dataUpdatedAt]);
   useEffect(() => {
     if (inaccessible) return;
     for (const row of messages.data?.data?.content ?? []) {
@@ -409,9 +454,9 @@ function Conversation({
       }
     }
   }, [inaccessible, messages.data]);
-  function setPage(value: number) {
+  function setPage(value: number, questionId?: string) {
+    scrollTarget.current = { page: value, questionId };
     setParams({ workId, sessionId, messagePage: String(value + 1) });
-    stick.current = true;
   }
   function openEvidence(
     questionId: string | undefined,
@@ -445,7 +490,7 @@ function Conversation({
       },
     };
     try {
-      await send.mutateAsync({
+      const submitted = await send.mutateAsync({
         path: { workId },
         headers: { 'Idempotency-Key': request.key },
         body: request.body,
@@ -455,13 +500,13 @@ function Conversation({
       setFrom('');
       setTo('');
       setUnconfirmed(null);
-      stick.current = true;
       const fresh = await session.refetch();
       if (!live.current) return;
       setPage(
         Math.floor(
           Math.max(0, (fresh.data?.data?.questionCount ?? 1) - 1) / 20,
         ),
+        submitted.data?.questionId,
       );
       await messages.refetch();
     } catch (e) {
@@ -535,12 +580,6 @@ function Conversation({
           <div
             className="chat-messages"
             ref={scroller}
-            onScroll={() => {
-              const el = scroller.current;
-              if (el)
-                stick.current =
-                  el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-            }}
           >
             {(session.isPending || messages.isPending) && (
               <p role="status">대화를 불러오고 있어요.</p>
@@ -551,7 +590,7 @@ function Conversation({
               </p>
             )}
             {rows.map((row) => (
-              <article key={row.questionId} className="chat-turn">
+              <article key={row.questionId} className="chat-turn" data-question-id={row.questionId}>
                 <div className="chat-question">
                   <span>나</span>
                   <p>{row.question ?? '내용을 더 이상 이용할 수 없습니다.'}</p>
@@ -722,11 +761,7 @@ function Conversation({
             {unconfirmed ? '접수 확인' : '보내기'}
           </button>
         </div>
-        <small>
-          {busy
-            ? '앞선 답변이 끝나면 다음 질문을 보낼 수 있어요.'
-            : 'Enter로 보내기 · Shift+Enter로 줄바꿈'}
-        </small>
+        {busy && <small>앞선 답변이 끝나면 다음 질문을 보낼 수 있어요.</small>}
       </form>
       {evidence && !inaccessible && (
         <ChatEvidence
@@ -736,7 +771,7 @@ function Conversation({
           onClose={() => setEvidence(null)}
           onReturnFocus={() => {
             if (evidenceTrigger.current?.isConnected)
-              evidenceTrigger.current.focus();
+              evidenceTrigger.current.focus({ preventScroll: true });
           }}
         />
       )}
