@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
+import { analysisSourceIdentity, analysisSourceLabel, analysisSourceReaderUrl } from '../../../lib/analysis-source';
 import { WorldSubjectImage } from './WorldSubjectImage';
 import { WorldImageThemeProvider } from './WorldImageThemeProvider';
 import { useWorldImageThemeContext } from './useWorldImageTheme';
@@ -332,13 +333,13 @@ function emptyCreateDraft(): CreateWorldSettingDraft {
 
 function isSameEvidence(left: CandidateEvidence, right: CandidateEvidence): boolean {
   if (left.candidateId && right.candidateId) return left.candidateId === right.candidateId;
-  return left.sourceEpisodeNo === right.sourceEpisodeNo
+  return analysisSourceIdentity(left.source, left.sourceEpisodeNo) === analysisSourceIdentity(right.source, right.sourceEpisodeNo)
     && left.operation === right.operation
     && left.value === right.value
     && left.reviewedAt === right.reviewedAt;
 }
 
-function EvidencePanel({ evidence }: { evidence?: PropertyEvidence }) {
+function EvidencePanel({ evidence, workId }: { evidence?: PropertyEvidence; workId: string }) {
   const history = evidence?.history ?? [];
   const latestEvidence = evidence?.latestEvidence;
   if (!latestEvidence && history.length === 0) {
@@ -354,14 +355,15 @@ function EvidencePanel({ evidence }: { evidence?: PropertyEvidence }) {
   return (
     <div className="world-setting-evidence-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {rows.map((item, index) => (
-        <EvidenceRow key={`${item.candidateId ?? index}-${item.reviewedAt ?? ''}`} evidence={item} />
+        <EvidenceRow key={`${item.candidateId ?? index}-${item.reviewedAt ?? ''}`} evidence={item} workId={workId} />
       ))}
     </div>
   );
 }
 
-function EvidenceRow({ evidence }: { evidence: CandidateEvidence }) {
+function EvidenceRow({ evidence, workId }: { evidence: CandidateEvidence; workId: string }) {
   const quote = evidenceQuotes(evidence.evidenceSpans)[0];
+  const readerUrl = analysisSourceReaderUrl(workId, evidence.source, evidence.sourceEpisodeId);
   return (
     <div className="world-setting-evidence-row" style={{
       padding: '9px 11px', borderRadius: 7, border: `1px solid ${C.border}`,
@@ -370,7 +372,7 @@ function EvidenceRow({ evidence }: { evidence: CandidateEvidence }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <FileText size={12} color={C.primary} />
         <span style={{ color: C.t2, fontSize: 11 }}>
-          {evidence.sourceEpisodeNo == null ? '회차 정보 없음' : `${evidence.sourceEpisodeNo}화`}
+          {analysisSourceLabel(evidence.source, evidence.sourceEpisodeNo)}
         </span>
         <span style={{ color: C.t3, fontSize: 10 }}>{evidence.operation || '확정'}</span>
         <span style={{ color: C.t1, fontSize: 11 }}>{evidence.value || '값 없음'}</span>
@@ -383,6 +385,7 @@ function EvidenceRow({ evidence }: { evidence: CandidateEvidence }) {
           color: C.t2, fontSize: 10, lineHeight: 1.6,
         }}>“{quote}”</div>
       )}
+      {readerUrl && <Link to={readerUrl} className="world-setting-evidence-reader">{evidence.source?.sourceKind === 'SETTING_BOOK' ? '분석 당시 원문 보기' : '현재 회차 원문 보기'}</Link>}
     </div>
   );
 }
@@ -487,6 +490,7 @@ function PropertyEditor({
 }
 
 function WorldSettingDetail({
+  workId,
   detail,
   propertyDraft,
   propertyPending,
@@ -503,6 +507,7 @@ function WorldSettingDetail({
   onReload,
   onToggleEvidence,
 }: {
+  workId: string;
   detail: WorldSettingDetailResponse;
   propertyDraft: PropertyDraft | null;
   propertyPending: boolean;
@@ -615,7 +620,7 @@ function WorldSettingDetail({
                 const editing = propertyDraft?.mode === 'edit'
                   && propertyPathKey(propertyDraft.currentScopeName, propertyDraft.currentSettingName) === pathKey;
                 const evidence = evidenceByPath.get(pathKey);
-                const latestEpisode = evidence?.latestEvidence?.sourceEpisodeNo;
+                const latestSource = evidence?.latestEvidence;
                 if (editing) {
                   return (
                     <PropertyEditor
@@ -660,7 +665,7 @@ function WorldSettingDetail({
                         color: evidence ? C.primary : C.t3, fontFamily: 'inherit', cursor: 'pointer',
                       }}>
                         <div style={{ fontSize: 9, marginBottom: 5 }}>최근 근거</div>
-                        <span style={{ fontSize: 11 }}>{latestEpisode == null ? '직접 입력' : `${latestEpisode}화`}</span>
+                        <span style={{ fontSize: 11 }}>{latestSource ? analysisSourceLabel(latestSource.source, latestSource.sourceEpisodeNo) : '직접 입력'}</span>
                       </button>
                       <button
                         type="button"
@@ -676,7 +681,7 @@ function WorldSettingDetail({
                     </div>
                     {expandedEvidence === pathKey && (
                       <div className="world-setting-property-row__evidence" style={{ padding: '11px 13px', borderTop: `1px solid ${C.border}`, background: C.surface }}>
-                        <EvidencePanel evidence={evidence} />
+                        <EvidencePanel evidence={evidence} workId={workId} />
                       </div>
                     )}
                   </div>
@@ -694,7 +699,7 @@ function WorldSettingDetail({
       }}>
         <Clock3 size={14} color={C.t3} />
         <div>
-          <div style={{ color: C.t2, fontSize: 11 }}>회차 후보 확정과 직접 입력으로 갱신됨</div>
+          <div style={{ color: C.t2, fontSize: 11 }}>설정 후보 확정과 직접 입력으로 갱신됨</div>
           <div style={{ color: C.t3, fontSize: 10, marginTop: 3 }}>삭제·보관·복원·전체 변경 이력은 MVP에서 제공하지 않습니다.</div>
         </div>
       </div>
@@ -1486,6 +1491,7 @@ function WorldSettingDatabaseContent({
               />
             ) : (
               <WorldSettingDetail
+                workId={workId}
                 detail={detail}
                 propertyDraft={propertyDraft}
                 propertyPending={propertyPending}

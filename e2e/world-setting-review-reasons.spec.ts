@@ -93,7 +93,7 @@ for (const width of [1280, 320]) {
       if (scenario.reason === 'SUBJECT_UNRESOLVED') {
         await expect(row.locator('.review-cb-comparison')).toHaveCount(0);
         await expect(row.getByRole('textbox', { name: '기존 세계관 대상 검색' })).toBeVisible();
-        await expect(row.getByRole('button', { name: /새로운 대상/ })).toBeVisible();
+        await expect(row.getByRole('button', { name: /‘정령술’ 새로 등록/ })).toBeVisible();
         await expect(row.getByText('없음', { exact: true })).toHaveCount(0);
       }
       const comparisonBox = row.locator('.review-cb-inline-value').first();

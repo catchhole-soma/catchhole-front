@@ -10,8 +10,6 @@ import { motion } from 'motion/react';
 import {
   AlertCircle,
   BookMarked,
-  Check,
-  ChevronLeft,
   CircleCheckBig,
   FileText,
   Files,
@@ -28,12 +26,10 @@ import {
   getEpisodesOptions,
   getEpisodesQueryKey,
   getEpisodeUploadPolicyOptions,
-  getSettingBooksOptions,
   getWorkOptions,
   getWorldSettingCandidatesOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
   uploadEpisodesMutation as uploadEpisodesMutationOptions,
-  uploadSettingBookMutation as uploadSettingBookMutationOptions,
 } from '../../api/generated/@tanstack/react-query.gen';
 import type {
   AnalysisJobCreateRequest,
@@ -54,13 +50,14 @@ import { ALLOWED_EXTENSIONS, validateManuscriptFile } from '../../lib/fileValida
 import { trackMetaEpisodeUploaded } from '../../lib/meta-pixel';
 import { canResumeOrderedAnalysis, isBlockedOrderedAnalysis, isCompletedOrderedAnalysis, isInvalidatedAnalysis, isOrderedAnalysis } from '../../lib/ordered-analysis';
 import { C } from './constants';
-import { FileDropArea } from './S1Dashboard';
-import { UserMenu } from './UserMenu';
+import { FileDropArea } from './FileDropArea';
 import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
 import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
 import { AnalysisModeGuide } from './onboarding/AnalysisModeGuide';
+import { SettingBookProgressRoute } from './SettingBookAnalysisStatus';
+import { UploadHeader as Header, UploadStepper as Stepper, AnalysisProgressHero, AnalysisProgressCard } from './UploadLayout';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
@@ -168,60 +165,6 @@ function requiresBulkFileReselection(error: unknown): boolean {
     default:
       return false;
   }
-}
-
-function Header({ onBack, backLabel = '원고 목록으로 돌아가기' }: {
-  onBack: () => void;
-  backLabel?: string;
-}) {
-  return (
-    <div className="episode-upload-header app-topbar" style={{
-      height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12,
-      padding: '0 20px', borderBottom: `1px solid ${C.border}`,
-    }}>
-      <button className="episode-upload-header__back" type="button" aria-label={backLabel} onClick={onBack} style={{
-        width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
-        background: 'transparent', color: C.t2, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <ChevronLeft size={16} />
-      </button>
-      <div className="episode-upload-header__title">
-        <small>MANUSCRIPT</small>
-        <strong>회차 업로드</strong>
-      </div>
-      <div className="episode-upload-header__spacer" />
-      <UserMenu />
-    </div>
-  );
-}
-
-function Stepper({ labels, current }: { labels: string[]; current: number }) {
-  return (
-    <div className="episode-upload-stepper" style={{ display: 'flex', alignItems: 'center', maxWidth: 860, margin: '0 auto', padding: '24px 20px 0' }}>
-      {labels.map((label, index) => (
-        <React.Fragment key={label}>
-          <div className="episode-upload-step">
-            <div className={`episode-upload-step__number${index + 1 < current ? ' is-complete' : ''}${index + 1 === current ? ' is-current' : ''}`} style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              background: index + 1 <= current ? C.primary : C.border,
-              color: index + 1 <= current ? '#fff' : C.t3,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700,
-            }}>
-              {index + 1 < current ? <Check size={12} /> : index + 1}
-            </div>
-            <span className={`episode-upload-step__label${index + 1 === current ? ' is-current' : ''}`} style={{ color: index + 1 === current ? C.t1 : C.t3, fontSize: 12, whiteSpace: 'nowrap' }}>
-              {label}
-            </span>
-          </div>
-          {index < labels.length - 1 && (
-            <div className={`episode-upload-step__line${index + 1 < current ? ' is-complete' : ''}`} style={{ flex: 1, height: 1, background: index + 1 < current ? C.primary : C.border, margin: '0 12px' }} />
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-  );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -416,38 +359,6 @@ function MultiFileDropArea({ files, error, onFilesChange, disabled }: {
   );
 }
 
-function SettingsFileInput({ include, setInclude, file, error, setFile, disabled }: {
-  include: boolean;
-  setInclude: (include: boolean) => void;
-  file: File | null;
-  error: string | null;
-  setFile: (file: File | null, error: string | null) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="episode-settings-file" style={{ marginBottom: 18 }}>
-      <label className="episode-settings-file__toggle" style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.t2, fontSize: 13, marginBottom: include ? 10 : 0 }}>
-        <input
-          type="checkbox"
-          checked={include}
-          disabled={disabled}
-          onChange={event => setInclude(event.target.checked)}
-          style={{ accentColor: C.primary }}
-        />
-        설정집도 함께 업로드 <span style={{ color: C.t3 }}>(원본만 저장)</span>
-      </label>
-      {include && (
-        <FileDropArea
-          file={file}
-          error={error}
-          onFileChange={setFile}
-          fileLabel="설정집 파일 · TXT, DOCX, HWP, HWPX"
-        />
-      )}
-    </div>
-  );
-}
-
 function EpisodeConfirmationRows({ episodeConfirmations, sourceFiles, onChange, disabled }: {
   sourceFiles: File[];
   episodeConfirmations: EpisodeConfirmation[];
@@ -527,6 +438,11 @@ function toProcessingStatus(status: EpisodeSummaryResponse['status']): EpisodePr
 }
 
 export default function SEpisodeUpload() {
+  const [params] = useSearchParams();
+  return params.has('sourceAnalysisJobId') ? <SettingBookProgressRoute /> : <EpisodeUpload />;
+}
+
+function EpisodeUpload() {
   const queryClient = useQueryClient();
   const navigate = useAppNavigate();
   const routerNavigate = useRouterNavigate();
@@ -590,9 +506,6 @@ export default function SEpisodeUpload() {
   const [reviewMode, setReviewMode] = useState<ReviewMode>('AUTOMATIC');
   const [uploadCharactersByType, setUploadCharactersByType] = useState<Partial<Record<EpisodeUploadType, number>>>({});
   const [characterLimitErrors, setCharacterLimitErrors] = useState<Partial<Record<EpisodeUploadType, string>>>({});
-  const [includeSettings, setIncludeSettings] = useState(false);
-  const [settingsFile, setSettingsFile] = useState<File | null>(null);
-  const [settingsFileError, setSettingsFileError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [episodeUploadBatchId, setEpisodeUploadBatchId] = useState<string | null>(searchParams.get('batchId'));
   const [uploadedEpisodes, setUploadedEpisodes] = useState<EpisodeSummaryResponse[]>([]);
@@ -613,8 +526,6 @@ export default function SEpisodeUpload() {
   const [orderedRestartOpen, setOrderedRestartOpen] = useState(false);
   const [orderedRestartError, setOrderedRestartError] = useState<string | null>(null);
   const orderedRestartInFlight = useRef(false);
-  const [settingSaveStatus, setSettingSaveStatus] = useState<'idle' | 'success' | 'failed'>('idle');
-  const [settingUploadError, setSettingUploadError] = useState<string | null>(null);
   const detectionRequestSequence = useRef(0);
   const batchRetryInFlight = useRef(false);
   const reviewReturnState = location.state as {
@@ -737,24 +648,8 @@ export default function SEpisodeUpload() {
     const latest = existingEpisodes.reduce((max, episode) => Math.max(max, episode.episodeNo ?? 0), 0);
     return latest + 1;
   }, [episodesQuery.isError, episodesQuery.isPending, existingEpisodes]);
-  const settingBooksQuery = useQuery({
-    ...getSettingBooksOptions({ path: { workId } }),
-    enabled: UUID_PATTERN.test(workId)
-      && includeSettings
-      && settingSaveStatus !== 'success'
-      && step !== 'processing',
-    retry: false,
-  });
-  const existingSettingBookNames = useMemo(
-    () => new Set((settingBooksQuery.data?.data ?? []).flatMap(
-      settingBook => settingBook.originalFilename ? [settingBook.originalFilename] : [],
-    )),
-    [settingBooksQuery.data?.data],
-  );
-
   const detectEpisodesMutation = useMutation(detectEpisodesMutationOptions());
   const uploadEpisodesMutation = useMutation(uploadEpisodesMutationOptions());
-  const uploadSettingBookMutation = useMutation(uploadSettingBookMutationOptions());
   const createAnalysisJobMutation = useMutation({
     ...createAnalysisJobMutationOptions(),
     onSuccess: (_response, variables) => Promise.all([
@@ -764,7 +659,6 @@ export default function SEpisodeUpload() {
   });
   const retryAnalysisJobMutation = useMutation(retryAnalysisJobMutationOptions());
   const submitting = uploadEpisodesMutation.isPending
-    || uploadSettingBookMutation.isPending
     || createAnalysisJobMutation.isPending;
 
   const currentAnalysisJobIdSet = new Set(currentAnalysisJobIds);
@@ -1169,22 +1063,6 @@ export default function SEpisodeUpload() {
     }
   };
 
-  const uploadSelectedSettingBook = async () => {
-    if (!includeSettings || !settingsFile || settingSaveStatus === 'success') return;
-    setSettingUploadError(null);
-    try {
-      await uploadSettingBookMutation.mutateAsync({
-        path: { workId },
-        body: { file: settingsFile },
-      });
-      setSettingSaveStatus('success');
-    } catch (error) {
-      setSettingSaveStatus('failed');
-      setSettingUploadError(errorMessage(error, '설정집 원본 저장에 실패했습니다. 설정집만 다시 시도할 수 있습니다.'));
-      throw error;
-    }
-  };
-
   const submitEpisodeUpload = async () => {
     if (!uploadType || characterLimitError) return;
     setRequestError(null);
@@ -1208,31 +1086,13 @@ export default function SEpisodeUpload() {
           })),
         };
 
-    const episodeUploadPromise = uploadEpisodesMutation.mutateAsync({
-      path: { workId },
-      body: {
-        metadata,
-        episodeFiles: sourceEpisodeFiles,
-      },
-      bodySerializer: episodeMultipartSerializer,
-    });
-    const settingUploadPromise = includeSettings && settingsFile && settingSaveStatus !== 'success'
-      ? uploadSelectedSettingBook()
-      : Promise.resolve();
-    const [episodeResult, settingResult] = await Promise.allSettled([episodeUploadPromise, settingUploadPromise]);
-
-    if (episodeResult.status === 'rejected') {
-      setRequestError(errorMessage(
-        episodeResult.reason,
-        includeSettings && settingResult.status === 'fulfilled'
-          ? '설정집은 저장했지만 회차 저장에 실패했습니다. 회차만 다시 시도해주세요.'
-          : '회차 저장에 실패했습니다. 입력값과 파일을 유지했으니 다시 시도해주세요.',
-      ));
-      return;
-    }
-
     try {
-      const episodeUpload = episodeResult.value.data;
+      const response = await uploadEpisodesMutation.mutateAsync({
+        path: { workId },
+        body: { metadata, episodeFiles: sourceEpisodeFiles },
+        bodySerializer: episodeMultipartSerializer,
+      });
+      const episodeUpload = response.data;
       if (!episodeUpload?.batchId) throw new Error('업로드 결과를 확인하지 못했습니다. 다시 시도해 주세요.');
       trackMetaEpisodeUploaded();
       setEpisodeUploadBatchId(episodeUpload.batchId);
@@ -1423,17 +1283,7 @@ export default function SEpisodeUpload() {
   );
   const episodeConfirmationsValid = episodeConfirmations.length > 0
     && !episodeConfirmationValidationError;
-  const settingsModeError = settingsFileError
-      ?? (settingSaveStatus !== 'success'
-        && settingsFile
-        && existingSettingBookNames.has(settingsFile.name)
-        ? '같은 이름의 설정집이 이미 업로드되어 있습니다.'
-        : null);
-  const settingsValid = !includeSettings
-    || settingSaveStatus === 'success'
-    || Boolean(settingsFile && !settingsModeError && settingBooksQuery.isSuccess);
   const canSubmit = UUID_PATTERN.test(workId)
-    && settingsValid
     && !characterLimitError
     && !detectEpisodesMutation.isPending
     && !submitting
@@ -1677,48 +1527,6 @@ export default function SEpisodeUpload() {
                     원고 전체 합계 {uploadCharacters !== undefined ? `${uploadCharacters.toLocaleString()} / ` : ''}{maxUploadCharacters.toLocaleString()}자 이하 · 공백 포함
                   </div>
                   {characterLimitError && <ErrorBanner message={characterLimitError} />}
-                  <SettingsFileInput
-                    include={includeSettings}
-                    setInclude={include => {
-                      setIncludeSettings(include);
-                      if (!include) {
-                        setSettingSaveStatus('idle');
-                        setSettingUploadError(null);
-                      }
-                    }}
-                    file={settingsFile}
-                    error={settingsModeError}
-                    setFile={(file, error) => {
-                      setSettingsFile(file);
-                      setSettingsFileError(error);
-                      setSettingSaveStatus('idle');
-                      setSettingUploadError(null);
-                    }}
-                    disabled={submitting}
-                  />
-                  {includeSettings
-                    && settingSaveStatus !== 'success'
-                    && settingBooksQuery.isPending && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 7,
-                      color: C.t2, fontSize: 12, margin: '-4px 0 14px',
-                    }}>
-                      <Spinner size={13} /> 기존 설정집 이름을 확인하고 있습니다.
-                    </div>
-                  )}
-                  {includeSettings
-                    && settingSaveStatus !== 'success'
-                    && settingBooksQuery.isError && (
-                    <ErrorBanner
-                      message="기존 설정집 이름을 확인하지 못했습니다."
-                      onRetry={() => void settingBooksQuery.refetch()}
-                    />
-                  )}
-                  {settingSaveStatus === 'success' && (
-                    <div className="episode-upload-success" style={{ color: C.success, fontSize: 12, margin: '-4px 0 14px' }}>
-                      설정집 원본은 저장되었습니다. 회차를 다시 시도해도 중복 저장하지 않습니다.
-                    </div>
-                  )}
                   <div className="episode-upload-actions" style={{ display: 'flex', gap: 8 }}>
                     <SecondaryButton onClick={() => selectUploadType(null)} disabled={submitting}>← 뒤로</SecondaryButton>
                     <div style={{ flex: 1 }}>
@@ -1849,8 +1657,8 @@ export default function SEpisodeUpload() {
 
           {step === 'processing' && (
             <div className="episode-processing">
-              <div className="episode-processing__hero" style={{ textAlign: 'center', marginBottom: 26 }}>
-                {analysisNotStarted
+              <AnalysisProgressHero
+                icon={analysisNotStarted
                   ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                   : analysisInvalidated
                   ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
@@ -1865,8 +1673,7 @@ export default function SEpisodeUpload() {
                     : analysisUnavailable
                       ? <AlertCircle size={52} color={C.warning} style={{ marginBottom: 12 }} />
                     : <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>}
-                <div className="episode-processing__title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 5 }}>
-                  {analysisNotStarted ? '원고는 저장했지만 분석을 시작하지 못했습니다'
+                title={analysisNotStarted ? '원고는 저장했지만 분석을 시작하지 못했습니다'
                     : analysisInvalidated ? '기존 분석을 이어갈 수 없습니다'
                     : analysisSucceeded ? '분석이 완료되었습니다'
                     : analysisCanceled ? (orderedAnalysis ? '순차 분석이 중단되었습니다' : '작품 삭제로 분석이 취소되었습니다')
@@ -1874,34 +1681,19 @@ export default function SEpisodeUpload() {
                       : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
-                </div>
-                <div className="episode-processing__description" style={{ color: C.t2, fontSize: 13 }}>
-                  {workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
-                  {automaticAnalysis ? ' · 회차별 설정 자동 반영' : orderedAnalysis && ' · 앞 회차 제안을 이어서 분석'}
-                </div>
-                {analysisRunning && !analysisUnavailable && !statusQueryFailed && (
-                  <p className="episode-processing__background-note">
-                    이 화면을 벗어나도 분석은 계속됩니다.<br />
-                    진행 상황과 결과는 분석 목록에서 확인할 수 있어요.
-                  </p>
-                )}
-              </div>
+                description={<>{workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+                  {automaticAnalysis ? ' · 회차별 설정 자동 반영' : orderedAnalysis && ' · 앞 회차 제안을 이어서 분석'}</>}
+              />
+              {analysisRunning && !analysisUnavailable && !statusQueryFailed && (
+                <p className="episode-processing__background-note">
+                  이 화면을 벗어나도 분석은 계속됩니다.<br />
+                  진행 상황과 결과는 분석 목록에서 확인할 수 있어요.
+                </p>
+              )}
 
               {analysisSucceeded && automaticAnalysis && (
                 <div className="episode-upload-alert episode-upload-alert--success" role="status">
                   회차 분석과 설정 자동 반영이 끝났습니다. 일부 설정이 확인 대기로 남아 있어도 다음 회차 분석은 계속됩니다. 남은 설정은 결과에서 확인할 수 있습니다.
-                </div>
-              )}
-              {settingUploadError && (
-                <ErrorBanner message={settingUploadError} onRetry={() => void uploadSelectedSettingBook()} />
-              )}
-              {settingSaveStatus === 'success' && includeSettings && (
-                <div className="episode-upload-alert episode-upload-alert--success" style={{
-                  display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px', marginBottom: 16,
-                  borderRadius: 6, border: `1px solid ${C.success}44`, background: `${C.success}10`,
-                  color: C.success, fontSize: 12,
-                }}>
-                  <CircleCheckBig size={14} /> 설정집 원본도 독립적으로 저장되었습니다.
                 </div>
               )}
               {analysisStartError && (
@@ -1997,24 +1789,13 @@ export default function SEpisodeUpload() {
                     ? -1
                     : PROCESSING_SEQUENCE.indexOf(status);
                   return (
-                    <div className="episode-processing-card" key={episode.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, background: C.surface }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div className="episode-processing-card__title" style={{ fontSize: 14, fontWeight: 700 }}>
-                          {episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}
-                        </div>
-                        <span className={`episode-processing-card__status status-${statusTone ?? (automaticSavePending ? 'ANALYZING' : status) ?? 'UNAVAILABLE'}`} style={{
-                          color: status === null
-                            ? C.warning
-                            : status === 'FAILED'
-                              ? C.danger
-                              : status === 'ANALYZED' ? C.success : C.t2,
-                          fontSize: 12, fontWeight: 700,
-                        }}>
-                          {orderedStatusLabel ?? automaticStatusLabel ?? (status === null
-                            ? '사용할 수 없음'
-                            : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status])}
-                        </span>
-                      </div>
+                    <AnalysisProgressCard key={episode.id}
+                      title={<>{episode.episodeNo}화 {episode.title || '제목을 찾지 못했어요'}</>}
+                      statusClass={statusTone ?? (automaticSavePending ? 'ANALYZING' : status) ?? 'UNAVAILABLE'}
+                      status={orderedStatusLabel ?? automaticStatusLabel ?? (status === null
+                        ? '사용할 수 없음'
+                        : status === 'FAILED' ? '분석 실패' : PROCESSING_STATUS_LABELS[status])}
+                    >
                       {status === null ? (
                         <div className="episode-processing-card__unavailable" style={{ color: C.t3, fontSize: 12 }}>
                           이 회차는 삭제되어 더 이상 분석 대상에 포함되지 않습니다.
@@ -2033,7 +1814,7 @@ export default function SEpisodeUpload() {
                           ))}
                         </div>
                       )}
-                    </div>
+                    </AnalysisProgressCard>
                   );
                 })}
               </div>

@@ -28,7 +28,14 @@ export function WorldSettingDialog({
           <Dialog.Overlay className="world-setting-dialog-backdrop" />
           <Dialog.Content
             role={role}
-            onKeyDown={onKeyDown}
+            onKeyDown={event => {
+              onKeyDown?.(event);
+              // Focus can be visible before Radix's passive Escape bookkeeping is ready.
+              if (event.key === 'Escape' && !event.defaultPrevented) {
+                event.preventDefault();
+                if (!pending) onClose();
+              }
+            }}
             className={`database-modal world-setting-dialog ${className}`}
             {...(description ? {} : { 'aria-describedby': undefined })}
             onOpenAutoFocus={event => {

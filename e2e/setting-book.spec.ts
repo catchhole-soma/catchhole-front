@@ -202,7 +202,11 @@ test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보�
   await expect(uploadDialog).toBeVisible();
   await expect(uploadDialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(uploadDialog).toHaveCSS('border-radius', '20px');
-  await expect(uploadDialog.getByText('세계관 설정집.txt', { exact: true })).toBeVisible();
+  const selectedFile = uploadDialog.getByRole('button', { name: '파일을 드래그하거나 클릭하여 선택', exact: true });
+  await expect(selectedFile).toBeVisible();
+  await expect(selectedFile).toContainText('세계관 설정집.txt');
+  await expect(selectedFile).toHaveText('세계관 설정집.txt · 47B');
+  await expect(uploadDialog.getByText('TXT · 47B', { exact: true })).toBeVisible();
   await expect(uploadDialog.getByText('설정집 원본을 업로드하지 못했습니다.', { exact: true })).toBeVisible();
   await page.getByTestId('setting-book-upload-submit').click();
   await expect(uploadDialog).toHaveCount(0);

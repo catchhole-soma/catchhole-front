@@ -116,11 +116,19 @@ for (const width of [1280, 320]) {
     await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(() => savedBody).toEqual({ batchId, candidates: [{ candidateId, category: 'LOCATION',
       subjectName: '미궁', scopeName: '1층', settingName: '광원', value: '벽의 수정들이 주변을 밝힌다.\n수정들이 적어지며 어둠이 드리운다.', operation: 'MERGE' }] });
-    await expect(scopeChoice).toBeVisible();
-    await expect(scopeChoice.getByRole('button', { name: /기존 범위에 합치기/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(scopeChoice).toHaveCount(0);
+    await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
     await expect(row.locator('.review-cb-heading__title h3')).toHaveText('광원');
-    await expect(row.locator('.review-cb-comparison__column.is-after')).toContainText('벽의 수정들이 주변을 밝힌다.');
-    await expect(row.locator('.review-cb-comparison__column.is-after')).toContainText('수정들이 적어지며 어둠이 드리운다.');
+    await expect(row).toContainText('벽의 수정들이 주변을 밝힌다.');
+    await expect(row).toContainText('수정들이 적어지며 어둠이 드리운다.');
+    await row.getByRole('button', { name: '수정', exact: true }).click();
+    const editor = page.locator('.review-modal');
+    await expect(editor.getByRole('textbox', { name: '범위 (선택)', exact: true })).toHaveValue('1층');
+    await expect(editor.getByRole('textbox', { name: '설정명', exact: true })).toHaveValue('광원');
+    await expect(editor.getByRole('combobox', { name: '반영 방식', exact: true })).toHaveValue('MERGE');
+    await expect(editor.getByRole('textbox', { name: '최종 설정값', exact: true })).toHaveValue('벽의 수정들이 주변을 밝힌다.\n수정들이 적어지며 어둠이 드리운다.');
+    await editor.getByRole('button', { name: '취소', exact: true }).click();
+    await expect(editor).toHaveCount(0);
     // 다른 실패 후보가 아직 직접 확인되지 않았으므로 그룹 전체는 계속 잠긴다.
     await expect(confirm).toBeDisabled();
     await expect(row.locator('.review-cb-notice.is-success')).toBeVisible();

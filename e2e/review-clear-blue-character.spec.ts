@@ -78,6 +78,56 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
 const card = (page: Page) => page.getByRole('region', { name: '소속 설정 후보', exact: true });
 const confirm = (page: Page) => page.getByRole('button', { name: /1개 설정 모두 확정/ });
 
+for (const width of [1020, 1217, 320]) test(`원문 카드의 제목과 모든 근거는 ${width}px에서 테두리 안쪽에 여백을 둔다`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height: 1100 });
+  await fixture(page);
+  const openDetail = page.getByRole('button', { name: /루안.*1개 설정/ });
+  if (await openDetail.isVisible()) await openDetail.click();
+  await card(page).locator('.review-cb-evidence summary').click();
+  const evidence = card(page).locator('.character-setting-evidence-card');
+  await evidence.screenshot({ path: testInfo.outputPath(`evidence-${width}.png`) });
+  const geometry = await evidence.evaluate(element => {
+    const box = element.getBoundingClientRect();
+    const children = [...element.children].map(child => {
+      const rect = child.getBoundingClientRect();
+      return { left: rect.left - box.left, right: box.right - rect.right, top: rect.top - box.top, bottom: box.bottom - rect.bottom };
+    });
+    return { children, overflow: element.scrollWidth > element.clientWidth };
+  });
+  expect(geometry.overflow).toBe(false);
+  for (const child of geometry.children) {
+    expect(child.left).toBeGreaterThanOrEqual(12);
+    expect(child.right).toBeGreaterThanOrEqual(12);
+    expect(child.top).toBeGreaterThanOrEqual(12);
+    expect(child.bottom).toBeGreaterThanOrEqual(12);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+for (const sourceKind of ['EPISODE', 'SETTING_BOOK'] as const) test(`${sourceKind} 과거 직업은 접힌 근거를 열기 전에도 시점과 판단 이유를 보여 주고 이력 선택을 저장한다`, async ({ page }, testInfo) => {
+  const reason = '장거리 운송선 항해사로 일한 것은 등대관리소에 들어오기 전의 끝난 경력이므로 이력으로 남깁니다.';
+  const { requests } = await fixture(page, { attributeName: 'profile.occupation', attributeDisplayName: '직업',
+    attributeValue: '장거리 운송선 항해사', proposedFactValue: null, snapshotChanges: [],
+    temporalScope: 'PAST', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL',
+    automaticReviewHoldReason: 'SETTING_TIME_CONFIRMATION_REQUIRED', comparisonReason: reason,
+    suggestedOperation: 'REVIEW_REQUIRED', source: sourceKind === 'SETTING_BOOK'
+      ? { sourceKind, settingBookId: candidateId, settingBookName: '01-character-book.txt', revisionId: characterId, revisionNo: 1 }
+      : { sourceKind, episodeNo: 3 } });
+  const occupation = page.getByRole('region', { name: '직업 설정 후보', exact: true });
+  await occupation.screenshot({ path: testInfo.outputPath(`past-occupation-${sourceKind}.png`) });
+  await expect(occupation.locator('.review-character-comparison')).toContainText('과거 설정');
+  await expect(occupation.getByText(reason, { exact: true })).toBeVisible();
+  await expect(occupation.locator('.review-cb-comparison__column.is-before')).toHaveCount(0);
+  await expect(confirm(page)).toBeDisabled();
+  await occupation.getByRole('button', { name: /이력에만 저장/ }).click();
+  await expect(confirm(page)).toBeEnabled();
+  await expect(occupation.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(requests.find(request => request.method === 'PATCH')?.body).toMatchObject({
+    attributeName: 'profile.occupation', attributeValue: '장거리 운송선 항해사',
+    reviewedApplicationMode: 'HISTORY_ONLY', expectedUpdatedAt: initialCandidate.updatedAt,
+  });
+});
+
 test('연결 변경은 수정 왼쪽에 있고 새 인물 등록은 연결 모달에서 선택한다', async ({ page }) => {
   const { requests } = await fixture(page);
   const headingActions = card(page).locator('.review-cb-heading__actions');
@@ -517,7 +567,7 @@ test('확정된 순차 REMOVE는 비교 당시 기존값과 회복 내용을 혼
     attributeValue: '부상이 회복되어 멀쩡히 착지함', historyOnly: false,
     snapshotChanges: [{ action: 'REMOVE', factKey: 'status.wound', beforeFactValue: '복부에 깊은 자상을 입은 상태' }] });
   await page.getByRole('group', { name: '검토 상태', exact: true }).getByRole('button', { name: '전체', exact: true }).click();
-  await expect(card(page).getByText('비교한 기존 설정', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('비교 당시 내용', { exact: true })).toBeVisible();
   await expect(card(page).getByText('복부에 깊은 자상을 입은 상태', { exact: true })).toBeVisible();
   await expect(card(page).getByText('이번 원고에서 확인한 변화', { exact: true })).toBeVisible();
   await expect(card(page).getByText('부상이 회복되어 멀쩡히 착지함', { exact: true })).toBeVisible();

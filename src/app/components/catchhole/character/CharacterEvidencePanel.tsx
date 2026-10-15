@@ -3,7 +3,9 @@ import { AlertCircle, FileText, Loader2, RefreshCw, X } from 'lucide-react';
 import type {
   CharacterFactEvidenceResponse,
   CharacterFactEvidenceSpanResponse,
+  AnalysisSourceResponse,
 } from '../../../api/generated/types.gen';
+import { analysisSourceIdentity, analysisSourceLabel } from '../../../lib/analysis-source';
 import { C } from '../constants';
 
 interface Props {
@@ -27,6 +29,7 @@ interface CharacterEvidenceSourceTab {
   characterFactId: string;
   sourceEpisodeNo?: number | null;
   hasEvidence: boolean;
+  source?: AnalysisSourceResponse;
 }
 
 interface HighlightRange {
@@ -39,17 +42,18 @@ function evidenceSourceLabel(
   sourceIndex: number,
 ): string {
   const source = sources[sourceIndex];
-  const hasSameEpisode = (candidate: CharacterEvidenceSourceTab) => (
-    source.sourceEpisodeNo == null
-      ? candidate.sourceEpisodeNo == null
-      : candidate.sourceEpisodeNo === source.sourceEpisodeNo
-  );
+  const hasSameEpisode = (candidate: CharacterEvidenceSourceTab) => analysisSourceIdentity(source.source, source.sourceEpisodeNo)
+    === analysisSourceIdentity(candidate.source, candidate.sourceEpisodeNo);
   const matchingSources = sources.filter(hasSameEpisode);
   const matchingSourceIndex = sources
     .slice(0, sourceIndex + 1)
     .filter(hasSameEpisode)
     .length;
 
+  if (source.source?.sourceKind === 'SETTING_BOOK') {
+    const label = analysisSourceLabel(source.source);
+    return matchingSources.length > 1 ? `${label} · 근거 ${matchingSourceIndex}` : label;
+  }
   if (source.sourceEpisodeNo == null) {
     return `회차 없는 근거 ${matchingSourceIndex}`;
   }
@@ -281,7 +285,7 @@ export function CharacterEvidencePanel({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: C.t1, fontSize: 15, fontWeight: 700 }}>원문 근거</div>
           <div style={{ color: C.t3, fontSize: 11, marginTop: 3 }}>
-            {evidence?.episode
+            {evidence?.source?.sourceKind === 'SETTING_BOOK' ? analysisSourceLabel(evidence.source) : evidence?.episode
               ? `${evidence.episode.episodeNo}화${evidence.episode.title ? ` · ${evidence.episode.title}` : ''}`
               : '출처 회차 없음'}
           </div>

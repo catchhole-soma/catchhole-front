@@ -59,12 +59,13 @@ export function ReviewValueComparison({ before, after, mode, beforeLabel = '기�
 }
 
 export type ReviewChoice = { id: string; title: string; description?: ReactNode; preview?: ReactNode; image?: ReactNode; footnote?: ReactNode; disabled?: boolean };
-export function ReviewChoiceCards({ label, choices, value, onChange, disabled = false }: {
-  label?: ReactNode; choices: ReviewChoice[]; value: string | null; onChange: (id: string) => void; disabled?: boolean;
+export function ReviewChoiceCards({ label, choices, value, onChange, disabled = false, children }: {
+  label?: ReactNode; choices: ReviewChoice[]; value: string | null; onChange: (id: string) => void; disabled?: boolean; children?: ReactNode;
 }) {
   const labelId = useId();
   return <section className="review-cb-decisions" aria-labelledby={label ? labelId : undefined}>
     {label && <div className="review-cb-decisions__question"><small>선택해 주세요</small><h4 id={labelId}>{label}</h4></div>}
+    {children}
     <div className={`review-cb-choices${choices.length === 2 ? ' has-two' : ''}`} role="group" aria-labelledby={label ? labelId : undefined}>
       {choices.map(choice => <button key={choice.id} type="button" className="review-cb-choice" aria-pressed={choice.id === value}
         disabled={disabled || choice.disabled} onClick={() => onChange(choice.id)}>

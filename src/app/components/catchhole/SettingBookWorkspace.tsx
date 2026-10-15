@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -31,15 +31,21 @@ import {
   ALLOWED_EXTENSIONS,
   formatFileSize,
   MAX_FILE_SIZE_BYTES,
-  validateManuscriptFile,
   manuscriptFormatLabel,
 } from '../../lib/fileValidation';
 import { SettingBookDeleteModal } from './SettingBookDeleteModal';
+import { SettingBookAnalysisStatus } from './SettingBookAnalysisStatus';
+import type { AnalysisJobResponse } from '../../api/generated/types.gen';
 import { C } from './constants';
+import { FileDropArea } from './FileDropArea';
+import { UploadStepper } from './UploadLayout';
+import { SettingBookReferenceFields } from './SettingBookReferenceFields';
+import { settingBookReferenceLabel, validSettingBookReference, type SettingBookReferenceKind } from '../../lib/setting-book-reference';
 
 const SETTING_BOOK_ID_PARAM = 'settingBookFileId';
 const UPLOAD_MODAL_VALUE = 'setting-book-upload';
 const TEXT_MIME_PREFIX = 'text/plain';
+const SOURCE_REVISION_CONFLICT_MESSAGE = '다른 창에서 설정집이 변경되었습니다. 작성 중인 내용은 그대로 보관되어 있습니다. 취소하여 최신 원문과 기준 시점을 확인한 뒤 다시 수정해 주세요.';
 
 interface Props {
   workId: string;
@@ -160,6 +166,10 @@ function SettingBookUploadModal({
   fileError,
   requestError,
   pending,
+  referenceKind,
+  referenceEpisodeNo,
+  onReferenceKindChange,
+  onReferenceEpisodeNoChange,
   onFileChange,
   onClose,
   onSubmit,
@@ -168,13 +178,14 @@ function SettingBookUploadModal({
   fileError: string | null;
   requestError: string | null;
   pending: boolean;
+  referenceKind: SettingBookReferenceKind;
+  referenceEpisodeNo: string;
+  onReferenceKindChange: (kind: SettingBookReferenceKind) => void;
+  onReferenceEpisodeNoChange: (value: string) => void;
   onFileChange: (file: File | null, error: string | null) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !pending) onClose();
@@ -182,20 +193,6 @@ function SettingBookUploadModal({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose, pending]);
-
-  useEffect(() => {
-    if (!file && inputRef.current) inputRef.current.value = '';
-  }, [file]);
-
-  const chooseFile = (nextFile: File | null | undefined) => {
-    if (pending || !nextFile) return;
-    const validationError = validateManuscriptFile(nextFile, ALLOWED_EXTENSIONS);
-    if (validationError) {
-      onFileChange(file, validationError);
-      return;
-    }
-    onFileChange(nextFile, null);
-  };
 
   return (
     <motion.div
@@ -280,158 +277,19 @@ function SettingBookUploadModal({
           </div>
 
           <div style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
-            작품에서 참고할 설정집 원본 파일을 업로드하세요.
+            설정집을 올리면 인물·세계관 설정을 추출하고 비교합니다.
           </div>
 
-          <input
-            ref={inputRef}
-            data-testid="setting-book-file-input"
-            type="file"
-            accept={ALLOWED_EXTENSIONS.join(',')}
-            disabled={pending}
-            onChange={event => {
-              chooseFile(event.target.files?.[0]);
-              event.currentTarget.value = '';
-            }}
-            style={{ display: 'none' }}
-          />
+          <UploadStepper labels={['설정집 선택', '설정 분석', '설정 확인']} current={1} />
+          <FileDropArea file={file} error={fileError} onFileChange={onFileChange}
+            fileLabel="인물·세계관 설정을 담은 설정집" inputTestId="setting-book-file-input"
+            allowedExtensions={ALLOWED_EXTENSIONS} keyboardAccessible preserveFileOnError disabled={pending} />
+          {file && <p className="setting-book-file-meta">{manuscriptFormatLabel(file.name)} · {formatFileSize(file.size)}</p>}
+          {file && <button type="button" className="analysis-card-action" aria-label="선택한 파일 제거"
+            disabled={pending} onClick={() => onFileChange(null, null)}>선택한 파일 제거</button>}
 
-          <div
-            className={`setting-book-dropzone${dragging ? ' is-dragging' : ''}${fileError ? ' is-error' : ''}`}
-            role="button"
-            tabIndex={pending ? -1 : 0}
-            aria-disabled={pending}
-            onKeyDown={event => {
-              if ((event.key === 'Enter' || event.key === ' ') && !pending) inputRef.current?.click();
-            }}
-            onClick={() => {
-              if (!pending) inputRef.current?.click();
-            }}
-            onDragOver={event => {
-              event.preventDefault();
-              if (!pending) setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={event => {
-              event.preventDefault();
-              setDragging(false);
-              chooseFile(event.dataTransfer.files?.[0]);
-            }}
-            style={{
-              minHeight: 138,
-              borderRadius: 9,
-              border: `1.5px dashed ${fileError ? C.danger : dragging ? C.primary : C.border}`,
-              background: fileError ? `${C.danger}08` : dragging ? `${C.primary}0D` : C.bg,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              textAlign: 'center',
-              cursor: pending ? 'not-allowed' : 'pointer',
-              opacity: pending ? 0.6 : 1,
-            }}
-          >
-            <Upload size={24} color={dragging ? C.primary : C.t3} />
-            <div style={{ color: C.t1, fontSize: 13, fontWeight: 600 }}>
-              파일을 드래그하거나 클릭하여 선택
-            </div>
-            <div style={{ color: C.t3, fontSize: 11 }}>
-              TXT, DOCX, HWP, HWPX · 파일당 최대 10MB
-            </div>
-          </div>
-
-          {fileError && (
-            <div role="alert" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              color: C.danger,
-              fontSize: 12,
-              marginTop: 8,
-            }}>
-              <AlertCircle size={13} />
-              {fileError}
-            </div>
-          )}
-
-          {file && (
-            <div className="setting-book-selected-file" style={{ marginTop: 14 }}>
-              <div className="setting-book-selected-file__row" style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '11px 12px',
-                borderRadius: 8,
-                border: `1px solid ${C.border}`,
-                background: C.bg,
-              }}>
-                <div style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 7,
-                  background: `${C.primary}18`,
-                  color: C.primary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <FileText size={16} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    color: C.t1,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {file.name}
-                  </div>
-                  <div style={{ color: C.t3, fontSize: 11, marginTop: 3 }}>
-                    {manuscriptFormatLabel(file.name)} · {formatFileSize(file.size)}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  aria-label="선택한 파일 제거"
-                  disabled={pending}
-                  onClick={() => onFileChange(null, null)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    border: 0,
-                    borderRadius: 6,
-                    background: 'transparent',
-                    color: C.t3,
-                    cursor: pending ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  <X size={15} />
-                </button>
-              </div>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => inputRef.current?.click()}
-                style={{
-                  marginTop: 8,
-                  padding: 0,
-                  border: 0,
-                  background: 'transparent',
-                  color: C.primary,
-                  fontFamily: 'inherit',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: pending ? 'not-allowed' : 'pointer',
-                }}
-              >
-                다른 파일 다시 선택
-              </button>
-            </div>
-          )}
+          <SettingBookReferenceFields idPrefix="setting-book-upload" kind={referenceKind} episodeNo={referenceEpisodeNo}
+            disabled={pending} onKindChange={onReferenceKindChange} onEpisodeNoChange={onReferenceEpisodeNoChange} />
 
           <div className="setting-book-upload-note" style={{
             display: 'flex',
@@ -479,7 +337,7 @@ function SettingBookUploadModal({
             testId="setting-book-upload-submit"
             label={pending ? '업로드 중...' : '설정집 업로드'}
             icon={pending ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-            disabled={!file || Boolean(fileError) || pending}
+            disabled={!file || Boolean(fileError) || !validSettingBookReference(referenceKind, referenceEpisodeNo) || pending}
             onClick={onSubmit}
           />
         </div>
@@ -733,7 +591,14 @@ function SourcePanel({
   failed,
   editing,
   draft,
+  referenceKind,
+  referenceEpisodeNo,
+  unsaved,
+  onReferenceKindChange,
+  onReferenceEpisodeNoChange,
   actionError,
+  sourceConflict,
+  reloading,
   saving,
   deleting,
   onDraftChange,
@@ -743,6 +608,8 @@ function SourcePanel({
   onSave,
   onDelete,
   onClose,
+  workId,
+  onAnalysisCreated,
 }: {
   summary: SettingBookSummaryResponse | null;
   detail: SettingBookResponse | undefined;
@@ -750,7 +617,14 @@ function SourcePanel({
   failed: boolean;
   editing: boolean;
   draft: string;
+  referenceKind: SettingBookReferenceKind;
+  referenceEpisodeNo: string;
+  unsaved: boolean;
+  onReferenceKindChange: (kind: SettingBookReferenceKind) => void;
+  onReferenceEpisodeNoChange: (value: string) => void;
   actionError: string | null;
+  sourceConflict: boolean;
+  reloading: boolean;
   saving: boolean;
   deleting: boolean;
   onDraftChange: (value: string) => void;
@@ -760,6 +634,8 @@ function SourcePanel({
   onSave: () => void;
   onDelete: () => void;
   onClose: () => void;
+  workId: string;
+  onAnalysisCreated: (job: AnalysisJobResponse) => void;
 }) {
   const metadata = detail ?? summary;
   const metadataType = metadata ? fileType(metadata) : 'FILE';
@@ -817,12 +693,12 @@ function SourcePanel({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {editing ? (
             <>
-              <ActionButton label="취소" disabled={saving} onClick={onCancelEdit} />
+              <ActionButton label="취소" disabled={saving || reloading} onClick={onCancelEdit} />
               <PrimaryButton
                 testId="setting-book-save"
                 label={saving ? '저장 중...' : '저장'}
                 icon={saving ? <Loader2 size={13} className="spin" /> : undefined}
-                disabled={saving}
+                disabled={saving || reloading || sourceConflict || !validSettingBookReference(referenceKind, referenceEpisodeNo)}
                 onClick={onSave}
               />
             </>
@@ -864,6 +740,13 @@ function SourcePanel({
         </div>
       </div>
 
+      {detail && <SettingBookAnalysisStatus key={detail.id} workId={workId} book={detail}
+        unsaved={unsaved} busy={saving || deleting || reloading} onCreated={onAnalysisCreated} />}
+
+      {editing ? <SettingBookReferenceFields idPrefix="setting-book-edit" kind={referenceKind} episodeNo={referenceEpisodeNo}
+        disabled={saving} onKindChange={onReferenceKindChange} onEpisodeNoChange={onReferenceEpisodeNoChange} />
+        : <p className="setting-book-reference-label">{settingBookReferenceLabel(referenceKind, referenceKind === 'EPISODE' ? Number(referenceEpisodeNo) : null)}</p>}
+
       {actionError && (
         <div role="alert" style={{
           display: 'flex',
@@ -895,7 +778,7 @@ function SourcePanel({
             <Loader2 size={16} className="spin" />
             전체 원문을 불러오는 중...
           </div>
-        ) : failed ? (
+        ) : failed && !editing ? (
           <div role="alert" style={{
             height: '100%',
             display: 'flex',
@@ -974,11 +857,14 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   const queryClient = useQueryClient();
   const selectedId = searchParams.get(SETTING_BOOK_ID_PARAM);
   const uploadModalOpen = searchParams.get('modal') === UPLOAD_MODAL_VALUE;
+  const [editing, setEditing] = useState(false);
+  const editSession = useRef(0);
 
   const listQuery = useQuery({
     ...getSettingBooksOptions({ path: { workId } }),
     enabled,
     retry: false,
+    refetchInterval: query => query.state.data?.data?.some(book => book.analysisStatus === 'PENDING' || book.analysisStatus === 'RUNNING') ? 3000 : false,
   });
   const detailQuery = useQuery({
     ...getSettingBookOptions({
@@ -986,6 +872,7 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
     }),
     enabled: enabled && Boolean(selectedId),
     retry: false,
+    refetchInterval: query => editing || query.state.data?.data?.analysisStatus === 'PENDING' || query.state.data?.data?.analysisStatus === 'RUNNING' ? 3000 : false,
   });
   const uploadRequest = useMutation(uploadSettingBookMutation());
   const updateRequest = useMutation(updateSettingBookMutation());
@@ -994,8 +881,14 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadFileError, setUploadFileError] = useState<string | null>(null);
   const [uploadRequestError, setUploadRequestError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [uploadReferenceKind, setUploadReferenceKind] = useState<SettingBookReferenceKind>('UNSPECIFIED');
+  const [uploadReferenceEpisodeNo, setUploadReferenceEpisodeNo] = useState('');
+  const [editingRevisionNo, setEditingRevisionNo] = useState<number | null>(null);
+  const [sourceConflict, setSourceConflict] = useState(false);
+  const [reloadingSource, setReloadingSource] = useState(false);
   const [draft, setDraft] = useState('');
+  const [referenceKind, setReferenceKind] = useState<SettingBookReferenceKind>('UNSPECIFIED');
+  const [referenceEpisodeNo, setReferenceEpisodeNo] = useState('');
   const [sourceActionError, setSourceActionError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SettingBookSummaryResponse | null>(null);
   const [deleteFailed, setDeleteFailed] = useState(false);
@@ -1003,6 +896,13 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   const rows = useMemo(() => listQuery.data?.data ?? [], [listQuery.data?.data]);
   const detail = detailQuery.data?.data;
   const selectedSummary = rows.find(item => item.id === selectedId) ?? null;
+  const revisionChangedWhileEditing = editing && editingRevisionNo !== null && detail !== undefined
+    && (detail.revisionNo ?? 0) !== editingRevisionNo;
+  const staleEdit = editing && (sourceConflict || revisionChangedWhileEditing);
+
+  useEffect(() => {
+    if (revisionChangedWhileEditing && !updateRequest.isPending) setSourceConflict(true);
+  }, [revisionChangedWhileEditing, updateRequest.isPending]);
 
   const replaceSearchParams = (update: (next: URLSearchParams) => void) => {
     setSearchParams(current => {
@@ -1013,8 +913,11 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   };
 
   const clearSelection = () => {
+    editSession.current += 1;
     replaceSearchParams(next => next.delete(SETTING_BOOK_ID_PARAM));
     setEditing(false);
+    setEditingRevisionNo(null);
+    setSourceConflict(false);
     setDraft('');
     setSourceActionError(null);
   };
@@ -1028,33 +931,46 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
       return next;
     }, { replace: true });
     setEditing(false);
+    setEditingRevisionNo(null);
+    setSourceConflict(false);
     setDraft('');
     setSourceActionError(null);
   }, [listQuery.isError, listQuery.isPending, rows, selectedId, setSearchParams]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    editSession.current += 1;
+    setReloadingSource(false);
     setEditing(false);
+    setEditingRevisionNo(null);
+    setSourceConflict(false);
     setDraft('');
     setSourceActionError(null);
-  }, [selectedId]);
+    return () => { editSession.current += 1; };
+  }, [selectedId, workId]);
 
   useEffect(() => {
-    if (!editing && detail?.content !== undefined) setDraft(detail.content);
-  }, [detail?.content, editing]);
+    if (editing || detail?.content === undefined) return;
+    setDraft(detail.content);
+    setReferenceKind(detail.referenceTimeKind ?? 'UNSPECIFIED');
+    setReferenceEpisodeNo(detail.referenceEpisodeNo == null ? '' : String(detail.referenceEpisodeNo));
+  }, [detail?.content, detail?.referenceTimeKind, detail?.referenceEpisodeNo, editing]);
 
   const openUploadModal = () => {
     setUploadRequestError(null);
     replaceSearchParams(next => next.set('modal', UPLOAD_MODAL_VALUE));
   };
 
-  const closeUploadModal = () => {
+  const closeUploadModal = (selectId?: string) => {
     if (uploadRequest.isPending) return;
     replaceSearchParams(next => {
       if (next.get('modal') === UPLOAD_MODAL_VALUE) next.delete('modal');
+      if (selectId) next.set(SETTING_BOOK_ID_PARAM, selectId);
     });
     setUploadFile(null);
     setUploadFileError(null);
     setUploadRequestError(null);
+    setUploadReferenceKind('UNSPECIFIED');
+    setUploadReferenceEpisodeNo('');
   };
 
   const refreshList = () => queryClient.invalidateQueries({
@@ -1062,22 +978,29 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
   });
 
   const uploadSettingBook = async () => {
-    if (!uploadFile || uploadFileError || uploadRequest.isPending) return;
+    if (!uploadFile || uploadFileError || uploadRequest.isPending
+      || !validSettingBookReference(uploadReferenceKind, uploadReferenceEpisodeNo)) return;
     setUploadRequestError(null);
     try {
-      await uploadRequest.mutateAsync({
+      const response = await uploadRequest.mutateAsync({
         path: { workId },
         body: { file: uploadFile },
+        query: { referenceTimeKind: uploadReferenceKind,
+          referenceEpisodeNo: uploadReferenceKind === 'EPISODE' ? Number(uploadReferenceEpisodeNo) : undefined },
       });
       await refreshList();
-      closeUploadModal();
+      closeUploadModal(response.data?.latestAnalysisJob?.id ? response.data.id : undefined);
     } catch (error) {
       setUploadRequestError(toApiError(error)?.message ?? '설정집 원본을 업로드하지 못했습니다.');
     }
   };
 
   const saveSettingBook = async () => {
-    if (!selectedId || updateRequest.isPending) return;
+    if (!selectedId || !editing || editingRevisionNo === null || staleEdit || reloadingSource || updateRequest.isPending) return;
+    if (!validSettingBookReference(referenceKind, referenceEpisodeNo)) {
+      setSourceActionError('기준 회차는 1 이상의 정수로 입력해 주세요.');
+      return;
+    }
     if (!draft.trim()) {
       setSourceActionError('설정집 원문을 비워둘 수 없습니다.');
       return;
@@ -1090,8 +1013,12 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
     try {
       const updated = await updateRequest.mutateAsync({
         path: { workId, settingBookId: selectedId },
-        body: { content: draft },
+        body: { content: draft, expectedRevisionNo: editingRevisionNo, referenceTimeKind: referenceKind,
+          referenceEpisodeNo: referenceKind === 'EPISODE' ? Number(referenceEpisodeNo) : undefined },
       });
+      setEditing(false);
+      setEditingRevisionNo(updated.data?.revisionNo ?? 0);
+      setSourceConflict(false);
       queryClient.setQueryData(
         getSettingBookQueryKey({ path: { workId, settingBookId: selectedId } }),
         updated,
@@ -1102,10 +1029,35 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
           queryKey: getSettingBookQueryKey({ path: { workId, settingBookId: selectedId } }),
         }),
       ]);
-      setEditing(false);
     } catch (error) {
-      setSourceActionError(toApiError(error)?.message ?? '설정집 원문을 수정하지 못했습니다.');
+      const apiError = toApiError(error);
+      if (apiError?.status === 409 || apiError?.code === 'UPLOAD_SETTING_BOOK_REVISION_CONFLICT') {
+        setSourceConflict(true);
+      } else {
+        setSourceActionError(apiError?.message ?? '설정집 원문을 수정하지 못했습니다.');
+      }
     }
+  };
+
+  const cancelEdit = async () => {
+    if (updateRequest.isPending || reloadingSource) return;
+    const session = editSession.current;
+    setReloadingSource(true);
+    const latest = await detailQuery.refetch();
+    // A previous selection (including A → B → A) cannot finish a new edit session.
+    if (session !== editSession.current) return;
+    setReloadingSource(false);
+    if (latest.isError || !latest.data?.data) {
+      setSourceActionError('최신 원문을 불러오지 못했습니다. 작성 중인 내용은 그대로 보관되어 있습니다. 취소를 다시 눌러 최신 원문을 확인해 주세요.');
+      return;
+    }
+    setDraft(latest.data.data.content ?? '');
+    setReferenceKind(latest.data.data.referenceTimeKind ?? 'UNSPECIFIED');
+    setReferenceEpisodeNo(latest.data.data.referenceEpisodeNo == null ? '' : String(latest.data.data.referenceEpisodeNo));
+    setSourceActionError(null);
+    setSourceConflict(false);
+    setEditingRevisionNo(null);
+    setEditing(false);
   };
 
   const openDeleteModal = () => {
@@ -1218,27 +1170,42 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
             />
             {selectedId ? (
               <SourcePanel
+                workId={workId}
+                onAnalysisCreated={job => queryClient.setQueryData(getSettingBookQueryKey({ path: { workId, settingBookId: selectedId } }), {
+                  ...detailQuery.data, data: detail ? { ...detail, latestAnalysisJob: job, analysisStatus: job.status, contentChangedSinceAnalysis: false } : detail,
+                })}
                 summary={selectedSummary}
                 detail={detail}
                 loading={detailQuery.isPending}
                 failed={detailQuery.isError}
                 editing={editing}
                 draft={draft}
-                actionError={sourceActionError}
+                referenceKind={referenceKind}
+                referenceEpisodeNo={referenceEpisodeNo}
+                onReferenceKindChange={setReferenceKind}
+                onReferenceEpisodeNoChange={setReferenceEpisodeNo}
+                unsaved={staleEdit || editing && (draft !== detail?.content || referenceKind !== (detail?.referenceTimeKind ?? 'UNSPECIFIED')
+                  || referenceKind === 'EPISODE' && Number(referenceEpisodeNo) !== detail?.referenceEpisodeNo)}
+                actionError={sourceActionError ?? (staleEdit ? SOURCE_REVISION_CONFLICT_MESSAGE : null)}
+                sourceConflict={staleEdit}
+                reloading={reloadingSource}
                 saving={updateRequest.isPending}
                 deleting={deleteRequest.isPending}
                 onDraftChange={setDraft}
                 onRetry={() => void detailQuery.refetch()}
                 onStartEdit={() => {
+                  if (!detail) return;
+                  editSession.current += 1;
+                  setReloadingSource(false);
                   setDraft(detail?.content ?? '');
+                  setReferenceKind(detail?.referenceTimeKind ?? 'UNSPECIFIED');
+                  setReferenceEpisodeNo(detail?.referenceEpisodeNo == null ? '' : String(detail.referenceEpisodeNo));
                   setSourceActionError(null);
+                  setEditingRevisionNo(detail.revisionNo ?? 0);
+                  setSourceConflict(false);
                   setEditing(true);
                 }}
-                onCancelEdit={() => {
-                  setDraft(detail?.content ?? '');
-                  setSourceActionError(null);
-                  setEditing(false);
-                }}
+                onCancelEdit={() => void cancelEdit()}
                 onSave={() => void saveSettingBook()}
                 onDelete={openDeleteModal}
                 onClose={clearSelection}
@@ -1257,6 +1224,10 @@ export function SettingBookWorkspace({ workId, enabled }: Props) {
             fileError={uploadFileError}
             requestError={uploadRequestError}
             pending={uploadRequest.isPending}
+            referenceKind={uploadReferenceKind}
+            referenceEpisodeNo={uploadReferenceEpisodeNo}
+            onReferenceKindChange={setUploadReferenceKind}
+            onReferenceEpisodeNoChange={setUploadReferenceEpisodeNo}
             onFileChange={(file, error) => {
               setUploadFile(file);
               setUploadFileError(error);

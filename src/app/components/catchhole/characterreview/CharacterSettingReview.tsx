@@ -1,3 +1,6 @@
+import { guardReviewSourceMutation, useReviewAnalysisSource } from '../../../hooks/useReviewAnalysisSource';
+import { analysisSourceLabel, analysisSourceReaderUrl, analysisSourcesLabel, bookWorkspaceUrl, isSameReviewScope } from '../../../lib/analysis-source';
+import { bookReviewValueKey } from '../../../lib/book-current-review';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -43,8 +46,9 @@ import { toApiError } from '../../../lib/api-errors';
 import { CHARACTER_FACT_TYPE_LABELS, type CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import {
-  AUTOMATIC_APPLICATION_PENDING_MESSAGE,
+  automaticApplicationPendingMessage,
   automaticReviewHoldLabel,
+  automaticReviewHoldMessage,
   isAutomaticApplicationPending,
   combinedSettingReviewProgress,
   isCandidateComparisonProcessing,
@@ -278,9 +282,9 @@ function matchesReviewFilter(status: ReviewStatus, filter: ReviewFilter): boolea
   return filter === 'ALL' || status === filter;
 }
 
-function isCharacterReviewLocation(): boolean {
+function isCharacterReviewLocation(workId: string, batchId: string, sourceAnalysisJobId?: string): boolean {
   const currentParams = new URLSearchParams(window.location.search);
-  return window.location.pathname === '/setting-review'
+  return isSameReviewScope(workId, batchId, sourceAnalysisJobId)
     && currentParams.get('candidateType') !== 'world';
 }
 
@@ -462,7 +466,7 @@ export function CandidateGroupCard({
   const directReviewCount = candidates.filter(needsDirectCandidateReview).length;
   const processingCount = candidates.filter(isCandidateComparisonProcessing).length;
   const matchStatuses = Array.from(new Set(candidates.map(candidate => candidate.matchStatus).filter(Boolean)));
-  const episodes = group.evidenceEpisodeNos ?? [];
+
   return (
     <button
       type="button"
@@ -484,7 +488,7 @@ export function CandidateGroupCard({
         <StatusBadge label={`${group.candidateCount ?? candidates.length}개 설정`} color={C.primary} />
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, color: REVIEW_TEXT.muted, fontSize: 11 }}>
-        <span>{episodes.length > 0 ? `${episodes.join(', ')}화` : '출처 회차 없음'}</span>
+        <span>{analysisSourcesLabel(candidates, group.evidenceEpisodeNos)}</span>
         {directReviewCount > 0 && <span style={{ color: REVIEW_TEXT.warning }}>· 직접 확인 {directReviewCount}개</span>}
         {processingCount > 0 && <span style={{ color: REVIEW_TEXT.primary }}>· 분석 중 {processingCount}개</span>}
       </div>
@@ -681,6 +685,7 @@ function CandidateEditModal({
   candidate,
   pending,
   automaticPending = false,
+  readOnly = false,
   error,
   onClose,
   onSubmit,
@@ -688,6 +693,7 @@ function CandidateEditModal({
   candidate: SettingCandidateResponse;
   pending: boolean;
   automaticPending?: boolean;
+  readOnly?: boolean;
   error: string | null;
   onClose: () => void;
   onSubmit: (attributeName: string, attributeValue: string | null, reviewedApplicationMode?: CharacterFactApplicationMode) => void;
@@ -701,13 +707,15 @@ function CandidateEditModal({
   const [attributeValue, setAttributeValue] = useState(candidate.attributeValue ?? '');
   const supportsManualDecision = candidate.manualReviewAvailable
     && candidate.matchStatus !== 'AMBIGUOUS' && Boolean(candidate.entityName && candidate.entityName !== '미상');
-  const [reviewMode, setReviewMode] = useState<CharacterFactApplicationMode | null>(candidate.reviewedApplicationMode ?? null);
+  const bookRemoval = candidate.source?.sourceKind === 'SETTING_BOOK' && candidate.suggestedOperation === 'REMOVE';
+  const [reviewMode, setReviewMode] = useState<CharacterFactApplicationMode | null>(
+    bookRemoval && candidate.reviewedApplicationMode !== 'HISTORY_ONLY' ? null : candidate.reviewedApplicationMode ?? null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const valueFormatError = validateCandidateDisplayValue(candidate.valueType, attributeValue);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending || supportsManualDecision && !reviewMode) return;
+    if (pending || automaticPending || readOnly || supportsManualDecision && !reviewMode) return;
     const nextName = editableName ? `${dynamicName.prefix}${attributeSuffix.trim()}` : originalName;
     if (!nextName) {
       setValidationError('설정명 정보가 없어 수정할 수 없습니다.');
@@ -735,7 +743,8 @@ function CandidateEditModal({
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
-        {automaticPending && <AutomaticApplicationNotice />}
+        {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
+        {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
         {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
         <div style={{ marginTop: 22 }}>
           <label htmlFor="candidate-attribute-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
@@ -801,8 +810,8 @@ function CandidateEditModal({
         {supportsManualDecision && <ReviewChoiceCards label="수정한 내용을 어디에 반영할까요?" value={reviewMode}
           disabled={pending || automaticPending} onChange={mode => setReviewMode(mode as CharacterFactApplicationMode)}
           choices={[
-            { id: 'APPLY_PROPOSAL', title: '현재 설정에 반영', description: '위의 값으로 현재 설정을 바꿉니다.' },
-            { id: 'HISTORY_ONLY', title: '이력에만 저장', description: '현재 설정은 유지하고 이 회차의 기록으로 남깁니다.' },
+            ...(!bookRemoval ? [{ id: 'APPLY_PROPOSAL', title: '현재 설정에 반영', description: '위의 값으로 현재 설정을 바꿉니다.' }] : []),
+            { id: 'HISTORY_ONLY', title: '이력에만 저장', description: candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고 이 설정집의 기록으로 남깁니다.' : '현재 설정은 유지하고 이 회차의 기록으로 남깁니다.' },
           ]} />}
         {(validationError || valueFormatError || error) && (
           <div id="candidate-attribute-value-error" role="alert" style={{
@@ -815,8 +824,8 @@ function CandidateEditModal({
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending || Boolean(valueFormatError) || Boolean(supportsManualDecision && !reviewMode)}
-            disabledTitle={automaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : valueFormatError ?? (supportsManualDecision && !reviewMode ? '반영 방식을 먼저 선택해 주세요.' : undefined)} tone={C.primary}>
+          <ActionButton type="submit" disabled={pending || automaticPending || readOnly || Boolean(valueFormatError) || Boolean(supportsManualDecision && !reviewMode)}
+            disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : valueFormatError ?? (supportsManualDecision && !reviewMode ? '반영 방식을 먼저 선택해 주세요.' : undefined)} tone={C.primary}>
             {pending ? '저장 중…' : candidate.manualReviewAvailable ? '확인한 값 저장' : '저장'}
           </ActionButton>
         </div>
@@ -833,6 +842,7 @@ function CharacterMatchModal({
   initialResolution,
   pending,
   automaticPending = false,
+  readOnly = false,
   error,
   groupCandidateCount,
   onClose,
@@ -843,6 +853,7 @@ function CharacterMatchModal({
   initialResolution: MatchResolution;
   pending: boolean;
   automaticPending?: boolean;
+  readOnly?: boolean;
   error: string | null;
   groupCandidateCount?: number;
   onClose: () => void;
@@ -877,7 +888,7 @@ function CharacterMatchModal({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending) return;
+    if (pending || automaticPending || readOnly) return;
     if (resolution === 'MATCH_EXISTING' && !selectedCharacterVisible) {
       setValidationError('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
       return;
@@ -907,7 +918,8 @@ function CharacterMatchModal({
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
-        {automaticPending && <AutomaticApplicationNotice />}
+        {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
+        {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
         {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 20 }}>
           {([
@@ -1042,7 +1054,7 @@ function CharacterMatchModal({
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending} tone={C.primary}>
+          <ActionButton type="submit" disabled={pending || automaticPending || readOnly} tone={C.primary}>
             {pending ? '연결 중…' : resolution === 'MATCH_EXISTING' ? '선택한 캐릭터에 연결' : '새 캐릭터로 등록'}
           </ActionButton>
         </div>
@@ -1120,6 +1132,7 @@ export function CandidateDetail({
   const processing = isCandidateComparisonProcessing(candidate);
   const confidence = confidenceDescription(candidate.confidence ?? undefined);
   const quotes = evidenceQuotes(candidate.evidenceSpans);
+  const evidenceUrl = workId && candidate.source?.sourceKind === 'SETTING_BOOK' ? analysisSourceReaderUrl(workId, candidate.source) : null;
   const settingDisplay = toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName, labels);
   const comparisonEnabled = hasCharacterFactComparison(candidate);
   const invalidValue = isCandidateValueInvalid(candidate);
@@ -1130,6 +1143,9 @@ export function CandidateDetail({
     : needsTarget ? '인물 확인' : existingCharacterConnected ? '인물 연결' : '새로운 인물';
   const disabled = actionPending || automaticPending;
   const holdLabel = automaticReviewHoldLabel(candidate);
+  const holdMessage = automaticReviewHoldMessage(candidate);
+  const comparisonReasonVisible = !readOnly && !automaticPending && comparisonEnabled && !invalidValue
+    && (candidate.manualReviewAvailable || candidate.suggestedOperation === 'REVIEW_REQUIRED');
   const removed = reviewStatus === 'CONFIRMED' && candidate.suggestedOperation === 'REMOVE' && !candidate.historyOnly;
   const statusLabel = removed ? '현재 설정에서 제거됨' : readOnly ? REVIEW_LABELS[reviewStatus]
     : processing ? '분석 중' : invalidValue ? '값 확인 필요' : manuallyReviewed ? '반영 준비'
@@ -1144,27 +1160,28 @@ export function CandidateDetail({
       subtitle={`캐릭터 · ${candidate.entityName || '인물 미상'}`}
       image={<ReviewSubjectThumbnail kind="character" workId={workId} characterId={candidate.matchedCharacterId} />}
       badge={<StatusBadge label={statusLabel} color={processing ? C.primary : readOnly ? reviewColor(reviewStatus) : manuallyReviewed ? C.success : C.warning} />}
-      episode={candidate.episodeNo == null ? '출처 회차 없음' : `${candidate.episodeNo}화에서 찾은 설정`}
+      episode={analysisSourceLabel(candidate.source, candidate.episodeNo)}
       actions={!readOnly && <>
         {!automaticPending && <ActionButton disabled={!onMatch || disabled || invalidValue}
           onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결 변경</ActionButton>}
         <ActionButton disabled={!onEdit || disabled || invalidValue && !invalidValueRepairable}
-          disabledTitle={automaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : invalidValue && !invalidValueRepairable ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.' : undefined}
+          disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : invalidValue && !invalidValueRepairable ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.' : undefined}
           onClick={onEdit}>수정</ActionButton>
         <ActionButton disabled={!onDismiss || actionPending || automaticPending} tone={C.danger} onClick={onDismiss}>{dismissing ? '제외 중…' : '제외'}</ActionButton>
       </>} />
 
     {automaticPending ? <ReviewNotice title="분석이 진행 중이에요">분석이 끝나면 설정을 수정하고 확정할 수 있어요.</ReviewNotice> : <>
       {readOnly && <ReviewNotice tone={reviewStatus === 'CONFIRMED' ? 'success' : 'info'} title={removed ? '현재 설정에서 제거했어요' : reviewStatus === 'CONFIRMED' ? '반영을 마친 설정이에요' : '검토 목록에서 제외했어요'}>
-        {removed ? '이 설정은 현재 설정에서 제거되었고, 이전 내용과 이번 변경은 이력에 남아 있습니다.' : reviewStatus === 'CONFIRMED' ? candidate.historyOnly ? '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 저장된 내용과 근거를 확인할 수 있어요.' : '이 후보는 추가하지 않았어요. 기존 설정과 이력은 그대로 유지됩니다.'}
+        {removed ? '이 설정은 현재 설정에서 제거되었고, 이전 내용과 이번 변경은 이력에 남아 있습니다.' : reviewStatus === 'CONFIRMED' ? candidate.historyOnly ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고, 이 설정집의 이력에 저장했습니다.' : '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 저장된 내용과 근거를 확인할 수 있어요.' : '이 후보는 추가하지 않았어요. 기존 설정과 이력은 그대로 유지됩니다.'}
       </ReviewNotice>}
+      {!readOnly && holdMessage && <ReviewNotice tone="warning" title={holdMessage.title}>{holdMessage.description}</ReviewNotice>}
       {invalidValue && <ReviewNotice tone="danger" title="설정값의 형식을 확인해 주세요">
         {invalidValueRepairable ? candidate.valueValidation?.message ?? '이 설정값을 올바르게 읽지 못했습니다.' : '지금은 이 항목을 수정할 수 없습니다. 원문을 확인한 뒤 제외하면 나머지 설정을 검토할 수 있어요.'}
       </ReviewNotice>}
       {invalidValue && invalidValueRepairable && !readOnly && onSaveValue && <CandidateInlineValueEditor key={candidate.id}
         candidate={candidate} disabled={disabled} onSave={onSaveValue} />}
       {needsTarget && !readOnly && <>
-        <ReviewInlineValue label="이번 원고에서">{candidate.attributeValue || '인물의 등장'}</ReviewInlineValue>
+        <ReviewInlineValue label={candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서' : '이번 원고에서'}>{candidate.attributeValue || '인물의 등장'}</ReviewInlineValue>
         {(workId || previewCharacters) && onResolveTarget ? <CharacterTargetChoices candidate={candidate} workId={workId} previewCharacters={previewCharacters}
           disabled={disabled || invalidValue} resolutionError={actionError} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING')} />
           : <ReviewNotice title="누구에 관한 내용인가요?" action={<ActionButton disabled={disabled || invalidValue} onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결</ActionButton>}>원문에 등장한 인물을 선택해 주세요.</ReviewNotice>}
@@ -1174,11 +1191,12 @@ export function CandidateDetail({
         onModeChange={onApplicationModeChange} onReview={onReviewDecision} onEdit={onEdit}
         onRetry={onRetryComparison} retrying={retrying} retryError={retryError} />}
       {!comparisonEnabled && !needsTarget && <ReviewInlineValue
-        label={existingCharacterConnected ? '연결된 인물' : reviewStatus === 'CONFIRMED' ? '등록된 인물' : readOnly ? '원고에서 찾은 인물' : '새로 등록할 인물'}
+        label={existingCharacterConnected ? '연결된 인물' : reviewStatus === 'CONFIRMED' ? '등록된 인물' : readOnly ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '설정집에서 찾은 인물' : '원고에서 찾은 인물' : '새로 등록할 인물'}
         tone={existingCharacterConnected ? 'neutral' : 'new'}>{candidate.entityName || '이름을 확인해 주세요'}</ReviewInlineValue>}
     </>}
     {actionError && <ReviewNotice tone="danger">{actionError}</ReviewNotice>}
-    <ReviewEvidence summary={`원문 근거 확인${candidate.episodeNo == null ? '' : ` · ${candidate.episodeNo}화`}`}>
+    <ReviewEvidence summary={`원문 근거 확인 · ${analysisSourceLabel(candidate.source, candidate.episodeNo)}`}>
+      {evidenceUrl && <a className="world-setting-evidence-reader" href={evidenceUrl}>분석 당시 원문 보기</a>}
       <div className="character-setting-evidence-card theme-evidence">
         <strong>1차 추출 원문</strong>
         {quotes.length ? quotes.map((quote, index) => <blockquote className="theme-evidence__quote" key={`${index}-${quote}`}>{quote}</blockquote>)
@@ -1186,7 +1204,7 @@ export function CandidateDetail({
         <p>원문 표현 · {candidate.rawEntityMention || candidate.entityName || '정보 없음'}</p>
         <small>근거 명확도 {confidence.percent} · {confidence.description}</small>
       </div>
-      {candidate.comparisonReason && <div><strong>AI 판단 근거</strong><p>{candidate.comparisonReason}</p></div>}
+      {candidate.comparisonReason && !comparisonReasonVisible && <div><strong>AI 판단 근거</strong><p>{candidate.comparisonReason}</p></div>}
       {holdLabel && <p>확인 요청 · {holdLabel}</p>}
       <p>{MATCH_LABELS[matchStatus]}</p>
     </ReviewEvidence>
@@ -1231,6 +1249,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const [searchParams, setSearchParams] = useSearchParams();
   const workId = searchParams.get('workId') ?? '';
   const batchId = searchParams.get('batchId') ?? '';
+  const sourceAnalysisJobId = searchParams.get('sourceAnalysisJobId') ?? undefined;
+  const sourceScope = useReviewAnalysisSource(workId, batchId, sourceAnalysisJobId);
   const selectedGroupKey = searchParams.get('group');
   const legacyCandidateId = searchParams.get('candidate');
   const reviewFilter = parseReviewFilter(searchParams.get('reviewStatus'));
@@ -1239,10 +1259,16 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const size = parsePositiveInteger(searchParams.get('size'), DEFAULT_PAGE_SIZE, 100);
   const apiPage = urlPage - 1;
   const { mainRef, contentRef, preserveViewport } = useReviewScrollStability(
-    JSON.stringify([workId, batchId, reviewFilter, matchFilter, apiPage, size]),
+    JSON.stringify([workId, batchId, sourceAnalysisJobId, reviewFilter, matchFilter, apiPage, size]),
   );
   const hasContext = Boolean(workId && batchId);
   const [editCandidate, setEditCandidate] = useState<SettingCandidateResponse | null>(null);
+  const [currentApplications, setCurrentApplications] = useState<Record<string, string>>({});
+  const setCurrentApplication = (candidateId: string, valueKey: string | null) => setCurrentApplications(previous => {
+    const next = { ...previous };
+    if (valueKey) next[candidateId] = valueKey; else delete next[candidateId];
+    return next;
+  });
   const [groupMatchOpen, setGroupMatchOpen] = useState(false);
   const [matchTarget, setMatchTarget] = useState<{
     candidate: SettingCandidateResponse;
@@ -1263,7 +1289,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     ...getSettingCandidatesOptions({
       path: { workId },
       query: {
-          batchId,
+          sourceAnalysisJobId, batchId,
           reviewStatus: reviewFilter === 'ALL' ? undefined : reviewFilter,
           matchStatuses: matchStatusesForFilter(matchFilter),
           page: apiPage,
@@ -1295,7 +1321,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const legacyCandidateQuery = useQuery({
     ...getSettingCandidateOptions({
       path: { workId, candidateId: legacyCandidateId ?? '' },
-      query: { batchId },
+      query: { sourceAnalysisJobId, batchId },
     }),
     enabled: hasContext && Boolean(legacyCandidateId),
     retry: shouldRetryCandidateQuery,
@@ -1371,7 +1397,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const worldSummaryQuery = useQuery({
     ...getWorldSettingCandidatesOptions({
       path: { workId },
-      query: { batchId, page: 0, size: 1 },
+      query: { sourceAnalysisJobId, batchId, page: 0, size: 1 },
     }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,
@@ -1413,7 +1439,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         const response = await queryClient.fetchQuery(getSettingCandidatesOptions({
           path: { workId },
           query: {
-            batchId,
+            sourceAnalysisJobId, batchId,
             reviewStatus: targetReview === 'ALL' ? undefined : targetReview,
             matchStatuses: matchStatusesForFilter(targetMatch),
             page: targetPage,
@@ -1480,6 +1506,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     };
   }, [
     batchId,
+    sourceAnalysisJobId,
     legacyCandidateId,
     legacyCandidateQuery.data?.data,
     legacyCandidateQuery.isSuccess,
@@ -1536,11 +1563,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     setEditCandidate(null);
     setMatchTarget(null);
     setGroupMatchOpen(false);
-  }, [batchId, workId]);
+  }, [batchId, sourceAnalysisJobId, workId]);
+
+  const currentApplicationKey = (candidate: SettingCandidateResponse) => hasCharacterFactComparison(candidate) ? bookReviewValueKey(
+    candidate, candidate.matchedCharacterId, candidate.currentSnapshotVersion,
+  ) : null;
+  const appliesToCurrent = (candidate: SettingCandidateResponse) => Boolean(candidate.id
+    && candidate.applyToCurrentAvailable === true && currentApplicationKey(candidate)
+    && currentApplications[candidate.id] === currentApplicationKey(candidate));
 
   const applicationModeForCandidate = (candidate: SettingCandidateResponse): CharacterFactApplicationMode => (
     candidate.reviewedApplicationMode
       ? candidate.reviewedApplicationMode
+      : candidate.source?.sourceKind === 'SETTING_BOOK' && candidate.suggestedOperation === 'REMOVE' ? 'HISTORY_ONLY'
       : hasCharacterFactComparison(candidate)
       ? resolveCharacterFactApplicationMode(
           candidate,
@@ -1554,7 +1589,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
           path: { workId: targetWorkId },
-          query: { batchId },
+          query: { sourceAnalysisJobId, batchId },
         }),
       }),
       queryClient.invalidateQueries({
@@ -1564,17 +1599,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
 
   const refreshAutomaticApplicationState = async (error: unknown) => {
+    if (toApiError(error)?.status === 409 && sourceAnalysisJobId) await sourceScope.refresh();
     const code = toApiError(error)?.code;
     if (code === 'ANALYSIS_AUTOMATIC_APPLICATION_PENDING' || code === 'SETTING_CANDIDATE_COMPARISON_STALE') await invalidateCandidateData();
   };
 
   const confirmMutation = useMutation({
-    ...confirmSettingCandidateGroupMutation(),
+    ...guardReviewSourceMutation(confirmSettingCandidateGroupMutation(), sourceScope.canWrite),
     onSuccess: async (_response, variables) => {
+      variables.body.candidates.forEach(candidate => setCurrentApplication(candidate.candidateId, null));
       const submittedGroupKey = confirmingGroupKeyRef.current;
       confirmingGroupKeyRef.current = null;
       // 느린 확정 중 세계관 탭으로 이동했다면 이전 캐릭터 화면의 URL을 다시 쓰지 않는다.
-      if (isCharacterReviewLocation()) {
+      if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
         setSearchParams(previous => {
           const next = new URLSearchParams(previous);
           // 요청 중 사용자가 다른 그룹을 골랐다면 그 새 선택은 그대로 유지한다.
@@ -1587,37 +1624,39 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       }
       await invalidateCandidateData(variables.path.workId);
     },
-    onError: async (_, variables) => {
+    onError: async (error, variables) => {
+      variables.body.candidates.forEach(candidate => setCurrentApplication(candidate.candidateId, null));
       confirmingGroupKeyRef.current = null;
+      await refreshAutomaticApplicationState(error);
       await invalidateCandidateData(variables.path.workId);
     },
   });
   const retryComparisonMutation = useMutation({
-    ...retrySettingCandidateComparisonMutation(),
+    ...guardReviewSourceMutation(retrySettingCandidateComparisonMutation(), sourceScope.canWrite),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
           path: { workId: variables.path.workId },
-          query: { batchId },
+          query: { sourceAnalysisJobId, batchId },
         }),
       });
     },
   });
   const dismissMutation = useMutation({
-    ...dismissSettingCandidateMutation(),
+    ...guardReviewSourceMutation(dismissSettingCandidateMutation(), sourceScope.canWrite),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
         queryKey: getSettingCandidatesQueryKey({
           path: { workId: variables.path.workId },
-          query: { batchId },
+          query: { sourceAnalysisJobId, batchId },
         }),
       });
     },
   });
   const updateMutation = useMutation({
-    ...updateSettingCandidateMutation(),
+    ...guardReviewSourceMutation(updateSettingCandidateMutation(), sourceScope.canWrite),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (_response, variables) => {
       setEditCandidate(null);
@@ -1627,17 +1666,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     },
   });
   const matchMutation = useMutation({
-    ...updateSettingCandidateCharacterMatchMutation(),
+    ...guardReviewSourceMutation(updateSettingCandidateCharacterMatchMutation(), sourceScope.canWrite),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       onClearApplicationModes([variables.path.candidateId]);
       queryClient.setQueryData(getSettingCandidateOptions({
         path: variables.path,
-        query: { batchId },
+        query: { sourceAnalysisJobId, batchId },
       }).queryKey, response);
       setMatchTarget(null);
       selectionGroupRef.current = null;
-      if (isCharacterReviewLocation()) {
+      if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
         setSearchParams(previous => {
           const next = new URLSearchParams(previous);
           const activeMatchFilter = parseMatchFilter(previous.get('matchStatus'));
@@ -1656,13 +1695,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     },
   });
   const groupMatchMutation = useMutation({
-    ...updateSettingCandidateGroupCharacterMatchMutation(),
+    ...guardReviewSourceMutation(updateSettingCandidateGroupCharacterMatchMutation(), sourceScope.canWrite),
     onError: refreshAutomaticApplicationState,
     onSuccess: async (response, variables) => {
       onClearApplicationModes(variables.body.candidateIds);
       setGroupMatchOpen(false);
       selectionGroupRef.current = null;
-      if (isCharacterReviewLocation()) {
+      if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
         setSearchParams(previous => {
           const next = new URLSearchParams(previous);
           if (response.data?.groupKey) next.set('group', response.data.groupKey);
@@ -1696,7 +1735,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const groupMatchError = groupMatchMutation.isError
     ? errorMessage(groupMatchMutation.error, '캐릭터 연결을 일괄 적용하지 못했습니다.')
     : null;
-  const actionPending = confirmMutation.isPending
+  const actionPending = sourceScope.blocked || confirmMutation.isPending
     || dismissMutation.isPending
     || updateMutation.isPending
     || matchMutation.isPending
@@ -1763,7 +1802,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const dismissCandidate = (candidateId: string) => {
     if (actionPending || candidateAutomaticPending(candidateId)) return;
     confirmMutation.reset();
-    dismissMutation.mutate({ path: { workId, candidateId } });
+    dismissMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId, candidateId } });
   };
   const updateSelectedCandidate = (
     candidateId: string,
@@ -1771,14 +1810,23 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     attributeValue: string | null,
     reviewedApplicationMode?: CharacterFactApplicationMode,
     expectedUpdatedAt?: string,
+    chooseCurrent = false,
   ) => {
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
     if (actionPending || !candidate || candidateAutomaticPending(candidateId)) return;
+    setCurrentApplication(candidateId, null);
     updateMutation.mutate({
-      path: { workId, candidateId },
+      query: { sourceAnalysisJobId }, path: { workId, candidateId },
       body: { attributeName, attributeValue, expectedUpdatedAt: expectedUpdatedAt ?? candidate.updatedAt,
         ...(reviewedApplicationMode ? { reviewedApplicationMode } : {}) },
-    });
+    }, { onSuccess: response => {
+      const saved = response.data;
+      // A draft save may advance the candidate timestamp, but cannot silently accept a changed current target.
+      if (!chooseCurrent || !saved || !isSameReviewScope(workId, batchId, sourceAnalysisJobId)
+        || saved.currentSnapshotVersion !== candidate.currentSnapshotVersion
+        || saved.matchedCharacterId !== candidate.matchedCharacterId || !saved.applyToCurrentAvailable) return;
+      setCurrentApplication(candidateId, currentApplicationKey(saved));
+    } });
   };
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
@@ -1788,7 +1836,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       return;
     }
     groupMatchMutation.mutate({
-      path: { workId },
+      query: { sourceAnalysisJobId }, path: { workId },
       body: resolution === 'MATCH_EXISTING'
         ? { batchId, candidateIds, resolutionType: resolution, matchedCharacterId: value }
         : { batchId, candidateIds, resolutionType: resolution, entityName: value },
@@ -1802,7 +1850,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       return;
     }
     matchMutation.mutate({
-      path: { workId, candidateId },
+      query: { sourceAnalysisJobId }, path: { workId, candidateId },
       body: resolution === 'MATCH_EXISTING'
         ? { resolutionType: resolution, matchedCharacterId: value }
         : { resolutionType: resolution, entityName: value },
@@ -1812,12 +1860,14 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
     if (actionPending || !candidate || candidate.analysisMode === 'ORDERED_PROVISIONAL'
       || isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate)) return;
-    retryComparisonMutation.mutate({ path: { workId, candidateId } });
+    retryComparisonMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId, candidateId } });
   };
 
   const hasManualReview = (candidate: SettingCandidateResponse) =>
     candidate.reviewedApplicationMode != null
-    && candidate.manualReviewAvailable === true;
+    && candidate.manualReviewAvailable === true
+    && (candidate.source?.sourceKind !== 'SETTING_BOOK' || candidate.suggestedOperation !== 'REMOVE'
+      || candidate.reviewedApplicationMode === 'HISTORY_ONLY');
   const currentSelections = new Map<string, SettingCandidateResponse[]>();
   for (const candidate of pendingGroupCandidates) {
     if (!hasCharacterFactComparison(candidate) || isGroupExclusionProposal(candidate)
@@ -1836,7 +1886,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     : pendingGroupCandidates.length === 0
     ? '확정할 검토 대기 설정이 없습니다.'
     : groupAutomaticPending
-      ? AUTOMATIC_APPLICATION_PENDING_MESSAGE
+      ? automaticApplicationPendingMessage(sourceScope.source)
     : pendingGroupCandidates.some(isCandidateValueInvalid)
       ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'
     : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
@@ -1852,6 +1902,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         ? '판단이 필요한 설정에서 저장할 방법을 선택해 주세요.'
       : duplicateCurrentSelection
         ? `‘${toSettingDisplay(duplicateCurrentSelection[0].attributeName, duplicateCurrentSelection[0].attributeDisplayName, labels).nameLabel}’에 현재 반영을 여러 번 선택했어요. 현재로 남길 하나를 선택하고 나머지는 이력에 저장하거나 제외해 주세요.`
+      : pendingGroupCandidates.some(candidate => currentApplicationKey(candidate)
+          && applicationModeForCandidate(candidate) === 'APPLY_PROPOSAL' && !isGroupExclusionProposal(candidate)
+          && !appliesToCurrent(candidate))
+        ? '현재 설정에 반영할지 이력에만 남길지 각 항목에서 선택해 주세요.'
       : !groupHasSharedComparisonRevision
         ? '모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'
       : pendingGroupCandidates.some(candidate => (
@@ -1868,7 +1922,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     if (!selectedGroup || actionPending || groupConfirmBlockedReason) return;
     confirmingGroupKeyRef.current = selectedGroup.groupKey ?? null;
     confirmMutation.mutate({
-      path: { workId },
+      query: { sourceAnalysisJobId }, path: { workId },
       body: {
         batchId,
         comparisonRevision,
@@ -1876,9 +1930,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         candidates: pendingGroupCandidates.map(candidate => ({
           candidateId: candidate.id!,
           applicationMode: isGroupExclusionProposal(candidate) ? 'APPLY_PROPOSAL' : applicationModeForCandidate(candidate),
-          baseSnapshotVersion: candidate.comparisonBaseSnapshotVersion ?? null,
+          baseSnapshotVersion: appliesToCurrent(candidate) ? candidate.currentSnapshotVersion : candidate.comparisonBaseSnapshotVersion ?? null,
+          applyToCurrent: appliesToCurrent(candidate) ? true : undefined,
           applyEditedValue: hasManualReview(candidate) || candidate.analysisMode === 'ORDERED_PROVISIONAL' && candidate.userModified ? true : undefined,
-          expectedUpdatedAt: acceptsDisplayedResults || hasManualReview(candidate) ? candidate.updatedAt : undefined,
+          expectedUpdatedAt: appliesToCurrent(candidate) || acceptsDisplayedResults || hasManualReview(candidate) ? candidate.updatedAt : undefined,
         })),
       },
     });
@@ -1889,12 +1944,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     returnToAnalysisList(
       routerNavigate,
       reviewNavigationState,
-      workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
+      sourceScope.source?.sourceKind === 'SETTING_BOOK' ? bookWorkspaceUrl(workId, sourceScope.source.settingBookId) : workId ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works',
     );
   };
   const finishReview = () => {
     leavingReviewRef.current = true;
-    replaceWithManuscriptList(routerNavigate, workId);
+    if (sourceScope.source?.sourceKind === 'SETTING_BOOK') routerNavigate(bookWorkspaceUrl(workId, sourceScope.source.settingBookId), { replace: true });
+    else replaceWithManuscriptList(routerNavigate, workId);
   };
 
   const total = listData?.totalCandidateCount ?? 0;
@@ -1954,8 +2010,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       <ReviewHeader onBack={backToAnalysisList} />
       <main ref={mainRef} className="setting-review-main" style={{ flex: 1, overflowY: 'auto' }}>
         <div ref={contentRef} className="setting-review-content" style={{ maxWidth: 1450, margin: '0 auto', padding: '26px 28px 70px' }}>
+          {sourceScope.message && <p data-testid="book-review-source-state" role="status">{sourceScope.message}</p>}
           <SettingReviewSummary
-            episodeRange={listData ? formatEpisodeRange(
+            episodeRange={sourceScope.source?.sourceKind === 'SETTING_BOOK' ? analysisSourceLabel(sourceScope.source) : sourceAnalysisJobId && !sourceScope.source ? '분석 출처 확인 중' : listData ? formatEpisodeRange(
               listData.episodeStartNo,
               listData.episodeEndNo,
               listData.episodeCount ?? 0,
@@ -2071,7 +2128,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                       options={MATCH_FILTERS}
                       onChange={value => updateFilters(reviewFilter, value)}
                     />
-                    <div style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>↑ 회차 번호 · 생성 순</div>
+                    <div style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>{sourceScope.source?.sourceKind === 'SETTING_BOOK' ? '↑ 생성 순' : '↑ 회차 번호 · 생성 순'}</div>
 
                     {groups.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2146,7 +2203,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                   || groupHasInvalidCandidate
                                   || matchFilter !== 'ALL'
                                   || legacyGroupedActionsUnsafe}
-                                disabledTitle={groupAutomaticPending ? AUTOMATIC_APPLICATION_PENDING_MESSAGE : groupHasInvalidCandidate
+                                disabledTitle={groupAutomaticPending ? automaticApplicationPendingMessage(sourceScope.source) : groupHasInvalidCandidate
                                   ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 일괄 연결해 주세요.'
                                   : legacyGroupedActionsUnsafe
                                   ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 연결할 수 없습니다.'
@@ -2177,10 +2234,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               workId={workId}
                               onSaveValue={value => updateSelectedCandidate(candidate.id!, candidate.attributeName!, value)}
                               onReviewDecision={candidate.manualReviewAvailable
-                                ? mode => updateSelectedCandidate(candidate.id!, candidate.attributeName!, candidate.attributeValue?.trim() || null, mode) : undefined}
+                                ? mode => updateSelectedCandidate(candidate.id!, candidate.attributeName!, candidate.attributeValue?.trim() || null, mode,
+                                  undefined, mode === 'APPLY_PROPOSAL' && candidate.source?.sourceKind === 'SETTING_BOOK') : undefined}
                               onResolveTarget={(resolution, value) => matchSelectedCandidate(candidate.id!, resolution, value)}
                               manuallyReviewed={hasManualReview(candidate)}
-                              decisionChosen={hasManualReview(candidate) || Boolean(applicationModes[candidate.id!])}
+                              decisionChosen={currentApplicationKey(candidate)
+                                ? appliesToCurrent(candidate) || applicationModeForCandidate(candidate) === 'HISTORY_ONLY'
+                                : hasManualReview(candidate) || Boolean(applicationModes[candidate.id!])}
                               applicationMode={applicationModeForCandidate(candidate)}
                               actionError={dismissErrorForCandidate(candidate.id)
                                 ?? (updateMutation.isError && updateMutation.variables.path.candidateId === candidate.id
@@ -2209,7 +2269,11 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                     setMatchTarget({ candidate, resolution });
                                   }
                                 : undefined}
-                              onApplicationModeChange={mode => onApplicationModeChange(candidate.id!, mode)}
+                              onApplicationModeChange={mode => {
+                                setCurrentApplication(candidate.id!, mode === 'APPLY_PROPOSAL' && candidate.applyToCurrentAvailable
+                                  ? currentApplicationKey(candidate) : null);
+                                onApplicationModeChange(candidate.id!, mode);
+                              }}
                               onRetryComparison={() => retryCandidateComparison(candidate.id!)}
                             />
                           ))}
@@ -2269,7 +2333,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                   onClick={finishReview}
                 >
                   {reviewComplete
-                    ? '원고 목록으로'
+                    ? sourceScope.source?.sourceKind === 'SETTING_BOOK' ? '설정집으로' : '원고 목록으로'
                     : remainingReviewLabel(reviewProgress)}
                 </ActionButton>
               </div>
@@ -2283,6 +2347,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           candidate={editCandidate}
           pending={updateMutation.isPending}
           automaticPending={candidateAutomaticPending(editCandidate.id)}
+          readOnly={sourceScope.blocked}
           error={selectedCandidateUpdateError}
           onClose={() => {
             if (updateMutation.isPending) return;
@@ -2303,6 +2368,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           groupCandidateCount={pendingGroupCandidates.length}
           pending={groupMatchMutation.isPending}
           automaticPending={groupAutomaticPending}
+          readOnly={sourceScope.blocked}
           error={groupMatchError}
           onClose={() => {
             if (groupMatchMutation.isPending) return;
@@ -2320,6 +2386,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           initialResolution={matchTarget.resolution}
           pending={matchMutation.isPending}
           automaticPending={candidateAutomaticPending(matchTarget.candidate.id)}
+          readOnly={sourceScope.blocked}
           error={selectedCandidateMatchError}
           onClose={() => {
             if (matchMutation.isPending) return;

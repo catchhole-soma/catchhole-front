@@ -182,6 +182,29 @@ test('안내 제목에 초점이 들어오는 즉시 Escape를 눌러도 닫힌�
   await expect(page).not.toHaveURL(/guide=analysis-mode/);
 });
 
+test('안내창에 첫 포커스가 들어온 순간에도 Escape로 닫고 업로드 선택을 유지한다', async ({ page }) => {
+  const fixture = await setup(page, { claimEligible: false });
+  await page.addInitScript(() => {
+    document.addEventListener('focusin', event => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || target.tagName !== 'H2'
+        || target.textContent !== '설정이 반영되는 과정을 살펴보세요'
+        || sessionStorage.getItem('first-focus-escape-sent')) return;
+      sessionStorage.setItem('first-focus-escape-sent', 'true');
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    }, true);
+  });
+  await enter(page);
+  await expect.poll(() => fixture.mutations.length).toBe(1);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('radio', { name: /모든 설정 직접 검토/ }).check();
+  await page.getByRole('button', { name: '두 방식의 차이 보기' }).click();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('first-focus-escape-sent'))).toBe('true');
+  await expect(page.getByRole('dialog', { name: title })).toHaveCount(0);
+  await expect(page).not.toHaveURL(/guide=analysis-mode/);
+  await expect(page.getByRole('radio', { name: /모든 설정 직접 검토/ })).toBeChecked();
+});
+
 test('다회차의 자동 반영 정책을 안내하고 5단계를 URL에서 복원한다', async ({ page }) => {
   await setup(page);
   await enter(page, true);
