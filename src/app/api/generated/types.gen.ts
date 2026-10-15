@@ -2133,6 +2133,10 @@ export type ChatSessionV1 = {
     createdAt?: string;
     expiresAt?: string;
     questionCount?: number;
+    /**
+     * 메시지 페이지와 무관하게 새 질문·재시도를 막는 실행이 있는지 나타냅니다. 정산 대기도 포함합니다.
+     */
+    busy: boolean;
 };
 
 /**

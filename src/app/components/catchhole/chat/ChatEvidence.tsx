@@ -29,6 +29,17 @@ function DirectEvidence({ item, workId }: { item: EvidenceItem; workId: string }
             : '현재값에 반영되지 않은 이력'}
         </p>
       ) : null}
+      {item.value != null && (
+        <dl className="chat-evidence-value">
+          <dt>조회한 설정값</dt>
+          <dd>{item.value}</dd>
+        </dl>
+      )}
+      {item.valueTruncated && (
+        <p className="chat-evidence-context">
+          설정값이 길어 일부 내용이 생략됐어요. 전체 내용은 설정에서 확인해 주세요.
+        </p>
+      )}
       {available ? (
         evidence.quotes?.map((quote, index) => (
           <blockquote key={index}>{quote.text}</blockquote>

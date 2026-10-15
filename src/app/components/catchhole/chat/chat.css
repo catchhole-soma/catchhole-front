@@ -322,23 +322,50 @@
   font-size: 12px;
   padding: 8px;
 }
+.chat-mobile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: white;
+}
 .chat-mobile-menu {
   position: fixed;
   inset: 0;
   background: white;
-  z-index: 100;
+  z-index: 101;
   overflow: auto;
 }
-.chat-mobile-menu > button {
-  position: absolute;
-  right: 16px;
-  top: 12px;
-  z-index: 1;
+.chat-mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+}
+.chat-mobile-menu-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.chat-mobile-menu-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius-sm);
+  color: var(--ch-ink);
+  background: var(--ch-surface);
+  cursor: pointer;
+}
+.chat-mobile-menu button:focus-visible {
+  outline: 3px solid var(--ch-primary);
+  outline-offset: 2px;
 }
 .chat-mobile-menu .app-sidebar {
   display: flex;
   width: 100%;
-  min-height: 100%;
+  min-height: 0;
 }
 .chat-evidence-backdrop {
   position: fixed;
@@ -491,6 +518,21 @@
   color: var(--ch-text-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+.chat-evidence-value {
+  margin: 14px 0 0;
+}
+.chat-evidence-value dt {
+  color: var(--ch-text-muted);
+  font-size: 12px;
+}
+.chat-evidence-value dd {
+  margin: 4px 0 0;
+  color: var(--ch-ink);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .chat-evidence .chat-evidence-unavailable,
 .chat-evidence .chat-evidence-status {

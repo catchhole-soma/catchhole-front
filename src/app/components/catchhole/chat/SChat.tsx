@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -171,17 +172,16 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
     />
   );
   return (
+    <Dialog.Root open={mobile} onOpenChange={setMobile}>
     <div className="chat-page theme-v2 workspace-v2">
       <WorkspaceTopbar
         onBrandClick={() => navigate('/works')}
         leading={
-          <button
-            className="mobile-nav-trigger"
-            aria-label="메뉴 열기"
-            onClick={() => setMobile(true)}
-          >
-            <Menu size={20} />
-          </button>
+          <Dialog.Trigger asChild>
+            <button className="mobile-nav-trigger" aria-label="메뉴 열기">
+              <Menu size={20} aria-hidden="true" />
+            </button>
+          </Dialog.Trigger>
         }
       />
       <div className="chat-shell">
@@ -252,7 +252,11 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
                       aria-current={room.id === sessionId ? 'true' : undefined}
                       onClick={() => {
                         if (!room.id) return;
-                        if (room.id !== sessionId) setParams({ workId, sessionId: room.id });
+                        if (room.id !== sessionId) setParams({
+                          workId,
+                          sessionId: room.id,
+                          messagePage: String(Math.max(1, Math.ceil((room.questionCount ?? 0) / 20))),
+                        });
                         setRoomsOpen(false);
                       }}
                     >
@@ -302,20 +306,25 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
           </div>
         </main>
       </div>
-      {mobile && (
-        <div className="chat-mobile-menu">
-          <button aria-label="메뉴 닫기" onClick={() => setMobile(false)}>
-            <X />
-          </button>
+      <Dialog.Portal>
+        <Dialog.Overlay className="chat-mobile-menu-backdrop" />
+        <Dialog.Content className="chat-mobile-menu theme-v2 workspace-v2" aria-describedby={undefined}>
+          <header className="chat-mobile-menu-header">
+            <Dialog.Title>작품 메뉴</Dialog.Title>
+            <Dialog.Close asChild>
+              <button aria-label="메뉴 닫기"><X size={20} aria-hidden="true" /></button>
+            </Dialog.Close>
+          </header>
           <AppSidebar
             activeNav="chat"
             onClose={() => setMobile(false)}
             onNavChange={(nav) => navigate(`/dashboard?workId=${workId}&nav=${nav}`)}
             onComingSoon={() => setNotice('이 기능은 준비 중입니다.')}
           />
-        </div>
-      )}
+        </Dialog.Content>
+      </Dialog.Portal>
     </div>
+    </Dialog.Root>
   );
 }
 
@@ -356,7 +365,7 @@ function Conversation({
   const scroller = useRef<HTMLDivElement>(null);
   const composition = useRef(false);
   const submitLock = useRef(false);
-  const quotaShown = useRef(new Set<string>());
+  const quotaCandidates = useRef(new Set<string>());
   const client = useQueryClient();
   const sessionOptions = getChatSessionOptions({ path: { workId, sessionId } });
   const session = useQuery({
@@ -391,7 +400,7 @@ function Conversation({
   const close = useMutation({ ...closeChatSessionMutation(), gcTime: 0 });
   const inaccessible = session.isError || messages.isError;
   const rows = inaccessible ? [] : (messages.data?.data?.content ?? []);
-  const busy = rows.some(pending);
+  const busy = session.data?.data?.busy === true || rows.some(pending);
   const working = send.isPending || retry.isPending || close.isPending;
   useEffect(() => {
     live.current = true;
@@ -444,13 +453,15 @@ function Conversation({
     if (inaccessible) return;
     for (const row of messages.data?.data?.content ?? []) {
       const attempt = row.execution?.attemptId;
-      if (
-        attempt &&
-        row.execution?.failure === 'QUOTA_EXHAUSTED' &&
-        !quotaShown.current.has(attempt)
-      ) {
-        quotaShown.current.add(attempt);
-        notifyAiTokenQuotaExhausted();
+      if (!attempt) continue;
+      if (row.execution?.failure === 'QUOTA_EXHAUSTED') {
+        // Historical failures remain in the answer. Only a newly observed
+        // failure of an active/submitted attempt opens the global notice.
+        if (quotaCandidates.current.delete(attempt)) notifyAiTokenQuotaExhausted();
+      } else if (pending(row)) {
+        quotaCandidates.current.add(attempt);
+      } else {
+        quotaCandidates.current.delete(attempt);
       }
     }
   }, [inaccessible, messages.data]);
@@ -496,6 +507,7 @@ function Conversation({
         body: request.body,
       });
       if (!live.current) return;
+      if (submitted.data?.attemptId) quotaCandidates.current.add(submitted.data.attemptId);
       setDraft('');
       setFrom('');
       setTo('');
@@ -525,15 +537,18 @@ function Conversation({
     if (!row.questionId || !row.execution?.attemptId || working || busy) return;
     setError('');
     try {
-      await retry.mutateAsync({
+      const retried = await retry.mutateAsync({
         path: { workId, questionId: row.questionId },
         body: { previousAttemptId: row.execution.attemptId },
       });
-      if (live.current) await messages.refetch();
+      if (live.current) {
+        if (retried.data?.attemptId) quotaCandidates.current.add(retried.data.attemptId);
+        await Promise.all([session.refetch(), messages.refetch()]);
+      }
     } catch (e) {
       if (live.current) {
         setError(errorText(e));
-        await messages.refetch();
+        await Promise.all([session.refetch(), messages.refetch()]);
       }
     }
   }
