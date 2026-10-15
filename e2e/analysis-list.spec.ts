@@ -1,3 +1,4 @@
+import { installEpisodeSourceList } from './episode-source-list';
 import { expect, test } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -23,6 +24,7 @@ for (const width of [1280, 320]) {
       return route.fulfill({ status: 200, contentType: 'application/json',
         body: JSON.stringify({ success: true, data, error: null }) });
     });
+    await installEpisodeSourceList(page, workId, [{ id: canceled.jobGroups[0].currentAnalysisJobIds[0], batchId: canceled.batchId, episodeNo: 1, status: 'CANCELED' }]);
     await page.addInitScript(() => localStorage.setItem('accessToken', 'synthetic-review-test'));
     await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
     await expect(page.getByText('분석 취소', { exact: true })).toBeVisible();
@@ -120,6 +122,8 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
       body: JSON.stringify({ success: true, data, error: null }),
     });
   });
+
+  await installEpisodeSourceList(page, workId, Array.from({ length: 11 }, (_, index) => ({ id: batch(index + 1).jobGroups[0].currentAnalysisJobIds[0], batchId: batch(index + 1).batchId, episodeNo: index + 1, jobType: 'EPISODE_VALIDATION' })));
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-list-token'));
@@ -269,6 +273,8 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
     });
   });
 
+  await installEpisodeSourceList(page, workId, [{ id: '44444444-4444-4444-8444-444444444444', batchId: reviewBatchId, episodeNo: 5 }]);
+
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-review-token'));
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
@@ -393,6 +399,8 @@ test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL
       body: JSON.stringify({ success: true, data, error: null }),
     });
   });
+
+  await installEpisodeSourceList(page, workId, [{ id: analysisJobId, batchId: reviewBatchId, episodeNo: 5, status: 'RUNNING' }]);
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'analysis-history-token'));

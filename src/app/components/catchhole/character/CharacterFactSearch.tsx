@@ -14,6 +14,7 @@ import type {
 import { toApiError } from '../../../lib/api-errors';
 import { CHARACTER_FACT_TYPE_LABELS, characterFactTypeLabel } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
+import { analysisSourceLabel } from '../../../lib/analysis-source';
 import { C } from '../constants';
 import { useCharacterSettingLabels } from './CharacterSettingLabelProvider';
 import { PageNavigation } from '../PageNavigation';
@@ -70,7 +71,7 @@ function parsePage(value: string | null): number {
 
 function sourceLabel(result: CharacterFactSearchResponse): string {
   const characterName = result.characterName ?? '이름 없는 캐릭터';
-  return result.sourceEpisodeNo == null
+  return result.source?.sourceKind === 'SETTING_BOOK' ? `${characterName} · ${analysisSourceLabel(result.source)}` : result.sourceEpisodeNo == null
     ? `${characterName} · 출처 회차 없음`
     : `${characterName} · ${result.sourceEpisodeNo}화에서 확인`;
 }
@@ -782,7 +783,7 @@ export function CharacterFactSearch({ workId, enabled }: Props) {
 
                 <section>
                   <div style={{ color: C.t1, fontSize: 13, fontWeight: 650, marginBottom: 10 }}>
-                    {detail.sourceEpisodeNo == null
+                    {detail.source?.sourceKind === 'SETTING_BOOK' ? `${analysisSourceLabel(detail.source)}에서 확인된 문장` : detail.sourceEpisodeNo == null
                       ? '출처 회차 없음'
                       : `${detail.sourceEpisodeNo}화에서 확인된 문장`}
                   </div>

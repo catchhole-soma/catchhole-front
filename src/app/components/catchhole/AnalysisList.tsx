@@ -10,7 +10,7 @@ import {
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
-import { getAnalysisBatchesOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { getAnalysisBatchesOptions, getAnalysisJobsOptions, getSettingBooksOptions } from '../../api/generated/@tanstack/react-query.gen';
 import type {
   AnalysisBatchJobGroupResponse,
   AnalysisBatchSummaryResponse,
@@ -22,6 +22,12 @@ import {
 } from '../../lib/ai-token-quota';
 import { PageNavigation } from './PageNavigation';
 import { PageHeading } from './ui-v2/PageHeading';
+import { SettingBookAnalysisStatus } from './SettingBookAnalysisStatus';
+import { AnalysisCard, CandidateReviewCount } from './AnalysisCard';
+
+function BookAnalysisCard({ workId, jobId, batchId }: { workId: string; jobId: string; batchId: string }) {
+  return <SettingBookAnalysisStatus workId={workId} analysisJobId={jobId} batchId={batchId} presentation="card" />;
+}
 
 const PAGE_SIZE = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -77,19 +83,6 @@ function parsePage(value: string | null): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed - 1 : 0;
 }
 
-function formatDateTime(value?: string): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
-
 function episodeRange(batch: AnalysisBatchSummaryResponse): string {
   const start = batch.episodeStartNo;
   const end = batch.episodeEndNo;
@@ -120,31 +113,6 @@ function hasAnalysisFailure(batch: AnalysisBatchSummaryResponse): boolean {
   return (batch.jobGroups ?? []).some(group => (
     group.status === 'FAILED' || group.status === 'PARTIALLY_FAILED'
   ));
-}
-
-function CandidateReviewCount({
-  label,
-  totalCount,
-  reviewedCount,
-  pendingCount,
-}: {
-  label: string;
-  totalCount: number;
-  reviewedCount: number;
-  pendingCount: number;
-}) {
-  if (totalCount === 0) return null;
-
-  return (
-    <div className="analysis-review-count">
-      {label} {reviewedCount}/{totalCount}개 검토 완료
-      {pendingCount > 0 && (
-        <span className="analysis-review-count__pending">
-          {pendingCount}개 대기
-        </span>
-      )}
-    </div>
-  );
 }
 
 function findActionJobGroup(
@@ -192,6 +160,10 @@ export function AnalysisList({ workId }: { workId: string }) {
   });
   const pageData = analysisQuery.data?.data;
   const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
+  const booksQuery = useQuery({ ...getSettingBooksOptions({ path: { workId } }), enabled: apiEnabled, retry: false });
+  const jobsQuery = useQuery({ ...getAnalysisJobsOptions({ path: { workId } }), enabled: apiEnabled && batches.length > 0, retry: false,
+    refetchInterval: batches.some(batch => batch.status === 'IN_PROGRESS') ? 10_000 : false });
+  const jobsById = new Map((jobsQuery.data?.data ?? []).map(job => [job.id, job]));
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
 
@@ -237,7 +209,9 @@ export function AnalysisList({ workId }: { workId: string }) {
     group: AnalysisBatchJobGroupResponse,
   ) => {
     if (!batch.batchId || !group.jobType) return;
-    const jobIds = [...new Set(group.currentAnalysisJobIds ?? [])];
+    const currentIds = [...new Set(group.currentAnalysisJobIds ?? [])];
+    if (jobsQuery.isError || currentIds.some(id => jobsById.get(id)?.source?.sourceKind !== 'EPISODE')) return;
+    const jobIds = currentIds;
     if (jobIds.length === 0) return;
     const encodedIds = encodeURIComponent(jobIds.join(','));
     navigate(
@@ -282,7 +256,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       <PageHeading
         eyebrow="AI ANALYSIS"
         title="분석 목록"
-        description="함께 올린 회차의 진행·실패·설정 후보 검토 상태를 한곳에서 확인합니다."
+        description="회차와 설정집의 분석 진행·실패·설정 후보 검토 상태를 확인합니다."
       />
 
       {apiEnabled && analysisQuery.isPending && !hasPageData ? (
@@ -329,7 +303,45 @@ export function AnalysisList({ workId }: { workId: string }) {
               </button>
             </div>
           )}
-          {batches.map(batch => {
+          {batches.map(originalBatch => {
+            const books = (booksQuery.data?.data ?? []).filter(book => book.batchId === originalBatch.batchId);
+            const currentBookJob = new Map(books.map(book => [book.id, book.latestAnalysisJob?.id]));
+            const currentIds = originalBatch.jobGroups?.flatMap(group => group.currentAnalysisJobIds ?? []) ?? [];
+            const sourcesReady = !jobsQuery.isError && currentIds.every(id => ['EPISODE', 'SETTING_BOOK'].includes(jobsById.get(id)?.source?.sourceKind ?? ''));
+            const explicitBookIds = currentIds.filter(id => jobsById.get(id)?.source?.sourceKind === 'SETTING_BOOK');
+            const origins = [...new Set([...explicitBookIds.map(id => {
+              const source = jobsById.get(id)?.source;
+              return currentBookJob.get(source?.settingBookId ?? '') ?? id;
+            }), ...books.flatMap(book => book.latestAnalysisJob?.source?.sourceKind === 'SETTING_BOOK'
+              && book.latestAnalysisJob.id ? [book.latestAnalysisJob.id] : [])])];
+            // Legacy mixed batches expose book and episode Job IDs together. Episode navigation stays scoped to episodes.
+            const episodeGroups = !sourcesReady ? originalBatch.jobGroups ?? [] : (originalBatch.jobGroups ?? []).flatMap(group => {
+              const ids = (group.currentAnalysisJobIds ?? []).filter(id => jobsById.get(id)?.source?.sourceKind === 'EPISODE');
+              if (ids.length === 0) return [];
+              if (ids.length === group.currentAnalysisJobIds?.length) return [group];
+              const jobs = ids.flatMap(id => jobsById.get(id) ? [jobsById.get(id)!] : []);
+              const count = (status: string) => jobs.filter(job => job.status === status).length;
+              const pendingJobCount = count('PENDING'), runningJobCount = count('RUNNING'), failedJobCount = count('FAILED');
+              return [{ ...group, currentAnalysisJobIds: ids, totalJobCount: ids.length, pendingJobCount, runningJobCount,
+                succeededJobCount: count('SUCCEEDED'), failedJobCount, canceledJobCount: count('CANCELED'),
+                status: pendingJobCount + runningJobCount > 0 ? 'IN_PROGRESS' as const
+                  : failedJobCount > 0 ? 'FAILED' as const : 'COMPLETED' as const }];
+            });
+            const batch = sourcesReady && explicitBookIds.length > 0 && originalBatch.uploadType !== 'SETTING_BOOK' ? {
+              ...originalBatch, jobGroups: episodeGroups,
+              status: episodeGroups.some(group => group.status === 'IN_PROGRESS') ? 'IN_PROGRESS' as const
+                : episodeGroups.some(group => group.status === 'FAILED') ? 'FAILED' as const
+                  : (originalBatch.pendingCandidateCount ?? 0) + (originalBatch.worldSettingPendingCandidateCount ?? 0) > 0
+                    ? 'REVIEW_REQUIRED' as const : 'COMPLETED' as const,
+            } : originalBatch;
+            if (batch.uploadType === 'SETTING_BOOK') {
+              const id = origins[0] ?? batch.jobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.currentAnalysisJobIds?.[0];
+              return id && batch.batchId ? <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />
+                : <article key={batch.batchId} className="analysis-batch-card">설정집 분석 출처를 확인하지 못했습니다.</article>;
+            }
+            if (sourcesReady && explicitBookIds.length > 0 && episodeGroups.length === 0) {
+              return <div key={batch.batchId}>{origins.map(id => batch.batchId && <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />)}</div>;
+            }
             const status = batch.status ?? 'COMPLETED';
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
             const hasTokenInterruption = hasSettledTokenInterruption(batch);
@@ -343,7 +355,6 @@ export function AnalysisList({ workId }: { workId: string }) {
                   icon: TriangleAlert,
                 }
               : STATUS_VIEW[status];
-            const StatusIcon = view.icon;
             const characterPendingCount = batch.pendingCandidateCount ?? 0;
             const characterReviewedCount = batch.reviewedCandidateCount ?? 0;
             const characterTotalCount = batch.totalCandidateCount ?? 0;
@@ -357,32 +368,35 @@ export function AnalysisList({ workId }: { workId: string }) {
               || status === 'COMPLETED'
             );
             const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
-            const actionEnabled = opensReview
+            const actionEnabled = sourcesReady && (opensReview
               ? Boolean(batch.batchId)
-              : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0;
-            return (
-              <article className="analysis-batch-card" key={batch.batchId}>
-                <div className="analysis-batch-card__main">
-                  <div className={`analysis-batch-card__icon analysis-tone--${view.tone}`}>
-                    <StatusIcon size={19} />
-                  </div>
-                  <div className="analysis-batch-card__body">
-                    <div className="analysis-batch-card__title-row">
-                      <div className="analysis-batch-card__title">
-                        {episodeRange(batch)}
-                        <small>
-                          {batch.episodeCount ?? 0}개 회차
-                        </small>
-                      </div>
-                      <span className={`analysis-status analysis-tone--${view.tone}`}>
-                        {view.label}{status === 'REVIEW_REQUIRED'
-                          && characterPendingCount + worldSettingPendingCount > 0
-                          ? ` · ${characterPendingCount + worldSettingPendingCount}개 확인 가능` : ''}
-                      </span>
-                    </div>
-                    <div className="analysis-batch-card__description">
-                      {view.description}
-                    </div>
+              : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0);
+            const episodeCard = (
+              <AnalysisCard
+                key={batch.batchId}
+                icon={view.icon}
+                tone={view.tone}
+                title={<>{episodeRange(batch)}<small>{batch.episodeCount ?? 0}개 회차</small></>}
+                status={<>{view.label}{status === 'REVIEW_REQUIRED'
+                  && characterPendingCount + worldSettingPendingCount > 0
+                  ? ` · ${characterPendingCount + worldSettingPendingCount}개 확인 가능` : ''}</>}
+                description={view.description}
+                activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
+                actions={
+                  <button type="button" disabled={!actionEnabled}
+                    onClick={() => {
+                      if (opensReview) openReview(batch);
+                      else if (actionGroup) openProgress(batch, actionGroup);
+                    }}
+                    className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}>
+                    {actionLabel(status, prioritizesTokenInterruption ? tokenInterruptedCount : 0)}
+                  </button>
+                }
+              >
+                    {!sourcesReady && <div role={jobsQuery.isError ? 'alert' : 'status'}>
+                      {jobsQuery.isPending ? '분석 출처를 확인하고 있습니다.' : '분석 출처를 확인하지 못해 진행·검토를 열 수 없습니다.'}
+                      {!jobsQuery.isPending && <button type="button" className="analysis-card-action" onClick={() => void jobsQuery.refetch()}>출처 다시 확인</button>}
+                    </div>}
                     <div className="analysis-batch-card__groups">
                       {(batch.jobGroups ?? []).map(group => (
                         <span key={group.jobType} className="analysis-batch-card__group">
@@ -411,29 +425,9 @@ export function AnalysisList({ workId }: { workId: string }) {
                         />
                       </div>
                     )}
-                  </div>
-                </div>
-
-                <div className="analysis-card-footer">
-                  <time>
-                    최근 활동 {formatDateTime(batch.lastActivityAt ?? batch.lastRequestedAt)}
-                  </time>
-                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      disabled={!actionEnabled}
-                      onClick={() => {
-                        if (opensReview) openReview(batch);
-                        else if (actionGroup) openProgress(batch, actionGroup);
-                      }}
-                      className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}
-                    >
-                      {actionLabel(status, prioritizesTokenInterruption ? tokenInterruptedCount : 0)}
-                    </button>
-                  </div>
-                </div>
-              </article>
+              </AnalysisCard>
             );
+            return <div key={batch.batchId}>{episodeCard}{origins.map(id => batch.batchId && <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />)}</div>;
           })}
           <div style={{ marginTop: 6 }}>
             <PageNavigation

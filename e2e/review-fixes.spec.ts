@@ -1,3 +1,4 @@
+import { installEpisodeSourceList } from './episode-source-list';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -395,6 +396,8 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
               : [];
     return fulfill(route, data);
   });
+
+  await installEpisodeSourceList(page, workId, [{ id: completedAnalysisJobId, batchId, episodeId, episodeNo: 20 }, { id: analysisJobId, batchId, episodeId, episodeNo: 20, status: 'CANCELED', jobType: 'EPISODE_VALIDATION' }]);
 
   await authenticate(page, 'canceled-analysis-list-token');
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
@@ -839,7 +842,7 @@ test('현재 Job이 완료되면 원문 상태가 바뀌어도 완료와 변경 
   await expect(page.getByRole('button', { name: '설정 후보 검토' })).toBeEnabled();
 });
 
-test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 차단한다', async ({ page }) => {
+test('기존 설정집 파일명은 독립적인 회차 업로드를 차단하지 않는다', async ({ page }) => {
   const duplicateSettingBookName = '기존설정.txt';
   let episodeUploadRequestCount = 0;
   let settingBookUploadRequestCount = 0;
@@ -902,18 +905,10 @@ test('동반 설정집의 중복 파일명은 회차와 설정집 저장 전에 
   });
   await expect(page.locator('input[type="number"]')).toHaveValue('21');
 
-  await page.getByRole('checkbox', { name: '설정집도 함께 업로드 (원본만 저장)' }).check();
-  await page.locator('input[type="file"]').nth(1).setInputFiles({
-    name: duplicateSettingBookName,
-    mimeType: 'text/plain',
-    buffer: Buffer.from('기존 설정집과 같은 이름입니다.'),
-  });
-
-  await expect(page.getByText(
-    '같은 이름의 설정집이 이미 업로드되어 있습니다.',
-    { exact: true },
-  )).toBeVisible();
-  await expect(page.getByRole('button', { name: '다음 — 분석 시작' })).toBeDisabled();
+  await expect(page.getByRole('checkbox', { name: /설정집도 함께 업로드/ })).toHaveCount(0);
+  await expect(page.locator('input[type="file"]')).toHaveCount(1);
+  await expect(page.getByText('같은 이름의 설정집이 이미 업로드되어 있습니다.', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '다음 — 분석 시작' })).toBeEnabled();
   expect(episodeUploadRequestCount).toBe(0);
   expect(settingBookUploadRequestCount).toBe(0);
 });
@@ -1012,6 +1007,8 @@ test('분석 목록의 실패 확인은 새 Job을 현재 polling 대상으로 �
 
     return fulfill(route, data);
   });
+
+  await installEpisodeSourceList(page, workId, [{ id: failedAnalysisJobId, batchId, episodeId, episodeNo: 20, status: 'FAILED', jobType: 'EPISODE_VALIDATION' }]);
 
   await authenticate(page, 'dashboard-retry-token');
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);

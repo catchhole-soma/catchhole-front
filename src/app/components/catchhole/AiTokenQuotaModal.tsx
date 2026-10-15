@@ -172,9 +172,10 @@ export function AiTokenQuotaModal() {
   const totalEpisodeCount = notice.totalEpisodeCount ?? 0;
   const analysisFailed = notice.kind === 'analysis-failed';
   const analysisInterrupted = notice.kind === 'analysis-interrupted';
+  const bookInterrupted = notice.sourceKind === 'SETTING_BOOK' && (analysisFailed || analysisInterrupted);
   const mixedAnalysisInterruption = analysisFailed
     && notice.interruptedComparisonCount !== undefined;
-  const title = analysisInterrupted
+  const title = bookInterrupted ? '설정집 분석이 중단되었습니다' : analysisInterrupted
     ? '설정 비교가 일부 중단되었습니다'
     : analysisFailed
       ? mixedAnalysisInterruption
@@ -185,7 +186,9 @@ export function AiTokenQuotaModal() {
             ? '일부 회차 분석이 중단되었습니다'
             : '회차 분석이 중단되었습니다'
       : '기본 사용량을 모두 소진했습니다';
-  const description = analysisInterrupted
+  const description = bookInterrupted
+    ? '설정집 분석이 사용량 부족으로 중단됐습니다. 완료된 추출과 비교 결과는 유지됩니다. 추가 사용량을 받은 뒤 설정집 화면에서 분석을 재개해 주세요.'
+    : analysisInterrupted
     ? `${interruptedCount > 0 ? `${interruptedCount}개 ` : ''}세계관 설정 비교가 사용량 부족으로 중단됐습니다. 이미 완료된 추출과 비교 결과는 유지되며, 추가 사용량을 받은 뒤 분석 목록이나 검토 화면의 안내에 따라 이어서 처리해 주세요.`
     : analysisFailed
       ? `${failedEpisodeCount > 0 ? `${failedEpisodeCount}개 ` : ''}회차 분석이 사용량 부족으로 중단됐습니다. 추가 사용량을 받은 뒤 실패한 회차만 다시 시도해 주세요.${mixedAnalysisInterruption ? ` ${interruptedCount > 0 ? `${interruptedCount}개 ` : '일부 '}세계관 설정 비교도 중단됐지만 완료된 추출과 비교 결과는 유지됩니다. 분석 목록이나 검토 화면의 안내에 따라 이어서 처리해 주세요.` : ''}`

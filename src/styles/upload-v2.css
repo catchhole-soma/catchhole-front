@@ -156,6 +156,7 @@
 .episode-analysis-type.is-disabled > div:last-child { color: var(--ch-text-subtle) !important; }
 
 .episode-upload-page .file-drop-area__target,
+.setting-book-upload-modal .file-drop-area__target,
 .episode-multi-file__target {
   border-color: var(--ch-border-strong) !important;
   border-radius: 14px !important;
@@ -163,12 +164,17 @@
   color: var(--ch-text-muted) !important;
 }
 .episode-upload-page .file-drop-area__target:hover,
+.setting-book-upload-modal .file-drop-area__target:hover,
 .episode-multi-file__target:hover { border-color: var(--ch-primary) !important; background: var(--ch-surface-soft) !important; }
 .episode-upload-page .file-drop-area__target div { color: var(--ch-text-muted) !important; }
+.setting-book-upload-modal .file-drop-area__target div { color: var(--ch-text-muted) !important; }
 .episode-upload-page .file-drop-area.has-file .file-drop-area__target,
+.setting-book-upload-modal .file-drop-area.has-file .file-drop-area__target,
 .episode-multi-file.has-file .episode-multi-file__target { border-color: rgb(15 159 122 / 42%) !important; background: rgb(15 159 122 / 5%) !important; color: var(--ch-success) !important; }
 .episode-upload-page .file-drop-area.has-file .file-drop-area__target span { color: var(--ch-success) !important; }
+.setting-book-upload-modal .file-drop-area.has-file .file-drop-area__target span { color: var(--ch-success-ink) !important; }
 .episode-upload-page .file-drop-area.has-error .file-drop-area__target,
+.setting-book-upload-modal .file-drop-area.has-error .file-drop-area__target,
 .episode-multi-file.has-error .episode-multi-file__target { border-color: rgb(223 77 95 / 44%) !important; background: rgb(223 77 95 / 4%) !important; }
 .episode-settings-file__toggle { color: var(--ch-text) !important; }
 .episode-settings-file__toggle span { color: var(--ch-text-subtle) !important; }
@@ -200,6 +206,24 @@
 .episode-processing-card__unavailable { color: var(--ch-text-muted) !important; }
 .episode-processing-card__steps span { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; color: var(--ch-text-subtle) !important; }
 .episode-processing-card__steps span.is-complete { border-color: rgb(8 126 242 / 22%) !important; background: var(--ch-surface-accent) !important; color: var(--ch-primary) !important; }
+.setting-book-upload-modal .episode-upload-stepper { margin: 16px 0 20px !important; padding: 0 !important; }
+.setting-book-upload-modal .episode-upload-step { flex: 1 1 0; min-width: 0; flex-direction: column; }
+.setting-book-upload-modal .episode-upload-step__line { min-width: 12px; margin: 0 4px !important; }
+.setting-book-upload-modal .file-drop-area__target { overflow-wrap: anywhere; }
+.setting-book-upload-modal .file-drop-area__target:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 3px; }
+.setting-book-upload-modal .file-drop-area.has-error [role="alert"] { color: var(--ch-danger-ink) !important; }
+.setting-book-progress-spinner { display: flex; justify-content: center; margin-bottom: 12px; color: var(--ch-primary); }
+.setting-book-progress-icon { margin-bottom: 12px; background: transparent; }
+.setting-book-progress .episode-processing-card__title { min-width: 0; overflow-wrap: anywhere; }
+.setting-book-progress .episode-processing-card > div:first-child { gap: 12px; flex-wrap: wrap; }
+.setting-book-progress .episode-processing-card__steps { display: flex; gap: 4px; flex-wrap: wrap; }
+.setting-book-progress .episode-processing-card__steps span { padding: 3px 8px; border: 1px solid var(--ch-border); border-radius: 12px; font-size: 10.5px; }
+.setting-book-progress .episode-processing-card__steps span.is-current { color: var(--ch-primary-ink) !important; border-color: var(--ch-primary-ink) !important; }
+.setting-book-progress .episode-processing__list { display: flex; flex-direction: column; gap: 10px; }
+.setting-book-progress .episode-processing__actions { margin-top: 24px; display: flex; gap: 8px; }
+.setting-book-progress-actions { flex: 1; }
+.setting-book-progress-actions > button { width: 100%; }
+.setting-book-progress-secondary { margin-top: 16px; }
 
 .episode-upload-empty { box-sizing: border-box; padding: 36px; border: 1px solid var(--ch-border); border-radius: var(--ch-radius-lg); background: var(--ch-surface); box-shadow: var(--ch-shadow-card); color: var(--ch-text-muted); }
 .episode-upload-empty > div:first-of-type { color: var(--ch-ink) !important; }

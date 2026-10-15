@@ -7,8 +7,9 @@ import type { WorldSettingCandidateResponse } from '../../../api/generated/types
 import { ReviewChoiceCards, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
 import { combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft, type WorldReviewDraft } from './worldReviewDecisions';
 
-export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sharedChoiceAvailable, sourceValue, onSave, onDirtyChange }: {
+export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraft, disabled, sharedChoiceAvailable, sourceValue, onSave, onDirtyChange }: {
   candidate: WorldSettingCandidateResponse;
+  categoryLabel: string;
   initialDraft: WorldReviewDraft;
   disabled: boolean;
   sharedChoiceAvailable: boolean;
@@ -46,7 +47,8 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const targetBlocked = targetLoading || targetLoadFailed;
-  const dirty = !sameWorldReviewDraft(draft, initialDraft) || targetBlocked;
+  const dirty = editing || selected !== null || selectedTargetId !== null
+    || !sameWorldReviewDraft(draft, initialDraft) || targetBlocked;
   useLayoutEffect(() => {
     onDirtyChange?.(dirty);
     return () => onDirtyChange?.(false);
@@ -118,8 +120,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       if (existing?.value) {
         setTargetBefore(existing.value);
         setEditing(false);
-      } else if (conflict) setEditing(true);
-      else save(next);
+      } else setEditing(true);
     } catch {
       setTargetLoadFailed(true);
       setError('대상의 현재 설정을 불러오지 못했습니다. 선택한 대상을 다시 불러와 주세요.');
@@ -128,7 +129,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
   const choose = (id: string, value: WorldReviewDraft) => {
     setSelected(id);
     setDraft(value);
-    if (conflict) setEditing(true);
+    if (subjectUnresolved || conflict) setEditing(true);
     else { setEditing(false); save(value); }
   };
   const choices = canChooseScope ? [
@@ -161,25 +162,33 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       && property.settingName?.trim() === initialDraft.settingName.trim())?.value ?? null : null;
   const currentTargetBefore = targetBlocked ? null : targetBefore ?? savedTargetBefore;
   const editorBefore = currentTargetBefore ?? (!subjectUnresolved ? candidate.beforeValue : null);
+  const extractedName = candidate.subjectName ?? sourceDraft.subjectName;
 
   return <div className="review-cb-decision-panel">
     {subjectUnresolved && <div className="review-cb-target-search">
-      <label>어느 대상의 설정인가요?<input aria-label="기존 세계관 대상 검색" placeholder="기존 대상 이름으로 검색" value={targetQuery}
-        onChange={event => { setTargetQuery(event.target.value); setTargetPage(0); }} /></label>
-      <p className="review-cb-help">작품에 저장된 대상입니다. 원문에 나온 대상과 같은 것을 선택해 주세요.</p>
-      <ReviewChoiceCards label="기존 대상 또는 새로운 대상 선택" value={selectedTarget} disabled={disabled || targetLoading}
+      <ReviewChoiceCards label={`‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`} value={selectedTarget} disabled={disabled || targetLoading}
         choices={[
           ...(targets?.content ?? []).flatMap(target => target.id && target.subjectName ? [{ id: target.id,
             title: target.subjectName, description: `설정 ${target.propertyCount ?? 0}개`,
             image: <WorldSubjectImage category={target.category} path={target.image?.thumbnailUrl} vaultId={target.image?.vaultId} />,
             footnote: '이 대상에 연결' }] : []),
-          { id: 'new-target', title: '새로운 대상', description: candidate.subjectName ?? '', footnote: '기존 대상과 다른 이름으로 새로 추가' },
+          { id: 'new-target', title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 모두 확정할 때 등록' },
         ]}
-        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }} />
+        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }}>
+        <div className="review-cb-target-search__controls">
+          <p className="review-cb-help">추출된 이름과 작품에 저장된 대상이 같은지 확인하는 단계예요. 같은 대상이면 연결하고, 별개라면 새로 등록해 주세요.</p>
+          <label>기존 {categoryLabel} 검색<input aria-label="기존 세계관 대상 검색" placeholder="기존 대상 이름으로 검색" value={targetQuery}
+            onChange={event => { setTargetQuery(event.target.value); setTargetPage(0); }} /></label>
+          {targetsQuery.isPending && <p className="review-cb-help" role="status">기존 {categoryLabel} 목록을 불러오고 있어요.</p>}
+          {targetsQuery.isError && <ReviewNotice tone="warning" action={<button type="button" className="review-cb-secondary" onClick={() => void targetsQuery.refetch()}>다시 불러오기</button>}>기존 {categoryLabel} 목록을 불러오지 못했어요. 등록된 대상이 없는지 아직 확인할 수 없어요.</ReviewNotice>}
+          {targetsQuery.isSuccess && targets?.content?.length === 0 && <p className="review-cb-help" role="status">{targetQuery
+            ? `‘${targetQuery}’ 검색 결과가 없어요. 다른 이름으로 검색하거나 새로 등록할지 선택해 주세요.`
+            : targetPage > 0 ? `이 페이지에 표시할 ${categoryLabel} 항목이 없어요. 이전 페이지를 확인해 주세요.`
+              : `등록된 ${categoryLabel} 항목이 없어요. 새로 등록할지 직접 선택해 주세요.`}</p>}
+        </div>
+      </ReviewChoiceCards>
       {targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
         onClick={() => void chooseTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
-      {targetsQuery.isPending && <p role="status">기존 대상을 불러오고 있어요.</p>}
-      {targetsQuery.isError && <ReviewNotice tone="warning" action={<button type="button" className="review-cb-secondary" onClick={() => void targetsQuery.refetch()}>다시 불러오기</button>}>기존 대상을 불러오지 못했어요. 새 대상이 없다는 뜻은 아니에요.</ReviewNotice>}
       {(targetPage > 0 || targets?.hasNext) && <div className="review-cb-actions">
         <button type="button" className="review-cb-secondary" disabled={targetPage === 0 || targetLoading} onClick={() => setTargetPage(page => page - 1)}>이전 대상</button>
         <button type="button" className="review-cb-secondary" disabled={!targets?.hasNext || targetLoading} onClick={() => setTargetPage(page => page + 1)}>다음 대상</button>
@@ -202,7 +211,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
     />}
     {simpleReview && <ReviewChoiceCards
       label={candidate.comparisonStatus === 'FAILED' ? '원문과 저장할 대상·내용을 확인해 주세요' : '이 내용을 어떻게 반영할까요?'}
-      value={editing ? 'edit' : saved && sameWorldReviewDraft(initialDraft, sourceDraft) ? 'keep' : null}
+      value={selected ?? (saved && sameWorldReviewDraft(initialDraft, sourceDraft) ? 'keep' : null)}
       disabled={disabled || targetLoading}
       choices={[
         { id: 'keep', title: sourceDraft.operation === 'ADD' ? '이 내용 그대로 추가' : '이 내용으로 반영 준비',
@@ -211,7 +220,7 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
           footnote: sourceDraft.operation === 'ADD' ? '확인한 위치에 새 설정으로 추가 · 기존 내용은 유지' : '위 내용을 최종 초안으로 준비' },
         { id: 'edit', title: '내용·저장 위치 수정', description: '대상, 범위, 최종 내용을 직접 정할 수 있어요.', footnote: '같은 설정이 이미 있다면 여기에서 반영 방법 선택' },
       ]}
-      onChange={id => { if (id === 'edit') setEditing(true); else choose('keep', sourceDraft); }} />}
+      onChange={id => { if (id === 'edit') { setSelected(id); setEditing(true); } else choose('keep', sourceDraft); }} />}
     {editorVisible && <form className="review-cb-inline-editor" onSubmit={event => { event.preventDefault(); if (!disabled && !targetBlocked) save(draft); }}>
       <strong>{conflict ? '최종 내용을 확인해 주세요' : '반영할 내용을 정해 주세요'}</strong>
       {candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED' && <p>어느 대상의 설정인지 원문을 확인해 대상 이름을 입력해 주세요. 기존 대상의 정확한 이름을 입력하면 해당 대상에 반영합니다.</p>}
@@ -230,19 +239,25 @@ export function WorldReviewDecisionPanel({ candidate, initialDraft, disabled, sh
       <label>최종 내용<textarea aria-label="최종 내용" rows={4} value={draft.value} disabled={disabled || targetLoading}
         onChange={event => setDraft(current => ({ ...current, value: event.target.value }))} /></label>
       {editorBefore && <ReviewValueComparison before={editorBefore} after={draft.value}
-        mode={draft.operation === 'ADD' ? 'neutral' : 'change'} beforeLabel="현재 저장된 내용" afterLabel="저장할 최종 내용" />}
+        mode={draft.operation === 'ADD' ? 'neutral' : 'change'}
+        beforeLabel={candidate.source?.sourceKind === 'SETTING_BOOK' && currentTargetBefore == null ? '비교 당시 내용' : '현재 저장된 내용'}
+        afterLabel="저장할 최종 내용" />}
       {error && <ReviewNotice tone="danger">{error}</ReviewNotice>}
-      <button type="submit" className="review-cb-primary" disabled={disabled || targetBlocked}>이 내용으로 검토 완료</button>
-      <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.'}</p>
+      <footer className="review-cb-inline-editor__footer">
+        <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.'}</p>
+        <div className="review-cb-actions">
+          <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading || (conflict && !saved)}
+            onClick={cancelDraft}>수정 닫기</button>
+          <button type="submit" className="review-cb-primary" disabled={disabled || targetBlocked}>이 내용으로 검토 완료</button>
+        </div>
+      </footer>
     </form>}
     {error && !editorVisible && <ReviewNotice tone="danger">{error}</ReviewNotice>}
-    <div className="review-cb-actions">
+    {!editorVisible && <div className="review-cb-actions">
     {!editorVisible && (choices.length > 0 || conflict) && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
       onClick={() => setEditing(true)}>최종 내용 직접 다듬기</button>}
-    {editorVisible && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading || (conflict && !saved)}
-      onClick={cancelDraft}>수정 닫기</button>}
     {!editorVisible && dirty && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
       onClick={cancelDraft}>변경 취소</button>}
-    </div>
+    </div>}
   </div>;
 }
