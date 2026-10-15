@@ -489,8 +489,17 @@ test(scopeUnresolved
       value: '벽면 수정이 은은한 빛을 낸다.\n벽과 천장의 수정들이 주변을 밝힌다.\n천장의 수정도 통로 전체를 비춘다.',
     }],
   });
-  await expect(scopeReview).toHaveCount(2);
-  await expect(scopeReview.first().getByRole('button', { name: /예, 포함된 내용이에요/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(scopeReview).toHaveCount(0);
+  await expect(page.locator('.world-setting-diff-row .review-cb-heading')).toContainText(['검토 완료', '검토 완료']);
+  const savedRow = page.locator('.world-setting-diff-row').first();
+  await expect(savedRow).toContainText('천장의 수정도 통로 전체를 비춘다.');
+  await savedRow.getByRole('button', { name: '수정', exact: true }).click();
+  const editor = page.locator('.review-modal');
+  await expect(editor.getByRole('textbox', { name: '범위 (선택)', exact: true })).toHaveValue('1층');
+  await expect(editor.getByRole('combobox', { name: '반영 방식', exact: true })).toHaveValue('MERGE');
+  await expect(editor.getByRole('textbox', { name: '최종 설정값', exact: true })).toHaveValue('벽면 수정이 은은한 빛을 낸다.\n벽과 천장의 수정들이 주변을 밝힌다.\n천장의 수정도 통로 전체를 비춘다.');
+  await editor.getByRole('button', { name: '취소', exact: true }).click();
+  await expect(editor).toHaveCount(0);
   await expect(page.locator('.review-cb-heading__subtitle').filter({ hasText: '범위: 1층' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
 
@@ -2659,6 +2668,12 @@ test('세계관 목록과 상세 모달은 검색·페이지·스크롤·뒤로�
   await page.keyboard.press('Escape');
   const discard = page.getByRole('alertdialog');
   await expect(discard).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(discard).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('설정값')).toHaveValue('작성 중인 변경');
+  await page.keyboard.press('Escape');
+  await expect(discard).toBeVisible();
   await discard.getByRole('button', { name: '계속 작성', exact: true }).click();
   await expect(dialog.getByLabel('설정값')).toHaveValue('작성 중인 변경');
   await page.keyboard.press('Escape');
@@ -3197,6 +3212,7 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
   const themeFallback = `/api/v1/world-image-assets/${'b'.repeat(64)}.webp`;
   let catalogFailed = true;
   let saveFailed = true;
+  let releaseFailedSave: (() => void) | undefined;
   let selected = false;
   const base = `/api/v1/works/${workId}/world-settings`;
   const item = { id: worldSettingId, category: 'RACE', subjectName: '고블린', propertyCount: 1,
@@ -3219,7 +3235,10 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
     }
     if (path === `${base}/${worldSettingId}/image`) {
       expect(route.request().postDataJSON()).toEqual({ catalogId: 'race-goblin', privateImageId: null, version: 0 });
-      if (saveFailed) return failure(route, 503, '잠시 후 다시 시도해 주세요.', 'TEST_FAILURE');
+      if (saveFailed) {
+        await new Promise<void>(resolve => { releaseFailedSave = resolve; });
+        return failure(route, 503, '잠시 후 다시 시도해 주세요.', 'TEST_FAILURE');
+      }
       selected = true;
       item.image = { ...item.image, catalogId: 'race-goblin', source: 'MANUAL', version: 1 };
       return success(route, item.image);
@@ -3239,6 +3258,15 @@ test('이미지 로딩과 저장에 실패해도 기본 이미지와 선택 초�
   const option = picker.getByRole('button', { name: '고블린 이미지 선택', exact: true });
   await option.click();
   await picker.getByRole('button', { name: '이미지 저장', exact: true }).click();
+  try {
+    await expect.poll(() => Boolean(releaseFailedSave)).toBe(true);
+    await expect(picker.getByRole('button', { name: '닫기', exact: true })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(picker).toBeVisible();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+  } finally {
+    releaseFailedSave?.();
+  }
   await expect(picker.getByRole('alert')).toContainText('잠시 후 다시 시도해 주세요.');
   await expect(option).toHaveAttribute('aria-pressed', 'true');
   saveFailed = false;

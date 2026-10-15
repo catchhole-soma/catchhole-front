@@ -69,6 +69,8 @@ test('진행 배너가 다른 화면의 분석 시작을 알면 오래된 원고
 test('회차 행이 진행 중이 아니어도 배치 분석을 따라 갱신하고 종료 때 마지막 조회 후 멈춘다', async ({ page }) => {
   let episodeRequests = 0;
   let overviewRequests = 0;
+  let releaseInitialOverview!: () => void;
+  const initialOverviewReady = new Promise<void>(resolve => { releaseInitialOverview = resolve; });
   let releaseCompletion!: () => void;
   const completionReady = new Promise<void>(resolve => { releaseCompletion = resolve; });
   await mockDashboard(page, {
@@ -78,7 +80,10 @@ test('회차 행이 진행 중이 아니어도 배치 분석을 따라 갱신하
     },
     overview: async route => {
       overviewRequests += 1;
-      if (overviewRequests === 1) await success(route, overview('IN_PROGRESS'));
+      if (overviewRequests === 1) {
+        await initialOverviewReady;
+        await success(route, overview('IN_PROGRESS'));
+      }
       else {
         await completionReady;
         await success(route, overview('COMPLETED'));
@@ -88,6 +93,9 @@ test('회차 행이 진행 중이 아니어도 배치 분석을 따라 갱신하
   await page.clock.install();
   await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
   await expect(page.locator('.manuscript-status')).toHaveText('분석 완료');
+  // Commit the existing list before revealing a separately-started analysis.
+  // Otherwise invalidation may correctly deduplicate the still-running first GET.
+  releaseInitialOverview();
   await expect(page.getByText('진행 중인 분석이 있습니다.', { exact: true })).toBeVisible();
   await expect.poll(() => episodeRequests).toBeGreaterThanOrEqual(2);
   const beforePolling = episodeRequests;

@@ -13,16 +13,13 @@ function success(route: Route, data: unknown) {
 async function setup(page: Page, policy: Record<string, unknown> = defaultPolicy) {
   const analysisBodies: Record<string, unknown>[] = [];
   const uploads: string[] = [];
-  const settingUploads: string[] = [];
+  const settingBookRequests: string[] = [];
   await page.route('**/api/v1/**', route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.includes('/setting-books')) settingBookRequests.push(route.request().method());
     if (path.endsWith('/analysis-jobs') && route.request().method() === 'POST') {
       analysisBodies.push(route.request().postDataJSON());
       return success(route, [{ id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: 'PENDING', episodes: [] }]);
-    }
-    if (path.endsWith('/setting-books') && route.request().method() === 'POST') {
-      settingUploads.push(route.request().postData() ?? '');
-      return success(route, { id: '55555555-5555-4555-8555-555555555555', originalFilename: '설정집.hwpx' });
     }
     if (path.endsWith('/episodes') && route.request().method() === 'POST') {
       uploads.push(route.request().postData() ?? '');
@@ -37,7 +34,7 @@ async function setup(page: Page, policy: Record<string, unknown> = defaultPolicy
               : []);
   });
   await page.addInitScript(() => localStorage.setItem('accessToken', 'upload-policy-fixture'));
-  return { analysisBodies, uploads, settingUploads };
+  return { analysisBodies, uploads, settingBookRequests };
 }
 async function detected(page: Page, uploadType: string, totalUploadCharacters = 20) {
   const count = uploadType === 'SINGLE_EPISODE' ? 1 : 2;
@@ -55,6 +52,28 @@ async function chooseFile(page: Page, multiple = false) {
   await page.locator('input[type=file]').first().setInputFiles(Array.from({ length: multiple ? 2 : 1 }, (_, index) => ({
     name: `${11 + index}화.txt`, mimeType: 'text/plain', buffer: Buffer.from('원고 본문'),
   })));
+}
+
+for (const uploadType of ['SINGLE_EPISODE', 'MULTI_EPISODE_SINGLE_FILE', 'MULTI_EPISODE_MULTI_FILE']) {
+  test(`${uploadType} 회차 업로드는 설정집 동시 업로드 없이 원고만 저장한다`, async ({ page }) => {
+    const requests = await setup(page);
+    await detected(page, uploadType);
+    await page.goto(`/episode-upload?workId=${workId}`);
+    const name = uploadType === 'SINGLE_EPISODE' ? /단일 회차 업로드/
+      : uploadType.endsWith('MULTI_FILE') ? /다회차 - 여러 파일/ : /다회차 - 단일 파일/;
+    await page.getByRole('button', { name }).click();
+    await expect(page.getByText(/설정집도 함께 업로드/)).toHaveCount(0);
+    await expect(page.locator('.episode-settings-file')).toHaveCount(0);
+    await chooseFile(page, uploadType.endsWith('MULTI_FILE'));
+    if (uploadType.endsWith('SINGLE_FILE')) {
+      await page.getByRole('button', { name: '다음 — 회차 분리 확인' }).click();
+      await page.getByRole('button', { name: /회차 분리 확정/ }).click();
+    } else await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+    await expect.poll(() => requests.uploads.length).toBe(1);
+    await expect.poll(() => requests.analysisBodies.length).toBe(1);
+    expect(requests.uploads[0]).not.toContain('name="settingBook"');
+    expect(requests.settingBookRequests).toEqual([]);
+  });
 }
 
 for (const count of [0, 9]) {
@@ -359,7 +378,7 @@ test('다회차 여러 파일은 숫자로 정렬하고 번호 수정·재정렬
 });
 
 for (const mode of ['SINGLE_EPISODE', 'MULTI_EPISODE_MULTI_FILE', 'MULTI_EPISODE_SINGLE_FILE']) {
-  test(`한글 원고 ${mode}의 파일 선택·설정집 첨부·최종 전송을 지원한다`, async ({ page }) => {
+  test(`한글 원고 ${mode}의 파일 선택·최종 전송을 지원하며 설정집 동시 업로드를 제공하지 않는다`, async ({ page }) => {
     const requests = await setup(page);
     const { readFileSync } = await import('node:fs');
     await detected(page, mode);
@@ -373,12 +392,8 @@ for (const mode of ['SINGLE_EPISODE', 'MULTI_EPISODE_MULTI_FILE', 'MULTI_EPISODE
     await input.setInputFiles(files.map(file => ({
       name: file, mimeType: 'application/octet-stream', buffer: readFileSync(`e2e/fixtures/hangul/${file}`),
     })));
-    if (mode !== 'MULTI_EPISODE_SINGLE_FILE') {
-      await page.getByRole('checkbox', { name: /설정집도 함께 업로드/ }).check();
-      await page.locator('input[type=file]').last().setInputFiles({
-        name: '설정집.hwpx', mimeType: 'application/hwp+zip', buffer: readFileSync('e2e/fixtures/hangul/episode-2.hwpx'),
-      });
-    }
+    await expect(page.getByRole('checkbox', { name: /설정집도 함께 업로드/ })).toHaveCount(0);
+    await expect(page.locator('input[type=file]')).toHaveCount(1);
     if (mode === 'MULTI_EPISODE_SINGLE_FILE') {
       await page.getByRole('button', { name: '다음 — 회차 분리 확인' }).click();
       await page.getByRole('button', { name: /회차 분리 확정/ }).click();
@@ -387,10 +402,8 @@ for (const mode of ['SINGLE_EPISODE', 'MULTI_EPISODE_MULTI_FILE', 'MULTI_EPISODE
     }
     await expect.poll(() => requests.uploads.length).toBe(1);
     for (const file of files) expect(requests.uploads[0]).toContain(`filename="${file}"`);
-    if (mode !== 'MULTI_EPISODE_SINGLE_FILE') {
-      expect(requests.settingUploads).toHaveLength(1);
-      expect(requests.settingUploads[0]).toContain('filename="설정집.hwpx"');
-    }
+    expect(requests.settingBookRequests).toEqual([]);
+    expect(requests.uploads[0]).not.toContain('name="settingBook"');
     await expect.poll(() => requests.analysisBodies.length).toBe(1);
   });
 }
