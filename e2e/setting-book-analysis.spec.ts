@@ -141,7 +141,7 @@ test('미분석 설정집은 명시적으로 분석하고 저장 전 초안은 �
   await expect(page.getByTestId('setting-book-analyze')).toBeDisabled();
   await expect(page.getByText('원문과 기준 시점을 저장한 뒤 분석해 주세요.', { exact: true })).toBeVisible();
   await page.getByTestId('setting-book-save').click();
-  expect(fixture.calls.save).toBe(1);
+  await expect.poll(() => fixture.calls.save).toBe(1);
   expect(fixture.calls.analyze).toBe(0);
   await page.getByTestId('setting-book-analyze').click();
   await expect.poll(() => fixture.calls.analyze).toBe(1);
@@ -358,7 +358,7 @@ test('원문을 그대로 두고 기준 시점만 변경해도 저장 전 분석
   await page.getByLabel('기준 회차').fill('25');
   await expect(page.getByTestId('setting-book-analyze')).toBeDisabled();
   await page.getByTestId('setting-book-save').click();
-  expect(fixture.calls.saveBodies).toEqual([{ content: originalContent, referenceTimeKind: 'EPISODE', referenceEpisodeNo: 25, expectedRevisionNo: 1 }]);
+  await expect.poll(() => fixture.calls.saveBodies).toEqual([{ content: originalContent, referenceTimeKind: 'EPISODE', referenceEpisodeNo: 25, expectedRevisionNo: 1 }]);
   expect(fixture.calls.analyze).toBe(0);
   await expect(page.getByText('25화 종료 시점 기준', { exact: true })).toBeVisible();
   await expect(page.getByTestId('setting-book-analysis-status')).toContainText('기준 시점이 변경');
