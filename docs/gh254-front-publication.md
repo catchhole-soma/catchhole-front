@@ -35,3 +35,5 @@ React Doctor는 전체 검사를 마쳤고 건너뛴 검사가 없다. 제품 �
 실행 묶음은 `outputs/pr254-front-publication-20261015/`다. 최초 실행의 log·집계·source audit, 중간 실패와 최종 결과를 보존했다. 다만 이번 작업의 최초 실패 screenshot/context 첨부는 targeted 설정 경로 오류로 덮어써졌다. 이를 원본 첨부가 보존됐다고 표현하지 않는다. 로컬 보존 기록 `outputs/pr254-front-publication-20261015/artifact-correction.md`에 경위와 범위를 남겼다. 과거 작업의 원본 자료는 변경하지 않았다.
 
 최종 결과는 `final-v2/verification-results.json`, Doctor는 `final-v2/doctor-summary.json`, 실제 HTTP 공개 요약은 `live/public-proof.json`이다. 인증정보·원본 쿠키·개인 계정 값은 이 문서에 포함하지 않는다.
+
+PR CI 첫 실행은 634개 통과·1개 재시도 통과·12개 opt-in 생략이었다. 기준 시점만 저장하는 테스트가 클릭 직후 동기적으로 `saveBodies`를 읽어 요청 도착 전 빈 배열을 관찰했다. 같은 파일의 두 비동기 단언에서 요청 도착을 `expect.poll`로 기다리도록 보완했다. 요청 payload·저장 횟수·분석 미생성 단언은 유지했다. 최초 한 사례의 10회 통과 기록을 보존했고, 두 사례를 각각 10회씩 총 20회 반복해 재시도 없이 모두 통과했다. 이후 원격 CI 상태는 [PR #92 checks](https://github.com/catchhole-soma/catchhole-front/pull/92/checks)에서 확인한다.
