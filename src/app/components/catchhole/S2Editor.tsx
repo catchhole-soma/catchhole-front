@@ -6,7 +6,9 @@ import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { ChevronLeft, Eye, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { UserMenu } from './UserMenu';
-import { getEpisodeOptions, getSettingBookOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { getEpisodeOptions, getSettingBookOptions, getSettingBookRevisionOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { bookWorkspaceUrl } from '../../lib/analysis-source';
+import { settingBookReferenceLabel } from '../../lib/setting-book-reference';
 
 function formatOriginalDate(value?: string | null) {
   if (!value) return '변경일 없음';
@@ -128,14 +130,22 @@ function EpisodeOriginalReader({ workId, episodeId }: { workId: string; episodeI
   );
 }
 
-function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; settingBookId: string }) {
-  const goBack = useOriginalBack(workId);
+function SettingBookOriginalReader({ workId, settingBookId, revisionId }: { workId: string; settingBookId: string; revisionId?: string }) {
+  const navigate = useRouterNavigate();
+  const goBack = () => navigate(bookWorkspaceUrl(workId, settingBookId), { replace: true });
   const { selectedWorkInfo } = useAppContext();
   const workTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
-  const settingBookQuery = useQuery({
+  const currentQuery = useQuery({
     ...getSettingBookOptions({ path: { workId, settingBookId } }),
+    enabled: !revisionId,
     retry: false,
   });
+  const revisionQuery = useQuery({
+    ...getSettingBookRevisionOptions({ path: { workId, settingBookId, revisionId: revisionId ?? '' } }),
+    enabled: Boolean(revisionId),
+    retry: false,
+  });
+  const settingBookQuery = revisionId ? revisionQuery : currentQuery;
   const settingBook = settingBookQuery.data?.data;
 
   return (
@@ -150,7 +160,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
         <button className="original-reader-back" type="button" onClick={goBack} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
           color: C.t2, cursor: 'pointer', fontSize: 13, padding: '4px 8px', fontFamily: 'inherit',
-        }}><ChevronLeft size={16} /> 원고 목록</button>
+        }}><ChevronLeft size={16} /> 설정집으로</button>
         <span className="original-reader-title" style={{ color: C.t2, fontSize: 14 }}>{workTitle} · {settingBook?.originalFilename || '설정집 원문'}</span>
         <UserMenu />
       </header>
@@ -159,7 +169,7 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexShrink: 0,
       }}>
         <Eye size={13} color={C.warning} />
-        <span style={{ color: C.warning, fontSize: 12, fontWeight: 600 }}>설정집 원본 · 읽기 전용</span>
+        <span style={{ color: C.warning, fontSize: 12, fontWeight: 600 }}>{revisionId ? '분석 당시 설정집 원문' : '설정집 원문'} · 읽기 전용</span>
       </div>
       {settingBookQuery.isPending ? (
         <div className="original-reader-state is-loading" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.t3 }}>
@@ -173,15 +183,15 @@ function SettingBookOriginalReader({ workId, settingBookId }: { workId: string; 
             height: 36, padding: '0 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent',
             color: C.t2, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
           }}><RefreshCw size={13} /> 다시 불러오기</button>
-          <button type="button" onClick={goBack} style={{ border: 0, background: 'transparent', color: C.primary, cursor: 'pointer' }}>원고 목록으로 돌아가기</button>
+          <button type="button" onClick={goBack} style={{ border: 0, background: 'transparent', color: C.primary, cursor: 'pointer' }}>설정집으로 돌아가기</button>
         </div>
       ) : (
         <main className="original-reader-main" style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 64px' }}>
           <article className="original-reader-article" style={{ maxWidth: 820, margin: '0 auto' }}>
             <div className="original-reader-article__header" style={{ marginBottom: 26, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
-              <div className="original-reader-article__eyebrow" style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>설정집</div>
+              <div className="original-reader-article__eyebrow" style={{ color: C.t3, fontSize: 12, marginBottom: 8 }}>설정집{settingBook.revisionNo == null ? '' : ` · ${settingBook.revisionNo}차 원문`}</div>
               <h1 className="original-reader-article__title" style={{ margin: 0, color: C.t1, fontSize: 24, lineHeight: 1.35, letterSpacing: '-0.5px' }}>{settingBook.originalFilename}</h1>
-              <div className="original-reader-article__meta" style={{ marginTop: 12, color: C.t3, fontSize: 12 }}>{formatOriginalDate(settingBook.uploadedAt)}</div>
+              <div className="original-reader-article__meta" style={{ marginTop: 12, color: C.t3, fontSize: 12 }}>{(settingBook.charCount ?? 0).toLocaleString()}자{settingBook.referenceTimeKind && <span> · {settingBookReferenceLabel(settingBook.referenceTimeKind, settingBook.referenceEpisodeNo)}</span>}{!revisionId && <span> · {formatOriginalDate(currentQuery.data?.data?.uploadedAt)}</span>}</div>
             </div>
             <OriginalLines content={settingBook.content || '원문 내용이 없습니다.'} />
           </article>
@@ -196,12 +206,13 @@ export default function S2Editor() {
   const workId = searchParams.get('workId');
   const episodeId = searchParams.get('episodeId');
   const settingBookId = searchParams.get('settingBookId');
+  const revisionId = searchParams.get('revisionId') ?? undefined;
 
   if (workId && episodeId) {
     return <EpisodeOriginalReader workId={workId} episodeId={episodeId} />;
   }
   if (workId && settingBookId) {
-    return <SettingBookOriginalReader workId={workId} settingBookId={settingBookId} />;
+    return <SettingBookOriginalReader workId={workId} settingBookId={settingBookId} revisionId={revisionId} />;
   }
 
   return <Navigate to="/works" replace />;

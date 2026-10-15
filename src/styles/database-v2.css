@@ -1086,3 +1086,25 @@
   .database-v2 .character-card .character-card__image { width: 88px; flex-basis: 88px; }
   .database-v2 .character-card .character-card__name { font-size: 16px; }
 }
+.theme-v2 .setting-book-analysis-status { display: flex; flex-direction: column; gap: 8px; padding: 14px; color: var(--ch-text); border-bottom: 1px solid var(--ch-border); }
+.theme-v2 .setting-book-analysis-status span { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.theme-v2 .setting-book-analysis-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-v2 .setting-book-reference { margin: 16px 0; }
+.theme-v2 .setting-book-source-panel > .setting-book-reference { margin: 12px 14px; }
+.theme-v2 .setting-book-reference > summary { box-sizing: border-box; min-height: 44px; padding: 12px 0; color: var(--ch-text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.theme-v2 .setting-book-reference > summary:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.theme-v2 .setting-book-reference-fields { margin: 0; }
+.theme-v2 .setting-book-reference-fields label { color: var(--ch-text); font-size: 13px; }
+.theme-v2 .setting-book-reference-fields select,
+.theme-v2 .setting-book-reference-fields input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: var(--ch-radius-sm); background: var(--ch-surface); color: var(--ch-ink); font: inherit; }
+.theme-v2 .setting-book-reference-fields select:focus-visible,
+.theme-v2 .setting-book-reference-fields input:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.theme-v2 .setting-book-reference-fields p,
+.theme-v2 .setting-book-reference-label { margin: 0; color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; }
+.theme-v2 .setting-book-reference-label { padding: 10px 14px; }
+.theme-v2 .setting-book-file-meta { margin: 0 0 12px; color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; }
+.theme-v2 .setting-book-progress { max-width: 720px; margin: 32px auto; padding: 20px; }
+.theme-v2 .world-setting-evidence-reader { display: inline-flex; align-items: center; min-height: 44px; color: var(--ch-primary); font-size: 12px; text-decoration: underline; }
+@media (max-width: 768px) {
+  .theme-v2 .setting-book-analysis-actions button { min-height: 44px; white-space: normal; }
+}

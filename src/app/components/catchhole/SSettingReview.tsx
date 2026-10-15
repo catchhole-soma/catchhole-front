@@ -47,7 +47,7 @@ export default function SSettingReview() {
   return <CharacterSettingLabelProvider genre={work?.genre}>
     <WorldImageThemeProvider workId={workId} enabled={Boolean(work)}>
       {/* 탭 왕복은 선택을 유지하고, 작품·업로드 묶음 변경은 저장하지 않은 선택을 초기화한다. */}
-      <SettingReviewContent key={`${workId}:${batchId}`} world={searchParams.get('candidateType') === 'world'} />
+      <SettingReviewContent key={`${workId}:${batchId}:${searchParams.get('sourceAnalysisJobId') ?? 'EPISODE'}`} world={searchParams.get('candidateType') === 'world'} />
     </WorldImageThemeProvider>
   </CharacterSettingLabelProvider>;
 }

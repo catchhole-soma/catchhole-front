@@ -29,6 +29,7 @@ import type {
 import { toApiError } from '../../../lib/api-errors';
 import { CHARACTER_FACT_TYPE_LABELS, characterFactTypeLabel } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
+import { analysisSourceIdentity, analysisSourceLabel } from '../../../lib/analysis-source';
 import { C } from '../constants';
 import { useCharacterSettingLabels } from './CharacterSettingLabelProvider';
 import { CharacterEvidencePanel } from './CharacterEvidencePanel';
@@ -289,13 +290,16 @@ function TimelineModal({
   const isFetchNextPageError = demoData ? false : timelineQuery.isFetchNextPageError;
 
   const groups = useMemo(() => {
-    const result: Array<{ key: string; episodeNo: number | null; facts: CharacterTimelineFactResponse[] }> = [];
+    const result: Array<{ key: string; label: string; facts: CharacterTimelineFactResponse[] }> = [];
     facts.forEach(fact => {
       const episodeNo = fact.sourceType === 'MANUAL' ? null : fact.sourceEpisodeNo ?? null;
-      const key = episodeNo == null ? 'manual' : `episode-${episodeNo}`;
+      const book = fact.source?.sourceKind === 'SETTING_BOOK';
+      const key = book ? analysisSourceIdentity(fact.source) : episodeNo == null ? 'manual' : `episode-${episodeNo}`;
+      const label = book ? analysisSourceLabel(fact.source) : episodeNo == null
+        ? fact.sourceType === 'MANUAL' ? '사용자 입력' : '출처 정보 없음' : `${episodeNo}화`;
       const lastGroup = result[result.length - 1];
       if (lastGroup?.key === key) lastGroup.facts.push(fact);
-      else result.push({ key, episodeNo, facts: [fact] });
+      else result.push({ key, label, facts: [fact] });
     });
     return result;
   }, [facts]);
@@ -544,7 +548,7 @@ function TimelineModal({
                 <div className="character-timeline-empty">{emptyMessage}</div>
               ) : groups.map(group => (
                 <section key={group.key} className="character-timeline-group">
-                  <header><strong>{group.episodeNo == null ? '사용자 입력' : `${group.episodeNo}화`}</strong><span>{group.facts.length}개</span></header>
+                  <header><strong>{group.label}</strong><span>{group.facts.length}개</span></header>
                   <div className="character-timeline-group__facts">
                     {group.facts.map(fact => {
                       const filter = fact.factType as Exclude<TimelineFactFilter, 'ALL'>;
@@ -561,7 +565,7 @@ function TimelineModal({
                           <button
                             type="button"
                             className="timeline-evidence-button"
-                            aria-label={`${fact.sourceEpisodeNo == null ? '사용자 입력' : `${fact.sourceEpisodeNo}화`} ${fact.displayName ?? '설정'} 원문 근거 보기`}
+                            aria-label={`${fact.source?.sourceKind === 'SETTING_BOOK' ? analysisSourceLabel(fact.source) : fact.sourceEpisodeNo == null ? '사용자 입력' : `${fact.sourceEpisodeNo}화`} ${fact.displayName ?? '설정'} 원문 근거 보기`}
                             disabled={!fact.hasEvidence || !fact.characterFactId}
                             title={fact.hasEvidence ? '원문 근거 보기' : '원문이 삭제되었거나 저장된 근거가 없습니다.'}
                             onClick={() => fact.characterFactId && onEvidenceOpen(fact.characterFactId)}

@@ -1,11 +1,12 @@
 import { Loader2 } from 'lucide-react';
-import { AUTOMATIC_APPLICATION_PENDING_MESSAGE } from '../../lib/setting-review-progress';
+import { automaticApplicationPendingMessage } from '../../lib/setting-review-progress';
+import type { AnalysisSourceResponse } from '../../api/generated/types.gen';
 
-export function AutomaticApplicationNotice() {
+export function AutomaticApplicationNotice({ source }: { source?: AnalysisSourceResponse }) {
   return (
     <div className="automatic-application-notice" role="status">
       <Loader2 size={16} className="spin" aria-hidden="true" />
-      <div><strong>분석 중</strong><p>{AUTOMATIC_APPLICATION_PENDING_MESSAGE}</p></div>
+      <div><strong>분석 중</strong><p>{automaticApplicationPendingMessage(source)}</p></div>
     </div>
   );
 }

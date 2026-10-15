@@ -1,6 +1,6 @@
 import type { Decision, WorldSettingCandidateResponse } from '../../../api/generated/types.gen';
 
-export type WorldReviewDraft = Omit<Decision, 'candidateId' | 'conflictResolved'>;
+export type WorldReviewDraft = Omit<Decision, 'candidateId' | 'conflictResolved' | 'applyToCurrent' | 'expectedWorldSettingVersion' | 'expectedUpdatedAt'>;
 
 /** The API stores a MERGE final value verbatim; preserve both texts in a manual merge. */
 export function combineWorldReviewValues(before?: string | null, incoming?: string | null): string {

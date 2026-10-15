@@ -9,7 +9,7 @@ import { useAppContext } from '../../context/AppContext';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
 import {
-  Users, GitBranch, Globe, Upload, FileText, CircleCheckBig,
+  Users, GitBranch, Globe, Upload, FileText,
   X, Search, Loader2, AlertCircle, RefreshCw, Menu,
 } from 'lucide-react';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
@@ -31,7 +31,7 @@ import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { isDemoMode } from '../../lib/worksApi';
-import { ALLOWED_EXTENSIONS, validateManuscriptFile, formatFileSize } from '../../lib/fileValidation';
+import { FileDropArea } from './FileDropArea';
 import {
   createAnalysisJobMutation,
   deleteEpisodeMutation,
@@ -78,94 +78,6 @@ function BtnP({ label, onClick, icon }: { label: string; onClick?: () => void; i
       }}>
       {icon}{label}
     </button>
-  );
-}
-
-export function FileDropArea({
-  file,
-  onFileChange,
-  error,
-  fileLabel,
-  allowedExtensions = ALLOWED_EXTENSIONS,
-  disabled = false,
-}: {
-  file: File | null;
-  onFileChange: (file: File | null, error: string | null) => void;
-  error?: string | null;
-  fileLabel: string;
-  allowedExtensions?: readonly string[];
-  disabled?: boolean;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    if (!file && inputRef.current) inputRef.current.value = '';
-  }, [file]);
-
-  useEffect(() => {
-    if (disabled) setDragging(false);
-  }, [disabled]);
-
-  const handleFile = (f: File | null | undefined) => {
-    if (disabled) return;
-    if (!f) { onFileChange(null, null); return; }
-    const validationError = validateManuscriptFile(f, allowedExtensions);
-    if (validationError) { onFileChange(null, validationError); return; }
-    onFileChange(f, null);
-  };
-
-  return (
-    <div className={`file-drop-area${file ? ' has-file' : ''}${error ? ' has-error' : ''}`} style={{ marginBottom: error ? 4 : 12 }}>
-      <div
-        className="file-drop-area__target"
-        aria-disabled={disabled}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!disabled) setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          if (!disabled) handleFile(e.dataTransfer.files?.[0]);
-        }}
-        onClick={() => {
-          if (!disabled) inputRef.current?.click();
-        }}
-        style={{
-          border: `2px dashed ${error ? C.danger : dragging ? C.primary : file ? C.success : C.border}`,
-          borderRadius: 8, padding: '24px', textAlign: 'center',
-          background: error ? C.danger + '08' : dragging ? C.primary + '08' : file ? C.success + '08' : 'transparent',
-          cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-          opacity: disabled ? 0.55 : 1,
-        }}
-      >
-        <input
-          ref={inputRef} type="file" accept={allowedExtensions.join(',')} disabled={disabled} style={{ display: 'none' }}
-          onChange={(e) => handleFile(e.target.files?.[0])}
-        />
-        {file ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <CircleCheckBig size={18} color={C.success} />
-            <span style={{ color: C.success, fontSize: 14, fontWeight: 600 }}>
-              {file.name} · {formatFileSize(file.size)}
-            </span>
-          </div>
-        ) : (
-          <>
-            <Upload size={24} color={C.t3} style={{ margin: '0 auto 10px' }} />
-            <div style={{ color: C.t2, fontSize: 14, marginBottom: 4 }}>파일을 드래그하거나 클릭하여 업로드</div>
-            <div style={{ color: C.t3, fontSize: 12 }}>{allowedExtensions.join(', ')} 지원 (최대 10MB) · {fileLabel}</div>
-          </>
-        )}
-      </div>
-      {error && (
-        <div style={{ color: C.danger, fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <AlertCircle size={12} /> {error}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -330,6 +242,9 @@ export default function S1Dashboard() {
       : new URLSearchParams(prev);
 
     next.set('nav', id);
+    next.delete('sourceAnalysisJobId');
+    next.delete('settingBookId');
+    next.delete('revisionId');
     // 별도 타임라인 탭 없이 캐릭터 상세에서 이력을 확인하므로 캐릭터 DB로 진입한다.
     if (id === 'settingDB') next.set('tab', 'characters');
     if (id !== 'settingDB') {
@@ -350,6 +265,9 @@ export default function S1Dashboard() {
     setSearchParams(prev => {
       const next = switchSettingTabQueryState(prev, settingTab, id);
       next.set('tab', id);
+      next.delete('sourceAnalysisJobId');
+      next.delete('settingBookId');
+      next.delete('revisionId');
       next.delete('worldSize');
       if (openCategoryOverview) {
         next.delete('category');
