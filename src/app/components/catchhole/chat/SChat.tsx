@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
   BookOpen, ChevronDown, Menu, MessageSquare, Plus, Send, X,
 } from 'lucide-react';
@@ -339,6 +339,7 @@ function Conversation({
   epoch: number;
   onClose: () => void;
 }) {
+  const location = useLocation();
   const [params, setParams] = useSearchParams();
   const page = Math.max(
     0,
@@ -351,6 +352,11 @@ function Conversation({
   const [unconfirmed, setUnconfirmed] = useState<{
     key: string;
     body: ChatSubmitV1;
+  } | null>(null);
+  const [acceptedNavigation, setAcceptedNavigation] = useState<{
+    questionId: string;
+    locationKey: string;
+    afterSessionUpdate: number;
   } | null>(null);
   const [evidence, setEvidence] = useState<{
     questionId: string;
@@ -368,11 +374,12 @@ function Conversation({
   const quotaCandidates = useRef(new Set<string>());
   const client = useQueryClient();
   const sessionOptions = getChatSessionOptions({ path: { workId, sessionId } });
+  const sessionQueryKey: [typeof sessionOptions.queryKey[0]] = [
+    { ...sessionOptions.queryKey[0], tags: ['chat', `auth:${epoch}`] },
+  ];
   const session = useQuery({
     ...sessionOptions,
-    queryKey: [
-      { ...sessionOptions.queryKey[0], tags: ['chat', `auth:${epoch}`] },
-    ],
+    queryKey: sessionQueryKey,
     meta: { chat: true, epoch, workId, sessionId },
     gcTime: 0,
     retry: false,
@@ -402,6 +409,8 @@ function Conversation({
   const rows = inaccessible ? [] : (messages.data?.data?.content ?? []);
   const busy = session.data?.data?.busy === true || rows.some(pending);
   const working = send.isPending || retry.isPending || close.isPending;
+  const sessionUpdateCount = client.getQueryState(sessionQueryKey)?.dataUpdateCount ?? 0;
+  const questionCount = session.data?.data?.questionCount;
   useEffect(() => {
     live.current = true;
     return () => {
@@ -422,6 +431,22 @@ function Conversation({
       });
     };
   }, [client, epoch, workId, sessionId]);
+  useEffect(() => {
+    if (!acceptedNavigation) return;
+    if (acceptedNavigation.locationKey !== location.key) {
+      setAcceptedNavigation(null);
+      return;
+    }
+    // A failed refetch retains the old count. Follow an accepted question only
+    // after a new successful session read, never by repeating its POST.
+    if (!session.isSuccess || sessionUpdateCount <= acceptedNavigation.afterSessionUpdate ||
+      questionCount == null || questionCount < 1) return;
+    const targetPage = Math.floor((questionCount - 1) / 20);
+    scrollTarget.current = { page: targetPage, questionId: acceptedNavigation.questionId };
+    setAcceptedNavigation(null);
+    setParams({ workId, sessionId, messagePage: String(targetPage + 1) });
+  }, [acceptedNavigation, location.key, questionCount, session.dataUpdatedAt, session.isSuccess,
+    sessionUpdateCount, sessionId, setParams, workId]);
   useEffect(() => {
     if (viewedPage.current !== page) {
       viewedPage.current = page;
@@ -465,8 +490,9 @@ function Conversation({
       }
     }
   }, [inaccessible, messages.data]);
-  function setPage(value: number, questionId?: string) {
-    scrollTarget.current = { page: value, questionId };
+  function setPage(value: number) {
+    setAcceptedNavigation(null);
+    scrollTarget.current = { page: value };
     setParams({ workId, sessionId, messagePage: String(value + 1) });
   }
   function openEvidence(
@@ -512,15 +538,13 @@ function Conversation({
       setFrom('');
       setTo('');
       setUnconfirmed(null);
-      const fresh = await session.refetch();
-      if (!live.current) return;
-      setPage(
-        Math.floor(
-          Math.max(0, (fresh.data?.data?.questionCount ?? 1) - 1) / 20,
-        ),
-        submitted.data?.questionId,
-      );
-      await messages.refetch();
+      if (submitted.data?.questionId) setAcceptedNavigation({
+        questionId: submitted.data.questionId,
+        locationKey: location.key,
+        afterSessionUpdate: client.getQueryState(sessionQueryKey)?.dataUpdateCount ?? 0,
+      });
+      // Follow-up reads cannot turn an acknowledged POST into an uncertain send.
+      await Promise.allSettled([session.refetch(), messages.refetch()]);
     } catch (e) {
       if (!live.current) return;
       const api = toApiError(e);
