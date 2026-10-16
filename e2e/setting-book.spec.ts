@@ -83,6 +83,8 @@ test('대시보드의 두 업로드 버튼이 나란히 표시되고 설정집 �
     }
     await page.screenshot({ path: testInfo.outputPath(`upload-buttons-${width}-${zoom}.png`), animations: 'disabled' });
   }
+  await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
+  await page.setViewportSize({ width: 1639, height: 906 });
   await expect(settingBookUpload).toHaveCSS('color', 'rgb(25, 30, 38)');
   expect(await computedContrastRatio(settingBookUpload)).toBeGreaterThanOrEqual(4.5);
   await settingBookUpload.hover();
