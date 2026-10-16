@@ -28,6 +28,7 @@
 상태 화면: [인증 확인 중](../screens/Rxd2k.png) · [인증 서버 오류·재시도](../screens/Yj7td.png) · [모바일 확인 중](../screens/zMv34.png) · [모바일 서버 오류](../screens/A8vua.png)
 
 - access token이 있는 상태로 보호 화면에 진입하면 `GET /api/v1/auth/me`로 현재 세션을 확인한다.
+- 설정 대시보드 상단의 `설정집 올리기`는 같은 작품의 기존 설정집 업로드 모달로 연결한다. 보호 라우트 세션 확인과 기존 업로드 API 계약을 재사용하며 체험 작품에서는 비활성화한다. [화면 흐름](../screen-flow.md)
 - 세계관 후보 검토(`/setting-review?candidateType=world`)와 세계관 DB(`/dashboard?nav=settingDB&tab=worldsettings`)도 같은 보호 라우트 게이트를 통과한 뒤에만 목록·상세 요청과 비교 상태 polling을 시작한다.
 - 401은 인증 만료로 처리해 토큰을 제거하고 로그인 화면으로 이동한다.
 - 5xx나 네트워크 오류는 일시적 장애로 처리해 토큰을 유지하고, 보호 화면의 데이터를 노출하지 않은 채 오류 안내와 재시도를 제공한다.

@@ -600,3 +600,18 @@ Landing scroll reveals should be clearly perceptible, start at the product walkt
 - 사용자: “이미지 생성해서 … 그걸 토대로 사이트 코드 구현”. 내장 GPT로 종이책에서 숲과 세계관이 펼쳐지는 이미지를 생성해 그 여백과 색을 기준으로 코드 구현.
 - 적용 후 사용자: “얘네는 빼도 될 거 같다 위에 디자인이 좋아서”. 이미지와 완료 CTA는 유지하고 아래 체험 기록 전체 제거.
 - 이 화면의 승인 방향은 크림·세이지 톤, 넉넉한 이미지 여백, 실제 텍스트와 절제된 pill 버튼. 이전 보라색 카드/중앙 텍스트만의 시안으로 되돌리지 않는다.
+
+## 2026-10-16 — dashboard-adjacent-upload-actions
+
+```omd-meta
+id: pref_dashboard_upload_actions_20261016
+timestamp: 2026-10-16
+scope: components.button
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/S1Dashboard.tsx; /dashboard"
+```
+
+Show a setting-book upload button alongside the episode upload button in the setting dashboard header.

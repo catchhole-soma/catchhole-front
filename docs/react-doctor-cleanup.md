@@ -182,3 +182,7 @@ React Doctor 0.9.13은 Git index에 남은 삭제 파일을 maintainability 단�
 React Doctor 재실행 결과 158건(오류 2·경고 156)으로 직전과 동일하다. 기존 세계관 state updater 진단 2건과 maintainability 검사 실패가 남아 있어 완전 통과로 해석하지 않는다. 실제 API·인증 계약은 변경하지 않았다.
 
 GH244 PR 전 검증: 랜딩 소개·스크롤 테스트 19개 통과, 공개 체험 7개 재실행 통과. 삭제한 완료 요약에 대한 이전 assertion은 가상 원고 고지 및 기록 영역 부재 검증으로 변경했다. lint/typecheck/build/Knip 재실행 통과, 기존 Fast Refresh 2경고·번들 크기 경고·Knip entry 힌트 유지. API 계약 변경이 없는 공개 fixture UI 범위이므로 실제 백엔드 연동 검증은 해당하지 않는다.
+
+## 대시보드 설정집 업로드 바로가기 (2026-10-16)
+
+최신 main 통합 후 React Doctor 0.9.13 전체 검사: 197개 파일, 진단 173건(오류 2·경고 171). 오류는 기존 `WorldSettingDatabase`의 state updater 두 건이며 이번 버튼 추가 범위에서는 변경하지 않았다. 종료 코드 0을 무진단으로 해석하지 않는다. ESLint 오류 0·기존 Fast Refresh 경고 2개, 타입 검사·빌드·Knip 통과. Knip의 기존 entry pattern 안내와 빌드의 공용 JS chunk 크기 안내는 남아 있다. 설정집 바로가기 E2E는 데스크톱·모바일·200% 확대 배치와 모달 진입·키보드·기본/hover 대비를 확인한다. Pencil은 VS Code 확장의 pen.dev 로그인 요구로 연결되지 않아 `design/catchhole.pen` 동기화가 남아 있다.
