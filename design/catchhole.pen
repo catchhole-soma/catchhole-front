@@ -12151,7 +12151,8 @@
       "id": "PEIta",
       "x": 60520,
       "y": 35740,
-      "name": "S3Chat / 대화 진행 중 (With Messages)",
+      "name": "S3Chat / 대화방 탐색과 읽기 위치 (GH241)",
+      "context": "GH241 2026-10-15 상호작용 대표 프레임. 본문 옆 대화방은 생성 시각·질문 수·선택 상태를 표시하며 1100px 이하에서 접고 펼친다. 다른 방은 질문 수 기준 마지막 페이지를 열고 같은 방 재선택·명시적 URL은 읽던 페이지를 유지한다. 상단 새 대화, 종료 또는 마지막 질문·답변 후 2시간 삭제를 유지한다. 왼쪽 메뉴는 화면 높이를 채우고 챗봇을 분석 목록 다음에 둔다. 모바일 작품 메뉴는 배경 조작을 막는 다이얼로그이며 초점 순환·Escape 닫기·열기 버튼 초점 복귀를 제공한다. 진입·페이지 전환·본인 새 질문 접수 때 해당 턴으로 한 번 이동하며 일반 조회·답변 완료·재시도는 읽던 위치를 보존한다. 접수 성공 후 질문 수 조회가 실패하면 새 성공 조회 뒤 접수한 질문으로 한 번 이동하고 수동 페이지·방 이동 시 취소하며 POST를 반복하지 않는다. 접수 시 미완료 첫 목록 조회까지 취소한 뒤 목록을 재검증하고 정상 조회의 질문 수로 목록을 맞추며 오래된 응답의 덮어쓰기를 막는다. 같은 메시지 페이지의 자동 이동은 history를 교체해 뒤로가기 단계를 쌓지 않는다. 상시 Enter 안내는 표시하지 않는다. 관련 설정이 없는 N명/개 고정 집계만 생략하고 미검토·판단 보류를 보존한다. 접수 유실은 같은 키와 범위로 확인하고 정산 전에는 다음 전송을 잠근다. 현재 페이지와 별개로 대화 전체 진행 상태로 전송·재시도를 잠그며 새로 확인한 사용량 부족 실패만 한 번 알리고 과거 기록 재열람은 알리지 않는다. 근거 번호·실패 자리·질문 재검증을 유지한다. 직접 근거는 조회한 설정값과 원문 인용을 구분하고 값 생략 상태를 표시한다. 기존 시각 토큰을 보존한 동작 설계이며 실제 반응형 픽셀 검증은 구현 화면을 따른다.",
       "clip": true,
       "width": 1280,
       "height": 800,
@@ -12292,11 +12293,187 @@
           "height": "fill_container",
           "children": [
             {
+              "type": "frame",
               "id": "GZ3kv",
-              "type": "ref",
-              "ref": "T2PITB",
-              "name": "AppSidebar",
-              "height": "fill_container"
+              "name": "AppSidebar / Chat current order",
+              "width": 220,
+              "height": "fill_container",
+              "fill": "$surface",
+              "layout": "vertical",
+              "padding": [
+                16,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gh241WorkCard",
+                  "name": "Current Work",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241WorkLabel",
+                      "fill": "$text-3",
+                      "content": "현재 작품",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "gh241WorkTitle",
+                      "fill": "$text-1",
+                      "content": "빛나는 검사 로맨스",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav0",
+                  "name": "Nav / 원고 목록",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel0",
+                      "fill": "$text-2",
+                      "content": "원고 목록",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav1",
+                  "name": "Nav / 작품 설정",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel1",
+                      "fill": "$text-2",
+                      "content": "작품 설정",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav2",
+                  "name": "Nav / 분석 목록",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel2",
+                      "fill": "$text-2",
+                      "content": "분석 목록",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav3",
+                  "name": "Nav / 챗봇",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "fill": "$primary-soft",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel3",
+                      "fill": "$primary",
+                      "content": "챗봇",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav4",
+                  "name": "Nav / 분석 리포트",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel4",
+                      "fill": "$text-2",
+                      "content": "분석 리포트",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Nav5",
+                  "name": "Nav / 그래프 뷰",
+                  "width": "fill_container",
+                  "height": 44,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241NavLabel5",
+                      "fill": "$text-2",
+                      "content": "그래프 뷰",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "frame",
@@ -12335,78 +12512,149 @@
                           "type": "text",
                           "id": "E4uWYY",
                           "fill": "$text-1",
-                          "content": "빛나는 검사 로맨스",
+                          "content": "작품과 대화하기",
                           "fontFamily": "Inter",
-                          "fontSize": 14,
+                          "fontSize": 17,
                           "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "LJ1iv",
-                          "fill": "$text-3",
-                          "content": "▾",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
                         }
                       ]
                     },
                     {
-                      "type": "text",
+                      "type": "frame",
                       "id": "hR2YK",
+                      "name": "New Conversation",
+                      "height": 36,
+                      "fill": "$primary",
+                      "cornerRadius": 8,
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gh241NewLabel",
+                          "fill": "$white",
+                          "content": "+ 새 대화",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gh241Retention",
+                  "name": "Conversation expiry",
+                  "width": "fill_container",
+                  "padding": [
+                    10,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gh241RetentionText",
                       "fill": "$text-3",
-                      "content": "설정 DB 기반 · 158화 로드됨",
+                      "content": "대화 종료 또는 마지막 질문·답변 후 2시간이 지나면 대화 내용이 삭제됩니다.",
                       "fontFamily": "Inter",
-                      "fontSize": 12,
+                      "fontSize": 11,
                       "fontWeight": "normal"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "ItaKI",
-                  "name": "Message Area",
+                  "id": "gh241ChatLayout",
+                  "name": "Room list and Conversation",
                   "width": "fill_container",
                   "height": "fill_container",
-                  "layout": "vertical",
-                  "gap": 16,
-                  "padding": [
-                    24,
-                    28
-                  ],
+                  "gap": 12,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "S6CfN",
-                      "name": "User Message",
-                      "width": "fill_container",
-                      "justifyContent": "end",
+                      "id": "gh241RoomList",
+                      "name": "Conversation Rooms / collapses at 1100px",
+                      "width": 196,
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "fill": "$surface",
+                      "context": "선택은 현재 방의 ID로 표시. 생성 시각과 질문 수만 사용. 1100px 이하에서는 본문 위 접기/펼치기 목록으로 전환한다.",
                       "children": [
                         {
+                          "type": "text",
+                          "id": "gh241RoomsHeading",
+                          "fill": "$text-1",
+                          "content": "진행 중인 대화",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
                           "type": "frame",
-                          "id": "d68BCA",
-                          "width": 600,
-                          "fill": "$primary",
-                          "cornerRadius": [
-                            12,
-                            12,
-                            4,
-                            12
-                          ],
-                          "padding": [
-                            12,
-                            16
-                          ],
+                          "id": "gh241Room0",
+                          "name": "Conversation / 10월 15일 14:30 대화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "padding": 12,
+                          "cornerRadius": 8,
+                          "fill": "$primary-soft",
+                          "stroke": "$primary",
+                          "strokeWidth": 1,
                           "children": [
                             {
                               "type": "text",
-                              "id": "h3hwZY",
-                              "fill": "$white",
-                              "textGrowth": "fixed-width",
-                              "width": 568,
-                              "content": "수아의 눈 색깔은 뭐야?",
+                              "id": "gh241RoomTitle0",
+                              "fill": "$primary",
+                              "content": "10월 15일 14:30 대화",
                               "fontFamily": "Inter",
-                              "fontSize": 13,
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "gh241RoomCount0",
+                              "fill": "$text-3",
+                              "content": "23개 질문",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gh241Room1",
+                          "name": "Conversation / 10월 15일 15:10 대화",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "padding": 12,
+                          "cornerRadius": 8,
+                          "fill": "$surface",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "gh241RoomTitle1",
+                              "fill": "$text-1",
+                              "content": "10월 15일 15:10 대화",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "gh241RoomCount1",
+                              "fill": "$text-3",
+                              "content": "2개 질문",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
                               "fontWeight": "normal"
                             }
                           ]
@@ -12415,330 +12663,393 @@
                     },
                     {
                       "type": "frame",
-                      "id": "Bl3Ge",
-                      "name": "AI Message",
+                      "id": "gh241Conversation",
+                      "name": "Conversation / preserve reading position",
                       "width": "fill_container",
-                      "gap": 10,
+                      "height": "fill_container",
+                      "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "GgB5H",
-                          "width": 28,
-                          "height": 28,
-                          "fill": "$primary",
-                          "cornerRadius": "$radius-pill",
+                          "id": "ItaKI",
+                          "name": "Message Area",
+                          "width": "fill_container",
+                          "height": "fill_container",
                           "layout": "vertical",
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "dxNru",
-                              "fill": "$white",
-                              "content": "AI",
-                              "fontFamily": "Inter",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "IgVLY",
-                          "name": "Content",
-                          "width": 600,
-                          "layout": "vertical",
-                          "gap": 8,
+                          "gap": 16,
+                          "padding": [
+                            24,
+                            28
+                          ],
                           "children": [
                             {
                               "type": "frame",
-                              "id": "C7ju6",
+                              "id": "S6CfN",
+                              "name": "User Message",
                               "width": "fill_container",
-                              "fill": "$surface",
-                              "cornerRadius": [
-                                4,
-                                12,
-                                12,
-                                12
-                              ],
-                              "stroke": "$border",
-                              "strokeWidth": 1,
-                              "padding": [
-                                12,
-                                16
-                              ],
+                              "justifyContent": "end",
                               "children": [
                                 {
-                                  "type": "text",
-                                  "id": "nNfJV",
-                                  "fill": "$text-1",
-                                  "textGrowth": "fixed-width",
-                                  "width": 568,
-                                  "content": "수아의 눈 색깔은 갈색입니다. 23화에서 처음 확정됐으며 이후에도 동일하게 서술됩니다.\n\n⚠ 159화에서 \"파란 눈\"으로 서술되어 설정 충돌 감지됨.",
-                                  "lineHeight": 1.65,
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
+                                  "type": "frame",
+                                  "id": "d68BCA",
+                                  "width": 600,
+                                  "fill": "$primary",
+                                  "cornerRadius": [
+                                    12,
+                                    12,
+                                    4,
+                                    12
+                                  ],
+                                  "padding": [
+                                    12,
+                                    16
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "h3hwZY",
+                                      "fill": "$white",
+                                      "textGrowth": "fixed-width",
+                                      "width": 568,
+                                      "content": "수아의 눈 색깔은 뭐야?",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
                                 }
                               ]
                             },
                             {
                               "type": "frame",
-                              "id": "Nx2Pl",
+                              "id": "Bl3Ge",
+                              "name": "AI Message",
                               "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "GgB5H",
+                                  "width": 28,
+                                  "height": 28,
+                                  "fill": "$primary",
+                                  "cornerRadius": "$radius-pill",
+                                  "layout": "vertical",
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "dxNru",
+                                      "fill": "$white",
+                                      "content": "AI",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "IgVLY",
+                                  "name": "Content",
+                                  "width": 600,
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "C7ju6",
+                                      "width": "fill_container",
+                                      "fill": "$surface",
+                                      "cornerRadius": [
+                                        4,
+                                        12,
+                                        12,
+                                        12
+                                      ],
+                                      "stroke": "$border",
+                                      "strokeWidth": 1,
+                                      "padding": [
+                                        12,
+                                        16
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "nNfJV",
+                                          "fill": "$text-1",
+                                          "textGrowth": "fixed-width",
+                                          "width": 568,
+                                          "content": "수아의 눈 색깔은 갈색입니다. [1]",
+                                          "lineHeight": 1.65,
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Nx2Pl",
+                                      "width": "fill_container",
+                                      "fill": "$bg",
+                                      "cornerRadius": 8,
+                                      "stroke": "$border",
+                                      "strokeWidth": 1,
+                                      "layout": "vertical",
+                                      "gap": 8,
+                                      "padding": [
+                                        10,
+                                        14
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "a7FLz",
+                                          "fill": "$text-3",
+                                          "content": "📎 원문 근거 · 23화 3문단",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 11,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "cviia",
+                                          "stroke": "$primary",
+                                          "strokeWidth": {
+                                            "left": 2
+                                          },
+                                          "strokeLinejoin": "round",
+                                          "layout": "vertical",
+                                          "gap": 2,
+                                          "padding": [
+                                            0,
+                                            0,
+                                            0,
+                                            10
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "k0JMWd",
+                                              "fill": "$text-2",
+                                              "content": "\"갈색 눈동자가 형광등 불빛에 반짝였다.\"",
+                                              "lineHeight": 1.6,
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "LOaCj",
+                                              "fill": "$text-2",
+                                              "content": "\"당신이 강민준 검사님이십니까?\"",
+                                              "lineHeight": 1.6,
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "p1ZfSU",
+                                          "fill": "$text-3",
+                                          "content": "근거 1개",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 11,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "hHmBR",
+                              "name": "User Message",
+                              "width": "fill_container",
+                              "justifyContent": "end",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "r4zlni",
+                                  "fill": "$primary",
+                                  "cornerRadius": [
+                                    12,
+                                    12,
+                                    4,
+                                    12
+                                  ],
+                                  "padding": [
+                                    12,
+                                    16
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "r8DHJ",
+                                      "fill": "$white",
+                                      "content": "그 설정의 원문도 보여줘.",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ftpsX",
+                              "name": "AI Message - Loading",
+                              "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "H4Qpl",
+                                  "width": 28,
+                                  "height": 28,
+                                  "fill": "$primary",
+                                  "cornerRadius": "$radius-pill",
+                                  "layout": "vertical",
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "cqzxy",
+                                      "fill": "$white",
+                                      "content": "AI",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Z41aB",
+                                  "fill": "$surface",
+                                  "cornerRadius": [
+                                    4,
+                                    12,
+                                    12,
+                                    12
+                                  ],
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "gap": 5,
+                                  "padding": [
+                                    14,
+                                    18
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "U9Dbt",
+                                      "width": 6,
+                                      "height": 6,
+                                      "fill": "$text-3",
+                                      "cornerRadius": "$radius-pill"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "PAmUK",
+                                      "width": 6,
+                                      "height": 6,
+                                      "fill": "$text-3",
+                                      "cornerRadius": "$radius-pill"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "MCtsr",
+                                      "width": 6,
+                                      "height": 6,
+                                      "fill": "$text-3",
+                                      "cornerRadius": "$radius-pill"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "w2p8g",
+                          "name": "Input Bar",
+                          "width": "fill_container",
+                          "fill": "$surface",
+                          "stroke": "$border",
+                          "strokeWidth": {
+                            "top": 1
+                          },
+                          "strokeLinejoin": "round",
+                          "gap": 10,
+                          "padding": [
+                            14,
+                            20
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "UXRdS",
+                              "name": "Input Field",
+                              "width": "fill_container",
+                              "height": 46,
                               "fill": "$bg",
                               "cornerRadius": 8,
                               "stroke": "$border",
                               "strokeWidth": 1,
                               "layout": "vertical",
-                              "gap": 8,
                               "padding": [
-                                10,
-                                14
+                                0,
+                                16
                               ],
+                              "justifyContent": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "id": "a7FLz",
+                                  "id": "yQlxV",
                                   "fill": "$text-3",
-                                  "content": "📎 원문 근거 · 23화 3문단",
+                                  "content": "설정에 대해 질문하세요  (예: 수아의 직업은?)",
                                   "fontFamily": "Inter",
-                                  "fontSize": 11,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "cviia",
-                                  "stroke": "$primary",
-                                  "strokeWidth": {
-                                    "left": 2
-                                  },
-                                  "strokeLinejoin": "round",
-                                  "layout": "vertical",
-                                  "gap": 2,
-                                  "padding": [
-                                    0,
-                                    0,
-                                    0,
-                                    10
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "k0JMWd",
-                                      "fill": "$text-2",
-                                      "content": "\"갈색 눈동자가 형광등 불빛에 반짝였다.\"",
-                                      "lineHeight": 1.6,
-                                      "fontFamily": "Inter",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "LOaCj",
-                                      "fill": "$text-2",
-                                      "content": "\"당신이 강민준 검사님이십니까?\"",
-                                      "lineHeight": 1.6,
-                                      "fontFamily": "Inter",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "p1ZfSU",
-                                  "fill": "$text-3",
-                                  "content": "설정 등장 이력: 1화 · 23화 · 89화 · ⚠ 159화 충돌",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 11,
+                                  "fontSize": 14,
                                   "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "q4ldQ",
+                              "name": "Send Button",
+                              "width": 46,
+                              "height": 46,
+                              "fill": "$border",
+                              "cornerRadius": 8,
+                              "layout": "vertical",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "Hp8uA",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "send",
+                                  "library": "lucide",
+                                  "fill": "$text-3"
                                 }
                               ]
                             }
                           ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "hHmBR",
-                      "name": "User Message",
-                      "width": "fill_container",
-                      "justifyContent": "end",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "r4zlni",
-                          "fill": "$primary",
-                          "cornerRadius": [
-                            12,
-                            12,
-                            4,
-                            12
-                          ],
-                          "padding": [
-                            12,
-                            16
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "r8DHJ",
-                              "fill": "$white",
-                              "content": "159화 감지된 오류 알려줘",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ftpsX",
-                      "name": "AI Message - Loading",
-                      "width": "fill_container",
-                      "gap": 10,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "H4Qpl",
-                          "width": 28,
-                          "height": 28,
-                          "fill": "$primary",
-                          "cornerRadius": "$radius-pill",
-                          "layout": "vertical",
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "cqzxy",
-                              "fill": "$white",
-                              "content": "AI",
-                              "fontFamily": "Inter",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Z41aB",
-                          "fill": "$surface",
-                          "cornerRadius": [
-                            4,
-                            12,
-                            12,
-                            12
-                          ],
-                          "stroke": "$border",
-                          "strokeWidth": 1,
-                          "gap": 5,
-                          "padding": [
-                            14,
-                            18
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "U9Dbt",
-                              "width": 6,
-                              "height": 6,
-                              "fill": "$text-3",
-                              "cornerRadius": "$radius-pill"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "PAmUK",
-                              "width": 6,
-                              "height": 6,
-                              "fill": "$text-3",
-                              "cornerRadius": "$radius-pill"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "MCtsr",
-                              "width": 6,
-                              "height": 6,
-                              "fill": "$text-3",
-                              "cornerRadius": "$radius-pill"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "w2p8g",
-                  "name": "Input Bar",
-                  "width": "fill_container",
-                  "fill": "$surface",
-                  "stroke": "$border",
-                  "strokeWidth": {
-                    "top": 1
-                  },
-                  "strokeLinejoin": "round",
-                  "gap": 10,
-                  "padding": [
-                    14,
-                    20
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "UXRdS",
-                      "name": "Input Field",
-                      "width": "fill_container",
-                      "height": 46,
-                      "fill": "$bg",
-                      "cornerRadius": 8,
-                      "stroke": "$border",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "justifyContent": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "yQlxV",
-                          "fill": "$text-3",
-                          "content": "설정에 대해 질문하세요  (예: 수아의 직업은?)",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "q4ldQ",
-                      "name": "Send Button",
-                      "width": 46,
-                      "height": 46,
-                      "fill": "$border",
-                      "cornerRadius": 8,
-                      "layout": "vertical",
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "Hp8uA",
-                          "width": 18,
-                          "height": 18,
-                          "icon": "send",
-                          "library": "lucide",
-                          "fill": "$text-3"
                         }
                       ]
                     }
