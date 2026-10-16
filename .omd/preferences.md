@@ -618,3 +618,18 @@ Landing scroll reveals should be clearly perceptible, start at the product walkt
 방 목록에는 API가 이미 제공하는 생성 시각과 질문 수를 표시하고 현재 선택을 강조한다. 첫 질문 제목을 만들기 위한 추가 조회나 저장은 하지 않는다. 폭 1,100px 이하에서는 목록을 접고 펼치며 상단 새 대화와 2시간 만료를 유지한다. 대화 진입·페이지 전환·본인 새 질문 시에만 한 번 이동하고 주기 조회·답변 갱신은 읽던 위치를 보존한다.
 
 서버가 만든 고정 제외 안내의 `관련 설정이 없는 N명/개` 집계만 생략한다. 미검토·판단 보류와 답변의 불확실성은 남기고 일반 답변·설정값·인용을 가공하지 않는다. 이 좁은 예외는 2026-10-14의 모든 서버 안내 보존 선호보다 우선한다. 입력 안내를 지워도 Enter 전송·Shift+Enter 줄바꿈·한글 조합 방지와 인증·접수·근거 검증 계약은 유지한다.
+
+## 2026-10-16 — dashboard-adjacent-upload-actions
+
+```omd-meta
+id: pref_dashboard_upload_actions_20261016
+timestamp: 2026-10-16
+scope: components.button
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/S1Dashboard.tsx; /dashboard"
+```
+
+Show a setting-book upload button alongside the episode upload button in the setting dashboard header.

@@ -8,6 +8,7 @@ import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
+import { ActionButton } from './ui-v2/ActionButton';
 import {
   Users, GitBranch, Globe, Upload, FileText,
   X, Search, Loader2, AlertCircle, RefreshCw, Menu,
@@ -793,6 +794,17 @@ export default function S1Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
+                    <ActionButton
+                      size="compact"
+                      variant="secondary"
+                      disabled={!episodeApiEnabled}
+                      onClick={() => navigate(
+                        `/dashboard?workId=${encodeURIComponent(effectiveWorkId)}&nav=settingDB&tab=worldrules&modal=setting-book-upload`,
+                        'dissolve',
+                      )}
+                    >
+                      <Upload size={12} />설정집 올리기
+                    </ActionButton>
                     <BtnP label="회차 올리기" onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
