@@ -251,4 +251,4 @@ Doctor 전체는 직전과 같은 186건(기존 오류 2·경고 184)이며 새 
 
 ## 대시보드 설정집 업로드 바로가기 (2026-10-16)
 
-설정집 기능이 반영된 main(b089a08) 통합 후 React Doctor 0.9.13 전체 검사: 197개 파일, 진단 173건(오류 2·경고 171). 오류는 기존 `WorldSettingDatabase`의 state updater 두 건이며 이번 버튼 추가 범위에서는 변경하지 않았다. 종료 코드 0을 무진단으로 해석하지 않는다. ESLint 오류 0·기존 Fast Refresh 경고 2개, 타입 검사·빌드·Knip 통과. Knip의 기존 entry pattern 안내와 빌드의 공용 JS chunk 크기 안내는 남아 있다. 설정집 바로가기 E2E는 데스크톱·모바일·200% 확대 배치와 모달 진입·키보드·기본/hover 대비를 확인한다. Pencil은 VS Code 확장의 pen.dev 로그인 요구로 연결되지 않아 `design/catchhole.pen` 동기화가 남아 있다.
+설정집 기능이 반영된 main(b089a08) 통합 후 React Doctor 0.9.13 전체 검사: 197개 파일, 진단 173건(오류 2·경고 171). 오류는 기존 `WorldSettingDatabase`의 state updater 두 건이며 이번 버튼 추가 범위에서는 변경하지 않았다. 종료 코드 0을 무진단으로 해석하지 않는다. ESLint 오류 0·기존 Fast Refresh 경고 2개, 타입 검사·빌드·Knip 통과. Knip의 기존 entry pattern 안내와 빌드의 공용 JS chunk 크기 안내는 남아 있다. 설정집 바로가기 E2E는 데스크톱·모바일·200% 확대 배치와 모달 진입·키보드·기본/hover 대비를 확인한다. Pencil 연결은 2026-10-16 VS Code 확장 호스트 재시작으로 복구했고, `design/catchhole.pen`의 설정 대시보드 헤더 17개 상태를 구현과 동기화했다. 대표 프레임과 검증 범위는 `design/PENCIL_MIGRATION.md`에 기록했다.

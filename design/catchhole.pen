@@ -1,254 +1,254 @@
 {
-  "version": "2.17",
+  "version": "2.21",
   "children": [
     {
       "type": "frame",
       "id": "demoFinishGuideMobile20261012",
-      "name": "Active / Demo / 안내 완료 후 자유 탐색 / mobile",
-      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
       "x": 130300,
       "y": 5000,
+      "name": "Active / Demo / 안내 완료 후 자유 탐색 / mobile",
+      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
+      "clip": true,
       "width": 390,
       "height": 844,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-finish-guide-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "demoFinishGuideDesktop20261012",
-      "name": "Active / Demo / 안내 완료 후 자유 탐색 / desktop",
-      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
       "x": 128900,
       "y": 5000,
+      "name": "Active / Demo / 안내 완료 후 자유 탐색 / desktop",
+      "context": "원문 확인 이력을 별도 보존해 닫기·탭 변경·다른 대상 조회에도 완료 안내 유지. 안내 강조 종료. 체험 마치기는 사용자가 직접 누른다.",
+      "clip": true,
       "width": 1280,
       "height": 720,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-finish-guide-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "demoCompleteMobile20261012",
-      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Mobile",
-      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
       "x": 127400,
       "y": 3800,
+      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Mobile",
+      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
+      "clip": true,
       "width": 296,
       "height": 692,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-complete-320.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "demoCompleteDesktop20261012",
-      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Desktop",
-      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
       "x": 126000,
       "y": 3800,
+      "name": "Active / Demo / 종이책 세계관 이미지와 완료 CTA / Desktop",
+      "context": "사용자 승인: GPT 생성 종이책 세계관 이미지를 기반으로 실제 제목·CTA를 배치. 하단 체험 기록 제거. 모바일은 텍스트 아래 그림. 체험 마치기 → 회원가입 또는 재체험. 가상 데이터 고지 유지.",
+      "clip": true,
       "width": 1240,
       "height": 670,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-complete-1280.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "demoWorldGuideMobile20261012",
-      "name": "Active / Demo / 세계관 상세 안의 안내 / mobile",
-      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
       "x": 127400,
       "y": 2500,
+      "name": "Active / Demo / 세계관 상세 안의 안내 / mobile",
+      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
+      "clip": true,
       "width": 390,
       "height": 844,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-world-guide-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "demoWorldGuideDesktop20261012",
-      "name": "Active / Demo / 세계관 상세 안의 안내 / desktop",
-      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
       "x": 126000,
       "y": 2500,
+      "name": "Active / Demo / 세계관 상세 안의 안내 / desktop",
+      "context": "다른 세계관 상세 → 닫기 버튼 안내 → 닫으면 거꾸로숲 목록 카드 안내. 배경 카드 강조가 모달 위에 떠오르는 오류 수정. 자동 스크롤·포커스 이동 없음.",
+      "clip": true,
       "width": 1280,
       "height": 720,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/demo-world-guide-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductHistoryMobile20261012",
-      "name": "Active / Landing / 변화의 기록 / mobile",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 121260,
       "y": 3300,
+      "name": "Active / Landing / 변화의 기록 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 288,
       "height": 896,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-history-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductLibraryMobile20261012",
-      "name": "Active / Landing / 나만의 설정집 / mobile",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 120840,
       "y": 3300,
+      "name": "Active / Landing / 나만의 설정집 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 288,
       "height": 754,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-library-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductReviewMobile20261012",
-      "name": "Active / Landing / 원문과 함께 확인 / mobile",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 120420,
       "y": 3300,
+      "name": "Active / Landing / 원문과 함께 확인 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 288,
       "height": 1303,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-review-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductExtractMobile20261012",
-      "name": "Active / Landing / 원고에서 발견 / mobile",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 120000,
       "y": 3300,
+      "name": "Active / Landing / 원고에서 발견 / mobile",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 288,
       "height": 683,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-extract-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductHistoryDesktop20261012",
-      "name": "Active / Landing / 변화의 기록 / desktop",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 123900,
       "y": 2500,
+      "name": "Active / Landing / 변화의 기록 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 1183,
       "height": 601,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-history-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductLibraryDesktop20261012",
-      "name": "Active / Landing / 나만의 설정집 / desktop",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 122600,
       "y": 2500,
+      "name": "Active / Landing / 나만의 설정집 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 1183,
       "height": 621,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-library-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductReviewDesktop20261012",
-      "name": "Active / Landing / 원문과 함께 확인 / desktop",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 121300,
       "y": 2500,
+      "name": "Active / Landing / 원문과 함께 확인 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 1183,
       "height": 705,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-review-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingProductExtractDesktop20261012",
-      "name": "Active / Landing / 원고에서 발견 / desktop",
-      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
       "x": 120000,
       "y": 2500,
+      "name": "Active / Landing / 원고에서 발견 / desktop",
+      "context": "현재 제품 컴포넌트를 공개 체험의 가상 데이터로 새로 캡처한 네 장면 소개. 독립 스크롤 리빌, 자동 순환 없음. 실제 체험은 /demo.",
+      "clip": true,
       "width": 1183,
       "height": 601,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/landing-product-extract-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
       "type": "frame",
       "id": "landingReaderStoryCapture20261012",
-      "name": "Active / Landing / 독자의 마음 · 실제 랜딩 서사",
-      "context": "웹소설 독자로 시작한 캐치홀의 제작 계기를 담은 현재 랜딩 서사.",
       "x": 122000,
       "y": 1000,
+      "name": "Active / Landing / 독자의 마음 · 실제 랜딩 서사",
+      "context": "웹소설 독자로 시작한 캐치홀의 제작 계기를 담은 현재 랜딩 서사.",
+      "clip": true,
       "width": 1440,
       "height": 1200,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -259,13 +259,13 @@
     {
       "type": "frame",
       "id": "landingShowcaseMobile20261012",
-      "name": "Archive / Landing / 320px · 4열 단계 탭과 제품 화면",
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "x": 121420,
       "y": 1000,
+      "name": "Archive / Landing / 320px · 4열 단계 탭과 제품 화면",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
+      "clip": true,
       "width": 288,
       "height": 674,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -276,13 +276,13 @@
     {
       "type": "frame",
       "id": "landingShowcaseDesktop20261012",
-      "name": "Archive / Landing / 8단계 · 이미지 레일 없는 전체 폭 미리보기",
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "x": 120000,
       "y": 1000,
+      "name": "Archive / Landing / 8단계 · 이미지 레일 없는 전체 폭 미리보기",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
+      "clip": true,
       "width": 1306,
       "height": 661,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -293,21 +293,21 @@
     {
       "type": "frame",
       "id": "landingReaderStory20261012",
-      "name": "Active / Landing / 독자의 마음으로 만든 캐치홀 · 2026-10-12",
-      "context": "주요 서비스 다음, 마지막 체험 CTA 앞. 제작자가 직접 설명한 웹소설 독자의 시작 계기. 문단별 스크롤 리빌, 모바일 왼쪽 정렬. 운영·후원 이력이나 완전 자동 검수를 주장하지 않는다.",
       "x": 121740,
       "y": 0,
+      "name": "Active / Landing / 독자의 마음으로 만든 캐치홀 · 2026-10-12",
+      "context": "주요 서비스 다음, 마지막 체험 CTA 앞. 제작자가 직접 설명한 웹소설 독자의 시작 계기. 문단별 스크롤 리빌, 모바일 왼쪽 정렬. 운영·후원 이력이나 완전 자동 검수를 주장하지 않는다.",
       "width": 856,
+      "fill": "$ch-surface",
       "layout": "vertical",
       "gap": 28,
       "padding": 48,
-      "fill": "$ch-surface",
       "children": [
         {
           "type": "text",
           "id": "readerStoryEyebrow",
-          "content": "캐치홀을 만드는 마음",
           "fill": "$ch-primary-ink",
+          "content": "캐치홀을 만드는 마음",
           "fontFamily": "$ch-font",
           "fontSize": 14,
           "fontWeight": "700"
@@ -315,10 +315,10 @@
         {
           "type": "text",
           "id": "readerStoryTitle",
-          "content": "다음 화를 기다리는 마음으로,\n캐치홀을 만들어요.",
+          "fill": "$ch-ink",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-ink",
+          "content": "다음 화를 기다리는 마음으로,\n캐치홀을 만들어요.",
           "fontFamily": "$ch-font",
           "fontSize": 40,
           "fontWeight": "700"
@@ -326,70 +326,75 @@
         {
           "type": "text",
           "id": "readerStoryOrigin",
-          "content": "웹소설을 좋아하는 한 명의 독자로서,\n좋은 이야기를 써 주시는 작가님들의 수고를 조금 덜어드리고 싶었어요.",
+          "fill": "$ch-text",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-text",
+          "content": "웹소설을 좋아하는 한 명의 독자로서,\n좋은 이야기를 써 주시는 작가님들의 수고를 조금 덜어드리고 싶었어요.",
+          "lineHeight": 1.9,
           "fontFamily": "$ch-font",
           "fontSize": 17,
-          "lineHeight": 1.9
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "readerStoryProblem",
-          "content": "회차가 쌓일수록 인물과 세계관의 설정도 늘어나죠.\n이미 쓴 내용을 다시 찾고, 설정을 정리하고 확인하는 데에도\n많은 시간과 노력이 든다는 걸 알게 됐어요.",
+          "fill": "$ch-text",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-text",
+          "content": "회차가 쌓일수록 인물과 세계관의 설정도 늘어나죠.\n이미 쓴 내용을 다시 찾고, 설정을 정리하고 확인하는 데에도\n많은 시간과 노력이 든다는 걸 알게 됐어요.",
+          "lineHeight": 1.9,
           "fontFamily": "$ch-font",
           "fontSize": 17,
-          "lineHeight": 1.9
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "readerStoryIdea",
-          "content": "“원고에서 설정을 알아서 모아주면 어떨까?”\n캐치홀은 그 생각에서 시작했어요.",
+          "fill": "$ch-primary-ink",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-primary-ink",
+          "content": "“원고에서 설정을 알아서 모아주면 어떨까?”\n캐치홀은 그 생각에서 시작했어요.",
+          "lineHeight": 1.9,
           "fontFamily": "$ch-font",
           "fontSize": 20,
-          "lineHeight": 1.9
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "readerStoryWish",
-          "content": "설정을 찾고 정리하는 일은 캐치홀이 돕고,\n작가님은 쓰고 싶은 이야기에 조금 더 집중하실 수 있도록.\n그런 도구를 만들어가고 싶어요.",
+          "fill": "$ch-text",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-text",
+          "content": "설정을 찾고 정리하는 일은 캐치홀이 돕고,\n작가님은 쓰고 싶은 이야기에 조금 더 집중하실 수 있도록.\n그런 도구를 만들어가고 싶어요.",
+          "lineHeight": 1.9,
           "fontFamily": "$ch-font",
           "fontSize": 17,
-          "lineHeight": 1.9
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "readerStorySignature",
-          "content": "작가님의 다음 이야기를, 독자의 마음으로 응원합니다.\n캐치홀 드림",
+          "fill": "$ch-ink",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "$ch-ink",
+          "content": "작가님의 다음 이야기를, 독자의 마음으로 응원합니다.\n캐치홀 드림",
+          "lineHeight": 1.9,
           "fontFamily": "$ch-font",
           "fontSize": 17,
-          "lineHeight": 1.9
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "landingFriendlyDesktop20261012",
-      "name": "Active / Landing / Friendly service catalog · 2026-10-12",
-      "context": "업로드·AI 분석 대형 카드 2개와 설정 조회 카드 3개, 별도 예정 기능 3개. GPT 생성 투명 일러스트. 제품 소개 제목부터 72px·900ms 페이드 업, 180ms 시차, 흐림 2px·350ms. 모션 감소·키보드 포커스는 즉시 표시.",
       "x": 120000,
       "y": 0,
+      "name": "Active / Landing / Friendly service catalog · 2026-10-12",
+      "context": "업로드·AI 분석 대형 카드 2개와 설정 조회 카드 3개, 별도 예정 기능 3개. GPT 생성 투명 일러스트. 제품 소개 제목부터 72px·900ms 페이드 업, 180ms 시차, 흐림 2px·350ms. 모션 감소·키보드 포커스는 즉시 표시.",
+      "clip": true,
       "width": 1231,
       "height": 805,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -400,13 +405,13 @@
     {
       "type": "frame",
       "id": "landingFriendlyMobile20261012",
-      "name": "Active / Landing / Friendly mobile service catalog · 2026-10-12",
-      "context": "320px 한 열. 이미지를 자르지 않고 카드 위에, 제목·설명을 아래에 표시. 제공 기능과 예정 기능의 원래 순서, 체험·회원가입 CTA 유지.",
       "x": 121320,
       "y": 0,
+      "name": "Active / Landing / Friendly mobile service catalog · 2026-10-12",
+      "context": "320px 한 열. 이미지를 자르지 않고 카드 위에, 제목·설명을 아래에 표시. 제공 기능과 예정 기능의 원래 순서, 체험·회원가입 CTA 유지.",
+      "clip": true,
       "width": 320,
       "height": 805,
-      "clip": true,
       "fill": {
         "type": "image",
         "enabled": true,
@@ -12409,12 +12414,12 @@
                   "name": "Nav / 챗봇",
                   "width": "fill_container",
                   "height": 44,
+                  "fill": "$primary-soft",
                   "padding": [
                     10,
                     16
                   ],
                   "alignItems": "center",
-                  "fill": "$primary-soft",
                   "children": [
                     {
                       "type": "text",
@@ -12578,13 +12583,13 @@
                       "type": "frame",
                       "id": "gh241RoomList",
                       "name": "Conversation Rooms / collapses at 1100px",
+                      "context": "선택은 현재 방의 ID로 표시. 생성 시각과 질문 수만 사용. 1100px 이하에서는 본문 위 접기/펼치기 목록으로 전환한다.",
                       "width": 196,
                       "height": "fill_container",
+                      "fill": "$surface",
                       "layout": "vertical",
                       "gap": 10,
                       "padding": 12,
-                      "fill": "$surface",
-                      "context": "선택은 현재 방의 ID로 표시. 생성 시각과 질문 수만 사용. 1100px 이하에서는 본문 위 접기/펼치기 목록으로 전환한다.",
                       "children": [
                         {
                           "type": "text",
@@ -12600,13 +12605,13 @@
                           "id": "gh241Room0",
                           "name": "Conversation / 10월 15일 14:30 대화",
                           "width": "fill_container",
+                          "fill": "$primary-soft",
+                          "cornerRadius": 8,
+                          "stroke": "$primary",
+                          "strokeWidth": 1,
                           "layout": "vertical",
                           "gap": 6,
                           "padding": 12,
-                          "cornerRadius": 8,
-                          "fill": "$primary-soft",
-                          "stroke": "$primary",
-                          "strokeWidth": 1,
                           "children": [
                             {
                               "type": "text",
@@ -12633,11 +12638,11 @@
                           "id": "gh241Room1",
                           "name": "Conversation / 10월 15일 15:10 대화",
                           "width": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": 8,
                           "layout": "vertical",
                           "gap": 6,
                           "padding": 12,
-                          "cornerRadius": 8,
-                          "fill": "$surface",
                           "children": [
                             {
                               "type": "text",
@@ -52113,7 +52118,7 @@
                                     "type": "image",
                                     "enabled": true,
                                     "url": "images/generated-1781791617852.png",
-                                    "mode": "fill"
+                                    "mode": "cover"
                                   },
                                   "cornerRadius": "$radius-lg",
                                   "stroke": "$border",
@@ -325798,8 +325803,7 @@
               "effect": {
                 "type": "shadow",
                 "shadowType": "outer",
-                "color": "#087EF23D",
-                "spread": 3
+                "color": "#087EF23D"
               },
               "padding": [
                 0,
@@ -326285,6 +326289,11 @@
               "cornerRadius": "$ch-radius-sm",
               "stroke": "$ch-primary-hover",
               "strokeWidth": 1,
+              "gap": 7,
+              "padding": [
+                0,
+                10
+              ],
               "justifyContent": "center",
               "alignItems": "center",
               "children": [
@@ -326308,11 +326317,6 @@
                   "fontSize": 12,
                   "fontWeight": "750"
                 }
-              ],
-              "gap": 7,
-              "padding": [
-                0,
-                10
               ]
             },
             {
@@ -327237,6 +327241,7 @@
       "x": 86840,
       "y": 144,
       "name": "Archive / Landing Demo 1 / 작품",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327248,8 +327253,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327257,6 +327261,7 @@
       "x": 88360,
       "y": 144,
       "name": "Archive / Landing Demo 2 / 업로드",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327268,8 +327273,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327277,6 +327281,7 @@
       "x": 89880,
       "y": 144,
       "name": "Archive / Landing Demo 3 / 분석",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327288,8 +327293,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327297,6 +327301,7 @@
       "x": 85320,
       "y": 1078,
       "name": "Archive / Landing Demo 4 / 후보",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327308,8 +327313,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327317,6 +327321,7 @@
       "x": 86840,
       "y": 1078,
       "name": "Archive / Landing Demo 5 / 확정",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327328,8 +327333,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327337,6 +327341,7 @@
       "x": 88360,
       "y": 1078,
       "name": "Archive / Landing Demo 6 / 설정",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327348,8 +327353,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327357,6 +327361,7 @@
       "x": 89880,
       "y": 1078,
       "name": "Archive / Landing Demo 7 / 상세",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327368,8 +327373,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -327377,6 +327381,7 @@
       "x": 85320,
       "y": 2012,
       "name": "Archive / Landing Demo 8 / 이력",
+      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록.",
       "clip": true,
       "width": 1440,
       "height": 854,
@@ -327388,8 +327393,7 @@
       },
       "cornerRadius": 12,
       "stroke": "$ch-border",
-      "strokeWidth": 1,
-      "context": "2026-10-12 네 장면 제품 이야기 구성으로 대체. 이전 시안 기록."
+      "strokeWidth": 1
     },
     {
       "type": "frame",
@@ -344865,6 +344869,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -344934,17 +344939,105 @@
                           ]
                         },
                         {
-                          "id": "E4kNgN",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Character Upload Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "xbDwX",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "NJHv1",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "trbSm",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "v8JWCD",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "vtX3p",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "E4kNgN",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Character Upload Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "iwTRY",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "po1hb",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "qEgN6",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -345509,6 +345602,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -345578,17 +345672,105 @@
                           ]
                         },
                         {
-                          "id": "vWE7t",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Character Upload Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "l69KpV",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "UCTKi",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "QLBzX",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "sv3m2",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "UxdUw",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "vWE7t",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Character Upload Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "BPpQY",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "v0994n",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "gOUn9",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -345961,17 +346143,106 @@
                           ]
                         },
                         {
-                          "id": "xc4fy",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Character Upload Button",
+                          "type": "frame",
+                          "id": "YSQCk",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "vtmnO",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "dL51Q",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "HqCQO",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "SgiLc",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "xc4fy",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Character Upload Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "o1xtu",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "CVdss",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "D1H3ZK",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -346537,17 +346808,106 @@
                           ]
                         },
                         {
-                          "id": "zVsDH",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Character Upload Button",
+                          "type": "frame",
+                          "id": "sY64A",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "z5Uyj",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "jWxCd",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "BeMQl",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "kbVx5",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "zVsDH",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Character Upload Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "HVyfs",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "KCTnl",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "TuS6M",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -352057,6 +352417,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -352126,17 +352487,105 @@
                           ]
                         },
                         {
-                          "id": "Qvl6v",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "World Upload Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "wQ6iB",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "cVzux",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "douIA",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "LOjh5",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "mVBAJ",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "Qvl6v",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "World Upload Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "rj7oj",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "LWyMz",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "CSbat",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -352917,6 +353366,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -352986,17 +353436,105 @@
                           ]
                         },
                         {
-                          "id": "E1EE2",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "World Upload Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "m6lj3",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "U4lzJu",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "y62rVr",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "noJYD",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Q7iaXo",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "E1EE2",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "World Upload Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "A8fWc",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "Z87dw",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "CSapV",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -353835,17 +354373,106 @@
                           ]
                         },
                         {
-                          "id": "GkHcy",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile World Upload Button",
+                          "type": "frame",
+                          "id": "LcG3U",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "SOKyc",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "CxzZR",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "xVV7I",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "opp0O",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "GkHcy",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile World Upload Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "ZX7Zv",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "K85Eqj",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "U7j3m",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -354644,17 +355271,106 @@
                           ]
                         },
                         {
-                          "id": "KxJQc",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile World Upload Button",
+                          "type": "frame",
+                          "id": "j9OpW",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "wEUlC",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "o2JNEB",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "kVG1H",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "c3c6VH",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "KxJQc",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile World Upload Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "q281Bw",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "qq1nA",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Neh9U",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -355170,17 +355886,106 @@
                           ]
                         },
                         {
-                          "id": "SIxi1",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile World Upload Button",
+                          "type": "frame",
+                          "id": "m2MQWR",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "TX0xE",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Ccnvv",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "p1eFCC",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "S07kB",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "SIxi1",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile World Upload Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "zNb3L",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "N2nXZe",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "WbI7K",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -357757,6 +358562,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -357789,17 +358595,105 @@
                           ]
                         },
                         {
-                          "id": "s4MY0C",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Setting Book Upload Episode Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "QE6Fe",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "e7U3hm",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "fSXZ2",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "W7oaKf",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "k8zjMI",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "s4MY0C",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Setting Book Upload Episode Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Hq1io",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "fgVQ0",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "n0hIv",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -358440,6 +359334,7 @@
                       "width": "fill_container",
                       "gap": 12,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -358472,17 +359367,105 @@
                           ]
                         },
                         {
-                          "id": "i30SzZ",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Setting Book Upload Episode Button",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "fEzhD",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "Q8mHd",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "JQX79",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "JZQUv",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "ymXbH",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "i30SzZ",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Setting Book Upload Episode Button",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "O9w3Ia",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "qQdMp",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "SvqEb",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -358840,17 +359823,106 @@
                           ]
                         },
                         {
-                          "id": "fJ7Do",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Setting Book Upload Episode Button",
+                          "type": "frame",
+                          "id": "L70T6",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "tCf8q",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "PhN9n",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "mGPcz",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "l5oAxs",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "fJ7Do",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Setting Book Upload Episode Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "ou9y7",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "Dcfaj",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "VqMAd",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -359442,17 +360514,106 @@
                           ]
                         },
                         {
-                          "id": "yzNeh",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Setting Book Upload Episode Button",
+                          "type": "frame",
+                          "id": "e7SZCv",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "N9O9jx",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "a8z4SN",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "eX6nY",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "fr6UW",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yzNeh",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Setting Book Upload Episode Button",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "iSLD2",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "C6i0xN",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "vahJ6",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -361942,6 +363103,7 @@
                       "width": "fill_container",
                       "gap": 10,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -361974,17 +363136,105 @@
                           ]
                         },
                         {
-                          "id": "j9pEk",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Search Upload Episode",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "uwp6u",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "H2qzK",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "R3Ewf2",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "rgZSt",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "S4aaxW",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "j9pEk",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Search Upload Episode",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "JbzXj",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "hdbjb",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "zYZOr",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -362423,6 +363673,7 @@
                       "width": "fill_container",
                       "gap": 10,
                       "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
@@ -362455,17 +363706,105 @@
                           ]
                         },
                         {
-                          "id": "j3PsqN",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Search Upload Episode",
-                          "width": 126,
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "type": "frame",
+                          "id": "CuhiP",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "ccoOe",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 38,
+                              "width": "fit_content",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "tiRRu",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "pEZFj",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Bq4on",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "j3PsqN",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Search Upload Episode",
+                              "width": "fit_content",
+                              "height": 38,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "O5c9rZ",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "l3WqPA",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "m1vBDL",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -363120,17 +364459,106 @@
                           ]
                         },
                         {
-                          "id": "POiA6",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Search Upload Episode",
+                          "type": "frame",
+                          "id": "JM5NT",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "nuuHN",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "FTpdh",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "wa94q",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "lsI2N",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "POiA6",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Search Upload Episode",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "cOrdo",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "r0C94",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "AIH3W",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -363532,17 +364960,106 @@
                           ]
                         },
                         {
-                          "id": "LJCH6",
-                          "type": "ref",
-                          "ref": "T8pUh",
-                          "name": "Mobile Search Upload Episode",
+                          "type": "frame",
+                          "id": "jz59P",
+                          "name": "Dashboard Upload Actions",
+                          "metadata": {
+                            "type": "navigation",
+                            "settingBookTarget": "/dashboard?workId=<current>&nav=settingDB&tab=worldrules&modal=setting-book-upload",
+                            "episodeTarget": "/episode-upload?workId=<current>",
+                            "settingBookDisabled": "demo work"
+                          },
                           "width": "fill_container",
-                          "height": 42,
-                          "descendants": {
-                            "s8y9J": {
-                              "content": "회차 올리기"
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "FlQxt",
+                              "type": "ref",
+                              "ref": "j3kQPk",
+                              "name": "Dashboard Setting Book Upload Button",
+                              "height": 44,
+                              "width": "fill_container",
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "f5zDC0",
+                                  "name": "설정집 올리기 Content",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "yM9gP",
+                                      "name": "설정집 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-ink"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "HzGHl",
+                                      "name": "설정집 올리기 Label",
+                                      "fill": "$ch-ink",
+                                      "content": "설정집 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "LJCH6",
+                              "type": "ref",
+                              "ref": "T8pUh",
+                              "name": "Mobile Search Upload Episode",
+                              "width": "fill_container",
+                              "height": 44,
+                              "padding": [
+                                0,
+                                18
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "JruBh",
+                                  "name": "회차 올리기 Content",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "Fz3ON",
+                                      "name": "회차 올리기 Icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "upload",
+                                      "library": "lucide",
+                                      "fill": "$ch-primary-contrast"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "z72hri",
+                                      "name": "회차 올리기 Label",
+                                      "fill": "$ch-primary-contrast",
+                                      "content": "회차 올리기",
+                                      "fontFamily": "$ch-font",
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -414760,6 +416277,7 @@
       "x": 58200,
       "y": 73580,
       "name": "Archive / WF-06 인터랙티브 데모 / 이전 완료 안내",
+      "context": "원고·검토 단계의 이전 전체 Workflow 보존. 최종 결과 탐색·완료 전환은 demoWorkflow244 및 docs/screen-flow.md 1.1을 따른다.",
       "metadata": {
         "type": "workflowBoard",
         "workflowId": "WF-06",
@@ -418350,8 +419868,7 @@
             }
           ]
         }
-      ],
-      "context": "원고·검토 단계의 이전 전체 Workflow 보존. 최종 결과 탐색·완료 전환은 demoWorkflow244 및 docs/screen-flow.md 1.1을 따른다."
+      ]
     },
     {
       "type": "frame",
@@ -446581,7 +448098,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/dashboard.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -446623,7 +448140,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/setting-review.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -446665,7 +448182,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/upload.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -446707,7 +448224,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/character-edit.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -446749,7 +448266,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/world-create.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -446792,7 +448309,7 @@
                 "type": "image",
                 "enabled": true,
                 "url": "../docs/screens/mobile-ux-20260906/demo.png",
-                "mode": "fill"
+                "mode": "cover"
               }
             }
           ]
@@ -448711,6 +450228,9 @@
     {
       "type": "frame",
       "id": "gh180LandingAutoCopy20260910",
+      "x": 106520,
+      "y": 5184,
+      "name": "SLanding / 자동 반영 기본 안내",
       "metadata": {
         "scrollReveal": {
           "route": "/landing",
@@ -448721,9 +450241,6 @@
           "accessibility": "Reduced motion and focus-within show content immediately; no observer support leaves content visible."
         }
       },
-      "x": 106520,
-      "y": 5184,
-      "name": "SLanding / 자동 반영 기본 안내",
       "width": 620,
       "fill": "$ch-surface",
       "cornerRadius": "$ch-radius-md",
@@ -448848,7 +450365,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/theme-sf-overview.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -448866,7 +450383,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/image-list-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -448884,7 +450401,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/image-detail-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -448902,7 +450419,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/theme-picker-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -448920,7 +450437,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/world-categories-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
@@ -448937,7 +450454,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/image-list-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
@@ -448954,7 +450471,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/image-detail-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
@@ -448971,7 +450488,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/theme-picker-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       }
     },
     {
@@ -448980,7 +450497,6 @@
       "x": 91000,
       "y": 760,
       "name": "FeedbackDialog / 계정당 한 번 의견 안내",
-      "reusable": false,
       "width": 540,
       "height": 300,
       "fill": "$ch-surface",
@@ -449141,8 +450657,7 @@
                       "fontSize": 14,
                       "fontWeight": "750"
                     }
-                  ],
-                  "opacity": 1
+                  ]
                 },
                 {
                   "type": "frame",
@@ -449179,8 +450694,7 @@
                       "fontSize": 14,
                       "fontWeight": "750"
                     }
-                  ],
-                  "opacity": 1
+                  ]
                 }
               ]
             }
@@ -449202,7 +450716,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -449220,7 +450734,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-mobile.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -449238,7 +450752,7 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-manual-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
@@ -449256,55 +450770,57 @@
         "type": "image",
         "enabled": true,
         "url": "../docs/screens/gh194/analysis-guide-exception-desktop.png",
-        "mode": "fit"
+        "mode": "contain"
       },
       "layout": "vertical"
     },
     {
       "type": "frame",
       "id": "demoWorkflow244",
-      "name": "Active / Workflow WF-06 / 결과 자유 탐색과 이미지 완료",
-      "context": "GH244 최종 승인 흐름. 대표 프레임은 실제 브라우저 캡처로 동기화. 단계 전체 계약은 docs/screen-flow.md 1.1 참조.",
       "x": 126000,
       "y": 6500,
+      "name": "Active / Workflow WF-06 / 결과 자유 탐색과 이미지 완료",
+      "context": "GH244 최종 승인 흐름. 대표 프레임은 실제 브라우저 캡처로 동기화. 단계 전체 계약은 docs/screen-flow.md 1.1 참조.",
       "width": 1400,
       "height": 840,
-      "layout": "none",
       "fill": "#faf9f6",
+      "layout": "none",
       "children": [
         {
           "type": "text",
           "id": "wf244title",
           "x": 30,
           "y": 24,
+          "fill": "#252c29",
           "content": "WF-06 / 결과 탐색 → 사용자가 체험 마치기 → 회원가입 또는 재체험",
           "fontFamily": "Pretendard",
           "fontSize": 28,
-          "fill": "#252c29"
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "wf244guidecopy",
           "x": 30,
           "y": 82,
+          "fill": "#252c29",
           "content": "원문 확인 후 완료 안내 유지 · 상세를 닫거나 다른 탭을 봐도 자유 탐색",
           "fontFamily": "Pretendard",
           "fontSize": 18,
-          "fill": "#252c29"
+          "fontWeight": "normal"
         },
         {
           "type": "frame",
           "id": "wf244guide",
           "x": 30,
           "y": 140,
+          "clip": true,
           "width": 640,
           "height": 360,
-          "clip": true,
           "fill": {
             "type": "image",
             "enabled": true,
             "url": "../docs/screens/demo-finish-guide-desktop.png",
-            "mode": "fit"
+            "mode": "contain"
           }
         },
         {
@@ -449312,14 +450828,14 @@
           "id": "wf244complete",
           "x": 720,
           "y": 140,
+          "clip": true,
           "width": 640,
           "height": 346,
-          "clip": true,
           "fill": {
             "type": "image",
             "enabled": true,
             "url": "../docs/screens/demo-complete-1280.png",
-            "mode": "fit"
+            "mode": "contain"
           }
         },
         {
@@ -449327,20 +450843,22 @@
           "id": "wf244transition",
           "x": 720,
           "y": 82,
+          "fill": "#252c29",
           "content": "「체험 마치기」는 탐색 중 항상 제공 · 자동 이동 없음",
           "fontFamily": "Pretendard",
           "fontSize": 18,
-          "fill": "#252c29"
+          "fontWeight": "normal"
         },
         {
           "type": "text",
           "id": "wf244outcome",
           "x": 30,
           "y": 690,
+          "fill": "#252c29",
           "content": "완료 화면: 생성 이미지 + 실제 문구·CTA / 하단 기록 없음\n내 작품으로 시작하기 → /signup (replace) / 다시 체험하기 → 처음 원고\n새로고침·재체험만 메모리 초기화 · 실제 API/저장소 사용 없음",
           "fontFamily": "Pretendard",
           "fontSize": 20,
-          "fill": "#252c29"
+          "fontWeight": "normal"
         }
       ]
     }
