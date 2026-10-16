@@ -7,6 +7,10 @@
   background: var(--ch-surface);
 }
 
+.database-v2 .setting-db-header .ch-action--secondary:hover {
+  color: var(--ch-primary-ink);
+}
+
 .database-v2 .setting-db-header__eyebrow {
   margin-bottom: 6px !important;
   color: var(--ch-primary) !important;
@@ -946,6 +950,7 @@
 
 @media (max-width: 760px) {
   .database-v2 .setting-db-header { min-height: 82px; padding: 16px 18px !important; }
+  .database-v2 .setting-db-header > div:last-child > button { min-height: 44px; }
   .database-v2 .setting-db-tabs { min-height: 52px; padding: 0 12px !important; overflow-x: auto; }
   .database-v2 .setting-db-tab { height: 52px !important; padding: 0 12px !important; white-space: nowrap; }
   .database-v2 .setting-db-content { padding: 22px 16px 36px !important; }

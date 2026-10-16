@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { computedContrastRatio } from './contrast';
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const settingBookId = '22222222-2222-4222-8222-222222222222';
@@ -42,6 +43,62 @@ async function authenticate(page: Page) {
     localStorage.removeItem('catchhole_demo_mode');
   });
 }
+
+test('대시보드의 두 업로드 버튼이 나란히 표시되고 설정집 모달로 바로 이동한다', async ({ page }, testInfo) => {
+  const work = { id: workId, title: '설정집 테스트 작품', genre: '판타지', latestEpisodeNo: 0, lifecycleStatus: 'ACTIVE' };
+  await page.route('**/api/v1/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === '/api/v1/works') return success(route, [work]);
+    if (pathname.endsWith(`/works/${workId}`)) return success(route, work);
+    if (pathname.endsWith('/characters')) {
+      return success(route, { content: [], page: 0, size: 8, totalElements: 0, totalPages: 0, hasNext: false });
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters`);
+
+  const header = page.locator('.setting-db-header');
+  await expect(header).toContainText(work.title);
+  await expect(page.locator('.app-route-layer')).toHaveCSS('opacity', '1');
+  const episodeUpload = header.getByRole('button', { name: '회차 올리기', exact: true });
+  const settingBookUpload = header.getByRole('button', { name: '설정집 올리기', exact: true });
+  for (const [width, zoom] of [[1639, 1], [390, 1], [320, 1], [640, 2]]) {
+    await page.setViewportSize({ width, height: 906 });
+    await page.evaluate(value => { document.documentElement.style.zoom = String(value); }, zoom);
+    await expect(settingBookUpload).toBeVisible();
+    const [episodeBox, settingBookBox] = await Promise.all([
+      episodeUpload.boundingBox(), settingBookUpload.boundingBox(),
+    ]);
+    expect(episodeBox).not.toBeNull();
+    expect(settingBookBox).not.toBeNull();
+    expect(Math.abs(episodeBox!.y - settingBookBox!.y)).toBeLessThanOrEqual(1);
+    expect(episodeBox!.x).toBeGreaterThanOrEqual(settingBookBox!.x + settingBookBox!.width);
+    expect(episodeBox!.x + episodeBox!.width).toBeLessThanOrEqual(width);
+    expect(settingBookBox!.x).toBeGreaterThanOrEqual(0);
+    if (width <= 390 || zoom === 2) {
+      expect(settingBookBox!.height / zoom).toBeGreaterThanOrEqual(44);
+      expect(episodeBox!.height / zoom).toBeGreaterThanOrEqual(44);
+    }
+    await page.screenshot({ path: testInfo.outputPath(`upload-buttons-${width}-${zoom}.png`), animations: 'disabled' });
+  }
+  await expect(settingBookUpload).toHaveCSS('color', 'rgb(25, 30, 38)');
+  expect(await computedContrastRatio(settingBookUpload)).toBeGreaterThanOrEqual(4.5);
+  await settingBookUpload.hover();
+  await expect(settingBookUpload).toHaveCSS('color', 'rgb(0, 90, 175)');
+  expect(await computedContrastRatio(settingBookUpload)).toBeGreaterThanOrEqual(4.5);
+  await settingBookUpload.focus();
+  await settingBookUpload.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`workId=${workId}.*tab=worldrules.*modal=setting-book-upload`));
+  const dialog = page.getByRole('dialog', { name: '설정집 업로드' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('setting-book-file-input')).toHaveAttribute('accept', '.txt,.docx,.hwp,.hwpx');
+  await dialog.getByRole('button', { name: '설정집 업로드 닫기' }).click();
+  await expect(dialog).toHaveCount(0);
+  await episodeUpload.click();
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${workId}`));
+});
 
 test('설정집 목록·원문·수정·삭제·업로드 실패 상태를 보존하고 재시도한다', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
