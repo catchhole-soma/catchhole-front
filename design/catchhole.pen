@@ -344967,7 +344967,7 @@
                                   "type": "frame",
                                   "id": "trbSm",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -344988,7 +344988,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -345700,7 +345700,7 @@
                                   "type": "frame",
                                   "id": "QLBzX",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -345721,7 +345721,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -346172,7 +346172,7 @@
                                   "type": "frame",
                                   "id": "dL51Q",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -346193,7 +346193,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -346837,7 +346837,7 @@
                                   "type": "frame",
                                   "id": "jWxCd",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -346858,7 +346858,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -352515,7 +352515,7 @@
                                   "type": "frame",
                                   "id": "douIA",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -352536,7 +352536,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -353464,7 +353464,7 @@
                                   "type": "frame",
                                   "id": "y62rVr",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -353485,7 +353485,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -354402,7 +354402,7 @@
                                   "type": "frame",
                                   "id": "CxzZR",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -354423,7 +354423,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -355300,7 +355300,7 @@
                                   "type": "frame",
                                   "id": "o2JNEB",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -355321,7 +355321,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -355915,7 +355915,7 @@
                                   "type": "frame",
                                   "id": "Ccnvv",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -355936,7 +355936,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -358623,7 +358623,7 @@
                                   "type": "frame",
                                   "id": "fSXZ2",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -358644,7 +358644,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -359395,7 +359395,7 @@
                                   "type": "frame",
                                   "id": "JQX79",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -359416,7 +359416,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -359852,7 +359852,7 @@
                                   "type": "frame",
                                   "id": "PhN9n",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -359873,7 +359873,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -360543,7 +360543,7 @@
                                   "type": "frame",
                                   "id": "a8z4SN",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -360564,7 +360564,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -363164,7 +363164,7 @@
                                   "type": "frame",
                                   "id": "R3Ewf2",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -363185,7 +363185,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -363734,7 +363734,7 @@
                                   "type": "frame",
                                   "id": "tiRRu",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -363755,7 +363755,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -364488,7 +364488,7 @@
                                   "type": "frame",
                                   "id": "FTpdh",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -364509,7 +364509,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
@@ -364989,7 +364989,7 @@
                                   "type": "frame",
                                   "id": "f5zDC0",
                                   "name": "설정집 올리기 Content",
-                                  "gap": 6,
+                                  "gap": 8,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -365010,7 +365010,7 @@
                                       "content": "설정집 올리기",
                                       "fontFamily": "$ch-font",
                                       "fontSize": 13,
-                                      "fontWeight": "600"
+                                      "fontWeight": "700"
                                     }
                                   ]
                                 }
