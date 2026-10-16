@@ -24,6 +24,7 @@ import {
 import type {
   ChatMessageV1,
   ChatSubmitV1,
+  CommonResponsePageResponseChatSessionV1,
 } from '../../../api/generated/types.gen';
 import { ChatEvidence } from './ChatEvidence';
 import { ChatAnswerNotes } from './ChatAnswerNotes';
@@ -67,6 +68,14 @@ function errorText(error: unknown) {
   );
 }
 
+function chatSessionListOptions(workId: string, epoch: number) {
+  const options = listChatSessionsOptions({ path: { workId }, query: { page: 0, size: 50 } });
+  const queryKey: [typeof options.queryKey[0]] = [
+    { ...options.queryKey[0], tags: ['chat', `auth:${epoch}`] },
+  ];
+  return { ...options, queryKey, meta: { chat: true, epoch, workId } };
+}
+
 export default function SChat() {
   const [params] = useSearchParams();
   const workId = params.get('workId') ?? '';
@@ -93,14 +102,8 @@ function ChatWorkspace({ workId, epoch }: { workId: string; epoch: number }) {
   const creationKey = useRef(crypto.randomUUID());
   const live = useRef(true);
   const create = useMutation({ ...createChatSessionMutation(), gcTime: 0 });
-  const listOptions = listChatSessionsOptions({
-    path: { workId },
-    query: { page: 0, size: 50 },
-  });
   const rooms = useQuery({
-    ...listOptions,
-    queryKey: [{ ...listOptions.queryKey[0], tags: ['chat', `auth:${epoch}`] }],
-    meta: { chat: true, epoch, workId },
+    ...chatSessionListOptions(workId, epoch),
     enabled: !!work,
     gcTime: 0,
     refetchInterval: 15_000,
@@ -432,6 +435,21 @@ function Conversation({
     };
   }, [client, epoch, workId, sessionId]);
   useEffect(() => {
+    if (!session.isSuccess || questionCount == null) return;
+    const { queryKey } = chatSessionListOptions(workId, epoch);
+    const listed = client.getQueryData<CommonResponsePageResponseChatSessionV1>(queryKey);
+    // Questions are appended within a session. Use a confirmed count, including
+    // idempotent acknowledgements, rather than guessing that each POST adds one.
+    if (!listed?.data?.content?.some(room => room.id === sessionId &&
+      (room.questionCount ?? 0) < questionCount)) return;
+    // An older in-flight list response must not overwrite the confirmed count.
+    void client.cancelQueries({ queryKey, exact: true });
+    client.setQueryData<CommonResponsePageResponseChatSessionV1>(queryKey, current =>
+      current?.data ? { ...current, data: { ...current.data, content: current.data.content?.map(room =>
+        room.id === sessionId ? { ...room, questionCount } : room) } } : current);
+    void client.invalidateQueries({ queryKey, exact: true });
+  }, [client, epoch, questionCount, session.dataUpdatedAt, session.isSuccess, sessionId, workId]);
+  useEffect(() => {
     if (!acceptedNavigation) return;
     if (acceptedNavigation.locationKey !== location.key) {
       setAcceptedNavigation(null);
@@ -444,9 +462,9 @@ function Conversation({
     const targetPage = Math.floor((questionCount - 1) / 20);
     scrollTarget.current = { page: targetPage, questionId: acceptedNavigation.questionId };
     setAcceptedNavigation(null);
-    setParams({ workId, sessionId, messagePage: String(targetPage + 1) });
+    setParams({ workId, sessionId, messagePage: String(targetPage + 1) }, { replace: targetPage === page });
   }, [acceptedNavigation, location.key, questionCount, session.dataUpdatedAt, session.isSuccess,
-    sessionUpdateCount, sessionId, setParams, workId]);
+    page, sessionUpdateCount, sessionId, setParams, workId]);
   useEffect(() => {
     if (viewedPage.current !== page) {
       viewedPage.current = page;
@@ -544,7 +562,13 @@ function Conversation({
         afterSessionUpdate: client.getQueryState(sessionQueryKey)?.dataUpdateCount ?? 0,
       });
       // Follow-up reads cannot turn an acknowledged POST into an uncertain send.
-      await Promise.allSettled([session.refetch(), messages.refetch()]);
+      const roomList = { queryKey: chatSessionListOptions(workId, epoch).queryKey, exact: true };
+      await Promise.allSettled([
+        session.refetch(),
+        messages.refetch(),
+        // Explicit cancellation also replaces an unfinished first list request.
+        client.cancelQueries(roomList).then(() => client.invalidateQueries(roomList)),
+      ]);
     } catch (e) {
       if (!live.current) return;
       const api = toApiError(e);

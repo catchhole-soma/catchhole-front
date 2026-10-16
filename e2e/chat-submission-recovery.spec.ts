@@ -17,11 +17,13 @@ function message(sequence: number): ChatMessageV1 {
   };
 }
 
-async function fixture(page: Page, count = 20, quota = false, acknowledgeExisting = false) {
+async function fixture(page: Page, count = 20, quota = false, acknowledgeExisting = false, holdInitialList = false) {
   const state = {
     rows: Array.from({ length: count }, (_, i) => message(i + 1)),
     posts: 0, failures: 0, recoveredReads: 0, allowRecovery: false,
     messagePages: [] as number[], pendingLookups: 0,
+    listReads: 0, listFailure: false, holdNextList: holdInitialList, heldList: false, cancelledLists: 0,
+    releaseList: async () => {},
   };
   if (quota && count) state.rows[0].execution = {
     questionId: id(1), attemptId: id(1), state: 'FAILED', failure: 'PROVIDER_FAILURE',
@@ -38,7 +40,10 @@ async function fixture(page: Page, count = 20, quota = false, acknowledgeExistin
     Object.assign(window, { chatRecoveryObservation: observation });
     window.addEventListener('catchhole:ai-token-quota-exhausted', () => observation.notices++);
   });
-  await page.route('**/api/v1/**', route => {
+  page.on('requestfailed', request => {
+    if (new URL(request.url()).pathname.endsWith('/chat-sessions')) state.cancelledLists++;
+  });
+  await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -66,9 +71,25 @@ async function fixture(page: Page, count = 20, quota = false, acknowledgeExistin
       state.rows.push(accepted);
       return ok(route, accepted.execution);
     }
-    if (path.endsWith('/chat-sessions')) return ok(route, {
-      content: [session(roomId), session(otherRoomId)], totalElements: 2,
-    });
+    if (path.endsWith('/chat-sessions')) {
+      state.listReads++;
+      const data = { content: [session(roomId), session(otherRoomId)], totalElements: 2 };
+      if (state.holdNextList) {
+        state.holdNextList = false;
+        state.heldList = true;
+        await new Promise<void>(resolve => {
+          state.releaseList = async () => {
+            await ok(route, data).catch(() => {});
+            resolve();
+          };
+        });
+        return;
+      }
+      if (state.listFailure) return route.fulfill({ status: 503, json: {
+        success: false, error: { code: 'TEMPORARY_UNAVAILABLE', status: 503 },
+      } });
+      return ok(route, data);
+    }
     if (path.includes('/chat-sessions/')) {
       const selected = path.includes(otherRoomId) ? otherRoomId : roomId;
       if (path.endsWith('/messages')) {
@@ -190,6 +211,105 @@ test('조회 복구 전 다른 방을 선택하면 이전 방의 접수 후 자�
   await expect(page).toHaveURL(/messagePage=1/);
   expect(state.messagePages).not.toContain(1);
   expect(state.posts).toBe(1);
+});
+
+for (const failSessionFirst of [false, true]) {
+  test(`20→21 접수 직후 방을 왕복해도 최신 답변을 연다: 상세 조회 ${failSessionFirst ? '실패 후 회복' : '성공'}`, async ({ page }) => {
+    const state = await fixture(page);
+    state.allowRecovery = !failSessionFirst;
+    await page.getByRole('textbox', { name: '질문', exact: true }).fill('새 질문 21');
+    await page.getByRole('button', { name: '보내기', exact: true }).click();
+    await expect(page.locator('.chat-room').first()).toContainText('21개 질문');
+    expect(state.listReads).toBeGreaterThan(1);
+    state.allowRecovery = true;
+    await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+    await page.locator('.chat-room').nth(1).click();
+    await expect(page).toHaveURL(new RegExp(otherRoomId));
+    await page.locator('.chat-room').first().click();
+    await expect(page).toHaveURL(/messagePage=2/);
+    await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+    expect(state.posts).toBe(1);
+  });
+}
+
+test('접수 전 시작한 목록의 늦은 응답은 확인된 새 질문 수를 덮어쓰지 않는다', async ({ page }) => {
+  const state = await fixture(page);
+  state.allowRecovery = true;
+  state.holdNextList = true;
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => state.heldList).toBe(true);
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('새 질문 21');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+  await expect.poll(() => state.cancelledLists).toBeGreaterThan(0);
+  await state.releaseList();
+  await expect(page.locator('.chat-room').first()).toContainText('21개 질문');
+  await page.locator('.chat-room').nth(1).click();
+  await page.locator('.chat-room').first().click();
+  await expect(page).toHaveURL(/messagePage=2/);
+  await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+  expect(state.posts).toBe(1);
+});
+
+test('첫 방 목록 조회가 끝나기 전에 접수해도 초기 요청을 취소하고 새 질문 수를 받는다', async ({ page }) => {
+  const state = await fixture(page, 20, false, false, true);
+  await expect.poll(() => state.heldList).toBe(true);
+  state.allowRecovery = true;
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('새 질문 21');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+  await expect.poll(() => state.cancelledLists).toBeGreaterThan(0);
+  await state.releaseList();
+  await expect(page.locator('.chat-room').first()).toContainText('21개 질문');
+  await page.locator('.chat-room').nth(1).click();
+  await page.locator('.chat-room').first().click();
+  await expect(page).toHaveURL(/messagePage=2/);
+  await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+  expect(state.posts).toBe(1);
+});
+
+test('목록 재검증 실패도 접수를 되돌리지 않고 상세에서 확인한 질문 수를 보존한다', async ({ page }) => {
+  const state = await fixture(page);
+  state.allowRecovery = true;
+  state.listFailure = true;
+  await page.getByRole('textbox', { name: '질문', exact: true }).fill('새 질문 21');
+  await page.getByRole('button', { name: '보내기', exact: true }).click();
+  await expect(page.getByText('합성 답변 21', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '목록 다시 확인', exact: true })).toBeVisible();
+  const cachedCount = await page.evaluate(async sessionId => {
+    const module = '/src/app/lib/query-client.ts';
+    const { queryClient } = await import(module);
+    const queries = queryClient.getQueryCache().getAll();
+    const list = queries.find((query: { queryKey: Array<{ _id?: string }> }) => query.queryKey[0]?._id === 'listChatSessions');
+    return list?.state.data?.data?.content?.find((room: { id: string }) => room.id === sessionId)?.questionCount;
+  }, roomId);
+  expect(cachedCount).toBe(21);
+  await expect(page.getByRole('textbox', { name: '질문', exact: true })).toHaveValue('');
+  await expect(page.getByText(/전송 여부를 확인하려면/)).toHaveCount(0);
+  state.listFailure = false;
+  await page.getByRole('button', { name: '목록 다시 확인', exact: true }).click();
+  await expect(page.locator('.chat-room').first()).toContainText('21개 질문');
+  expect(state.posts).toBe(1);
+});
+
+test('같은 페이지의 연속 질문 뒤에도 한 번 뒤로가면 이전 화면으로 돌아간다', async ({ page }) => {
+  const state = await fixture(page, 1);
+  state.allowRecovery = true;
+  await page.goto('/works');
+  await page.goto(`/chat?workId=${workId}&sessionId=${roomId}&messagePage=1`);
+  const input = page.getByRole('textbox', { name: '질문', exact: true });
+  await expect(input).toBeEnabled();
+  const before = await page.evaluate(() => history.length);
+  for (const n of [2, 3, 4]) {
+    await input.fill(`새 질문 ${n}`);
+    await page.getByRole('button', { name: '보내기', exact: true }).click();
+    await expect(page.getByText(`합성 답변 ${n}`, { exact: true })).toBeVisible();
+    await expect(input).toHaveValue('');
+  }
+  expect(await page.evaluate(() => history.length)).toBe(before);
+  await page.goBack();
+  await expect(page).toHaveURL('/works');
+  expect(state.posts).toBe(3);
 });
 
 for (const action of ['submit', 'retry'] as const) {
