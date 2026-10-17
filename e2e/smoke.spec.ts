@@ -133,9 +133,9 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: /^관계도/ }).click();
-  await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '가족 관계', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('relations');
+  await expect(page.getByRole('heading', { name: '가족 관계', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: /^원고 목록/ }).click();
   await page.getByRole('button', { name: /^작품 설정/ }).click();
