@@ -3,8 +3,61 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addWorldSettingProperty, analyzeSettingBook, approveAiTokenExtensionRequest, backfillSubjectImages, claimAnalysisJob, claimMyAnalysisGuide, claimMyFeedbackPrompt, claimNextWorkerCharacterFactComparison, claimNextWorkerCharacterFactComparisonBatch, claimNextWorkerWorldSettingComparison, claimNextWorkerWorldSettingComparisonBatch, closeChatSession, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerCharacterFactComparisonBatch, completeWorkerWorldSettingComparison, completeWorkerWorldSettingComparisonBatch, confirmEmailVerification, confirmPhoneVerification, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, createAnalysisJob, createChatSession, createMyAiTokenExtensionRequest, createMyFeedback, createOperationalAiRun, createPrivateImageVault, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deletePrivateWorldImage, deleteSettingBook, deleteWork, detectEpisodes, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerCharacterFactComparisonBatch, failWorkerWorldSettingComparison, failWorkerWorldSettingComparisonBatch, finishChatRun, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getChatQuestion, getChatRunContext, getChatSession, getCurrentLegalDocuments, getEpisode, getEpisodes, getEpisodeUploadPolicy, getLegalDocument, getMe, getMyAiTokenUsage, getMyAnalysisGuide, getMyFeedbackPrompt, getMyPendingAiTokenExtensionRequest, getMyWorks, getPendingWorkerWorldSettingSubjectResolutions, getPrivateImageVault, getPrivateWorldImageContent, getPrivateWorldImages, getPrivateWorldImageThumbnail, getSettingBook, getSettingBookRevision, getSettingBooks, getSettingCandidate, getSettingCandidates, getSignupPolicy, getWork, getWorkerCharacterFactComparisonBatchContext, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonBatchContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldImageAsset, getWorldImageCatalog, getWorldImageTheme, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, listChatMessages, listChatSessions, login, logout, type Options, publishWorkerWorldSettingCandidates, queryChatSettingTools, queryInternalSettingTools, querySettingTools, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, reportChatCall, requestEmailVerification, requestPhoneVerification, reserveAiTokens, reserveChatCall, resetStaleWorkerWorldSettingSubjectResolution, resolveWorkerWorldSettingSubjects, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retryChatQuestion, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, startChatRun, submitChatQuestion, updateCharacter, updateCharacterImage, updateEpisode, updateEpisodeTitle, updateProgress, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingImage, updateWorldSettingProperty, uploadEpisodes, uploadPrivateWorldImage, uploadSettingBook, verifyChatRetrievalSources, withdrawMe } from '../sdk.gen';
-import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, AnalyzeSettingBookData, AnalyzeSettingBookError, AnalyzeSettingBookResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, BackfillSubjectImagesData, BackfillSubjectImagesError, BackfillSubjectImagesResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimMyAnalysisGuideData, ClaimMyAnalysisGuideError, ClaimMyAnalysisGuideResponse, ClaimMyFeedbackPromptData, ClaimMyFeedbackPromptError, ClaimMyFeedbackPromptResponse, ClaimNextWorkerCharacterFactComparisonBatchData, ClaimNextWorkerCharacterFactComparisonBatchResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonBatchData, ClaimNextWorkerWorldSettingComparisonBatchResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CloseChatSessionData, CloseChatSessionError, CloseChatSessionResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonBatchData, CompleteWorkerCharacterFactComparisonBatchResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonBatchData, CompleteWorkerWorldSettingComparisonBatchResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmEmailVerificationData, ConfirmEmailVerificationError, ConfirmEmailVerificationResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupError, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateChatSessionData, CreateChatSessionError, CreateChatSessionResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreateOperationalAiRunData, CreateOperationalAiRunResponse, CreatePrivateImageVaultData, CreatePrivateImageVaultError, CreatePrivateImageVaultResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeletePrivateWorldImageData, DeletePrivateWorldImageError, DeletePrivateWorldImageResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonBatchData, FailWorkerCharacterFactComparisonBatchResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonBatchData, FailWorkerWorldSettingComparisonBatchResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, FinishChatRunData, FinishChatRunResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetChatQuestionData, GetChatQuestionResponse, GetChatRunContextData, GetChatRunContextResponse, GetChatSessionData, GetChatSessionError, GetChatSessionResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetEpisodeUploadPolicyData, GetEpisodeUploadPolicyError, GetEpisodeUploadPolicyResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyAnalysisGuideData, GetMyAnalysisGuideError, GetMyAnalysisGuideResponse, GetMyFeedbackPromptData, GetMyFeedbackPromptError, GetMyFeedbackPromptResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetPendingWorkerWorldSettingSubjectResolutionsData, GetPendingWorkerWorldSettingSubjectResolutionsResponse, GetPrivateImageVaultData, GetPrivateImageVaultError, GetPrivateImageVaultResponse, GetPrivateWorldImageContentData, GetPrivateWorldImageContentError, GetPrivateWorldImageContentResponse, GetPrivateWorldImagesData, GetPrivateWorldImagesError, GetPrivateWorldImagesResponse, GetPrivateWorldImageThumbnailData, GetPrivateWorldImageThumbnailError, GetPrivateWorldImageThumbnailResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBookRevisionData, GetSettingBookRevisionError, GetSettingBookRevisionResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetSignupPolicyData, GetSignupPolicyResponse, GetWorkData, GetWorkerCharacterFactComparisonBatchContextData, GetWorkerCharacterFactComparisonBatchContextResponse, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonBatchContextData, GetWorkerWorldSettingComparisonBatchContextResponse, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldImageAssetData, GetWorldImageAssetError, GetWorldImageAssetResponse, GetWorldImageCatalogData, GetWorldImageCatalogError, GetWorldImageCatalogResponse, GetWorldImageThemeData, GetWorldImageThemeError, GetWorldImageThemeResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, ListChatMessagesData, ListChatMessagesError, ListChatMessagesResponse, ListChatSessionsData, ListChatSessionsError, ListChatSessionsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, QueryChatSettingToolsData, QueryChatSettingToolsResponse, QueryInternalSettingToolsData, QueryInternalSettingToolsError, QueryInternalSettingToolsResponse, QuerySettingToolsData, QuerySettingToolsError, QuerySettingToolsResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, ReportChatCallData, ReportChatCallResponse, RequestEmailVerificationData, RequestEmailVerificationError, RequestEmailVerificationResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, ReserveChatCallData, ReserveChatCallResponse, ResetStaleWorkerWorldSettingSubjectResolutionData, ResetStaleWorkerWorldSettingSubjectResolutionResponse, ResolveWorkerWorldSettingSubjectsData, ResolveWorkerWorldSettingSubjectsResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetryChatQuestionData, RetryChatQuestionResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonError, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, StartChatRunData, StartChatRunResponse, SubmitChatQuestionData, SubmitChatQuestionResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterImageData, UpdateCharacterImageError, UpdateCharacterImageResponse, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchError, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingImageData, UpdateWorldSettingImageError, UpdateWorldSettingImageResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadPrivateWorldImageData, UploadPrivateWorldImageError, UploadPrivateWorldImageResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, VerifyChatRetrievalSourcesData, VerifyChatRetrievalSourcesResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse } from '../types.gen';
+import { addWorldSettingProperty, analyzeSettingBook, approveAiTokenExtensionRequest, backfillSubjectImages, claimAnalysisJob, claimMyAnalysisGuide, claimMyFeedbackPrompt, claimNextWorkerCharacterFactComparison, claimNextWorkerCharacterFactComparisonBatch, claimNextWorkerWorldSettingComparison, claimNextWorkerWorldSettingComparisonBatch, closeChatSession, completeAnalysisJob, completeWorkerCharacterFactComparison, completeWorkerCharacterFactComparisonBatch, completeWorkerWorldSettingComparison, completeWorkerWorldSettingComparisonBatch, confirmEmailVerification, confirmPhoneVerification, confirmRelationshipCandidate, confirmSettingCandidate, confirmSettingCandidateGroup, confirmWorldSettingCandidate, confirmWorldSettingCandidateGroup, correctRelationship, createAnalysisJob, createChatSession, createMyAiTokenExtensionRequest, createMyFeedback, createOperationalAiRun, createPrivateImageVault, createRelationshipCandidate, createWork, createWorldSetting, deleteCharacter, deleteEpisode, deletePrivateWorldImage, deleteSettingBook, deleteWork, detectEpisodes, dismissRelationshipCandidate, dismissSettingCandidate, dismissWorldSettingCandidate, dismissWorldSettingCandidateGroup, failAnalysisJob, failWorkerCharacterFactComparison, failWorkerCharacterFactComparisonBatch, failWorkerWorldSettingComparison, failWorkerWorldSettingComparisonBatch, finishChatRun, getAiTokenExtensionRequestForAdmin, getAiTokenExtensionRequestsForAdmin, getAnalysisBatches, getAnalysisJob, getAnalysisJobs, getArchivedCharacters, getCharacter, getCharacterFact, getCharacterFactEvidence, getCharacters, getCharacterTimeline, getCharacterTimelineSummary, getChatQuestion, getChatRunContext, getChatSession, getCurrentLegalDocuments, getEpisode, getEpisodes, getEpisodeUploadPolicy, getLegalDocument, getMe, getMyAiTokenUsage, getMyAnalysisGuide, getMyFeedbackPrompt, getMyPendingAiTokenExtensionRequest, getMyWorks, getOperationalAiReadiness, getPendingWorkerWorldSettingSubjectResolutions, getPrivateImageVault, getPrivateWorldImageContent, getPrivateWorldImages, getPrivateWorldImageThumbnail, getRelationship, getRelationshipCandidate, getRelationshipCandidates, getRelationshipEvidence, getRelationshipProcessing, getRelationships, getRelationshipSources, getSettingBook, getSettingBookRevision, getSettingBooks, getSettingCandidate, getSettingCandidates, getSignupPolicy, getWork, getWorkerCharacterFactComparisonBatchContext, getWorkerCharacterFactComparisonContext, getWorkerWorldSettingComparisonBatchContext, getWorkerWorldSettingComparisonContext, getWorkerWorldSettingSubjects, getWorkPurgeRequest, getWorkPurgeRequestByWork, getWorldImageAsset, getWorldImageCatalog, getWorldImageTheme, getWorldSetting, getWorldSettingCandidate, getWorldSettingCandidates, getWorldSettings, heartbeatAnalysisJob, listChatMessages, listChatSessions, login, logout, type Options, publishWorkerWorldSettingCandidates, queryChatSettingTools, queryInternalSettingTools, querySettingTools, refresh, rejectAiTokenExtensionRequest, releaseAiTokens, replaceEpisodeFile, reportChatCall, requestEmailVerification, requestPhoneVerification, requestRelationshipProcessing, reserveAiTokens, reserveChatCall, resetStaleWorkerWorldSettingSubjectResolution, resolveWorkerWorldSettingSubjects, restoreCharacter, resumeTokenInterruptedWorldSettingComparisons, retryAnalysisJob, retryChatQuestion, retrySettingCandidateComparison, retryWorkPurgeRequest, retryWorldSettingCandidateComparison, searchCharacterFacts, settleAiTokens, signup, startChatRun, submitChatQuestion, updateCharacter, updateCharacterImage, updateEpisode, updateEpisodeTitle, updateProgress, updateRelationshipCandidate, updateSettingBook, updateSettingCandidate, updateSettingCandidateCharacterMatch, updateSettingCandidateGroupCharacterMatch, updateWork, updateWorldSettingCandidateDecisions, updateWorldSettingIdentity, updateWorldSettingImage, updateWorldSettingProperty, uploadEpisodes, uploadPrivateWorldImage, uploadSettingBook, verifyChatRetrievalSources, withdrawMe, withdrawRelationship } from '../sdk.gen';
+import type { AddWorldSettingPropertyData, AddWorldSettingPropertyError, AddWorldSettingPropertyResponse, AnalyzeSettingBookData, AnalyzeSettingBookError, AnalyzeSettingBookResponse, ApproveAiTokenExtensionRequestData, ApproveAiTokenExtensionRequestError, ApproveAiTokenExtensionRequestResponse, BackfillSubjectImagesData, BackfillSubjectImagesError, BackfillSubjectImagesResponse, ClaimAnalysisJobData, ClaimAnalysisJobError, ClaimAnalysisJobResponse, ClaimMyAnalysisGuideData, ClaimMyAnalysisGuideError, ClaimMyAnalysisGuideResponse, ClaimMyFeedbackPromptData, ClaimMyFeedbackPromptError, ClaimMyFeedbackPromptResponse, ClaimNextWorkerCharacterFactComparisonBatchData, ClaimNextWorkerCharacterFactComparisonBatchResponse, ClaimNextWorkerCharacterFactComparisonData, ClaimNextWorkerCharacterFactComparisonResponse, ClaimNextWorkerWorldSettingComparisonBatchData, ClaimNextWorkerWorldSettingComparisonBatchResponse, ClaimNextWorkerWorldSettingComparisonData, ClaimNextWorkerWorldSettingComparisonResponse, CloseChatSessionData, CloseChatSessionError, CloseChatSessionResponse, CompleteAnalysisJobData, CompleteAnalysisJobError, CompleteAnalysisJobResponse, CompleteWorkerCharacterFactComparisonBatchData, CompleteWorkerCharacterFactComparisonBatchResponse, CompleteWorkerCharacterFactComparisonData, CompleteWorkerCharacterFactComparisonResponse, CompleteWorkerWorldSettingComparisonBatchData, CompleteWorkerWorldSettingComparisonBatchResponse, CompleteWorkerWorldSettingComparisonData, CompleteWorkerWorldSettingComparisonResponse, ConfirmEmailVerificationData, ConfirmEmailVerificationError, ConfirmEmailVerificationResponse, ConfirmPhoneVerificationData, ConfirmPhoneVerificationError, ConfirmPhoneVerificationResponse, ConfirmRelationshipCandidateData, ConfirmRelationshipCandidateError, ConfirmRelationshipCandidateResponse, ConfirmSettingCandidateData, ConfirmSettingCandidateError, ConfirmSettingCandidateGroupData, ConfirmSettingCandidateGroupError, ConfirmSettingCandidateGroupResponse, ConfirmSettingCandidateResponse, ConfirmWorldSettingCandidateData, ConfirmWorldSettingCandidateError, ConfirmWorldSettingCandidateGroupData, ConfirmWorldSettingCandidateGroupError, ConfirmWorldSettingCandidateGroupResponse, ConfirmWorldSettingCandidateResponse, CorrectRelationshipData, CorrectRelationshipError, CorrectRelationshipResponse, CreateAnalysisJobData, CreateAnalysisJobError, CreateAnalysisJobResponse, CreateChatSessionData, CreateChatSessionError, CreateChatSessionResponse, CreateMyAiTokenExtensionRequestData, CreateMyAiTokenExtensionRequestError, CreateMyAiTokenExtensionRequestResponse, CreateMyFeedbackData, CreateMyFeedbackError, CreateMyFeedbackResponse, CreateOperationalAiRunData, CreateOperationalAiRunResponse, CreatePrivateImageVaultData, CreatePrivateImageVaultError, CreatePrivateImageVaultResponse, CreateRelationshipCandidateData, CreateRelationshipCandidateError, CreateRelationshipCandidateResponse, CreateWorkData, CreateWorkError, CreateWorkResponse, CreateWorldSettingData, CreateWorldSettingError, CreateWorldSettingResponse, DeleteCharacterData, DeleteCharacterError, DeleteCharacterResponse, DeleteEpisodeData, DeleteEpisodeError, DeleteEpisodeResponse, DeletePrivateWorldImageData, DeletePrivateWorldImageError, DeletePrivateWorldImageResponse, DeleteSettingBookData, DeleteSettingBookError, DeleteSettingBookResponse, DeleteWorkData, DeleteWorkError, DeleteWorkResponse, DetectEpisodesData, DetectEpisodesError, DetectEpisodesResponse, DismissRelationshipCandidateData, DismissRelationshipCandidateError, DismissRelationshipCandidateResponse, DismissSettingCandidateData, DismissSettingCandidateError, DismissSettingCandidateResponse, DismissWorldSettingCandidateData, DismissWorldSettingCandidateError, DismissWorldSettingCandidateGroupData, DismissWorldSettingCandidateGroupError, DismissWorldSettingCandidateGroupResponse, DismissWorldSettingCandidateResponse, FailAnalysisJobData, FailAnalysisJobError, FailAnalysisJobResponse, FailWorkerCharacterFactComparisonBatchData, FailWorkerCharacterFactComparisonBatchResponse, FailWorkerCharacterFactComparisonData, FailWorkerCharacterFactComparisonResponse, FailWorkerWorldSettingComparisonBatchData, FailWorkerWorldSettingComparisonBatchResponse, FailWorkerWorldSettingComparisonData, FailWorkerWorldSettingComparisonResponse, FinishChatRunData, FinishChatRunResponse, GetAiTokenExtensionRequestForAdminData, GetAiTokenExtensionRequestForAdminResponse, GetAiTokenExtensionRequestsForAdminData, GetAiTokenExtensionRequestsForAdminError, GetAiTokenExtensionRequestsForAdminResponse, GetAnalysisBatchesData, GetAnalysisBatchesError, GetAnalysisBatchesResponse, GetAnalysisJobData, GetAnalysisJobError, GetAnalysisJobResponse, GetAnalysisJobsData, GetAnalysisJobsError, GetAnalysisJobsResponse, GetArchivedCharactersData, GetArchivedCharactersError, GetArchivedCharactersResponse, GetCharacterData, GetCharacterError, GetCharacterFactData, GetCharacterFactError, GetCharacterFactEvidenceData, GetCharacterFactEvidenceError, GetCharacterFactEvidenceResponse, GetCharacterFactResponse, GetCharacterResponse, GetCharactersData, GetCharactersError, GetCharactersResponse, GetCharacterTimelineData, GetCharacterTimelineError, GetCharacterTimelineResponse, GetCharacterTimelineSummaryData, GetCharacterTimelineSummaryError, GetCharacterTimelineSummaryResponse, GetChatQuestionData, GetChatQuestionResponse, GetChatRunContextData, GetChatRunContextResponse, GetChatSessionData, GetChatSessionError, GetChatSessionResponse, GetCurrentLegalDocumentsData, GetCurrentLegalDocumentsError, GetCurrentLegalDocumentsResponse, GetEpisodeData, GetEpisodeError, GetEpisodeResponse, GetEpisodesData, GetEpisodesError, GetEpisodesResponse, GetEpisodeUploadPolicyData, GetEpisodeUploadPolicyError, GetEpisodeUploadPolicyResponse, GetLegalDocumentData, GetLegalDocumentError, GetLegalDocumentResponse, GetMeData, GetMeError, GetMeResponse, GetMyAiTokenUsageData, GetMyAiTokenUsageError, GetMyAiTokenUsageResponse, GetMyAnalysisGuideData, GetMyAnalysisGuideError, GetMyAnalysisGuideResponse, GetMyFeedbackPromptData, GetMyFeedbackPromptError, GetMyFeedbackPromptResponse, GetMyPendingAiTokenExtensionRequestData, GetMyPendingAiTokenExtensionRequestError, GetMyPendingAiTokenExtensionRequestResponse, GetMyWorksData, GetMyWorksError, GetMyWorksResponse, GetOperationalAiReadinessData, GetOperationalAiReadinessError, GetOperationalAiReadinessResponse, GetPendingWorkerWorldSettingSubjectResolutionsData, GetPendingWorkerWorldSettingSubjectResolutionsResponse, GetPrivateImageVaultData, GetPrivateImageVaultError, GetPrivateImageVaultResponse, GetPrivateWorldImageContentData, GetPrivateWorldImageContentError, GetPrivateWorldImageContentResponse, GetPrivateWorldImagesData, GetPrivateWorldImagesError, GetPrivateWorldImagesResponse, GetPrivateWorldImageThumbnailData, GetPrivateWorldImageThumbnailError, GetPrivateWorldImageThumbnailResponse, GetRelationshipCandidateData, GetRelationshipCandidateError, GetRelationshipCandidateResponse, GetRelationshipCandidatesData, GetRelationshipCandidatesError, GetRelationshipCandidatesResponse, GetRelationshipData, GetRelationshipError, GetRelationshipEvidenceData, GetRelationshipEvidenceError, GetRelationshipEvidenceResponse, GetRelationshipProcessingData, GetRelationshipProcessingError, GetRelationshipProcessingResponse, GetRelationshipResponse, GetRelationshipsData, GetRelationshipsError, GetRelationshipSourcesData, GetRelationshipSourcesError, GetRelationshipSourcesResponse, GetRelationshipsResponse, GetSettingBookData, GetSettingBookError, GetSettingBookResponse, GetSettingBookRevisionData, GetSettingBookRevisionError, GetSettingBookRevisionResponse, GetSettingBooksData, GetSettingBooksError, GetSettingBooksResponse, GetSettingCandidateData, GetSettingCandidateError, GetSettingCandidateResponse, GetSettingCandidatesData, GetSettingCandidatesError, GetSettingCandidatesResponse, GetSignupPolicyData, GetSignupPolicyResponse, GetWorkData, GetWorkerCharacterFactComparisonBatchContextData, GetWorkerCharacterFactComparisonBatchContextResponse, GetWorkerCharacterFactComparisonContextData, GetWorkerCharacterFactComparisonContextResponse, GetWorkError, GetWorkerWorldSettingComparisonBatchContextData, GetWorkerWorldSettingComparisonBatchContextResponse, GetWorkerWorldSettingComparisonContextData, GetWorkerWorldSettingComparisonContextResponse, GetWorkerWorldSettingSubjectsData, GetWorkerWorldSettingSubjectsResponse, GetWorkPurgeRequestByWorkData, GetWorkPurgeRequestByWorkError, GetWorkPurgeRequestByWorkResponse, GetWorkPurgeRequestData, GetWorkPurgeRequestError, GetWorkPurgeRequestResponse, GetWorkResponse, GetWorldImageAssetData, GetWorldImageAssetError, GetWorldImageAssetResponse, GetWorldImageCatalogData, GetWorldImageCatalogError, GetWorldImageCatalogResponse, GetWorldImageThemeData, GetWorldImageThemeError, GetWorldImageThemeResponse, GetWorldSettingCandidateData, GetWorldSettingCandidateError, GetWorldSettingCandidateResponse, GetWorldSettingCandidatesData, GetWorldSettingCandidatesError, GetWorldSettingCandidatesResponse, GetWorldSettingData, GetWorldSettingError, GetWorldSettingResponse, GetWorldSettingsData, GetWorldSettingsError, GetWorldSettingsResponse, HeartbeatAnalysisJobData, HeartbeatAnalysisJobResponse, ListChatMessagesData, ListChatMessagesError, ListChatMessagesResponse, ListChatSessionsData, ListChatSessionsError, ListChatSessionsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PublishWorkerWorldSettingCandidatesData, PublishWorkerWorldSettingCandidatesResponse, QueryChatSettingToolsData, QueryChatSettingToolsResponse, QueryInternalSettingToolsData, QueryInternalSettingToolsError, QueryInternalSettingToolsResponse, QuerySettingToolsData, QuerySettingToolsError, QuerySettingToolsResponse, RefreshData, RefreshError, RefreshResponse, RejectAiTokenExtensionRequestData, RejectAiTokenExtensionRequestError, RejectAiTokenExtensionRequestResponse, ReleaseAiTokensData, ReleaseAiTokensError, ReleaseAiTokensResponse, ReplaceEpisodeFileData, ReplaceEpisodeFileResponse, ReportChatCallData, ReportChatCallResponse, RequestEmailVerificationData, RequestEmailVerificationError, RequestEmailVerificationResponse, RequestPhoneVerificationData, RequestPhoneVerificationError, RequestPhoneVerificationResponse, RequestRelationshipProcessingData, RequestRelationshipProcessingError, RequestRelationshipProcessingResponse, ReserveAiTokensData, ReserveAiTokensError, ReserveAiTokensResponse, ReserveChatCallData, ReserveChatCallResponse, ResetStaleWorkerWorldSettingSubjectResolutionData, ResetStaleWorkerWorldSettingSubjectResolutionResponse, ResolveWorkerWorldSettingSubjectsData, ResolveWorkerWorldSettingSubjectsResponse, RestoreCharacterData, RestoreCharacterError, RestoreCharacterResponse, ResumeTokenInterruptedWorldSettingComparisonsData, ResumeTokenInterruptedWorldSettingComparisonsError, ResumeTokenInterruptedWorldSettingComparisonsResponse, RetryAnalysisJobData, RetryAnalysisJobError, RetryAnalysisJobResponse, RetryChatQuestionData, RetryChatQuestionResponse, RetrySettingCandidateComparisonData, RetrySettingCandidateComparisonError, RetrySettingCandidateComparisonResponse, RetryWorkPurgeRequestData, RetryWorkPurgeRequestError, RetryWorkPurgeRequestResponse, RetryWorldSettingCandidateComparisonData, RetryWorldSettingCandidateComparisonError, RetryWorldSettingCandidateComparisonResponse, SearchCharacterFactsData, SearchCharacterFactsError, SearchCharacterFactsResponse, SettleAiTokensData, SettleAiTokensError, SettleAiTokensResponse, SignupData, SignupError, SignupResponse, StartChatRunData, StartChatRunResponse, SubmitChatQuestionData, SubmitChatQuestionResponse, UpdateCharacterData, UpdateCharacterError, UpdateCharacterImageData, UpdateCharacterImageError, UpdateCharacterImageResponse, UpdateCharacterResponse, UpdateEpisodeData, UpdateEpisodeError, UpdateEpisodeResponse, UpdateEpisodeTitleData, UpdateEpisodeTitleError, UpdateEpisodeTitleResponse, UpdateProgressData, UpdateProgressError, UpdateProgressResponse, UpdateRelationshipCandidateData, UpdateRelationshipCandidateError, UpdateRelationshipCandidateResponse, UpdateSettingBookData, UpdateSettingBookError, UpdateSettingBookResponse, UpdateSettingCandidateCharacterMatchData, UpdateSettingCandidateCharacterMatchError, UpdateSettingCandidateCharacterMatchResponse, UpdateSettingCandidateData, UpdateSettingCandidateError, UpdateSettingCandidateGroupCharacterMatchData, UpdateSettingCandidateGroupCharacterMatchError, UpdateSettingCandidateGroupCharacterMatchResponse, UpdateSettingCandidateResponse, UpdateWorkData, UpdateWorkError, UpdateWorkResponse, UpdateWorldSettingCandidateDecisionsData, UpdateWorldSettingCandidateDecisionsError, UpdateWorldSettingCandidateDecisionsResponse, UpdateWorldSettingIdentityData, UpdateWorldSettingIdentityError, UpdateWorldSettingIdentityResponse, UpdateWorldSettingImageData, UpdateWorldSettingImageError, UpdateWorldSettingImageResponse, UpdateWorldSettingPropertyData, UpdateWorldSettingPropertyError, UpdateWorldSettingPropertyResponse, UploadEpisodesData, UploadEpisodesError, UploadEpisodesResponse, UploadPrivateWorldImageData, UploadPrivateWorldImageError, UploadPrivateWorldImageResponse, UploadSettingBookData, UploadSettingBookError, UploadSettingBookResponse, VerifyChatRetrievalSourcesData, VerifyChatRetrievalSourcesResponse, WithdrawMeData, WithdrawMeError, WithdrawMeResponse, WithdrawRelationshipData, WithdrawRelationshipError, WithdrawRelationshipResponse } from '../types.gen';
+
+export type QueryKey<TOptions extends Options> = [
+    Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
+        _id: string;
+        _infinite?: boolean;
+        tags?: ReadonlyArray<string>;
+    }
+];
+
+const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions, infinite?: boolean, tags?: ReadonlyArray<string>): [
+    QueryKey<TOptions>[0]
+] => {
+    const params: QueryKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl } as QueryKey<TOptions>[0];
+    if (infinite) {
+        params._infinite = infinite;
+    }
+    if (tags) {
+        params.tags = tags;
+    }
+    if (options?.body) {
+        params.body = options.body;
+    }
+    if (options?.headers) {
+        params.headers = options.headers;
+    }
+    if (options?.path) {
+        params.path = options.path;
+    }
+    if (options?.query) {
+        params.query = options.query;
+    }
+    return [params];
+};
+
+export const getRelationshipQueryKey = (options: Options<GetRelationshipData>) => createQueryKey('getRelationship', options);
+
+/**
+ * 가족 관계 상세 조회
+ *
+ * 검토 기록과 현재 근거 유효성을 구분해 제공합니다.
+ */
+export const getRelationshipOptions = (options: Options<GetRelationshipData>) => queryOptions<GetRelationshipResponse, GetRelationshipError, GetRelationshipResponse, ReturnType<typeof getRelationshipQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationship({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipQueryKey(options)
+});
 
 export type MutationKey<TOptions extends Partial<Options>> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -33,6 +86,70 @@ const createMutationKey = <TOptions extends Partial<Options>>(id: string, option
         params.query = options.query;
     }
     return [params];
+};
+
+export const correctRelationshipMutationKey = (options?: Partial<Options<CorrectRelationshipData>>) => createMutationKey('correctRelationship', options);
+
+/**
+ * 가족 관계 정정
+ *
+ * 기존 관계를 철회하고 새 근거로 대체 관계를 확정합니다. 이전 명제와 근거는 이력에 남으며 전체 작업을 원자적으로 처리합니다.
+ */
+export const correctRelationshipMutation = (options?: Partial<Options<CorrectRelationshipData>>): UseMutationOptions<CorrectRelationshipResponse, CorrectRelationshipError, Options<CorrectRelationshipData>> => {
+    const mutationOptions: UseMutationOptions<CorrectRelationshipResponse, CorrectRelationshipError, Options<CorrectRelationshipData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await correctRelationship({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: correctRelationshipMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getRelationshipCandidateQueryKey = (options: Options<GetRelationshipCandidateData>) => createQueryKey('getRelationshipCandidate', options);
+
+/**
+ * 가족 관계 후보 상세 조회
+ *
+ * 현재 근거 유효성 및 상대 연결 상태를 다시 확인합니다.
+ */
+export const getRelationshipCandidateOptions = (options: Options<GetRelationshipCandidateData>) => queryOptions<GetRelationshipCandidateResponse, GetRelationshipCandidateError, GetRelationshipCandidateResponse, ReturnType<typeof getRelationshipCandidateQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationshipCandidate({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipCandidateQueryKey(options)
+});
+
+export const updateRelationshipCandidateMutationKey = (options?: Partial<Options<UpdateRelationshipCandidateData>>) => createMutationKey('updateRelationshipCandidate', options);
+
+/**
+ * 가족 관계 후보 수정
+ *
+ * 대기 후보의 상대·유형·시점·근거를 수정합니다. expectedVersion과 sourceToken이 오래되면 거절합니다.
+ */
+export const updateRelationshipCandidateMutation = (options?: Partial<Options<UpdateRelationshipCandidateData>>): UseMutationOptions<UpdateRelationshipCandidateResponse, UpdateRelationshipCandidateError, Options<UpdateRelationshipCandidateData>> => {
+    const mutationOptions: UseMutationOptions<UpdateRelationshipCandidateResponse, UpdateRelationshipCandidateError, Options<UpdateRelationshipCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateRelationshipCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: updateRelationshipCandidateMutationKey(options)
+    };
+    return mutationOptions;
 };
 
 export const replaceEpisodeFileMutationKey = (options?: Partial<Options<ReplaceEpisodeFileData>>) => createMutationKey('replaceEpisodeFile', options);
@@ -95,39 +212,6 @@ export const publishWorkerWorldSettingCandidatesMutation = (options?: Partial<Op
         mutationKey: publishWorkerWorldSettingCandidatesMutationKey(options)
     };
     return mutationOptions;
-};
-
-export type QueryKey<TOptions extends Options> = [
-    Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
-        _id: string;
-        _infinite?: boolean;
-        tags?: ReadonlyArray<string>;
-    }
-];
-
-const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions, infinite?: boolean, tags?: ReadonlyArray<string>): [
-    QueryKey<TOptions>[0]
-] => {
-    const params: QueryKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl } as QueryKey<TOptions>[0];
-    if (infinite) {
-        params._infinite = infinite;
-    }
-    if (tags) {
-        params.tags = tags;
-    }
-    if (options?.body) {
-        params.body = options.body;
-    }
-    if (options?.headers) {
-        params.headers = options.headers;
-    }
-    if (options?.path) {
-        params.path = options.path;
-    }
-    if (options?.query) {
-        params.query = options.query;
-    }
-    return [params];
 };
 
 export const getMyWorksQueryKey = (options?: Options<GetMyWorksData>) => createQueryKey('getMyWorks', options);
@@ -619,6 +703,188 @@ export const analyzeSettingBookMutation = (options?: Partial<Options<AnalyzeSett
             return data;
         },
         mutationKey: analyzeSettingBookMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const withdrawRelationshipMutationKey = (options?: Partial<Options<WithdrawRelationshipData>>) => createMutationKey('withdrawRelationship', options);
+
+/**
+ * 가족 관계 철회
+ *
+ * 잘못 확정한 관계를 철회합니다. 서사상 이혼·사망 등 관계 종료를 뜻하지 않습니다.
+ */
+export const withdrawRelationshipMutation = (options?: Partial<Options<WithdrawRelationshipData>>): UseMutationOptions<WithdrawRelationshipResponse, WithdrawRelationshipError, Options<WithdrawRelationshipData>> => {
+    const mutationOptions: UseMutationOptions<WithdrawRelationshipResponse, WithdrawRelationshipError, Options<WithdrawRelationshipData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await withdrawRelationship({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: withdrawRelationshipMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getRelationshipProcessingQueryKey = (options: Options<GetRelationshipProcessingData>) => createQueryKey('getRelationshipProcessing', options);
+
+/**
+ * 가족 관계 처리 상태 조회
+ *
+ * 기존 설정 저장과 독립적인 규칙 처리의 대기·성공·실패를 조회합니다.
+ */
+export const getRelationshipProcessingOptions = (options: Options<GetRelationshipProcessingData>) => queryOptions<GetRelationshipProcessingResponse, GetRelationshipProcessingError, GetRelationshipProcessingResponse, ReturnType<typeof getRelationshipProcessingQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationshipProcessing({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipProcessingQueryKey(options)
+});
+
+export const requestRelationshipProcessingMutationKey = (options?: Partial<Options<RequestRelationshipProcessingData>>) => createMutationKey('requestRelationshipProcessing', options);
+
+/**
+ * 현재 설정의 가족 관계 처리 요청
+ *
+ * 이미 저장된 현재 프로필만 규칙으로 처리합니다. AI 재분석이나 사용량 차감 없이 기존 설정을 처음 연결하거나 실패한 처리를 재시도합니다. 제외·수정한 동일 입력 후보는 되살리지 않습니다.
+ */
+export const requestRelationshipProcessingMutation = (options?: Partial<Options<RequestRelationshipProcessingData>>): UseMutationOptions<RequestRelationshipProcessingResponse, RequestRelationshipProcessingError, Options<RequestRelationshipProcessingData>> => {
+    const mutationOptions: UseMutationOptions<RequestRelationshipProcessingResponse, RequestRelationshipProcessingError, Options<RequestRelationshipProcessingData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await requestRelationshipProcessing({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: requestRelationshipProcessingMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const getRelationshipCandidatesQueryKey = (options: Options<GetRelationshipCandidatesData>) => createQueryKey('getRelationshipCandidates', options);
+
+/**
+ * 가족 관계 후보 목록 조회
+ *
+ * 검토 완료와 보류 후보를 모두 조회하며 reviewReasons로 현재 보류 이유를 제공합니다.
+ */
+export const getRelationshipCandidatesOptions = (options: Options<GetRelationshipCandidatesData>) => queryOptions<GetRelationshipCandidatesResponse, GetRelationshipCandidatesError, GetRelationshipCandidatesResponse, ReturnType<typeof getRelationshipCandidatesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationshipCandidates({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipCandidatesQueryKey(options)
+});
+
+export const getRelationshipCandidatesInfiniteQueryKey = (options: Options<GetRelationshipCandidatesData>): QueryKey<Options<GetRelationshipCandidatesData>> => createQueryKey('getRelationshipCandidates', options, true);
+
+/**
+ * 가족 관계 후보 목록 조회
+ *
+ * 검토 완료와 보류 후보를 모두 조회하며 reviewReasons로 현재 보류 이유를 제공합니다.
+ */
+export const getRelationshipCandidatesInfiniteOptions = (options: Options<GetRelationshipCandidatesData>) => {
+    const opts = infiniteQueryOptions<GetRelationshipCandidatesResponse, GetRelationshipCandidatesError, InfiniteData<GetRelationshipCandidatesResponse>, QueryKey<Options<GetRelationshipCandidatesData>>, number | Pick<QueryKey<Options<GetRelationshipCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetRelationshipCandidatesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getRelationshipCandidates({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getRelationshipCandidatesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const createRelationshipCandidateMutationKey = (options?: Partial<Options<CreateRelationshipCandidateData>>) => createMutationKey('createRelationshipCandidate', options);
+
+/**
+ * 가족 관계 후보 등록
+ *
+ * 기존 현재 프로필 Fact를 명시해 검토 후보만 저장합니다. 같은 requestId와 입력은 기존 결과를 반환하며 자동 확정하지 않습니다.
+ */
+export const createRelationshipCandidateMutation = (options?: Partial<Options<CreateRelationshipCandidateData>>): UseMutationOptions<CreateRelationshipCandidateResponse, CreateRelationshipCandidateError, Options<CreateRelationshipCandidateData>> => {
+    const mutationOptions: UseMutationOptions<CreateRelationshipCandidateResponse, CreateRelationshipCandidateError, Options<CreateRelationshipCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createRelationshipCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: createRelationshipCandidateMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const dismissRelationshipCandidateMutationKey = (options?: Partial<Options<DismissRelationshipCandidateData>>) => createMutationKey('dismissRelationshipCandidate', options);
+
+/**
+ * 가족 관계 후보 제외
+ *
+ * 검토 대기 후보를 제외합니다. 같은 결정의 재전송으로 상태를 되돌리지 않습니다.
+ */
+export const dismissRelationshipCandidateMutation = (options?: Partial<Options<DismissRelationshipCandidateData>>): UseMutationOptions<DismissRelationshipCandidateResponse, DismissRelationshipCandidateError, Options<DismissRelationshipCandidateData>> => {
+    const mutationOptions: UseMutationOptions<DismissRelationshipCandidateResponse, DismissRelationshipCandidateError, Options<DismissRelationshipCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await dismissRelationshipCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: dismissRelationshipCandidateMutationKey(options)
+    };
+    return mutationOptions;
+};
+
+export const confirmRelationshipCandidateMutationKey = (options?: Partial<Options<ConfirmRelationshipCandidateData>>) => createMutationKey('confirmRelationshipCandidate', options);
+
+/**
+ * 가족 관계 후보 확정
+ *
+ * 명시적 단정과 알려진 상대·시점만 확정합니다. 동일 결정 재시도는 멱등하며 동일 관계에는 근거를 추가합니다.
+ */
+export const confirmRelationshipCandidateMutation = (options?: Partial<Options<ConfirmRelationshipCandidateData>>): UseMutationOptions<ConfirmRelationshipCandidateResponse, ConfirmRelationshipCandidateError, Options<ConfirmRelationshipCandidateData>> => {
+    const mutationOptions: UseMutationOptions<ConfirmRelationshipCandidateResponse, ConfirmRelationshipCandidateError, Options<ConfirmRelationshipCandidateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await confirmRelationshipCandidate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        },
+        mutationKey: confirmRelationshipCandidateMutationKey(options)
     };
     return mutationOptions;
 };
@@ -1482,7 +1748,7 @@ export const createOperationalAiRunMutationKey = (options?: Partial<Options<Crea
 /**
  * 운영 백필 귀속·예산 생성
  *
- * 신뢰 운영자 전용. 사용자 잔액을 차감하지 않습니다. id는 재전송 멱등성 키입니다.
+ * 신뢰 운영자 전용. CHAT_OPERATIONS_ENABLED로 새 접수를 제어하며 사용자 잔액을 차감하지 않습니다. id는 재전송 멱등성 키이며 동일 입력 재전송은 운영 게이트를 꺼도 허용합니다.
  */
 export const createOperationalAiRunMutation = (options?: Partial<Options<CreateOperationalAiRunData>>): UseMutationOptions<CreateOperationalAiRunResponse, DefaultError, Options<CreateOperationalAiRunData>> => {
     const mutationOptions: UseMutationOptions<CreateOperationalAiRunResponse, DefaultError, Options<CreateOperationalAiRunData>> = {
@@ -2725,6 +2991,98 @@ export const getSettingBookRevisionOptions = (options: Options<GetSettingBookRev
     queryKey: getSettingBookRevisionQueryKey(options)
 });
 
+export const getRelationshipsQueryKey = (options: Options<GetRelationshipsData>) => createQueryKey('getRelationships', options);
+
+/**
+ * 가족 관계 목록 조회
+ *
+ * 과거·철회·재검토 관계를 포함합니다. 기본 가계도는 visibleInFamilyTree=true인 관계를 사용합니다.
+ */
+export const getRelationshipsOptions = (options: Options<GetRelationshipsData>) => queryOptions<GetRelationshipsResponse, GetRelationshipsError, GetRelationshipsResponse, ReturnType<typeof getRelationshipsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationships({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipsQueryKey(options)
+});
+
+export const getRelationshipsInfiniteQueryKey = (options: Options<GetRelationshipsData>): QueryKey<Options<GetRelationshipsData>> => createQueryKey('getRelationships', options, true);
+
+/**
+ * 가족 관계 목록 조회
+ *
+ * 과거·철회·재검토 관계를 포함합니다. 기본 가계도는 visibleInFamilyTree=true인 관계를 사용합니다.
+ */
+export const getRelationshipsInfiniteOptions = (options: Options<GetRelationshipsData>) => {
+    const opts = infiniteQueryOptions<GetRelationshipsResponse, GetRelationshipsError, InfiniteData<GetRelationshipsResponse>, QueryKey<Options<GetRelationshipsData>>, number | Pick<QueryKey<Options<GetRelationshipsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetRelationshipsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getRelationships({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getRelationshipsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getRelationshipEvidenceQueryKey = (options: Options<GetRelationshipEvidenceData>) => createQueryKey('getRelationshipEvidence', options);
+
+/**
+ * 가족 관계 근거 조회
+ *
+ * 복수의 Fact 참조와 현재 유효성을 반환합니다. 원문은 evidencePath의 기존 Fact API에서 조회합니다.
+ */
+export const getRelationshipEvidenceOptions = (options: Options<GetRelationshipEvidenceData>) => queryOptions<GetRelationshipEvidenceResponse, GetRelationshipEvidenceError, GetRelationshipEvidenceResponse, ReturnType<typeof getRelationshipEvidenceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationshipEvidence({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipEvidenceQueryKey(options)
+});
+
+export const getRelationshipSourcesQueryKey = (options: Options<GetRelationshipSourcesData>) => createQueryKey('getRelationshipSources', options);
+
+/**
+ * 관계 생성용 현재 프로필 조회
+ *
+ * 현재 슬롯과 sourceFacts 양쪽에 남아 있는 PROFILE만 반환합니다. 전체 Fact 이력이나 원문을 재추출하지 않습니다.
+ */
+export const getRelationshipSourcesOptions = (options: Options<GetRelationshipSourcesData>) => queryOptions<GetRelationshipSourcesResponse, GetRelationshipSourcesError, GetRelationshipSourcesResponse, ReturnType<typeof getRelationshipSourcesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRelationshipSources({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRelationshipSourcesQueryKey(options)
+});
+
 export const getWorkPurgeRequestByWorkQueryKey = (options: Options<GetWorkPurgeRequestByWorkData>) => createQueryKey('getWorkPurgeRequestByWork', options);
 
 /**
@@ -3519,6 +3877,26 @@ export const getChatRunContextOptions = (options: Options<GetChatRunContextData>
         return data;
     },
     queryKey: getChatRunContextQueryKey(options)
+});
+
+export const getOperationalAiReadinessQueryKey = (options?: Options<GetOperationalAiReadinessData>) => createQueryKey('getOperationalAiReadiness', options);
+
+/**
+ * 운영 백필 접수 준비 설정 확인
+ *
+ * 내부 API key를 인증하고 운영·공개 채팅 게이트와 실행 비밀값의 설정 여부를 반환합니다. 실행 생성·DB 접근·provider 호출은 하지 않습니다. 호출자가 필요한 게이트를 확인해야 합니다.
+ */
+export const getOperationalAiReadinessOptions = (options?: Options<GetOperationalAiReadinessData>) => queryOptions<GetOperationalAiReadinessResponse, GetOperationalAiReadinessError, GetOperationalAiReadinessResponse, ReturnType<typeof getOperationalAiReadinessQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getOperationalAiReadiness({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getOperationalAiReadinessQueryKey(options)
 });
 
 export const getWorkerWorldSettingSubjectsQueryKey = (options: Options<GetWorkerWorldSettingSubjectsData>) => createQueryKey('getWorkerWorldSettingSubjects', options);
