@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { EpisodeReanalysisModal } from './EpisodeReanalysisModal';
+import { FamilyRelationshipWorkspace } from './relationship/FamilyRelationshipWorkspace';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { CharacterTimelineModal } from './character/CharacterTimeline';
@@ -171,6 +172,10 @@ function switchSettingTabQueryState(
   const next = new URLSearchParams(params);
   if (current === target) return next;
 
+  if (target !== 'relations') {
+    for (const key of ['relationshipCandidate', 'relationshipId', 'relationshipFactId']) next.delete(key);
+  }
+
   if (current === 'worldsettings' || current === 'search') {
     const saved = SETTING_TAB_QUERY_PARAMS[current];
     copyOptionalSearchParam(next, 'q', saved.q);
@@ -195,7 +200,7 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
 };
 
 const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
-const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
+const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search', 'relations'];
 
 function formatEpisodeDate(value?: string): string {
   if (!value) return '—';
@@ -815,15 +820,14 @@ export default function S1Dashboard() {
                     className="mobile-choice-select"
                     value={settingTab}
                     onChange={event => {
-                      if (event.target.value === 'relations') setComingSoonFeature('관계도');
-                      else setSettingTab(event.target.value as SettingTabId);
+                      setSettingTab(event.target.value as SettingTabId);
                     }}
                   >
                     <option value="characters">캐릭터 설정</option>
                     <option value="worldsettings">세계관 설정</option>
                     <option value="worldrules">설정집 목록</option>
                     <option value="search">설정 검색</option>
-                    <option value="relations">관계도 · 업데이트 예정</option>
+                    <option value="relations">가족 관계</option>
                   </select>
                 </label>
                 <div className="dashboard-tabs setting-db-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
@@ -832,7 +836,7 @@ export default function S1Dashboard() {
                     { id: 'worldsettings', label: '세계관 설정', icon: <Globe size={13} /> },
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
-                    { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
+                    { id: 'relations', label: '가족 관계', icon: <GitBranch size={13} /> },
                   ] as { id: SettingTabId; label: string; icon: React.ReactNode; upcoming?: boolean }[]).map((tab) => (
                     <button key={tab.id} onClick={() => {
                       if (tab.upcoming) setComingSoonFeature(tab.label);
@@ -905,6 +909,10 @@ export default function S1Dashboard() {
                     )}
 
 
+
+                    {settingTab === 'relations' && (
+                      <FamilyRelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} />
+                    )}
 
                     {settingTab === 'worldrules' && (
                       <SettingBookWorkspace
