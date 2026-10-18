@@ -9,7 +9,7 @@ import {
 } from '../../../api/generated/@tanstack/react-query.gen';
 import { requestRelationshipProcessing, withdrawRelationship } from '../../../api/generated/sdk.gen';
 import type { RelationshipResponse } from '../../../api/generated/types.gen';
-import { getAccessToken } from '../../../lib/api-config';
+import { privateImageSessionEpoch as authSessionEpoch } from '../../../lib/private-image-session';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { PageNavigation } from '../PageNavigation';
 import { RelationshipCandidateEditor } from './RelationshipCandidateEditor';
@@ -35,7 +35,10 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
   const pending = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page: 0, size: 1 } }), enabled });
   const relations = useQuery({ ...getRelationshipsOptions({ path: { workId }, query: { page, size: 20 } }), enabled: enabled && view === 'list' });
   const candidates = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page, size: 20 } }), enabled: enabled && view === 'review' });
-  const candidate = useQuery({ ...getRelationshipCandidateOptions({ path: { workId, candidateId } }), enabled: enabled && view === 'review' && !!candidateId });
+  // Manual review in another tab does not change the automatic processing marker.
+  const candidate = useQuery({ ...getRelationshipCandidateOptions({ path: { workId, candidateId } }),
+    enabled: enabled && view === 'review' && !!candidateId, refetchOnWindowFocus: true,
+    refetchInterval: query => query.state.data?.data?.status === 'PENDING' ? 5000 : false });
   const relationship = useQuery({ ...getRelationshipOptions({ path: { workId, relationshipId } }), enabled: enabled && view === 'list' && !!relationshipId });
   const processingMarker = state ? `${state.state}:${state.inputVersion}:${state.processedVersion}:${state.lastProcessedAt}` : undefined;
   useEffect(() => {
@@ -74,16 +77,16 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
     if (decided) updateUrl({ relationshipCandidate: null, relationPage: null }, true);
   }
   async function requestProcessing() {
-    const sessionToken = getAccessToken();
+    const session = authSessionEpoch();
     setRequesting(true); setRequestError(null);
     try {
       const result = await requestRelationshipProcessing({ path: { workId } });
-      if (!mounted.current || sessionToken !== getAccessToken()) return;
+      if (!mounted.current || session !== authSessionEpoch()) return;
       client.setQueryData(getRelationshipProcessingQueryKey({ path: { workId } }), result.data);
       refreshLists(false);
     } catch (error) {
-      if (mounted.current) setRequestError(relationshipError(error, '가족 관계 정리를 요청하지 못했어요. 다시 시도해 주세요.'));
-    } finally { if (mounted.current) setRequesting(false); }
+      if (mounted.current && session === authSessionEpoch()) setRequestError(relationshipError(error, '가족 관계 정리를 요청하지 못했어요. 다시 시도해 주세요.'));
+    } finally { if (mounted.current && session === authSessionEpoch()) setRequesting(false); }
   }
 
   if (!enabled) return <section className="relationship-workspace relationship-empty"><GitBranch aria-hidden="true" />
@@ -179,14 +182,14 @@ function RelationshipDetail({ workId, relation, loading, error, onRetry, onChang
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   async function withdraw() {
     if (!relation?.id || relation.version == null) return;
-    const sessionToken = getAccessToken();
+    const session = authSessionEpoch();
     setWithdrawing(true); setFailure(null);
     try {
       await withdrawRelationship({ path: { workId, relationshipId: relation.id }, body: { expectedVersion: relation.version } });
-      if (!mounted.current || sessionToken !== getAccessToken()) return;
+      if (!mounted.current || session !== authSessionEpoch()) return;
       setConfirmWithdraw(false); onChanged();
-    } catch (cause) { if (mounted.current) setFailure(relationshipError(cause, '관계를 철회하지 못했어요. 다시 시도해 주세요.')); }
-    finally { if (mounted.current) setWithdrawing(false); }
+    } catch (cause) { if (mounted.current && session === authSessionEpoch()) setFailure(relationshipError(cause, '관계를 철회하지 못했어요. 다시 시도해 주세요.')); }
+    finally { if (mounted.current && session === authSessionEpoch()) setWithdrawing(false); }
   }
   if (loading) return <p role="status">관계 근거를 불러오고 있어요.</p>;
   if (error) return <RelationshipQueryError title="관계 근거를 불러오지 못했어요." onRetry={onRetry} />;

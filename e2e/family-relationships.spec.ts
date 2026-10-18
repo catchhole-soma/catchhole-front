@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Route } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import type { RelationshipCandidateResponse, RelationshipResponse } from '../src/app/api/generated/types.gen';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -44,10 +44,18 @@ async function setup(context: BrowserContext) {
   let failSources = 0;
   let originalReads = 0;
   let charactersPage = 0;
-  const calls = { saves: [] as Array<Record<string, unknown>>, confirms: 0, dismisses: 0, processing: 0, analyses: 0, withdraws: 0 };
+  const calls = { saves: [] as Array<Record<string, unknown>>, confirms: 0, dismisses: 0, processing: 0, analyses: 0, withdraws: 0, refreshes: 0 };
+  const expired = new Set<string>();
+  const held = new Map<string, { started: () => void; gate: Promise<void> }>();
+  const requestKey = (method: string, suffix: string) => `${method} ${suffix.startsWith('/api/v1/') ? suffix : `${prefix}/${suffix}`}`;
   await context.addInitScript(() => { localStorage.setItem('accessToken', 'synthetic-family-token'); localStorage.removeItem('catchhole_demo_mode'); });
   await context.route('**/api/v1/**', async route => {
     const req = route.request(); const url = new URL(req.url()); const path = url.pathname;
+    const key = `${req.method()} ${path}`;
+    if (expired.delete(key)) return failure(route, 401, '토큰을 갱신해 주세요.', 'AUTH_UNAUTHORIZED');
+    const waiting = held.get(key);
+    if (waiting) { held.delete(key); waiting.started(); await waiting.gate; }
+    if (path.endsWith('/auth/refresh')) { calls.refreshes++; return success(route, { accessToken: `rotated-family-token-${calls.refreshes}` }); }
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'family@example.test', role: 'AUTHOR', status: 'ACTIVE', displayName: '관계 검토' });
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '가족 관계 검증', genre: '판타지', episodeCount: 0 }]);
     if (path === prefix) return success(route, { id: workId, title: '가족 관계 검증', lifecycleStatus: 'ACTIVE' });
@@ -108,7 +116,17 @@ async function setup(context: BrowserContext) {
     }
     return success(route, []);
   });
-  return { calls, sourceChanged() { sourceToken = newToken; sourceText = '도윤의 친아버지는 현우이다.'; },
+  return { calls,
+    expireNext(method: string, suffix: string) { expired.add(requestKey(method, suffix)); },
+    holdNext(method: string, suffix: string) {
+      let release!: () => void;
+      let started!: () => void;
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      const received = new Promise<void>(resolve => { started = resolve; });
+      held.set(requestKey(method, suffix), { started, gate });
+      return { release, received };
+    },
+    sourceChanged() { sourceToken = newToken; sourceText = '도윤의 친아버지는 현우이다.'; },
     conflictingValues() { candidate = { ...candidate, reviewReasons: ['CURRENT_VALUE_CONFLICT', 'UNSUPPORTED_STRUCTURED_CONTEXT'], evidence: [{ ...candidate.evidence![0], currentValue: { factValue: '아버지: 현우', valueJson: { value: '아버지: 준서', name: '추정 가족관계', certainty: '확인되지 않은 소문' } } }] }; },
     sourceInvalidated() { inputVersion++; candidate = { ...candidate, reviewReasons: ['SOURCE_CHANGED'], evidence: [{ ...candidate.evidence![0], current: false, currentValue: undefined }] }; },
     otherChanged() { candidate = { ...candidate, version: candidate.version! + 1 }; },
@@ -269,4 +287,170 @@ test('서로 다른 현재 표시값·세부값과 추가 속성을 숨기지 �
   await expect(page.getByText('확인되지 않은 소문', { exact: false })).toBeVisible();
   await expect(page.getByText('추정 가족관계', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '관계에 반영' })).toBeDisabled();
+});
+
+test('정상 인증 갱신 뒤 현재 근거 조회·수정 저장·확정의 성공 결과를 반영한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.goto(editor);
+  await page.getByLabel('시점 설명').fill('갱신 중에도 보존할 입력');
+  fixture.sourceChanged();
+  fixture.expireNext('GET', 'relationship-sources');
+  await page.getByRole('button', { name: '현재 설정 다시 확인' }).click();
+  await expect(page.getByRole('checkbox')).toBeVisible();
+  await expect(page.getByRole('checkbox')).not.toBeChecked();
+  await expect(page.getByLabel('시점 설명')).toHaveValue('갱신 중에도 보존할 입력');
+  await page.getByRole('checkbox').check();
+  fixture.expireNext('PUT', `relationship-candidates/${candidateId}`);
+  await page.getByRole('button', { name: '수정 저장' }).click();
+  await expect(page.getByRole('button', { name: '관계에 반영' })).toBeEnabled();
+  expect(fixture.calls.saves[0]).toMatchObject({ expectedVersion: 0, timeLabel: '갱신 중에도 보존할 입력', evidence: [{ sourceFactId: factId, sourceToken: newToken }] });
+  fixture.expireNext('POST', `relationship-candidates/${candidateId}/confirm`);
+  await page.getByRole('button', { name: '관계에 반영' }).click();
+  await expect(page.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+  expect(fixture.calls.refreshes).toBe(3);
+  expect(fixture.calls.confirms).toBe(1);
+  expect(await page.evaluate(() => localStorage.getItem('accessToken'))).toBe('rotated-family-token-3');
+});
+
+for (const action of ['관계 정리', '철회', '제외'] as const) {
+  test(`정상 인증 갱신 뒤 ${action} 성공 결과와 목록을 반영한다`, async ({ page, context }) => {
+    const fixture = await setup(context);
+    await page.goto(action === '제외' ? editor : workspace);
+    if (action === '관계 정리') {
+      fixture.expireNext('POST', 'relationship-processing');
+      await page.getByRole('button', { name: '현재 설정에서 관계 찾기' }).click();
+      await expect(page.getByText('가족 관계를 정리하고 있어요.', { exact: true })).toBeVisible();
+      expect(fixture.calls.processing).toBe(1);
+    } else if (action === '철회') {
+      await page.getByRole('button', { name: '관계 근거 보기' }).click();
+      await page.getByRole('button', { name: '잘못된 관계 철회' }).click();
+      fixture.expireNext('POST', `relationships/${relationId}/withdraw`);
+      await page.getByRole('button', { name: '관계 철회', exact: true }).click();
+      await expect(page.getByText('철회된 관계', { exact: true })).toBeVisible();
+      expect(fixture.calls.withdraws).toBe(1);
+    } else {
+      fixture.expireNext('POST', `relationship-candidates/${candidateId}/dismiss`);
+      await page.getByRole('button', { name: '후보 제외' }).click();
+      await expect(page.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+      expect(fixture.calls.dismisses).toBe(1);
+    }
+    expect(fixture.calls.refreshes).toBe(1);
+    expect(fixture.calls.analyses).toBe(0);
+  });
+}
+
+async function cachedProcessingState(page: Page) {
+  return page.evaluate(async id => {
+    const { queryClient } = await import('/src/app/lib/query-client.ts');
+    const { getRelationshipProcessingQueryKey } = await import('/src/app/api/generated/@tanstack/react-query.gen.ts');
+    return queryClient.getQueryData(getRelationshipProcessingQueryKey({ path: { workId: id } }))?.data?.state;
+  }, workId);
+}
+
+for (const boundary of ['로그아웃 대기', '새 로그인 세션', '작품 화면 이탈'] as const) {
+  test(`${boundary} 뒤 늦은 관계 정리 응답이 캐시와 화면을 복원하지 않는다`, async ({ page, context }) => {
+    const fixture = await setup(context);
+    await page.goto(workspace);
+    await expect(page.getByText('현재 설정의 가족 관계를 정리했어요.', { exact: true })).toBeVisible();
+    const waiting = fixture.holdNext('POST', 'relationship-processing');
+    await page.getByRole('button', { name: '현재 설정에서 관계 찾기' }).click();
+    await waiting.received;
+    const logout = boundary === '로그아웃 대기' ? fixture.holdNext('POST', '/api/v1/auth/logout') : null;
+    if (logout) {
+      await page.getByRole('button', { name: '사용자 메뉴 열기' }).click();
+      await page.getByRole('menuitem', { name: '로그아웃' }).click();
+      await logout.received;
+      expect(await page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+      expect(await cachedProcessingState(page)).toBeUndefined();
+    } else if (boundary === '새 로그인 세션') {
+      await page.evaluate(async () => {
+        const { saveAuthToken } = await import('/src/app/lib/auth.ts');
+        const { queryClient } = await import('/src/app/lib/query-client.ts');
+        // 같은 사용자여도 새 로그인은 이전 요청을 이어받지 않는다.
+        saveAuthToken({ success: true, data: { accessToken: 'synthetic-family-token' } });
+        queryClient.clear();
+      });
+      expect(await cachedProcessingState(page)).toBeUndefined();
+    } else {
+      await page.getByRole('button', { name: '작품 선택으로 이동' }).click();
+      await expect(page).toHaveURL(/\/works$/);
+    }
+    const completed = page.waitForResponse(response => new URL(response.url()).pathname === `${prefix}/relationship-processing` && response.request().method() === 'POST');
+    waiting.release();
+    await completed;
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    expect(await cachedProcessingState(page)).toBe(boundary === '작품 화면 이탈' ? 'SUCCEEDED' : undefined);
+    await expect(page.getByText('가족 관계를 정리하고 있어요.', { exact: true })).toHaveCount(0);
+    if (logout) { logout.release(); await expect(page).toHaveURL(/\/landing$/); }
+  });
+}
+
+test('처리 상태가 같아도 다른 창의 후보 수정을 감지하고 초안·근거를 보존한 채 재검토한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.clock.install();
+  await page.goto(editor);
+  await page.getByLabel('시점 설명').fill('이 창에서 작성한 초안');
+  const other = await context.newPage();
+  await other.goto(editor);
+  await other.getByLabel('시점 설명').fill('다른 창에서 저장한 값');
+  await other.getByRole('button', { name: '수정 저장' }).click();
+  await expect(other.getByText('수정한 내용을 저장했어요.', { exact: false })).toBeVisible();
+  await page.bringToFront();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('alert')).toContainText('다른 곳에서 이 후보가 변경되었어요.');
+  await expect(page.getByLabel('시점 설명')).toHaveValue('이 창에서 작성한 초안');
+  await expect(page.getByRole('button', { name: '수정 저장' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '관계에 반영' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '후보 제외' })).toBeDisabled();
+  expect(fixture.calls.processing).toBe(0);
+  await page.getByRole('button', { name: '현재 설정 다시 확인' }).click();
+  await expect(page.getByLabel('시점 설명')).toHaveValue('이 창에서 작성한 초안');
+  await expect(page.getByRole('checkbox')).toBeChecked();
+  await page.getByRole('button', { name: '수정 저장' }).click();
+  await expect(page.getByRole('button', { name: '관계에 반영' })).toBeEnabled();
+  expect(fixture.calls.saves[1]).toMatchObject({ expectedVersion: 1, timeLabel: '이 창에서 작성한 초안', evidence: [{ sourceFactId: factId, sourceToken: oldToken }] });
+  await other.close();
+});
+
+test('처리 상태가 같아도 다른 창의 후보 확정을 감지해 중복 결정을 잠근다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.clock.install();
+  await page.goto(editor);
+  await expect(page.getByRole('button', { name: '관계에 반영' })).toBeEnabled();
+  const other = await context.newPage();
+  await other.goto(editor);
+  await other.getByRole('button', { name: '관계에 반영' }).click();
+  await expect(other.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+  await page.bringToFront();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('alert')).toContainText('다른 곳에서 이 후보가 변경되었어요.');
+  await expect(page.getByRole('button', { name: '관계에 반영' })).toBeDisabled();
+  await page.getByRole('button', { name: '현재 설정 다시 확인' }).click();
+  await expect(page.getByText('이미 반영된 후보예요.', { exact: false })).toBeVisible();
+  expect(fixture.calls.confirms).toBe(1);
+  expect(fixture.calls.processing).toBe(0);
+  await other.close();
+});
+
+test('숨겨진 창은 후보 주기 조회를 멈추고 돌아오면 즉시 외부 변경을 확인한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.clock.install();
+  await page.goto(editor);
+  await page.getByLabel('시점 설명').fill('창 복귀 후에도 남을 초안');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  fixture.otherChanged();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  const refetched = page.waitForResponse(response => new URL(response.url()).pathname === `${prefix}/relationship-candidates/${candidateId}`, { timeout: 1500 });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  await refetched;
+  await expect(page.getByRole('alert')).toContainText('다른 곳에서 이 후보가 변경되었어요.');
+  await expect(page.getByLabel('시점 설명')).toHaveValue('창 복귀 후에도 남을 초안');
+  await expect(page.getByRole('button', { name: '수정 저장' })).toBeDisabled();
 });

@@ -7,7 +7,7 @@ import {
 import type {
   RelationshipCandidateResponse, RelationshipCandidateUpdateRequest, RelationshipSourceResponse,
 } from '../../../api/generated/types.gen';
-import { getAccessToken } from '../../../lib/api-config';
+import { privateImageSessionEpoch as authSessionEpoch } from '../../../lib/private-image-session';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { RelationshipCurrentSetting, RelationshipEvidence } from './RelationshipEvidence';
 import { RelationshipTargetPicker } from './RelationshipTargetPicker';
@@ -56,28 +56,28 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
   }
 
   async function refreshContext() {
-    const sessionToken = getAccessToken();
+    const session = authSessionEpoch();
     setBusy('refresh'); setError(null); setMessage(null);
     try {
       const latest = await getRelationshipCandidate({ path: { workId, candidateId: baseline.id! } });
       if (!latest.data.data) throw new Error('Missing candidate');
-      if (!mounted.current || sessionToken !== getAccessToken()) return;
+      if (!mounted.current || session !== authSessionEpoch()) return;
       setBaseline(latest.data.data);
       onChanged(false);
       const ids = [...new Set([draft.subjectCharacterId, draft.objectCharacterId].filter((id): id is string => !!id))];
       const results = await Promise.allSettled(ids.map(characterId => getRelationshipSources({ path: { workId }, query: { characterId } })));
-      if (!mounted.current || sessionToken !== getAccessToken()) return;
+      if (!mounted.current || session !== authSessionEpoch()) return;
       setSources(results.flatMap(result => result.status === 'fulfilled' ? result.value.data.data ?? [] : []));
       const failures = results.filter(result => result.status === 'rejected');
       if (failures.length) setError('일부 인물의 현재 프로필을 불러오지 못했어요. 인물이 보관되었다면 상대를 다시 선택하거나 후보를 제외해 주세요. 기존 근거 선택은 유지했어요.');
       setMessage('최신 검토 상태를 불러왔어요. 입력은 유지했어요. 아래 현재 설정을 읽고 사용할 근거를 선택해 주세요.');
     } catch (cause) {
-      if (mounted.current) setError(relationshipError(cause, '현재 설정을 불러오지 못했어요. 입력은 그대로 유지했어요. 다시 시도해 주세요.'));
-    } finally { if (mounted.current) setBusy(null); }
+      if (mounted.current && session === authSessionEpoch()) setError(relationshipError(cause, '현재 설정을 불러오지 못했어요. 입력은 그대로 유지했어요. 다시 시도해 주세요.'));
+    } finally { if (mounted.current && session === authSessionEpoch()) setBusy(null); }
   }
 
   async function submit(action: 'save' | 'confirm' | 'dismiss') {
-    const sessionToken = getAccessToken();
+    const session = authSessionEpoch();
     setBusy(action); setError(null); setMessage(null);
     try {
       const path = { workId, candidateId: baseline.id! };
@@ -88,15 +88,15 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
           ? await confirmRelationshipCandidate({ path, body: { expectedVersion } })
           : await dismissRelationshipCandidate({ path, body: { expectedVersion } });
       if (!result.data.data) throw new Error('Missing candidate');
-      if (!mounted.current || sessionToken !== getAccessToken()) return;
+      if (!mounted.current || session !== authSessionEpoch()) return;
       setBaseline(result.data.data);
       setDraft(draftFrom(result.data.data));
       setObjectName(result.data.data.objectCharacterName ?? objectName);
       setMessage(action === 'save' ? '수정한 내용을 저장했어요. 관계와 근거를 확인한 뒤 반영해 주세요.' : null);
       onChanged(action !== 'save');
     } catch (cause) {
-      if (mounted.current) setError(relationshipError(cause, '요청을 완료하지 못했어요. 입력은 그대로 유지했어요. 다시 시도해 주세요.'));
-    } finally { if (mounted.current) setBusy(null); }
+      if (mounted.current && session === authSessionEpoch()) setError(relationshipError(cause, '요청을 완료하지 못했어요. 입력은 그대로 유지했어요. 다시 시도해 주세요.'));
+    } finally { if (mounted.current && session === authSessionEpoch()) setBusy(null); }
   }
 
   return <section className="relationship-editor" aria-label="가족 관계 후보 검토">
