@@ -32,16 +32,23 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
   const processing = useQuery({ ...getRelationshipProcessingOptions({ path: { workId } }), enabled,
     refetchInterval: query => query.state.data?.data?.state === 'PENDING' ? 3000 : 30000 });
   const state = processing.data?.data;
+  useEffect(() => {
+    if (requestError && processing.isSuccess && (state?.state === 'PENDING' || state?.state === 'SUCCEEDED')) {
+      setRequestError(null);
+    }
+  }, [processing.isSuccess, requestError, state?.state]);
   // Manual review in another tab does not change the automatic processing marker.
   const pending = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page: 0, size: 1 } }), enabled,
     refetchOnWindowFocus: true, refetchInterval: 5000 });
-  const relations = useQuery({ ...getRelationshipsOptions({ path: { workId }, query: { page, size: 20 } }), enabled: enabled && view === 'list' });
+  const relations = useQuery({ ...getRelationshipsOptions({ path: { workId }, query: { page, size: 20 } }), enabled: enabled && view === 'list',
+    refetchOnWindowFocus: true, refetchInterval: 5000 });
   const candidates = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page, size: 20 } }), enabled: enabled && view === 'review',
     refetchOnWindowFocus: true, refetchInterval: candidateId ? false : 5000 });
   const candidate = useQuery({ ...getRelationshipCandidateOptions({ path: { workId, candidateId } }),
     enabled: enabled && view === 'review' && !!candidateId, refetchOnWindowFocus: true,
     refetchInterval: query => query.state.data?.data?.status === 'PENDING' ? 5000 : false });
-  const relationship = useQuery({ ...getRelationshipOptions({ path: { workId, relationshipId } }), enabled: enabled && view === 'list' && !!relationshipId });
+  const relationship = useQuery({ ...getRelationshipOptions({ path: { workId, relationshipId } }), enabled: enabled && view === 'list' && !!relationshipId,
+    refetchOnWindowFocus: true, refetchInterval: query => query.state.data?.data?.validity === 'WITHDRAWN' ? false : 5000 });
   const processingMarker = state ? `${state.state}:${state.inputVersion}:${state.processedVersion}:${state.lastProcessedAt}` : undefined;
   useEffect(() => {
     if (!processingMarker) return;

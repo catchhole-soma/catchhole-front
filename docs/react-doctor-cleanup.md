@@ -1,5 +1,11 @@
 # React Doctor 즉시 정리 결과
 
+## 가족 관계 화면 상태 동기화 (2026-10-19)
+
+- 전체 215개 파일, 진단 194건(기존 오류 2·경고 192). 기존 WorldSettingDatabase 오류 2건을 포함하며 전체 통과로 해석하지 않는다.
+- `FamilyRelationshipWorkspace`의 복구 effect에 `no-adjust-state-on-prop-change` 경고 1개가 추가됐다. 서버 조회가 성공해 PENDING/SUCCEEDED를 확인할 때만 기존 요청 오류를 null로 지우는 제한된 상태 동기화다. 오류가 없으면 갱신하지 않아 반복 렌더링을 만들지 않는다. 단순히 경고를 화면에서 숨기기만 하면 이후 FAILED에서 옛 요청 오류가 다시 나타날 수 있어 실제 오류 상태를 해제한다. 패턴 경고는 유지하며 기능 결함으로 판단하지 않는다.
+- FAILED 조회에서는 오류 유지, PENDING/SUCCEEDED 복구에서는 해제, 복구 응답보다 늦게 도착한 POST 실패에서도 해제를 E2E로 확인했다. ON 관계 전체 36개와 기본 OFF 4개가 통과했고 lint 오류 0/기존 경고 2, typecheck/build/Knip도 통과했다.
+
 ## 가족 관계 목록·후보 검토 (2026-10-17)
 
 - 전체 Doctor 213개 파일, 진단 193건(기존 오류 2·경고 191). 기존 WorldSettingDatabase updater 진단은 이번 범위에 포함하지 않는다.

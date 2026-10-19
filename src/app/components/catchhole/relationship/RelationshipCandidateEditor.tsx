@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, RefreshCw, Save, X } from 'lucide-react';
+import { getRelationshipCandidateQueryKey } from '../../../api/generated/@tanstack/react-query.gen';
 import {
   confirmRelationshipCandidate, dismissRelationshipCandidate, getRelationshipCandidate,
   getRelationshipSources, updateRelationshipCandidate,
 } from '../../../api/generated/sdk.gen';
 import type {
-  RelationshipCandidateResponse, RelationshipCandidateUpdateRequest, RelationshipSourceResponse,
+  CommonResponseRelationshipCandidateResponse, RelationshipCandidateResponse, RelationshipCandidateUpdateRequest, RelationshipSourceResponse,
 } from '../../../api/generated/types.gen';
 import { privateImageSessionEpoch as authSessionEpoch } from '../../../lib/private-image-session';
 import { ActionButton } from '../ui-v2/ActionButton';
@@ -32,6 +34,7 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
   workId: string; candidate: RelationshipCandidateResponse; onClose: () => void;
   onChanged: (decided: boolean) => void; onOpenEvidence: (factId: string) => void;
 }) {
+  const client = useQueryClient();
   const [baseline, setBaseline] = useState(candidate);
   const [draft, setDraft] = useState(() => draftFrom(candidate));
   const [objectName, setObjectName] = useState(candidate.objectCharacterName ?? '');
@@ -55,13 +58,28 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
     setMessage(null);
   }
 
+  async function syncCandidateCache(response: CommonResponseRelationshipCandidateResponse, session: number) {
+    if (!mounted.current || session !== authSessionEpoch()) return false;
+    const queryKey = getRelationshipCandidateQueryKey({ path: { workId, candidateId: baseline.id! } });
+    // An older in-flight read must not replace this successful response.
+    await client.cancelQueries({ queryKey, exact: true });
+    if (!mounted.current || session !== authSessionEpoch()) return false;
+    client.setQueryData<CommonResponseRelationshipCandidateResponse>(queryKey, current => {
+      // A newer external edit still needs the existing stale-draft protection.
+      if (current?.data?.version != null && response.data?.version != null
+        && current.data.version > response.data.version) return current;
+      return response;
+    });
+    return true;
+  }
+
   async function refreshContext() {
     const session = authSessionEpoch();
     setBusy('refresh'); setError(null); setMessage(null);
     try {
       const latest = await getRelationshipCandidate({ path: { workId, candidateId: baseline.id! } });
       if (!latest.data.data) throw new Error('Missing candidate');
-      if (!mounted.current || session !== authSessionEpoch()) return;
+      if (!await syncCandidateCache(latest.data, session)) return;
       setBaseline(latest.data.data);
       onChanged(false);
       const ids = [...new Set([draft.subjectCharacterId, draft.objectCharacterId].filter((id): id is string => !!id))];
@@ -88,7 +106,7 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
           ? await confirmRelationshipCandidate({ path, body: { expectedVersion } })
           : await dismissRelationshipCandidate({ path, body: { expectedVersion } });
       if (!result.data.data) throw new Error('Missing candidate');
-      if (!mounted.current || session !== authSessionEpoch()) return;
+      if (!await syncCandidateCache(result.data, session)) return;
       setBaseline(result.data.data);
       setDraft(draftFrom(result.data.data));
       setObjectName(result.data.data.objectCharacterName ?? objectName);

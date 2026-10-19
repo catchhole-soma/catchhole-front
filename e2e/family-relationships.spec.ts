@@ -43,31 +43,40 @@ async function setup(context: BrowserContext) {
   };
   let precedingRelations: RelationshipResponse[] = [];
   let precedingCandidates: RelationshipCandidateResponse[] = [];
+  let relationAvailable = true;
   let state = 'SUCCEEDED';
   let inputVersion = 1;
   let failSave = 0;
   let failDismiss = 0;
   let failSources = 0;
+  let failProcessing = 0;
+  let failCandidateReads = false;
   let originalReads = 0;
   let charactersPage = 0;
   const calls = { saves: [] as Array<Record<string, unknown>>, confirms: 0, dismisses: 0, processing: 0, analyses: 0, withdraws: 0, refreshes: 0 };
   const expired = new Set<string>();
-  const held = new Map<string, { started: () => void; gate: Promise<void> }>();
+  const held = new Map<string, { started: () => void; gate: Promise<void>; skip: number }>();
   const requestKey = (method: string, suffix: string) => `${method} ${suffix.startsWith('/api/v1/') ? suffix : `${prefix}/${suffix}`}`;
   await context.addInitScript(() => { localStorage.setItem('accessToken', 'synthetic-family-token'); localStorage.removeItem('catchhole_demo_mode'); });
   await context.route('**/api/v1/**', async route => {
     const req = route.request(); const url = new URL(req.url()); const path = url.pathname;
+    const candidateAtRequest = candidate;
+    const candidateReadFailed = failCandidateReads;
     const key = `${req.method()} ${path}`;
     if (expired.delete(key)) return failure(route, 401, '토큰을 갱신해 주세요.', 'AUTH_UNAUTHORIZED');
     const waiting = held.get(key);
-    if (waiting) { held.delete(key); waiting.started(); await waiting.gate; }
+    if (waiting && waiting.skip-- <= 0) { held.delete(key); waiting.started(); await waiting.gate; }
     if (path.endsWith('/auth/refresh')) { calls.refreshes++; return success(route, { accessToken: `rotated-family-token-${calls.refreshes}` }); }
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'family@example.test', role: 'AUTHOR', status: 'ACTIVE', displayName: '관계 검토' });
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '가족 관계 검증', genre: '판타지', episodeCount: 0 }]);
     if (path === prefix) return success(route, { id: workId, title: '가족 관계 검증', lifecycleStatus: 'ACTIVE' });
     if (path.endsWith('/analysis-jobs') && req.method() !== 'GET') { calls.analyses++; return failure(route, 500, '분석 요청은 허용하지 않음'); }
     if (path === `${prefix}/relationship-processing`) {
-      if (req.method() === 'POST') { calls.processing++; state = 'PENDING'; }
+      if (req.method() === 'POST') {
+        calls.processing++;
+        if (failProcessing-- > 0) return failure(route, 503, '관계 정리 요청 결과를 확인하지 못했어요.', 'COMMON_ERROR');
+        state = 'PENDING';
+      }
       return success(route, { state, inputVersion, processedVersion: state === 'PENDING' ? 0 : inputVersion,
         autoConfirmedCount: 1, reviewRequiredCount: 9, unsupportedSourceCount: 0, lastProcessedAt: '2026-10-17T12:00:00',
         retryAt: state === 'FAILED' ? '2026-10-17T13:00:00' : null });
@@ -75,7 +84,7 @@ async function setup(context: BrowserContext) {
     if (path === `${prefix}/relationships`) {
       const page = Number(url.searchParams.get('page') ?? 0);
       const size = Number(url.searchParams.get('size') ?? 20);
-      const rows = [...precedingRelations, relation];
+      const rows = [...precedingRelations, ...(relationAvailable ? [relation] : [])];
       return success(route, paginated(rows.slice(page * size, (page + 1) * size), rows.length, page, size));
     }
     if (path === `${prefix}/relationships/${relationId}`) return success(route, relation);
@@ -92,6 +101,10 @@ async function setup(context: BrowserContext) {
       return success(route, paginated(rows.slice(page * size, (page + 1) * size), rows.length, page, size));
     }
     if (path === `${prefix}/relationship-candidates/${candidateId}`) {
+      if (req.method() === 'GET') {
+        if (candidateReadFailed) return failure(route, 503, '후속 후보 조회가 지연되고 있어요.', 'COMMON_ERROR');
+        return success(route, candidateAtRequest);
+      }
       if (req.method() === 'PUT') {
         const body = req.postDataJSON() as Record<string, unknown>; calls.saves.push(body);
         if (failSave-- > 0) return failure(route, 503, '일시적으로 저장하지 못했어요.', 'COMMON_ERROR');
@@ -105,6 +118,7 @@ async function setup(context: BrowserContext) {
     }
     if (path === `${prefix}/relationship-candidates/${candidateId}/confirm`) {
       calls.confirms++; expect(req.postDataJSON().expectedVersion).toBe(candidate.version);
+      relationAvailable = true;
       candidate = { ...candidate, status: 'CONFIRMED', version: candidate.version! + 1, confirmedRelationshipId: relationId };
       return success(route, candidate);
     }
@@ -133,12 +147,12 @@ async function setup(context: BrowserContext) {
   });
   return { calls,
     expireNext(method: string, suffix: string) { expired.add(requestKey(method, suffix)); },
-    holdNext(method: string, suffix: string) {
+    holdNext(method: string, suffix: string, skip = 0) {
       let release!: () => void;
       let started!: () => void;
       const gate = new Promise<void>(resolve => { release = resolve; });
       const received = new Promise<void>(resolve => { started = resolve; });
-      held.set(requestKey(method, suffix), { started, gate });
+      held.set(requestKey(method, suffix), { started, gate, skip });
       return { release, received };
     },
     sourceChanged() { sourceToken = newToken; sourceText = '도윤의 친아버지는 현우이다.'; },
@@ -148,6 +162,9 @@ async function setup(context: BrowserContext) {
     ready() { candidate = { ...candidate, objectCharacterId: targetId, objectCharacterName: '현우', assertion: 'ASSERTED', reviewReasons: [] }; },
     held() { candidate = { ...candidate, objectCharacterId: targetId, objectCharacterName: '현우', assertion: 'ASSERTED', reviewReasons: ['PREVIOUSLY_WITHDRAWN'] }; },
     sourceRemoved() { relation = { ...relation, validity: 'REVIEW_REQUIRED', evidence: [{ ...relation.evidence![0], current: false, currentValue: undefined }] }; },
+    waitForRelationshipConfirmation() { relationAvailable = false; },
+    failProcessing() { failProcessing = 1; },
+    failCandidateReads(value: boolean) { failCandidateReads = value; },
     offPageRelationship() {
       precedingRelations = Array.from({ length: 20 }, (_, index) => ({ ...relation,
         id: `80000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
@@ -690,4 +707,160 @@ test('숨겨진 검토 목록은 조회를 쉬고 창 복귀 때 다른 창의 �
   await expect(page.getByRole('button', { name: '도윤 · 현우 관계 확인', exact: true })).toHaveCount(0);
   expect(fixture.calls.processing).toBe(0);
   await other.close();
+});
+
+test('다른 창의 확정과 철회가 관계 목록과 열린 상세에 반영되어 낡은 철회 액션이 사라진다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready(); fixture.waitForRelationshipConfirmation();
+  await page.clock.install();
+  await page.goto(workspace);
+  await expect(page.getByText('아직 반영된 가족 관계가 없어요.', { exact: true })).toBeVisible();
+  const other = await context.newPage();
+  await other.goto(editor);
+  await other.getByRole('button', { name: '관계에 반영', exact: true }).click();
+  await expect(other.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+  await page.bringToFront();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('heading', { name: '현우 → 도윤', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '관계 근거 보기', exact: true }).click();
+  await expect(page.getByRole('button', { name: '잘못된 관계 철회', exact: true })).toBeVisible();
+  await other.getByRole('button', { name: '가족 관계 목록', exact: true }).click();
+  await other.getByRole('button', { name: '관계 근거 보기', exact: true }).click();
+  await other.getByRole('button', { name: '잘못된 관계 철회', exact: true }).click();
+  await other.getByRole('button', { name: '관계 철회', exact: true }).click();
+  await expect(other.getByText('철회된 관계', { exact: true })).toBeVisible();
+  await page.bringToFront();
+  await page.clock.runFor(6000);
+  await expect(page.getByText('철회된 관계', { exact: true })).toBeVisible();
+  await expect(page.getByText('철회된 관계예요.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: '잘못된 관계 철회', exact: true })).toHaveCount(0);
+  expect(fixture.calls.processing).toBe(0);
+  expect(fixture.calls.withdraws).toBe(1);
+  await other.close();
+});
+
+test('목록 밖 열린 관계도 창 복귀 시 다른 창의 철회를 확인하고 상태와 액션을 함께 갱신한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.offPageRelationship();
+  const link = `${workspace}&relationshipId=${relationId}`;
+  const relationReads: string[] = [];
+  page.on('request', request => {
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'GET' && (path === `${prefix}/relationships` || path === `${prefix}/relationships/${relationId}`)) relationReads.push(path);
+  });
+  await page.clock.install();
+  await page.goto(link);
+  await expect(page.getByRole('button', { name: '잘못된 관계 철회', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  const other = await context.newPage();
+  await other.goto(link);
+  await other.getByRole('button', { name: '잘못된 관계 철회', exact: true }).click();
+  await other.getByRole('button', { name: '관계 철회', exact: true }).click();
+  await expect(other.getByText('철회된 관계', { exact: true })).toBeVisible();
+  const hiddenReads = relationReads.length;
+  await page.clock.runFor(6000);
+  expect(relationReads).toHaveLength(hiddenReads);
+  await expect(page.getByText('보관된 인물 포함', { exact: true })).toBeVisible();
+  await page.bringToFront();
+  const refetched = page.waitForResponse(response => new URL(response.url()).pathname === `${prefix}/relationships/${relationId}`, { timeout: 1500 });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  await refetched;
+  const selected = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '현우 → 도윤', exact: true }) });
+  await expect(selected.getByText('철회된 관계', { exact: true })).toBeVisible();
+  await expect(selected.getByRole('button', { name: '잘못된 관계 철회', exact: true })).toHaveCount(0);
+  await expect(selected.getByRole('button', { name: '원문 근거 1', exact: true })).toBeEnabled();
+  expect(fixture.calls.processing).toBe(0);
+  await other.close();
+});
+
+test('자기 저장 성공은 후속 조회 실패나 늦은 구버전 GET으로 잠기지 않고 실제 새 버전 변경은 감지한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.clock.install();
+  await page.goto(editor);
+  await expect(page.getByRole('button', { name: '관계에 반영', exact: true })).toBeEnabled();
+  const oldRead = fixture.holdNext('GET', `relationship-candidates/${candidateId}`);
+  await page.clock.runFor(5100);
+  await oldRead.received;
+  fixture.failCandidateReads(true);
+  await page.getByLabel('시점 설명').fill('저장한 현재 초안');
+  await page.getByRole('button', { name: '수정 저장', exact: true }).click();
+  await expect(page.getByText('수정한 내용을 저장했어요.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: '관계에 반영', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('시점 설명')).toBeEnabled();
+  await expect(page.getByText('다른 곳에서 이 후보가 변경되었어요.', { exact: false })).toHaveCount(0);
+  await page.clock.runFor(1500);
+  await expect(page.getByText('확인할 관계를 불러오지 못했어요.', { exact: true })).toBeVisible();
+  oldRead.release();
+  await page.clock.runFor(100);
+  await expect(page.getByRole('button', { name: '관계에 반영', exact: true })).toBeEnabled();
+  await page.getByLabel('시점 설명').fill('이어서 작성한 초안');
+  fixture.failCandidateReads(false); fixture.otherChanged();
+  await page.clock.runFor(6000);
+  await expect(page.getByText('다른 곳에서 이 후보가 변경되었어요.', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('시점 설명')).toHaveValue('이어서 작성한 초안');
+  await expect(page.getByRole('button', { name: '수정 저장', exact: true })).toBeDisabled();
+});
+
+test('현재 설정 재확인 성공은 뒤따르는 상세 GET을 기다리지 않고 초안과 선택 근거를 유지한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.ready();
+  await page.clock.install();
+  await page.goto(editor);
+  await page.getByLabel('시점 설명').fill('재확인 중 보존할 초안');
+  fixture.otherChanged();
+  const followup = fixture.holdNext('GET', `relationship-candidates/${candidateId}`, 1);
+  await page.getByRole('button', { name: '현재 설정 다시 확인', exact: true }).click();
+  await followup.received;
+  await expect(page.getByRole('checkbox')).toBeChecked();
+  await expect(page.getByLabel('시점 설명')).toBeEnabled();
+  await expect(page.getByLabel('시점 설명')).toHaveValue('재확인 중 보존할 초안');
+  await expect(page.getByRole('button', { name: '수정 저장', exact: true })).toBeEnabled();
+  await expect(page.getByText('다른 곳에서 이 후보가 변경되었어요.', { exact: false })).toHaveCount(0);
+  followup.release();
+  await page.getByRole('button', { name: '수정 저장', exact: true }).click();
+  await expect(page.getByRole('button', { name: '관계에 반영', exact: true })).toBeEnabled();
+  expect(fixture.calls.saves[0]).toMatchObject({ expectedVersion: 1, timeLabel: '재확인 중 보존할 초안', evidence: [{ sourceFactId: factId, sourceToken: oldToken }] });
+});
+
+test('재시도 요청 오류는 FAILED 조회 때 유지하고 이후 PENDING 또는 SUCCEEDED 확인으로 해소된다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.failed(); fixture.failProcessing();
+  await page.clock.install();
+  await page.goto(workspace);
+  const failureMessage = page.getByText('관계 정리 요청 결과를 확인하지 못했어요.', { exact: true });
+  await page.getByRole('button', { name: '관계 정리 다시 시도', exact: true }).click();
+  await expect(failureMessage).toBeVisible();
+  await page.clock.runFor(31000);
+  await expect(failureMessage).toBeVisible();
+  fixture.processingState('PENDING');
+  await page.clock.runFor(31000);
+  await expect(page.getByText('가족 관계를 정리하고 있어요.', { exact: true })).toBeVisible();
+  await expect(failureMessage).toHaveCount(0);
+  fixture.processingState('SUCCEEDED');
+  await page.clock.runFor(3100);
+  await expect(page.getByText('현재 설정의 가족 관계를 정리했어요.', { exact: true })).toBeVisible();
+  fixture.failed(); fixture.failProcessing();
+  await page.clock.runFor(31000);
+  await page.getByRole('button', { name: '관계 정리 다시 시도', exact: true }).click();
+  await expect(failureMessage).toBeVisible();
+  fixture.processingState('SUCCEEDED');
+  await page.clock.runFor(31000);
+  await expect(page.getByText('현재 설정의 가족 관계를 정리했어요.', { exact: true })).toBeVisible();
+  await expect(failureMessage).toHaveCount(0);
+  fixture.failed(); fixture.failProcessing();
+  await page.clock.runFor(31000);
+  const lateFailure = fixture.holdNext('POST', 'relationship-processing');
+  await page.getByRole('button', { name: '관계 정리 다시 시도', exact: true }).click();
+  await lateFailure.received;
+  fixture.processingState('SUCCEEDED');
+  await page.clock.runFor(31000);
+  await expect(page.getByText('현재 설정의 가족 관계를 정리했어요.', { exact: true })).toBeVisible();
+  const failedResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === `${prefix}/relationship-processing`);
+  lateFailure.release();
+  await failedResponse;
+  await page.clock.runFor(100);
+  await expect(failureMessage).toHaveCount(0);
+  expect(fixture.calls.processing).toBe(3);
 });
