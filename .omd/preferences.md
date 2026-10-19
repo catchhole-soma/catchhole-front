@@ -633,3 +633,18 @@ source_context: "src/app/components/catchhole/S1Dashboard.tsx; /dashboard"
 ```
 
 Show a setting-book upload button alongside the episode upload button in the setting dashboard header.
+
+## 2026-10-19T05:20:59.406Z — shared-setting-review-header
+
+```omd-meta
+id: pref_mvet3gni_ad9136f4
+timestamp: 2026-10-19T05:20:59.406Z
+scope: components.navigation
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/characterreview/CharacterSettingReview.tsx; src/app/components/catchhole/worldsetting/WorldSettingReview.tsx; /setting-review"
+```
+
+Use a shared page header that covers both character and world-setting candidates on `/setting-review`. The implemented title is `설정 후보 검토`; candidate types remain distinguished by their tabs.
