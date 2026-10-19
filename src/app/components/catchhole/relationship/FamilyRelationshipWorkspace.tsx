@@ -32,10 +32,12 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
   const processing = useQuery({ ...getRelationshipProcessingOptions({ path: { workId } }), enabled,
     refetchInterval: query => query.state.data?.data?.state === 'PENDING' ? 3000 : 30000 });
   const state = processing.data?.data;
-  const pending = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page: 0, size: 1 } }), enabled });
-  const relations = useQuery({ ...getRelationshipsOptions({ path: { workId }, query: { page, size: 20 } }), enabled: enabled && view === 'list' });
-  const candidates = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page, size: 20 } }), enabled: enabled && view === 'review' });
   // Manual review in another tab does not change the automatic processing marker.
+  const pending = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page: 0, size: 1 } }), enabled,
+    refetchOnWindowFocus: true, refetchInterval: 5000 });
+  const relations = useQuery({ ...getRelationshipsOptions({ path: { workId }, query: { page, size: 20 } }), enabled: enabled && view === 'list' });
+  const candidates = useQuery({ ...getRelationshipCandidatesOptions({ path: { workId }, query: { status: 'PENDING', page, size: 20 } }), enabled: enabled && view === 'review',
+    refetchOnWindowFocus: true, refetchInterval: candidateId ? false : 5000 });
   const candidate = useQuery({ ...getRelationshipCandidateOptions({ path: { workId, candidateId } }),
     enabled: enabled && view === 'review' && !!candidateId, refetchOnWindowFocus: true,
     refetchInterval: query => query.state.data?.data?.status === 'PENDING' ? 5000 : false });
@@ -133,7 +135,9 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
           onOpenEvidence={id => updateUrl({ relationshipFactId: id })} />}
       </article>)}</div>
       {relationshipId && relations.isSuccess && !(relations.data.data?.content ?? []).some(item => item.id === relationshipId) &&
-        <article className="relationship-card"><RelationshipDetail workId={workId} relation={relationship.data?.data} loading={relationship.isPending}
+        <article className="relationship-card">
+          {relationship.data?.data && <RelationSummary relation={relationship.data.data} />}
+          <RelationshipDetail workId={workId} relation={relationship.data?.data} loading={relationship.isPending}
           error={relationship.isError} onRetry={() => void relationship.refetch()} onChanged={() => refreshLists(false)} onOpenEvidence={id => updateUrl({ relationshipFactId: id })} /></article>}
       <PageNavigation page={page} totalPages={relations.data?.data?.totalPages ?? 0} disabled={relations.isFetching}
         onPageChange={next => updateUrl({ relationPage: String(next + 1), relationshipId: null, relationshipFactId: null })} />

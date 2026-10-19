@@ -41,6 +41,8 @@ async function setup(context: BrowserContext) {
     objectCharacterName: '도윤', kind: 'PARENT_OF', subtype: 'BIOLOGICAL', temporalScope: 'CURRENT',
     validity: 'VALID', visibleInFamilyTree: true, evidence: candidate.evidence,
   };
+  let precedingRelations: RelationshipResponse[] = [];
+  let precedingCandidates: RelationshipCandidateResponse[] = [];
   let state = 'SUCCEEDED';
   let inputVersion = 1;
   let failSave = 0;
@@ -70,15 +72,24 @@ async function setup(context: BrowserContext) {
         autoConfirmedCount: 1, reviewRequiredCount: 9, unsupportedSourceCount: 0, lastProcessedAt: '2026-10-17T12:00:00',
         retryAt: state === 'FAILED' ? '2026-10-17T13:00:00' : null });
     }
-    if (path === `${prefix}/relationships`) return success(route, paginated([relation]));
+    if (path === `${prefix}/relationships`) {
+      const page = Number(url.searchParams.get('page') ?? 0);
+      const size = Number(url.searchParams.get('size') ?? 20);
+      const rows = [...precedingRelations, relation];
+      return success(route, paginated(rows.slice(page * size, (page + 1) * size), rows.length, page, size));
+    }
     if (path === `${prefix}/relationships/${relationId}`) return success(route, relation);
     if (path === `${prefix}/relationships/${relationId}/withdraw`) {
+      expect(req.postDataJSON().expectedVersion).toBe(relation.version);
       calls.withdraws++; relation = { ...relation, version: relation.version! + 1, validity: 'WITHDRAWN', visibleInFamilyTree: false };
       return success(route, relation);
     }
     if (path === `${prefix}/relationship-candidates`) {
       expect(url.searchParams.get('status')).toBe('PENDING');
-      return success(route, paginated(candidate.status === 'PENDING' ? [candidate] : [], candidate.status === 'PENDING' ? 1 : 0));
+      const page = Number(url.searchParams.get('page') ?? 0);
+      const size = Number(url.searchParams.get('size') ?? 20);
+      const rows = [...precedingCandidates, ...(candidate.status === 'PENDING' ? [candidate] : [])];
+      return success(route, paginated(rows.slice(page * size, (page + 1) * size), rows.length, page, size));
     }
     if (path === `${prefix}/relationship-candidates/${candidateId}`) {
       if (req.method() === 'PUT') {
@@ -137,6 +148,22 @@ async function setup(context: BrowserContext) {
     ready() { candidate = { ...candidate, objectCharacterId: targetId, objectCharacterName: '현우', assertion: 'ASSERTED', reviewReasons: [] }; },
     held() { candidate = { ...candidate, objectCharacterId: targetId, objectCharacterName: '현우', assertion: 'ASSERTED', reviewReasons: ['PREVIOUSLY_WITHDRAWN'] }; },
     sourceRemoved() { relation = { ...relation, validity: 'REVIEW_REQUIRED', evidence: [{ ...relation.evidence![0], current: false, currentValue: undefined }] }; },
+    offPageRelationship() {
+      precedingRelations = Array.from({ length: 20 }, (_, index) => ({ ...relation,
+        id: `80000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        subjectCharacterId: `81000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        objectCharacterId: `82000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        subjectCharacterName: `목록 부모 ${index + 1}`, objectCharacterName: `목록 자녀 ${index + 1}`,
+      }));
+      relation = { ...relation, version: 7, subtype: 'ADOPTIVE', temporalScope: 'HISTORICAL', timeLabel: '10년 전',
+        validity: 'ARCHIVED_ENDPOINT', visibleInFamilyTree: false };
+    },
+    pendingSecondPage() {
+      precedingCandidates = Array.from({ length: 20 }, (_, index) => ({ ...candidate,
+        id: `90000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        objectMention: `남은 상대 ${index + 1}`,
+      }));
+    },
     processingState(next: 'NEVER_PROCESSED' | 'PENDING' | 'SUCCEEDED' | 'FAILED') { state = next; },
     failed() { state = 'FAILED'; }, failSave() { failSave = 1; }, failDismiss() { failDismiss = 1; }, failSources() { failSources = 1; },
     originalReads: () => originalReads, charactersPage: () => charactersPage };
@@ -560,3 +587,107 @@ for (const state of ['NEVER_PROCESSED', 'PENDING', 'SUCCEEDED'] as const) {
     expect(fixture.calls.analyses).toBe(0);
   });
 }
+
+test('현재 20개 목록 밖의 직접 연결 관계도 인물·종류·시점·상태를 확인한 뒤 철회한다', async ({ page, context }, testInfo) => {
+  const fixture = await setup(context); fixture.offPageRelationship();
+  await page.goto(`${workspace}&relationshipId=${relationId}`);
+  await expect(page.getByRole('button', { name: '관계 근거 보기', exact: true })).toHaveCount(20);
+  const selected = page.getByRole('article').filter({ has: page.getByRole('button', { name: '원문 근거 1', exact: true }) });
+  await expect(selected.getByRole('button', { name: '원문 근거 1', exact: true })).toBeVisible();
+  await expect(selected.getByRole('heading', { name: '현우 → 도윤', exact: true })).toBeVisible();
+  await expect(selected.getByText('부모 → 자녀 · 입양 · 과거 관계 · 10년 전', { exact: true })).toBeVisible();
+  await expect(selected.getByText('보관된 인물 포함', { exact: true })).toBeVisible();
+  const identified = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '현우 → 도윤', exact: true }) });
+  await identified.screenshot({ path: testInfo.outputPath('off-page-relationship-summary.png') });
+  await identified.getByRole('button', { name: '잘못된 관계 철회', exact: true }).click();
+  await identified.getByRole('button', { name: '관계 철회', exact: true }).click();
+  await expect(identified.getByText('철회된 관계', { exact: true })).toBeVisible();
+  expect(fixture.calls.withdraws).toBe(1);
+});
+
+for (const decision of ['확정', '제외'] as const) {
+  test(`자동 처리 상태가 같아도 다른 창의 ${decision} 후 검토 목록과 현재 대기 개수가 함께 갱신된다`, async ({ page, context }) => {
+    const fixture = await setup(context); fixture.ready();
+    await page.clock.install();
+    await page.goto(`${workspace}&relationView=review`);
+    await expect(page.getByRole('button', { name: '확인 필요 1', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '도윤 · 현우 관계 확인', exact: true })).toBeVisible();
+    const other = await context.newPage();
+    await other.goto(editor);
+    await other.getByRole('button', { name: decision === '확정' ? '관계에 반영' : '후보 제외', exact: true }).click();
+    await expect(other.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+    await page.bringToFront();
+    await page.clock.runFor(6000);
+    await expect(page.getByRole('button', { name: '확인 필요 0', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '도윤 · 현우 관계 확인', exact: true })).toHaveCount(0);
+    await expect(page.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+    expect(fixture.calls.processing).toBe(0);
+    expect(fixture.calls.confirms).toBe(decision === '확정' ? 1 : 0);
+    expect(fixture.calls.dismisses).toBe(decision === '제외' ? 1 : 0);
+    await other.close();
+  });
+}
+
+test('관계 목록을 보면서도 다른 창의 후보 제외를 대기 개수에 반영하며 숨겨진 검토 목록은 조회하지 않는다', async ({ page, context }) => {
+  const fixture = await setup(context);
+  let reviewListReads = 0;
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.pathname === `${prefix}/relationship-candidates` && url.searchParams.get('size') === '20') reviewListReads++;
+  });
+  await page.clock.install();
+  await page.goto(workspace);
+  await expect(page.getByRole('button', { name: '확인 필요 1', exact: true })).toBeVisible();
+  const other = await context.newPage();
+  await other.goto(editor);
+  await other.getByRole('button', { name: '후보 제외', exact: true }).click();
+  await expect(other.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
+  await page.bringToFront();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('button', { name: '확인 필요 0', exact: true })).toBeVisible();
+  expect(reviewListReads).toBe(0);
+  expect(fixture.calls.processing).toBe(0);
+  await other.close();
+});
+
+test('숨겨진 검토 목록은 조회를 쉬고 창 복귀 때 다른 창의 제외와 줄어든 마지막 페이지를 복구한다', async ({ page, context }) => {
+  const fixture = await setup(context); fixture.pendingSecondPage();
+  let candidateListReads = 0;
+  page.on('request', request => {
+    if (new URL(request.url()).pathname === `${prefix}/relationship-candidates`) candidateListReads++;
+  });
+  await page.clock.install();
+  await page.goto(`${workspace}&relationView=review&relationPage=2`);
+  await expect(page.getByRole('button', { name: '확인 필요 21', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '도윤 · 현우 관계 확인', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  const other = await context.newPage();
+  await other.goto(editor);
+  await other.getByRole('button', { name: '후보 제외', exact: true }).click();
+  await expect(other.getByRole('button', { name: '확인 필요 20', exact: true })).toBeVisible();
+  const readsWhileHidden = candidateListReads;
+  await page.clock.runFor(6000);
+  expect(candidateListReads).toBe(readsWhileHidden);
+  expect(new URL(page.url()).searchParams.get('relationPage')).toBe('2');
+  await expect(page.getByRole('button', { name: '확인 필요 21', exact: true })).toBeVisible();
+  await page.bringToFront();
+  const refetched = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname === `${prefix}/relationship-candidates` && url.searchParams.get('size') === '20';
+  }, { timeout: 1500 });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  await refetched;
+  await expect(page.getByRole('button', { name: '확인 필요 20', exact: true })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('relationPage')).toBe('1');
+  await expect(page.getByRole('article')).toHaveCount(20);
+  await expect(page.getByRole('button', { name: '도윤 · 남은 상대 1 관계 확인', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '도윤 · 현우 관계 확인', exact: true })).toHaveCount(0);
+  expect(fixture.calls.processing).toBe(0);
+  await other.close();
+});
