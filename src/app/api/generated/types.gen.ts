@@ -5,6 +5,412 @@ export type ClientOptions = {
 };
 
 /**
+ * 가족 관계 정정. 기존 기록을 보존하고 대체 관계를 확정
+ */
+export type RelationshipCorrectionRequest = {
+    /**
+     * 조회 당시 기존 관계 버전
+     */
+    expectedVersion: number;
+    /**
+     * 멱등 정정 요청 ID
+     */
+    requestId: string;
+    /**
+     * 관계를 서술하는 캐릭터 ID
+     */
+    subjectCharacterId: string;
+    /**
+     * 상대 캐릭터 ID. 미해결이면 비워 둡니다
+     */
+    objectCharacterId?: string;
+    /**
+     * 미해결 상대의 원래 호칭. 이름으로 자동 연결하지 않습니다
+     */
+    objectMention?: string;
+    /**
+     * 관계 종류. CHILD_OF는 확정할 때 방향을 뒤집습니다
+     */
+    kind: 'PARENT_OF' | 'CHILD_OF' | 'SPOUSE' | 'SIBLING';
+    /**
+     * 명시된 세부 관계. 불명확하면 UNSPECIFIED
+     */
+    subtype: 'UNSPECIFIED' | 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FULL' | 'HALF';
+    /**
+     * 서사상의 현재/과거/불명. 발견 회차와 별개입니다
+     */
+    temporalScope: 'CURRENT' | 'HISTORICAL' | 'UNKNOWN';
+    /**
+     * 설정에 명시된 성립 시점 또는 기간. 발견 회차로 추정하지 않습니다
+     */
+    timeLabel?: string;
+    /**
+     * 명시적 단정 여부. ASSERTED만 확정할 수 있습니다
+     */
+    assertion: 'ASSERTED' | 'UNCERTAIN' | 'NEGATED' | 'FIGURATIVE' | 'CONFLICTING';
+    /**
+     * 현재 프로필의 근거 Fact와 조회 당시 토큰
+     */
+    evidence: Array<RelationshipEvidenceRequest>;
+};
+
+/**
+ * 현재 프로필에 기여하는 Fact 근거
+ */
+export type RelationshipEvidenceRequest = {
+    /**
+     * 현재 프로필 Fact ID
+     */
+    sourceFactId: string;
+    /**
+     * relationship-sources에서 받은 현재 슬롯 토큰
+     */
+    sourceToken: string;
+};
+
+/**
+ * 공통 API 실패 응답 Envelope
+ */
+export type CommonErrorResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 에러 메시지
+     */
+    message?: string;
+    /**
+     * 에러 정보
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 공통 에러 응답 정보
+ */
+export type ErrorResponse = {
+    /**
+     * 에러 코드
+     */
+    code?: string;
+    /**
+     * HTTP 상태 코드
+     */
+    status?: number;
+    /**
+     * 필드별 검증 실패 상세 목록. 검증 실패가 아니면 빈 배열입니다.
+     */
+    details?: Array<FieldErrorResponse>;
+    /**
+     * 도메인 충돌의 추가 문맥. 없으면 빈 객체입니다.
+     */
+    context?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * 필드 검증 실패 상세 정보
+ */
+export type FieldErrorResponse = {
+    /**
+     * 검증에 실패한 필드명
+     */
+    field?: string;
+    /**
+     * 필드 검증 실패 메시지
+     */
+    message?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseRelationshipResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: RelationshipResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 관계 근거와 현재 유효성. 인용문은 기존 Fact 근거 API로 조회합니다
+ */
+export type RelationshipEvidenceResponse = {
+    /**
+     * 이 근거를 확인한 검토 후보 ID
+     */
+    candidateId?: string;
+    /**
+     * 근거 Fact ID
+     */
+    sourceFactId?: string;
+    /**
+     * 근거 프로필 소유 캐릭터 ID
+     */
+    characterId?: string;
+    /**
+     * 근거 설정 key
+     */
+    factKey?: string;
+    /**
+     * 후보 생성 당시 슬롯 토큰
+     */
+    sourceToken?: string;
+    /**
+     * 현재 슬롯과 토큰이 일치하는지
+     */
+    current?: boolean;
+    /**
+     * 현재 슬롯 참여 여부와 별개인 원문 인용 존재 여부
+     */
+    hasEvidence?: boolean;
+    /**
+     * 직접 수정한 설정 근거인지
+     */
+    manuallyEdited?: boolean;
+    /**
+     * 원문 근거 조회 경로. 원문이 없으면 null
+     */
+    evidencePath?: string;
+    /**
+     * 현재 설정값. 현재 근거일 때만 제공하고 과거 원문으로 대신하지 않습니다
+     */
+    currentValue?: unknown;
+};
+
+/**
+ * 정규화한 가족 관계. 현재성 검증과 서사상의 시점을 분리합니다
+ */
+export type RelationshipResponse = {
+    /**
+     * 확정 관계 ID
+     */
+    id?: string;
+    /**
+     * 근거 추가 또는 철회 때 증가하는 관계 버전
+     */
+    version?: number;
+    /**
+     * 정규화한 주체 ID. 부모 관계라면 부모
+     */
+    subjectCharacterId?: string;
+    /**
+     * 정규화한 상대 ID. 부모 관계라면 자녀
+     */
+    objectCharacterId?: string;
+    /**
+     * 정규화한 관계 유형
+     */
+    kind?: 'PARENT_OF' | 'CHILD_OF' | 'SPOUSE' | 'SIBLING';
+    /**
+     * 명시된 세부 관계
+     */
+    subtype?: 'UNSPECIFIED' | 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FULL' | 'HALF';
+    /**
+     * 작품 내 현재·과거 관계 구분
+     */
+    temporalScope?: 'CURRENT' | 'HISTORICAL' | 'UNKNOWN';
+    /**
+     * 명시된 관계 성립 시점 또는 기간
+     */
+    timeLabel?: string;
+    /**
+     * 현재 근거 유효성. VALID만 가계도에서 사용할 수 있습니다
+     */
+    validity?: 'VALID' | 'REVIEW_REQUIRED' | 'ARCHIVED_ENDPOINT' | 'WITHDRAWN';
+    /**
+     * 가계도 기본 표시 대상: VALID이면서 CURRENT
+     */
+    visibleInFamilyTree?: boolean;
+    evidence?: Array<RelationshipEvidenceResponse>;
+    /**
+     * 등록 시각. 관계 성립 시점이 아닙니다
+     */
+    createdAt?: string;
+    /**
+     * 주체의 현재 이름
+     */
+    subjectCharacterName?: string;
+    /**
+     * 상대의 현재 이름
+     */
+    objectCharacterName?: string;
+};
+
+/**
+ * 가족 관계 후보 수정
+ */
+export type RelationshipCandidateUpdateRequest = {
+    /**
+     * 조회 당시 후보 버전
+     */
+    expectedVersion: number;
+    /**
+     * 관계를 서술하는 캐릭터 ID
+     */
+    subjectCharacterId: string;
+    /**
+     * 상대 캐릭터 ID. 미해결이면 비워 둡니다
+     */
+    objectCharacterId?: string;
+    /**
+     * 미해결 상대의 원래 호칭. 이름으로 자동 연결하지 않습니다
+     */
+    objectMention?: string;
+    /**
+     * 관계 종류. CHILD_OF는 확정할 때 방향을 뒤집습니다
+     */
+    kind: 'PARENT_OF' | 'CHILD_OF' | 'SPOUSE' | 'SIBLING';
+    /**
+     * 명시된 세부 관계. 불명확하면 UNSPECIFIED
+     */
+    subtype: 'UNSPECIFIED' | 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FULL' | 'HALF';
+    /**
+     * 서사상의 현재/과거/불명. 발견 회차와 별개입니다
+     */
+    temporalScope: 'CURRENT' | 'HISTORICAL' | 'UNKNOWN';
+    /**
+     * 설정에 명시된 성립 시점 또는 기간. 발견 회차로 추정하지 않습니다
+     */
+    timeLabel?: string;
+    /**
+     * 명시적 단정 여부. ASSERTED만 확정할 수 있습니다
+     */
+    assertion: 'ASSERTED' | 'UNCERTAIN' | 'NEGATED' | 'FIGURATIVE' | 'CONFLICTING';
+    /**
+     * 현재 프로필의 근거 Fact와 조회 당시 토큰
+     */
+    evidence: Array<RelationshipEvidenceRequest>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseRelationshipCandidateResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: RelationshipCandidateResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 가족 관계 후보와 검토 보류 사유
+ */
+export type RelationshipCandidateResponse = {
+    /**
+     * 검토 후보 ID
+     */
+    id?: string;
+    /**
+     * 현재 검토 버전
+     */
+    version?: number;
+    /**
+     * 후보 검토 상태
+     */
+    status?: 'PENDING' | 'CONFIRMED' | 'DISMISSED';
+    /**
+     * 서술 주체 캐릭터 ID
+     */
+    subjectCharacterId?: string;
+    /**
+     * 상대 캐릭터 ID. 미해결이면 null
+     */
+    objectCharacterId?: string;
+    /**
+     * 미해결 상대 호칭
+     */
+    objectMention?: string;
+    /**
+     * 정규화 전 관계 방향과 종류
+     */
+    kind?: 'PARENT_OF' | 'CHILD_OF' | 'SPOUSE' | 'SIBLING';
+    /**
+     * 명시된 세부 관계
+     */
+    subtype?: 'UNSPECIFIED' | 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FULL' | 'HALF';
+    /**
+     * 작품 내 관계 시점
+     */
+    temporalScope?: 'CURRENT' | 'HISTORICAL' | 'UNKNOWN';
+    /**
+     * 명시된 시점 또는 기간 설명
+     */
+    timeLabel?: string;
+    /**
+     * 단정·불확실·부정·비유·모순 구분
+     */
+    assertion?: 'ASSERTED' | 'UNCERTAIN' | 'NEGATED' | 'FIGURATIVE' | 'CONFLICTING';
+    /**
+     * 확정된 관계 ID. 미확정이면 null
+     */
+    confirmedRelationshipId?: string;
+    /**
+     * 현재 확인된 보류 사유. 순환 등 확정 직전 검사는 별도로 수행합니다
+     */
+    reviewReasons?: Array<string>;
+    evidence?: Array<RelationshipEvidenceResponse>;
+    /**
+     * 시스템에 발견/등록된 시각. 관계 성립 시점이 아닙니다
+     */
+    createdAt?: string;
+    /**
+     * 후보 생성 경로
+     */
+    origin?: 'MANUAL' | 'CURRENT_SETTING_RULE';
+    /**
+     * 현재 설정에서 자동으로 확정했는지
+     */
+    automaticallyConfirmed?: boolean;
+    /**
+     * 주체의 현재 이름
+     */
+    subjectCharacterName?: string;
+    /**
+     * 상대의 현재 이름. 미해결이면 null
+     */
+    objectCharacterName?: string;
+};
+
+/**
  * 공통 API 응답 Envelope
  */
 export type CommonResponseEpisodeSummaryResponse = {
@@ -86,44 +492,6 @@ export type EpisodeSummaryResponse = {
      * 회차 수정 시각
      */
     updatedAt?: string;
-};
-
-/**
- * 공통 에러 응답 정보
- */
-export type ErrorResponse = {
-    /**
-     * 에러 코드
-     */
-    code?: string;
-    /**
-     * HTTP 상태 코드
-     */
-    status?: number;
-    /**
-     * 필드별 검증 실패 상세 목록. 검증 실패가 아니면 빈 배열입니다.
-     */
-    details?: Array<FieldErrorResponse>;
-    /**
-     * 도메인 충돌의 추가 문맥. 없으면 빈 객체입니다.
-     */
-    context?: {
-        [key: string]: unknown;
-    };
-};
-
-/**
- * 필드 검증 실패 상세 정보
- */
-export type FieldErrorResponse = {
-    /**
-     * 검증에 실패한 필드명
-     */
-    field?: string;
-    /**
-     * 필드 검증 실패 메시지
-     */
-    message?: string;
 };
 
 export type SubjectResolutionInput = {
@@ -297,28 +665,6 @@ export type WorkCreateRequest = {
      * 작품 목록에 한 줄로 표시할 짧은 소개
      */
     description?: string | null;
-};
-
-/**
- * 공통 API 실패 응답 Envelope
- */
-export type CommonErrorResponse = {
-    /**
-     * 요청 처리 성공 여부
-     */
-    success?: boolean;
-    /**
-     * 에러 메시지
-     */
-    message?: string;
-    /**
-     * 에러 정보
-     */
-    error?: ErrorResponse;
-    /**
-     * 응답 생성 시각
-     */
-    timestamp?: string;
 };
 
 /**
@@ -1829,6 +2175,130 @@ export type CommonResponseAnalysisJobResponse = {
     timestamp?: string;
 };
 
+/**
+ * 조회한 버전에 대한 명시적 검토 결정
+ */
+export type RelationshipDecisionRequest = {
+    /**
+     * 화면에서 조회한 버전
+     */
+    expectedVersion: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseRelationshipProcessingResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: RelationshipProcessingResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 현재 확정 프로필의 가족 관계 처리 상태. 기존 설정 저장과 독립적으로 처리합니다
+ */
+export type RelationshipProcessingResponse = {
+    /**
+     * 처리 상태
+     */
+    state?: 'NEVER_PROCESSED' | 'PENDING' | 'SUCCEEDED' | 'FAILED';
+    /**
+     * 현재 요청된 입력 버전
+     */
+    inputVersion?: number;
+    /**
+     * 마지막으로 처리 완료한 입력 버전
+     */
+    processedVersion?: number;
+    /**
+     * 마지막 처리 완료 시각
+     */
+    lastProcessedAt?: string;
+    /**
+     * 정제된 오류 코드. 실패가 아니면 null
+     */
+    failureCode?: string;
+    /**
+     * 자동 재시도 가능 시각
+     */
+    retryAt?: string;
+    /**
+     * 마지막 처리에서 새로 자동 확정한 후보 수
+     */
+    autoConfirmedCount?: number;
+    /**
+     * 마지막 처리에서 발견한 현재 설정의 검토 대기 후보 수
+     */
+    reviewRequiredCount?: number;
+    /**
+     * 가족 표현을 발견했으나 지원하는 명시적 형식으로 읽지 못한 설정 수. 관계가 없다는 뜻이 아닙니다
+     */
+    unsupportedSourceCount?: number;
+};
+
+/**
+ * 가족 관계 후보 생성
+ */
+export type RelationshipCandidateCreateRequest = {
+    /**
+     * 멱등 후보 생성 요청 ID
+     */
+    requestId: string;
+    /**
+     * 관계를 서술하는 캐릭터 ID
+     */
+    subjectCharacterId: string;
+    /**
+     * 상대 캐릭터 ID. 미해결이면 비워 둡니다
+     */
+    objectCharacterId?: string;
+    /**
+     * 미해결 상대의 원래 호칭. 이름으로 자동 연결하지 않습니다
+     */
+    objectMention?: string;
+    /**
+     * 관계 종류. CHILD_OF는 확정할 때 방향을 뒤집습니다
+     */
+    kind: 'PARENT_OF' | 'CHILD_OF' | 'SPOUSE' | 'SIBLING';
+    /**
+     * 명시된 세부 관계. 불명확하면 UNSPECIFIED
+     */
+    subtype: 'UNSPECIFIED' | 'BIOLOGICAL' | 'ADOPTIVE' | 'STEP' | 'FULL' | 'HALF';
+    /**
+     * 서사상의 현재/과거/불명. 발견 회차와 별개입니다
+     */
+    temporalScope: 'CURRENT' | 'HISTORICAL' | 'UNKNOWN';
+    /**
+     * 설정에 명시된 성립 시점 또는 기간. 발견 회차로 추정하지 않습니다
+     */
+    timeLabel?: string;
+    /**
+     * 명시적 단정 여부. ASSERTED만 확정할 수 있습니다
+     */
+    assertion: 'ASSERTED' | 'UNCERTAIN' | 'NEGATED' | 'FIGURATIVE' | 'CONFLICTING';
+    /**
+     * 현재 프로필의 근거 Fact와 조회 당시 토큰
+     */
+    evidence: Array<RelationshipEvidenceRequest>;
+};
+
 export type PrivateWorldImageUploadRequest = {
     id: string;
     vaultId?: string;
@@ -3042,7 +3512,7 @@ export type AiTokenExtensionRejectRequest = {
 };
 
 /**
- * 운영자용 추가 AI 사용량 요청
+ * 운영자용 추가 AI 사용량 요청. 계정 잔액은 모델별 환산 단위이며 소수 2자리까지 제공
  */
 export type AiTokenExtensionAdminResponse = {
     id?: string;
@@ -4091,6 +4561,9 @@ export type WorkerCharacterFactComparisonBatchContextResponse = {
     comparisonBatchId?: string;
     characterRef?: string;
     matchedCharacterName?: string;
+    /**
+     * null이면 인물 전체, 값이 있으면 과거 타입별 묶음
+     */
     canonicalFactType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
     baseSnapshotVersion?: number;
     candidates?: Array<Candidate>;
@@ -4179,6 +4652,9 @@ export type WorkerCharacterFactComparisonBatchPayload = {
     sourceEpisodeId?: string | null;
     characterRef?: string;
     matchedCharacterName?: string;
+    /**
+     * null이면 인물 전체, 값이 있으면 과거 타입별 묶음
+     */
     canonicalFactType?: 'PROFILE' | 'AGE' | 'LEVEL' | 'STAT' | 'SKILL' | 'ITEM' | 'STATUS' | 'TIME';
     candidates?: Array<Candidate>;
     provisionalSubjectKey?: string;
@@ -4617,7 +5093,7 @@ export type AiTokenReservationResponse = {
      */
     requestId?: string;
     /**
-     * 예약된 토큰 수
+     * 환산 전 raw 예약 토큰 수 (사용자 차감량과 구분)
      */
     reservedTokens?: number;
     /**
@@ -6070,6 +6546,204 @@ export type SettingBookRevisionResponse = {
 /**
  * 공통 API 응답 Envelope
  */
+export type CommonResponsePageResponseRelationshipResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PageResponseRelationshipResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponseRelationshipResponse = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<RelationshipResponse>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseListRelationshipEvidenceResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Array<RelationshipEvidenceResponse>;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseListRelationshipSourceResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Array<RelationshipSourceResponse>;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 현재 프로필의 관계 생성 입력. 과거 Fact는 포함하지 않습니다
+ */
+export type RelationshipSourceResponse = {
+    /**
+     * 현재 프로필 Fact ID
+     */
+    factId?: string;
+    /**
+     * 프로필 소유 캐릭터 ID
+     */
+    characterId?: string;
+    /**
+     * 현재 프로필 슬롯 key
+     */
+    factKey?: string;
+    /**
+     * 현재 슬롯 전체 표시값과 구조화 값
+     */
+    currentValue?: unknown;
+    /**
+     * 현재 슬롯 값과 출처 목록에 결속된 토큰
+     */
+    contextToken?: string;
+    /**
+     * 조회 가능한 원문 인용이 존재하는지
+     */
+    hasEvidence?: boolean;
+    /**
+     * 직접 수정한 현재 슬롯인지
+     */
+    manuallyEdited?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponsePageResponseRelationshipCandidateResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: PageResponseRelationshipCandidateResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponseRelationshipCandidateResponse = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<RelationshipCandidateResponse>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
 export type CommonResponsePageResponsePrivateWorldImageResponse = {
     /**
      * 요청 처리 성공 여부
@@ -7355,15 +8029,15 @@ export type AiTokenUsageResponse = {
      */
     grantedTokens?: number;
     /**
-     * 정산이 완료된 누적 사용 토큰 수
+     * 모델 정책으로 환산한 누적 차감량 (소수 2자리)
      */
     usedTokens?: number;
     /**
-     * 처리 중인 요청에 예약된 토큰 수
+     * 모델 정책으로 환산한 처리 중 예약량 (소수 2자리)
      */
     reservedTokens?: number;
     /**
-     * 새 요청에 사용할 수 있는 남은 토큰 수
+     * 새 요청에 사용할 수 있는 남은 사용량 (소수 2자리)
      */
     remainingTokens?: number;
     /**
@@ -7500,6 +8174,50 @@ export type PageResponseAiTokenExtensionAdminResponse = {
      * 다음 페이지 존재 여부
      */
     hasNext?: boolean;
+};
+
+/**
+ * 인증된 운영 백필 접수 설정 점검. DB·provider 호출이나 실행 생성은 하지 않습니다.
+ */
+export type ChatOperationalReadinessV1 = {
+    /**
+     * 새 운영 백필 접수 활성화 여부
+     */
+    operationsEnabled?: boolean;
+    /**
+     * 공개 사용자 채팅 활성화 여부. 운영 백필과 독립적입니다.
+     */
+    publicChatEnabled?: boolean;
+    /**
+     * 32자 이상의 별도 실행 인증 비밀값 설정 여부. 원문은 반환하지 않습니다.
+     */
+    capabilityConfigured?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseChatOperationalReadinessV1 = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: ChatOperationalReadinessV1;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
 };
 
 /**
@@ -7714,6 +8432,166 @@ export type CommonErrorResponseWritable = {
      */
     timestamp?: string;
 };
+
+export type GetRelationshipData = {
+    body?: never;
+    path: {
+        workId: string;
+        relationshipId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationships/{relationshipId}';
+};
+
+export type GetRelationshipErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipError = GetRelationshipErrors[keyof GetRelationshipErrors];
+
+export type GetRelationshipResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipResponse;
+};
+
+export type GetRelationshipResponse = GetRelationshipResponses[keyof GetRelationshipResponses];
+
+export type CorrectRelationshipData = {
+    body: RelationshipCorrectionRequest;
+    path: {
+        workId: string;
+        relationshipId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationships/{relationshipId}';
+};
+
+export type CorrectRelationshipErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type CorrectRelationshipError = CorrectRelationshipErrors[keyof CorrectRelationshipErrors];
+
+export type CorrectRelationshipResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipResponse;
+};
+
+export type CorrectRelationshipResponse = CorrectRelationshipResponses[keyof CorrectRelationshipResponses];
+
+export type GetRelationshipCandidateData = {
+    body?: never;
+    path: {
+        workId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-candidates/{candidateId}';
+};
+
+export type GetRelationshipCandidateErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipCandidateError = GetRelationshipCandidateErrors[keyof GetRelationshipCandidateErrors];
+
+export type GetRelationshipCandidateResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipCandidateResponse;
+};
+
+export type GetRelationshipCandidateResponse = GetRelationshipCandidateResponses[keyof GetRelationshipCandidateResponses];
+
+export type UpdateRelationshipCandidateData = {
+    body: RelationshipCandidateUpdateRequest;
+    path: {
+        workId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-candidates/{candidateId}';
+};
+
+export type UpdateRelationshipCandidateErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type UpdateRelationshipCandidateError = UpdateRelationshipCandidateErrors[keyof UpdateRelationshipCandidateErrors];
+
+export type UpdateRelationshipCandidateResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipCandidateResponse;
+};
+
+export type UpdateRelationshipCandidateResponse = UpdateRelationshipCandidateResponses[keyof UpdateRelationshipCandidateResponses];
 
 export type ReplaceEpisodeFileData = {
     body?: {
@@ -8536,6 +9414,283 @@ export type AnalyzeSettingBookResponses = {
 };
 
 export type AnalyzeSettingBookResponse = AnalyzeSettingBookResponses[keyof AnalyzeSettingBookResponses];
+
+export type WithdrawRelationshipData = {
+    body: RelationshipDecisionRequest;
+    path: {
+        workId: string;
+        relationshipId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationships/{relationshipId}/withdraw';
+};
+
+export type WithdrawRelationshipErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type WithdrawRelationshipError = WithdrawRelationshipErrors[keyof WithdrawRelationshipErrors];
+
+export type WithdrawRelationshipResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipResponse;
+};
+
+export type WithdrawRelationshipResponse = WithdrawRelationshipResponses[keyof WithdrawRelationshipResponses];
+
+export type GetRelationshipProcessingData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-processing';
+};
+
+export type GetRelationshipProcessingErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetRelationshipProcessingError = GetRelationshipProcessingErrors[keyof GetRelationshipProcessingErrors];
+
+export type GetRelationshipProcessingResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipProcessingResponse;
+};
+
+export type GetRelationshipProcessingResponse = GetRelationshipProcessingResponses[keyof GetRelationshipProcessingResponses];
+
+export type RequestRelationshipProcessingData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-processing';
+};
+
+export type RequestRelationshipProcessingErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 작품 삭제 진행 중
+     */
+    409: CommonErrorResponse;
+};
+
+export type RequestRelationshipProcessingError = RequestRelationshipProcessingErrors[keyof RequestRelationshipProcessingErrors];
+
+export type RequestRelationshipProcessingResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipProcessingResponse;
+};
+
+export type RequestRelationshipProcessingResponse = RequestRelationshipProcessingResponses[keyof RequestRelationshipProcessingResponses];
+
+export type GetRelationshipCandidatesData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        /**
+         * 0부터 시작하는 페이지
+         */
+        page?: number;
+        /**
+         * 페이지당 항목 수, 최대 100
+         */
+        size?: number;
+        /**
+         * 후보 상태 필터. 생략하면 전체
+         */
+        status?: 'PENDING' | 'CONFIRMED' | 'DISMISSED';
+    };
+    url: '/api/v1/works/{workId}/relationship-candidates';
+};
+
+export type GetRelationshipCandidatesErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipCandidatesError = GetRelationshipCandidatesErrors[keyof GetRelationshipCandidatesErrors];
+
+export type GetRelationshipCandidatesResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponsePageResponseRelationshipCandidateResponse;
+};
+
+export type GetRelationshipCandidatesResponse = GetRelationshipCandidatesResponses[keyof GetRelationshipCandidatesResponses];
+
+export type CreateRelationshipCandidateData = {
+    body: RelationshipCandidateCreateRequest;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-candidates';
+};
+
+export type CreateRelationshipCandidateErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type CreateRelationshipCandidateError = CreateRelationshipCandidateErrors[keyof CreateRelationshipCandidateErrors];
+
+export type CreateRelationshipCandidateResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipCandidateResponse;
+};
+
+export type CreateRelationshipCandidateResponse = CreateRelationshipCandidateResponses[keyof CreateRelationshipCandidateResponses];
+
+export type DismissRelationshipCandidateData = {
+    body: RelationshipDecisionRequest;
+    path: {
+        workId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-candidates/{candidateId}/dismiss';
+};
+
+export type DismissRelationshipCandidateErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type DismissRelationshipCandidateError = DismissRelationshipCandidateErrors[keyof DismissRelationshipCandidateErrors];
+
+export type DismissRelationshipCandidateResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipCandidateResponse;
+};
+
+export type DismissRelationshipCandidateResponse = DismissRelationshipCandidateResponses[keyof DismissRelationshipCandidateResponses];
+
+export type ConfirmRelationshipCandidateData = {
+    body: RelationshipDecisionRequest;
+    path: {
+        workId: string;
+        candidateId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-candidates/{candidateId}/confirm';
+};
+
+export type ConfirmRelationshipCandidateErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type ConfirmRelationshipCandidateError = ConfirmRelationshipCandidateErrors[keyof ConfirmRelationshipCandidateErrors];
+
+export type ConfirmRelationshipCandidateResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseRelationshipCandidateResponse;
+};
+
+export type ConfirmRelationshipCandidateResponse = ConfirmRelationshipCandidateResponses[keyof ConfirmRelationshipCandidateResponses];
 
 export type GetPrivateWorldImagesData = {
     body?: never;
@@ -10210,6 +11365,7 @@ export type ClaimNextWorkerCharacterFactComparisonBatchData = {
     body?: never;
     headers: {
         'X-Worker-Lease-Token': string;
+        'X-Character-Comparison-Person-Batches'?: boolean;
     };
     path: {
         analysisJobId: string;
@@ -11566,6 +12722,138 @@ export type GetSettingBookRevisionResponses = {
 
 export type GetSettingBookRevisionResponse = GetSettingBookRevisionResponses[keyof GetSettingBookRevisionResponses];
 
+export type GetRelationshipsData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        /**
+         * 0부터 시작하는 페이지
+         */
+        page?: number;
+        /**
+         * 페이지당 항목 수, 최대 100
+         */
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/relationships';
+};
+
+export type GetRelationshipsErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipsError = GetRelationshipsErrors[keyof GetRelationshipsErrors];
+
+export type GetRelationshipsResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponsePageResponseRelationshipResponse;
+};
+
+export type GetRelationshipsResponse = GetRelationshipsResponses[keyof GetRelationshipsResponses];
+
+export type GetRelationshipEvidenceData = {
+    body?: never;
+    path: {
+        workId: string;
+        relationshipId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationships/{relationshipId}/evidence';
+};
+
+export type GetRelationshipEvidenceErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipEvidenceError = GetRelationshipEvidenceErrors[keyof GetRelationshipEvidenceErrors];
+
+export type GetRelationshipEvidenceResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseListRelationshipEvidenceResponse;
+};
+
+export type GetRelationshipEvidenceResponse = GetRelationshipEvidenceResponses[keyof GetRelationshipEvidenceResponses];
+
+export type GetRelationshipSourcesData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query: {
+        /**
+         * 현재 프로필을 읽을 캐릭터 ID
+         */
+        characterId: string;
+    };
+    url: '/api/v1/works/{workId}/relationship-sources';
+};
+
+export type GetRelationshipSourcesErrors = {
+    /**
+     * 입력 또는 근거 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 요청한 항목을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전 충돌, 근거 변경 또는 추가 검토 필요
+     */
+    409: CommonErrorResponse;
+};
+
+export type GetRelationshipSourcesError = GetRelationshipSourcesErrors[keyof GetRelationshipSourcesErrors];
+
+export type GetRelationshipSourcesResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseListRelationshipSourceResponse;
+};
+
+export type GetRelationshipSourcesResponse = GetRelationshipSourcesResponses[keyof GetRelationshipSourcesResponses];
+
 export type GetWorkPurgeRequestByWorkData = {
     body?: never;
     path: {
@@ -12578,6 +13866,31 @@ export type GetChatRunContextResponses = {
 };
 
 export type GetChatRunContextResponse = GetChatRunContextResponses[keyof GetChatRunContextResponses];
+
+export type GetOperationalAiReadinessData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/internal/v1/chat-runs/operations/readiness';
+};
+
+export type GetOperationalAiReadinessErrors = {
+    /**
+     * 내부 API key 인증 실패
+     */
+    401: CommonErrorResponse;
+};
+
+export type GetOperationalAiReadinessError = GetOperationalAiReadinessErrors[keyof GetOperationalAiReadinessErrors];
+
+export type GetOperationalAiReadinessResponses = {
+    /**
+     * 설정 확인 성공. 비활성 게이트는 false로 반환합니다.
+     */
+    200: CommonResponseChatOperationalReadinessV1;
+};
+
+export type GetOperationalAiReadinessResponse = GetOperationalAiReadinessResponses[keyof GetOperationalAiReadinessResponses];
 
 export type GetWorkerWorldSettingSubjectsData = {
     body?: never;

@@ -2380,6 +2380,17 @@ test('설정 검색 상태는 복원하고 세계관 설정 재진입은 분류 
   await page.getByRole('button', { name: '다음 페이지' }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
 
+  await page.getByRole('button', { name: '원고 목록', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('manuscripts');
+  await page.getByRole('button', { name: '작품 설정', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBeNull();
+  await page.getByRole('button', { name: '설정 검색', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '설정 검색' })).toHaveValue('검술');
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('검술');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+
   await page.getByRole('button', { name: '세계관 설정', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
   await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBeNull();

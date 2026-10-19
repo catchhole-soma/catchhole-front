@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { EpisodeReanalysisModal } from './EpisodeReanalysisModal';
+import { FamilyRelationshipWorkspace } from './relationship/FamilyRelationshipWorkspace';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { CharacterTimelineModal } from './character/CharacterTimeline';
@@ -32,6 +33,7 @@ import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { isDemoMode } from '../../lib/worksApi';
+import { RELATIONSHIP_WORKSPACE_ENABLED } from '../../lib/relationship-feature';
 import { FileDropArea } from './FileDropArea';
 import {
   createAnalysisJobMutation,
@@ -194,7 +196,9 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
   murim: { title: '무협지존', genre: '무협', episodeCount: 8 },
 };
 
-const NAV_IDS: NavId[] = ['settingDB', 'analyses', 'manuscripts'];
+const NAV_IDS: NavId[] = RELATIONSHIP_WORKSPACE_ENABLED
+  ? ['settingDB', 'analyses', 'manuscripts', 'graph']
+  : ['settingDB', 'analyses', 'manuscripts'];
 const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
 
 function formatEpisodeDate(value?: string): string {
@@ -232,13 +236,35 @@ export default function S1Dashboard() {
   const closeComingSoon = useCallback(() => setComingSoonFeature(null), []);
 
   const navParam = searchParams.get('nav');
-  const activeNav: NavId = (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
+  const legacyRelationshipTab = (navParam === null || navParam === 'settingDB') && searchParams.get('tab') === 'relations';
+  const relationshipRoute = navParam === 'graph' || legacyRelationshipTab;
+  const activeNav: NavId = RELATIONSHIP_WORKSPACE_ENABLED && legacyRelationshipTab ? 'graph'
+    : (NAV_IDS as string[]).includes(navParam ?? '') ? (navParam as NavId) : 'settingDB';
+
+  useEffect(() => {
+    if (!relationshipRoute || (RELATIONSHIP_WORKSPACE_ENABLED && !legacyRelationshipTab)) return;
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (RELATIONSHIP_WORKSPACE_ENABLED) {
+        // 미리보기에서는 기존 공유 링크의 후보·관계·근거 선택을 유지한다.
+        next.set('nav', 'graph');
+        next.delete('tab');
+      } else {
+        // 비공개 상태에서는 직접 주소로도 관계 화면과 API를 열지 않는다.
+        next.set('nav', 'settingDB');
+        next.set('tab', 'characters');
+        for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId']) next.delete(key);
+      }
+      return next;
+    }, { replace: true });
+  }, [legacyRelationshipTab, relationshipRoute, setSearchParams]);
+
   const setActiveNav = (id: NavId) => setSearchParams(prev => {
     const currentTabParam = prev.get('tab');
     const currentTab = (SETTING_TAB_IDS as string[]).includes(currentTabParam ?? '')
       ? currentTabParam as SettingTabId
       : 'characters';
-    const next = id === 'settingDB'
+    const next = id === 'settingDB' || id === 'graph'
       ? switchSettingTabQueryState(prev, currentTab, 'characters')
       : new URLSearchParams(prev);
 
@@ -248,6 +274,10 @@ export default function S1Dashboard() {
     next.delete('revisionId');
     // 별도 타임라인 탭 없이 캐릭터 상세에서 이력을 확인하므로 캐릭터 DB로 진입한다.
     if (id === 'settingDB') next.set('tab', 'characters');
+    else if (id === 'graph') next.delete('tab');
+    if (id !== 'graph') {
+      for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId']) next.delete(key);
+    }
     if (id !== 'settingDB') {
       next.delete('settingBookFileId');
       if (next.get('modal') === 'setting-book-upload') next.delete('modal');
@@ -741,7 +771,7 @@ export default function S1Dashboard() {
         : null;
   return (
     <CharacterSettingLabelProvider genre={apiWork?.genre ?? selectedWorkDisplay.genre}>
-    <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' ? ' database-v2' : ''}`} style={{
+    <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' || activeNav === 'graph' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' || activeNav === 'graph' ? ' database-v2' : ''}`} style={{
       background: C.bg, width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
@@ -823,7 +853,7 @@ export default function S1Dashboard() {
                     <option value="worldsettings">세계관 설정</option>
                     <option value="worldrules">설정집 목록</option>
                     <option value="search">설정 검색</option>
-                    <option value="relations">관계도 · 업데이트 예정</option>
+                    {!RELATIONSHIP_WORKSPACE_ENABLED && <option value="relations">관계도 · 업데이트 예정</option>}
                   </select>
                 </label>
                 <div className="dashboard-tabs setting-db-tabs" style={{ display: 'flex', gap: 0, padding: '0 40px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
@@ -833,7 +863,8 @@ export default function S1Dashboard() {
                     { id: 'worldrules', label: '설정집 목록', icon: <Globe size={13} /> },
                     { id: 'search', label: '설정 검색', icon: <Search size={13} /> },
                     { id: 'relations', label: '관계도', icon: <GitBranch size={13} />, upcoming: true },
-                  ] as { id: SettingTabId; label: string; icon: React.ReactNode; upcoming?: boolean }[]).map((tab) => (
+                  ] as { id: SettingTabId; label: string; icon: React.ReactNode; upcoming?: boolean }[])
+                    .filter(tab => tab.id !== 'relations' || !RELATIONSHIP_WORKSPACE_ENABLED).map((tab) => (
                     <button key={tab.id} onClick={() => {
                       if (tab.upcoming) setComingSoonFeature(tab.label);
                       else setSettingTab(tab.id);
@@ -943,6 +974,12 @@ export default function S1Dashboard() {
 
 
 
+
+            {RELATIONSHIP_WORKSPACE_ENABLED && activeNav === 'graph' && (
+              <motion.div key="graph" className="relationship-page" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
+                <FamilyRelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} />
+              </motion.div>
+            )}
 
             {activeNav === 'analyses' && (
               <motion.div key="analyses" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}

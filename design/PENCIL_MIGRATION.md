@@ -2,6 +2,13 @@
 
 `design/catchhole.pen`은 CatchHole Front의 실제 브라우저 화면을 기준으로 유지하는 디자인 기준 파일이다. 활성 화면은 `Active / ...` 루트 프레임으로 구분하고, 현재 Front에 연결되지 않은 Post-MVP 시안은 별도 Presentation 영역에 그대로 보존한다.
 
+
+### 2026-10-17 GH260 가족 관계 — Pencil 반영 대기
+
+작품 설정의 `가족 관계` 탭에 처리 상태·자동 반영 목록·확인 필요 후보·현재 설정/원문 근거·수정/확정/제외·철회를 추가했다. 작은 화면은 native 보기 select와 한 열 폼을 사용한다. 그림 가계도는 포함하지 않는다. 동기화 기준은 [가족 관계 계약](../docs/family-relationships.md)과 실제 브라우저 캡처다.
+
+`get_app_state({})`와 `read_skill({})`가 모두 `transport not connected to app: visual_studio_code`로 실패했다. `.pen`은 수정하지 않았으며 연결 복구 뒤 실제 화면과 Workflow를 동기화해야 한다.
+
 ## 기준과 범위
 
 현재 랜딩은 네 장면 제품 소개이며, 완료 화면은 GPT 생성 종이책 세계관 이미지와 실제 CTA를 사용한다. 아래 과거 8단계·중앙 제목 시안은 최신 활성 프레임을 대체하지 않는다. 최종 흐름은 `docs/screen-flow.md`의 「공개 인터랙티브 데모 흐름」과 문서 하단의 「최종 승인 방향」을 기준으로 한다.

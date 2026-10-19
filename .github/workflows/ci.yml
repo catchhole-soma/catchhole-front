@@ -23,6 +23,11 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Verify relationship workspace preview
+        run: npm run test:e2e -- e2e/family-relationships.spec.ts --workers=2
+        env:
+          VITE_RELATIONSHIP_WORKSPACE_ENABLED: 'true'
+          CATCHHOLE_E2E_PORT: '3107'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

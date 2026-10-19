@@ -5,6 +5,7 @@ import {
 import { NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
+import { RELATIONSHIP_WORKSPACE_ENABLED } from '../../lib/relationship-feature';
 
 /** 작품 정보가 아직 로드되지 않았을 때 사용하는 기본 표시값 */
 export const FALLBACK_WORK_INFO = { title: '내 작품', genre: '' };
@@ -77,8 +78,11 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
         onClick={() => { if (selectedWork) navigate(`/chat?workId=${encodeURIComponent(selectedWork)}`, 'dissolve'); onClose?.(); }} />
       <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" upcoming
         onClick={() => { onComingSoon?.('분석 리포트'); onClose?.(); }} />
-      <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
-        onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />
+      {RELATIONSHIP_WORKSPACE_ENABLED
+        ? <NavItem icon={<Network size={14} />} label="관계도" active={activeNav === 'graph'}
+          onClick={() => nav('graph')} />
+        : <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
+          onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />}
 
     </aside>
   );

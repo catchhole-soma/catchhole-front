@@ -1,0 +1,76 @@
+.theme-v2 .relationship-page { flex: 1; min-height: 0; overflow-y: auto; padding: 32px 40px; }
+.theme-v2 .relationship-workspace { color: var(--ch-text); max-width: 1120px; margin: 0 auto; }
+.theme-v2 .relationship-workspace h2 { color: var(--ch-ink); margin: 0 0 8px; font-size: 23px; }
+.theme-v2 .relationship-workspace h3 { color: var(--ch-ink); margin: 0 0 8px; font-size: 17px; }
+.theme-v2 .relationship-workspace h4 { color: var(--ch-ink); margin: 24px 0 12px; font-size: 15px; }
+.theme-v2 .relationship-workspace p { margin: 6px 0 12px; line-height: 1.65; font-size: 14px; overflow-wrap: anywhere; }
+.theme-v2 .relationship-header { display: flex; align-items: start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.theme-v2 .relationship-header > div { max-width: 680px; }
+.theme-v2 .relationship-header > button { flex-shrink: 0; }
+.theme-v2 .relationship-processing { background: var(--ch-surface-soft); border: 1px solid var(--ch-border); padding: 18px 20px; border-radius: 12px; }
+.theme-v2 .relationship-processing > p:last-child { margin-bottom: 0; }
+.theme-v2 .relationship-muted { color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .relationship-view-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--ch-border); margin: 24px 0 18px; }
+.theme-v2 .relationship-view-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--ch-text-muted); padding: 12px 18px; min-height: 44px; font: inherit; cursor: pointer; }
+.theme-v2 .relationship-view-tabs button[aria-pressed=true] { color: var(--ch-primary-ink); border-bottom-color: var(--ch-primary); font-weight: 700; }
+.theme-v2 .relationship-view-tabs button span { display: inline-block; background: var(--ch-surface-soft); color: var(--ch-primary-ink); padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 12px; }
+.theme-v2 .relationship-mobile-view { display: none; }
+.theme-v2 .relationship-list { display: grid; gap: 14px; margin: 16px 0 24px; }
+.theme-v2 .relationship-card, .theme-v2 .relationship-editor { background: var(--ch-surface); border: 1px solid var(--ch-border); border-radius: 12px; padding: 22px; min-width: 0; }
+.theme-v2 .relationship-card__heading, .theme-v2 .relationship-editor__heading { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.theme-v2 .relationship-card__heading h3 { margin: 0; overflow-wrap: anywhere; }
+.theme-v2 .relationship-card__heading h3 span { color: var(--ch-text-subtle); padding: 0 8px; }
+.theme-v2 .relationship-badge { color: var(--ch-primary-ink); background: var(--ch-surface-soft); border: 1px solid var(--ch-border); border-radius: 20px; padding: 4px 9px; font-size: 12px; flex-shrink: 0; }
+.theme-v2 .relationship-badge--review { color: var(--ch-warning-ink); background: var(--ch-surface); }
+.theme-v2 .relationship-empty { text-align: center; padding: 40px 16px; background: var(--ch-surface); border: 1px dashed var(--ch-border-strong); border-radius: 12px; }
+.theme-v2 .relationship-empty > svg { color: var(--ch-primary-ink); margin-bottom: 14px; }
+.theme-v2 .relationship-empty p { color: var(--ch-text-muted); }
+.theme-v2 .relationship-notice { background: var(--ch-surface-soft); border: 1px solid var(--ch-border); border-radius: 8px; padding: 12px 16px; margin: 14px 0; font-size: 14px; }
+.theme-v2 .relationship-notice > p:last-child { margin-bottom: 0; }
+.theme-v2 .relationship-notice--error { color: var(--ch-danger-ink); }
+.theme-v2 .relationship-detail { padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--ch-border); }
+.theme-v2 .relationship-evidence-list { display: grid; gap: 12px; margin-bottom: 16px; }
+.theme-v2 .relationship-evidence { padding: 16px; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-canvas); }
+.theme-v2 .relationship-evidence__heading { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.theme-v2 .relationship-evidence__heading > span { color: var(--ch-text-muted); }
+.theme-v2 .relationship-value { display: block; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; line-height: 1.65; font-size: 14px; }
+.theme-v2 .relationship-editor__heading { margin: -8px -8px 14px; }
+.theme-v2 .relationship-reasons { margin: 16px 0; padding: 12px 16px 12px 32px; background: var(--ch-surface-soft); border-radius: 8px; color: var(--ch-warning-ink); font-size: 14px; line-height: 1.7; }
+.theme-v2 .relationship-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.theme-v2 .relationship-form-grid > label, .theme-v2 .relationship-mobile-view { font-size: 13px; font-weight: 600; color: var(--ch-text); }
+.theme-v2 .relationship-form-grid input, .theme-v2 .relationship-workspace select { display: block; width: 100%; min-width: 0; margin-top: 8px; min-height: 44px; border: 1px solid var(--ch-border-strong); border-radius: 8px; padding: 10px 12px; font: inherit; color: var(--ch-text); background: var(--ch-surface); }
+.theme-v2 .relationship-workspace button:focus-visible, .theme-v2 .relationship-workspace input:focus-visible, .theme-v2 .relationship-workspace select:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 3px; }
+.theme-v2 .relationship-workspace input:disabled, .theme-v2 .relationship-workspace select:disabled { color: var(--ch-text-muted); background: var(--ch-canvas); }
+.theme-v2 .relationship-target-picker { border: 1px solid var(--ch-border); border-radius: 8px; padding: 16px; }
+.theme-v2 .relationship-target-picker__summary { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 14px; }
+.theme-v2 .relationship-target-picker__directory { border-top: 1px solid var(--ch-border); padding-top: 14px; margin-top: 14px; }
+.theme-v2 .relationship-character-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.theme-v2 .relationship-character-choices button { min-width: 0; overflow-wrap: anywhere; min-height: 58px; text-align: left; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-surface); color: var(--ch-text); font: inherit; padding: 10px 12px; cursor: pointer; }
+.theme-v2 .relationship-character-choices button[aria-pressed=true] { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
+.theme-v2 .relationship-character-choices button > span { display: block; color: var(--ch-text-muted); font-size: 12px; margin-top: 4px; }
+.theme-v2 .relationship-source-picker { border: 1px solid var(--ch-border); border-radius: 8px; padding: 16px; margin: 18px 0; min-width: 0; }
+.theme-v2 .relationship-source-picker legend { font-weight: 600; padding: 0 6px; font-size: 14px; }
+.theme-v2 .relationship-source-choice { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ch-border); cursor: pointer; font-size: 13px; }
+.theme-v2 .relationship-source-choice input { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: var(--ch-primary); }
+.theme-v2 .relationship-source-choice > div { min-width: 0; }
+.theme-v2 .relationship-obsolete-source { display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding-top: 12px; font-size: 13px; color: var(--ch-warning-ink); }
+.theme-v2 .relationship-editor__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.theme-v2 .relationship-workspace nav[aria-label="목록 페이지 이동"] button { color: var(--ch-text) !important; border-color: var(--ch-border-strong) !important; min-height: 44px; }
+.theme-v2 .relationship-workspace nav[aria-label="목록 페이지 이동"] span { color: var(--ch-text-muted) !important; }
+@media (max-width: 720px) {
+  .theme-v2 .relationship-page { padding: 20px 16px; }
+  .theme-v2 .relationship-header { display: block; }
+  .theme-v2 .relationship-header > button { width: 100%; }
+  .theme-v2 .relationship-card, .theme-v2 .relationship-editor { padding: 16px; }
+  .theme-v2 .relationship-view-tabs { display: none; }
+  .theme-v2 .relationship-mobile-view { display: block; margin: 20px 0; }
+  .theme-v2 .relationship-form-grid, .theme-v2 .relationship-character-choices { grid-template-columns: 1fr; }
+  .theme-v2 .relationship-workspace .ch-action { min-height: 44px; }
+  .theme-v2 .relationship-editor__actions > button { flex: 1 1 100%; }
+  .theme-v2 .relationship-processing { padding: 16px; }
+  .theme-v2 .relationship-card__heading { align-items: start; }
+}
+
+.theme-v2 .relationship-setting-attributes { font-size: 13px; color: var(--ch-text-muted); margin: 8px 0; }
+.theme-v2 .relationship-setting-attributes summary { min-height: 44px; display: list-item; padding: 12px 0; cursor: pointer; }
+.theme-v2 .relationship-setting-attributes pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ch-text); font-size: 12px; }
