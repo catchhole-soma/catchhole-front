@@ -443,7 +443,7 @@ function ReviewHeader({ onBack }: { onBack: () => void }) {
       </button>
       <div className="review-header__title">
         <small>AI ANALYSIS</small>
-        <strong>캐릭터 후보 확정</strong>
+        <strong>설정 후보 검토</strong>
       </div>
       <div className="review-header__spacer" />
       <UserMenu />
