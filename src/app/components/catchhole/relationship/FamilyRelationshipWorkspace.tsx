@@ -90,22 +90,22 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
   }
 
   if (!enabled) return <section className="relationship-workspace relationship-empty"><GitBranch aria-hidden="true" />
-    <h2>가족 관계</h2><p>작품에 저장된 캐릭터 설정으로 가족 관계를 정리할 수 있어요.</p></section>;
-  return <section className="relationship-workspace" aria-label="가족 관계">
-    <header className="relationship-header"><div><h2>가족 관계</h2>
-      <p>현재 캐릭터 설정에서 명확한 가족 관계를 반영하고, 확인이 필요한 내용만 따로 모아요.</p></div>
-      <ActionButton variant="secondary" icon={<RefreshCw size={16} aria-hidden="true" />} disabled={requesting || state?.state === 'PENDING'}
-        onClick={() => void requestProcessing()}>{requesting ? '요청 중…' : state?.state === 'FAILED' ? '관계 정리 다시 시도' : '현재 설정에서 관계 찾기'}</ActionButton>
+    <h2>관계도</h2><p>작품에 저장된 캐릭터 설정으로 가족 관계를 정리할 수 있어요.</p></section>;
+  return <section className="relationship-workspace" aria-label="관계도">
+    <header className="relationship-header"><div><h2>관계도</h2>
+      <p>현재는 부모·자녀, 배우자, 형제자매 관계를 확인할 수 있어요. 명확한 관계는 자동으로 반영하고, 확인이 필요한 내용은 따로 모아요.</p></div>
     </header>
     {processing.isPending && <p role="status">가족 관계 처리 상태를 불러오고 있어요.</p>}
     {processing.isError && <RelationshipQueryError title="가족 관계 처리 상태를 불러오지 못했어요." onRetry={() => void processing.refetch()} pending={processing.isFetching} />}
     {state && <div className={`relationship-processing${state.state === 'FAILED' ? ' relationship-notice--error' : ''}`} role="status">
       <strong>{state.state === 'PENDING' ? '가족 관계를 정리하고 있어요.' : state.state === 'FAILED' ? '가족 관계 정리를 마치지 못했어요.'
-        : state.state === 'NEVER_PROCESSED' ? '현재 설정에서 가족 관계를 찾아보세요.' : '현재 설정의 가족 관계를 정리했어요.'}</strong>
+        : state.state === 'NEVER_PROCESSED' ? '아직 가족 관계를 정리하지 않았어요.' : '현재 설정의 가족 관계를 정리했어요.'}</strong>
       <p>{state.state === 'PENDING' ? '명확한 관계는 자동으로 반영돼요. 확인이 필요한 내용은 아래에서 검토할 수 있어요.'
         : state.state === 'FAILED' ? (state.retryAt ? '자동으로 다시 시도할 예정이에요. 직접 다시 요청할 수도 있어요.' : '현재 설정은 유지되어 있어요. 다시 시도해 주세요.')
-          : state.state === 'NEVER_PROCESSED' ? '이미 저장된 프로필을 사용해요. 새 AI 분석을 요청하거나 사용량을 차감하지 않아요.'
+          : state.state === 'NEVER_PROCESSED' ? '캐릭터 설정이 새로 반영되거나 변경되면 가족 관계를 자동으로 정리해요.'
             : `최근 정리에서 ${state.autoConfirmedCount ?? 0}개를 새로 반영하고, ${state.reviewRequiredCount ?? 0}개를 확인이 필요한 후보로 찾았어요.`}</p>
+      {state.state === 'FAILED' && <ActionButton variant="secondary" icon={<RefreshCw size={16} aria-hidden="true" />} disabled={requesting}
+        onClick={() => void requestProcessing()}>{requesting ? '요청 중…' : '관계 정리 다시 시도'}</ActionButton>}
       {(state.unsupportedSourceCount ?? 0) > 0 && <p className="relationship-muted">가족을 언급하지만 관계를 명확히 읽을 수 없는 설정 {state.unsupportedSourceCount}개는 반영하지 않았어요. 필요한 내용은 캐릭터 설정에서 확인해 주세요.</p>}
     </div>}
     {requestError && <p className="relationship-notice relationship-notice--error" role="alert">{requestError}</p>}
@@ -122,7 +122,7 @@ export function FamilyRelationshipWorkspace({ workId, enabled }: { workId: strin
       {relations.isPending && <p role="status">가족 관계를 불러오고 있어요.</p>}
       {relations.isError && <RelationshipQueryError title="가족 관계 목록을 불러오지 못했어요." onRetry={() => void relations.refetch()} pending={relations.isFetching} />}
       {relations.isSuccess && (relations.data.data?.content?.length ?? 0) === 0 && <div className="relationship-empty">
-        <GitBranch size={28} aria-hidden="true" /><h3>아직 반영된 가족 관계가 없어요.</h3><p>현재 설정에서 관계를 찾거나 확인이 필요한 후보를 검토해 주세요.</p></div>}
+        <GitBranch size={28} aria-hidden="true" /><h3>아직 반영된 가족 관계가 없어요.</h3><p>캐릭터 설정에 명시된 가족 관계가 자동으로 반영돼요. 확인이 필요한 후보가 있다면 검토해 주세요.</p></div>}
       <div className="relationship-list">{(relations.data?.data?.content ?? []).map(item => <article className="relationship-card" key={item.id}>
         <RelationSummary relation={item} />
         <ActionButton variant="secondary" size="compact" aria-expanded={relationshipId === item.id}

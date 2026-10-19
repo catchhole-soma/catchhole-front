@@ -1,3 +1,4 @@
+.theme-v2 .relationship-page { flex: 1; min-height: 0; overflow-y: auto; padding: 32px 40px; }
 .theme-v2 .relationship-workspace { color: var(--ch-text); max-width: 1120px; margin: 0 auto; }
 .theme-v2 .relationship-workspace h2 { color: var(--ch-ink); margin: 0 0 8px; font-size: 23px; }
 .theme-v2 .relationship-workspace h3 { color: var(--ch-ink); margin: 0 0 8px; font-size: 17px; }
@@ -57,6 +58,7 @@
 .theme-v2 .relationship-workspace nav[aria-label="목록 페이지 이동"] button { color: var(--ch-text) !important; border-color: var(--ch-border-strong) !important; min-height: 44px; }
 .theme-v2 .relationship-workspace nav[aria-label="목록 페이지 이동"] span { color: var(--ch-text-muted) !important; }
 @media (max-width: 720px) {
+  .theme-v2 .relationship-page { padding: 20px 16px; }
   .theme-v2 .relationship-header { display: block; }
   .theme-v2 .relationship-header > button { width: 100%; }
   .theme-v2 .relationship-card, .theme-v2 .relationship-editor { padding: 16px; }

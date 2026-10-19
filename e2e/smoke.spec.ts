@@ -2,6 +2,7 @@ import { installEpisodeSourceList } from './episode-source-list';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
+const relationshipWorkspaceEnabled = process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'true';
 
 async function installMetaPixelMock(page: Page) {
   await page.addInitScript(() => {
@@ -120,7 +121,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^캐릭터 타임라인/ })).toHaveCount(0);
 
-  const sidebarLabels = ['원고 목록', '작품 설정', '분석 목록', '분석 리포트', '그래프 뷰', '챗봇'];
+  const sidebarLabels = ['원고 목록', '작품 설정', '분석 목록', '분석 리포트', relationshipWorkspaceEnabled ? '관계도' : '그래프 뷰', '챗봇'];
   for (const label of sidebarLabels) {
     await expect(page.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
   }
@@ -133,9 +134,15 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: '가족 관계', exact: true }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('relations');
-  await expect(page.getByRole('heading', { name: '가족 관계', exact: true })).toBeVisible();
+  if (relationshipWorkspaceEnabled) {
+    await page.getByRole('button', { name: '관계도', exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('graph');
+    await expect(page.getByRole('heading', { name: '관계도', exact: true })).toBeVisible();
+  } else {
+    await page.getByRole('button', { name: /^관계도/ }).click();
+    await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
+  }
 
   await page.getByRole('button', { name: /^원고 목록/ }).click();
   await page.getByRole('button', { name: /^작품 설정/ }).click();

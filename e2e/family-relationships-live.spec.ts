@@ -4,6 +4,8 @@ import { expect } from '@playwright/test';
 import { test } from './local-live-fixture';
 import type { RelationshipCandidateResponse, RelationshipProcessingResponse, RelationshipResponse } from '../src/app/api/generated/types.gen';
 
+test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED !== 'true', '관계도 미리보기 전용 live 테스트입니다. VITE_RELATIONSHIP_WORKSPACE_ENABLED=true가 필요합니다.');
+
 const execute = promisify(execFile);
 
 test('실제 현재 설정 저장 → 자동 관계·검토 후보 → 수정·확정·근거 변경·제외·철회', async ({ page, request, liveAccount }, testInfo) => {
@@ -40,7 +42,9 @@ test('실제 현재 설정 저장 → 자동 관계·검토 후보 → 수정·�
   expect(pending.totalElements).toBe(1);
   expect(pending.content[0]).toMatchObject({ objectMention: '미등록인물', status: 'PENDING', origin: 'CURRENT_SETTING_RULE' });
   await page.addInitScript(accessToken => { localStorage.setItem('accessToken', accessToken); localStorage.removeItem('catchhole_demo_mode'); }, token);
-  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=relations`);
+  await page.goto(`/dashboard?workId=${workId}&nav=graph`);
+  await expect(page.getByRole('button', { name: '관계도', exact: true })).toHaveClass(/is-active/);
+  await expect(page.getByRole('button', { name: '현재 설정에서 관계 찾기', exact: true })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /서준.*민지|민지.*서준/ })).toBeVisible();
   await page.getByRole('button', { name: '관계 근거 보기' }).click();
   await expect(page.getByText('배우자: 민지', { exact: true })).toBeVisible();
@@ -65,7 +69,9 @@ test('실제 현재 설정 저장 → 자동 관계·검토 후보 → 수정·�
   await page.getByRole('button', { name: '민지 · 다른미등록인물 관계 확인' }).click();
   await page.getByRole('button', { name: '후보 제외' }).click();
   await expect(page.getByText('확인이 필요한 가족 관계가 없어요.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '현재 설정에서 관계 찾기' }).click();
+  // 일반 상태의 재처리 버튼은 노출하지 않는다. 제외 보존 검증을 위한 서버 재실행만 요청한다.
+  const reprocess = await request.post(`${prefix}/relationship-processing`, { headers });
+  expect(reprocess.ok()).toBeTruthy();
   await expect.poll(async () => (await read<RelationshipProcessingResponse>('/relationship-processing')).state, { timeout: 20000 }).toBe('SUCCEEDED');
   expect((await read<{totalElements: number}>('/relationship-candidates?status=PENDING')).totalElements).toBe(0);
   await expect(page.getByText('현재 설정의 가족 관계를 정리했어요.', { exact: true })).toBeVisible();

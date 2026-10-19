@@ -226,5 +226,9 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 ## GH260 가족 관계 검토
 
-- `tab=relations`는 현재 프로필 기반 가족 관계 목록과 별도의 확인 필요 후보를 제공한다. [가족 관계 계약](docs/family-relationships.md)을 따른다. 기존 설정 추출/검토 집계에 합치거나 프론트에서 이름으로 자동 연결하지 않는다.
-- 수정은 고정 `expectedVersion`/근거 토큰으로 저장하고 실패 시 초안을 유지한다. 현재 설정 재조회만으로 선택 토큰을 바꾸지 않으며 명시적 근거 선택 후에만 교체한다. 그림 가계도는 GH261 범위다.
+- 관계 화면은 `VITE_RELATIONSHIP_WORKSPACE_ENABLED`의 문자열 값이 정확히 `true`인 빌드에서만 켠다. 기본값과 그 외 값은 OFF다. OFF에서는 기존 main 화면처럼 사이드바의 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지하며 신규 가족 관계 탭·화면을 노출하지 않는다. `nav=graph` 및 이전 `nav=settingDB&tab=relations`/nav 없는 `tab=relations` 직접 주소는 캐릭터 설정으로 replace하고 관계 선택 파라미터를 정리하며 관계 API를 호출하지 않는다.
+- ON에서만 사이드바 `관계도`가 `/dashboard?workId=<id>&nav=graph`의 현재 프로필 기반 가족 관계 목록과 별도의 확인 필요 후보를 제공한다. 작품 설정 하위 탭에는 가족 관계를 중복 노출하지 않는다. [가족 관계 계약](docs/family-relationships.md)을 따른다. 기존 설정 추출/검토 집계에 합치거나 프론트에서 이름으로 자동 연결하지 않는다.
+- ON일 때 이전 `nav=settingDB&tab=relations` 또는 nav가 없는 `tab=relations` 링크는 `nav=graph`로 방문 기록을 replace하고 `tab`만 제거한다. 작품·보기·페이지·후보·관계·원문 선택은 보존한다. `relationView`, `relationPage`, `relationshipCandidate`, `relationshipId`, `relationshipFactId`는 새 진입점에서도 유지하며 다른 메뉴로 나갈 때 정리한다.
+- `현재 설정에서 관계 찾기` 상시 버튼은 ON에서도 제공하지 않는다. 처리 상태가 `FAILED`일 때 안내 안의 `관계 정리 다시 시도`만 제공한다. UI 플래그는 Backend 자동 후처리·API·DB를 끄거나 권한 검증을 대신하지 않으며, 배포 시 기존 작품 전체를 정리하는 자동 백필은 아직 없다.
+- 수정은 고정 `expectedVersion`/근거 토큰으로 저장하고 실패 시 초안을 유지한다. 현재 설정 재조회만으로 선택 토큰을 바꾸지 않으며 명시적 근거 선택 후에만 교체한다. 이번 메뉴 통합은 기존 API·목록·검토 동작을 유지하며, 부모·자녀를 배치하는 그림 가계도는 GH261 범위다.
+- 기본 E2E는 OFF 전용 `e2e/relationship-feature-off.spec.ts`를 실행한다. 가족 관계 목/live E2E는 `VITE_RELATIONSHIP_WORKSPACE_ENABLED=true`를 명시한 별도 실행으로 확인한다. 과거 날짜별 검증 기록은 당시 상태이며 현재 노출 정책보다 우선하지 않는다.

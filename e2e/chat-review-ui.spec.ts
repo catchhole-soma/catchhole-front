@@ -103,7 +103,7 @@ for (const width of [320, 390]) {
     )).toBe(true);
 
     await page.keyboard.press('Shift+Tab');
-    await expect(dialog.getByRole('button', { name: /그래프 뷰/ })).toBeFocused();
+    await expect(dialog.getByRole('button', { name: process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'true' ? /^관계도$/ : /^그래프 뷰/ })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(close).toBeFocused();
     await expect.poll(() => dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
