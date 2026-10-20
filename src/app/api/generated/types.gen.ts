@@ -9860,9 +9860,22 @@ export type GetRelationshipMentionGroupsData = {
     url: '/api/v1/works/{workId}/relationship-mention-groups';
 };
 
+export type GetRelationshipMentionGroupsErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 소유한 작품을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetRelationshipMentionGroupsError = GetRelationshipMentionGroupsErrors[keyof GetRelationshipMentionGroupsErrors];
+
 export type GetRelationshipMentionGroupsResponses = {
     /**
-     * OK
+     * 활성 묶음 목록 조회 성공
      */
     200: CommonResponseListRelationshipMentionGroupResponse;
 };
@@ -9878,9 +9891,30 @@ export type CreateRelationshipMentionGroupData = {
     url: '/api/v1/works/{workId}/relationship-mention-groups';
 };
 
+export type CreateRelationshipMentionGroupErrors = {
+    /**
+     * 선택 수·이름·중복 후보 등 입력 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 소유한 작품 또는 같은 작품의 후보를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 버전·멱등 요청·현재 출처·기존 묶음·순환·세대 차이 충돌
+     */
+    409: CommonErrorResponse;
+};
+
+export type CreateRelationshipMentionGroupError = CreateRelationshipMentionGroupErrors[keyof CreateRelationshipMentionGroupErrors];
+
 export type CreateRelationshipMentionGroupResponses = {
     /**
-     * OK
+     * 묶음 생성 또는 동일 요청 재전송 성공
      */
     200: CommonResponseRelationshipMentionGroupResponse;
 };
@@ -9897,9 +9931,30 @@ export type UngroupRelationshipMentionsData = {
     url: '/api/v1/works/{workId}/relationship-mention-groups/{groupId}/ungroup';
 };
 
+export type UngroupRelationshipMentionsErrors = {
+    /**
+     * 필수 버전 등 입력 오류
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 소유한 작품 또는 같은 작품의 묶음을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 그룹 버전 또는 현재 상태 충돌
+     */
+    409: CommonErrorResponse;
+};
+
+export type UngroupRelationshipMentionsError = UngroupRelationshipMentionsErrors[keyof UngroupRelationshipMentionsErrors];
+
 export type UngroupRelationshipMentionsResponses = {
     /**
-     * OK
+     * 전체 해제 또는 동일 해제 요청 재전송 성공
      */
     200: CommonResponseRelationshipMentionGroupResponse;
 };
@@ -13249,9 +13304,22 @@ export type GetRelationshipMentionGroupData = {
     url: '/api/v1/works/{workId}/relationship-mention-groups/{groupId}';
 };
 
+export type GetRelationshipMentionGroupErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 소유한 작품 또는 같은 작품의 묶음을 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type GetRelationshipMentionGroupError = GetRelationshipMentionGroupErrors[keyof GetRelationshipMentionGroupErrors];
+
 export type GetRelationshipMentionGroupResponses = {
     /**
-     * OK
+     * 묶음 상세 조회 성공
      */
     200: CommonResponseRelationshipMentionGroupResponse;
 };
