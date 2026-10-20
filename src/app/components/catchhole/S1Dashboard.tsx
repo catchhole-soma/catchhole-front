@@ -253,7 +253,7 @@ export default function S1Dashboard() {
         // 비공개 상태에서는 직접 주소로도 관계 화면과 API를 열지 않는다.
         next.set('nav', 'settingDB');
         next.set('tab', 'characters');
-        for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId']) next.delete(key);
+        for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory']) next.delete(key);
       }
       return next;
     }, { replace: true });
@@ -276,7 +276,7 @@ export default function S1Dashboard() {
     if (id === 'settingDB') next.set('tab', 'characters');
     else if (id === 'graph') next.delete('tab');
     if (id !== 'graph') {
-      for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId']) next.delete(key);
+      for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory']) next.delete(key);
     }
     if (id !== 'settingDB') {
       next.delete('settingBookFileId');
@@ -769,6 +769,50 @@ export default function S1Dashboard() {
             color: C.warning,
           }
         : null;
+  const characterWorkspace = <>
+    <CharacterDatabase
+      detailOnly={activeNav === 'graph'}
+      workId={effectiveWorkId}
+      selectedCharacterId={selectedCharDetail}
+      selectedEvidenceFactId={selectedCharacterFactId}
+      isEditing={selectedCharEditing}
+      imagePickerOpen={selectedCharDetail !== null && searchParams.get('mode') === 'image'}
+      onImageOpen={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('mode', 'image'); next.delete('factId'); return next; })}
+      onImageClose={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('mode'); return next; }, { replace: true })}
+      demoMode={demoMode}
+      archiveOpen={characterArchiveOpen}
+      demoCharacters={demoCharacters}
+      demoArchivedCharacters={demoArchivedCharacters}
+      setDemoCharacters={setDemoCharacters}
+      setDemoArchivedCharacters={setDemoArchivedCharacters}
+      onOpen={openCharDetail}
+      onClose={() => setSelectedCharDetail(null)}
+      onEvidenceOpen={openCharacterEvidence}
+      onEvidenceClose={closeCharacterEvidence}
+      timelineOpen={characterTimelineOpen}
+      timelineEvidenceOpen={Boolean(selectedTimelineFactId)}
+      appliedTimelineSelection={visibleTimelineSelection}
+      onTimelineOpen={openCharacterTimeline}
+      onTimelineClose={closeCharacterTimeline}
+      onTimelineSelectionChange={changeCharacterTimelineSelection}
+      onArchiveOpen={() => setCharacterArchiveOpen(true)}
+      onArchiveClose={() => setCharacterArchiveOpen(false)}
+      onEditChange={setSelectedCharEditing}
+      onEditComplete={completeCharacterEditing}
+      onAnalyze={() => navigate(
+        `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
+        'push-right',
+      )}
+    />
+    {selectedCharDetail && characterTimelineOpen && (
+      <CharacterTimelineModal
+        workId={effectiveWorkId}
+        characterId={selectedCharDetail}
+        demoMode={demoMode}
+        onClose={closeCharacterTimeline}
+      />
+    )}
+  </>;
   return (
     <CharacterSettingLabelProvider genre={apiWork?.genre ?? selectedWorkDisplay.genre}>
     <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' || activeNav === 'graph' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' || activeNav === 'graph' ? ' database-v2' : ''}`} style={{
@@ -891,47 +935,7 @@ export default function S1Dashboard() {
                   <>
                     {settingTab === 'characters' && (
                       <motion.div key="chars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative' }}>
-                        <CharacterDatabase
-                          workId={effectiveWorkId}
-                          selectedCharacterId={selectedCharDetail}
-                          selectedEvidenceFactId={selectedCharacterFactId}
-                          isEditing={selectedCharEditing}
-                          imagePickerOpen={selectedCharDetail !== null && searchParams.get('mode') === 'image'}
-                          onImageOpen={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('mode', 'image'); next.delete('factId'); return next; })}
-                          onImageClose={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('mode'); return next; }, { replace: true })}
-                          demoMode={demoMode}
-                          archiveOpen={characterArchiveOpen}
-                          demoCharacters={demoCharacters}
-                          demoArchivedCharacters={demoArchivedCharacters}
-                          setDemoCharacters={setDemoCharacters}
-                          setDemoArchivedCharacters={setDemoArchivedCharacters}
-                          onOpen={openCharDetail}
-                          onClose={() => setSelectedCharDetail(null)}
-                          onEvidenceOpen={openCharacterEvidence}
-                          onEvidenceClose={closeCharacterEvidence}
-                          timelineOpen={characterTimelineOpen}
-                          timelineEvidenceOpen={Boolean(selectedTimelineFactId)}
-                          appliedTimelineSelection={visibleTimelineSelection}
-                          onTimelineOpen={openCharacterTimeline}
-                          onTimelineClose={closeCharacterTimeline}
-                          onTimelineSelectionChange={changeCharacterTimelineSelection}
-                          onArchiveOpen={() => setCharacterArchiveOpen(true)}
-                          onArchiveClose={() => setCharacterArchiveOpen(false)}
-                          onEditChange={setSelectedCharEditing}
-                          onEditComplete={completeCharacterEditing}
-                          onAnalyze={() => navigate(
-                            `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
-                            'push-right',
-                          )}
-                        />
-                        {selectedCharDetail && characterTimelineOpen && (
-                          <CharacterTimelineModal
-                            workId={effectiveWorkId}
-                            characterId={selectedCharDetail}
-                            demoMode={demoMode}
-                            onClose={closeCharacterTimeline}
-                          />
-                        )}
+                        {characterWorkspace}
                       </motion.div>
                     )}
 
@@ -977,7 +981,8 @@ export default function S1Dashboard() {
 
             {RELATIONSHIP_WORKSPACE_ENABLED && activeNav === 'graph' && (
               <motion.div key="graph" className="relationship-page" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
-                <FamilyRelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} />
+                <FamilyRelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} onOpenCharacter={id => openCharDetail(id, false)} />
+                {selectedCharDetail && characterWorkspace}
               </motion.div>
             )}
 

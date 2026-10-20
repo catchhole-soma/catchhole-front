@@ -1,0 +1,43 @@
+.theme-v2 .family-relation-list { list-style: none; margin: 16px 0 24px; padding: 0; border: 1px solid var(--ch-border-strong); border-radius: 14px; background: var(--ch-surface); }
+.theme-v2 .family-relation-list > li + li { border-top: 1px solid var(--ch-border); }
+.theme-v2 .family-relation-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; width: 100%; min-width: 0; padding: 18px 24px; border: 0; background: transparent; color: var(--ch-text); text-align: left; font: inherit; cursor: pointer; }
+.theme-v2 .family-relation-list > li:first-child .family-relation-row { border-radius: 13px 13px 0 0; }
+.theme-v2 .family-relation-list > li:last-child .family-relation-row[aria-expanded="false"] { border-radius: 0 0 13px 13px; }
+.theme-v2 .family-relation-list > li:only-child .family-relation-row[aria-expanded="false"] { border-radius: 13px; }
+.theme-v2 .family-relation-row:hover, .theme-v2 .family-relation-row[aria-expanded="true"] { background: var(--ch-surface-soft); }
+.theme-v2 .family-relation-row:focus-visible { position: relative; z-index: 1; }
+.theme-v2 .family-relation-summary { display: grid; gap: 12px; min-width: 0; line-height: 1.55; overflow-wrap: anywhere; word-break: keep-all; }
+.theme-v2 .family-relation-summary .family-relation-summary__name { margin: 0; color: var(--ch-ink); font-size: 18px; font-weight: 700; }
+.theme-v2 .family-relation-summary__status { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--ch-border); border-radius: 6px; padding: 2px 7px; background: var(--ch-surface); color: var(--ch-warning-ink); font-size: 12px; }
+.theme-v2 .family-relation-summary__status > svg { flex-shrink: 0; }
+.theme-v2 .family-relation-summary__status[data-validity="VALID"] { color: var(--ch-success-ink); }
+.theme-v2 .family-relation-summary__status[data-validity="WITHDRAWN"] { color: var(--ch-text-muted); }
+.theme-v2 .family-relation-summary__qualifiers { display: flex; flex-wrap: wrap; gap: 4px 8px; color: var(--ch-text-muted); font-size: 12px; }
+.theme-v2 .family-relation-summary__qualifiers > span { padding: 1px 6px; border-radius: 4px; background: var(--ch-canvas); }
+.theme-v2 .family-relation-row__action { display: inline-flex; align-items: center; gap: 12px; color: var(--ch-primary-ink); font-size: 14px; font-weight: 600; }
+.theme-v2 .family-relation-row__action > svg { flex-shrink: 0; }
+.theme-v2 .family-relation-row[aria-expanded="true"] .family-relation-row__action > svg { transform: rotate(180deg); }
+.theme-v2 .family-relation-row__evidence { padding: 0 24px 20px; }
+.theme-v2 .family-relation-row__evidence > .relationship-detail { margin-top: 0; border-top: 0; }
+.theme-v2 .family-relation-off-page { margin-block: 20px; }
+.theme-v2 .family-connection-delete { color: var(--ch-danger-ink); }
+.theme-v2 .family-relation-summary__pair { display: grid; grid-template-columns: minmax(0, max-content) max-content minmax(0, max-content); align-items: center; justify-self: start; gap: 12px; width: fit-content; max-width: min(100%, 640px); margin: 0; font: inherit; }
+.theme-v2 .family-relation-summary__person { display: grid; gap: 3px; min-width: 0; grid-row: 1; }
+.theme-v2 .family-relation-summary__person:nth-child(1) { grid-column: 1; }
+.theme-v2 .family-relation-summary__person:nth-child(2) { grid-column: 3; }
+.theme-v2 .family-relation-summary__role { color: var(--ch-text-muted); font-size: 12px; font-weight: 500; }
+.theme-v2 .family-relation-summary__connector { display: flex; align-items: center; justify-content: center; align-self: stretch; grid-column: 2; grid-row: 1; color: var(--ch-text-muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.theme-v2 .family-relation-summary__connector > span { display: flex; align-items: center; gap: 5px; }
+.theme-v2 .family-relation-summary__connector > span::before, .theme-v2 .family-relation-summary__connector > span::after { content: ''; width: 8px; height: 1px; background: var(--ch-border-strong); }
+.theme-v2 .family-relation-summary__metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.theme-v2 .family-relation-summary__record { color: var(--ch-text-muted); font-size: 12px; }
+@media (max-width: 720px) {
+  .theme-v2 .family-relation-row { grid-template-columns: minmax(0, 1fr); gap: 8px 12px; padding: 16px; }
+  .theme-v2 .family-relation-row__action { grid-column: 1; justify-self: end; font-size: 13px; }
+  .theme-v2 .family-relation-row__evidence { padding: 0 16px 16px; }
+}
+@media (max-width: 420px) {
+  .theme-v2 .family-relation-summary__pair { gap: 8px; }
+  .theme-v2 .family-relation-summary .family-relation-summary__name { font-size: 16px; }
+  .theme-v2 .family-relation-summary__connector > span::before, .theme-v2 .family-relation-summary__connector > span::after { display: none; }
+}

@@ -1,0 +1,29 @@
+.theme-v2 .family-mention-detail { padding-top: 24px; }
+.theme-v2 .family-mention-detail .review-cb-heading { align-items: center; margin-bottom: 18px; }
+.theme-v2 .family-mention-detail .review-cb-heading__image { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--ch-primary-ink); background: var(--ch-surface-soft); }
+.theme-v2 .family-mention-detail .review-cb-heading__image > svg { width: 23px; height: 23px; }
+.theme-v2 .family-mention-detail .review-cb-heading__title h3 { margin: 0; font-size: 23px; line-height: 1.4; }
+.theme-v2 .family-mention-detail .review-cb-heading__subtitle { font-size: 12px; }
+.theme-v2 .family-mention-detail .family-mention-detail__relation { margin: 0; color: var(--ch-ink); font-size: 18px; font-weight: 650; line-height: 1.6; }
+.theme-v2 .family-mention-detail .family-mention-detail__metadata { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 7px 0 22px; color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .family-mention-detail__sources { display: grid; gap: 12px; }
+.theme-v2 .family-mention-detail__source { min-width: 0; padding: 17px 20px; border-left: 3px solid var(--ch-primary); border-radius: 0 10px 10px 0; background: var(--ch-canvas); }
+.theme-v2 .family-mention-detail__source-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.theme-v2 .family-mention-detail__source-heading > span:last-child { font-size: 11px; }
+.theme-v2 .family-mention-detail__source .relationship-value { margin: 10px 0 0; color: var(--ch-ink); font-size: 18px; line-height: 1.7; font-weight: 600; }
+.theme-v2 .family-mention-detail .review-cb-evidence { margin: 16px 0 0; padding-top: 0; border-top: 0; }
+.theme-v2 .family-mention-detail .review-cb-evidence > summary { font-size: 13px; }
+.theme-v2 .family-mention-detail__evidence-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-v2 .family-mention-detail__connection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--ch-border); }
+.theme-v2 .family-mention-detail__connection > div { flex: 1 1 250px; min-width: 0; }
+.theme-v2 .family-mention-detail__connection strong { color: var(--ch-ink); font-size: 15px; line-height: 1.6; }
+.theme-v2 .family-mention-detail__connection p { margin: 6px 0 0; color: var(--ch-text-muted); font-size: 13px; line-height: 1.7; }
+.theme-v2 .family-mention-detail__connection > button { flex-shrink: 0; min-height: 44px; }
+@media (max-width: 650px) {
+  .theme-v2 .family-mention-detail { padding-top: 20px; }
+  .theme-v2 .family-mention-detail .review-cb-heading__actions { justify-content: flex-start; }
+  .theme-v2 .family-mention-detail .review-cb-heading__title h3 { font-size: 21px; }
+  .theme-v2 .family-mention-detail__source { padding: 15px; }
+  .theme-v2 .family-mention-detail__source .relationship-value { font-size: 16px; }
+  .theme-v2 .family-mention-detail__connection > button { width: 100%; }
+}
