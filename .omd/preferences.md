@@ -746,3 +746,18 @@ Show a setting-book upload button alongside the episode upload button in the set
 ## 2026-10-20 — 미등록 인물을 직접 묶고 해제하기
 
 사용자는 프로필을 만들지 않은 같은 인물을 직접 한 노드로 묶고 다시 해제할 수 있게 하기를 승인했다. 같은 이름이라는 이유로 자동으로 합치지 않는다. 선택할 때 어느 인물의 어떤 관계인지와 두 관계의 근거를 보여 주고, 묶인 노드에서도 각 관계의 근거를 쉽게 전환한다. 기존의 짧은 안내 선호를 유지해 설명을 반복하지 않고 정상 상태의 조회 버튼을 추가하지 않는다.
+
+## 2026-10-19T05:20:59.406Z — shared-setting-review-header
+
+```omd-meta
+id: pref_mvet3gni_ad9136f4
+timestamp: 2026-10-19T05:20:59.406Z
+scope: components.navigation
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "src/app/components/catchhole/characterreview/CharacterSettingReview.tsx; src/app/components/catchhole/worldsetting/WorldSettingReview.tsx; /setting-review"
+```
+
+Use a shared page header that covers both character and world-setting candidates on `/setting-review`. The implemented title is `설정 후보 검토`; candidate types remain distinguished by their tabs.
