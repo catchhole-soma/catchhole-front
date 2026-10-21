@@ -1,10 +1,10 @@
 # GH260·GH261 관계도 — 가계도와 가족 관계 검토
 
-관계 화면은 기본 OFF다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED`가 정확히 문자열 `true`인 빌드에서만 사이드바 `관계도` 메뉴와 `/dashboard?workId=<id>&nav=graph`의 가계도·가족 관계 목록·검토를 연다. 미설정·`false`·그 외 값은 OFF이며, 기존 main 화면처럼 좌측 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지한다. OFF에서는 신규 가족 관계 탭이나 관계 화면을 제공하지 않는다. 이 정책은 아래 날짜별 메뉴 통합·검증 기록보다 우선한다.
+2026-10-21 공개 결정에 따라 관계 화면은 기본 ON이다. 사이드바 `관계도` 메뉴와 `/dashboard?workId=<id>&nav=graph`에서 가계도·가족 관계 목록·검토를 연다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED`가 정확히 문자열 `false`인 빌드에서만 OFF이며, 미설정·빈 문자열·그 외 값은 ON이다. OFF에서는 좌측 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지하고 신규 가족 관계 탭이나 관계 화면을 제공하지 않는다. 이 정책은 아래 날짜별 메뉴 통합·검증 기록보다 우선한다.
 
 ON 화면은 현재 PROFILE을 바탕으로 정리한 가족 관계를 보여주며 작품 설정 안에 가족 관계 탭을 중복 노출하지 않는다. 확정한 설정과 직접 수정한 설정을 동일한 현재 설정 입력으로 사용한다. 기존 AI 추출·설정 후보 검토 옵션과 집계는 바꾸지 않는다. 명확한 가족 관계는 서버가 자동 반영하며, 대상·의미·시점이 모호한 내용은 `확인·연결`의 확인 대상으로 모은다. GH261은 확인된 가족 관계와 현재 설정에 이름이 명시된 미등록 가족을 가계도로 배치한다. 일반 인간관계는 이후 범위다.
 
-이 플래그는 프론트 화면의 노출 조건이다. Backend 자동 후처리·관계 API·DB는 유지하며 인증과 작품 소유권 검증을 대신하지 않는다. 배포 시 기존 작품 전체를 자동 정리하는 백필은 아직 구현하지 않았으며, 화면을 켜는 것만으로 기존 데이터의 일괄 처리가 시작되지는 않는다.
+이 플래그는 프론트 빌드 시 결정되는 화면 노출 조건이다. 값을 바꾸면 재빌드·배포가 필요하다. Backend 자동 후처리·관계 API·DB는 유지하며 인증과 작품 소유권 검증을 대신하지 않는다. 운영의 기존 데이터는 2026-10-21에 별도 일회성 백필을 완료했다. 화면 진입·플래그 변경·머지는 백필을 실행하지 않는다.
 
 ## 화면과 URL
 
@@ -111,17 +111,17 @@ ON 화면에서 GET `relationship-processing`을 생성 SDK로 호출한다. `NE
 
 `relationship/FamilyRelationshipWorkspace.tsx`, `FamilyRelationshipSummary.tsx`, `RelationshipCandidateEditor.tsx`, `RelationshipPairPreview.tsx`, `FamilyMentionDetail.tsx`, `RelationshipTargetPicker.tsx`, `RelationshipEvidence.tsx`와 `relationships-v2.css`·`family-relation-list.css`·`family-evidence.css`·`family-review-v2.css`·`relationship-pair-preview.css`·`family-mention-detail.css`가 화면을 구성한다. 두 인물 미리보기는 단순 HTML/CSS로 표시하고 가계도 전체 배치나 Mermaid를 재실행하지 않는다. GH215의 `ReviewPrimitives`를 가족 설정·선택·접힌 근거에 재사용한다. Backend와 공유하는 실행 가능한 parser 예시는 [family-relationship-processing-v1.json](contracts/family-relationship-processing-v1.json)의 40건이다. Backend의 같은 경로에 있는 원본과 동일하게 유지하며, 조상·후손 8건에는 명시 대손 수·미상·역방향과 소유자 이름 접미사 검증이 포함된다. name/display/value 충돌·명시 관계·보류 이유와 과거/불확실한 항목 이름을 고정하며 Front에서 parser를 중복 구현하지 않는다. 모든 요청·응답 타입과 query option은 Java `/v3/api-docs`로부터 `npm run api:generate`한 SDK를 사용한다.
 
-- `e2e/relationship-feature-off.spec.ts`: 기본 OFF 실행에서 데스크톱·320px의 기존 업데이트 예정 안내, 관계 직접 주소의 캐릭터 설정 이동과 관계 API 미호출을 확인한다. ON 실행에서는 건너뛴다.
-- `e2e/family-relationships.spec.ts`: ON을 명시한 별도 실행에서 자동/대기 집계 분리, 확정 관계·후보·미등록 인물의 원문 펼침 시 인용 조회, 같은 이름의 페이지 선택, 수정 후 확정, 버전·근거 충돌의 입력 보존과 명시적 토큰 교체, 저장/제외 재시도, AI 요청 없음, 320px와 URL 복원을 확인한다. 정상 인증 갱신 뒤 조회/수정/확정/제외/실패 재시도/철회 성공, 실제 세션 변경·작품 이탈 뒤 늦은 응답 차단, 다른 창의 수동 수정/확정과 창 복귀 감지도 대상이다. 상시 처리 요청 버튼은 없고 FAILED에서만 재시도하는 계약을 포함한다. 기본 OFF 실행에서는 건너뛴다.
-- `e2e/family-relationships-live.spec.ts`: ON을 명시한 별도 실행에서 전용 localhost 계정·작품에 이름만 있는 인물을 준비하고 public 캐릭터 PATCH로 현재 설정을 저장한다. 자동 배우자 반영, 미해결 부모 후보, 화면 수정·확정, 원본 설정 변경 후 유효성 저하, 제외 후 API 재처리, 철회를 실제 API·PostgreSQL 경로로 재조회한다. 계정과 작품은 기존 `local-live-fixture.ts`가 public purge 완료 후 정리한다. AI 재추출 품질 검증은 포함하지 않는다. 기본 OFF 실행에서는 건너뛴다.
+- `e2e/relationship-feature-off.spec.ts`: 명시적 `false` 실행에서 데스크톱·320px의 기존 업데이트 예정 안내, 관계 직접 주소의 캐릭터 설정 이동과 관계 API 미호출을 확인한다. ON 실행에서는 건너뛴다.
+- `e2e/family-relationships.spec.ts`: 기본 ON 실행에서 자동/대기 집계 분리, 확정 관계·후보·미등록 인물의 원문 펼침 시 인용 조회, 같은 이름의 페이지 선택, 수정 후 확정, 버전·근거 충돌의 입력 보존과 명시적 토큰 교체, 저장/제외 재시도, AI 요청 없음, 320px와 URL 복원을 확인한다. 정상 인증 갱신 뒤 조회/수정/확정/제외/실패 재시도/철회 성공, 실제 세션 변경·작품 이탈 뒤 늦은 응답 차단, 다른 창의 수동 수정/확정과 창 복귀 감지도 대상이다. 상시 처리 요청 버튼은 없고 FAILED에서만 재시도하는 계약을 포함한다. 명시적 OFF 실행에서는 건너뛴다.
+- `e2e/family-relationships-live.spec.ts`: 기본 ON 또는 명시적 ON 실행에서 전용 localhost 계정·작품에 이름만 있는 인물을 준비하고 public 캐릭터 PATCH로 현재 설정을 저장한다. 자동 배우자 반영, 미해결 부모 후보, 화면 수정·확정, 원본 설정 변경 후 유효성 저하, 제외 후 API 재처리, 철회를 실제 API·PostgreSQL 경로로 재조회한다. 계정과 작품은 기존 `local-live-fixture.ts`가 public purge 완료 후 정리한다. AI 재추출 품질 검증은 포함하지 않는다. 명시적 OFF 실행에서는 건너뛴다.
 
 실행 시 기존 서버를 재사용하지 않도록 별도 포트를 지정한다. live 계정/DB 변수는 [로컬 live 테스트 문서](local-image-live-tests.md)의 `CATCHHOLE_E2E_*`를 사용한다. `VITE_API_BASE_URL`과 `CATCHHOLE_E2E_API_BASE_URL`은 같은 격리 API 주소여야 하며 `NO_PROXY`/`no_proxy`에 localhost를 포함한다. 토큰·비밀번호·DSN은 캡처나 문서에 기록하지 않는다.
 
 ```sh
-# 기본 OFF 화면: 전체 기본 E2E에도 포함
+# 명시적 OFF 화면: 기본 ON E2E와 별도 CI에서 실행
 VITE_RELATIONSHIP_WORKSPACE_ENABLED=false CATCHHOLE_E2E_PORT=3106 npm run test:e2e -- e2e/relationship-feature-off.spec.ts --workers=1
-# 관계 화면 미리보기 ON을 명시한 별도 실행
-VITE_RELATIONSHIP_WORKSPACE_ENABLED=true CATCHHOLE_E2E_PORT=3107 npm run test:e2e -- e2e/family-relationships.spec.ts --workers=1
+# 기본 ON 가족 관계 화면 검증
+CATCHHOLE_E2E_PORT=3107 npm run test:e2e -- e2e/family-relationships.spec.ts --workers=1
 # 사전 설정한 localhost API/DB/seed 환경에서 실행
 VITE_RELATIONSHIP_WORKSPACE_ENABLED=true CATCHHOLE_E2E_PORT=3108 npm run test:e2e -- e2e/family-relationships-live.spec.ts --workers=1
 ```
@@ -172,7 +172,7 @@ React Flow가 이동·확대·선택을 맡고 ELK 및 가족 제약 함수가 �
 
 인물 카드의 크기와 연결 위치가 고정이므로 React Flow 노드의 `handles`도 명시한다. controlled 노드 갱신 때 측정된 연결점이 초기화되어 관계 버튼이 잠시 제거되고 초점을 잃는 문제를 막는다. 키보드 이동은 그래프 좌표와 현재 viewport로 가시성을 판단하여 브라우저의 순간적인 focus 스크롤과 구분한다. 관계 이름 클릭은 선의 클릭 이벤트로 중복 전파하지 않으며 근거 닫기는 URL 변경 뒤 현재 버튼으로 초점을 돌린다.
 
-프로필은 `CharacterDatabase`의 `detailOnly` 경로로 기존 모달을 재사용한다. 인물 디렉터리를 뒤에서 중복 마운트하지 않는다. 가계도 진입의 프로필에는 초기 초점·Tab 순환·Escape 닫기와 호출 버튼으로 초점 복귀를 제공한다. 저장된 프로필은 기존 자동 정리 경로를 거쳐 가계도에 반영되며 LLM 호출/프롬프트/추출 스키마를 추가하지 않는다. 기존 작품 백필은 화면에 버튼을 늘리지 않고 Backend의 `docs/family-tree-v1.md`에 제한된 운영 예약 절차로만 정리했으며 이번 작업에서 기존 데이터에 실행하지 않았다.
+프로필은 `CharacterDatabase`의 `detailOnly` 경로로 기존 모달을 재사용한다. 인물 디렉터리를 뒤에서 중복 마운트하지 않는다. 가계도 진입의 프로필에는 초기 초점·Tab 순환·Escape 닫기와 호출 버튼으로 초점 복귀를 제공한다. 저장된 프로필은 기존 자동 정리 경로를 거쳐 가계도에 반영되며 LLM 호출/프롬프트/추출 스키마를 추가하지 않는다. 기존 작품 백필은 화면 버튼과 별개의 운영 절차이며 Backend의 `docs/family-tree-v1.md`를 따른다. 운영 데이터의 일회성 백필은 2026-10-21에 별도로 완료했고 화면 공개나 머지로 다시 실행하지 않는다.
 
 검증 명령:
 

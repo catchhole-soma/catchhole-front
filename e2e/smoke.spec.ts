@@ -2,7 +2,7 @@ import { installEpisodeSourceList } from './episode-source-list';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
-const relationshipWorkspaceEnabled = process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'true';
+const relationshipWorkspaceEnabled = process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED !== 'false';
 
 async function installMetaPixelMock(page: Page) {
   await page.addInitScript(() => {
@@ -137,7 +137,9 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   if (relationshipWorkspaceEnabled) {
     await page.getByRole('button', { name: '관계도', exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('graph');
-    await expect(page.getByRole('heading', { name: '관계도', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: '관계도', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: '가계도', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /인물 관계도/ })).toBeDisabled();
   } else {
     await page.getByRole('button', { name: /^관계도/ }).click();
     await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();

@@ -60,7 +60,7 @@ flowchart LR
 - 화면 간 전환 — 각 컴포넌트의 `navigate(...)` 호출
 - 사이드바 네비게이션 — `src/app/components/catchhole/AppSidebar.tsx`
 
-> **현재 관계도 노출 정책 (2026-10-19, 메뉴 통합 후속 결정)**: `VITE_RELATIONSHIP_WORKSPACE_ENABLED`가 정확히 문자열 `true`인 빌드에서만 관계 화면을 켠다. 기본값과 그 외 값은 OFF이며 기존 main 화면처럼 좌측 `그래프 뷰 · 업데이트 예정`, 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지한다. 신규 가족 관계 탭·화면은 없고 `nav=graph` 및 이전 `nav=settingDB&tab=relations`/nav 없는 `tab=relations` 직접 주소도 관계 선택을 정리해 `nav=settingDB&tab=characters`로 replace하며 관계 API를 호출하지 않는다. ON에서만 좌측 `관계도`의 `nav=graph`로 가족 관계 목록·후보·근거를 열고, 이전 관계 링크의 작품·보기·페이지·후보·관계·원문 선택을 보존해 새 주소로 replace한다. ON에서도 상시 관계 찾기 버튼은 없고 FAILED 안내의 `관계 정리 다시 시도`만 제공한다. 아래 과거 범위·날짜별 기록보다 이 정책이 우선한다. Backend 자동 후처리·API·DB는 유지하며 운영 자동 백필은 아직 없다. 화면 플래그는 서버 권한 검증을 대신하지 않는다. 그림 가계도 배치와 일반 인간관계 구현은 이번 변경에 포함하지 않는다.
+> **현재 관계도 노출 정책 (2026-10-21, 가계도 공개 결정)**: 관계 화면은 기본 ON이다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED`가 정확히 문자열 `false`인 빌드에서만 OFF이며 미설정·빈 문자열·그 외 값은 ON이다. 좌측 `관계도`의 `nav=graph`에서 가계도·가족 관계 목록·후보·근거를 열고, 이전 관계 링크의 작품·보기·페이지·후보·관계·원문 선택을 보존해 새 주소로 replace한다. OFF에서는 좌측 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지하고, `nav=graph` 및 이전 `nav=settingDB&tab=relations`/nav 없는 `tab=relations` 직접 주소는 관계 선택을 정리해 `nav=settingDB&tab=characters`로 replace하며 관계 API를 호출하지 않는다. 상시 관계 찾기 버튼은 없고 FAILED 안내의 `관계 정리 다시 시도`만 제공한다. 아래 과거 범위·날짜별 기록보다 이 정책이 우선한다. Backend 자동 후처리·API·DB와 서버 권한 검증은 유지한다. 운영의 기존 데이터는 2026-10-21에 별도 일회성 백필을 완료했으며 화면 진입·플래그 변경·머지가 백필을 실행하지 않는다. 일반 인물 관계도는 계속 업데이트 예정이다.
 
 > **2026-08 MVP 노출 범위 (과거 기록)**: 실제 동선은 작품 선택, 원고 목록과 읽기 전용 원문 보기, 설정 DB(캐릭터 DB·세계관 DB·설정집 목록·설정 검색), 분석 목록, 회차 업로드의 기존 설정 구축, 캐릭터·세계관 설정 후보 검토입니다. 캐릭터 후보는 같은 이름별 그룹으로 표시하고 `미상`은 마지막에 두며 그룹 안 모든 row를 세계관 검토처럼 세로로 이어서 보여줍니다. row별 설정 내용 수정·제외·단건 연결과 그룹 캐릭터 일괄 연결을 허용하되, 일반 수정에서는 캐릭터 이름을 바꾸지 않고 확정은 남은 대기 후보 전체를 한 요청으로 처리합니다. 기존 캐릭터와 비교된 후보는 기존값·제안값·AI 판단을 함께 표시하고 `현재 설정 반영` 또는 `이력만 저장` 방식을 선택합니다. 비교 처리·기존 캐릭터 연결 대기 상태가 하나라도 있으면 그룹 확정을 잠그고 실패·재비교 필요 상태에는 retry를 제공합니다. 신규 등록 예정인 `UNRESOLVED` 그룹은 한 캐릭터로 함께 확정할 수 있으며, 서버가 같은 이름의 기존 캐릭터를 다시 찾으면 비교 후 재확정합니다. 연결된 레거시 `NOT_REQUIRED` 후보에는 `현재 설정 비교 시작`을 제공합니다. 설정 DB의 기본 진입 탭은 캐릭터 DB입니다. 캐릭터 상세의 현재값이 여러 Fact에서 합성된 경우 회차/설정집 리비전 출처 탭으로 기존 단건 원문 API를 lazy 조회합니다. `변화 이력`은 상세를 유지한 채 우측 이력 패널을 열며, 처음에는 빈 안내만 표시합니다. 현재 설정이나 종류 전체를 누르면 확정된 `CharacterFact` 이력을 즉시 복수 조회하고, 타임라인의 근거는 기존 원문 패널을 같은 우측 영역에 겹쳐 표시합니다. 가계도·가족 관계 목록과 검토는 플래그 ON의 `nav=graph`에서 제공합니다. 일반 관계도·충돌 분석 리포트·그래프 뷰·작품 전체 사건 타임라인은 업데이트 예정 범위입니다. `/chat`, `/loading`, `/report`, `/episode-validation-report` 직접 진입은 작품 선택으로 이동합니다. 아래의 후속 화면 다이어그램은 이후 범위 설계 참고용이며 현재 제공 기능을 뜻하지 않습니다.
 
@@ -105,11 +105,11 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | **인터랙티브 데모** | [`/demo`](https://catch-hole.vercel.app/demo) | Backend·AI 없이 10문단 fixture 단일 시나리오를 따라 하며 후보 확정·수정·제외, 5명 캐릭터 상세·변화 이력·근거, 세계관 설정 근거까지 직접 확인하는 공개 화면 |
 | 작품 선택 | [`/works`](https://catch-hole.vercel.app/works) | Theme V2 파일럿으로 작업할 작품을 고르는 진입점 |
 | 사용자 메뉴 / 회원 탈퇴 | 별도 경로 없음 | 보호 화면 상단에서 필명·이메일, 로그아웃, 구분된 회원 탈퇴 진입점을 제공하고 현재 비밀번호·고정 문구 확인 모달을 표시 |
-| 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품 설정·분석 목록·원고 허브. 관계도는 플래그 ON에서만 제공 |
+| 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품 설정·분석 목록·원고 허브. 관계도는 기본 제공하며 명시적 OFF에서만 숨김 |
 | **캐릭터 DB 조회** | [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | Theme V2 카드 목록에서 현재 설정 상세·변화 이력·원문 근거를 이어서 조회 |
 | **세계관 DB 조회** | [`/dashboard?nav=settingDB&tab=worldsettings`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) | 이미지 분류 선택·대상 카드 목록·상세 모달에서 확정 설정과 원문 근거를 조회 |
 | **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | Theme V2 파일럿으로 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인 |
-| **관계도 (플래그 ON)** | [`/dashboard?nav=graph`](https://catch-hole.vercel.app/dashboard?nav=graph) | ON에서 가계도·현재 프로필 기반 가족 관계 목록·확인 필요 후보·원문 근거 조회. 기본 OFF에서는 업데이트 예정 안내를 유지하고 직접 주소는 캐릭터 설정으로 replace. 기본 보기는 부모→자녀 가계도 |
+| **관계도 (기본 ON)** | [`/dashboard?nav=graph`](https://catch-hole.vercel.app/dashboard?nav=graph) | 기본 ON에서 가계도·현재 프로필 기반 가족 관계 목록·확인 필요 후보·원문 근거 조회. 명시적 OFF에서는 업데이트 예정 안내를 유지하고 직접 주소는 캐릭터 설정으로 replace. 기본 보기는 부모→자녀 가계도 |
 | 회차 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 선택한 회차 원본을 읽기 전용으로 확인 |
 | AI 챗봇 | [`/chat`](https://catch-hole.vercel.app/chat) | 설정 관련 질의응답 챗봇 |
 | 분석 진행 | [`/episode-upload`](https://catch-hole.vercel.app/episode-upload) 내부 `processing` 단계 | Theme V2 상태 카드로 회차별 처리 단계·실패·완료를 추적하고 사용자가 결과로 이동 |
@@ -358,7 +358,7 @@ flowchart TD
 
 ## 4. 대시보드 내부 네비게이션 (사이드바 · 탭 · 모달)
 
-대시보드 내부 상태는 모두 쿼리 파라미터로 딥링크됩니다. 사이드바는 다른 화면에서 눌러도 먼저 대시보드로 돌아간 뒤 해당 섹션으로 이동합니다. 아래 관계 목록·검토 동선은 관계 화면 플래그 ON에서만 열립니다. 기본 OFF의 그래프 뷰와 작품 설정 관계도는 업데이트 예정 안내입니다.
+대시보드 내부 상태는 모두 쿼리 파라미터로 딥링크됩니다. 사이드바는 다른 화면에서 눌러도 먼저 대시보드로 돌아간 뒤 해당 섹션으로 이동합니다. 아래 관계 목록·검토 동선은 기본 ON으로 열립니다. 명시적 OFF에서는 그래프 뷰와 작품 설정 관계도를 업데이트 예정으로 안내합니다.
 
 ```mermaid
 flowchart TD
@@ -532,9 +532,9 @@ flowchart TD
 > 배치 조회가 분석 시작을 확인하면 원고 목록도 즉시 갱신하며, 진행 중에는 10초 갱신을 함께 유지합니다. 배치 종료 시 최종 목록을 한 번 더 받고 진행 작업이 없으면 반복 조회를 멈춥니다. 업로드·재분석 시작 성공 때에도 두 조회의 캐시를 갱신해 이전 `재분석 필요` 표시가 남지 않게 합니다.
 
 > 딥링크 (클릭 시 이동):
-> - 사이드바 — [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts) · [작품 설정](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [챗봇](https://catch-hole.vercel.app/chat) · 분석 리포트(업데이트 예정) · 기본 OFF는 그래프 뷰(업데이트 예정), ON만 [관계도](https://catch-hole.vercel.app/dashboard?nav=graph)
+> - 사이드바 — [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts) · [작품 설정](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [챗봇](https://catch-hole.vercel.app/chat) · 분석 리포트(업데이트 예정) · 기본 ON의 [관계도](https://catch-hole.vercel.app/dashboard?nav=graph)
 > - 설정DB 탭 — [캐릭터 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [세계관 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search). 캐릭터의 타임라인은 캐릭터 상세 `변화 이력`에서 연다.
-> - 관계도(ON 전용) — [가계도](https://catch-hole.vercel.app/dashboard?nav=graph) · [가족 관계 목록](https://catch-hole.vercel.app/dashboard?nav=graph&relationView=list) · [확인 필요](https://catch-hole.vercel.app/dashboard?nav=graph&relationView=review). OFF에서는 작품 설정의 관계도도 업데이트 예정 안내이며 관계 직접 주소는 캐릭터 설정으로 replace한다. 이전 `relGraph=triangle|prosecution|court`는 과거 시안용 상태이며 현재 관계도에서 그림 샘플을 여는 계약이 아니다.
+> - 관계도(기본 ON) — [가계도](https://catch-hole.vercel.app/dashboard?nav=graph) · [가족 관계 목록](https://catch-hole.vercel.app/dashboard?nav=graph&relationView=list) · [확인 필요](https://catch-hole.vercel.app/dashboard?nav=graph&relationView=review). OFF에서는 작품 설정의 관계도도 업데이트 예정 안내이며 관계 직접 주소는 캐릭터 설정으로 replace한다. 이전 `relGraph=triangle|prosecution|court`는 과거 시안용 상태이며 현재 관계도에서 그림 샘플을 여는 계약이 아니다.
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`. 관계 화면 ON에서는 관계 후보 `?nav=graph&relationView=review&relationshipCandidate=<id>`, 관계 근거 `?nav=graph&relationshipId=<id>`, 원문 근거 `?nav=graph&relationshipFactId=<id>`를 사용한다. 과거 시안의 `node=<id>`는 현재 가족 관계 상세 계약이 아니다.
 
 ---
@@ -842,9 +842,9 @@ Pencil `PEIta`는 방 목록과 스크롤 계약을 반영한 상호작용 대�
 
 ON 화면에서 목록 밖 관계 직접 링크도 양쪽 인물·관계 종류·시점·상태를 표시한 뒤 근거와 철회 액션을 제공한다. 현재 대기 개수, 보고 있는 검토·관계 목록과 열린 상세는 5초 간격 및 창 복귀 시 갱신해 다른 창의 확정·제외·철회를 반영하며, 목록이 줄어들면 마지막 유효 페이지로 이동한다. 숨겨진 창의 주기 조회는 멈춘다. 후보 저장 성공 응답을 상세 캐시에 반영해 본인의 저장을 외부 변경으로 오인하지 않으며, 재시도 이후 정상 처리 상태가 확인되면 이전 요청 오류를 지운다.
 
-관계 화면은 기본 OFF이며 `VITE_RELATIONSHIP_WORKSPACE_ENABLED=true`인 빌드에서만 사이드바 `관계도`의 `/dashboard?workId=<id>&nav=graph`로 자동 반영 관계와 별도의 확인 필요 후보를 조회한다. OFF에서는 기존 그래프 뷰·작품 설정 관계도의 업데이트 예정 안내를 유지하고 관계 직접 주소는 캐릭터 설정으로 replace하며 관계 API를 호출하지 않는다. ON에서는 작품 설정의 가족 관계 탭을 중복 노출하지 않고, 이전 `nav=settingDB&tab=relations` 및 nav 없는 `tab=relations` 링크의 작품·보기·페이지·후보·관계·원문 선택을 유지해 새 주소로 replace한다. 모바일은 같은 상태를 native select로 전환한다. 현재 대기 수는 PENDING 후보 pagination 집계이며 기존 설정 검토와 합치지 않는다.
+관계 화면은 기본 ON이며 사이드바 `관계도`의 `/dashboard?workId=<id>&nav=graph`로 자동 반영 관계와 별도의 확인 필요 후보를 조회한다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED`가 정확히 문자열 `false`일 때만 OFF이며 미설정·빈 문자열·그 외 값은 ON이다. OFF에서는 기존 그래프 뷰·작품 설정 관계도의 업데이트 예정 안내를 유지하고 관계 직접 주소는 캐릭터 설정으로 replace하며 관계 API를 호출하지 않는다. ON에서는 작품 설정의 가족 관계 탭을 중복 노출하지 않고, 이전 `nav=settingDB&tab=relations` 및 nav 없는 `tab=relations` 링크의 작품·보기·페이지·후보·관계·원문 선택을 유지해 새 주소로 replace한다. 모바일은 같은 상태를 native select로 전환한다. 현재 대기 수는 PENDING 후보 pagination 집계이며 기존 설정 검토와 합치지 않는다.
 
-ON에서도 `현재 설정에서 관계 찾기` 상시 버튼은 없고 FAILED 안내의 `관계 정리 다시 시도`만 유지한다. Backend 자동 후처리·API·DB는 UI 플래그와 무관하게 유지하며, 배포 시 기존 작품 전체를 정리하는 자동 백필은 아직 없다. 기존 편집·근거 확인 계약과 서버 권한 검증을 유지하고 GH261에서 기본 가계도 보기를 추가한다. 기본 E2E는 OFF 전용 테스트를 포함하고 가족 관계 목/live 테스트는 ON을 명시해 별도로 실행한다. 아래 화면 흐름의 목록·후보·재시도는 ON 전용이며 상세 URL·동시 변경·날짜별 검증은 [가족 관계 계약](family-relationships.md)을 따른다.
+ON에서도 `현재 설정에서 관계 찾기` 상시 버튼은 없고 FAILED 안내의 `관계 정리 다시 시도`만 유지한다. Backend 자동 후처리·API·DB는 UI 플래그와 무관하게 유지한다. 운영의 기존 데이터는 2026-10-21에 별도 일회성 백필을 완료했으며 화면 진입·플래그 변경·머지는 백필을 실행하지 않는다. 기존 편집·근거 확인 계약과 서버 권한 검증을 유지하고 GH261의 가계도를 기본 보기로 제공한다. 기본 E2E는 ON 가족 관계 목 테스트를 포함하고 명시적 `false`의 OFF 검증은 별도 CI로 실행한다. live 테스트는 격리된 localhost API·DB·전용 계정 설정이 있어야 실행한다. 아래 화면 흐름의 목록·후보·재시도는 ON 전용이며 상세 URL·동시 변경·날짜별 검증은 [가족 관계 계약](family-relationships.md)을 따른다.
 
 ```mermaid
 flowchart LR
