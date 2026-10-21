@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Route } from '@playwright/test';
 
-test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'true', '기본 OFF 배포 화면 전용 테스트입니다. 미리보기 ON은 family-relationships.spec.ts에서 검증합니다.');
+test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED !== 'false', 'VITE_RELATIONSHIP_WORKSPACE_ENABLED=false인 비공개 빌드만 검증합니다.');
 
 const workId = '11111111-1111-4111-8111-111111111111';
 const selectedId = '22222222-2222-4222-8222-222222222222';
@@ -33,7 +33,7 @@ async function setup(context: BrowserContext) {
   return relationshipRequests;
 }
 
-test('기본 OFF는 기존 그래프 뷰와 관계도 예정 탭만 보이며 클릭해도 관계 API를 호출하지 않는다', async ({ page, context }, testInfo) => {
+test('명시적 OFF는 기존 그래프 뷰와 관계도 예정 탭만 보이며 클릭해도 관계 API를 호출하지 않는다', async ({ page, context }, testInfo) => {
   const requests = await setup(context);
   await page.clock.install();
   await page.goto(settings);
@@ -56,7 +56,7 @@ test('기본 OFF는 기존 그래프 뷰와 관계도 예정 탭만 보이며 �
   await page.screenshot({ path: testInfo.outputPath('relationship-feature-off-desktop.png'), fullPage: true });
 });
 
-test('기본 OFF의 320px 설정 선택과 메뉴는 기존 업데이트 예정 안내를 유지한다', async ({ page, context }, testInfo) => {
+test('명시적 OFF의 320px 설정 선택과 메뉴는 기존 업데이트 예정 안내를 유지한다', async ({ page, context }, testInfo) => {
   const requests = await setup(context);
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto(settings);
@@ -81,7 +81,7 @@ test('기본 OFF의 320px 설정 선택과 메뉴는 기존 업데이트 예정 
 });
 
 for (const destination of ['nav=graph', 'nav=settingDB&tab=relations']) {
-  test(`기본 OFF는 ${destination} 직접 링크를 캐릭터 화면으로 대체하고 관계 선택과 API 요청을 제거한다`, async ({ page, context }) => {
+  test(`명시적 OFF는 ${destination} 직접 링크를 캐릭터 화면으로 대체하고 관계 선택과 API 요청을 제거한다`, async ({ page, context }) => {
     const requests = await setup(context);
     await page.clock.install();
     await page.goto('/works');

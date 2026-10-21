@@ -226,16 +226,16 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 ## GH260 가족 관계 검토
 
-- 관계 화면은 `VITE_RELATIONSHIP_WORKSPACE_ENABLED`의 문자열 값이 정확히 `true`인 빌드에서만 켠다. 기본값과 그 외 값은 OFF다. OFF에서는 기존 main 화면처럼 사이드바의 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지하며 신규 가족 관계 탭·화면을 노출하지 않는다. `nav=graph` 및 이전 `nav=settingDB&tab=relations`/nav 없는 `tab=relations` 직접 주소는 캐릭터 설정으로 replace하고 관계 선택 파라미터를 정리하며 관계 API를 호출하지 않는다.
+- 관계 화면은 기본 ON이다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED`의 문자열 값이 정확히 `false`인 빌드에서만 끄며, 미설정·빈 문자열·그 외 값은 ON이다. OFF에서는 기존 main 화면처럼 사이드바의 `그래프 뷰 · 업데이트 예정`과 작품 설정의 `관계도 · 업데이트 예정` 안내만 유지하며 신규 가족 관계 탭·화면을 노출하지 않는다. `nav=graph` 및 이전 `nav=settingDB&tab=relations`/nav 없는 `tab=relations` 직접 주소는 캐릭터 설정으로 replace하고 관계 선택 파라미터를 정리하며 관계 API를 호출하지 않는다.
 - ON에서만 사이드바 `관계도`가 `/dashboard?workId=<id>&nav=graph`의 현재 프로필 기반 가계도·가족 관계 목록과 별도의 확인 필요 후보를 제공한다. 작품 설정 하위 탭에는 가족 관계를 중복 노출하지 않는다. [가족 관계 계약](docs/family-relationships.md)을 따른다. 기존 설정 추출/검토 집계에 합치거나 프론트에서 이름으로 자동 연결하지 않는다.
 - ON일 때 이전 `nav=settingDB&tab=relations` 또는 nav가 없는 `tab=relations` 링크는 `nav=graph`로 방문 기록을 replace하고 `tab`만 제거한다. 작품·보기·페이지·후보·관계·원문 선택은 보존한다. `relationView`, `relationPage`, `relationshipCandidate`, `relationshipId`, `relationshipFactId`, `familyFocus`, `familyHistory`는 새 진입점에서도 유지하며 다른 메뉴로 나갈 때 정리한다.
-- `현재 설정에서 관계 찾기` 상시 버튼은 ON에서도 제공하지 않는다. 처리 상태가 `FAILED`일 때 안내 안의 `관계 정리 다시 시도`만 제공한다. UI 플래그는 Backend 자동 후처리·API·DB를 끄거나 권한 검증을 대신하지 않으며, 배포 시 기존 작품 전체를 정리하는 자동 백필은 아직 없다.
+- `현재 설정에서 관계 찾기` 상시 버튼은 ON에서도 제공하지 않는다. 처리 상태가 `FAILED`일 때 안내 안의 `관계 정리 다시 시도`만 제공한다. UI 플래그는 Backend 자동 후처리·API·DB를 끄거나 권한 검증을 대신하지 않는다. 운영의 기존 데이터는 2026-10-21에 별도 일회성 백필을 완료했으며, 화면 진입·플래그 변경·머지가 백필을 실행하지 않는다.
 - 수정은 고정 `expectedVersion`/근거 토큰으로 저장하고 실패 시 초안을 유지한다. 편집 진입·변경 감지·409 때 최신 후보/근거를 자동 조회하고 실패 때만 재시도를 제공한다. 조회만으로 기준 버전·초안·선택 토큰을 바꾸지 않는다. 외부 수정은 명시적 `변경 내용 확인` 후 기준을 채택하고 입력한 필드는 보존하며, 근거는 직접 선택한 뒤에만 교체한다. 일반 저장과 판단 저장은 각각 초안/기존 인물의 근거 소유권을 확인한다. 가계도에서도 기존 목록·후보 검토·근거 동작을 유지한다. 요약 조회로 도형을 구성하고 상세는 선택 시 기존 API로 조회한다.
-- 기본 E2E는 OFF 전용 `e2e/relationship-feature-off.spec.ts`를 실행한다. 가족 관계 목/live E2E는 `VITE_RELATIONSHIP_WORKSPACE_ENABLED=true`를 명시한 별도 실행으로 확인한다. 과거 날짜별 검증 기록은 당시 상태이며 현재 노출 정책보다 우선하지 않는다.
+- 기본 E2E는 ON의 가족 관계 목 테스트를 포함한다. `VITE_RELATIONSHIP_WORKSPACE_ENABLED=false`인 별도 CI 실행에서 `e2e/relationship-feature-off.spec.ts`로 비공개 동작을 확인한다. live E2E는 격리된 localhost API·DB·전용 계정 설정이 있는 경우에만 실행한다. 과거 날짜별 검증 기록은 당시 상태이며 현재 노출 정책보다 우선하지 않는다.
 
 ## GH261 가계도
 
-- `relationView=tree|list|review`의 기본은 tree다. 기본 OFF, 새 LLM 책임 없음, 인물/부모/혼인 추론 없음 원칙을 유지한다.
+- `relationView=tree|list|review`의 기본은 tree다. 관계 화면은 기본 공개하며 문자열 `false`로만 비공개 전환한다. 새 LLM 책임 없음, 인물/부모/혼인 추론 없음 원칙을 유지한다.
 - 가족 배치의 순수 입력/출력과 화면·저장 관계는 분리한다. 부모 방향을 우선하고 배우자/형제 같은 높이는 가능한 경우만 적용한다. 전체 보기는 라벨을 포함한 배치 전체 영역을 사용하며 polling은 viewport를 초기화하지 않는다.
 - 화면은 `connections`의 가족별 공유선과 짧은 표기를 사용한다. 원본 `edges` ID는 각 connection에 정확히 한 번 포함하고 복수 관계는 선택 목록을 거쳐 기존 근거로 연다. 인물 카드 크기의 관계 설명 상자를 다시 넣거나 묶음의 최상단 edge 하나만 클릭 가능하게 만들지 않는다.
 - [가계도 계약](docs/family-relationships.md)과 [배치 비교·검증](docs/family-tree-layout.md)을 따르고 `test:layout`, ON/OFF E2E, 실제 localhost API 경로를 검증한다. 기존 사용자 데이터 백필과 공개 플래그 변경은 별도 실행이다.

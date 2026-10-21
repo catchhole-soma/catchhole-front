@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import type { RelationshipCandidateResponse, RelationshipMentionGroupResponse } from '../src/app/api/generated/types.gen';
 
-test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED !== 'true', '가계도 미리보기 전용 테스트입니다.');
+test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'false', '관계 화면을 명시적으로 비활성화한 실행에서는 건너뜁니다.');
 const workId = '11111111-1111-4111-8111-111111111111';
 const first = '30000000-0000-4000-8000-000000000001';
 const second = '30000000-0000-4000-8000-000000000002';

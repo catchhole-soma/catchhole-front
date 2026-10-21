@@ -246,7 +246,7 @@ export default function S1Dashboard() {
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       if (RELATIONSHIP_WORKSPACE_ENABLED) {
-        // 미리보기에서는 기존 공유 링크의 후보·관계·근거 선택을 유지한다.
+        // 공개 상태에서는 기존 공유 링크의 후보·관계·근거 선택을 유지한다.
         next.set('nav', 'graph');
         next.delete('tab');
       } else {
