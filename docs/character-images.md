@@ -40,3 +40,5 @@ Constraints: single image, no text, no lettering, no watermark, no border, no mu
 실서버 테스트의 계정 준비·반복 실행·정리는 [공통 로컬 fixture 안내](local-image-live-tests.md)를 따른다. 이전의 고정 계정·작품 ID 환경 변수 대신 실행마다 새 상태를 준비한다.
 
 GH199부터 개인 업로드는 보관용 코드 없이 동작한다. 현재 정책은 [내 이미지](private-world-images.md)를 따른다.
+
+GH261 가계도에서도 같은 `image` 응답을 원형 썸네일로 사용한다. 가계도의 무이미지·미등록 인물·이미지 실패는 작은 기본 인물 아이콘으로 표시하고, 기존 목록·상세의 기본 그림과 개인 이미지 안내는 유지한다. 이미지 저장 후 가계도 조회도 갱신하며 사진 변경으로 가족 배치나 확대·이동 위치를 초기화하지 않는다.

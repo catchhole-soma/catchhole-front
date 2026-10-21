@@ -1,0 +1,264 @@
+.theme-v2 .relationship-pair-preview {
+  container: relationship-preview / inline-size;
+  margin: 16px 0;
+  padding: 20px;
+  min-width: 0;
+  border: 1px solid var(--ch-border);
+  border-radius: 14px;
+  background: var(--ch-canvas);
+}
+
+.theme-v2 .relationship-pair-preview__diagram {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  max-width: 570px;
+  margin: 0 auto;
+}
+
+.theme-v2 .relationship-pair-preview__caption {
+  margin-bottom: 12px;
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.theme-v2 .relationship-pair-preview__person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 14px 12px;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: 12px;
+  background: var(--ch-surface);
+  color: var(--ch-text);
+  font: inherit;
+  text-align: center;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.theme-v2 .relationship-pair-preview__person--action {
+  position: relative;
+  border: 2px solid var(--ch-primary);
+  background: var(--ch-surface-soft);
+  cursor: pointer;
+}
+
+.theme-v2 .relationship-pair-preview__person--action:hover:not(:disabled),
+.theme-v2 .relationship-pair-preview__person--action[aria-expanded="true"] {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-primary) 15%, transparent);
+}
+
+.theme-v2 .relationship-pair-preview__person--action:focus-visible {
+  outline: 3px solid var(--ch-primary-ink);
+  outline-offset: 4px;
+}
+
+.theme-v2 .relationship-pair-preview__person--action:disabled {
+  border-color: var(--ch-border-strong);
+  cursor: default;
+}
+
+.theme-v2 .relationship-pair-preview__avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid var(--ch-border);
+  border-radius: 50%;
+  background: var(--ch-surface);
+  color: var(--ch-primary-ink);
+}
+
+.theme-v2 .relationship-pair-preview__role {
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-v2 .relationship-pair-preview__name {
+  max-width: 100%;
+  font-size: 18px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.theme-v2 .relationship-pair-preview__status {
+  max-width: 100%;
+  color: var(--ch-text-muted);
+  font-size: 12px;
+}
+
+.theme-v2 .relationship-pair-preview__person[data-profile="missing"] .relationship-pair-preview__status {
+  color: var(--ch-primary-ink);
+  font-weight: 600;
+}
+
+.theme-v2 .relationship-pair-preview__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--ch-primary-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-v2 .relationship-pair-preview__action > svg { flex-shrink: 0; }
+.theme-v2 .relationship-pair-preview__action-arrow { display: none; }
+
+.theme-v2 .relationship-pair-preview__connector {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  min-width: 0;
+  width: 100%;
+  color: var(--ch-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.theme-v2 .relationship-pair-preview__connector::before {
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 2px solid var(--ch-text-muted);
+  content: '';
+}
+
+.theme-v2 .relationship-pair-preview__connector > span {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  max-width: calc(100% - 12px);
+  padding: 3px;
+  background: var(--ch-canvas);
+  overflow-wrap: anywhere;
+}
+.theme-v2 .relationship-pair-preview__connector small { font-size: 11px; font-weight: 500; }
+.theme-v2 .relationship-pair-preview[data-layout="peer"] .relationship-pair-preview__connector { height: 48px; }
+.theme-v2 .relationship-pair-preview[data-layout="peer"] .relationship-pair-preview__connector > span {
+  position: absolute;
+  top: calc(50% + 7px);
+  max-width: none;
+  padding: 0;
+  background: none;
+  white-space: nowrap;
+}
+
+.theme-v2 .relationship-pair-preview[data-uncertain="true"] .relationship-pair-preview__connector::before {
+  border-top-style: dashed;
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__diagram {
+  grid-template-columns: minmax(0, 320px);
+  justify-content: center;
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__person {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  padding: 12px 16px;
+  text-align: left;
+}
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__avatar { grid-column: 1; grid-row: 1 / 4; }
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__name { grid-column: 2; grid-row: 1; }
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__status { grid-column: 2; grid-row: 2; }
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__role { grid-column: 3; grid-row: 1; }
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__action { grid-column: 2 / 4; grid-row: 3; justify-content: flex-start; margin-top: 2px; }
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__connector {
+  height: 36px;
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__connector::before {
+  inset: 0 auto 0 50%;
+  border-top: 0;
+  border-left: 2px solid var(--ch-text-muted);
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__connector::after {
+  position: absolute;
+  bottom: 2px;
+  left: calc(50% - 3px);
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ch-text-muted);
+  border-bottom: 2px solid var(--ch-text-muted);
+  transform: rotate(45deg);
+  content: '';
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"][data-uncertain="true"] .relationship-pair-preview__connector {
+  height: 60px;
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"][data-uncertain="true"] .relationship-pair-preview__connector::before {
+  border-left-style: dashed;
+}
+
+.theme-v2 .relationship-pair-preview[data-layout="ancestry"][data-uncertain="true"] .relationship-pair-preview__connector::after {
+  display: none;
+}
+
+.theme-v2 .relationship-pair-preview[data-distant-ancestry="true"] .relationship-pair-preview__connector {
+  min-height: 76px;
+}
+
+.theme-v2 .relationship-pair-preview[data-distant-ancestry="true"] .relationship-pair-preview__connector::before {
+  border-left-style: dashed;
+}
+
+.theme-v2 .relationship-pair-preview[data-distant-ancestry="true"][data-uncertain="true"] .relationship-pair-preview__connector {
+  min-height: 94px;
+}
+
+.theme-v2 .relationship-pair-preview__qualifiers {
+  margin: 12px 0 0;
+  color: var(--ch-text-muted);
+  font-size: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@container relationship-preview (min-width: 700px) {
+  .theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__action {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 14px);
+    grid-column: auto;
+    grid-row: auto;
+    width: 168px;
+    margin-top: 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+    text-align: left;
+    word-break: keep-all;
+    transform: translateY(-50%);
+  }
+
+  .theme-v2 .relationship-pair-preview[data-layout="ancestry"] .relationship-pair-preview__action-arrow {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-v2 .relationship-pair-preview { padding: 16px 10px; }
+  .theme-v2 .relationship-pair-preview__diagram { grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr); }
+  .theme-v2 .relationship-pair-preview__person { padding: 12px 7px; }
+  .theme-v2 .relationship-pair-preview__name { font-size: 16px; }
+  .theme-v2 .relationship-pair-preview__connector > span { max-width: calc(100% - 6px); padding: 3px 2px; }
+}

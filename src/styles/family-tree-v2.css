@@ -1,0 +1,103 @@
+.theme-v2 .family-tree-upload-guide { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 16px 0; padding: 16px 20px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-surface-soft); }
+.theme-v2 .family-tree-upload-guide h3 { margin: 0 0 4px; color: var(--ch-ink); font-size: 15px; font-weight: 600; line-height: 1.5; }
+.theme-v2 .family-tree-upload-guide p { margin: 0; color: var(--ch-text); font-size: 13px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-upload-guide > .ch-action { flex-shrink: 0; }
+.theme-v2 .family-tree-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.theme-v2 .family-tree-search { display: flex; align-items: center; gap: 8px; min-width: 180px; flex: 1 1 220px; border: 1px solid var(--ch-border-strong); border-radius: 8px; padding: 0 12px; background: var(--ch-surface); color: var(--ch-text-muted); }
+.theme-v2 .family-tree-search input { width: 100%; min-width: 0; min-height: 44px; border: 0; background: none; color: var(--ch-text); font: inherit; font-size: 14px; }
+.theme-v2 .family-tree-history { min-height: 44px; padding: 0 16px; border-radius: 999px; font-weight: 600; }
+.theme-v2 .family-tree-history:hover { color: var(--ch-primary-ink); transform: none; }
+.theme-v2 .family-tree-history[aria-pressed="true"] { border-color: var(--ch-primary); background: var(--ch-surface-soft); color: var(--ch-primary-ink); }
+.theme-v2 .family-tree-directory { position: relative; }
+.theme-v2 .family-tree-directory-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 340px; max-width: calc(100vw - 64px); z-index: 15; padding: 16px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-float); }
+.theme-v2 .family-tree-search-results { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border: 1px solid var(--ch-border); background: var(--ch-surface); border-radius: 8px; max-height: 200px; overflow-y: auto; }
+.theme-v2 .family-tree-search-results button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--ch-border-strong); border-radius: 8px; background: var(--ch-surface); color: var(--ch-primary-ink); cursor: pointer; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-summary { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; min-height: 44px; font-size: 13px; color: var(--ch-text-muted); }
+.theme-v2 .family-tree-summary strong { color: var(--ch-text); font-weight: 600; }
+.theme-v2 .family-tree-canvas { height: 580px; min-height: 360px; max-height: 72vh; width: 100%; min-width: 0; position: relative; overflow: hidden; border: 1px solid var(--ch-border-strong); border-radius: 12px; background: var(--ch-surface); }
+.theme-v2 .family-tree-canvas .react-flow { --xy-background-color: var(--ch-surface); --xy-node-border: 1px solid var(--ch-border-strong); --xy-edge-stroke: var(--ch-text-muted); background-image: radial-gradient(var(--ch-border) 0.8px, transparent 0.8px); background-size: 20px 20px; }
+.theme-v2 .family-tree-generation-region { width: 100%; height: 100%; padding: 18px 20px; border: 1px dashed var(--ch-border-strong); border-radius: 14px; background: var(--ch-surface-soft); color: var(--ch-text-muted); pointer-events: none; }
+.theme-v2 .family-tree-generation-region strong { display: block; color: var(--ch-ink); font-size: 17px; line-height: 1.5; }
+.theme-v2 .family-tree-generation-region span { display: block; margin-top: 4px; font-size: 12px; }
+.theme-v2 .family-tree-person { width: 100%; height: 100%; border: 1.5px solid var(--ch-border-strong); border-radius: 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
+.theme-v2 .family-tree-person > button { display: grid; grid-template-columns: 36px 1fr; grid-template-rows: 1fr auto; align-items: center; gap: 2px 12px; width: 100%; height: 100%; min-height: 44px; padding: 13px; border: 0; border-radius: inherit; background: none; color: var(--ch-ink); cursor: pointer; text-align: left; pointer-events: auto; }
+.theme-v2 .family-tree-person > button:hover { background: var(--ch-surface-soft); }
+.theme-v2 .family-tree-person strong { font-size: 19px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-avatar { display: grid; place-items: center; width: 36px; height: 36px; grid-row: 1 / 3; border-radius: 50%; overflow: hidden; background: var(--ch-surface-soft); color: var(--ch-primary-ink); }
+.theme-v2 .family-tree-avatar-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.theme-v2 .family-tree-mention-hint, .theme-v2 .family-tree-profile-hint { display: flex; align-items: center; gap: 3px; color: var(--ch-text-muted); font-size: 12px; }
+.theme-v2 .family-tree-person .react-flow__handle { opacity: 0; pointer-events: none; }
+.theme-v2 .family-tree-line { stroke: var(--ch-text-muted); stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; }
+.theme-v2 .family-tree-line--spouse { stroke: var(--ch-primary-ink); }
+.theme-v2 .family-tree-line--sibling { stroke-dasharray: 3 4; }
+.theme-v2 .family-tree-line--adoptive { stroke-dasharray: 5 4; }
+.theme-v2 .family-tree-line--step { stroke-dasharray: 10 3 2 3; }
+.theme-v2 .family-tree-line.is-historical { stroke-dasharray: 12 7; }
+.theme-v2 .family-tree-line.is-selected { stroke: var(--ch-primary); stroke-width: 3px; }
+.theme-v2 .family-tree-lineage-break { stroke-width: 3px; pointer-events: stroke; }
+.theme-v2 .family-tree-edge-label { position: absolute; pointer-events: all; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--ch-text); font-size: 14px; font-weight: 600; line-height: 1.25; cursor: pointer; }
+.theme-v2 .family-tree-edge-label > span { display: inline-flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%; padding: 4px 7px; border-radius: 6px; background: var(--ch-surface); }
+.theme-v2 .family-tree-edge-label > .family-tree-lineage-label { flex-direction: column; gap: 2px; }
+.theme-v2 .family-tree-lineage-label small { font-size: 12px; font-weight: 400; color: var(--ch-text-muted); }
+.theme-v2 .family-tree-edge-label:hover > span, .theme-v2 .family-tree-edge-label.is-selected > span { background: var(--ch-surface-soft); color: var(--ch-primary-ink); box-shadow: 0 0 0 1px var(--ch-primary); }
+.theme-v2 .family-tree-edge-label:focus-visible, .theme-v2 .family-tree-person > button:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 4px; }
+.theme-v2 .family-tree-controls { display: flex; gap: 4px; margin: 12px; }
+.theme-v2 .family-tree-controls .ch-action { min-height: 44px; min-width: 44px; padding: 8px 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
+.theme-v2 .family-tree-updating { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: 12px; background: color-mix(in srgb, var(--ch-surface) 60%, transparent); color: var(--ch-text); font-size: 13px; z-index: 10; }
+.theme-v2 .family-tree-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; padding: 12px 0; border-block: 1px solid var(--ch-border); color: var(--ch-text-muted); font-size: 12px; }
+.theme-v2 .family-tree-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.theme-v2 .family-tree-legend-line { width: 24px; border-top: 2px solid var(--ch-text-muted); }
+.theme-v2 .family-tree-legend-line.is-spouse { border-color: var(--ch-primary-ink); }
+.theme-v2 .family-tree-legend-line.is-adoptive { border-top-style: dashed; }
+.theme-v2 .family-tree-help { position: relative; margin-left: auto; font-size: 13px; line-height: 1.6; color: var(--ch-text-muted); }
+.theme-v2 .family-tree-help summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 8px; list-style: none; }
+.theme-v2 .family-tree-help summary::-webkit-details-marker { display: none; }
+.theme-v2 .family-tree-help summary:hover, .theme-v2 .family-tree-help[open] summary { background: var(--ch-surface); color: var(--ch-primary-ink); }
+.theme-v2 .family-tree-help[open] summary > svg:last-child { transform: rotate(180deg); }
+.theme-v2 .family-tree-help-panel { position: absolute; top: calc(100% + 4px); right: 0; z-index: 15; width: min(360px, calc(100vw - 64px)); padding: 18px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-float); max-height: 60vh; overflow-y: auto; }
+.theme-v2 .family-tree-help p { margin: 0 0 12px; }
+.theme-v2 .family-tree-help p:last-child { margin-bottom: 0; }
+.theme-v2 .family-tree-connection-detail { margin-top: 16px; padding: 20px; border: 1px solid var(--ch-border-strong); border-radius: 12px; background: var(--ch-surface); }
+.theme-v2 .family-tree-connection-detail > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.theme-v2 .family-tree-connection-detail h3 { margin: 0 0 5px; color: var(--ch-ink); font-size: 17px; }
+.theme-v2 .family-tree-connection-detail header p { margin: 0; color: var(--ch-text-muted); font-size: 13px; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-connection-relations { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 8px; }
+.theme-v2 .family-tree-connection-relations > button { display: grid; grid-template-columns: 1fr 18px; align-items: center; gap: 4px 12px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-surface); color: var(--ch-text); text-align: left; cursor: pointer; }
+.theme-v2 .family-tree-connection-relations > button:hover, .theme-v2 .family-tree-connection-relations > button[aria-pressed="true"] { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
+.theme-v2 .family-tree-connection-relations strong { font-size: 14px; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-connection-relations span { grid-column: 1; color: var(--ch-text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.theme-v2 .family-tree-connection-relations svg { grid-column: 2; grid-row: 1 / 3; color: var(--ch-primary-ink); }
+.theme-v2 .family-tree-selected { margin-top: 20px; }
+@media (max-width: 720px) {
+  .theme-v2 .family-tree-upload-guide { align-items: stretch; flex-direction: column; padding: 16px; }
+  .theme-v2 .family-tree-canvas { height: 470px; max-height: 70vh; }
+  .theme-v2 .family-tree-toolbar { gap: 8px; }
+  .theme-v2 .family-tree-search { flex-basis: 100%; }
+  .theme-v2 .family-tree-directory-panel { left: 0; right: auto; }
+}
+@media (max-width: 600px) {
+  .theme-v2 .family-tree-person > button { display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center; }
+  .theme-v2 .family-tree-person strong { font-size: 22px; }
+  .theme-v2 .family-tree-avatar, .theme-v2 .family-tree-mention-hint, .theme-v2 .family-tree-profile-hint { display: none; }
+  .theme-v2 .family-tree-person:not(.is-mention) > button { display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: 1fr; gap: 6px; text-align: left; }
+  .theme-v2 .family-tree-person:not(.is-mention) .family-tree-avatar { display: grid; width: 32px; height: 32px; grid-row: 1; }
+  .theme-v2 .family-tree-edge-label { font-size: 18px; }
+  .theme-v2 .family-tree-connection-detail { padding: 14px; }
+}
+
+.theme-v2 .family-tree-person.is-mention { border-style: dashed; box-shadow: none; }
+.theme-v2 .family-tree-person.is-highlighted { border-color: var(--ch-primary-ink); background: var(--ch-primary-ink); box-shadow: 0 0 0 3px var(--ch-surface), 0 0 0 5px var(--ch-primary); }
+.theme-v2 .family-tree-person.is-highlighted > button, .theme-v2 .family-tree-person.is-highlighted > button:hover { background: var(--ch-primary-ink); color: var(--ch-primary-contrast); }
+.theme-v2 .family-tree-person.is-highlighted .family-tree-profile-hint, .theme-v2 .family-tree-person.is-highlighted .family-tree-mention-hint { color: var(--ch-primary-contrast); font-weight: 600; }
+@media (max-width: 600px) {
+  .theme-v2 .family-tree-person.is-mention > button { flex-direction: column; gap: 4px; }
+  .theme-v2 .family-tree-mention-hint { display: block; font-size: 12px; line-height: 1.25; }
+  .theme-v2 .family-tree-mention-hint svg { display: none; }
+  .theme-v2 .family-tree-person.is-highlighted:not(.is-mention) > button { grid-template-rows: 1fr auto; }
+  .theme-v2 .family-tree-person.is-highlighted .family-tree-profile-hint { display: flex; grid-column: 2; }
+  .theme-v2 .family-tree-person.is-highlighted:not(.is-mention) .family-tree-avatar { grid-row: 1 / 3; }
+}
+
+.theme-v2 .family-tree-endpoint-label { font-size: 14px; font-weight: 500; }
+.theme-v2 .family-tree-endpoint-label > span { padding: 3px 4px; white-space: nowrap; }
+@media (max-width: 600px) { .theme-v2 .family-tree-endpoint-label { font-size: 18px; } }

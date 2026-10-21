@@ -1,0 +1,53 @@
+/* Relationship edits read from the people and their roles to optional details. */
+.theme-v2 .family-edit-fields { display: grid; gap: 18px; padding-block: 12px 4px; }
+.theme-v2 .family-edit-question { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 200px); align-items: center; gap: 16px; }
+.theme-v2 .family-edit-question > span { display: grid; gap: 5px; line-height: 1.55; overflow-wrap: anywhere; }
+.theme-v2 .family-edit-question strong { color: var(--ch-ink); font-size: 18px; }
+.theme-v2 .family-edit-question > span > span { color: var(--ch-text); font-size: 14px; }
+.theme-v2 .family-edit-question select { margin: 0; color: var(--ch-primary-ink); border-color: var(--ch-primary); background: var(--ch-surface-soft); font-size: 16px; font-weight: 600; }
+.theme-v2 .family-edit-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 1fr); align-items: center; gap: 12px; min-width: 0; color: var(--ch-text); font-size: 13px; line-height: 1.6; }
+.theme-v2 .family-edit-field > span { overflow-wrap: anywhere; }
+.theme-v2 .family-edit-field small { margin-left: 4px; color: var(--ch-text-muted); font-size: 12px; }
+.theme-v2 .family-edit-field select, .theme-v2 .family-edit-field input { display: block; width: 100%; min-width: 0; margin: 0; min-height: 44px; border: 1px solid var(--ch-border-strong); border-radius: 8px; padding: 10px 12px; font: inherit; color: var(--ch-text); background: var(--ch-surface); }
+.theme-v2 .family-edit-field--mention { padding-bottom: 18px; border-bottom: 1px solid var(--ch-border); }
+.theme-v2 .family-edit-group { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.theme-v2 .family-edit-group legend { padding: 0 0 10px; color: var(--ch-ink); font-size: 13px; font-weight: 600; }
+.theme-v2 .family-edit-save { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-block: 6px 4px; }
+.theme-v2 .family-edit-save > button { min-height: 44px; padding: 12px 18px; font-size: 14px; font-weight: 600; line-height: 1.4; white-space: normal; }
+.theme-v2 .family-edit-save > button:first-child { color: var(--ch-primary-contrast); background: var(--ch-primary-ink); border-color: var(--ch-primary-ink); }
+.theme-v2 .family-edit-save > button:first-child:hover:not(:disabled) { background: var(--ch-primary-pressed); border-color: var(--ch-primary-pressed); }
+.theme-v2 .family-edit-save > button:disabled { opacity: 1; color: var(--ch-text-muted); background: var(--ch-canvas); border-color: var(--ch-border-strong); }
+.theme-v2 .family-edit-save > button:focus-visible { outline: 2px solid var(--ch-primary-ink); outline-offset: 3px; }
+.theme-v2 .family-context-status { margin-block: 12px; color: var(--ch-text-muted); font-size: 13px; line-height: 1.6; }
+.theme-v2 .family-context-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.theme-v2 .family-context-changes { margin-block: 20px; padding-block: 18px; border-block: 1px solid var(--ch-border); }
+.theme-v2 .family-context-changes h4 { margin: 0 0 14px; color: var(--ch-ink); font-size: 16px; }
+.theme-v2 .family-context-changes dl { display: grid; gap: 8px; margin: 0; }
+.theme-v2 .family-context-changes dl > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; font-size: 14px; line-height: 1.6; }
+.theme-v2 .family-context-changes dt { color: var(--ch-text-muted); }
+.theme-v2 .family-context-changes dd { margin: 0; color: var(--ch-text); overflow-wrap: anywhere; }
+.theme-v2 .family-context-changes > p { margin-block: 14px; color: var(--ch-text-muted); font-size: 13px; line-height: 1.6; }
+@media (max-width: 540px) {
+  .theme-v2 .family-edit-question, .theme-v2 .family-edit-field { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .theme-v2 .family-edit-question { gap: 10px; }
+  .theme-v2 .family-edit-fields { gap: 20px; }
+  .theme-v2 .family-edit-group { gap: 14px; }
+  .theme-v2 .family-edit-save > button { width: 100%; }
+  .theme-v2 .family-context-changes dl > div { grid-template-columns: 68px minmax(0, 1fr); gap: 8px; }
+}
+
+/* The only place to decide family meaning; saving a judgment does not link profiles. */
+.theme-v2 .family-judgment { margin-block: 16px; border-block: 1px solid var(--ch-border); padding-block: 8px; }
+.theme-v2 .family-judgment__summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 44px; }
+.theme-v2 .family-judgment__summary > span { display: inline-flex; align-items: center; gap: 8px; color: var(--ch-text); font-size: 14px; font-weight: 600; }
+.theme-v2 .family-judgment__summary > span > svg { flex-shrink: 0; color: var(--ch-primary-ink); }
+.theme-v2 .family-judgment__summary > button { color: var(--ch-primary-ink); }
+.theme-v2 .family-judgment .review-cb-decisions { margin-top: 10px; }
+.theme-v2 .family-judgment .review-cb-decisions__question h4 { font-size: 18px; margin-bottom: 14px; }
+.theme-v2 .family-judgment .review-cb-choice { padding: 14px 16px; }
+.theme-v2 .family-judgment__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-block: 16px 8px; }
+.theme-v2 .family-judgment__save-hint { align-self: center; color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; }
+@media (max-width: 540px) {
+  .theme-v2 .family-judgment__actions > button:first-child { flex: 1 1 auto; }
+  .theme-v2 .family-judgment .review-cb-choice { padding: 12px; }
+}

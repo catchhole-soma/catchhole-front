@@ -4,14 +4,16 @@
 .theme-v2 .relationship-workspace h3 { color: var(--ch-ink); margin: 0 0 8px; font-size: 17px; }
 .theme-v2 .relationship-workspace h4 { color: var(--ch-ink); margin: 24px 0 12px; font-size: 15px; }
 .theme-v2 .relationship-workspace p { margin: 6px 0 12px; line-height: 1.65; font-size: 14px; overflow-wrap: anywhere; }
-.theme-v2 .relationship-header { display: flex; align-items: start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
-.theme-v2 .relationship-header > div { max-width: 680px; }
-.theme-v2 .relationship-header > button { flex-shrink: 0; }
 .theme-v2 .relationship-processing { background: var(--ch-surface-soft); border: 1px solid var(--ch-border); padding: 18px 20px; border-radius: 12px; }
 .theme-v2 .relationship-processing > p:last-child { margin-bottom: 0; }
 .theme-v2 .relationship-muted { color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .relationship-mode-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--ch-border); margin-bottom: 24px; }
+.theme-v2 .relationship-mode-tabs button { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; min-height: 56px; padding: 12px 24px; border: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0; background: transparent; color: var(--ch-text-muted); font: inherit; font-size: 18px; font-weight: 600; }
+.theme-v2 .relationship-mode-tabs button[aria-selected=true] { background: var(--ch-surface); border-bottom-color: var(--ch-primary); color: var(--ch-primary-ink); font-weight: 700; }
+.theme-v2 .relationship-mode-tabs button:disabled { cursor: not-allowed; opacity: 1; }
+.theme-v2 .relationship-mode-tabs button span { padding: 3px 7px; border: 1px solid var(--ch-border); border-radius: 4px; font-size: 11px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
 .theme-v2 .relationship-view-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--ch-border); margin: 24px 0 18px; }
-.theme-v2 .relationship-view-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--ch-text-muted); padding: 12px 18px; min-height: 44px; font: inherit; cursor: pointer; }
+.theme-v2 .relationship-view-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--ch-text-muted); padding: 12px 18px; min-height: 44px; font: inherit; cursor: pointer; }
 .theme-v2 .relationship-view-tabs button[aria-pressed=true] { color: var(--ch-primary-ink); border-bottom-color: var(--ch-primary); font-weight: 700; }
 .theme-v2 .relationship-view-tabs button span { display: inline-block; background: var(--ch-surface-soft); color: var(--ch-primary-ink); padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 12px; }
 .theme-v2 .relationship-mobile-view { display: none; }
@@ -59,9 +61,9 @@
 .theme-v2 .relationship-workspace nav[aria-label="목록 페이지 이동"] span { color: var(--ch-text-muted) !important; }
 @media (max-width: 720px) {
   .theme-v2 .relationship-page { padding: 20px 16px; }
-  .theme-v2 .relationship-header { display: block; }
-  .theme-v2 .relationship-header > button { width: 100%; }
   .theme-v2 .relationship-card, .theme-v2 .relationship-editor { padding: 16px; }
+  .theme-v2 .relationship-mode-tabs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .theme-v2 .relationship-mode-tabs button { padding: 12px 8px; font-size: 16px; }
   .theme-v2 .relationship-view-tabs { display: none; }
   .theme-v2 .relationship-mobile-view { display: block; margin: 20px 0; }
   .theme-v2 .relationship-form-grid, .theme-v2 .relationship-character-choices { grid-template-columns: 1fr; }

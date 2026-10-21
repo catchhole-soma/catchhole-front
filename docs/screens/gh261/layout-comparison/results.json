@@ -1,0 +1,126 @@
+[
+  {
+    "fixture": "ordinary",
+    "mermaid": {
+      "dagre": {
+        "nodes": 4,
+        "parentEdges": 4,
+        "parentsAbove": 4,
+        "peerEdges": 2,
+        "peersAligned": 0,
+        "renderedEdges": 6
+      },
+      "elk": {
+        "nodes": 4,
+        "parentEdges": 4,
+        "parentsAbove": 4,
+        "peerEdges": 2,
+        "peersAligned": 0,
+        "renderedEdges": 6
+      }
+    },
+    "elkFamilyLayout": {
+      "nodes": 4,
+      "parentEdges": 4,
+      "parentsAbove": 4,
+      "peerEdges": 2,
+      "peersAligned": 2,
+      "edges": 6,
+      "junctions": 1,
+      "warnings": []
+    }
+  },
+  {
+    "fixture": "remarried",
+    "mermaid": {
+      "dagre": {
+        "nodes": 5,
+        "parentEdges": 4,
+        "parentsAbove": 4,
+        "peerEdges": 3,
+        "peersAligned": 0,
+        "renderedEdges": 7
+      },
+      "elk": {
+        "nodes": 5,
+        "parentEdges": 4,
+        "parentsAbove": 4,
+        "peerEdges": 3,
+        "peersAligned": 0,
+        "renderedEdges": 7
+      }
+    },
+    "elkFamilyLayout": {
+      "nodes": 5,
+      "parentEdges": 4,
+      "parentsAbove": 4,
+      "peerEdges": 3,
+      "peersAligned": 3,
+      "edges": 7,
+      "junctions": 2,
+      "warnings": []
+    }
+  },
+  {
+    "fixture": "siblings-only",
+    "mermaid": {
+      "dagre": {
+        "nodes": 3,
+        "parentEdges": 0,
+        "parentsAbove": 0,
+        "peerEdges": 2,
+        "peersAligned": 0,
+        "renderedEdges": 2
+      },
+      "elk": {
+        "nodes": 3,
+        "parentEdges": 0,
+        "parentsAbove": 0,
+        "peerEdges": 2,
+        "peersAligned": 0,
+        "renderedEdges": 2
+      }
+    },
+    "elkFamilyLayout": {
+      "nodes": 3,
+      "parentEdges": 0,
+      "parentsAbove": 0,
+      "peerEdges": 2,
+      "peersAligned": 2,
+      "edges": 2,
+      "junctions": 0,
+      "warnings": []
+    }
+  },
+  {
+    "fixture": "biological-adoptive",
+    "mermaid": {
+      "dagre": {
+        "nodes": 5,
+        "parentEdges": 5,
+        "parentsAbove": 5,
+        "peerEdges": 0,
+        "peersAligned": 0,
+        "renderedEdges": 5
+      },
+      "elk": {
+        "nodes": 5,
+        "parentEdges": 5,
+        "parentsAbove": 5,
+        "peerEdges": 0,
+        "peersAligned": 0,
+        "renderedEdges": 5
+      }
+    },
+    "elkFamilyLayout": {
+      "nodes": 5,
+      "parentEdges": 5,
+      "parentsAbove": 5,
+      "peerEdges": 0,
+      "peersAligned": 0,
+      "edges": 5,
+      "junctions": 2,
+      "warnings": []
+    }
+  }
+]

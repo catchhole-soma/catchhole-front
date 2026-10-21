@@ -26,6 +26,7 @@ import {
   getCharacterQueryKey,
   getCharactersOptions,
   getCharactersQueryKey,
+  getFamilyTreeQueryKey,
   restoreCharacterMutation,
   updateCharacterMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
@@ -98,6 +99,8 @@ interface CharacterDraft {
 }
 
 interface Props {
+  /** Reuse the profile and evidence layers without mounting the character directory. */
+  detailOnly?: boolean;
   workId: string;
   selectedCharacterId: string | null;
   selectedEvidenceFactId: string | null;
@@ -1094,6 +1097,7 @@ function ArchivedCharactersLayer({
 }
 
 export function CharacterDatabase({
+  detailOnly = false,
   workId,
   selectedCharacterId,
   selectedEvidenceFactId,
@@ -1137,6 +1141,13 @@ export function CharacterDatabase({
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [restoringCharacterId, setRestoringCharacterId] = useState<string | null>(null);
   const draftCharacterIdRef = useRef<string | null>(null);
+  const detailLayerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!detailOnly || !selectedCharacterId) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    detailLayerRef.current?.focus({ preventScroll: true });
+    return () => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }); };
+  }, [detailOnly, selectedCharacterId]);
   const currentViewRef = useRef({
     workId,
     selectedCharacterId,
@@ -1170,7 +1181,7 @@ export function CharacterDatabase({
 
   const charactersQuery = useQuery({
     ...getCharactersOptions({ path: { workId }, query: { page, size: pageSize } }),
-    enabled: !demoMode && Boolean(workId) && layoutReady,
+    enabled: !detailOnly && !demoMode && Boolean(workId) && layoutReady,
   });
   const detailQuery = useQuery({
     ...getCharacterOptions({ path: { workId, characterId: selectedCharacterId ?? '' } }),
@@ -1618,7 +1629,7 @@ export function CharacterDatabase({
         </div>
       )}
 
-      <div ref={containerRef} className="character-database" style={{ width: '100%', maxWidth: 1680 }}>
+      {!detailOnly && <div ref={containerRef} className="character-database" style={{ width: '100%', maxWidth: 1680 }}>
         <div className="character-database-header" style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div className="character-database-heading">
             <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 설정</h2>
@@ -1694,7 +1705,7 @@ export function CharacterDatabase({
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {archiveOpen && (
         <ArchivedCharactersLayer
@@ -1725,6 +1736,7 @@ export function CharacterDatabase({
             queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
             queryClient.invalidateQueries({ queryKey: getCharacterQueryKey({ path: { workId, characterId: detail.id! } }) }),
             queryClient.invalidateQueries({ queryKey: getArchivedCharactersQueryKey({ path: { workId } }) }),
+            queryClient.invalidateQueries({ queryKey: getFamilyTreeQueryKey({ path: { workId } }) }),
           ]);
         }}
         onReload={async () => { const result = await detailQuery.refetch(); if (result.error) throw result.error; return result.data?.data?.image?.version ?? 0; }} />}
@@ -1741,6 +1753,26 @@ export function CharacterDatabase({
         >
           <motion.div
             initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            ref={detailLayerRef}
+            tabIndex={detailOnly ? -1 : undefined}
+            onKeyDown={event => {
+              if (!detailOnly || event.defaultPrevented || imagePickerOpen || timelineEvidenceOpen) return;
+              if (event.key === 'Escape') {
+                event.preventDefault(); event.stopPropagation();
+                if (mutationPending) return;
+                if (confirming) setConfirming(null);
+                else if (selectedEvidenceFactId) onEvidenceClose();
+                else if (timelineOpen) onTimelineClose();
+                else closeDetail();
+              } else if (event.key === 'Tab' && !timelineOpen) {
+                const choices = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]'))
+                  .filter(element => element.getClientRects().length > 0);
+                const first = choices[0], last = choices[choices.length - 1];
+                if (!first) { event.preventDefault(); return; }
+                if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+              }
+            }}
             role="dialog"
             aria-modal="true"
             aria-label={`${detail?.name ?? '캐릭터'} 캐릭터 상세`}

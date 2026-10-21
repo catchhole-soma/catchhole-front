@@ -1,0 +1,107 @@
+.theme-v2 .relationship-evidence-list--flat {
+  gap: 24px;
+  margin: 0;
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-evidence {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-width: 0;
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-evidence + .relationship-evidence {
+  padding-top: 24px;
+  border-top: 1px solid var(--ch-border);
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-evidence__heading {
+  column-gap: 12px;
+  row-gap: 4px;
+  color: var(--ch-text);
+  line-height: 1.6;
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-current-setting {
+  margin: 6px 0 16px;
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-value {
+  margin: 0;
+}
+
+.theme-v2 .relationship-evidence-list--flat .relationship-value + .relationship-value {
+  margin-top: 8px;
+}
+
+.theme-v2 .family-evidence-original__source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 14px 0 8px;
+  color: var(--ch-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.theme-v2 .family-evidence-original__source > :first-child {
+  color: var(--ch-text);
+  font-weight: 600;
+}
+
+.theme-v2 .family-evidence-original__quote {
+  margin: 0 0 10px;
+  padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--ch-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ch-text);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.theme-v2 .family-evidence-original__status,
+.theme-v2 .family-evidence-original__error p {
+  margin: 10px 0;
+  color: var(--ch-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.theme-v2 .family-evidence-original__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ch-primary-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-v2 .family-evidence-original__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.theme-v2 .family-evidence-original__link:focus-visible {
+  outline: 3px solid var(--ch-primary-ink);
+  outline-offset: 3px;
+}
+
+.theme-v2 .family-evidence-original__link:disabled {
+  opacity: .6;
+  cursor: wait;
+}

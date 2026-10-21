@@ -88,3 +88,7 @@ Vercel을 사용하며, `vercel.json`에 SPA 라우팅(파일시스템 우선 + 
 ## 참고 문서
 
 - [`CLAUDE.md`](./CLAUDE.md) — 프로젝트 컨텍스트, 디자인 시스템, 워크플로우, 컨벤션
+
+### 가족 관계 가계도 미리보기
+
+가계도는 기본 비공개이며 `VITE_RELATIONSHIP_WORKSPACE_ENABLED=true`로 켠 개발 빌드의 `/dashboard?workId=<id>&nav=graph`에서 확인한다. 기존 명시적 가족 관계를 자동 배치하고 인물 프로필·관계 근거·후보 검토로 연결한다. [화면/API 계약](docs/family-relationships.md) · [React Flow/ELK·Mermaid 비교와 배치 테스트](docs/family-tree-layout.md). `npm run test:layout`으로 순수 배치 검증을 실행한다.

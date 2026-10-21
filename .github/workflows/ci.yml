@@ -20,11 +20,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - run: npm run test:layout
 
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - name: Verify relationship workspace preview
-        run: npm run test:e2e -- e2e/family-relationships.spec.ts --workers=2
+        run: npm run test:e2e -- e2e/family-relationships.spec.ts e2e/family-tree.spec.ts e2e/family-tree-mentions.spec.ts e2e/family-mention-groups.spec.ts --workers=2
         env:
           VITE_RELATIONSHIP_WORKSPACE_ENABLED: 'true'
           CATCHHOLE_E2E_PORT: '3107'

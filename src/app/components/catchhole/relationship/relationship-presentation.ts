@@ -8,6 +8,12 @@ export type RelationshipTime = NonNullable<RelationshipCandidateResponse['tempor
 
 export const KIND_LABELS: Record<RelationshipKind, string> = {
   PARENT_OF: '부모 → 자녀', CHILD_OF: '자녀 → 부모', SPOUSE: '배우자', SIBLING: '형제·자매',
+  ANCESTOR_OF: '조상 → 후손', DESCENDANT_OF: '후손 → 조상',
+};
+// These labels describe the object from the subject's point of view.
+export const COUNTERPART_ROLES: Record<RelationshipKind, string> = {
+  CHILD_OF: '부모', PARENT_OF: '자녀', SPOUSE: '배우자', SIBLING: '형제자매',
+  ANCESTOR_OF: '후손', DESCENDANT_OF: '조상',
 };
 export const SUBTYPE_LABELS: Record<RelationshipSubtype, string> = {
   UNSPECIFIED: '세부 관계 미상', BIOLOGICAL: '혈연', ADOPTIVE: '입양', STEP: '재혼으로 맺어진 가족',
@@ -27,22 +33,33 @@ const REVIEW_LABELS: Record<string, string> = {
   FIGURATIVE: '가족에 빗댄 표현인지 확인해 주세요.', CONFLICTING: '서로 다른 가족 관계 내용이 있어요.',
   UNKNOWN_TEMPORAL_SCOPE: '현재 관계인지 과거 관계인지 확인해 주세요.',
   SELF_REFERENCE: '같은 인물끼리 연결되어 있어요. 상대 인물을 확인해 주세요.',
-  PREVIOUSLY_WITHDRAWN: '이전에 철회한 관계예요. 다시 반영할 관계인지 확인해 주세요.',
-  ANCESTRY_CYCLE: '기존 부모·자녀 연결과 순환할 수 있어요. 기존 관계를 확인한 뒤 검토 내용을 저장해 주세요.',
+  PREVIOUSLY_WITHDRAWN: '이전에 삭제한 연결이에요. 다시 반영할 관계인지 확인해 주세요.',
+  ANCESTRY_CYCLE: '기존 부모·자녀 또는 조상·후손 연결과 순환할 수 있어요. 기존 관계를 확인한 뒤 검토 내용을 저장해 주세요.',
+  GENERATION_GAP_CONFLICT: '명시된 대손 수가 다른 가족 관계와 맞지 않아요. 기존 관계와 원문을 확인해 주세요.',
+  MENTION_GROUP_SOURCE_CHANGED: '일부 관계의 설정이 바뀌어 가계도에서 빠졌어요. 각 관계의 근거를 확인해 주세요.',
   CURRENT_VALUE_CONFLICT: '현재 설정의 표시 내용과 세부 내용이 서로 달라요.',
   UNSUPPORTED_STRUCTURED_CONTEXT: '복합 설정 안의 가족 관계를 직접 확인해 주세요.',
   UNSUPPORTED_FAMILY_SYNTAX: '가족 관계 표현을 직접 확인해 주세요.',
   INPUT_LIMIT_EXCEEDED: '가족 관계 내용이 길거나 많아 직접 확인이 필요해요.',
-  CYCLE: '부모·자녀 관계가 서로 되돌아가는 연결인지 확인해 주세요.',
+  CYCLE: '부모·자녀 또는 조상·후손 관계가 서로 되돌아가는 연결인지 확인해 주세요.',
 };
 export const VALIDITY_LABELS: Record<NonNullable<RelationshipResponse['validity']>, string> = {
-  VALID: '반영됨', REVIEW_REQUIRED: '현재 설정 확인 필요', ARCHIVED_ENDPOINT: '보관된 인물 포함', WITHDRAWN: '철회된 관계',
+  VALID: '반영됨', REVIEW_REQUIRED: '현재 설정 확인 필요', ARCHIVED_ENDPOINT: '보관된 인물 포함', WITHDRAWN: '삭제된 연결',
 };
 
 export function allowedSubtypes(kind: RelationshipKind): RelationshipSubtype[] {
   if (kind === 'SPOUSE') return ['UNSPECIFIED'];
   if (kind === 'SIBLING') return ['UNSPECIFIED', 'BIOLOGICAL', 'FULL', 'HALF', 'ADOPTIVE', 'STEP'];
+  if (isDistantAncestry(kind)) return ['UNSPECIFIED', 'BIOLOGICAL'];
   return ['UNSPECIFIED', 'BIOLOGICAL', 'ADOPTIVE', 'STEP'];
+}
+
+export function isDistantAncestry(kind: RelationshipKind | undefined): boolean {
+  return kind === 'ANCESTOR_OF' || kind === 'DESCENDANT_OF';
+}
+
+export function generationLabel(generationGap: number | null | undefined): string {
+  return generationGap == null ? '세대 차이 미상' : `${generationGap}대손`;
 }
 
 export function reviewMessage(reason: string): string {
