@@ -1,4 +1,4 @@
-import { installEpisodeSourceList } from './episode-source-list';
+import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const TEST_WORK_ID = '00000000-0000-4000-8000-000000000001';
@@ -1199,11 +1199,10 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data, error: null }),
+      body: JSON.stringify({ success: true, data: withEpisodeBatchSummaries(data), error: null }),
     });
   });
 
-  await installEpisodeSourceList(page, workId, [{ id: analysisJobId, batchId, episodeId, episodeNo: 1, status: 'RUNNING', jobType: 'EPISODE_VALIDATION' }, { id: secondAnalysisJobId, batchId, episodeId: secondEpisodeId, episodeNo: 2, status: 'RUNNING', jobType: 'EPISODE_VALIDATION' }]);
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'episode-active-token'));
@@ -1735,11 +1734,10 @@ test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이�
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data, error: null }),
+      body: JSON.stringify({ success: true, data: withEpisodeBatchSummaries(data), error: null }),
     });
   });
 
-  await installEpisodeSourceList(page, workId, [{ id: analysisJobId, batchId, episodeId, episodeNo: 3 }]);
 
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'setting-result-token'));

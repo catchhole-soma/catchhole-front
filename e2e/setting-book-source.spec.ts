@@ -59,6 +59,16 @@ async function setup(page: Page, { historical = false, archived = false, legacyE
     if (path === `/api/v1/works/${workId}`) return envelope(route, { id: workId, title: '출처 작품', lifecycleStatus: 'ACTIVE' });
     if (path.endsWith('/analysis-jobs/batches')) return envelope(route, pageData([{ batchId, uploadType: mixed ? 'SINGLE_EPISODE' : 'SETTING_BOOK', status: mixedActive ? 'IN_PROGRESS' : 'REVIEW_REQUIRED',
       episodeStartNo: mixed ? 3 : null, episodeEndNo: mixed ? 3 : null, episodeCount: mixed ? 1 : 0, pendingCandidateCount: 1,
+      episodeStatus: mixed ? mixedActive ? 'IN_PROGRESS' : 'REVIEW_REQUIRED' : null,
+      episodeJobGroups: mixed ? [{ jobType: 'SETTING_EXTRACTION', status: mixedActive ? 'IN_PROGRESS' : 'COMPLETED',
+        currentAnalysisJobIds: [nextJobId], totalJobCount: 1, runningJobCount: mixedActive ? 1 : 0, succeededJobCount: mixedActive ? 0 : 1 }] : [],
+      settingBooks: [{ settingBookId: bookId, sourceAnalysisJobId: latestJobId, batchId,
+        revisionId: latestRevisionId, settingBookName: bookSource.settingBookName, status: 'COMPLETED', failureCode: null,
+        currentStep: null, contentChangedSinceAnalysis: false, historical: false, lastActivityAt: '2026-10-06T12:00:00',
+        characterCandidates: { totalCandidateCount: 1, reviewedCandidateCount: 0, pendingCandidateCount: dismissedCharacter ? 0 : 1,
+          directReviewCandidateCount: dismissedCharacter ? 0 : 1, processingCandidateCount: 0 },
+        worldCandidates: { totalCandidateCount: 1, reviewedCandidateCount: 0, pendingCandidateCount: dismissedWorld ? 0 : 1,
+          directReviewCandidateCount: dismissedWorld ? 0 : 1, processingCandidateCount: 0 } }],
       jobGroups: [{ jobType: 'SETTING_EXTRACTION', status: mixedActive ? 'IN_PROGRESS' : 'REVIEW_REQUIRED', currentAnalysisJobIds: mixed ? [jobId, nextJobId] : [jobId], totalJobCount: mixed ? 2 : 1, succeededJobCount: mixed ? 2 : 1 }] }]));
     if (path.endsWith('/analysis-jobs')) return envelope(route, jobs());
     if (path.includes('/analysis-jobs/')) return envelope(route, job(path.split('/').at(-1)));
@@ -307,27 +317,14 @@ test('느린 이전 분석 응답은 같은 배치의 새 출처 화면을 덮�
   await expect(page.locator('.candidate-group-card')).toContainText('다른 분석 인물');
 });
 
-for (const failure of [false, true]) test(`혼합 배치의 진행은 출처 조회 ${failure ? '실패 복구' : '완료'} 뒤 명시적 회차 작업만 연다`, async ({ page }) => {
+test('혼합 배치의 진행은 별도 출처 조회 없이 명시적 회차 작업만 연다', async ({ page }) => {
   const fixture = await setup(page, { mixed: true, mixedActive: true });
-  let release!: () => void;
-  let fail = failure;
-  const waiting = new Promise<void>(resolve => { release = resolve; });
-  await page.route(`**/api/v1/works/${workId}/analysis-jobs`, async route => {
-    if (!failure) await waiting;
-    if (fail) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ success: false,
-      data: null, message: '출처 조회 실패', error: { code: 'COMMON_INTERNAL_SERVER_ERROR', status: 500 } }) });
-    return envelope(route, fixture.jobs());
-  });
+  await page.route(`**/api/v1/works/${workId}/analysis-jobs`, route => route.fulfill({ status: 500 }));
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
   const episodeCard = page.locator('.analysis-batch-card:not([data-testid="book-analysis-card"])');
-  await expect(episodeCard.locator('.analysis-card-footer button')).toBeDisabled();
-  if (failure) {
-    await expect(episodeCard.getByRole('alert')).toContainText('출처를 확인하지 못해');
-    fail = false;
-    await episodeCard.getByRole('button', { name: '출처 다시 확인' }).click();
-  } else release();
-  await expect(episodeCard.locator('.analysis-card-footer button')).toBeEnabled();
-  await episodeCard.locator('.analysis-card-footer button').click();
+  await expect(episodeCard.getByRole('button', { name: '진행 보기', exact: true })).toBeEnabled();
+  expect(fixture.calls.filter(call => call.path.endsWith('/analysis-jobs'))).toEqual([]);
+  await episodeCard.getByRole('button', { name: '진행 보기', exact: true }).click();
   const url = new URL(page.url());
   expect(url.searchParams.get('analysisJobIds')).toBe(nextJobId);
   expect(url.searchParams.get('currentAnalysisJobIds')).toBe(nextJobId);

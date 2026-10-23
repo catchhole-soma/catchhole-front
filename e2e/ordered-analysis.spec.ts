@@ -1,3 +1,4 @@
+import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
 import { canResumeOrderedAnalysis, isBlockedOrderedAnalysis, isCompletedOrderedAnalysis } from '../src/app/lib/ordered-analysis';
@@ -9,7 +10,7 @@ const episodeIds = ['44444444-4444-4444-8444-444444444444', '44444444-4444-4444-
 const runId = '55555555-5555-4555-8555-555555555555';
 
 function success(route: Route, data: unknown) {
-  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: withEpisodeBatchSummaries(data), error: null }) });
 }
 
 function job(index: number, status: AnalysisJobResponse['status'], journalStatus: NonNullable<AnalysisJobResponse['analysisRun']>['journalStatus']): AnalysisJobResponse {
