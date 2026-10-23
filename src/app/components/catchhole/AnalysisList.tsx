@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router';
 import {
   AlertCircle,
@@ -10,7 +10,7 @@ import {
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
-import { getAnalysisBatchesOptions, getAnalysisJobsOptions, getSettingBooksOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { getAnalysisBatchesOptions, getAnalysisBatchesQueryKey } from '../../api/generated/@tanstack/react-query.gen';
 import type {
   AnalysisBatchJobGroupResponse,
   AnalysisBatchSummaryResponse,
@@ -22,17 +22,14 @@ import {
 } from '../../lib/ai-token-quota';
 import { PageNavigation } from './PageNavigation';
 import { PageHeading } from './ui-v2/PageHeading';
-import { SettingBookAnalysisStatus } from './SettingBookAnalysisStatus';
+import { AnalysisListBookCard } from './AnalysisListBookCard';
+import { invalidateAppliedSettings } from '../../lib/analysis-source';
 import { AnalysisCard, CandidateReviewCount } from './AnalysisCard';
-
-function BookAnalysisCard({ workId, jobId, batchId }: { workId: string; jobId: string; batchId: string }) {
-  return <SettingBookAnalysisStatus workId={workId} analysisJobId={jobId} batchId={batchId} presentation="card" />;
-}
 
 const PAGE_SIZE = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-type AnalysisBatchStatus = NonNullable<AnalysisBatchSummaryResponse['status']>;
+type AnalysisBatchStatus = NonNullable<AnalysisBatchSummaryResponse['episodeStatus']>;
 
 const STATUS_VIEW: Record<AnalysisBatchStatus, {
   label: string;
@@ -104,13 +101,13 @@ function actionLabel(status: AnalysisBatchStatus, tokenInterruptedCount: number)
 }
 
 function hasSettledTokenInterruption(batch: AnalysisBatchSummaryResponse): boolean {
-  return batch.status !== 'IN_PROGRESS'
-    && batch.status !== 'CANCELED'
+  return batch.episodeStatus !== 'IN_PROGRESS'
+    && batch.episodeStatus !== 'CANCELED'
     && (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0;
 }
 
 function hasAnalysisFailure(batch: AnalysisBatchSummaryResponse): boolean {
-  return (batch.jobGroups ?? []).some(group => (
+  return (batch.episodeJobGroups ?? []).some(group => (
     group.status === 'FAILED' || group.status === 'PARTIALLY_FAILED'
   ));
 }
@@ -119,7 +116,7 @@ function findActionJobGroup(
   batch: AnalysisBatchSummaryResponse,
   status: AnalysisBatchStatus,
 ): AnalysisBatchJobGroupResponse | undefined {
-  const groups = batch.jobGroups ?? [];
+  const groups = batch.episodeJobGroups ?? [];
   const preferredStatuses = status === 'IN_PROGRESS'
     ? ['IN_PROGRESS']
     : status === 'CANCELED'
@@ -141,6 +138,9 @@ function findActionJobGroup(
 
 export function AnalysisList({ workId }: { workId: string }) {
   const navigate = useAppNavigate();
+  const queryClient = useQueryClient();
+  const invalidatedCompletedOrigins = useRef(new Set<string>());
+  const notifiedQuotaOrigins = useRef(new Set<string>());
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePage(searchParams.get('analysisPage'));
@@ -153,17 +153,14 @@ export function AnalysisList({ workId }: { workId: string }) {
     enabled: apiEnabled,
     retry: false,
     refetchInterval: query => (
-      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS')
+      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS'
+        || batch.settingBooks?.some(book => book.status === 'PENDING' || book.status === 'IN_PROGRESS'))
         ? 10_000
         : false
     ),
   });
   const pageData = analysisQuery.data?.data;
   const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
-  const booksQuery = useQuery({ ...getSettingBooksOptions({ path: { workId } }), enabled: apiEnabled, retry: false });
-  const jobsQuery = useQuery({ ...getAnalysisJobsOptions({ path: { workId } }), enabled: apiEnabled && batches.length > 0, retry: false,
-    refetchInterval: batches.some(batch => batch.status === 'IN_PROGRESS') ? 10_000 : false });
-  const jobsById = new Map((jobsQuery.data?.data ?? []).map(job => [job.id, job]));
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
 
@@ -182,7 +179,7 @@ export function AnalysisList({ workId }: { workId: string }) {
       const shouldNotify = observeAnalysisInterruption({
         batchId: batch.batchId,
         interruptedComparisonCount: batch.worldSettingTokenInterruptedCandidateCount ?? 0,
-        active: batch.status === 'IN_PROGRESS',
+        active: batch.episodeStatus === 'IN_PROGRESS',
       });
       return hasSettledTokenInterruption(batch) && shouldNotify;
     });
@@ -195,6 +192,28 @@ export function AnalysisList({ workId }: { workId: string }) {
       ),
     });
   }, [batches]);
+
+  useEffect(() => {
+    let completed = false;
+    let quotaInterrupted = false;
+    for (const batch of batches) for (const book of batch.settingBooks ?? []) {
+      if (!book.sourceAnalysisJobId) continue;
+      const key = `${workId}:${book.sourceAnalysisJobId}`;
+      if (book.status === 'COMPLETED' && !invalidatedCompletedOrigins.current.has(key)) {
+        invalidatedCompletedOrigins.current.add(key);
+        completed = true;
+      }
+      if (book.status === 'INTERRUPTED' && book.failureCode === 'AI_TOKEN_QUOTA_EXHAUSTED'
+        && !notifiedQuotaOrigins.current.has(key)) {
+        notifiedQuotaOrigins.current.add(key);
+        quotaInterrupted = true;
+      }
+    }
+    if (completed) void invalidateAppliedSettings(queryClient, workId, {
+      excludeQueryKey: getAnalysisBatchesQueryKey({ path: { workId }, query: { page, size: PAGE_SIZE } }),
+    });
+    if (quotaInterrupted) notifyAiTokenQuotaExhausted({ kind: 'analysis-failed', sourceKind: 'SETTING_BOOK' });
+  }, [batches, page, queryClient, workId]);
 
   const changePage = (nextPage: number) => {
     setSearchParams(params => {
@@ -210,7 +229,6 @@ export function AnalysisList({ workId }: { workId: string }) {
   ) => {
     if (!batch.batchId || !group.jobType) return;
     const currentIds = [...new Set(group.currentAnalysisJobIds ?? [])];
-    if (jobsQuery.isError || currentIds.some(id => jobsById.get(id)?.source?.sourceKind !== 'EPISODE')) return;
     const jobIds = currentIds;
     if (jobIds.length === 0) return;
     const encodedIds = encodeURIComponent(jobIds.join(','));
@@ -230,10 +248,10 @@ export function AnalysisList({ workId }: { workId: string }) {
 
   const openReview = (batch: AnalysisBatchSummaryResponse) => {
     if (!batch.batchId) return;
-    const jobType = batch.jobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.jobType
-      ?? batch.jobGroups?.[0]?.jobType
+    const jobType = batch.episodeJobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.jobType
+      ?? batch.episodeJobGroups?.[0]?.jobType
       ?? 'SETTING_EXTRACTION';
-    const reviewStatus = batch.status === 'COMPLETED' ? '&reviewStatus=ALL' : '';
+    const reviewStatus = batch.episodeStatus === 'COMPLETED' ? '&reviewStatus=ALL' : '';
     const candidateType = (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
       ? '&candidateType=world'
       : '';
@@ -303,46 +321,12 @@ export function AnalysisList({ workId }: { workId: string }) {
               </button>
             </div>
           )}
-          {batches.map(originalBatch => {
-            const books = (booksQuery.data?.data ?? []).filter(book => book.batchId === originalBatch.batchId);
-            const currentBookJob = new Map(books.map(book => [book.id, book.latestAnalysisJob?.id]));
-            const currentIds = originalBatch.jobGroups?.flatMap(group => group.currentAnalysisJobIds ?? []) ?? [];
-            const sourcesReady = !jobsQuery.isError && currentIds.every(id => ['EPISODE', 'SETTING_BOOK'].includes(jobsById.get(id)?.source?.sourceKind ?? ''));
-            const explicitBookIds = currentIds.filter(id => jobsById.get(id)?.source?.sourceKind === 'SETTING_BOOK');
-            const origins = [...new Set([...explicitBookIds.map(id => {
-              const source = jobsById.get(id)?.source;
-              return currentBookJob.get(source?.settingBookId ?? '') ?? id;
-            }), ...books.flatMap(book => book.latestAnalysisJob?.source?.sourceKind === 'SETTING_BOOK'
-              && book.latestAnalysisJob.id ? [book.latestAnalysisJob.id] : [])])];
-            // Legacy mixed batches expose book and episode Job IDs together. Episode navigation stays scoped to episodes.
-            const episodeGroups = !sourcesReady ? originalBatch.jobGroups ?? [] : (originalBatch.jobGroups ?? []).flatMap(group => {
-              const ids = (group.currentAnalysisJobIds ?? []).filter(id => jobsById.get(id)?.source?.sourceKind === 'EPISODE');
-              if (ids.length === 0) return [];
-              if (ids.length === group.currentAnalysisJobIds?.length) return [group];
-              const jobs = ids.flatMap(id => jobsById.get(id) ? [jobsById.get(id)!] : []);
-              const count = (status: string) => jobs.filter(job => job.status === status).length;
-              const pendingJobCount = count('PENDING'), runningJobCount = count('RUNNING'), failedJobCount = count('FAILED');
-              return [{ ...group, currentAnalysisJobIds: ids, totalJobCount: ids.length, pendingJobCount, runningJobCount,
-                succeededJobCount: count('SUCCEEDED'), failedJobCount, canceledJobCount: count('CANCELED'),
-                status: pendingJobCount + runningJobCount > 0 ? 'IN_PROGRESS' as const
-                  : failedJobCount > 0 ? 'FAILED' as const : 'COMPLETED' as const }];
-            });
-            const batch = sourcesReady && explicitBookIds.length > 0 && originalBatch.uploadType !== 'SETTING_BOOK' ? {
-              ...originalBatch, jobGroups: episodeGroups,
-              status: episodeGroups.some(group => group.status === 'IN_PROGRESS') ? 'IN_PROGRESS' as const
-                : episodeGroups.some(group => group.status === 'FAILED') ? 'FAILED' as const
-                  : (originalBatch.pendingCandidateCount ?? 0) + (originalBatch.worldSettingPendingCandidateCount ?? 0) > 0
-                    ? 'REVIEW_REQUIRED' as const : 'COMPLETED' as const,
-            } : originalBatch;
-            if (batch.uploadType === 'SETTING_BOOK') {
-              const id = origins[0] ?? batch.jobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.currentAnalysisJobIds?.[0];
-              return id && batch.batchId ? <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />
-                : <article key={batch.batchId} className="analysis-batch-card">설정집 분석 출처를 확인하지 못했습니다.</article>;
-            }
-            if (sourcesReady && explicitBookIds.length > 0 && episodeGroups.length === 0) {
-              return <div key={batch.batchId}>{origins.map(id => batch.batchId && <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />)}</div>;
-            }
-            const status = batch.status ?? 'COMPLETED';
+          {batches.map(batch => {
+            const bookCards = (batch.settingBooks ?? []).map(book => (
+              <AnalysisListBookCard key={book.sourceAnalysisJobId} workId={workId} book={book} />
+            ));
+            if (batch.episodeStatus == null) return <div key={batch.batchId}>{bookCards}</div>;
+            const status = batch.episodeStatus;
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
             const hasTokenInterruption = hasSettledTokenInterruption(batch);
             const analysisFailure = hasAnalysisFailure(batch);
@@ -368,9 +352,9 @@ export function AnalysisList({ workId }: { workId: string }) {
               || status === 'COMPLETED'
             );
             const actionGroup = opensReview ? undefined : findActionJobGroup(batch, status);
-            const actionEnabled = sourcesReady && (opensReview
+            const actionEnabled = opensReview
               ? Boolean(batch.batchId)
-              : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0);
+              : (actionGroup?.currentAnalysisJobIds?.length ?? 0) > 0;
             const episodeCard = (
               <AnalysisCard
                 key={batch.batchId}
@@ -393,12 +377,8 @@ export function AnalysisList({ workId }: { workId: string }) {
                   </button>
                 }
               >
-                    {!sourcesReady && <div role={jobsQuery.isError ? 'alert' : 'status'}>
-                      {jobsQuery.isPending ? '분석 출처를 확인하고 있습니다.' : '분석 출처를 확인하지 못해 진행·검토를 열 수 없습니다.'}
-                      {!jobsQuery.isPending && <button type="button" className="analysis-card-action" onClick={() => void jobsQuery.refetch()}>출처 다시 확인</button>}
-                    </div>}
                     <div className="analysis-batch-card__groups">
-                      {(batch.jobGroups ?? []).map(group => (
+                      {(batch.episodeJobGroups ?? []).map(group => (
                         <span key={group.jobType} className="analysis-batch-card__group">
                           {jobTypeLabel(group.jobType)}
                           {' · '}
@@ -427,7 +407,7 @@ export function AnalysisList({ workId }: { workId: string }) {
                     )}
               </AnalysisCard>
             );
-            return <div key={batch.batchId}>{episodeCard}{origins.map(id => batch.batchId && <BookAnalysisCard key={id} workId={workId} jobId={id} batchId={batch.batchId} />)}</div>;
+            return <div key={batch.batchId}>{episodeCard}{bookCards}</div>;
           })}
           <div style={{ marginTop: 6 }}>
             <PageNavigation
