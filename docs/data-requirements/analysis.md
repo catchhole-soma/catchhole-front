@@ -157,6 +157,8 @@ GET /api/v1/works/{workId}/world-setting-candidates/progress?batchId={batchId}
 
 작업은 중복 제거 전 1~100개를 요청하며 서버는 최초 입력 순서로 반환한다. 없는/다른 작품 작업이 섞이면 전체를 거절한다. 긴 이력은 100개씩 순차 요청하고 모든 묶음이 성공해야 반영한다. 세계관 응답은 `pendingComparisonCount`, `processingComparisonCount`, `tokenInterruptedComparisonCount` 세 수치뿐이다. 기존 `GET /analysis-jobs/{analysisJobId}`는 다른 상세 소비자를 위해 유지한다.
 
+재개 성공 응답의 새 ID는 후속 상태 GET 전에 추적/현재 목록과 URL에 보존한다. `analysisRun.journalStatus=INVALIDATED`여도 Job 상태가 PENDING/RUNNING이면 종료를 관측할 때까지 조회 대상이며, terminal 상태가 확인된 뒤 멈춘다. RUNNING은 3초, 무효화로 차단된 PENDING은 30초로 확인하고 focus/reconnect·수동 재조회도 같은 대상 규칙을 따른다.
+
 **5-2. BE → FE 제공 데이터 요구사항 — 회차별 진행 정보**
 
 현재 진행 요약 응답의 `episodes`에는 해당 Job의 단일 회차 ID·번호·제목·`Episode.status`가 포함된다. FE는 고정 대상 응답을 회차 번호순으로 합치며 다른 Job의 상태를 복제하지 않는다. 검수 결과 식별자는 후속 리포트 계약에서 추가한다.
