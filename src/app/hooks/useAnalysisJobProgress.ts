@@ -22,6 +22,7 @@ function eligibleIds(scope: ProgressScope, jobs: AnalysisJobProgressResponse[]) 
     if (scope.supersededJobIds.has(id)) return false;
     const job = byId.get(id);
     if (!job) return true;
+    if (job.status === 'RUNNING' || job.status === 'PENDING') return true;
     if (isOrderedAnalysis(job)) return !isInvalidatedAnalysis(job) && job.status !== 'CANCELED';
     return job.status !== 'SUCCEEDED' && job.status !== 'FAILED' && job.status !== 'CANCELED';
   });

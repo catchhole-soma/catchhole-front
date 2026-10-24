@@ -333,12 +333,18 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
   expect(retries).toBe(1);
 });
 
-test('무효화되었어도 아직 실행 중인 Job이 있으면 새 분석 버튼을 잠근다', async ({ page }) => {
+test('무효화되었어도 실행 중인 Job의 종료를 확인한 뒤 새 분석 버튼을 연다', async ({ page }) => {
   await installBaseRoutes(page);
+  await page.clock.install();
+  let running = true;
   await routeAnalysisProgress(page, route => success(route,
-    job(new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0, 'RUNNING', 'INVALIDATED')));
+    job(new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0, running ? 'RUNNING' : 'FAILED', 'INVALIDATED')));
   await page.goto(progressUrl());
-  await expect(page.getByRole('button', { name: '새 순차 분석', exact: true })).toBeDisabled();
+  const restart = page.getByRole('button', { name: '새 순차 분석', exact: true });
+  await expect(restart).toBeDisabled();
+  running = false;
+  await page.clock.fastForward(3100);
+  await expect(restart).toBeEnabled();
 });
 
 test('재개 후 새 작업 ID가 생기면 이전 작업의 반복 조회를 멈추고 현재 작업은 계속 확인한다', async ({ page }) => {

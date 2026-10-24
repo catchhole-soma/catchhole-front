@@ -70,7 +70,7 @@ test('완료·실패·차단 대기는 30초 확인하며 외부 재개와 무�
   await page.clock.fastForward(21_100); await expect.poll(() => state.bulk.length).toBe(2);
   await expect(page.getByText('회차를 분석하고 있습니다', { exact: true })).toBeVisible();
   await page.clock.fastForward(3100); await expect.poll(() => state.bulk.length).toBe(3);
-  jobs = jobs.map((row, index) => job(index, row.status, 'INVALIDATED'));
+  jobs = jobs.map((_, index) => job(index, 'SUCCEEDED', 'INVALIDATED'));
   await page.clock.fastForward(3100); await expect(page.getByText('기존 분석을 이어갈 수 없습니다', { exact: true })).toBeVisible();
   const stopped = state.bulk.length; await page.clock.fastForward(60_000); expect(state.bulk).toHaveLength(stopped);
 });
@@ -95,6 +95,99 @@ test('같은 ID 재개 응답은 즉시 묶음 캐시를 바꾸고 빠른 갱신
   const refreshed = state.bulk.length; expect(refreshed).toBeGreaterThan(1);
   await page.clock.fastForward(3100); await expect.poll(() => state.bulk.length).toBeGreaterThan(refreshed);
 });
+
+test('재개 전 시작한 늦은 실패 응답은 취소되고 같은 ID의 실행 상태를 덮어쓰지 않는다', async ({ page }) => {
+  let jobs = [job(0, 'FAILED', 'INCOMPLETE'), job(1)];
+  const state = await setup(page, () => jobs);
+  state.onRetry = () => { jobs = [job(0, 'RUNNING'), job(1)]; return [job(0)]; };
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let holdNext = false, pendingRead = false, canceled = false, released = false;
+  page.on('requestfailed', request => { if (request.url().includes('/analysis-jobs/progress')) canceled = true; });
+  await page.route('**/analysis-jobs/progress**', async route => {
+    if (!holdNext) return route.fallback();
+    holdNext = false; pendingRead = true;
+    const previousJobs = [...jobs];
+    await held;
+    await success(route, previousJobs).catch(() => {});
+    released = true;
+  });
+  try {
+    await page.goto(url([jobId(0), jobId(1)]));
+    await expect(page.getByRole('button', { name: '중단된 회차부터 재개', exact: true })).toBeVisible();
+    holdNext = true;
+    await page.clock.fastForward(30_100);
+    await expect.poll(() => pendingRead).toBe(true);
+    await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+    await expect(page.getByText('회차를 분석하고 있습니다', { exact: true })).toBeVisible();
+    await expect.poll(() => canceled).toBe(true);
+    release();
+    await expect.poll(() => released).toBe(true);
+    await expect(page.getByText('회차를 분석하고 있습니다', { exact: true })).toBeVisible();
+    await expect(page.getByText('순차 분석이 중단되었습니다', { exact: true })).toHaveCount(0);
+    expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual([jobId(0), jobId(1)]);
+    expect(state.retries).toBe(1);
+  } finally {
+    release();
+  }
+});
+
+test('재개 응답의 새 ID는 후속 상태 조회가 대기 중이어도 보존하고 새로고침으로 복구한다', async ({ page }) => {
+  let jobs = [job(0, 'FAILED', 'INCOMPLETE'), job(1, 'SUCCEEDED', 'SEALED')];
+  const state = await setup(page, () => jobs);
+  const replacementId = '77777777-7777-4777-8777-777777777777';
+  const replacement = { ...job(0, 'RUNNING'), id: replacementId };
+  state.onRetry = () => { jobs = [...jobs, replacement]; return [replacement]; };
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let holdRefresh = true, pendingRefreshes = 0;
+  await page.route('**/analysis-jobs/progress**', async route => {
+    const ids = new URL(route.request().url()).searchParams.getAll('analysisJobIds').flatMap(value => value.split(','));
+    if (!holdRefresh || !ids.includes(replacementId)) return route.fallback();
+    pendingRefreshes++;
+    await held;
+    await success(route, jobs.filter(row => ids.includes(row.id!))).catch(() => {});
+  });
+  try {
+    await page.goto(url([jobId(0), jobId(1)]));
+    await page.getByRole('button', { name: '중단된 회차부터 재개', exact: true }).click();
+    await expect.poll(() => pendingRefreshes).toBeGreaterThan(0);
+    await expect.poll(() => new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(','))
+      .toEqual([jobId(1), replacementId]);
+    expect(new URL(page.url()).searchParams.get('analysisJobIds')?.split(',')).toEqual([jobId(0), jobId(1), replacementId]);
+    holdRefresh = false;
+    await page.reload();
+    await expect(page.getByText('회차를 분석하고 있습니다', { exact: true })).toBeVisible();
+    expect(state.bulk.at(-1)).toContain(replacementId);
+    expect(state.retries).toBe(1);
+  } finally {
+    release();
+  }
+});
+
+for (const status of ['RUNNING', 'PENDING'] as const) {
+  test(`무효화된 ${status} 작업은 종료까지 조회하고 실패한 조회도 수동 재시도로 복구한다`, async ({ page }) => {
+    let jobs = [job(0, status, 'INVALIDATED')];
+    const state = await setup(page, () => jobs);
+    await page.goto(url([jobId(0)]));
+    const restart = page.getByRole('button', { name: '새 순차 분석', exact: true });
+    await expect(restart).toBeDisabled();
+    state.failBulk = true;
+    await page.clock.fastForward(status === 'RUNNING' ? 3100 : 30_100);
+    await expect(page.getByText('상태를 갱신하지 못했습니다.', { exact: false })).toBeVisible();
+    await expect(restart).toBeDisabled();
+    jobs = [job(0, 'FAILED', 'INVALIDATED')];
+    state.failBulk = false;
+    await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+    await expect(restart).toBeEnabled();
+    expect(state.bulk.at(-1)).toEqual([jobId(0)]);
+    const stopped = state.bulk.length;
+    await page.clock.fastForward(60_000);
+    await page.evaluate(() => { window.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('online')); });
+    await page.clock.fastForward(1000);
+    expect(state.bulk).toHaveLength(stopped);
+  });
+}
 
 test('이력은 처음 한 번 읽고 실패한 갱신은 마지막 행과 묶음 재시도를 유지한다', async ({ page }) => {
   const jobs = [job(0, 'SUCCEEDED', 'SEALED'), job(1, 'FAILED', 'INCOMPLETE'), job(2, 'RUNNING')];

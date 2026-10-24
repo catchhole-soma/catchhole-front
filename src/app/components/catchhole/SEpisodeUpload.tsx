@@ -1150,6 +1150,13 @@ function EpisodeUpload() {
       );
       const nextTrackedAnalysisJobIds = [...new Set([...trackedAnalysisJobIds, ...retryAnalysisJobIds])];
       const nextCurrentAnalysisJobIds = [...new Set([...retainedCurrentAnalysisJobIds, ...retryAnalysisJobIds])];
+      if (retryAnalysisJobIds.length > 0) {
+        setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
+        setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
+        persistAnalysisRoute(episodeUploadBatchId, nextTrackedAnalysisJobIds, nextCurrentAnalysisJobIds, nextSupersededJobIds);
+      } else if (nextSupersededJobIds.size !== supersededJobIds.size) {
+        persistAnalysisRoute(episodeUploadBatchId, trackedAnalysisJobIds, currentAnalysisJobIds, nextSupersededJobIds);
+      }
       let refreshedJobs = progressQuery.jobs;
       try {
         // A rejected response may still have resumed the same server Job; refresh before classifying it.
@@ -1159,14 +1166,6 @@ function EpisodeUpload() {
       } catch {
         // The bulk query keeps its last successful rows and exposes the status retry banner.
       }
-      if (retryAnalysisJobIds.length > 0) {
-        setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
-        setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
-        persistAnalysisRoute(episodeUploadBatchId, nextTrackedAnalysisJobIds, nextCurrentAnalysisJobIds, nextSupersededJobIds);
-      } else if (nextSupersededJobIds.size !== supersededJobIds.size) {
-        persistAnalysisRoute(episodeUploadBatchId, trackedAnalysisJobIds, currentAnalysisJobIds, nextSupersededJobIds);
-      }
-
       const unresolvedRetryFailure = responses.some((response, index) => {
         if (response.status !== 'rejected') return false;
         const latest = refreshedJobs.find(job => job.id === retryableFailedAnalysisJobIds[index]);
