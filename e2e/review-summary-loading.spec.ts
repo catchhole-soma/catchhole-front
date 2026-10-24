@@ -16,8 +16,8 @@ async function fixture(page: Page, kind: Kind, empty = false) {
     const path = new URL(route.request().url()).pathname;
     let data: unknown = {};
     if (path.endsWith('/auth/me')) data = { id: 1, email: 'summary-test@example.com', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
-    else if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
-      const target: Kind = path.endsWith('/world-setting-candidates') ? 'world' : 'character';
+    else if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
+      const target: Kind = /\/world-setting-candidates(?:\/summary)?$/.test(path) ? 'world' : 'character';
       reads[target]++;
       await gates[target].promise;
       if (failures[target]) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ success: false, message: '후보 집계를 불러오지 못했습니다.', error: { code: 'CANDIDATE_NOT_FOUND', status: 404 } }) });
@@ -80,7 +80,7 @@ for (const kind of ['character', 'world'] as const) {
     state.gates.character = deferred(); state.gates.world = deferred();
     await page.evaluate(async () => {
       const { queryClient } = await import('/src/app/lib/query-client.ts');
-      void queryClient.invalidateQueries({ predicate: query => ['getSettingCandidates', 'getWorldSettingCandidates'].includes((query.queryKey[0] as { _id?: string })._id ?? '') });
+      void queryClient.invalidateQueries({ predicate: query => ['getSettingCandidates', 'getWorldSettingCandidates', 'getWorldSettingCandidateSummary'].includes((query.queryKey[0] as { _id?: string })._id ?? '') });
     });
     await expect.poll(() => state.reads.character).toBeGreaterThan(1);
     await expect.poll(() => state.reads.world).toBeGreaterThan(1);

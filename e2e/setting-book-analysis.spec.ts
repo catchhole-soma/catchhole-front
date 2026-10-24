@@ -99,9 +99,9 @@ async function setupBook(page: Page, { legacy = false, uploaded = false, bookNam
         jobGroups: [{ jobType: 'SETTING_EXTRACTION', status: sealed ? 'COMPLETED' : 'IN_PROGRESS', currentAnalysisJobIds: [currentJobId] }] }],
         page: 0, size: 10, totalPages: 1, totalElements: 1 });
     }
-    if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+    if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
       if (candidateReadFailure) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'UNEXPECTED_ERROR', message: '검토 상태를 확인하지 못했습니다.' } }) });
-      const remaining = path.endsWith('/world-setting-candidates') ? 0 : remainingReview;
+      const remaining = /\/world-setting-candidates(?:\/summary)?$/.test(path) ? 0 : remainingReview;
       calls.scopes.push(url.searchParams.get('sourceAnalysisJobId'));
       return success(route, { batchId, totalCandidateCount: remaining, reviewedCandidateCount: 0, pendingCandidateCount: remaining,
         confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: remaining,

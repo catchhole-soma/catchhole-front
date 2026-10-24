@@ -30,7 +30,7 @@ for (const kind of ['character', 'world'] as const) {
       const ownList = path.endsWith(kind === 'world' ? '/world-setting-candidates' : '/setting-candidates');
       let data: unknown = {};
       if (path.endsWith('/auth/me')) data = { id: 1, email: 'scroll@example.com', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
-      else if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+      else if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
         if (ownList) listReads++;
         data = { batchId, episodeStartNo: 38, episodeEndNo: 38, episodeCount: 1,
           totalCandidateCount: ownList ? 11 : 0, pendingCandidateCount: ownList ? 11 : 0,
@@ -92,7 +92,7 @@ for (const mode of ['APPLY_PROPOSAL', 'HISTORY_ONLY']) {
       }
       if (path.endsWith('/auth/me')) data = { id: 1, email: 'scroll@example.invalid', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
       else if (path.endsWith('/setting-candidates')) data = { batchId, totalCandidateCount: 10, pendingCandidateCount: 10, directReviewCandidateCount: 10, processingCandidateCount: 0, groups: pageOf(groups) };
-      else if (path.endsWith('/world-setting-candidates')) data = { batchId, totalCandidateCount: 0, pendingCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) };
+      else if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) data = { batchId, totalCandidateCount: 0, pendingCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) };
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) });
     });
     await page.addInitScript(() => localStorage.setItem('accessToken', 'scroll-save-fixture'));

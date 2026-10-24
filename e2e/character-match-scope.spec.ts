@@ -57,7 +57,7 @@ async function fixture(page: Page) {
       await detailGate;
       return success(candidates.find(candidate => path.endsWith(candidate.id)));
     }
-    if (path.endsWith('/world-setting-candidates')) return success({ batchId, totalCandidateCount: 0, directReviewCandidateCount: 0,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success({ batchId, totalCandidateCount: 0, directReviewCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) });
     return success({});
   });

@@ -63,7 +63,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
         groups: pageOf(pending || new URL(request.url()).searchParams.get('reviewStatus') !== 'PENDING_REVIEW'
           ? [{ groupKey: '루안', entityName: '루안', candidateCount: 1, pendingCandidateCount: pending ? 1 : 0, evidenceEpisodeNos: [3], candidates: [candidate] }] : []) });
     }
-    if (path.endsWith('/world-setting-candidates')) return success(route, { batchId, totalCandidateCount: 0, confirmedCandidateCount: 0,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, { batchId, totalCandidateCount: 0, confirmedCandidateCount: 0,
       dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) });
     return success(route, []);
   });
@@ -401,7 +401,7 @@ test('등장·반영·제외가 섞인 인물 묶음은 한 요청으로 확정�
       dismissedCandidateCount: done ? 1 : 0, directReviewCandidateCount: done ? 0 : 3, processingCandidateCount: 0,
       groups: pageOf(done ? [] : [{ groupKey: '루안', entityName: '루안', candidateCount: 3, pendingCandidateCount: 3, candidates: items }]),
     });
-    if (path.endsWith('/world-setting-candidates')) return success(route, { batchId, totalCandidateCount: 0,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, { batchId, totalCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, pendingCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) });
     return success(route, []);
   });
@@ -485,7 +485,7 @@ test('일반 검토 선택은 작품이 바뀌면 초기화된다', async ({ pag
       groups: pageOf([{ groupKey: '루안', entityName: '루안', candidateCount: 1, pendingCandidateCount: 1,
         candidates: [{ ...initialCandidate, workId: otherWork, suggestedOperation: 'UPDATE' }] }]),
     });
-    if (path.endsWith('/world-setting-candidates')) return success(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, {
       batchId, totalCandidateCount: 0, pendingCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]),
     });
     return success(route, []);

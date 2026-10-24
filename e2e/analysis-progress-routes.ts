@@ -4,16 +4,18 @@ import type { Page, Route } from '@playwright/test';
 export async function routeAnalysisProgress(page: Page, handler: (route: Route) => unknown, pattern = '**/analysis-jobs/**') {
   await page.route(pattern, async route => {
     const url = new URL(route.request().url());
-    if (url.pathname.endsWith('/world-setting-candidates/progress')) {
+    if (/\/world-setting-candidates\/(progress|summary)$/.test(url.pathname)) {
+      const summary = url.pathname.endsWith('/summary');
       const request = new Proxy(route.request(), { get(target, key) {
-        if (key === 'url') return () => { const original = new URL(url); original.pathname = original.pathname.replace(/\/progress$/, ''); return original.href; };
+        if (key === 'url') return () => { const original = new URL(url); original.pathname = original.pathname.replace(/\/(progress|summary)$/, ''); return original.href; };
         const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value;
       } });
       const countRoute = new Proxy(route, { get(target, key) {
         if (key === 'request') return () => request;
         if (key === 'fulfill') return async (options: Parameters<Route['fulfill']>[0]) => {
           const response = JSON.parse(String(options?.body));
-          if ((options?.status ?? 200) < 400) response.data = {
+          if ((options?.status ?? 200) < 400 && summary) delete response.data?.groups;
+          else if ((options?.status ?? 200) < 400) response.data = {
             pendingComparisonCount: response.data?.pendingComparisonCount ?? 0,
             processingComparisonCount: response.data?.processingComparisonCount ?? 0,
             tokenInterruptedComparisonCount: response.data?.tokenInterruptedComparisonCount ?? 0,

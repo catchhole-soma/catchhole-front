@@ -31,7 +31,7 @@ for (const kind of ['character', 'world'] as const) {
       const ownList = path.endsWith(kind === 'world' ? '/world-setting-candidates' : '/setting-candidates');
       let data: unknown = {};
       if (path.endsWith('/auth/me')) data = { id: 1, email: 'scroll@example.com', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
-      else if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+      else if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
         if (ownList) listReads++;
         data = { batchId, episodeStartNo: 38, episodeEndNo: 38, episodeCount: 1,
           totalCandidateCount: ownList ? 4 : 0, pendingCandidateCount: ownList ? 4 : 0,

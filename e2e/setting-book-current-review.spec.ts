@@ -152,8 +152,8 @@ async function setup(page: Page, { stale = false, superseded = false, future = f
         historyOnly: candidate.reviewedApplicationMode === 'HISTORY_ONLY' }));
       return ok(route, { candidates: [] });
     }
-    if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
-      const world = path.endsWith('/world-setting-candidates'); const allCandidates = world ? worlds : characters;
+    if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
+      const world = /\/world-setting-candidates(?:\/summary)?$/.test(path); const allCandidates = world ? worlds : characters;
       const reviewStatus = url.searchParams.get('reviewStatus');
       const candidates = allCandidates.filter(candidate => !reviewStatus || candidate.reviewStatus === reviewStatus);
       const subjectName = retargeted ? '새 고대 왕국' : worlds[0]?.subjectName ?? '고대 왕국';

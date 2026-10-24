@@ -67,7 +67,7 @@ for (const width of [1280, 320]) {
         const counts = { ...emptyCounts, episodeStartNo: 33, episodeEndNo: 35, episodeCount: 3, totalCandidateCount: 2, reviewedCandidateCount: 0,
           pendingCandidateCount: 2, directReviewCandidateCount: 1, processingCandidateCount: 1 };
         if (path.endsWith('/setting-candidates')) return success(route, { batchId, ...counts, groups: pageOf([characterGroup(chars)]) });
-        if (path.endsWith('/world-setting-candidates')) return success(route, { batchId, ...counts,
+        if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, { batchId, ...counts,
           pendingComparisonCount: 0, processingComparisonCount: 0, activeComparisonJobCount: 0,
           failedComparisonCount: 1, groups: pageOf([worldGroup(worlds)]) });
         return success(route, []);
@@ -139,7 +139,7 @@ for (const candidateType of ['character', 'world'] as const) {
       const url = new URL(route.request().url());
       const path = url.pathname;
       if (path.endsWith('/auth/me')) return success(route, member);
-      if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+      if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
         const isCurrent = path.endsWith(candidateType === 'character' ? '/setting-candidates' : '/world-setting-candidates');
         if (isCurrent) reads += 1;
         return success(route, { batchId, ...emptyCounts, totalCandidateCount: isCurrent ? 2 : 0,
@@ -177,7 +177,7 @@ for (const candidateType of ['character', 'world'] as const) {
       const path = new URL(route.request().url()).pathname;
       if (route.request().method() !== 'GET') writes += 1;
       if (path.endsWith('/auth/me')) return success(route, member);
-      if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+      if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
         const isCurrent = path.endsWith(candidateType === 'character' ? '/setting-candidates' : '/world-setting-candidates');
         // Another candidate on another page keeps the summary polling even before this candidate changes state.
         const group = candidateType === 'character'
@@ -223,7 +223,7 @@ test('자동 반영 대기의 개별 비교 실패·재비교 대기·연결 대
     const path = new URL(route.request().url()).pathname;
     if (route.request().method() !== 'GET') writes += 1;
     if (path.endsWith('/auth/me')) return success(route, member);
-    if (path.endsWith('/world-setting-candidates')) return success(route, { batchId, ...emptyCounts,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, { batchId, ...emptyCounts,
       totalCandidateCount: 3, reviewedCandidateCount: 0, pendingCandidateCount: 3, processingCandidateCount: 3,
       activeComparisonJobCount: 0, failedComparisonCount: 1, recomparisonRequiredCount: 1,
       groups: pageOf([{ ...worldGroup(candidates), status: 'FAILED' }]) });
@@ -251,7 +251,7 @@ test('새 대기 필드가 없는 이전 응답의 수동 후보는 계속 직�
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/auth/me')) return success(route, member);
     const isCharacter = path.endsWith('/setting-candidates');
-    if (isCharacter || path.endsWith('/world-setting-candidates')) return success(route, { batchId, ...emptyCounts,
+    if (isCharacter || /\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, { batchId, ...emptyCounts,
       totalCandidateCount: 1, reviewedCandidateCount: 0, pendingCandidateCount: 1, directReviewCandidateCount: 1,
       activeComparisonJobCount: 0, groups: pageOf([isCharacter
         ? characterGroup([character(1, { automaticApplicationPending: undefined, analysisMode: 'CONFIRMED_ONLY', comparisonRevision: 'a'.repeat(64) })])
@@ -281,7 +281,7 @@ for (const candidateType of ['character', 'world'] as const) {
           error: { code: 'ANALYSIS_AUTOMATIC_APPLICATION_PENDING', status: 409 },
         }) });
       }
-      if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
+      if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
         const isCurrent = path.endsWith(candidateType === 'character' ? '/setting-candidates' : '/world-setting-candidates');
         const group = candidateType === 'character'
           ? characterGroup([character(1, { automaticApplicationPending: rejected })])
