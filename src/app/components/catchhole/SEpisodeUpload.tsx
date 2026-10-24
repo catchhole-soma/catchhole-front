@@ -1,6 +1,6 @@
 import { AnalysisReviewModeSelector } from './onboarding/AnalysisReviewModeSelector';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useLocation,
   useNavigate as useRouterNavigate,
@@ -27,7 +27,7 @@ import {
   getEpisodesQueryKey,
   getEpisodeUploadPolicyOptions,
   getWorkOptions,
-  getWorldSettingCandidatesOptions,
+  getWorldSettingCandidateProgressOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
   uploadEpisodesMutation as uploadEpisodesMutationOptions,
 } from '../../api/generated/@tanstack/react-query.gen';
@@ -37,10 +37,11 @@ import type {
   EpisodeDetectionRequest,
   EpisodeSummaryResponse,
   EpisodeUploadRequest,
-  GetAnalysisJobResponse,
+  AnalysisJobProgressResponse,
 } from '../../api/generated/types.gen';
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAnalysisJobProgress } from '../../hooks/useAnalysisJobProgress';
 import { toApiError } from '../../lib/api-errors';
 import {
   notifyAiTokenQuotaExhausted,
@@ -661,35 +662,15 @@ function EpisodeUpload() {
   const submitting = uploadEpisodesMutation.isPending
     || createAnalysisJobMutation.isPending;
 
-  const currentAnalysisJobIdSet = new Set(currentAnalysisJobIds);
-  const jobQueries = useQueries({
-    queries: trackedAnalysisJobIds.map(analysisJobId => ({
-      ...getAnalysisJobOptions({ path: { workId, analysisJobId } }),
-      // 새로고침 때 이력은 한 번 읽되, 이미 대체된 작업을 반복 조회하지 않는다.
-      enabled: (query: { state: { data?: GetAnalysisJobResponse } }) => step === 'processing'
-        && UUID_PATTERN.test(workId) && (!supersededJobIds.has(analysisJobId) || !query.state.data),
-      refetchOnReconnect: !supersededJobIds.has(analysisJobId),
-      retry: false,
-      refetchInterval: (query: { state: { data?: GetAnalysisJobResponse } }) => {
-        if (!currentAnalysisJobIdSet.has(analysisJobId) || supersededJobIds.has(analysisJobId)) return false;
-        const job = query.state.data?.data;
-        const status = job?.status;
-        // 같은 Job 재개와 원문 변경에 따른 무효화를 계속 확인한다.
-        if (job && isOrderedAnalysis(job) && !isInvalidatedAnalysis(job) && status !== 'CANCELED') return 3_000;
-        return status === 'SUCCEEDED' || status === 'FAILED' || status === 'CANCELED'
-          ? false
-          : 3_000;
-      },
-    })),
-  });
-
-  const jobs = jobQueries.flatMap(query => query.data?.data ? [query.data.data] : []);
+  const progressQuery = useAnalysisJobProgress({ workId, trackedAnalysisJobIds, currentAnalysisJobIds,
+    supersededJobIds, enabled: step === 'processing' });
+  const jobs = progressQuery.jobs;
   const jobsById = new Map(jobs.flatMap(job => job.id ? [[job.id, job] as const] : []));
   const currentAnalysisJobs = currentAnalysisJobIds.flatMap(
     analysisJobId => jobsById.get(analysisJobId) ? [jobsById.get(analysisJobId)!] : [],
   );
   const selectedWorkTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
-  const workTitle = jobs.find(job => job.workTitle)?.workTitle ?? routeWork?.title ?? selectedWorkTitle;
+  const workTitle = routeWork?.title ?? selectedWorkTitle;
   const resolvedAnalysisJobType = jobs.find(job => job.jobType)?.jobType ?? analysisJobType;
 
   const progressEpisodes = useMemo(() => {
@@ -721,7 +702,7 @@ function EpisodeUpload() {
   const analysisSuperseded = currentAnalysisJobIds.some(id => supersededJobIds.has(id));
   const hasActiveCurrentJobs = currentAnalysisJobs.some(job => job.status === 'PENDING' || job.status === 'RUNNING');
   const canRestartOrderedAnalysis = analysisInvalidated && Boolean(episodeUploadBatchId)
-    && currentAnalysisJobsLoaded && !hasActiveCurrentJobs && !automaticStartBlocked
+    && currentAnalysisJobsLoaded && !progressQuery.isError && !hasActiveCurrentJobs && !automaticStartBlocked
     && routeWork?.lifecycleStatus !== 'PURGING';
   const blockedOrderedJobs = currentAnalysisJobs.filter(job => isBlockedOrderedAnalysis(job, currentAnalysisJobs));
   const analysisRunning = !analysisInvalidated && currentAnalysisJobs.some(
@@ -775,15 +756,13 @@ function EpisodeUpload() {
       && (!isOrderedAnalysis(job) || isCompletedOrderedAnalysis(job)));
   const analysisEpisodeStateChanged = analysisSucceeded
     && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
-  const statusQueryFailed = jobQueries.some(query => query.isError);
+  const statusQueryFailed = progressQuery.isError;
 
   const worldComparisonSummaryQuery = useQuery({
-    ...getWorldSettingCandidatesOptions({
+    ...getWorldSettingCandidateProgressOptions({
       path: { workId },
       query: {
         batchId: episodeUploadBatchId ?? '',
-        page: 0,
-        size: 1,
       },
     }),
     enabled: step === 'processing'
@@ -1124,6 +1103,7 @@ function EpisodeUpload() {
       const successfullyRetriedJobIds = new Set<string>();
       const nextSupersededJobIds = new Set(supersededJobIds);
       const retryAnalysisJobIds: string[] = [];
+      const retriedJobs: AnalysisJobProgressResponse[] = [];
       let retryError: unknown = null;
       let invalidRetryResponse = false;
 
@@ -1150,6 +1130,7 @@ function EpisodeUpload() {
           retryError ??= new Error('분석 재시작을 확인하지 못했습니다. 다시 시도해 주세요.');
           return;
         }
+        retriedJobs.push(...responseJobs);
         successfullyRetriedJobIds.add(failedAnalysisJobId);
         retryAnalysisJobIds.push(...responseJobIds);
         responseJobs.forEach(job => {
@@ -1163,47 +1144,32 @@ function EpisodeUpload() {
         });
       });
 
+      const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
+        analysisJobId => !successfullyRetriedJobIds.has(analysisJobId)
+          || retryAnalysisJobIds.includes(analysisJobId),
+      );
+      const nextTrackedAnalysisJobIds = [...new Set([...trackedAnalysisJobIds, ...retryAnalysisJobIds])];
+      const nextCurrentAnalysisJobIds = [...new Set([...retainedCurrentAnalysisJobIds, ...retryAnalysisJobIds])];
+      let refreshedJobs = progressQuery.jobs;
+      try {
+        // A rejected response may still have resumed the same server Job; refresh before classifying it.
+        refreshedJobs = await progressQuery.refresh(retriedJobs, { workId,
+          trackedAnalysisJobIds: nextTrackedAnalysisJobIds, currentAnalysisJobIds: nextCurrentAnalysisJobIds,
+          supersededJobIds: nextSupersededJobIds });
+      } catch {
+        // The bulk query keeps its last successful rows and exposes the status retry banner.
+      }
       if (retryAnalysisJobIds.length > 0) {
-        const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
-          analysisJobId => !successfullyRetriedJobIds.has(analysisJobId)
-            || retryAnalysisJobIds.includes(analysisJobId),
-        );
-        const nextTrackedAnalysisJobIds = [...new Set([
-          ...trackedAnalysisJobIds,
-          ...retryAnalysisJobIds,
-        ])];
-        const nextCurrentAnalysisJobIds = [...new Set([
-          ...retainedCurrentAnalysisJobIds,
-          ...retryAnalysisJobIds,
-        ])];
         setTrackedAnalysisJobIds(nextTrackedAnalysisJobIds);
         setCurrentAnalysisJobIds(nextCurrentAnalysisJobIds);
-        persistAnalysisRoute(
-          episodeUploadBatchId,
-          nextTrackedAnalysisJobIds,
-          nextCurrentAnalysisJobIds,
-          nextSupersededJobIds,
-        );
-        await Promise.all(nextCurrentAnalysisJobIds.flatMap(analysisJobId => nextSupersededJobIds.has(analysisJobId)
-          ? [] : [queryClient.invalidateQueries({
-              queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId } }).queryKey,
-            })]));
+        persistAnalysisRoute(episodeUploadBatchId, nextTrackedAnalysisJobIds, nextCurrentAnalysisJobIds, nextSupersededJobIds);
       } else if (nextSupersededJobIds.size !== supersededJobIds.size) {
         persistAnalysisRoute(episodeUploadBatchId, trackedAnalysisJobIds, currentAnalysisJobIds, nextSupersededJobIds);
       }
 
-      // 응답이 유실되어도 서버가 같은 Job을 재개했을 수 있다. 기존 ID를 조회해 새 생성을 유도하지 않는다.
-      await Promise.all(responses.flatMap((response, index) => response.status === 'rejected'
-        && toApiError(response.reason)?.code !== 'ANALYSIS_JOB_SUPERSEDED'
-        ? [queryClient.invalidateQueries({
-            queryKey: getAnalysisJobOptions({ path: { workId, analysisJobId: retryableFailedAnalysisJobIds[index] } }).queryKey,
-          })]
-        : []));
       const unresolvedRetryFailure = responses.some((response, index) => {
         if (response.status !== 'rejected') return false;
-        const latest = queryClient.getQueryData<GetAnalysisJobResponse>(getAnalysisJobOptions({
-          path: { workId, analysisJobId: retryableFailedAnalysisJobIds[index] },
-        }).queryKey)?.data;
+        const latest = refreshedJobs.find(job => job.id === retryableFailedAnalysisJobIds[index]);
         return !latest || latest.status === 'FAILED'
           || latest.status === 'SUCCEEDED' && isOrderedAnalysis(latest) && !isCompletedOrderedAnalysis(latest)
           || isInvalidatedAnalysis(latest);
@@ -1250,6 +1216,12 @@ function EpisodeUpload() {
       setUploadedEpisodes([]);
       persistAnalysisRoute(episodeUploadBatchId, trackedIds, newIds);
       setOrderedRestartOpen(false);
+      try {
+        await progressQuery.refresh(newJobs, { workId, trackedAnalysisJobIds: trackedIds,
+          currentAnalysisJobIds: newIds, supersededJobIds: new Set() });
+      } catch {
+        // Creation succeeded. Keep its IDs and let the progress query expose the status retry.
+      }
     } catch (error) {
       const apiError = toApiError(error);
       if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
@@ -1752,7 +1724,7 @@ function EpisodeUpload() {
               {statusQueryFailed && (
                 <ErrorBanner
                   message="상태를 갱신하지 못했습니다. 마지막으로 확인한 상태를 유지합니다."
-                  onRetry={() => jobQueries.forEach(query => void query.refetch())}
+                  onRetry={() => void progressQuery.refetch()}
                 />
               )}
 
