@@ -83,10 +83,22 @@ async function setupBook(page: Page, { legacy = false, uploaded = false, bookNam
     }
     if (path === `/api/v1/works/${workId}/analysis-jobs/${currentJobId}`) { calls.jobReads += 1; return success(route, job()); }
     if (path.endsWith('/analysis-jobs')) return success(route, hasJob ? [job()] : []);
-    if (path.endsWith('/analysis-jobs/batches')) return success(route, { content: [{ batchId, uploadType: 'SETTING_BOOK',
-      status: sealed ? remainingReview > 0 ? 'REVIEW_REQUIRED' : 'COMPLETED' : 'IN_PROGRESS',
-      jobGroups: [{ jobType: 'SETTING_EXTRACTION', status: sealed ? 'COMPLETED' : 'IN_PROGRESS', currentAnalysisJobIds: [currentJobId] }] }],
-      page: 0, size: 10, totalPages: 1, totalElements: 1 });
+    if (path.endsWith('/analysis-jobs/batches')) {
+      if (candidateReadFailure) return route.fulfill({ status: 503, contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: { code: 'UNEXPECTED_ERROR', message: '분석 목록을 확인하지 못했습니다.' } }) });
+      const bookStatus = journalStatus === 'INVALIDATED' ? 'INVALIDATED' : sealed ? 'COMPLETED'
+        : journalStatus === 'INCOMPLETE' || status === 'FAILED' ? 'INTERRUPTED' : status === 'PENDING' ? 'PENDING' : 'IN_PROGRESS';
+      const counts = (remaining: number) => ({ totalCandidateCount: remaining, reviewedCandidateCount: 0,
+        pendingCandidateCount: remaining, directReviewCandidateCount: remaining, processingCandidateCount: 0 });
+      return success(route, { content: [{ batchId, uploadType: 'SETTING_BOOK',
+        status: sealed ? remainingReview > 0 ? 'REVIEW_REQUIRED' : 'COMPLETED' : 'IN_PROGRESS',
+        episodeStatus: null, episodeJobGroups: [], settingBooks: [{ settingBookId: bookId, sourceAnalysisJobId: currentJobId,
+          batchId, revisionId: frozenRevision, settingBookName: bookName, status: bookStatus, failureCode,
+          currentStep: 'SETTING_EXTRACTION', contentChangedSinceAnalysis: changed, historical: currentRevision !== frozenRevision,
+          lastActivityAt: '2026-10-06T12:00:00', characterCandidates: counts(remainingReview), worldCandidates: counts(0) }],
+        jobGroups: [{ jobType: 'SETTING_EXTRACTION', status: sealed ? 'COMPLETED' : 'IN_PROGRESS', currentAnalysisJobIds: [currentJobId] }] }],
+        page: 0, size: 10, totalPages: 1, totalElements: 1 });
+    }
     if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
       if (candidateReadFailure) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'UNEXPECTED_ERROR', message: '검토 상태를 확인하지 못했습니다.' } }) });
       const remaining = path.endsWith('/world-setting-candidates') ? 0 : remainingReview;
@@ -429,78 +441,32 @@ test('검토가 모두 끝난 설정집 카드는 작품 설정을 연다', asyn
   await expect(page).toHaveURL(/nav=settingDB&tab=characters/);
 });
 
-test('설정집 검토 집계 조회 실패에서는 결과 행동을 잠그고 다시 확인을 제공한다', async ({ page }) => {
+test('설정집 요약 조회 실패에서는 목록 재시도를 제공한다', async ({ page }) => {
   const fixture = await setupBook(page, { candidateReadFailure: true });
   fixture.finish();
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
-  const card = page.getByTestId('book-analysis-card');
-  await expect(card.getByRole('button', { name: '검토 상태 확인 중', exact: true })).toBeDisabled();
-  await expect(card.getByRole('button', { name: '작품 설정 보기', exact: true })).toHaveCount(0);
-  await expect(card.getByRole('button', { name: '검토 상태 다시 확인', exact: true })).toBeVisible();
+  await expect(page.getByText('분석 목록을 불러오지 못했습니다.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '다시 불러오기', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('book-analysis-card')).toHaveCount(0);
+  expect(fixture.calls.scopes).toEqual([]);
 });
 
-for (const failsCharacter of [false, true]) {
-  test(`완료 전환은 ${failsCharacter ? '집계 실패를 재조회한' : '지연된 양쪽 집계를 확인한'} 뒤 정확한 검토로 연결한다`, async ({ page }) => {
-    const fixture = await setupBook(page, { remainingReview: failsCharacter ? 1 : 0 });
+for (const remaining of [0, 1]) {
+  test(`설정집 완료 polling은 같은 요약의 후보 수로 ${remaining ? '검토' : '작품 설정'}를 연다`, async ({ page }) => {
+    await page.clock.install();
+    const fixture = await setupBook(page, { remainingReview: remaining });
     fixture.run();
     await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
     const card = page.getByTestId('book-analysis-card');
     await expect(card.getByRole('button', { name: '진행 보기', exact: true })).toBeEnabled();
-    await expect.poll(() => fixture.calls.scopes.length).toBeGreaterThanOrEqual(2);
-
-    let releaseCharacter!: () => void;
-    let releaseWorld!: () => void;
-    const characterGate = new Promise<void>(resolve => { releaseCharacter = resolve; });
-    const worldGate = new Promise<void>(resolve => { releaseWorld = resolve; });
-    let characterRequests = 0;
-    let worldRequests = 0;
-    let characterFailure = failsCharacter;
-    await page.route('**/api/v1/**', async route => {
-      const url = new URL(route.request().url());
-      const isWorld = url.pathname.endsWith('/world-setting-candidates');
-      const isCharacter = url.pathname.endsWith('/setting-candidates');
-      if ((!isWorld && !isCharacter) || url.searchParams.get('sourceAnalysisJobId') !== jobId) return route.fallback();
-      if (isWorld) { worldRequests += 1; await worldGate; }
-      else { characterRequests += 1; await characterGate; }
-      if (isCharacter && characterFailure) return route.fulfill({ status: 503, contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'UNEXPECTED_ERROR', message: '새 집계를 확인하지 못했습니다.' } }) });
-      const remaining = isWorld ? 2 : 0;
-      return success(route, { batchId, totalCandidateCount: remaining, reviewedCandidateCount: 0,
-        pendingCandidateCount: remaining, directReviewCandidateCount: remaining, processingCandidateCount: 0,
-        groups: { content: [], page: 0, totalPages: 0, totalElements: 0 } });
-    });
-
-    try {
-      fixture.finish();
-      await expect(card.locator('.analysis-status')).toContainText('분석 완료');
-      await expect.poll(() => characterRequests).toBeGreaterThan(0);
-      await expect.poll(() => worldRequests).toBeGreaterThan(0);
-      const locked = card.getByRole('button', { name: '검토 상태 확인 중', exact: true });
-      await expect(locked).toBeDisabled();
-      await expect(card.getByRole('button', { name: '작품 설정 보기', exact: true })).toHaveCount(0);
-      await expect(card.getByRole('button', { name: /^확인이 필요한 \d+개 검토$/ })).toHaveCount(0);
-
-      const worldResponse = page.waitForResponse(response => response.url().includes('/world-setting-candidates') && response.url().includes(`sourceAnalysisJobId=${jobId}`));
-      releaseWorld();
-      await worldResponse;
-      await expect(locked).toBeDisabled();
-      await expect(card.getByRole('button', { name: /^확인이 필요한 \d+개 검토$/ })).toHaveCount(0);
-
-      releaseCharacter();
-      if (failsCharacter) {
-        await expect(card.getByRole('alert')).toContainText('검토 상태를 불러오지 못했습니다.');
-        await expect(locked).toBeDisabled();
-        characterFailure = false;
-        await card.getByRole('button', { name: '검토 상태 다시 확인', exact: true }).click();
-      }
-      const review = card.getByRole('button', { name: '확인이 필요한 2개 검토', exact: true });
-      await expect(review).toBeEnabled();
-      await review.click();
-      await expect(page).toHaveURL(/candidateType=world/);
-      await expect(page).toHaveURL(new RegExp(`sourceAnalysisJobId=${jobId}`));
-    } finally {
-      releaseCharacter();
-      releaseWorld();
-    }
+    fixture.finish();
+    await page.clock.fastForward(10_050);
+    const action = card.getByRole('button', { name: remaining ? '확인이 필요한 1개 검토' : '작품 설정 보기', exact: true });
+    await expect(action).toBeEnabled();
+    expect(fixture.calls.scopes).toEqual([]);
+    expect(fixture.calls.jobReads).toBe(0);
+    expect(fixture.calls.bookReads).toBe(0);
+    await action.click();
+    await expect(page).toHaveURL(remaining ? new RegExp(`sourceAnalysisJobId=${jobId}`) : /nav=settingDB&tab=characters/);
   });
 }

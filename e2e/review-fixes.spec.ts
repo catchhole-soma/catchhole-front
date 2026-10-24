@@ -1,4 +1,4 @@
-import { installEpisodeSourceList } from './episode-source-list';
+import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -126,7 +126,7 @@ function fulfill(route: Route, data: unknown) {
   return route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ success: true, data, error: null }),
+    body: JSON.stringify({ success: true, data: withEpisodeBatchSummaries(data), error: null }),
   });
 }
 
@@ -397,7 +397,6 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
     return fulfill(route, data);
   });
 
-  await installEpisodeSourceList(page, workId, [{ id: completedAnalysisJobId, batchId, episodeId, episodeNo: 20 }, { id: analysisJobId, batchId, episodeId, episodeNo: 20, status: 'CANCELED', jobType: 'EPISODE_VALIDATION' }]);
 
   await authenticate(page, 'canceled-analysis-list-token');
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
@@ -1008,7 +1007,6 @@ test('분석 목록의 실패 확인은 새 Job을 현재 polling 대상으로 �
     return fulfill(route, data);
   });
 
-  await installEpisodeSourceList(page, workId, [{ id: failedAnalysisJobId, batchId, episodeId, episodeNo: 20, status: 'FAILED', jobType: 'EPISODE_VALIDATION' }]);
 
   await authenticate(page, 'dashboard-retry-token');
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);

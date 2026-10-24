@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import type { AnalysisSourceResponse } from '../api/generated/types.gen';
 import { settingBookReferenceLabel } from './setting-book-reference';
 
@@ -53,12 +53,15 @@ export function isSameReviewScope(workId: string, batchId: string, sourceAnalysi
 }
 
 /** Invalidate every view of applied settings for this work, including current detail/search/history. */
-export function invalidateAppliedSettings(queryClient: QueryClient, workId: string) {
+export function invalidateAppliedSettings(queryClient: QueryClient, workId: string, options?: { excludeQueryKey?: QueryKey }) {
+  const excludedQuery = options?.excludeQueryKey
+    ? queryClient.getQueryCache().find({ queryKey: options.excludeQueryKey, exact: true })
+    : undefined;
   const operations = new Set(['getCharacters', 'getCharacter', 'getCharacterTimeline', 'getCharacterTimelineSummary',
     'getCharacterFact', 'getCharacterFactEvidence', 'searchCharacterFacts', 'getWorldSettings', 'getWorldSetting',
     'getSettingCandidates', 'getWorldSettingCandidates', 'getAnalysisBatches', 'getSettingBooks', 'getSettingBook']);
   return queryClient.invalidateQueries({ predicate: query => {
     const key = query.queryKey[0] as { _id?: string; path?: { workId?: string } } | undefined;
-    return key?.path?.workId === workId && Boolean(key._id && operations.has(key._id));
+    return query !== excludedQuery && key?.path?.workId === workId && Boolean(key._id && operations.has(key._id));
   } });
 }

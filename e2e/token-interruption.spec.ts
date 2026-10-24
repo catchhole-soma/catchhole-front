@@ -1,4 +1,4 @@
-import { installEpisodeSourceList } from './episode-source-list';
+import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -25,7 +25,7 @@ function success(route: Route, data: unknown) {
   return route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ success: true, data, error: null }),
+    body: JSON.stringify({ success: true, data: withEpisodeBatchSummaries(data), error: null }),
   });
 }
 
@@ -805,7 +805,6 @@ test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 �
     return success(route, []);
   });
 
-  await installEpisodeSourceList(page, workId, [{ id: analysisJobId, batchId, episodeId, episodeNo: 12, status: 'FAILED' }, { id: secondAnalysisJobId, batchId, episodeNo: 13, status: 'FAILED' }, { id: '33333333-3333-4333-8333-333333333335', batchId: otherBatchId, episodeNo: 14, status: 'FAILED' }]);
 
   await authenticate(page);
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
@@ -1615,7 +1614,6 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
   });
 
   await page.clock.install();
-  await installEpisodeSourceList(page, workId, [{ id: analysisJobId, batchId, episodeId, episodeNo: 12 }]);
 
   await authenticate(page);
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);

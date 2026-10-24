@@ -517,11 +517,14 @@ export default function S1Dashboard() {
   const overviewAnalysisActive = analysisOverviewQuery.data?.data?.content
     ?.some(batch => batch.status === 'IN_PROGRESS') ?? false;
   const previousOverviewActivityRef = useRef<{ workId: string; active: boolean } | null>(null);
+  const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
+  const episodesNeeded = activeNav === 'manuscripts' || episodeReanalysisTarget !== null;
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
-    enabled: episodeApiEnabled,
+    enabled: episodeApiEnabled && episodesNeeded,
     retry: false,
     refetchInterval: query => {
+      if (!episodesNeeded) return false;
       const episodes = query.state.data?.data ?? [];
       return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS')
         || (activeNav === 'manuscripts' && overviewAnalysisActive) ? 10_000 : false;
@@ -622,7 +625,6 @@ export default function S1Dashboard() {
   const [episodeDeleteTarget, setEpisodeDeleteTarget] = useState<EpisodeSummaryResponse | null>(null);
   const [episodeDeleteSubmitting, setEpisodeDeleteSubmitting] = useState(false);
   const [episodeDeleteFailed, setEpisodeDeleteFailed] = useState(false);
-  const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
 
   useEffect(() => {
     if (!demoMode || !effectiveWorkId) return;
