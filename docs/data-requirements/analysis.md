@@ -139,37 +139,36 @@
 
 **5-1. BE → FE 제공 데이터 요구사항 — 분석 작업 기본 정보**
 
-분석 작업 기본 정보는 현재 Java BE의 회차별 `AnalysisJobResponse` 목록을 재사용한다.
+진행 화면은 Java BE의 `AnalysisJobProgressResponse[]`를 사용한다. 기존 상세 응답의 큰 상태 JSON·원문·결과 요약을 상태 확인용으로 읽지 않는다. 작품 제목은 기존 작품 조회와 선택 문맥을 사용하고 batch 범위는 URL/생성 응답으로 유지한다.
 
 | 데이터 의미 | 현재 필드 | 화면 사용 |
 | --- | --- | --- |
-| 분석 작업 식별자 | `id` | 폴링 대상 식별 |
-| 작품 식별자·제목 | `workId`, `workTitle` | 작품 표시와 소유권 범위 |
-| 분석 대상 배치 | `batchId`, `target` | 대상 회차 범위 요약 |
-| 작업 유형 | `jobType` | `EPISODE_VALIDATION` 확인 |
-| 작업 상태 | `status` | `PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED` 표시 |
-| 현재 단계 | `currentStep` | 사용자용 단계 문구 변환 |
-| 상세 실패 정보 | `errorMessage` | 현재 응답에는 포함되지만 개발·운영 진단용으로 취급하며 화면에 원문을 표시하지 않음 |
-| 실행 시각 | `startedAt`, `completedAt`, `createdAt`, `updatedAt` | 진행·완료 시각 표시 |
-
-각 Job의 현재 상세 조회 API:
+| 작업·단일 회차 식별자 | `id`, `episodeId` | 현재/이력·재시도 대상 연결 |
+| 작업 유형과 상태 | `jobType`, `status` | 진행·실패·완료·이동 판단 |
+| 반영 방식과 완료 기록 | `reviewMode`, `automaticAppliedAt` | 자동 저장 마무리 확인 |
+| 누적 실행 | `analysisRun` | 실행/세대/순서·선행 실패·봉인·무효화 판단 |
+| 공개 실패 분류 | `failureCode`, `tokenInterruptedAfterExtraction` | 사용량 중단과 일반 실패 분리 |
+| 고정 대상 메타데이터 | `episodes` | ID·번호·제목·현재 상태·변경 시각 |
 
 ```http
-GET /api/v1/works/{workId}/analysis-jobs/{analysisJobId}
+GET /api/v1/works/{workId}/analysis-jobs/progress?analysisJobIds={comma-separated-UUIDs}
+GET /api/v1/works/{workId}/world-setting-candidates/progress?batchId={batchId}
 ```
+
+작업은 중복 제거 전 1~100개를 요청하며 서버는 최초 입력 순서로 반환한다. 없는/다른 작품 작업이 섞이면 전체를 거절한다. 긴 이력은 100개씩 순차 요청하고 모든 묶음이 성공해야 반영한다. 세계관 응답은 `pendingComparisonCount`, `processingComparisonCount`, `tokenInterruptedComparisonCount` 세 수치뿐이다. 기존 `GET /analysis-jobs/{analysisJobId}`는 다른 상세 소비자를 위해 유지한다.
 
 **5-2. BE → FE 제공 데이터 요구사항 — 회차별 진행 정보**
 
-현재 작업 상세 응답의 `episodes`에는 해당 Job의 단일 회차 ID·번호·제목·`Episode.status`가 포함된다. FE는 여러 상세 응답을 회차 번호순으로 합치며 다른 Job의 상태를 복제하지 않는다. 검수 결과 식별자는 후속 리포트 계약에서 추가한다.
+현재 진행 요약 응답의 `episodes`에는 해당 Job의 단일 회차 ID·번호·제목·`Episode.status`가 포함된다. FE는 고정 대상 응답을 회차 번호순으로 합치며 다른 Job의 상태를 복제하지 않는다. 검수 결과 식별자는 후속 리포트 계약에서 추가한다.
 
 | 데이터 의미 | 형태·필수성 | 값 없음·조건 |
 | --- | --- | --- |
 | 대상 회차 전체 수 | Job 목록 길이·필수 | 생성 대상이 없으면 API가 Job을 만들지 않음 |
 | 상태별 회차 수 | FE의 Job 상태 집계·필수 | 없는 상태는 `0` |
-| 회차 식별자·번호·제목 | 각 응답 `episodes[0]`·필수 | 제목이 없으면 `null` |
+| 회차 식별자·번호·제목 | 각 응답 `episodes[]`·필수 | 제목이 없으면 `null` |
 | 회차별 분석 상태 | Job `status`와 Episode `status`·필수 | 작업 상태와 처리 단계를 구분 |
-| 회차별 현재 단계 | Job `currentStep`·선택 | 시작 전·완료 후 `null` 가능 |
-| 회차별 상세 실패 정보 | Job `errorMessage`·선택 | 실패가 아니면 `null`; 화면은 원문 대신 상태값과 사용자용 안내를 사용 |
+| 회차별 현재 단계 | `Episode.status`·필수 | 자유 문구인 `currentStep`에서 단계를 추측하지 않음 |
+| 회차별 실패 분류 | `failureCode`·선택 | 실패가 아니면 `null`; 원시 오류는 화면에 표시하지 않음 |
 | 전체 결과 식별자 | 단일 값·조건부 필수 | `SUCCEEDED`이면 필수, 그 외 상태에서는 `null` |
 
 **5-3. FE → BE 전달 데이터 요구사항**
