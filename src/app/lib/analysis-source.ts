@@ -59,7 +59,7 @@ export function invalidateAppliedSettings(queryClient: QueryClient, workId: stri
     : undefined;
   const operations = new Set(['getCharacters', 'getCharacter', 'getCharacterTimeline', 'getCharacterTimelineSummary',
     'getCharacterFact', 'getCharacterFactEvidence', 'searchCharacterFacts', 'getWorldSettings', 'getWorldSetting',
-    'getSettingCandidates', 'getWorldSettingCandidates', 'getAnalysisBatches', 'getSettingBooks', 'getSettingBook']);
+    'getSettingCandidates', 'getWorldSettingCandidates', 'getWorldSettingCandidateSummary', 'getAnalysisBatches', 'getSettingBooks', 'getSettingBook']);
   return queryClient.invalidateQueries({ predicate: query => {
     const key = query.queryKey[0] as { _id?: string; path?: { workId?: string } } | undefined;
     return query !== excludedQuery && key?.path?.workId === workId && Boolean(key._id && operations.has(key._id));
