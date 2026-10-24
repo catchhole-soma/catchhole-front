@@ -26,7 +26,7 @@ import {
   getSettingCandidateOptions,
   getSettingCandidatesQueryKey,
   getSettingCandidatesOptions,
-  getWorldSettingCandidatesOptions,
+  getWorldSettingCandidateSummaryOptions,
   retrySettingCandidateComparisonMutation,
   updateSettingCandidateCharacterMatchMutation,
   updateSettingCandidateGroupCharacterMatchMutation,
@@ -1395,9 +1395,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   ));
 
   const worldSummaryQuery = useQuery({
-    ...getWorldSettingCandidatesOptions({
+    ...getWorldSettingCandidateSummaryOptions({
       path: { workId },
-      query: { sourceAnalysisJobId, batchId, page: 0, size: 1 },
+      query: { sourceAnalysisJobId, batchId },
     }),
     enabled: hasContext,
     retry: shouldRetryCandidateQuery,

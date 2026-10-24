@@ -53,7 +53,7 @@ async function mockWork(page: Page, genre: string) {
       totalCandidateCount: 1, pendingCandidateCount: 1, reviewedCandidateCount: 0, matchRequiredCandidateCount: 0,
       groups: pageOf([{ groupKey: 'genre-character', entityName: character.name, candidateCount: 1, candidates: [candidate] }]),
     };
-    else if (path.endsWith('/world-setting-candidates')) data = {
+    else if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) data = {
       batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
       pendingComparisonCount: 0, processingComparisonCount: 0, groups: pageOf([]),
     };

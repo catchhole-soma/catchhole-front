@@ -12,8 +12,8 @@ async function fixture(page: Page, kind: Kind, options: { filtered?: boolean; bo
     if (request.method() !== 'GET') writes.push(path);
     let data: unknown = {};
     if (path.endsWith('/auth/me')) data = { id: 1, email: 'type-complete@example.com', displayName: '검증', role: 'AUTHOR', status: 'ACTIVE' };
-    else if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
-      const target: Kind = path.endsWith('/world-setting-candidates') ? 'world' : 'character';
+    else if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
+      const target: Kind = /\/world-setting-candidates(?:\/summary)?$/.test(path) ? 'world' : 'character';
       const current = target === kind;
       const pending = options.bothDone ? 0 : current ? options.filtered ? 1 : 0 : 1;
       data = { batchId, episodeStartNo: 1, episodeEndNo: 1, episodeCount: 1,

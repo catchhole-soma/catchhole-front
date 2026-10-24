@@ -28,6 +28,7 @@ import {
   getWorldSettingCandidateOptions,
   getWorldSettingCandidatesOptions,
   getWorldSettingCandidatesQueryKey,
+  getWorldSettingCandidateSummaryQueryKey,
   getWorldSettingsQueryKey,
   resumeTokenInterruptedWorldSettingComparisonsMutation,
   resumeTokenInterruptedWorldSettingComparisonsMutationKey,
@@ -1629,8 +1630,14 @@ export function WorldSettingReview() {
     setScopeMergeCandidateIds([]);
   }, [batchId, sourceAnalysisJobId, workId]);
 
+  const invalidateReviewSummary = (scope = { workId, batchId, sourceAnalysisJobId }) => queryClient.invalidateQueries({
+    queryKey: getWorldSettingCandidateSummaryQueryKey({ path: { workId: scope.workId },
+      query: { batchId: scope.batchId, sourceAnalysisJobId: scope.sourceAnalysisJobId } }),
+  });
+
   const invalidateReviewState = async () => {
     await Promise.all([
+      invalidateReviewSummary(),
       queryClient.invalidateQueries({ queryKey: getWorldSettingCandidatesQueryKey({ path: { workId }, query: { sourceAnalysisJobId, batchId } }) }),
       queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) }),
     ]);
@@ -1781,6 +1788,7 @@ export function WorldSettingReview() {
       if (isCurrentRecovery()) setDecisionRecoveryRequired(true);
       return false;
     } finally {
+      await invalidateReviewSummary();
       if (decisionRecoveryRequestRef.current === request) {
         decisionRecoveryRequestRef.current = null;
         setDecisionRecoveryPending(false);
@@ -1819,6 +1827,7 @@ export function WorldSettingReview() {
   const updateDecisionMutation = useMutation({
     ...guardReviewSourceMutation(updateWorldSettingCandidateDecisionsMutation(), sourceScope.canWrite),
     onError: async (error, variables) => {
+      await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
       if (!isWorldReviewLocation(variables.path.workId, variables.body.batchId, variables.query?.sourceAnalysisJobId)
           || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
       await refreshAutomaticApplicationState(error);
@@ -1827,6 +1836,7 @@ export function WorldSettingReview() {
       await recoverDecision(variables.body.candidates, false);
     },
     onSuccess: async (response, variables) => {
+      await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
       if (!isWorldReviewLocation(variables.path.workId, variables.body.batchId, variables.query?.sourceAnalysisJobId)
           || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
       setDecisionRecoveryRequired(true);

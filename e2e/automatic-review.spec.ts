@@ -44,7 +44,7 @@ for (const candidateType of ['character', 'world']) {
         const pathname = new URL(route.request().url()).pathname;
         if (pathname.endsWith('/auth/me')) return success(route, member);
         if (pathname.endsWith('/recompare')) retryCalls++;
-        if (pathname.endsWith('/world-setting-candidates')) return success(route, { batchId,
+        if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) return success(route, { batchId,
           totalCandidateCount: 1, pendingCandidateCount: 1, failedComparisonCount: 1, activeComparisonJobCount: 0,
           groups: pageOf([{ groupKey: 'RACE|설인', category: 'RACE', subjectName: '설인',
             changeCount: 1, status: 'FAILED', candidates: [worldCandidate], evidenceEpisodeNos: [11] }]) });
@@ -156,7 +156,7 @@ test('자동 검토 후보와 기존 실패 후보가 섞여 있으면 기존 �
       retriedId = pathname.split('/').at(-2);
       return success(route, candidates[1]);
     }
-    if (pathname.endsWith('/world-setting-candidates')) return success(route, { batchId,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) return success(route, { batchId,
       totalCandidateCount: 2, reviewedCandidateCount: 0, pendingCandidateCount: 2, failedComparisonCount: 2,
       activeComparisonJobCount: 0, groups: pageOf([{ groupKey: 'RACE|설인', category: 'RACE', subjectName: '설인',
         changeCount: 2, status: 'FAILED', candidates, evidenceEpisodeNos: [11] }]) });
@@ -220,7 +220,7 @@ for (const scenario of [
           matchRequiredCandidateCount: 0, groups: pageOf(pending ? [{ groupKey: '수아', entityName: '수아',
             candidateCount: 1, pendingCandidateCount: 1, evidenceEpisodeNos: [11], candidates: [candidate] }] : []) });
       }
-      if (pathname.endsWith('/world-setting-candidates')) {
+      if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) {
         return success(route, { batchId, totalCandidateCount: 0, reviewedCandidateCount: 0,
           pendingCandidateCount: 0, failedComparisonCount: 0, groups: pageOf([]) });
       }

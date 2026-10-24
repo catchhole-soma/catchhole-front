@@ -47,7 +47,7 @@ test('같은 회차에서 수정·제외 후 다른 선택을 유지하고 최�
       directReviewCandidateCount: candidates.length, processingCandidateCount: 0,
       groups: pageOf(candidates.length ? [{ groupKey: '루안', entityName: '루안', candidateCount: candidates.length,
         pendingCandidateCount: candidates.length, evidenceEpisodeNos: [6], candidates }] : []) });
-    if (currentPath.endsWith('/world-setting-candidates')) return ok(route, { totalCandidateCount: 0, pendingCandidateCount: 0,
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(currentPath)) return ok(route, { totalCandidateCount: 0, pendingCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0, groups: pageOf([]) });
     return ok(route, []);
   });

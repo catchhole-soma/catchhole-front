@@ -119,7 +119,7 @@ async function routeCompletedReviewSummaries(page: Page) {
         },
       });
     }
-    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+    if ([`/api/v1/works/${workId}/world-setting-candidates`, `/api/v1/works/${workId}/world-setting-candidates/summary`].includes(pathname)) {
       return fulfill(route, {
         batchId,
         episodeStartNo: 1,
@@ -164,7 +164,7 @@ test('캐릭터 후보 조회가 실패해도 세계관 후보 탭으로 이동�
     if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
       return fulfillError(route, 500, '캐릭터 후보를 조회하지 못했습니다.');
     }
-    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+    if ([`/api/v1/works/${workId}/world-setting-candidates`, `/api/v1/works/${workId}/world-setting-candidates/summary`].includes(pathname)) {
       return fulfill(route, {
         batchId,
         episodeStartNo: 1,
@@ -228,7 +228,7 @@ test('캐릭터 탭에서도 진행 중인 세계관 비교 집계를 polling한
         },
       });
     }
-    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+    if ([`/api/v1/works/${workId}/world-setting-candidates`, `/api/v1/works/${workId}/world-setting-candidates/summary`].includes(pathname)) {
       worldSummaryRequestCount += 1;
       return fulfill(route, {
         batchId,
@@ -1009,7 +1009,7 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
     if (pathname === `${listPath}/${firstCandidateId}`) {
       return fulfill(route, { ...candidate, matchedCharacterId, matchStatus, reviewStatus });
     }
-    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) return fulfill(route, {
       batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
       groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
@@ -1100,7 +1100,7 @@ test('연결 확인이 필요한 후보도 무시할 수 있고 실패 후 같�
     if (pathname === `${listPath}/${firstCandidateId}`) {
       return fulfill(route, { ...candidate, reviewStatus });
     }
-    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) return fulfill(route, {
       batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
       groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
@@ -1799,7 +1799,7 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
     if (pathname === `${listPath}/${secondCandidateId}`) {
       return fulfill(route, nextCandidate);
     }
-    if (pathname.endsWith('/world-setting-candidates')) return fulfill(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(pathname)) return fulfill(route, {
       batchId, totalCandidateCount: 0, pendingCandidateCount: 0, reviewedCandidateCount: 0,
       confirmedCandidateCount: 0, dismissedCandidateCount: 0, directReviewCandidateCount: 0, processingCandidateCount: 0,
       groups: { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0, hasNext: false },
@@ -3228,7 +3228,7 @@ test('남은 후보가 있으면 완료 버튼을 비활성화하고 남은 개�
         },
       });
     }
-    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+    if ([`/api/v1/works/${workId}/world-setting-candidates`, `/api/v1/works/${workId}/world-setting-candidates/summary`].includes(pathname)) {
       return fulfill(route, {
         batchId,
         totalCandidateCount: 0,
@@ -3307,7 +3307,7 @@ test('배치 전환 중 이전 캐릭터 집계로 완료 버튼을 활성화하
         },
       });
     }
-    if (pathname === `/api/v1/works/${workId}/world-setting-candidates`) {
+    if ([`/api/v1/works/${workId}/world-setting-candidates`, `/api/v1/works/${workId}/world-setting-candidates/summary`].includes(pathname)) {
       if (requestBatchId === nextBatchId) nextWorldResponseCount += 1;
       return fulfill(route, {
         batchId: requestBatchId,

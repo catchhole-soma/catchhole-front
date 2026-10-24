@@ -85,8 +85,8 @@ async function setup(page: Page, { historical = false, archived = false, legacyE
         latestAnalysisJob: job(latestJobId), contentChangedSinceAnalysis: latestRevisionId !== revisionId,
         referenceTimeKind: historical ? 'EPISODE' : 'WORK_START', referenceEpisodeNo: historical ? 25 : null });
     }
-    if (path.endsWith('/setting-candidates') || path.endsWith('/world-setting-candidates')) {
-      const isWorld = path.endsWith('/world-setting-candidates');
+    if (path.endsWith('/setting-candidates') || /\/world-setting-candidates(?:\/summary)?$/.test(path)) {
+      const isWorld = /\/world-setting-candidates(?:\/summary)?$/.test(path);
       const item = isWorld ? world(origin) : character(origin);
       const dismissed = isWorld ? dismissedWorld : dismissedCharacter;
       const group = isWorld ? { groupKey: `LOCATION|${item.subjectName}`, category: 'LOCATION', subjectName: item.subjectName,

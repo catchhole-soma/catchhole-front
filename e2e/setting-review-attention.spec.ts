@@ -73,7 +73,7 @@ for (const width of [1280, 320]) {
           groups: pageOf(filtered ? [bjorn] : pageNumber ? [unknown] : [bjorn], pageNumber, filtered ? 1 : 2),
         });
       }
-      if (url.pathname.endsWith('/world-setting-candidates')) return success(route, {
+      if (/\/world-setting-candidates(?:\/summary)?$/.test(url.pathname)) return success(route, {
         batchId, episodeStartNo: 23, episodeEndNo: 28, episodeCount: 6,
         totalCandidateCount: 119, reviewedCandidateCount: 118, pendingCandidateCount: 1,
         ...zeroCounts, confirmedCandidateCount: 113, dismissedCandidateCount: 5, directReviewCandidateCount: 1,
@@ -153,7 +153,7 @@ test('확정·제외는 직접 확인에서 빠지고 겹친 사유·수정 저�
       confirmedCandidateCount: 1, dismissedCandidateCount: 1, directReviewCandidateCount: 4, processingCandidateCount: 2,
       groups: pageOf([group('비요른', candidates)]),
     });
-    if (path.endsWith('/world-setting-candidates')) return success(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, {
       batchId, totalCandidateCount: 0, reviewedCandidateCount: 0, pendingCandidateCount: 0, ...zeroCounts, groups: pageOf([]),
     });
     return success(route, []);
@@ -175,7 +175,7 @@ test('이전 서버가 새 집계를 보내지 않으면 반영·제외·직접 
         entityName: '미상', matchStatus: 'AMBIGUOUS', comparisonStatus: 'NOT_REQUIRED',
       })])]),
     });
-    if (path.endsWith('/world-setting-candidates')) return success(route, {
+    if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, {
       batchId, totalCandidateCount: 0, reviewedCandidateCount: 0, pendingCandidateCount: 0, groups: pageOf([]),
     });
     return success(route, []);
@@ -203,7 +203,7 @@ for (const activeTab of ['character', 'world']) {
           groups: pageOf([group('비요른', [candidate(3)])]),
         });
       }
-      if (path.endsWith('/world-setting-candidates')) return success(route, {
+      if (/\/world-setting-candidates(?:\/summary)?$/.test(path)) return success(route, {
         batchId, totalCandidateCount: 0, reviewedCandidateCount: 0, pendingCandidateCount: 0,
         ...zeroCounts, groups: pageOf([]),
       });

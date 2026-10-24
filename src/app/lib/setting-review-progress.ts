@@ -1,12 +1,12 @@
 import type {
   SettingCandidateListResponse,
   SettingCandidateResponse,
-  WorldSettingCandidateListResponse,
+  WorldSettingCandidateSummaryResponse,
   WorldSettingCandidateResponse,
   AnalysisSourceResponse,
 } from '../api/generated/types.gen';
 
-type CandidateSummary = SettingCandidateListResponse | WorldSettingCandidateListResponse;
+type CandidateSummary = SettingCandidateListResponse | WorldSettingCandidateSummaryResponse;
 type Count = number | null;
 
 export interface SettingReviewProgress {

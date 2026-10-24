@@ -104,6 +104,8 @@ npm run doctor
 
 ## 설정 후보 검토
 
+- 캐릭터 검토의 세계관 집계는 생성 SDK의 `/world-setting-candidates/summary`로 `batchId`와 선택 `sourceAnalysisJobId`만 전달해 읽는다. 집계를 위해 세계관 상세 목록을 요청하거나 실패를 0으로 대체하지 않는다. 처리 중 전체 집계의 기존 2초 갱신과 마지막 성공값을 유지하고, 세계관 변경·재개·결정 저장/복구 및 자동 반영 후 같은 범위의 summary 캐시도 무효화한다.
+
 - 캐릭터 후보의 화면 설정명은 Backend의 `attributeDisplayName`을 우선 사용한다. 응답에 없거나 비어 있을 때만 기존 표시명 fallback을 적용하며, 저장·수정 요청에는 원래 `attributeName`을 보낸다. DB에 추가한 스키마의 표시명을 프론트 번역 목록에 중복 등록하지 않는다.
 
 - 기본 검토 상태 필터는 `PENDING_REVIEW`로 유지한다. 이 기본 검토 흐름에서 확정·무시 후에는 서버에서 다시 받은 다음 검토 대기 후보를 자동 선택하고, `ALL`은 URL에 명시해 기본값과 구분한다.
