@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
@@ -91,7 +92,7 @@ async function mockCurrentLegalDocuments(page: Page) {
 // "이미 인증된 상태"만 흉내 내고, 그 상태에서 /dashboard 렌더링이 깨지지 않는지만 확인한다.
 test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ page }) => {
   // Vite의 /src/app/api 모듈은 건드리지 않고 실제 백엔드 API 경로만 모킹한다.
-  await page.route('**/api/v1/**', (route) => {
+  await routeProgressApi(page, (route) => {
     const isGetMe = new URL(route.request().url()).pathname.endsWith('/auth/me');
     const data = isGetMe
       ? {
@@ -154,7 +155,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
 
 test('사이드바 사용량 없이 한도 소진 안내를 공통 API 오류에서 표시한다', async ({ page }) => {
   let extensionRequestBody: { feedback: string; context: string } | null = null;
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -275,7 +276,7 @@ test('사이드바 사용량 없이 한도 소진 안내를 공통 API 오류에
 
 test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 없이 작품 목록으로 돌아간다', async ({ page }) => {
   let characterRequestCount = 0;
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.includes('/characters')) characterRequestCount += 1;
     const data = pathname.endsWith('/auth/me')
@@ -310,7 +311,7 @@ test('실제 모드에서 작품 ID 없이 직접 진입하면 캐릭터 요청 
 });
 
 test('MVP에서 제외한 이전 목 화면 경로는 작품 선택으로 돌아간다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -342,7 +343,7 @@ test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 �
   const workId = '11111111-1111-4111-8111-111111111111';
   const detectionMultipartBodies: string[] = [];
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -443,7 +444,7 @@ test('다회차 단일 파일에서 한 회차만 감지되면 파일을 제거�
   const workId = '11111111-1111-4111-8111-111111111111';
   const detectionErrorMessage = '다회차 업로드에는 정상 감지된 회차가 2개 이상 필요합니다.';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -535,7 +536,7 @@ test('업로드 방식을 전환해도 각 방식의 파일과 감지 결과를 
     },
   ];
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -661,7 +662,7 @@ test('다회차 업로드에 기존 회차가 포함되면 두 방식 모두 중
   const workId = '11111111-1111-4111-8111-111111111111';
   let detectionRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -769,7 +770,7 @@ test('회차 감지 수정값을 업로드하고 성공 전환을 한 번만 전
 
   await installMetaPixelMock(page);
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -994,7 +995,7 @@ test('신규 회차 검수 완료 후 현재 업로드 묶음의 설정 후보 �
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -1087,7 +1088,7 @@ test('분석 중에는 기존 작업 진행 화면만 다시 열고 파일 변�
   const secondAnalysisJobId = '66666666-6666-4666-8666-666666666666';
   let analysisCreateRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -1252,7 +1253,7 @@ test('회차 삭제는 확인 모달에서 취소하고 실패 후 다시 시도
     await dialog.dismiss();
   });
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -1364,7 +1365,7 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
     releaseAnalysisRequest = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -1482,7 +1483,7 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
     releaseFirstAnalysisRequest = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -1636,7 +1637,7 @@ test('기존 설정 구축 결과 보기는 설정 후보 검토로 바로 이�
   const batchId = '22222222-2222-4222-8222-222222222222';
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -1754,7 +1755,7 @@ test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한�
   const workId = '11111111-1111-4111-8111-111111111111';
   const episodeId = '44444444-4444-4444-8444-444444444444';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -1803,7 +1804,7 @@ test('회차 원문은 일반 수정일이 아닌 원문 변경일을 표시한�
 
 test('/auth/me 5xx는 토큰을 유지하고 재시도로 복구한다', async ({ page }) => {
   let getMeRequestCount = 0;
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const isGetMe = new URL(route.request().url()).pathname.endsWith('/auth/me');
     if (isGetMe && getMeRequestCount++ === 0) {
       return route.fulfill({
@@ -1950,7 +1951,7 @@ test('모바일 Auth 모달은 뷰포트 전체를 사용한다', async ({ page 
 });
 
 test('작품 선택 화면에서 로그아웃하면 랜딩으로 이동한다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -2398,7 +2399,7 @@ ${evidenceEpilogue}`;
     ],
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
@@ -3129,7 +3130,7 @@ test('보관함은 9개씩 조회하고 로딩 중에도 다음 페이지를 유
   }));
   const archiveRequests: Array<{ page: number; size: number }> = [];
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const requestUrl = new URL(route.request().url());
     if (requestUrl.pathname.endsWith('/auth/me')) {
       return route.fulfill({
@@ -3236,7 +3237,7 @@ test('캐릭터 목록은 화면 크기에 맞춰 서버 페이지 크기를 조
   const requests: Array<{ page: number; size: number }> = [];
 
   await page.setViewportSize({ width: 1280, height: 850 });
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/auth/me')) {
       return route.fulfill({

@@ -1,3 +1,4 @@
+import { routeAnalysisProgress } from './analysis-progress-routes';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
@@ -33,7 +34,7 @@ async function installBaseRoutes(page: Page) {
         ? { id: workId, title: '순차 분석 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' }
         : path.endsWith('/episodes/upload-policy')
           ? { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }
-          : path.endsWith('/world-setting-candidates')
+          : path.endsWith('/world-setting-candidates/progress')
           ? { pendingCandidateCount: 0, tokenInterruptedComparisonCount: 0, activeComparisonJobCount: 0 }
           : []);
   });
@@ -56,7 +57,7 @@ test('자동 분석은 저장 완료까지 확인해야 다음 회차를 완료 
 
 test('저장 완료가 확인되지 않은 분석은 완료나 계속 진행 중으로 표시하지 않는다', async ({ page }) => {
   await installBaseRoutes(page);
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const index = new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0;
     return success(route, { ...job(index, index ? 'PENDING' : 'SUCCEEDED', index ? 'PENDING' : 'SEALED'),
       reviewMode: 'AUTOMATIC' });
@@ -81,7 +82,7 @@ test('같은 분석을 재개한 뒤 다시 사용량이 소진되면 새 안내
   });
   let retries = 0;
   let failedReads = 0;
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith(`/${jobIds[0]}/retry`)) {
       retries += 1;
@@ -99,7 +100,7 @@ test('같은 분석을 재개한 뒤 다시 사용량이 소진되면 새 안내
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('quotaNotices'))).toBe('1');
   // A normal refetch of the same failed attempt must not show another notice.
   const beforeRefetch = failedReads;
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
   await expect.poll(() => failedReads).toBeGreaterThan(beforeRefetch);
   await expect(notice).toHaveCount(0);
   expect(await page.evaluate(() => sessionStorage.getItem('quotaNotices'))).toBe('1');
@@ -114,7 +115,7 @@ for (const initialStatus of ['FAILED', 'SUCCEEDED'] as const) {
     await installBaseRoutes(page);
     let resumed = false;
     let retryCalls = 0;
-    await page.route('**/analysis-jobs/**', route => {
+    await routeAnalysisProgress(page, route => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith(`/${jobIds[0]}/retry`)) {
         retryCalls += 1;
@@ -142,7 +143,7 @@ for (const initialStatus of ['FAILED', 'SUCCEEDED'] as const) {
 test('완료된 분석도 무효화되면 새 분석 안내를 표시하고 재개와 후보 검토를 막는다', async ({ page }) => {
   await installBaseRoutes(page);
   let mutations = 0;
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     if (route.request().method() !== 'GET') mutations += 1;
     const index = new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0;
     const invalid = job(index, 'SUCCEEDED', 'INVALIDATED');
@@ -180,7 +181,7 @@ test('완료 뒤 무효화된 분석은 업로드 없이 범위 확인 후 새 �
     { id: 'archived', batchId, episodeNo: 4, status: 'ARCHIVED' },
     { id: 'another-batch', batchId: 'another', episodeNo: 5, status: 'ANALYZED' },
   ]));
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const path = new URL(route.request().url()).pathname;
     const index = path.endsWith(jobIds[1]) || path.endsWith(newIds[1]) ? 1 : 0;
     return success(route, path.includes('77777777')
@@ -221,7 +222,7 @@ for (const failure of [
     let calls = 0;
     await page.route(`**/works/${workId}/episodes`, route => success(route,
       episodeIds.map((id, index) => ({ id, batchId, episodeNo: index + 2, status: 'ANALYZED' }))));
-    await page.route('**/analysis-jobs/**', route => success(route,
+    await routeAnalysisProgress(page, route => success(route,
       job(new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0, 'SUCCEEDED', 'INVALIDATED')));
     await page.route(`**/works/${workId}/analysis-jobs`, route => {
       calls += 1;
@@ -262,7 +263,7 @@ for (const response of ['lost', 'conflict']) {
       creates++;
       return success(route, []);
     });
-    await page.route('**/analysis-jobs/**', route => {
+    await routeAnalysisProgress(page, route => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/retry')) {
         resumed = true;
@@ -292,7 +293,7 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
   await page.clock.install();
   let retries = 0;
   const reads = { superseded: 0, current: 0 };
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/retry')) {
       retries++;
@@ -313,7 +314,7 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
   expect(new URL(page.url()).searchParams.get('currentAnalysisJobIds')?.split(',')).toEqual(jobIds);
   expect(new URL(page.url()).searchParams.get('analysisJobIds')?.split(',')).toEqual(jobIds);
   const currentReads = reads.current;
-  await page.clock.fastForward(9_000);
+  await page.clock.fastForward(31_000);
   await expect.poll(() => reads.current).toBeGreaterThan(currentReads);
   expect(reads.superseded).toBe(supersededReads);
   expect(new URL(page.url()).searchParams.get('supersededJobIds')).toBe(jobIds[0]);
@@ -324,7 +325,7 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
   const reloadedSupersededReads = reads.superseded;
   expect(reloadedSupersededReads).toBe(supersededReads + 1);
   const reloadedCurrentReads = reads.current;
-  await page.clock.fastForward(9_000);
+  await page.clock.fastForward(31_000);
   await expect.poll(() => reads.current).toBeGreaterThan(reloadedCurrentReads);
   expect(reads.superseded).toBe(reloadedSupersededReads);
   await page.getByRole('button', { name: '최신 분석 목록에서 확인', exact: true }).click();
@@ -334,7 +335,7 @@ test('더 최근 분석이 생긴 과거 Job은 재개와 자동 조회를 멈�
 
 test('무효화되었어도 아직 실행 중인 Job이 있으면 새 분석 버튼을 잠근다', async ({ page }) => {
   await installBaseRoutes(page);
-  await page.route('**/analysis-jobs/**', route => success(route,
+  await routeAnalysisProgress(page, route => success(route,
     job(new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0, 'RUNNING', 'INVALIDATED')));
   await page.goto(progressUrl());
   await expect(page.getByRole('button', { name: '새 순차 분석', exact: true })).toBeDisabled();
@@ -345,7 +346,7 @@ test('재개 후 새 작업 ID가 생기면 이전 작업의 반복 조회를 �
   await page.clock.install();
   const replacementId = '77777777-7777-4777-8777-777777777777';
   const reads = { previous: 0, current: 0 };
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith(`/${jobIds[0]}/retry`)) {
       return success(route, [{ ...job(0, 'SUCCEEDED', 'SEALED'), id: replacementId }]);
@@ -366,7 +367,7 @@ test('재개 후 새 작업 ID가 생기면 이전 작업의 반복 조회를 �
   expect(new URL(page.url()).searchParams.get('analysisJobIds')?.split(',')).toContain(jobIds[0]);
   const previousReads = reads.previous;
   const currentReads = reads.current;
-  await page.clock.fastForward(9_000);
+  await page.clock.fastForward(31_000);
   await expect.poll(() => reads.current).toBeGreaterThan(currentReads);
   expect(reads.previous).toBe(previousReads);
 });
@@ -379,7 +380,7 @@ test('무효화된 회차를 먼저 받아도 나머지 회차 상태를 확인�
   let creations = 0;
   await page.route(`**/works/${workId}/episodes`, route => success(route,
     episodeIds.map((id, index) => ({ id, batchId, episodeNo: index + 2, status: 'ANALYZED' }))));
-  await page.route('**/analysis-jobs/**', async route => {
+  await routeAnalysisProgress(page, async route => {
     if (new URL(route.request().url()).pathname.endsWith(jobIds[1])) {
       await siblingReady;
       return success(route, job(1, siblingRunning ? 'RUNNING' : 'SUCCEEDED', siblingRunning ? 'PENDING' : 'INVALIDATED'));
@@ -392,7 +393,7 @@ test('무효화된 회차를 먼저 받아도 나머지 회차 상태를 확인�
   });
   await page.goto(progressUrl());
   const restart = page.getByRole('button', { name: '새 순차 분석', exact: true });
-  await expect(restart).toBeDisabled();
+  await expect(restart).toHaveCount(0);
   releaseSibling();
   await expect(page.locator('.episode-processing-card')).toHaveCount(2);
   await expect(restart).toBeDisabled();
@@ -403,11 +404,12 @@ test('무효화된 회차를 먼저 받아도 나머지 회차 상태를 확인�
 
 test('새 분석 확인창을 연 뒤 진행 중인 회차가 확인되면 제출도 잠근다', async ({ page }) => {
   await installBaseRoutes(page);
+  await page.clock.install();
   let siblingRunning = false;
   let creations = 0;
   await page.route(`**/works/${workId}/episodes`, route => success(route,
     episodeIds.map((id, index) => ({ id, batchId, episodeNo: index + 2, status: 'ANALYZED' }))));
-  await page.route('**/analysis-jobs/**', route => {
+  await routeAnalysisProgress(page, route => {
     const index = new URL(route.request().url()).pathname.endsWith(jobIds[1]) ? 1 : 0;
     return success(route, job(index, index && siblingRunning ? 'RUNNING' : 'SUCCEEDED',
       index && !siblingRunning ? 'SEALED' : 'INVALIDATED'));
@@ -422,6 +424,7 @@ test('새 분석 확인창을 연 뒤 진행 중인 회차가 확인되면 제�
   const submit = dialog.getByRole('button', { name: '새 순차 분석 시작', exact: true });
   await expect(submit).toBeEnabled();
   siblingRunning = true;
+  await page.clock.fastForward(30_100);
   await expect(submit).toBeDisabled();
   await dialog.getByRole('button', { name: '취소', exact: true }).click();
   expect(creations).toBe(0);

@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -23,7 +24,7 @@ async function mockDashboard(page: Page, handlers: {
   episodes: (route: Route) => Promise<void>;
   overview: (route: Route) => Promise<void>;
 }) {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     expect(route.request().method()).toBe('GET');
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/auth/me')) return success(route, {
@@ -120,7 +121,7 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
   const laterEpisodeId = '44444444-4444-4444-8444-444444444444';
   const jobId = '55555555-5555-4555-8555-555555555555';
   const work = { id: workId, title: '원고 교체 확인', genre: '판타지', episodeCount: 30 };
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path.endsWith(`/${episodeId}/file`) && request.method() === 'PUT') {

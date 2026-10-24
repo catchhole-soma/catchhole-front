@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const WORK_ID = '11111111-1111-4111-8111-111111111111';
@@ -83,7 +84,7 @@ test('작품 선택 카드는 휴대폰에서 한 열로 표시된다', async ({
 
 test('대시보드는 휴대폰에서 사이드바를 서랍으로 열고 선택 뒤 닫는다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     if (pathname.endsWith(`/works/${WORK_ID}`)) {
@@ -125,7 +126,7 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 선택 메�
     representativeSetting: null,
   }));
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const url = new URL(route.request().url());
     const pathname = url.pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
@@ -235,7 +236,7 @@ test('캐릭터 목록은 휴대폰에서 여섯 명씩 조회하고 선택 메�
 
 test('원고 목록은 휴대폰에서 메타 정보와 작업 버튼을 카드 안에 모두 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     if (pathname.endsWith(`/works/${WORK_ID}`)) {
@@ -273,7 +274,7 @@ test('원고 목록은 휴대폰에서 메타 정보와 작업 버튼을 카드 
 
 test('회차 업로드 방식과 원문 리더는 휴대폰 너비에 맞춰 표시된다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     if (pathname.endsWith(`/episodes/${EPISODE_ID}`)) {

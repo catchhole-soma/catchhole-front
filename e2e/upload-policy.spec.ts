@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -14,7 +15,7 @@ async function setup(page: Page, policy: Record<string, unknown> = defaultPolicy
   const analysisBodies: Record<string, unknown>[] = [];
   const uploads: string[] = [];
   const settingBookRequests: string[] = [];
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const path = new URL(route.request().url()).pathname;
     if (path.includes('/setting-books')) settingBookRequests.push(route.request().method());
     if (path.endsWith('/analysis-jobs') && route.request().method() === 'POST') {
@@ -205,11 +206,11 @@ test('320px에서 경고·자동 반영 설명을 읽고 키보드로 단일 자
 test('자동 반영 완료 후 캐릭터·세계관 결과는 미확정 후보만 기본 조회한다', async ({ page }) => {
   await setup(page);
   const reviewQueries: Array<{ type: string; status: string | null }> = [];
-  await page.route(`**/analysis-jobs/${jobId}`, route => success(route, {
+  await page.route('**/analysis-jobs/progress?**', route => success(route, [{
     id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: 'SUCCEEDED', reviewMode: 'AUTOMATIC', automaticAppliedAt: '2026-09-13T01:00:00',
     episodes: [{ id: episodeId, episodeNo: 11, title: '자동 반영 원고', status: 'ANALYZED' }],
     analysisRun: { mode: 'ORDERED_PROVISIONAL', runId: '55555555-5555-4555-8555-555555555555', generation: 1, sequence: 0, journalStatus: 'SEALED' },
-  }));
+  }]));
   for (const type of ['setting-candidates', 'world-setting-candidates']) {
     await page.route(`**/${type}?**`, route => {
       const url = new URL(route.request().url());
@@ -234,11 +235,11 @@ test('자동 반영 완료 후 캐릭터·세계관 결과는 미확정 후보�
 test('추출을 마쳤어도 자동 저장이 끝나기 전에는 완료나 검토 진입을 열지 않는다', async ({ page }) => {
   await setup(page);
   let saved = false;
-  await page.route(`**/analysis-jobs/${jobId}`, route => success(route, {
+  await page.route('**/analysis-jobs/progress?**', route => success(route, [{
     id: jobId, workId, batchId, episodeId, jobType: 'SETTING_EXTRACTION', status: saved ? 'SUCCEEDED' : 'RUNNING', reviewMode: 'AUTOMATIC', automaticAppliedAt: saved ? '2026-09-13T01:00:00' : null,
     episodes: [{ id: episodeId, episodeNo: 11, title: '저장 대기 원고', status: 'ANALYZED' }],
     analysisRun: { mode: 'ORDERED_PROVISIONAL', runId: '55555555-5555-4555-8555-555555555555', generation: 1, sequence: 0, journalStatus: saved ? 'SEALED' : 'PENDING' },
-  }));
+  }]));
   await page.goto(`/episode-upload?workId=${workId}&batchId=${batchId}&analysisJobIds=${jobId}`);
   await expect(page.getByText('설정 비교·반영 중', { exact: true })).toBeVisible();
   await expect(page.getByText('분석이 완료되었습니다', { exact: true })).toHaveCount(0);
