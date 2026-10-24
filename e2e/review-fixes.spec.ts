@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
@@ -138,7 +139,7 @@ async function authenticate(page: Page, token: string) {
 test('삭제된 회차의 저장된 분석 URL은 사용할 수 없는 종료 상태를 표시한다', async ({ page }) => {
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -184,7 +185,7 @@ test('작품 삭제로 취소된 분석은 종료 안내를 표시하고 polling
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   let analysisRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith(`/${workId}/analysis-jobs/${analysisJobId}`)) {
       analysisRequestCount += 1;
@@ -234,7 +235,7 @@ test('삭제 중인 작품의 기존 실패 분석은 열람만 허용하고 재
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   let retryRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (request.method() === 'POST' && pathname.endsWith(`/analysis-jobs/${analysisJobId}/retry`)) {
@@ -281,7 +282,7 @@ test('삭제 중인 작품의 기존 실패 분석은 열람만 허용하고 재
 test('삭제 중인 작품의 완료 분석은 열람하되 후보 검토 진입은 차단한다', async ({ page }) => {
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -328,7 +329,7 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   const completedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -412,7 +413,7 @@ test('분석 목록은 작품 삭제 취소 건수를 완료와 구분해 표시
 test('영구 삭제 중인 작품의 대시보드와 새 업로드 딥링크는 삭제 상태로 보낸다', async ({ page }) => {
   const purgeRequestId = '66666666-6666-4666-8666-666666666666';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -464,7 +465,7 @@ test('분석 실패 화면은 내부 오류 원문 대신 사용자용 안내를
   const analysisJobId = '33333333-3333-4333-8333-333333333333';
   const internalError = 'LLM extraction failed after 3 attempts: source_chunk_id Input should be a valid UUID';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -515,7 +516,7 @@ test('삭제 회차와 실패 회차가 섞여도 살아 있는 실패 회차만
   const failedEpisodeId = '77777777-7777-4777-8777-777777777777';
   const retriedAnalysisJobIds: string[] = [];
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     const retryMatch = request.method() === 'POST'
@@ -618,7 +619,7 @@ test('여러 실패 회차 재시도 중 일부만 성공해도 새 작업 ID를
     releaseFirstRetry = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (
@@ -716,7 +717,7 @@ test('재시도 응답의 jobType이 실패 작업과 다르면 새 ID를 채택
   const failedAnalysisJobId = '33333333-3333-4333-8333-333333333333';
   const mismatchedAnalysisJobId = '55555555-5555-4555-8555-555555555555';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (
@@ -779,7 +780,7 @@ test('현재 Job이 완료되면 원문 상태가 바뀌어도 완료와 변경 
   const currentAnalysisJobId = '55555555-5555-4555-8555-555555555555';
   const currentEpisodeId = '77777777-7777-4777-8777-777777777777';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -846,7 +847,7 @@ test('기존 설정집 파일명은 독립적인 회차 업로드를 차단하�
   let episodeUploadRequestCount = 0;
   let settingBookUploadRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
@@ -918,7 +919,7 @@ test('분석 목록의 실패 확인은 새 Job을 현재 polling 대상으로 �
   let retryRequestCount = 0;
   let createRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
@@ -1048,7 +1049,7 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
     await dialog.dismiss();
   });
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
@@ -1121,7 +1122,7 @@ test('설정집 삭제는 대상을 표시하고 실패한 모달에서 다시 �
 });
 
 test('직접 연 원문 화면의 원고 목록 버튼은 이전 페이지가 아닌 현재 작품 목록으로 간다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? member
@@ -1163,7 +1164,7 @@ test('설정집 업로드 요청 중에는 선택 파일과 드롭 영역을 변
   let uploadRequestCount = 0;
   let uploadBody = '';
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 

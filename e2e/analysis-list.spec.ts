@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test } from '@playwright/test';
 
@@ -12,7 +13,7 @@ for (const width of [1280, 320]) {
       ...batch(1), status: 'CANCELED', worldSettingTokenInterruptedCandidateCount: 3,
       jobGroups: [{ ...batch(1).jobGroups[0], status: 'CANCELED', jobType: 'SETTING_EXTRACTION' }],
     };
-    await page.route('**/api/v1/**', route => {
+    await routeProgressApi(page, route => {
       const path = new URL(route.request().url()).pathname;
       const data = path.endsWith('/auth/me')
         ? { id: 1, email: 'test@example.com', displayName: '작가', role: 'AUTHOR', status: 'ACTIVE' }
@@ -62,7 +63,7 @@ test('분석 목록은 업로드 배치를 서버에서 10개씩 페이지 이�
   const requestedPages: string[] = [];
   const eleventhBatch = batch(11);
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const url = new URL(route.request().url());
     const pathname = url.pathname;
     let data: unknown = [];
@@ -186,7 +187,7 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
     reviewStatus: 'PENDING_REVIEW',
   };
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const url = new URL(route.request().url());
     const pathname = url.pathname;
     let data: unknown = [];
@@ -305,7 +306,7 @@ test('분석 목록의 결과 보기로 설정 후보 검토 화면에 바로 �
 test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL로 돌아간다', async ({ page }) => {
   const analysisJobId = '44444444-4444-4444-8444-444444444444';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     const data = pathname.endsWith('/auth/me')
       ? {
@@ -415,7 +416,7 @@ test('진행 화면을 거쳐 후보를 검토해도 저장한 분석 목록 URL
 });
 
 test('원고 목록 배너는 과거 실패보다 최신 분석 배치 상태를 표시한다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     let data: unknown = [];
 

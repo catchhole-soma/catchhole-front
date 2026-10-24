@@ -1,3 +1,4 @@
+import { routeProgressApi } from './analysis-progress-routes';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
@@ -197,7 +198,7 @@ test('비동기 토큰 중단은 전체 실패와 구분하고 보존된 후보 
     markInitialSummaryLoaded = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -596,7 +597,7 @@ test('열린 사용량 모달의 피드백 초안과 제출 오류는 새 중단
 });
 
 test('보관된 회차의 추출 후 토큰 중단은 보존 결과 검토로 진입시키지 않는다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
@@ -657,7 +658,7 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
   let secondJobSettled = false;
   let secondJobRequestCount = 0;
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
@@ -742,7 +743,7 @@ test('다중 회차 토큰 실패 알림은 모든 작업이 종료된 뒤 일�
 });
 
 test('분석 목록은 여러 종료 배치의 중단 수를 합치고 혼합 실패 복구를 우선한다', async ({ page }) => {
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
@@ -842,7 +843,7 @@ test('추출 전 회차 실패와 추출 후 비교 중단을 한 알림에 함�
     markInitialSummaryLoaded = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
@@ -936,7 +937,7 @@ test('배치 재개로 PENDING이 된 후보는 재진입해도 단건 재시도
   let resumeRequestCount = 0;
   let singleRetryRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -1069,7 +1070,7 @@ test('진행 중인 배치 재개 요청은 탭 재마운트 뒤에도 중복 �
     completeResumeRequest = resolve;
   });
 
-  await page.route('**/api/v1/**', async route => {
+  await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -1167,7 +1168,7 @@ test('재개 상태 배너 제목은 밝은 배경에서도 읽을 수 있다', 
   let phase: 'INTERRUPTED' | 'PROCESSING' | 'COMPLETED' = 'INTERRUPTED';
   let resumeRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -1282,7 +1283,7 @@ test('토큰 중단과 일반 실패가 같은 그룹에 있으면 두 복구 �
     },
   ];
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
     if (pathname.endsWith('/ai-token-usages/me')) return success(route, aiUsage());
@@ -1344,7 +1345,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
   let resumeRequestCount = 0;
   let worldCandidateRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -1434,7 +1435,7 @@ test('부분 재개는 새 토큰 중단만 최종 건수로 다시 알린다', 
 test('재개한 비교에 일반 실패가 남으면 완료 대신 확인 필요를 표시한다', async ({ page }) => {
   let phase: 'INTERRUPTED' | 'FAILED' = 'INTERRUPTED';
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
@@ -1498,7 +1499,7 @@ test('분석 목록은 진행 중 중단 알림을 미루고 최종 건수로 �
   let latestAnalysisBatchInterruptedCount = -1;
   let worldCandidateRequestCount = 0;
 
-  await page.route('**/api/v1/**', route => {
+  await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname.endsWith('/auth/me')) return success(route, member);
