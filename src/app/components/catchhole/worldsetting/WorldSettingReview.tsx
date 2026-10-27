@@ -388,7 +388,7 @@ function groupDecisionIdentity(
 
 function userFacingComparisonReason(
   candidate: WorldSettingCandidateResponse,
-  includeRootMoveNotice: boolean,
+  rootMoveApplication: 'APPLY' | 'PRESERVE' | null,
   activeComparisonJobCount: number,
   canResumeTokenInterrupted: boolean,
 ): string | null {
@@ -419,12 +419,15 @@ function userFacingComparisonReason(
   const publicReason = candidate.comparisonReason ?? (candidate.suggestedOperation === 'REVIEW_REQUIRED'
     ? '자동으로 반영할 내용을 정하지 못해 직접 확인이 필요합니다.' : '');
   const rootPropertyNames = candidate.existingRootPropertyNamesToMove ?? [];
-  if (!includeRootMoveNotice || !candidate.proposedScopeName || rootPropertyNames.length === 0) {
+  if (!rootMoveApplication || !candidate.proposedScopeName || rootPropertyNames.length === 0) {
     return publicReason || null;
   }
   const movePaths = rootPropertyNames
     .map(settingName => `‘${settingName}’ → ‘${candidate.proposedScopeName} › ${settingName}’`)
     .join(', ');
+  if (rootMoveApplication === 'PRESERVE') {
+    return `처음 분석에서는 ${movePaths} 이동을 제안했습니다. 이번 확정에서는 기존 설정의 위치를 유지합니다.`;
+  }
   return [publicReason, `확정하면 기존 설정도 함께 이동합니다: ${movePaths}.`]
     .filter(Boolean)
     .join(' ');
@@ -748,7 +751,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
 }
 
 function WorldKeyDiffRow({
-  candidate, decision, conflictResolved, recompared, includeRootMoveNotice,
+  candidate, decision, conflictResolved, recompared, rootMoveApplication,
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
   currentChoice = null, onCurrentChoice,
@@ -757,7 +760,7 @@ function WorldKeyDiffRow({
   decision: DecisionDraft | null;
   conflictResolved: boolean;
   recompared: boolean;
-  includeRootMoveNotice: boolean;
+  rootMoveApplication: 'APPLY' | 'PRESERVE' | null;
   activeComparisonJobCount: number;
   canResumeTokenInterrupted: boolean;
   disabled: boolean;
@@ -806,9 +809,9 @@ function WorldKeyDiffRow({
   const before = originalTargetChanged || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
     || choiceCandidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
     || choiceCandidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED' ? null : candidate.beforeValue;
-  const comparisonReason = userFacingComparisonReason(candidate, includeRootMoveNotice,
+  const comparisonReason = userFacingComparisonReason(candidate, rootMoveApplication,
     activeComparisonJobCount, canResumeTokenInterrupted);
-  const reasonInEvidence = !includeRootMoveNotice && (scopeNeedsReview || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED');
+  const reasonInEvidence = !rootMoveApplication && (scopeNeedsReview || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED');
   const selectedComparisonPaths = candidate.comparisonStatus === 'FAILED' || needsReview
     ? lastComparisonSelectedPaths(candidate) : [];
   const resolved = !pending || saved;
@@ -886,7 +889,7 @@ function WorldKeyDiffRow({
           description: '현재 시점에 반영할 최종 내용을 직접 정해 주세요.', footnote: '수정 창 열기' }] : []),
       ]} onChange={mode => { if (mode === 'edit-current') onEdit(); else onCurrentChoice(mode as 'CURRENT' | 'DEFAULT'); }} />}
 
-    {comparisonReason && !reasonInEvidence && !automaticPending && (!resolved || includeRootMoveNotice) && <div className="world-setting-comparison-reason">
+    {comparisonReason && !reasonInEvidence && !automaticPending && (!resolved || rootMoveApplication) && <div className="world-setting-comparison-reason">
       <ReviewNotice tone={needsReview ? 'warning' : 'info'} title={noticeTitle ?? (needsReview ? '확인이 필요한 이유' : '반영 안내')}>
         {comparisonReason}
       </ReviewNotice>
@@ -910,6 +913,39 @@ function WorldKeyDiffRow({
       </div>}
     </ReviewEvidence>
   </section>;
+}
+
+function canShowRootMoveProposal(candidate: WorldSettingCandidateResponse,
+  candidates: WorldSettingCandidateResponse[], decisions: Record<string, DecisionDraft>, confirmationFiltered: boolean,
+) {
+  if (confirmationFiltered || candidate.reviewStatus !== 'PENDING_REVIEW') return false;
+  const linkedSources = candidate.comparisonDecisionId
+    ? candidates.filter(source => source.comparisonDecisionId === candidate.comparisonDecisionId)
+    : [candidate];
+  return linkedSources.every(source => {
+    if (!source.id || source.userModified) return false;
+    const sourceDecision = decisions[source.id] ?? candidateDecision(source);
+    return sourceDecision?.operation === 'ADD';
+  });
+}
+
+function WorldRootMoveConfirmationNotice({ candidates, decisions }: {
+  candidates: WorldSettingCandidateResponse[];
+  decisions: Record<string, DecisionDraft>;
+}) {
+  const confirmedPaths = [...new Set(candidates.map(candidate => {
+    const decision = decisions[candidate.id!] ?? candidateDecision(candidate);
+    return `${decision?.scopeName} › ${decision?.settingName}`;
+  }))];
+  const preservedNames = [...new Set(candidates.flatMap(candidate => candidate.existingRootPropertyNamesToMove ?? []))];
+  return <div style={{ flexBasis: '100%' }}>
+    <ReviewNotice tone="info" title="이번에 확정할 내용">
+      ‘{confirmedPaths.join('’, ‘')}’의 내용을 확정합니다.
+      {' '}기존 ‘{preservedNames.join('’, ‘')}’은 현재 위치에 유지하며 함께 이동하지 않습니다.
+      {' '}더 최신인 설정이나 직접 수정한 설정을 유지해야 하면 이번 내용은 이력에 저장됩니다.
+      {' '}이미 완료된 다른 회차의 분석 결과는 그대로 둡니다.
+    </ReviewNotice>
+  </div>;
 }
 
 function WorldCandidateGroupDetail({
@@ -1060,17 +1096,18 @@ function WorldCandidateGroupDetail({
     && unresolvedConflicts.length === 0
     && !bookChoicesPending
     && !confirmationFiltered;
-  const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) => {
-    if (confirmationFiltered) return false;
-    const linkedSources = candidate.comparisonDecisionId
-      ? candidates.filter(source => source.comparisonDecisionId === candidate.comparisonDecisionId)
-      : [candidate];
-    return linkedSources.every(source => {
-      if (!source.id || source.userModified) return false;
-      const sourceDecision = decisions[source.id] ?? candidateDecision(source);
-      return sourceDecision?.operation === 'ADD';
-    });
-  };
+  const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) =>
+    canShowRootMoveProposal(candidate, candidates, decisions, confirmationFiltered);
+  // 완료된 순차 검토는 선택한 속성만 확정하며 과거 비교의 부수 이동은 재실행하지 않는다.
+  const completedOrderedReview = pendingCandidates.length > 0 && pendingCandidates.every(candidate => (
+    candidate.analysisMode === 'ORDERED_PROVISIONAL'
+    && candidate.sourceAnalysisJobStatus === 'SUCCEEDED'
+    && candidate.sourceAnalysisJournalStatus === 'SEALED'
+  ));
+  const preservedMoveCandidates = completedOrderedReview ? pendingCandidates.filter(candidate => (
+    includeRootMoveNotice(candidate) && candidate.proposedScopeName
+    && (candidate.existingRootPropertyNamesToMove?.length ?? 0) > 0
+  )) : [];
   return (
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
@@ -1113,7 +1150,7 @@ function WorldCandidateGroupDetail({
             decision={decisions[candidate.id] ?? candidateDecision(candidate)}
             conflictResolved={resolvedConflictIds.has(candidate.id) || Boolean(candidate.userModified)}
             recompared={recomparedIds.has(candidate.id)}
-            includeRootMoveNotice={includeRootMoveNotice(candidate)}
+            rootMoveApplication={includeRootMoveNotice(candidate) ? completedOrderedReview ? 'PRESERVE' : 'APPLY' : null}
             activeComparisonJobCount={activeComparisonJobCount}
             canResumeTokenInterrupted={canResumeTokenInterrupted}
             disabled={actionPending || decisionRecoveryRequired}
@@ -1182,7 +1219,9 @@ function WorldCandidateGroupDetail({
         borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
         display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9, flexWrap: 'wrap',
       }}>
-        {!groupAutomaticPending && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
+        {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
+        {!groupAutomaticPending && preservedMoveCandidates.length === 0
+          && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
           <div style={{ flexBasis: '100%' }}><OrderedReviewImpactNotice /></div>
         )}
         {retryAvailable && (
