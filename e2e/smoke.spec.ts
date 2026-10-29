@@ -140,7 +140,9 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
     await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('graph');
     await expect(page.getByRole('region', { name: '관계도', exact: true })).toBeVisible();
     await expect(page.getByRole('tab', { name: '가계도', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('tab', { name: /인물 관계도/ })).toBeDisabled();
+    await page.getByRole('tab', { name: '인물 관계도', exact: true }).click();
+    await expect(page.getByRole('tab', { name: '인물 관계도', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toBeVisible();
   } else {
     await page.getByRole('button', { name: /^관계도/ }).click();
     await expect(page.getByText('관계도 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();

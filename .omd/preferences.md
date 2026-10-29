@@ -765,3 +765,8 @@ source_context: "src/app/components/catchhole/characterreview/CharacterSettingRe
 ```
 
 Use a shared page header that covers both character and world-setting candidates on `/setting-review`. The implemented title is `설정 후보 검토`; candidate types remain distinguished by their tabs.
+
+
+## 2026-10-29 — 회차별 인물 관계도와 자동 반영 (#323)
+
+사용자는 기존 캐릭터·세계관 분석을 유지하고 관계를 별도 분석하여 자동 반영하는 방향의 구현을 승인했다. 회차를 선택하면 그 회차까지 드러난 관계·이름·근거를 보여 주며 최신 분석 회차가 기본이다. 별도의 애매함 판단·필수 검토 목록은 만들지 않고, 근거가 확인된 만큼만 표시한다. 관계를 누르면 두 인물의 이름·설명·실제 인용을 바로 읽고 잘못된 설명이나 연결만 선택적으로 고친다. 기존 가계도 동작은 유지한다. 이 요청이 이전 `인물 관계도 · 업데이트 예정` 제한을 대체한다.

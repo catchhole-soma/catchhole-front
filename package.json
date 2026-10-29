@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "doctor": "react-doctor --scope full --dead-code --no-supply-chain --no-score --blocking none --yes",
     "check:unused": "knip --no-progress",
-    "test:layout": "tsx --test scripts/family-tree-layout.test.ts",
+    "test:layout": "tsx --test scripts/family-tree-layout.test.ts scripts/episode-relationship-layout.test.ts",
     "compare:family-tree": "tsx scripts/compare-family-tree-layout.mjs"
   },
   "dependencies": {

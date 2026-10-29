@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { EpisodeReanalysisModal } from './EpisodeReanalysisModal';
-import { FamilyRelationshipWorkspace } from './relationship/FamilyRelationshipWorkspace';
+import { RelationshipWorkspace } from './relationship/RelationshipWorkspace';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
 import { CharacterTimelineModal } from './character/CharacterTimeline';
@@ -33,7 +33,7 @@ import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { isDemoMode } from '../../lib/worksApi';
-import { RELATIONSHIP_WORKSPACE_ENABLED } from '../../lib/relationship-feature';
+import { RELATIONSHIP_WORKSPACE_ENABLED, RELATIONSHIP_QUERY_KEYS } from '../../lib/relationship-feature';
 import { FileDropArea } from './FileDropArea';
 import {
   createAnalysisJobMutation,
@@ -253,7 +253,7 @@ export default function S1Dashboard() {
         // 비공개 상태에서는 직접 주소로도 관계 화면과 API를 열지 않는다.
         next.set('nav', 'settingDB');
         next.set('tab', 'characters');
-        for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory']) next.delete(key);
+        for (const key of RELATIONSHIP_QUERY_KEYS) next.delete(key);
       }
       return next;
     }, { replace: true });
@@ -276,7 +276,7 @@ export default function S1Dashboard() {
     if (id === 'settingDB') next.set('tab', 'characters');
     else if (id === 'graph') next.delete('tab');
     if (id !== 'graph') {
-      for (const key of ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory']) next.delete(key);
+      for (const key of RELATIONSHIP_QUERY_KEYS) next.delete(key);
     }
     if (id !== 'settingDB') {
       next.delete('settingBookFileId');
@@ -983,8 +983,8 @@ export default function S1Dashboard() {
 
             {RELATIONSHIP_WORKSPACE_ENABLED && activeNav === 'graph' && (
               <motion.div key="graph" className="relationship-page" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
-                <FamilyRelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} onOpenCharacter={id => openCharDetail(id, false)} />
-                {selectedCharDetail && characterWorkspace}
+                <RelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} onOpenCharacter={id => openCharDetail(id, false)} />
+                {selectedCharDetail && searchParams.get('relationMode') !== 'people' && characterWorkspace}
               </motion.div>
             )}
 
