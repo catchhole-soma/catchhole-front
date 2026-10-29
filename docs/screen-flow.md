@@ -650,6 +650,11 @@ flowchart TD
 
 기존 root 설정 이동은 별도 후보 row가 아니라 새 `ADD` 후보에 연결된 서버 이동 계획으로 표시합니다. Front는
 확정 요청에서 이동할 설정명을 다시 보내지 않고, 사용자가 AI안을 그대로 그룹 확정할지 여부만 전달합니다.
+일반 `CONFIRMED_ONLY` 검토에서는 실제로 함께 이동할 경로를 안내합니다. 검토 대기 후보가 모두
+`ORDERED_PROVISIONAL + SUCCEEDED + SEALED`인 완료 회차의 늦은 검토에서는 과거 이동 제안과 이번 확정을
+구분합니다. 이 경우 기존 설정의 위치는 유지하며, 하단 `이번에 확정할 내용`에서 선택한 설정 경로와 위치를
+유지할 기존 설정명을 보여 줍니다. 최신·직접 수정 설정을 보존해야 하면 이번 내용은 이력에 저장되고, 완료된
+다른 회차의 분석 결과는 유지됩니다. 사용자는 기존 `모두 확정` 한 번으로 처리하며 추가 승인 단계는 없습니다.
 
 범위가 없는 후보가 기존 scoped 설정과 겹치면 자동 적용하지 않고 `범위 확인 필요`로 남깁니다. 모든 source가
 동일한 기존 경로를 가리키고 필터로 숨은 source가 없을 때 `기존 범위 › 설정명에 병합`을 누르면 수정 모달에
@@ -665,17 +670,22 @@ flowchart TD
 flowchart TD
   A["세계관 후보 상세 조회"] --> B{"ADD + proposedScopeName +<br/>existingRootPropertyNamesToMove?"}
   B -- "아니오" --> C["일반 후보 diff 검토"]
-  B -- "예" --> D["AI 비교 판단에 이동 안내<br/>생명력 → 신체 능력 › 생명력"]
+  B -- "예" --> D["AI 비교 판단에 실제 확정 정책 안내<br/>함께 이동 또는 기존 위치 유지"]
   D --> E{"사용자 행동"}
   E -- "AI안 그대로 모두 확정" --> F["POST group-confirm<br/>candidate 최종 결정만 전송"]
-  F --> G{"Backend snapshot·목적지<br/>재검증 성공?"}
-  G -- "예" --> H["기존 root 이동 + 새 ADD 원자 반영<br/>후보·세계관 DB 다시 조회"]
-  G -- "아니오" --> I["409 RECOMPARISON_REQUIRED<br/>상태 재조회 후 비동기 재비교"]
+  F --> G{"Backend의 해당 확정 정책<br/>검증 성공?"}
+  G -- "예" --> H["일반 검토: 기존 이동 + 새 ADD<br/>완료 회차의 늦은 검토: 선택 설정만 처리<br/>후보·세계관 DB 다시 조회"]
+  G -- "일반 검토의 이동 snapshot 불일치" --> I["409 RECOMPARISON_REQUIRED<br/>상태 재조회 후 비동기 재비교"]
   E -- "수정 또는 row 제외" --> J["PATCH decisions 또는 POST group-dismiss"]
   J --> K["Backend가 이동 계획 decision-wide 비활성화"]
   K --> L["후보 재조회<br/>이동 안내 제거"]
   E -- "일부 source를 숨길 수 있는 필터" --> M["이동 안내 숨김 + 모두 확정 잠금<br/>필터 해제 안내"]
 ```
+
+GH301 검증: `e2e/world-setting.spec.ts`의 합성 API 응답으로 일반 검토의 이동 안내, 완료 회차의 구체적인
+확정 경로·기존 위치 유지 안내, 한 번의 그룹 확정 요청과 정확한 최종값, 확정 후 미래 이동 안내 제거를
+확인했습니다. 세계관 E2E 34개가 통과했습니다. 이 검증은 브라우저 표시·요청 계약을 확인하며 실제 DB 저장이나
+운영 데이터 변경을 검증한 것은 아닙니다.
 
 > 딥링크 (클릭 시 이동): [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · 리포트 [발행 전 검수](https://catch-hole.vercel.app/report?mode=prePublish).
 > ID 필요(형식만): 캐릭터 설정 후보 검토 `?workId=<id>&batchId=<id>&group=<group-key>`, 세계관 후보 검토 `?workId=<id>&batchId=<id>&candidateType=world&group=<group-key>` ([/setting-review](https://catch-hole.vercel.app/setting-review)), 세계관 상세 `?workId=<id>&nav=settingDB&tab=worldsettings&settingId=<id>`, 회차 검사 결과 `?issue=<id>` ([/episode-validation-report](https://catch-hole.vercel.app/episode-validation-report)). 구형 `candidate=<id>` 딥링크는 진입 후 해당 그룹으로 정규화한다.

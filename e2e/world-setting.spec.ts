@@ -189,6 +189,8 @@ for (const historyOnly of [false, true]) test(`개별 직접 검토의 완료 �
 
 test('새 범위로 함께 이동할 기존 root 설정을 검토 판단에 명시한다', async ({ page }) => {
   const candidate = worldCandidate({
+    analysisMode: 'CONFIRMED_ONLY',
+    sourceAnalysisJobStatus: 'SUCCEEDED',
     settingName: '근력 기댓값',
     extractedValue: '근력 기댓값이 높다.',
     suggestedOperation: 'ADD',
@@ -241,6 +243,76 @@ test('새 범위로 함께 이동할 기존 root 설정을 검토 판단에 명�
   await expect(page.locator('.world-setting-comparison-reason')).toContainText(
     '확정하면 기존 설정도 함께 이동합니다: ‘생명력’ → ‘신체 능력 › 생명력’.',
   );
+});
+
+test('완료된 순차 세계관은 이번 확정 경로와 유지할 기존 위치를 보여주고 한 번에 확정한다', async ({ page }, testInfo) => {
+  let candidate = worldCandidate({
+    analysisMode: 'ORDERED_PROVISIONAL',
+    reviewMode: 'MANUAL',
+    sourceAnalysisJobStatus: 'SUCCEEDED',
+    sourceAnalysisJournalStatus: 'SEALED',
+    settingName: '근력 기댓값',
+    extractedValue: '근력 기댓값이 높다.',
+    suggestedOperation: 'ADD',
+    proposedScopeName: '신체 능력',
+    proposedSettingName: '근력 기댓값',
+    beforeValue: null,
+    proposedValue: '근력 기댓값이 높다.',
+    existingRootPropertyNamesToMove: ['생명력'],
+    comparisonReason: '기존 생명력과 함께 신체 능력 범위로 정리합니다.',
+  });
+  const mutations: Array<{ path: string; body: unknown }> = [];
+  const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
+  await page.route('**/api/v1/**', route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const pathname = url.pathname;
+    if (request.method() !== 'GET') mutations.push({ path: pathname, body: request.postDataJSON() });
+    if (pathname.endsWith('/auth/me')) return success(route, member);
+    if (pathname === `/api/v1/works/${workId}/setting-candidates`) {
+      return success(route, { batchId, totalCandidateCount: 0, reviewedCandidateCount: 0,
+        pendingCandidateCount: 0, matchRequiredCandidateCount: 0, candidates: pageResponse([]) });
+    }
+    if (pathname === worldListPath) {
+      const pending = candidate.reviewStatus === 'PENDING_REVIEW';
+      const visible = (url.searchParams.get('reviewStatus') ?? 'PENDING_REVIEW') === candidate.reviewStatus;
+      return success(route, { batchId, episodeStartNo: 3, episodeEndNo: 3, episodeCount: 1,
+        totalCandidateCount: 1, reviewedCandidateCount: pending ? 0 : 1, pendingCandidateCount: pending ? 1 : 0,
+        pendingComparisonCount: 0, processingComparisonCount: 0, failedComparisonCount: 0,
+        recomparisonRequiredCount: 0, groups: pageResponse(visible ? [worldCandidateGroup([candidate])] : []) });
+    }
+    if (pathname === `${worldListPath}/group-confirm`) {
+      candidate = { ...candidate, reviewStatus: 'CONFIRMED', historyOnly: false,
+        finalOperation: 'ADD', finalCategory: 'RACE', finalSubjectName: '바바리안',
+        finalScopeName: '신체 능력', finalSettingName: '근력 기댓값', finalValue: '근력 기댓값이 높다.' };
+      return success(route, { groupKey: 'RACE|바바리안', worldSettingId,
+        appliedWorldSettingVersion: 4, candidates: [candidate] });
+    }
+    return success(route, []);
+  });
+  await authenticate(page);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
+
+  const summary = page.locator('.world-candidate-detail-card footer').getByRole('status');
+  await expect(summary).toContainText('이번에 확정할 내용');
+  await expect(summary).toContainText('‘신체 능력 › 근력 기댓값’의 내용을 확정합니다.');
+  await expect(summary).toContainText('기존 ‘생명력’은 현재 위치에 유지하며 함께 이동하지 않습니다.');
+  await expect(page.locator('.world-setting-comparison-reason')).toContainText('처음 분석에서는');
+  await expect(page.getByText('확정하면 기존 설정도 함께 이동합니다', { exact: false })).toHaveCount(0);
+  const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+  await expect(confirm).toBeEnabled();
+  await page.locator('.world-candidate-detail-card footer').screenshot({ path: testInfo.outputPath('late-world-before-confirm.png') });
+  await confirm.click();
+  await expect.poll(() => mutations).toEqual([{ path: `${worldListPath}/group-confirm`, body: {
+    batchId, candidates: [{ candidateId: worldCandidateId, operation: 'ADD', category: 'RACE',
+      subjectName: '바바리안', scopeName: '신체 능력', settingName: '근력 기댓값', value: '근력 기댓값이 높다.' }],
+  } }]);
+  await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&reviewStatus=CONFIRMED`);
+  await expect(page.locator('.world-setting-diff-row')).toContainText('반영됨');
+  await expect(page.locator('.world-setting-diff-row')).toContainText('근력 기댓값이 높다.');
+  await expect(page.getByText('확정하면 기존 설정도 함께 이동합니다', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('이번에 확정할 내용', { exact: true })).toHaveCount(0);
+  expect(mutations).toHaveLength(1);
 });
 
 test('분류 필터로 묶음 판단의 다른 후보가 가려지면 root 이동 안내와 확정을 막는다', async ({ page }) => {
