@@ -49,12 +49,14 @@ import type { AnalysisBatchSummaryResponse, EpisodeSummaryResponse } from '../..
 import { toApiError } from '../../lib/api-errors';
 import { ReviewNotice } from './review-ui/ReviewPrimitives';
 import { ValidationStageBadge } from './validation/ValidationEntryNotices';
+import { ReportReturnNotice } from './validation/ValidationReturnNotice';
 import {
   ACTIVE_VALIDATION_STAGES,
   ERROR_REVIEW_STATUS_LABELS,
   VALIDATION_STAGE_SUMMARY,
   validationReportUrl,
 } from './validation/validation-report-labels';
+import { readReportReturn } from './validation/validation-return';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
   label: string;
@@ -232,6 +234,8 @@ function episodeAnalysisLabel(episode: EpisodeSummaryResponse): { label: string;
     default: return { label: '재분석 필요', color: C.warning };
   }
 }
+
+const EPISODE_REPLACE_MODAL = 'episode-replace';
 
 function batchValidationActive(batch: AnalysisBatchSummaryResponse) {
   return (batch.validationReports ?? []).some(report => report.reviewStage != null && ACTIVE_VALIDATION_STAGES.has(report.reviewStage));
@@ -657,6 +661,33 @@ export default function S1Dashboard() {
     queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
   });
 
+  // A9/A10 리포트 복귀 문맥. 형식이 맞는 식별자·필터만 받아 같은 리포트 주소로 되돌린다.
+  const reportReturn = readReportReturn(searchParams, effectiveWorkId);
+  const [replacedForReport, setReplacedForReport] = useState<string | null>(null);
+  // 리포트의 `원고 파일 변경`은 같은 episodeId의 교체 모달을 주소로 연다. 회차 번호·제목으로 대상을 고르지 않는다.
+  const urlReplaceEpisodeId = activeNav === 'manuscripts' && searchParams.get('modal') === EPISODE_REPLACE_MODAL
+    ? searchParams.get('episodeId') : null;
+  // 교체 가능 여부는 서버가 판단한다. 목록에 없는 회차만 열지 않고 안내한다.
+  const urlReplaceTarget = urlReplaceEpisodeId
+    ? (episodesQuery.data?.data ?? []).find(episode => episode.id === urlReplaceEpisodeId) ?? null : null;
+  const urlReplaceUnavailable = Boolean(urlReplaceEpisodeId) && episodesQuery.isSuccess && !urlReplaceTarget;
+  const replaceModalTarget = replaceEpisodeTarget ?? urlReplaceTarget;
+  const clearReplaceModalParams = () => {
+    if (searchParams.get('modal') !== EPISODE_REPLACE_MODAL) return;
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.delete('modal');
+      next.delete('episodeId');
+      return next;
+    }, { replace: true });
+  };
+  const closeReplaceModal = () => {
+    setReplaceEpisodeTarget(null);
+    setReplacementFile(null);
+    setReplacementFileError(null);
+    clearReplaceModalParams();
+  };
+
   const changeManuscriptPage = (nextPage: number) => {
     setMsPage(nextPage);
     setSearchParams(params => {
@@ -700,17 +731,28 @@ export default function S1Dashboard() {
   };
 
   const replaceEpisodeFile = async () => {
-    if (!replaceEpisodeTarget?.id || !replacementFile || replacementFileError) return;
+    const target = replaceModalTarget;
+    if (!target?.id || !replacementFile || replacementFileError) return;
     setEpisodeActionError(null);
     try {
       await replaceEpisodeFileRequest.mutateAsync({
-        path: { workId: effectiveWorkId, episodeId: replaceEpisodeTarget.id },
+        path: { workId: effectiveWorkId, episodeId: target.id },
         body: { file: replacementFile },
       });
+      // 파일 교체는 검수를 시작하지 않는다. 열려 있던 리포트가 무효 상태를 바로 읽도록 검수 조회만 갱신한다.
+      const reportId = reportReturn?.reportId ?? target.validationReportId ?? null;
+      if (reportId) {
+        setReplacedForReport(reportId);
+        void queryClient.invalidateQueries({
+          predicate: query => {
+            const params = query.queryKey[0] as { path?: { reportId?: string; workId?: string }; _id?: string } | undefined;
+            return params?.path?.reportId === reportId
+              || (params?.path?.workId === effectiveWorkId && (params?._id === 'getCurrentEpisodeValidation' || params?._id === 'getEpisodeValidationEligibility'));
+          },
+        });
+      }
       await refreshEpisodeList();
-      setReplaceEpisodeTarget(null);
-      setReplacementFile(null);
-      setReplacementFileError(null);
+      closeReplaceModal();
     } catch (error) {
       setEpisodeActionError(toApiError(error)?.message ?? '회차 원문 파일을 변경하지 못했습니다.');
     }
@@ -775,6 +817,8 @@ export default function S1Dashboard() {
   const latestValidation = latestAnalysisBatch?.validationReports?.find(report => Boolean(report.reportId));
   const latestValidationView = latestValidation?.reviewStage && latestValidation.reviewStage !== 'APPLIED'
     ? VALIDATION_STAGE_SUMMARY[latestValidation.reviewStage] : null;
+  const returnTarget = reportReturn ?? (replacedForReport
+    ? { reportId: replacedForReport, url: validationReportUrl(effectiveWorkId, replacedForReport) } : null);
   const analysisNotice = latestValidation ? null : latestAnalysisBatch?.status === 'FAILED'
     || latestAnalysisBatch?.status === 'PARTIALLY_FAILED'
     ? {
@@ -1045,7 +1089,19 @@ export default function S1Dashboard() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
-                    {latestValidation?.reportId && latestValidationView && (
+                    {returnTarget && (replacedForReport === returnTarget.reportId ? (
+                      <ReportReturnNotice reportReturn={returnTarget} tone="success" title="원고 파일을 바꿨어요.">
+                        <p>파일 변경만으로 검사나 분석을 시작하지 않아요. 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
+                      </ReportReturnNotice>
+                    ) : (
+                      <ReportReturnNotice reportReturn={returnTarget} title="오류 리포트에서 원고 파일을 바꾸러 왔어요.">
+                        <p>리포트의 회차 파일만 바꿔요. 취소하거나 실패해도 오류 리포트로 돌아갈 수 있어요.</p>
+                      </ReportReturnNotice>
+                    ))}
+                    {urlReplaceUnavailable && (
+                      <ReviewNotice tone="warning" title="변경할 회차를 찾지 못했어요. 원고 목록에서 회차를 확인해 주세요." />
+                    )}
+                    {latestValidation?.reportId && latestValidationView && !returnTarget && (
                       <div className="validation-entry-notice" data-testid="latest-validation-notice">
                         <ReviewNotice tone={latestValidationView.tone === 'danger' ? 'danger' : latestValidationView.tone === 'primary' ? 'info' : latestValidationView.tone}
                           title={`${latestValidation.sourceEpisodeNo != null ? `${latestValidation.sourceEpisodeNo}화 ` : ''}신규 회차 검수 · ${latestValidationView.label}`}
@@ -1262,12 +1318,15 @@ export default function S1Dashboard() {
       <ComingSoonToast feature={comingSoonFeature} onClose={closeComingSoon} />
 
       <AnimatePresence>
-      {replaceEpisodeTarget && (
+      {replaceModalTarget && (
         <SourceFileModal
           title="회차 파일 변경"
-          description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
-          currentFilename={replaceEpisodeTarget.originalFilename}
-        warning="파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요."
+          description={`${replaceModalTarget.episodeNo}화 ${replaceModalTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
+          currentFilename={replaceModalTarget.originalFilename}
+          warning={replaceModalTarget.validationReportId
+            // 검수 회차는 재분석이 아니라 오류 리포트의 재검수로 이어진다.
+            ? '파일을 변경하면 이 회차의 이전 원문과 당시 검사 근거가 삭제되고, 지금의 오류 리포트는 다시 검수해야 해요. 파일 변경만으로 검사나 분석을 시작하지 않아요. 변경한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.'
+            : '파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요.'}
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}
@@ -1280,9 +1339,7 @@ export default function S1Dashboard() {
           }}
           onClose={() => {
             if (replaceEpisodeFileRequest.isPending) return;
-            setReplaceEpisodeTarget(null);
-            setReplacementFile(null);
-            setReplacementFileError(null);
+            closeReplaceModal();
             setEpisodeActionError(null);
           }}
           onSubmit={() => void replaceEpisodeFile()}

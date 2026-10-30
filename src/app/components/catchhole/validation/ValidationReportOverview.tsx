@@ -215,7 +215,6 @@ export function ReportBasisCard({ staging, summary, results, resultsUnavailable,
   const coverage = results?.coverage;
   const incomplete = results != null && results.status !== 'COMPLETED' && results.status !== 'NOT_STARTED' && !checking;
   const retryAllowed = summary?.allowedActions?.includes('RETRY') === true;
-  const recheckListed = summary?.allowedActions?.includes('RECHECK') === true;
 
   const [expanded, setExpanded] = useState(false);
   const settingStatus = resultsUnavailable ? '—' : branchStatusLabel(results?.settingStatus ?? (results?.status === 'NOT_STARTED' ? 'NOT_STARTED' : undefined));
@@ -261,21 +260,11 @@ export function ReportBasisCard({ staging, summary, results, resultsUnavailable,
             && <p>{`필수 검사 단위 ${coverage.requiredStages}개 중 ${coverage.requiredStages - coverage.completedStages}개를 마치지 못했어요.`}</p>}
         </ReviewNotice>
       )}
-      {(retryAllowed || recheckListed) && (
+      {retryAllowed && (
         <div className="vr-actions">
-          {retryAllowed && (
-            <ActionButton variant="secondary" onClick={onRetry} disabled={retrying}>
-              {retrying ? '다시 시도를 요청하고 있어요…' : '중단된 검사 다시 시도'}
-            </ActionButton>
-          )}
-          {recheckListed && (
-            <>
-              <ActionButton variant="secondary" disabled aria-describedby="validation-recheck-hint">수정 내용으로 재검수</ActionButton>
-              <span id="validation-recheck-hint" className="vr-muted">
-                최신 회차에서 원고 변경이나 설정 정정을 저장하고 진행 중인 검사가 없을 때 재검수할 수 있어요.
-              </span>
-            </>
-          )}
+          <ActionButton variant="secondary" onClick={onRetry} disabled={retrying}>
+            {retrying ? '다시 시도를 요청하고 있어요…' : '중단된 검사 다시 시도'}
+          </ActionButton>
         </div>
       )}
       {message}

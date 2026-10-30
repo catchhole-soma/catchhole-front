@@ -113,6 +113,15 @@
 .validation-report-screen .vr-detail-body { display: flex; flex-direction: column; gap: 4px; margin: 0 16px 16px; padding: 20px 24px; border: 1px solid var(--ch-border); border-radius: 16px; background: var(--ch-surface); }
 .validation-report-screen .vr-detail-body .review-cb-comparison { margin: 4px 0 14px; }
 .validation-report-screen .vr-section { margin: 14px 0 0; min-width: 0; }
+/* F2 A11 재검수 확인 · A9/A10 수정 이동 */
+.validation-report-screen .vr-recheck { margin: 14px 0 0; padding: 16px 18px; border: 1px solid rgb(8 126 242 / 22%); border-radius: var(--ch-radius-sm); background: var(--ch-surface-soft); }
+.validation-report-screen .vr-recheck h2 { font-size: 14px; }
+.validation-report-screen .vr-recheck .vr-facts > div { background: var(--ch-surface); }
+.validation-report-screen .vr-recheck .review-cb-notice { margin: 12px 0 0; }
+.validation-report-screen .vr-recheck-entry .vr-muted { flex: 1 1 220px; }
+.validation-report-screen .vr-fix .vr-actions { margin-top: 10px; }
+.validation-report-screen .vr-fix-link { text-decoration: none; }
+.validation-report-screen .vr-fix .vr-muted { margin: 8px 0 0; }
 .validation-report-screen .vr-section > h3 { margin: 0 0 8px; color: var(--ch-ink); font-size: 13px; font-weight: 750; }
 .validation-report-screen .vr-reason { margin: 0; color: var(--ch-text); font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
 .validation-report-screen .vr-reason-list { display: grid; gap: 8px; margin: 0; }

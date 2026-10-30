@@ -14,7 +14,9 @@ import { FindingDetailView } from './ValidationFindingDetail';
 import { FindingCounts, FindingEmptyState, FindingListPanel } from './ValidationFindingList';
 import { ValidationHistoryPanel } from './ValidationHistoryPanel';
 import { ReportBasisCard, ReportStatusCard } from './ValidationReportOverview';
+import { ValidationRecheckPanel } from './ValidationRecheckPanel';
 import { useValidationReportActions, type ReportActionArea } from './useValidationReportActions';
+import { reportFixLinks } from './validation-return';
 import {
   judgmentOptions,
   LOCK_REASON_COPY,
@@ -317,7 +319,6 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     if (saved) navigate(saved, { state: { ...linkState, latestReportUrl: undefined } });
     else if (staging?.episodeId) navigate(`${REPORT_PATH}?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}`, { state: linkState });
   };
-  const historyLink = (targetId: string) => reportUrl(workId, targetId, '&history=1');
 
   if (report.stagingQuery.isError && !staging) {
     const notFound = toApiError(report.stagingQuery.error)?.status === 404;
@@ -379,6 +380,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
             <ActionButton onClick={backToLatest}>최신 결과로 돌아가기</ActionButton>
           </div>
         )}
+        <ValidationRecheckPanel workId={workId} reportId={reportId} report={report} onRetry={() => actions.requestAction('retry')} />
       </ReportStatusCard>
 
       {!pastReport && (
@@ -395,7 +397,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
           error={report.historyQuery.isError}
           onRetry={() => void report.historyQuery.refetch()}
           viewingReportId={reportId}
-          reportUrl={historyLink}
+          reportUrl={targetId => reportUrl(workId, targetId, '&history=1')}
           linkState={{ ...linkState, latestReportUrl: pastReport ? linkState.latestReportUrl : `${location.pathname}${location.search}` }}
           page={historyPage}
           onPageChange={setHistoryPage}
@@ -443,8 +445,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
                   onSaveJudgment={judgment => { if (canJudge) actions.saveJudgment(detail, judgment); }}
                   selectedEvidence={filters.evidence}
                   onSelectEvidence={key => updateParams(next => { if (key) next.set('evidence', key); else next.delete('evidence'); })}
-                  sourceLink={sourceLink}
-                  topNotice={outsideNotice}
+                  sourceLink={sourceLink} topNotice={outsideNotice}
+                  fixLinks={reportFixLinks(workId, reportId, report.invalidated || pastReport ? undefined : staging?.episodeId, searchParams)}
                 />
               ) : detailMissing ? (
                 <StateCard title="이 항목을 찾을 수 없어요." description="다시 검사되었거나 이 결과에 없는 항목이에요."
