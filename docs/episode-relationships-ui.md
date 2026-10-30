@@ -185,3 +185,10 @@ layout 68건과 관계도 E2E 18건, typecheck/build 통과, lint 오류 0(기�
 인물 관계도를 왼쪽 첫 탭과 일반 진입 기본값으로 변경했다. `getRelationshipMode`로 Workspace와 가족 프로필 모달의 판정을 통일하고, 이전 가족 링크는 명시된 종류 또는 가족 상세 키로 복원한다. 가계도 선택은 `relationMode=family`를 남기며 키보드 Home/End·좌우키도 표시 순서를 따른다.
 
 관계 화면 범위 mock E2E115개와 dashboard smoke1개, 총116개 통과. 무종류 기본 진입·탭 순서·키보드·가계도 새로고침·뒤로가기·기존 가족 상세/legacy 주소를 검증했다. lint 오류0(기존경고2), typecheck/build/diff check 통과. 실제3301에서도 무종류 주소의 기본 인물 관계도와 명시적 가계도 새로고침·뒤로가기 복귀를 확인했다. live DB 쓰기 테스트는 실행하지 않았고 데이터나 분석은 변경하지 않았다. 캡처는 workspace artifact `relationship-50people-100edges-local-20261029/default-people-20261030/people-default.png`, E2E 기록은 `relationship-default-people-20261030/e2e-01/`에 보존했다.
+
+
+### 2026-10-30 PR 준비와 최신 main 통합
+
+최신 main의 문서 변경을 보존해 통합했다. 공통 계약 문서는 Java의 V101과 Java→AI Worker→Front 배포 순서로 동기화했다. 통합 후 lint 오류0(기존 경고2), typecheck/build, 로컬 합성 fixture 포함 layout78건, 일반 인용 단위4건이 통과했다. 인용 숨김 관련 E2E4건과 명시적 OFF E2E4건도 통과했다. 앞서 최종 화면에서 실행한 관계·가족115건+dashboard smoke1건과 구분하며 최신 전체 E2E를 모두 다시 실행한 결과로 보고하지 않는다.
+
+기하 비교 도구는 개인 폴더를 기본값으로 사용하지 않는다. `npm run compare:relationships -- --input <graph.json> --out <출력 폴더> --only hub-overview`로 현재 배치를 단독 측정하며, 과거 배치와 비교하려면 출력 폴더의 `baseline-source`에 대응하는 동결 소스가 있어야 한다. 인용 단위검증은 `npm run test:setting-evidence`로 실행하며 CI에도 포함했다.
