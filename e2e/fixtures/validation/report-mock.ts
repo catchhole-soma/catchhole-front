@@ -187,6 +187,9 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     recheckFailure: null as Failure | null,
     /** true면 재검수 report를 만든 뒤 응답을 끊는다(응답 유실). */
     recheckResponseLost: false,
+    /** 테스트가 풀어 줄 때까지 재검수·현재 검수 응답을 붙잡아 둔다. */
+    recheckHold: null as Promise<void> | null,
+    currentHold: null as Promise<void> | null,
   };
 
   const counts = () => {
@@ -283,6 +286,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     if (path === `/api/v1/works/${WORK_ID}/analysis-jobs/batches`) return success(route, { content: [], page: 0, size: 10, totalElements: 0, totalPages: 0, hasNext: false });
     const base = `/api/v1/works/${WORK_ID}/episode-validations`;
     if (path === `${base}/current`) {
+      if (state.currentHold) { const hold = state.currentHold; state.currentHold = null; await hold; }
       if (scenario.currentReportMissing) return failure(route, 404, 'VALIDATION_NOT_FOUND', '검수 결과를 찾을 수 없습니다.');
       return success(route, state.staging);
     }
@@ -360,6 +364,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
         state.recheckFailure = null;
         return failure(route, status, code, message);
       }
+      if (state.recheckHold) { const hold = state.recheckHold; state.recheckHold = null; await hold; }
       recheck();
       if (state.recheckResponseLost) { state.recheckResponseLost = false; return route.abort('failed'); }
       return success(route, state.staging);
@@ -384,6 +389,8 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     failNextReplace: (failure: Failure) => { state.replaceFailure = failure; },
     failNextRecheck: (failure: Failure) => { state.recheckFailure = failure; },
     loseNextRecheckResponse: () => { state.recheckResponseLost = true; },
+    holdNextRecheck: () => { let release!: () => void; state.recheckHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
+    holdNextCurrent: () => { let release!: () => void; state.currentHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     requestsTo: (suffix: string, method = 'POST') => state.requests.filter(item => item.method === method && item.path.endsWith(suffix)),
     episodeDetail: () => episodeDetail(state.episodeRevision),
     judgmentPatches: () => state.requests.filter(request => request.method === 'PATCH'),

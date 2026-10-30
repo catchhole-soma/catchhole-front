@@ -164,6 +164,49 @@ test('재검수 응답이 유실되면 현재 검수로 새 리포트를 확인�
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
+const invalidated: ReportScenario = {
+  staging: { status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED' },
+  summary: { reviewStage: 'INVALIDATED', judgmentLocked: true, lockReason: 'REPORT_INVALIDATED', allowedActions: ['RECHECK'], holdReasons: ['REPORT_INVALIDATED'] },
+};
+const analysisList = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses$`);
+
+test('재검수 응답 전에 분석 목록으로 나가면 늦은 응답이 목록을 새 리포트로 바꾸지 않는다', async ({ page }) => {
+  const mock = await open(page, invalidated);
+  const release = mock.holdNextRecheck();
+  await recheckButton(page).click();
+  await page.getByTestId('validation-recheck-confirm').getByRole('button', { name: '재검수 시작', exact: true }).click();
+  await expect.poll(() => mock.requestsTo('/rechecks').length).toBe(1);
+  await page.getByRole('button', { name: '← 분석 목록' }).click();
+  await expect(page).toHaveURL(analysisList);
+  release();
+  // 서버의 재검수는 그대로 처리된다.
+  await expect.poll(() => mock.state.staging.reportId).toBe(RECHECK_REPORT_ID);
+  await page.waitForTimeout(400);
+  await expect(page).toHaveURL(analysisList);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
+test('재검수 응답 유실 뒤 현재 검수 확인 중에 나가도 늦은 확인 결과로 이동하지 않는다', async ({ page }) => {
+  const mock = await open(page, invalidated);
+  mock.loseNextRecheckResponse();
+  const release = mock.holdNextCurrent();
+  const currentReads: string[] = [];
+  let currentAnswered = false;
+  const isCurrent = (url: string) => new URL(url).pathname.endsWith('/episode-validations/current');
+  page.on('request', request => { if (isCurrent(request.url())) currentReads.push(request.url()); });
+  page.on('requestfinished', request => { if (isCurrent(request.url())) currentAnswered = true; });
+  await recheckButton(page).click();
+  await page.getByTestId('validation-recheck-confirm').getByRole('button', { name: '재검수 시작', exact: true }).click();
+  await expect.poll(() => currentReads.length).toBe(1);
+  await page.getByRole('button', { name: '← 분석 목록' }).click();
+  await expect(page).toHaveURL(analysisList);
+  release();
+  await expect.poll(() => currentAnswered).toBe(true);
+  await page.waitForTimeout(400);
+  await expect(page).toHaveURL(analysisList);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
 test('확정 완료 회차의 진단 재검수는 같은 버튼으로 결과 전용 안내와 함께 시작한다', async ({ page }) => {
   const appliedSummary = {
     allowedActions: [], canCompleteReview: false, completionMode: 'COMPLETED', judgmentLocked: true, lockReason: 'REVIEW_COMPLETED',

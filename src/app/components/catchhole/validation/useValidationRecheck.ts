@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCurrentEpisodeValidationOptions,
@@ -50,6 +50,14 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<RecheckNotice>(null);
   const key = useRef<{ key: string; version: number } | null>(null);
+  // 응답 전에 리포트를 떠나면 늦은 응답으로 화면을 바꾸지 않는다. 서버의 재검수 요청은 취소하지 않는다.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const contextOf = () => `${window.location.pathname}?reportId=${new URLSearchParams(window.location.search).get('reportId') ?? ''}`;
+  const stillHere = (context: string) => mounted.current && contextOf() === context;
 
   const eligibilityQuery = useQuery({
     ...getEpisodeValidationEligibilityOptions({ path: { workId }, query: { episodeId } }),
@@ -77,9 +85,12 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
   const diagnostic = summary?.mode === 'DIAGNOSTIC_ONLY' || summary?.application?.status === 'APPLIED';
 
   // 재검수가 현재 report를 바꿨으므로 회차의 현재 검수 캐시를 버려 다음 회차 주소 진입이 새로 확인하게 한다.
-  const finish = (nextReportId: string) => {
+  // 화면 이동은 요청을 시작한 리포트에 그대로 있을 때만 한다.
+  const finish = (nextReportId: string, context: string) => {
     key.current = null;
     queryClient.removeQueries({ queryKey: getCurrentEpisodeValidationQueryKey({ path: { workId }, query: { episodeId } }) });
+    if (!stillHere(context)) return;
+    setOpen(false);
     onRechecked(nextReportId);
   };
 
@@ -88,24 +99,25 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     return key.current.key;
   };
 
-  const recoverLostResponse = async () => {
+  const recoverLostResponse = async (context: string) => {
     try {
       const latestReport = (await queryClient.fetchQuery({
         ...getCurrentEpisodeValidationOptions({ path: { workId }, query: { episodeId } }), staleTime: 0, retry: false,
       })).data;
       if (latestReport?.reportId && latestReport.reportId !== reportId) {
-        finish(latestReport.reportId);
+        finish(latestReport.reportId, context);
         return;
       }
     } catch {
       // 현재 검수를 읽지 못해도 같은 키로 다시 시도할 수 있게 둔다.
     }
-    setNotice({ tone: 'warning', text: '재검수 요청 결과를 확인하지 못했어요. 다시 누르면 같은 요청으로 확인해요.' });
+    if (stillHere(context)) setNotice({ tone: 'warning', text: '재검수 요청 결과를 확인하지 못했어요. 다시 누르면 같은 요청으로 확인해요.' });
   };
 
   const submit = async () => {
     const version = report.reportVersion;
     if (!canRecheck || pending || version == null) return;
+    const context = contextOf();
     setNotice(null);
     let episode;
     try {
@@ -114,7 +126,7 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
       episode = undefined;
     }
     if (!episode?.contentHash || !episode.contentS3Key || episode.contentRevision == null) {
-      setNotice({ tone: 'danger', text: '현재 원고 정보를 확인하지 못했어요. 잠시 후 다시 눌러 주세요.' });
+      if (stillHere(context)) setNotice({ tone: 'danger', text: '현재 원고 정보를 확인하지 못했어요. 잠시 후 다시 눌러 주세요.' });
       return;
     }
     try {
@@ -131,16 +143,13 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
           ...(staging?.baselineFingerprint ? { expectedBaselineHash: staging.baselineFingerprint } : {}),
         },
       });
-      if (response.data?.reportId && response.data.reportId !== reportId) {
-        setOpen(false);
-        finish(response.data.reportId);
-      } else {
-        await recoverLostResponse();
-      }
+      if (response.data?.reportId && response.data.reportId !== reportId) finish(response.data.reportId, context);
+      else await recoverLostResponse(context);
     } catch (error) {
       const api = toApiError(error);
       if (api && api.status >= 400 && api.status < 500) {
         key.current = null;
+        if (!stillHere(context)) return;
         setNotice({
           tone: api.status === 409 ? 'warning' : 'danger',
           text: RECHECK_ERROR_COPY[api.code] ?? (api.message || '재검수를 시작하지 못했어요.'),
@@ -150,7 +159,7 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
         void eligibilityQuery.refetch();
         return;
       }
-      await recoverLostResponse();
+      await recoverLostResponse(context);
     }
   };
 
