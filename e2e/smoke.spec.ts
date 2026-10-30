@@ -333,10 +333,15 @@ test('MVP에서 제외한 이전 목 화면 경로는 작품 선택으로 돌아
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mvp-routes-token'));
 
-  for (const path of ['/chat', '/loading', '/report', '/episode-validation-report']) {
+  for (const path of ['/chat', '/loading', '/report']) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/works$/);
   }
+  // GH314: 오류 리포트는 공개 화면이다. 작품·결과 식별자가 없으면 이동 대신 안내와 복귀 버튼을 보여 준다.
+  await page.goto('/episode-validation-report');
+  await expect(page.getByText('오류 리포트 정보를 찾을 수 없어요.')).toBeVisible();
+  await page.getByRole('status').getByRole('button', { name: '분석 목록으로', exact: true }).click();
+  await expect(page).toHaveURL(/\/works$/);
 });
 
 test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 새 감지 결과로 갱신한다', async ({ page }) => {
@@ -405,8 +410,9 @@ test('단일 회차는 추천 번호를 입력하지 않고 파일 교체 때 �
   await page.goto(`/episode-upload?workId=${workId}`);
 
   await page.getByText('단일 회차 업로드', { exact: true }).click();
-  await expect(page.getByRole('button', { name: '신규 회차 검수 업데이트 예정' })).toBeDisabled();
-  await expect(page.getByText('기존 설정 구축', { exact: true })).toBeVisible();
+  // GH314 F2: 단일 회차는 신규 회차 검수를 고를 수 있고 기본 선택은 기존 설정 구축이다.
+  await expect(page.getByRole('button', { name: /^신규 회차 검수/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^기존 설정 구축/ })).toHaveAttribute('aria-pressed', 'true');
 
   const episodeNoInput = page.getByPlaceholder('비우면 파일에서 감지');
   const episodeTitleInput = page.getByPlaceholder('비우면 원문 제목 행에서 감지');

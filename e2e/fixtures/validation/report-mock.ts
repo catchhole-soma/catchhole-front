@@ -11,7 +11,10 @@ export const WORK_ID = '00000000-0000-4000-8000-0000000000a1';
 export const REPORT_ID = stagingFixture.awaitingReview.reportId;
 export const PAST_REPORT_ID = review.responses.historyPage.content[1].reportId;
 export const EPISODE_ID = stagingFixture.awaitingReview.episodeId;
-const BATCH_ID = stagingFixture.awaitingReview.batchId;
+export const BATCH_ID = stagingFixture.awaitingReview.batchId;
+/** 재검수가 만드는 새 report. 계약 예시의 UUID 형식만 따른다. */
+export const RECHECK_REPORT_ID = '00000000-0000-4000-8000-000000000012';
+const REPLACED_BATCH_ID = '00000000-0000-4000-8000-000000000022';
 
 type Detail = typeof review.responses.findingDetail;
 type Summary = typeof review.responses.reviewSummary;
@@ -142,7 +145,23 @@ export type ReportScenario = {
   results?: Record<string, unknown>;
   history?: HistoryRow[];
   currentReportMissing?: boolean;
+  /** 회차 단위 자격 조회(GET /eligibility?episodeId=)의 값. 기본은 현재 report가 있는 최신 회차다. */
+  eligibility?: Record<string, unknown>;
 };
+
+type Failure = { status: number; code: string; message: string };
+
+/** 회차 상세(GET /episodes/{id}). 원문은 목 응답에 넣지 않는다. */
+function episodeDetail(revision: number) {
+  const suffix = revision.toString(16).padStart(2, '0');
+  return {
+    id: EPISODE_ID, workId: WORK_ID, episodeNo: 101, title: '성문 앞에서', content: '',
+    originalFilename: revision > 3 ? '101-revised.txt' : '101.txt',
+    contentUpdatedAt: revision > 3 ? '2026-10-30T12:00:00' : '2026-10-30T09:00:00',
+    contentS3Key: `works/${WORK_ID}/episodes/101-r${revision}.txt`, contentS3Version: `synthetic-v${revision}`,
+    contentHash: `${suffix}`.repeat(32), charCount: 5200, status: 'UPLOADED', contentRevision: revision,
+  };
+}
 
 const success = (route: Route, data: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, message: '성공', data, error: null }) });
 const failure = (route: Route, status: number, code: string, message: string) => route.fulfill({
@@ -161,6 +180,13 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     requests: [] as Array<{ method: string; path: string; body: unknown }>,
     findingQueries: [] as string[],
     detailGets: 0,
+    episodeRevision: scenario.staging?.targetRevision ?? stagingFixture.awaitingReview.targetRevision,
+    pastReports: new Map<string, Staging>(),
+    eligibility: { ...clone(review.responses.eligibilityReportExists), episodeId: EPISODE_ID, ...scenario.eligibility } as Record<string, unknown>,
+    replaceFailure: null as Failure | null,
+    recheckFailure: null as Failure | null,
+    /** true면 재검수 report를 만든 뒤 응답을 끊는다(응답 유실). */
+    recheckResponseLost: false,
   };
 
   const counts = () => {
@@ -200,20 +226,68 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     } as Summary;
   };
   const bump = () => { state.staging.reportVersion += 1; };
+  // 원고 교체: Backend처럼 현재 report를 퇴역시키지 않고 무효로 만들고 재검수만 허용한다.
+  const invalidate = () => {
+    state.staging = { ...state.staging, status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED', baselineHash: null as unknown as string, reportVersion: state.staging.reportVersion + 1 };
+    state.summaryPatch = { ...state.summaryPatch, reviewStage: 'INVALIDATED', judgmentLocked: true, lockReason: 'REPORT_INVALIDATED', allowedActions: ['RECHECK'], holdReasons: ['REPORT_INVALIDATED'] } as Partial<Summary>;
+    state.findings = [];
+  };
+  // 재검수: 이전 report는 이력으로 남고 새 report가 현재가 된다. 확정한 회차는 결과 전용 재검수다.
+  const recheck = () => {
+    const previous = state.staging;
+    const applied = (summary().application as { status?: string } | null)?.status === 'APPLIED' || previous.mode === 'DIAGNOSTIC_ONLY';
+    state.pastReports.set(previous.reportId, { ...previous, current: false, status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED', executionStatus: 'CANCELED' });
+    state.staging = {
+      ...previous, reportId: RECHECK_REPORT_ID, baselineId: RECHECK_REPORT_ID, batchId: previous.status === 'INVALIDATED' ? REPLACED_BATCH_ID : previous.batchId,
+      revision: previous.revision + 1, reportVersion: 1, baselineRevision: previous.baselineRevision + 1, previousReportId: previous.reportId,
+      mode: applied ? 'DIAGNOSTIC_ONLY' : 'BEFORE_CONFIRMATION', targetRevision: state.episodeRevision, executionStatus: 'QUEUED',
+      status: 'WAITING_FOR_ERROR_REVIEW', baselineStatus: 'READY', errorReviewStatus: 'NOT_STARTED', reviewStage: 'VALIDATING',
+      baselineHash: 'c'.repeat(64), baselineFingerprint: 'c'.repeat(64),
+    } as Staging;
+    state.summaryPatch = { judgmentLocked: true, lockReason: 'EXECUTION_IN_PROGRESS', allowedActions: [], reviewStage: 'VALIDATING', application: null, completion: null } as unknown as Partial<Summary>;
+    state.findings = [];
+    state.results = clone(resultsFixture.notStarted) as Record<string, unknown>;
+  };
 
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
     const method = request.method();
-    if (method !== 'GET') state.requests.push({ method, path, body: request.postDataJSON() });
+    if (method !== 'GET') {
+      let body: unknown = null;
+      try { body = request.postDataJSON(); } catch { body = '(multipart)'; }
+      state.requests.push({ method, path, body });
+    }
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'report@example.com', displayName: '리포트 테스트', role: 'AUTHOR', status: 'ACTIVE', phoneVerified: false });
     if (path === `/api/v1/works/${WORK_ID}`) return success(route, { id: WORK_ID, title: '돌아온 검', genre: '판타지', lifecycleStatus: 'ACTIVE', latestEpisodeNo: 101 });
-    if (path === `/api/v1/works/${WORK_ID}/episodes`) return success(route, [{ id: EPISODE_ID, episodeNo: 101, title: '성문 앞에서', charCount: 5200, status: 'UPLOADED', batchId: BATCH_ID, validationReportId: state.staging.reportId, validationReviewStage: state.staging.reviewStage }]);
+    if (path === '/api/v1/works') return success(route, [{ id: WORK_ID, title: '돌아온 검', genre: '판타지', episodeCount: 101, lifecycleStatus: 'ACTIVE' }]);
+    if (path === `/api/v1/works/${WORK_ID}/episodes`) {
+      const detail = episodeDetail(state.episodeRevision);
+      return success(route, [{ id: EPISODE_ID, episodeNo: 101, title: '성문 앞에서', charCount: 5200, status: 'UPLOADED', batchId: state.staging.batchId,
+        originalFilename: detail.originalFilename, contentUpdatedAt: detail.contentUpdatedAt,
+        analysisStatus: state.staging.status === 'INVALIDATED' ? 'ERROR_REVIEW_INVALIDATED' : 'ERROR_REVIEW_PENDING',
+        validationReportId: state.staging.reportId, validationReviewStage: state.staging.reviewStage }]);
+    }
+    if (path === `/api/v1/works/${WORK_ID}/episodes/${EPISODE_ID}`) return success(route, episodeDetail(state.episodeRevision));
+    if (path === `/api/v1/works/${WORK_ID}/episodes/${EPISODE_ID}/file` && method === 'PUT') {
+      if (state.replaceFailure) {
+        const { status, code, message } = state.replaceFailure;
+        state.replaceFailure = null;
+        return failure(route, status, code, message);
+      }
+      state.episodeRevision += 1;
+      invalidate();
+      return success(route, { id: EPISODE_ID, episodeNo: 101, title: '성문 앞에서', analysisStatus: 'ERROR_REVIEW_INVALIDATED', validationReportId: state.staging.reportId });
+    }
+    if (path === `/api/v1/works/${WORK_ID}/analysis-jobs/batches`) return success(route, { content: [], page: 0, size: 10, totalElements: 0, totalPages: 0, hasNext: false });
     const base = `/api/v1/works/${WORK_ID}/episode-validations`;
     if (path === `${base}/current`) {
       if (scenario.currentReportMissing) return failure(route, 404, 'VALIDATION_NOT_FOUND', '검수 결과를 찾을 수 없습니다.');
       return success(route, state.staging);
+    }
+    if (path === `${base}/eligibility`) {
+      return success(route, url.searchParams.get('episodeId') ? state.eligibility : { ...clone(review.responses.eligibilityWorkOnlyBlocked) });
     }
     if (path === `${base}/history`) {
       return success(route, { ...clone(review.responses.historyPage), content: state.history, totalElements: state.history.length });
@@ -224,6 +298,9 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     if (reportId === PAST_REPORT_ID && rest === '') {
       return success(route, { ...state.staging, reportId: PAST_REPORT_ID, baselineId: PAST_REPORT_ID, current: false, revision: 1, status: 'INVALIDATED', baselineStatus: 'INVALIDATED', executionStatus: 'CANCELED', reviewStage: 'INVALIDATED', previousReportId: null });
     }
+    const past = state.pastReports.get(reportId);
+    if (past && rest === '') return success(route, past);
+    if (past && rest === '/review') return success(route, { ...summary(), reportId, reportVersion: past.reportVersion, reviewStage: 'INVALIDATED', allowedActions: [] });
     if (reportId !== state.staging.reportId) return failure(route, 404, 'VALIDATION_NOT_FOUND', '검수 결과를 찾을 수 없습니다.');
     if (rest === '') return success(route, state.staging);
     if (rest === '/review') return success(route, summary());
@@ -277,6 +354,16 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
       bump();
       return success(route, { ...clone(review.responses.settingsApplication), status: 'APPLIED', holdReasons: [], appliedAt: '2026-10-30T11:30:00', lastErrorCode: null });
     }
+    if (rest === '/rechecks') {
+      if (state.recheckFailure) {
+        const { status, code, message } = state.recheckFailure;
+        state.recheckFailure = null;
+        return failure(route, status, code, message);
+      }
+      recheck();
+      if (state.recheckResponseLost) { state.recheckResponseLost = false; return route.abort('failed'); }
+      return success(route, state.staging);
+    }
     if (rest === '/retries') {
       state.staging.executionStatus = 'QUEUED';
       state.staging.reviewStage = 'VALIDATING';
@@ -294,6 +381,11 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     patchStaging: (values: Partial<Staging>) => { Object.assign(state.staging, values); },
     patchSummary: (values: Partial<Summary>) => { state.summaryPatch = { ...state.summaryPatch, ...values }; },
     failNextJudgment: (failure: NonNullable<typeof state.judgmentFailure>) => { state.judgmentFailure = failure; },
+    failNextReplace: (failure: Failure) => { state.replaceFailure = failure; },
+    failNextRecheck: (failure: Failure) => { state.recheckFailure = failure; },
+    loseNextRecheckResponse: () => { state.recheckResponseLost = true; },
+    requestsTo: (suffix: string, method = 'POST') => state.requests.filter(item => item.method === method && item.path.endsWith(suffix)),
+    episodeDetail: () => episodeDetail(state.episodeRevision),
     judgmentPatches: () => state.requests.filter(request => request.method === 'PATCH'),
   };
 }

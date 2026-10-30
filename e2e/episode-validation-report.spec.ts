@@ -279,9 +279,8 @@ test('원고 교체로 무효가 된 결과는 이전에 읽은 인용을 다시
   await expect(page.getByText('비요른은 그 검을 뽑았다.')).toHaveCount(0);
   await expect(page.locator('.vr-row')).toHaveCount(0);
   await expect(page.getByRole('region', { name: '결과 요약' })).toHaveCount(0);
-  // 재검수는 F2 범위라 서버가 허용해도 연결하지 않고 조건만 안내한다.
-  await expect(page.getByRole('button', { name: '수정 내용으로 재검수' })).toBeDisabled();
-  await expect(page.getByText('최신 회차에서 원고 변경이나 설정 정정을 저장하고 진행 중인 검사가 없을 때 재검수할 수 있어요.')).toBeVisible();
+  // F2: 서버가 RECHECK를 허용하고 자격 조회가 최신 회차라고 확인하면 재검수를 연다(흐름은 episode-validation-recheck.spec.ts).
+  await expect(page.getByRole('button', { name: '수정 내용으로 재검수' })).toBeEnabled();
   await page.getByRole('button', { name: '검사 이력' }).click();
   await expect(page.getByRole('heading', { name: '검사 이력' })).toBeVisible();
   await expect(page.getByText('그의 검은 손잡이만 남긴 채 산산이 부서졌다.')).toHaveCount(0);
