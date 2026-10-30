@@ -73,6 +73,31 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
     tone: 'success',
     icon: CheckCircle2,
   },
+  // GH314: 오류 검사 우선 검수의 배치 상태. 검토 종료 뒤 단계는 reviewStage가 결정하므로 결과를 단정하지 않는다.
+  ERROR_REVIEW_PREPARING: {
+    label: '오류 검사 중',
+    description: '설정 충돌을 확인하고 있어요.',
+    tone: 'primary',
+    icon: Clock3,
+  },
+  ERROR_REVIEW_PENDING: {
+    label: '오류 검토',
+    description: '오류 리포트에서 검사 결과와 설정 추출 상태를 확인해 주세요.',
+    tone: 'warning',
+    icon: FileSearch,
+  },
+  ERROR_REVIEW_HELD: {
+    label: '오류 검사 보류',
+    description: '비교할 기준을 준비하지 못했어요.',
+    tone: 'warning',
+    icon: TriangleAlert,
+  },
+  ERROR_REVIEW_INVALIDATED: {
+    label: '재검수 필요',
+    description: '원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.',
+    tone: 'warning',
+    icon: AlertCircle,
+  },
 };
 
 function parsePage(value: string | null): number {
