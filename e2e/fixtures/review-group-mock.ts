@@ -4,13 +4,13 @@ import type { Page, Route } from '@playwright/test';
  * #211 후속 3차(확정 영역·확정하고 다음·요약 카드·키보드) e2e용 목 API. 인물·대상·설정값은 모두 합성 데이터다.
  * 캐릭터 후보는 연결된 인물 ID(없으면 정규화한 이름)로, 세계관 후보는 `분류|대상`으로 묶는다.
  */
-export const workId = '81111111-1111-4111-8111-111111111111';
-export const batchId = '82222222-2222-4222-8222-222222222222';
+const workId = '81111111-1111-4111-8111-111111111111';
+const batchId = '82222222-2222-4222-8222-222222222222';
 const workPath = `/api/v1/works/${workId}`;
 export const characterListPath = `${workPath}/setting-candidates`;
 export const worldListPath = `${workPath}/world-setting-candidates`;
 
-export const characters = [
+const characters = [
   { id: '83333333-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: '아린' },
   { id: '83333333-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: '도윤' },
   { id: '83333333-cccc-4ccc-8ccc-cccccccccccc', name: '세라' },

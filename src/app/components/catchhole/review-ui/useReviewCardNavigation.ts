@@ -7,7 +7,7 @@ function prefersReducedMotion(): boolean {
 }
 
 /** 요소를 상세 스크롤 영역의 위로 가져오고 초점을 둔다. 움직임 줄이기 설정이면 즉시 이동한다. */
-export function focusReviewElement(element: HTMLElement) {
+function focusReviewElement(element: HTMLElement) {
   element.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   element.focus({ preventScroll: true });
 }

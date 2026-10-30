@@ -17,7 +17,7 @@ function isTextEntry(target: EventTarget | null): boolean {
  * - Alt+↓/↑: 다음/이전 후보 카드  - Alt+Shift+↓/↑: 다음/이전 묶음
  * - Alt+Enter: 확정 버튼으로 초점(실행하지 않음)  - Alt+.: 다음 미결정 항목
  */
-export function reviewShortcutFor(event: ReactKeyboardEvent<HTMLElement>): ReviewShortcut | null {
+function reviewShortcutFor(event: ReactKeyboardEvent<HTMLElement>): ReviewShortcut | null {
   if (!event.altKey || event.ctrlKey || event.metaKey) return null;
   if (event.nativeEvent.isComposing || event.keyCode === 229) return null;
   if (isTextEntry(event.target)) return null;

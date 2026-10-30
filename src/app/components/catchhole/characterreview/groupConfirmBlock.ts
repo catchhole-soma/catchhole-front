@@ -67,7 +67,7 @@ const POLICY_UNCONFIRMABLE = '모든 설정의 현재값 비교가 끝난 뒤 �
 const MISSING_ID = '식별할 수 없는 설정이 있어 확정할 수 없습니다.';
 
 /** 같은 항목을 현재 설정에 여러 번 반영하려는 후보 묶음. 첫 묶음의 후보 순서를 유지한다. */
-export function duplicateCurrentSelection(
+function duplicateCurrentSelection(
   candidates: SettingCandidateResponse[],
   applicationMode: (candidate: SettingCandidateResponse) => CharacterFactApplicationMode,
 ): SettingCandidateResponse[] | undefined {

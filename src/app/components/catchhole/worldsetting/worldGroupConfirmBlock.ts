@@ -23,7 +23,7 @@ export interface WorldGroupBlockRow {
   bookChoicePending: boolean;
 }
 
-export type WorldGroupBlockKind = 'automatic' | 'filtered' | 'empty' | 'unsaved' | 'quota' | 'decision' | 'duplicate' | 'conflict' | 'book';
+type WorldGroupBlockKind = 'automatic' | 'filtered' | 'empty' | 'unsaved' | 'quota' | 'decision' | 'duplicate' | 'conflict' | 'book';
 
 export interface WorldGroupBlock {
   kind: WorldGroupBlockKind;
@@ -31,7 +31,7 @@ export interface WorldGroupBlock {
   candidateIds: string[];
 }
 
-export const WORLD_BLOCK_TEXT = {
+const WORLD_BLOCK_TEXT = {
   filtered: '분류·반영 방식 필터를 해제한 뒤 이 대상의 모든 설정을 함께 확정해 주세요.',
   empty: '확정할 검토 대기 설정이 없습니다.',
   unsaved: '수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.',
@@ -41,7 +41,7 @@ export const WORLD_BLOCK_TEXT = {
   book: '각 항목에서 내용을 확인하고 확정할 방법을 선택해 주세요.',
 } as const;
 
-export function worldDuplicateText(paths: string[]): string {
+function worldDuplicateText(paths: string[]): string {
   return `같은 대상 안에서 같은 범위와 설정명 ‘${paths.join('’, ‘')}’이 여러 번 있습니다. 내용을 하나로 합치거나 중복 항목을 제외해 주세요.`;
 }
 
