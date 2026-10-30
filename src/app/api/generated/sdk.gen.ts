@@ -646,7 +646,7 @@ export const retryValidationExecution = <ThrowOnError extends boolean = true>(op
 /**
  * 수정 후 새 검수 접수
  *
- * 원고·기준이 달라진 최신 회차를 명시적으로 다시 접수합니다. 같은 입력의 실패 재시도와 구분하며 추출 Job·후보를 만들지 않습니다.
+ * 원고·기준이 달라진 최신 회차를 명시적으로 다시 접수합니다. 같은 입력의 실패 재시도와 구분하며 추출 Job·후보를 만들지 않습니다. expectedBaselineHash에는 GET /{reportId}의 baselineFingerprint를 그대로 보냅니다(정정 receipt로 접수하면 생략 가능). 회차 전체 확정(APPLIED) report는 같은 원고도 진단 재검수로 받으며 검토 요약 allowedActions의 RECHECK가 같은 조건을 알려 줍니다.
  */
 export const recheckEpisodeValidation = <ThrowOnError extends boolean = true>(options: Options<RecheckEpisodeValidationData, ThrowOnError>): RequestResult<RecheckEpisodeValidationResponses, RecheckEpisodeValidationErrors, ThrowOnError> => (options.client ?? client).post<RecheckEpisodeValidationResponses, RecheckEpisodeValidationErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2189,7 +2189,7 @@ export const getValidationExecutionResults = <ThrowOnError extends boolean = tru
 /**
  * 현재 발견 항목과 작가 판단 목록
  *
- * 현재 check revision의 설정 항목과 오탈자 제안만 생성 순서로 반환합니다. 판단을 저장한 적 없는 항목은 PENDING이며 근거 행은 상세에서만 제공합니다. page는 0부터, size는 1~100입니다.
+ * 현재 check revision의 설정 항목과 오탈자 제안만 생성 순서로 반환합니다. 판단을 저장한 적 없는 항목은 PENDING이며 근거 행은 상세에서만 제공합니다. 설정 항목은 고정 기준의 대상(subject)·설정명(settingName·settingKey)을 함께 반환합니다(#314 B2). 모든 필터는 서버에서 거르며 impact·subjectType 필터는 오탈자와 대상이 없는 항목을 제외합니다. 검토 요약(/review)의 집계는 필터와 무관합니다. page는 0부터, size는 1~100입니다.
  */
 export const listValidationFindings = <ThrowOnError extends boolean = true>(options: Options<ListValidationFindingsData, ThrowOnError>): RequestResult<ListValidationFindingsResponses, ListValidationFindingsErrors, ThrowOnError> => (options.client ?? client).get<ListValidationFindingsResponses, ListValidationFindingsErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2200,7 +2200,7 @@ export const listValidationFindings = <ThrowOnError extends boolean = true>(opti
 /**
  * 발견 항목 상세
  *
- * 공개 판정 내용, 저장 때 검증한 인용, 현재 판단·허용 판단, 판단 이력과 이전 revision의 변경 사유를 반환합니다. 이전 revision 항목은 stale=true입니다.
+ * 공개 판정 내용, 저장 때 검증한 인용, 현재 판단·허용 판단, 판단 이력과 이전 revision의 변경 사유를 반환합니다. 이전 revision 항목은 stale=true입니다. 설정 항목은 목록과 같은 대상·설정명과 정정 요청(POST /{reportId}/corrections)에 그대로 쓰는 고정 기준 항목(basis: entryRef·entryHash·대상 ID·당시 version, 맞는 slot/path)을 함께 반환합니다(#314 B2).
  */
 export const getValidationFinding = <ThrowOnError extends boolean = true>(options: Options<GetValidationFindingData, ThrowOnError>): RequestResult<GetValidationFindingResponses, GetValidationFindingErrors, ThrowOnError> => (options.client ?? client).get<GetValidationFindingResponses, GetValidationFindingErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
