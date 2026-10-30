@@ -31,3 +31,18 @@ CATCHHOLE_E2E_VALIDATION_WORKER=1 CATCHHOLE_E2E_PORT=3321 VITE_API_BASE_URL=http
 ```
 
 2026-10-30 로컬 실행은 2회 모두 통과했다(7.4분·4.7분, 검수 228초, 설정 0·오탈자 1 → APPLIED). 단, 이때 검수 Worker는 AI main 그대로가 아니라 대상 span 참조(`TSEG1`→`T1`)를 고치는 진단 래퍼로 실행했다. AI main 그대로는 설정 검사가 끝나지 않아 이 spec이 `실제 모델 검사가 두 분기 모두 끝나야 합니다`에서 실패한다. 원인과 수정 범위는 AI `docs/episode-validation-evaluation.md`, 스택 구성은 Front PR #106의 V1 절에 있다.
+
+### 설정 정정과 재검수 왕복 (`episode-validation-correction-live`, GH314 F3)
+
+`e2e/episode-validation-correction-live.spec.ts`는 위와 같은 변수·Worker·`CATCHHOLE_E2E_VALIDATION_WORKER=1` 조건에서만 실행하고, 없으면 건너뛴다. 실제 모델을 호출한다.
+
+- 원고: 1화는 위 spec과 같고(서윤 `서른 살`), 2화는 위 2화 첫 문단 뒤에 변화가 아닌 나이 모순 `등대지기 서윤은 스물여덟 살이다.` 한 문단만 더했다(오탈자 `됬다` 유지). 1화 업로드·설정 구축과 신규 회차 검수 접수는 두 spec이 `e2e/validation-live-helpers.ts`를 같이 쓴다.
+- 흐름: 1화 기존 설정 구축(서윤 현재 나이 30 확인) → 2화 신규 회차 검수 → 검토 대기(AWAITING_REVIEW)에서 서윤 캐릭터 basis가 있는 설정 검사 항목 선택(나이 slot basis 우선) → 리포트 `설정 정보 정정` → 캐릭터 상세에서 나이 28 저장(`POST /corrections` 하나, 일반 PATCH 없음) → receipt·`correctionResult=linked` → 현재 report 유지 + `RECHECK` → `수정 내용으로 재검수` → 새 report(`previousReportId`=이전 report, 이전 report `current=false`) 검사 완료(COMPLETED).
+- 2화 검사와 재검수는 각각 PARTIAL로 끝나면 서버가 `RETRY`를 허용할 때만 리포트의 `중단된 검사 다시 시도`로 한 번씩 다시 시도할 수 있다(annotation `retry-used`=`first`·`recheck`, `retry-seconds-first`·`retry-seconds-recheck`). 2화 검사와 재검수 모두 그래도 COMPLETED가 아니면 `/results`의 상태·실패 코드를 담아 실패한다(재검수는 annotation `recheck-execution`에도 남긴다). 재검수 실행 완료(COMPLETED)는 hard다(#341은 AI PR catchhole-backend-ai#111로 해결).
+- 정정은 고정 기준과 현재 설정이 그대로일 때만 저장되므로 검토 완료·설정 추출 전에 한다. 정정 409·응답 유실 안내가 나오면 그 화면 문구로 실패한다.
+- 흐름 사실은 바로 실패시키고, 모델 판정(정정 전 서윤 나이 충돌이 있음·재검수 뒤 없음)은 spec을 실패시키지 않고 annotation(`age-conflict-before`·`age-conflict-after`, 항목 수, 선택 항목, snapshot version, 사용량)으로 남긴다. 서윤 basis가 있는 설정 검사 항목이 없으면 실패한다.
+
+```sh
+CATCHHOLE_E2E_VALIDATION_WORKER=1 CATCHHOLE_E2E_PORT=3321 VITE_API_BASE_URL=http://localhost:18080 \
+  npx playwright test e2e/episode-validation-correction-live.spec.ts --workers=1
+```
