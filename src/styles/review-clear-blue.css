@@ -229,3 +229,31 @@
   .review-match-result { min-height: 56px; }
   .review-match-state .review-action { width: 100%; min-height: 44px !important; }
 }
+
+/* #211 후속 2차: 연결 미리보기. 서버 비교 결과가 아니므로 중립 톤으로만 표시하고, 읽기 실패는 기존값 없음과 다른 경고로 둔다. */
+.review-match-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 16px; padding: 11px 14px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-canvas); color: var(--ch-text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-match-summary > strong { color: var(--ch-ink); font-size: 13px; }
+.review-match-summary > * + *::before { content: '· '; color: var(--ch-text-muted); font-weight: 400; }
+.review-match-summary__value { color: var(--ch-ink); white-space: pre-wrap; }
+.review-match-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 16px; align-items: start; margin-top: 18px; }
+.review-match-layout > .review-match-search { margin-top: 0; }
+.review-link-preview { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 14px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-canvas); color: var(--ch-text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-link-preview p { margin: 0; }
+.review-link-preview.is-empty { color: var(--ch-text-muted); border-style: dashed; }
+.review-link-preview.is-error { border-color: #edc4ca; background: var(--review-remove-bg); color: var(--ch-danger-ink); }
+.review-link-preview.is-error strong { display: block; margin-bottom: 4px; }
+.review-link-preview__identity { display: flex; flex-direction: column; gap: 2px; }
+.review-link-preview__identity small, .review-link-preview__muted { color: var(--ch-text-muted); font-size: 11px; }
+.review-link-preview__identity strong { color: var(--ch-ink); font-size: 15px; }
+.review-link-preview__section h3 { margin: 0 0 6px; color: var(--ch-ink); font-size: 12px; font-weight: 700; }
+.review-link-preview__section dl { display: grid; gap: 6px; margin: 0; }
+.review-link-preview__section dl > div { display: grid; grid-template-columns: minmax(64px, auto) minmax(0, 1fr); gap: 8px; padding: 6px 8px; border-radius: 7px; background: var(--ch-surface); }
+.review-link-preview__section dt { color: var(--ch-text-muted); }
+.review-link-preview__section dd { margin: 0; color: var(--ch-ink); white-space: pre-wrap; }
+.review-link-preview__section dl > div.is-missing dd { color: var(--ch-text-muted); }
+.review-link-preview__section > .review-link-preview__muted { margin-top: 6px; }
+@media (max-width: 760px) {
+  .review-match-layout { grid-template-columns: minmax(0, 1fr); }
+  .review-match-results { min-height: 120px; }
+  .review-link-preview__section dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}

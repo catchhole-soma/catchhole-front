@@ -47,12 +47,15 @@ export function ModalLayer({
   title,
   description,
   pending,
+  width = 620,
   onClose,
   children,
 }: {
   title: string;
   description: string;
   pending: boolean;
+  /** 최대 너비(px). 좁은 화면에서는 항상 화면 너비를 넘지 않는다. */
+  width?: number;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -136,7 +139,7 @@ export function ModalLayer({
         aria-modal="true"
         aria-labelledby={titleId}
         style={{
-          width: 'min(620px, 100%)', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+          width: `min(${width}px, 100%)`, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
           borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
           boxShadow: '0 24px 80px rgba(0,0,0,0.58)', padding: 26, boxSizing: 'border-box',
         }}

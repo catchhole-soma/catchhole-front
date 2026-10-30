@@ -106,3 +106,53 @@ test('다른 인물 찾기는 원문 표현을 검색어로 넣어 연다', asyn
   await expect(dialog.getByRole('button', { name: /^아리아/ })).toBeVisible();
   expect(searchRequests(state.searchRequests).map(url => url.searchParams.get('query'))).toEqual(['아리']);
 });
+
+test('고른 인물의 저장된 현재 설정과 이 설정의 기존값을 모달 안에서 보여 준다', async ({ page }) => {
+  const { state, dialog } = await openMatchModal(page);
+  await expect(dialog.getByRole('group', { name: '연결할 설정' })).toHaveText(/직업.*견습 기사.*1화/);
+  const preview = dialog.getByRole('complementary', { name: '연결 미리보기' });
+  await expect(preview).toContainText('인물을 고르면 그 인물에 저장된 현재 설정을 여기에서 볼 수 있어요.');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('아리아');
+  await dialog.getByRole('button', { name: /^아리아/ }).click();
+  await expect(preview).toContainText('아리아');
+  await expect(preview).toContainText('주인공 · 첫 등장 3화 · 나이 19 · 레벨 12');
+  const current = preview.getByRole('region', { name: '대상에 저장된 현재 설정' });
+  await expect(current).toContainText('소속은빛 기사단');
+  await expect(current).toContainText('직업기사');
+  await expect(current).toContainText('종족인간');
+  await expect(current).not.toContainText('눈 색깔');
+  await expect(preview.getByRole('region', { name: '이 설정의 기존값' })).toContainText('직업기사');
+  expect(state.detailRequests).toContain(characterId(1));
+});
+
+test('대상에 같은 설정이 없으면 기존값 없음으로, 상세를 못 읽으면 다른 경고로 보여 준다', async ({ page }) => {
+  const { dialog } = await openMatchModal(page, {}, { failDetail: id => id === characterId(3) });
+  const preview = dialog.getByRole('complementary', { name: '연결 미리보기' });
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('rin');
+  await dialog.getByRole('button', { name: /^Rin/ }).click();
+  await expect(preview.getByRole('region', { name: '이 설정의 기존값' })).toContainText('직업기존값 없음');
+  await expect(preview).toContainText('저장된 프로필 설정이 없어요.');
+
+  await dialog.getByRole('button', { name: /^rin/ }).click();
+  const failure = preview.getByRole('alert');
+  await expect(failure).toContainText('비교 정보를 불러오지 못했어요');
+  await expect(failure).toContainText('기존값이 없다는 뜻은 아니에요.');
+  await expect(preview).not.toContainText('기존값 없음');
+  await expect(preview.getByRole('button', { name: '다시 시도', exact: true })).toBeVisible();
+});
+
+test('320px에서도 연결 모달의 검색·미리보기가 가로로 넘치지 않는다', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  const state = await routeCharacterLinkMock(page, { candidates: [settingCandidate('candidate-1')], characters });
+  await page.goto(reviewUrl({ group: '미상' }));
+  await page.getByRole('region', { name: '직업 설정 후보', exact: true }).getByRole('button', { name: '캐릭터 연결 변경' }).click();
+  const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('아리아');
+  await dialog.getByRole('button', { name: /^아리아/ }).click();
+  await expect(dialog.getByRole('region', { name: '이 설정의 기존값' })).toContainText('기사');
+  const overflow = await dialog.evaluate(element => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const box = await dialog.getByRole('complementary', { name: '연결 미리보기' }).boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+  expect(state.writes).toEqual([]);
+});

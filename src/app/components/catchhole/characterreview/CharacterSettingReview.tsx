@@ -2099,6 +2099,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           key={`group-${selectedGroup.groupKey}`}
           workId={workId}
           candidate={pendingGroupCandidates[0]}
+          candidates={pendingGroupCandidates}
           initialResolution="MATCH_EXISTING"
           groupCandidateCount={pendingGroupCandidates.length}
           pending={groupMatchMutation.isPending}

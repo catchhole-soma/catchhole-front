@@ -10,7 +10,10 @@ import { OrderedReviewImpactNotice } from '../OrderedReviewImpactNotice';
 import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT } from '../review-v2-colors';
-import { CHARACTER_SEARCH_MAX_LENGTH as SEARCH_MAX_LENGTH, errorMessage, modalInputStyle } from './characterReviewFormat';
+import { analysisSourceLabel } from '../../../lib/analysis-source';
+import { useCharacterSettingLabels } from '../character/CharacterSettingLabelProvider';
+import { CHARACTER_SEARCH_MAX_LENGTH as SEARCH_MAX_LENGTH, candidateEpisodesLabel, errorMessage, modalInputStyle, toSettingDisplay } from './characterReviewFormat';
+import { CharacterLinkPreview } from './CharacterLinkPreview';
 import { ActionButton, ModalLayer } from './ReviewModalControls';
 
 export type MatchResolution = 'MATCH_EXISTING' | 'CREATE_NEW';
@@ -37,9 +40,29 @@ function characterFacts(character: CharacterSummaryResponse): string[] {
   ].filter((fact): fact is string => Boolean(fact));
 }
 
+/** 무엇을 연결하는지 모달 맨 위에서 다시 보여 준다. 카드로 돌아가지 않고 대상과 대조하기 위함이다. */
+function LinkSubjectSummary({ candidates, grouped }: { candidates: SettingCandidateResponse[]; grouped: boolean }) {
+  const labels = useCharacterSettingLabels();
+  const first = candidates[0];
+  if (!first) return null;
+  if (grouped) {
+    return <div className="review-match-summary" role="group" aria-label="연결할 설정">
+      <strong>설정 {candidates.length}개</strong>
+      {candidateEpisodesLabel(candidates) && <span>{candidateEpisodesLabel(candidates)}</span>}
+    </div>;
+  }
+  const discovery = first.candidateKind === 'CHARACTER_DISCOVERY';
+  return <div className="review-match-summary" role="group" aria-label="연결할 설정">
+    <strong>{discovery ? '인물 후보' : toSettingDisplay(first.attributeName, first.attributeDisplayName, labels).nameLabel}</strong>
+    <span className="review-match-summary__value">{discovery ? `‘${first.rawEntityMention || first.entityName || '이름 없음'}’` : first.attributeValue || '값 없음'}</span>
+    <span>{analysisSourceLabel(first.source, first.episodeNo)}</span>
+  </div>;
+}
+
 export function CharacterMatchModal({
   workId,
   candidate,
+  candidates,
   initialResolution,
   initialSearch = '',
   pending,
@@ -52,6 +75,8 @@ export function CharacterMatchModal({
 }: {
   workId: string;
   candidate: SettingCandidateResponse;
+  /** 이 결정으로 연결이 바뀌는 후보 전체. 요약과 미리보기에 쓴다. 생략하면 `candidate` 하나다. */
+  candidates?: SettingCandidateResponse[];
   initialResolution: MatchResolution;
   /** 처음 열 때 넣어 둘 검색어. 디바운스 없이 바로 검색한다. */
   initialSearch?: string;
@@ -72,6 +97,7 @@ export function CharacterMatchModal({
     isUnidentifiedCharacterName(candidate.entityName) ? '' : candidate.entityName ?? '',
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+  const linkedCandidates = candidates ?? [candidate];
 
   useEffect(() => {
     const keyword = search.trim();
@@ -141,9 +167,11 @@ export function CharacterMatchModal({
         ? `“${candidate.entityName || '이름 없음'}”의 검토 대기 설정 ${groupCandidateCount}개에 같은 연결 결정을 적용합니다.`
         : `“${candidate.rawEntityMention || candidate.entityName || '이름 없음'}” 후보가 누구인지 선택해 주세요.`}
       pending={pending}
+      width={resolution === 'MATCH_EXISTING' ? 900 : 620}
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
+        <LinkSubjectSummary candidates={linkedCandidates} grouped={Boolean(groupCandidateCount)} />
         {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
         {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
         {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
@@ -168,98 +196,102 @@ export function CharacterMatchModal({
         </div>
 
         {resolution === 'MATCH_EXISTING' ? (
-          <div className="review-match-search">
-            <label htmlFor="character-search" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
-              작품 전체에서 인물 검색
-            </label>
-            <div style={{ position: 'relative', marginTop: 7 }}>
-              <Search
-                size={14}
-                color={C.t3}
-                aria-hidden="true"
-                style={{ position: 'absolute', left: 12, top: 13 }}
-              />
-              <input
-                id="character-search"
-                type="search"
-                value={search}
-                maxLength={SEARCH_MAX_LENGTH}
-                placeholder="인물 이름으로 찾기"
-                disabled={pending}
-                aria-describedby="character-search-help"
-                onChange={event => {
-                  setSearch(event.target.value);
-                  setSelectedCharacterId('');
-                  setValidationError(null);
-                }}
-                style={{ ...modalInputStyle, paddingLeft: 34 }}
-              />
-            </div>
-            <p id="character-search-help" className="review-match-search__help">
-              {request.keyword ? '이름에 검색어가 들어간 인물을 이름순으로 보여 줘요.' : '최근 수정한 인물부터 보여 줘요.'}
-            </p>
+          <div className="review-match-layout">
+            <div className="review-match-search">
+              <label htmlFor="character-search" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
+                작품 전체에서 인물 검색
+              </label>
+              <div style={{ position: 'relative', marginTop: 7 }}>
+                <Search
+                  size={14}
+                  color={C.t3}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: 12, top: 13 }}
+                />
+                <input
+                  id="character-search"
+                  type="search"
+                  value={search}
+                  maxLength={SEARCH_MAX_LENGTH}
+                  placeholder="인물 이름으로 찾기"
+                  disabled={pending}
+                  aria-describedby="character-search-help"
+                  onChange={event => {
+                    setSearch(event.target.value);
+                    setSelectedCharacterId('');
+                    setValidationError(null);
+                  }}
+                  style={{ ...modalInputStyle, paddingLeft: 34 }}
+                />
+              </div>
+              <p id="character-search-help" className="review-match-search__help">
+                {request.keyword ? '이름에 검색어가 들어간 인물을 이름순으로 보여 줘요.' : '최근 수정한 인물부터 보여 줘요.'}
+              </p>
 
-            <div className="review-match-results" aria-busy={charactersQuery.isFetching || searching}>
-              {charactersQuery.isPending ? (
-                <div role="status" aria-label="인물을 찾고 있어요">
-                  {[0, 1, 2].map(index => <div key={index} className="review-match-skeleton" aria-hidden="true" />)}
-                </div>
-              ) : charactersQuery.isError && !charactersQuery.isPlaceholderData ? (
-                <div role="alert" className="review-match-state is-error">
-                  <strong>인물을 검색하지 못했어요</strong>
-                  <span>{errorMessage(charactersQuery.error, '잠시 후 다시 시도해 주세요.')} 입력한 검색어는 그대로예요.</span>
-                  <ActionButton
-                    disabled={charactersQuery.isFetching}
-                    tone={C.danger}
-                    onClick={() => void charactersQuery.refetch()}
-                  >
-                    다시 시도
-                  </ActionButton>
-                </div>
-              ) : characters.length === 0 && !searching ? (
-                request.keyword ? (
-                  <div role="status" className="review-match-state">
-                    <strong>‘{request.keyword}’와 맞는 인물이 없어요.</strong>
-                    <span>새 인물로 등록하거나 다른 이름으로 찾아보세요.</span>
-                    <ActionButton disabled={pending} tone={C.primary} onClick={switchToNewCharacter}>새 인물로 등록</ActionButton>
+              <div className="review-match-results" aria-busy={charactersQuery.isFetching || searching}>
+                {charactersQuery.isPending ? (
+                  <div role="status" aria-label="인물을 찾고 있어요">
+                    {[0, 1, 2].map(index => <div key={index} className="review-match-skeleton" aria-hidden="true" />)}
                   </div>
-                ) : (
-                  <div role="status" className="review-match-state">
-                    <strong>등록된 캐릭터가 없어요.</strong>
-                    <span>새 인물로 등록해 연결할 수 있어요.</span>
+                ) : charactersQuery.isError && !charactersQuery.isPlaceholderData ? (
+                  <div role="alert" className="review-match-state is-error">
+                    <strong>인물을 검색하지 못했어요</strong>
+                    <span>{errorMessage(charactersQuery.error, '잠시 후 다시 시도해 주세요.')} 입력한 검색어는 그대로예요.</span>
+                    <ActionButton
+                      disabled={charactersQuery.isFetching}
+                      tone={C.danger}
+                      onClick={() => void charactersQuery.refetch()}
+                    >
+                      다시 시도
+                    </ActionButton>
                   </div>
-                )
-              ) : characters.map(character => {
-                const duplicateCount = nameCounts.get(normalizeCharacterGroupName(character.name)) ?? 0;
-                const selected = selectedCharacterId === character.id;
-                return (
-                  <button
-                    key={character.id}
-                    type="button"
-                    className={`review-modal__choice review-match-result${selected ? ' is-selected' : ''}`}
-                    disabled={pending || !character.id}
-                    aria-pressed={selected}
-                    onClick={() => setSelectedCharacterId(character.id ?? '')}
-                  >
-                    <span className="review-match-result__name">
-                      <strong>{highlightedName(character.name || '이름 없음', request.keyword)}</strong>
-                      {duplicateCount > 1 && <span className="review-match-result__badge">같은 이름 {duplicateCount}명 — 첫 등장·역할로 구분</span>}
-                    </span>
-                    <span className="review-match-result__facts">{characterFacts(character).join(' · ')}</span>
-                  </button>
-                );
-              })}
+                ) : characters.length === 0 && !searching ? (
+                  request.keyword ? (
+                    <div role="status" className="review-match-state">
+                      <strong>‘{request.keyword}’와 맞는 인물이 없어요.</strong>
+                      <span>새 인물로 등록하거나 다른 이름으로 찾아보세요.</span>
+                      <ActionButton disabled={pending} tone={C.primary} onClick={switchToNewCharacter}>새 인물로 등록</ActionButton>
+                    </div>
+                  ) : (
+                    <div role="status" className="review-match-state">
+                      <strong>등록된 캐릭터가 없어요.</strong>
+                      <span>새 인물로 등록해 연결할 수 있어요.</span>
+                    </div>
+                  )
+                ) : characters.map(character => {
+                  const duplicateCount = nameCounts.get(normalizeCharacterGroupName(character.name)) ?? 0;
+                  const selected = selectedCharacterId === character.id;
+                  return (
+                    <button
+                      key={character.id}
+                      type="button"
+                      className={`review-modal__choice review-match-result${selected ? ' is-selected' : ''}`}
+                      disabled={pending || !character.id}
+                      aria-pressed={selected}
+                      onClick={() => setSelectedCharacterId(character.id ?? '')}
+                    >
+                      <span className="review-match-result__name">
+                        <strong>{highlightedName(character.name || '이름 없음', request.keyword)}</strong>
+                        {duplicateCount > 1 && <span className="review-match-result__badge">같은 이름 {duplicateCount}명 — 첫 등장·역할로 구분</span>}
+                      </span>
+                      <span className="review-match-result__facts">{characterFacts(character).join(' · ')}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <PageNavigation
+                page={characterPage?.page ?? request.page}
+                totalPages={characterPage?.totalPages ?? 0}
+                disabled={pending || charactersQuery.isFetching || searching}
+                onPageChange={nextPage => {
+                  // 페이지를 넘겨도 검색어는 유지하고, 다른 페이지의 선택만 해제한다.
+                  setRequest(current => ({ ...current, page: nextPage }));
+                  setSelectedCharacterId('');
+                }}
+              />
             </div>
-            <PageNavigation
-              page={characterPage?.page ?? request.page}
-              totalPages={characterPage?.totalPages ?? 0}
-              disabled={pending || charactersQuery.isFetching || searching}
-              onPageChange={nextPage => {
-                // 페이지를 넘겨도 검색어는 유지하고, 다른 페이지의 선택만 해제한다.
-                setRequest(current => ({ ...current, page: nextPage }));
-                setSelectedCharacterId('');
-              }}
-            />
+            <CharacterLinkPreview workId={workId} characterId={selectedCharacterVisible ? selectedCharacterId : null}
+              candidates={linkedCandidates} />
           </div>
         ) : (
           <div style={{ marginTop: 18 }}>

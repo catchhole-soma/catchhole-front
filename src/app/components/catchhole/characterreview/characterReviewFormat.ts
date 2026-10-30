@@ -1,7 +1,7 @@
 import { toApiError } from '../../../lib/api-errors';
 import { CHARACTER_FACT_TYPE_LABELS, type CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
 import { isUnidentifiedCharacterName } from '../../../lib/setting-review-groups';
-import type { SettingCandidateResponse } from '../../../api/generated/types.gen';
+import type { CharacterDetailResponse, SettingCandidateResponse } from '../../../api/generated/types.gen';
 import { C } from '../constants';
 import { REVIEW_TEXT } from '../review-v2-colors';
 
@@ -136,4 +136,32 @@ export const CHARACTER_SEARCH_MAX_LENGTH = 100;
 export function mentionSearchText(candidate: SettingCandidateResponse): string {
   const mention = candidate.rawEntityMention?.trim() ?? '';
   return isUnidentifiedCharacterName(mention) ? '' : mention.slice(0, CHARACTER_SEARCH_MAX_LENGTH);
+}
+
+/**
+ * 연결 미리보기에서 이 후보의 설정이 대상 인물에 이미 저장돼 있는지 찾는다. 서버 비교 결과가 아니라 상세 응답의 현재 값이다.
+ * 후보 key는 서버가 해석한 canonical key → 비교 대상 key → 원래 설정명 순으로 쓰고, 찾지 못하면 표시명으로 한 번 더 찾는다.
+ * 나이·레벨은 상세의 별도 필드에 있다. 값이 없으면 `null`(기존값 없음)이다.
+ */
+export function existingCharacterSettingValue(detail: CharacterDetailResponse, candidate: SettingCandidateResponse): string | null {
+  const key = candidate.resolvedCanonicalFactKey ?? candidate.comparisonTargetFactKey ?? candidate.attributeName;
+  if (key === 'age') return detail.currentAge == null ? null : String(detail.currentAge);
+  if (key === 'level') return detail.currentLevel == null ? null : String(detail.currentLevel);
+  const settings = [detail.profile, detail.stats, detail.skills, detail.items, detail.statuses].flatMap(list => list ?? []);
+  const displayName = candidate.attributeDisplayName?.trim();
+  const setting = settings.find(item => key && item.key === key)
+    ?? (displayName ? settings.find(item => item.displayName?.trim() === displayName) : undefined);
+  const value = setting?.value?.trim();
+  return value ? value : null;
+}
+
+/** 후보 묶음의 회차를 `회차 1, 2` 형태로 줄인다. 설정집 출처는 `설정집`으로 묶는다. */
+export function candidateEpisodesLabel(candidates: SettingCandidateResponse[]): string {
+  const episodes = [...new Set(candidates.flatMap(candidate => {
+    if (candidate.source?.sourceKind === 'SETTING_BOOK') return [];
+    const number = candidate.source?.episodeNo ?? candidate.episodeNo;
+    return number == null ? [] : [number];
+  }))].sort((first, second) => first - second);
+  const books = candidates.some(candidate => candidate.source?.sourceKind === 'SETTING_BOOK');
+  return [episodes.length ? `회차 ${episodes.join(', ')}` : null, books ? '설정집' : null].filter(Boolean).join(' · ');
 }
