@@ -50,5 +50,6 @@ test('응답을 받지 못한 오류만 결과 미확인으로 본다', () => {
   assert.equal(isResponseLost('<html>Bad Gateway</html>'), true);
   assert.equal(isResponseLost({}), true);
   assert.equal(isResponseLost({ message: '충돌', error: { status: 409, code: 'CONFLICT' } }), false);
+  assert.equal(isResponseLost({ success: false, message: '연결 요청에 실패했습니다.' }), false);
   assert.equal(isResponseLost(new Error('이전 분석 기록은 수정할 수 없습니다.')), false);
 });

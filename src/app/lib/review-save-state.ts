@@ -28,14 +28,14 @@ export const REVIEW_SAVE_TEXT = {
 } as const;
 
 /**
- * 요청 결과를 알 수 없는 오류인지 판단한다. 네트워크 단절과 상태 코드를 읽을 수 없는 응답(프록시 오류 페이지 등)은
- * 서버가 이미 처리했을 수 있다. 클라이언트에서 막은 오류(`Error`)와 상태 코드가 있는 서버 오류는 실패로 본다.
+ * 요청 결과를 알 수 없는 오류인지 판단한다. 네트워크 단절과 서버 응답 형식이 아닌 오류(빈 본문·프록시 오류 페이지 등)는
+ * 서버가 이미 처리했을 수 있다. 클라이언트에서 막은 오류(`Error`)와 서버가 만든 오류 응답(`message`·`error`)은 실패로 본다.
  */
 export function isResponseLost(error: unknown): boolean {
   if (error instanceof NetworkError) return true;
   if (error instanceof Error) return false;
-  const apiError = toApiError(error);
-  return apiError == null || !apiError.status;
+  if (toApiError(error)) return false;
+  return !(typeof error === 'object' && error !== null && typeof (error as { message?: unknown }).message === 'string');
 }
 
 export function unverifiedSaveMessage(attempt: number, final: boolean): string {
