@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCurrentEpisodeValidationOptions,
+  getCurrentEpisodeValidationQueryKey,
   getEpisodeOptions,
   getEpisodeValidationEligibilityOptions,
   recheckEpisodeValidationMutation,
@@ -75,6 +76,13 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
   // 이미 확정한 회차(확정 report 또는 결과 전용 재검수)의 다음 검수는 결과만 제공한다.
   const diagnostic = summary?.mode === 'DIAGNOSTIC_ONLY' || summary?.application?.status === 'APPLIED';
 
+  // 재검수가 현재 report를 바꿨으므로 회차의 현재 검수 캐시를 버려 다음 회차 주소 진입이 새로 확인하게 한다.
+  const finish = (nextReportId: string) => {
+    key.current = null;
+    queryClient.removeQueries({ queryKey: getCurrentEpisodeValidationQueryKey({ path: { workId }, query: { episodeId } }) });
+    onRechecked(nextReportId);
+  };
+
   const takeKey = (version: number) => {
     if (!key.current || key.current.version !== version) key.current = { key: newIdempotencyKey(), version };
     return key.current.key;
@@ -86,8 +94,7 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
         ...getCurrentEpisodeValidationOptions({ path: { workId }, query: { episodeId } }), staleTime: 0, retry: false,
       })).data;
       if (latestReport?.reportId && latestReport.reportId !== reportId) {
-        key.current = null;
-        onRechecked(latestReport.reportId);
+        finish(latestReport.reportId);
         return;
       }
     } catch {
@@ -125,9 +132,8 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
         },
       });
       if (response.data?.reportId && response.data.reportId !== reportId) {
-        key.current = null;
         setOpen(false);
-        onRechecked(response.data.reportId);
+        finish(response.data.reportId);
       } else {
         await recoverLostResponse();
       }

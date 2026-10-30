@@ -126,30 +126,51 @@ function StateCard({ title, description, action, busy = false }: { title: string
   );
 }
 
-/** workId+episodeId 진입은 서버가 가리키는 현재 report로 주소를 바꾼다. 브라우저가 시각/번호로 추측하지 않는다. */
+/** `최신 결과로 돌아가기`가 넘긴 이전 최신 결과 주소의 reportId. 같은 작품의 리포트 주소만 받는다. */
+function savedReportId(saved: unknown, workId: string) {
+  if (typeof saved !== 'string') return null;
+  const url = new URL(saved, window.location.origin);
+  return url.pathname === REPORT_PATH && url.searchParams.get('workId') === workId ? url.searchParams.get('reportId') : null;
+}
+
+/**
+ * workId+episodeId 진입은 서버가 가리키는 현재 report로 주소를 바꾼다. 브라우저가 시각/번호로 추측하지 않는다.
+ * 재검수로 현재 report가 바뀔 수 있으므로 이전 방문의 캐시로 이동하지 않고 이 mount에서 새로 받은 응답만 쓴다.
+ */
 function CurrentReportResolver({ workId, episodeId }: { workId: string; episodeId: string }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
-  const query = useQuery({ ...getCurrentEpisodeValidationOptions({ path: { workId }, query: { episodeId } }), retry: false });
-  const resolved = query.data?.data?.reportId;
+  const query = useQuery({
+    ...getCurrentEpisodeValidationOptions({ path: { workId }, query: { episodeId } }),
+    retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always',
+  });
+  const settled = query.isFetchedAfterMount && !query.isFetching;
+  const resolved = settled && query.isSuccess ? query.data?.data?.reportId : undefined;
   useEffect(() => {
     if (!resolved) return;
+    const linkState = location.state as ReportLinkState | null;
+    const state = linkState ? { ...linkState, latestReportUrl: undefined } : linkState;
+    // 보던 최신 결과가 여전히 현재 report면 그 주소(필터·선택)를 복원하고, 바뀌었으면 새 report를 연다.
+    if (typeof linkState?.latestReportUrl === 'string' && savedReportId(linkState.latestReportUrl, workId) === resolved) {
+      navigate(linkState.latestReportUrl, { replace: true, state });
+      return;
+    }
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('reportId', resolved);
       next.delete('episodeId');
       return next;
-    }, { replace: true, state: location.state });
-  }, [location.state, resolved, setSearchParams]);
-  const missing = query.isError && toApiError(query.error)?.status === 404;
+    }, { replace: true, state });
+  }, [location.state, navigate, resolved, setSearchParams, workId]);
+  const missing = settled && query.isError && toApiError(query.error)?.status === 404;
   return (
     <ReportShell workId={workId}>
       {missing ? (
         <StateCard title="이 회차에는 아직 오류 검사 결과가 없어요."
           description="검수를 접수한 회차만 오류 리포트를 볼 수 있어요. 분석 목록에서 진행 상태를 확인해 주세요."
           action={<ActionButton onClick={() => navigate(analysisListUrl(workId))}>분석 목록으로</ActionButton>} />
-      ) : query.isError ? (
+      ) : settled && query.isError ? (
         <StateCard title="현재 검수 결과를 확인하지 못했어요." description="잠시 후 다시 시도해 주세요."
           action={<ActionButton variant="secondary" onClick={() => void query.refetch()}>다시 불러오기</ActionButton>} />
       ) : <StateCard busy title="현재 검수 결과를 찾고 있어요." />}
@@ -314,10 +335,11 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   const sourceLink = !report.invalidated && !pastReport && staging?.episodeId
     ? `/editor?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}` : undefined;
   const linkState = (location.state ?? {}) as ReportLinkState;
+  // 보던 주소도 그 사이 재검수로 퇴역했을 수 있어 회차의 현재 report를 새로 확인한다. 같으면 보던 필터·선택을 복원한다.
   const backToLatest = () => {
     const saved = typeof linkState.latestReportUrl === 'string' ? linkState.latestReportUrl : null;
-    if (saved) navigate(saved, { state: { ...linkState, latestReportUrl: undefined } });
-    else if (staging?.episodeId) navigate(`${REPORT_PATH}?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}`, { state: linkState });
+    if (staging?.episodeId) navigate(`${REPORT_PATH}?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}`, { state: { ...linkState, latestReportUrl: saved ?? undefined } });
+    else if (saved) navigate(saved, { state: { ...linkState, latestReportUrl: undefined } });
   };
 
   if (report.stagingQuery.isError && !staging) {

@@ -9,6 +9,7 @@ import {
   findingId,
   mockValidationReport,
   PAST_REPORT_ID,
+  RECHECK_REPORT_ID,
   REPORT_ID,
   WORK_ID,
   type ReportScenario,
@@ -370,6 +371,59 @@ test('회차로 들어오면 서버의 현재 결과로 주소를 바꾸고 결�
   await expect(page).not.toHaveURL(/episodeId=/);
   await expect(page.getByRole('heading', { name: '101화 오류 리포트' })).toBeVisible();
   expect(mock.state.requests).toHaveLength(0);
+});
+
+/** 다른 창의 재검수처럼 현재 report A를 퇴역시키고 새 report B를 현재로 만든다. */
+function retireCurrentReport(mock: Awaited<ReturnType<typeof mockValidationReport>>) {
+  const previous = mock.state.staging;
+  mock.state.pastReports.set(previous.reportId, { ...previous, current: false, status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED', executionStatus: 'CANCELED' });
+  mock.patchStaging({ reportId: RECHECK_REPORT_ID, baselineId: RECHECK_REPORT_ID, revision: previous.revision + 1, previousReportId: previous.reportId, reportVersion: 1 });
+}
+
+/** 새로고침 없이 앱 안에서 주소를 바꾼다. Query 캐시가 그대로 남는 실제 화면 이동과 같다. */
+async function navigateInApp(page: Page, url: string) {
+  await page.evaluate(target => {
+    window.history.pushState({}, '', target);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, url);
+}
+
+test('회차 주소로 다시 들어오면 이전 방문의 캐시가 아니라 새로 받은 현재 결과로 이동한다', async ({ page }) => {
+  const mock = await mockValidationReport(page);
+  const currentReads: string[] = [];
+  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/episode-validations/current')) currentReads.push(request.url()); });
+  await authenticate(page);
+  const episodeUrl = `/episode-validation-report?workId=${WORK_ID}&episodeId=${EPISODE_ID}`;
+  await page.goto(episodeUrl);
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page.getByRole('heading', { name: '101화 오류 리포트' })).toBeVisible();
+
+  await navigateInApp(page, `/dashboard?workId=${WORK_ID}&nav=analyses`);
+  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+  retireCurrentReport(mock);
+  const readsBefore = currentReads.length;
+  await navigateInApp(page, episodeUrl);
+  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  await expect(page).not.toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page.getByRole('heading', { name: '101화 오류 리포트' })).toBeVisible();
+  await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
+  expect(currentReads.length).toBeGreaterThan(readsBefore);
+});
+
+test('최신 결과로 돌아가기는 보던 결과가 그 사이 퇴역했으면 서버의 최신 결과로 간다', async ({ page }) => {
+  const mock = await open(page, {}, `&findingId=${findingId(1)}`);
+  await page.getByRole('button', { name: '검사 이력' }).click();
+  await page.getByRole('region', { name: '검사 이력' }).getByRole('link', { name: '이 검수 요약 보기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${PAST_REPORT_ID}`));
+  await expect(page.getByText('이전 검수 결과예요.')).toBeVisible();
+  // 이력을 보는 동안 다른 창에서 재검수해 보던 report가 퇴역했다.
+  retireCurrentReport(mock);
+  await page.getByRole('button', { name: '최신 결과로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  // 퇴역한 report의 선택은 새 결과에 옮기지 않는다.
+  expect(new URL(page.url()).searchParams.get('findingId')).not.toBe(findingId(1));
+  await expect(page).not.toHaveURL(/episodeId=/);
+  await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
 });
 
 test('현재 결과가 없는 회차는 실행 없음과 분석 목록 이동을 제공한다', async ({ page }) => {
