@@ -90,6 +90,7 @@ import {
   type planWorldTargetLink, type WorldLinkTarget, type WorldTargetLinkUnit,
 } from './worldReviewDecisions';
 import { WorldTargetLinkModal } from './WorldTargetLinkModal';
+import { computeWorldGroupConfirmBlock, worldDuplicatePaths, type WorldGroupBlockRow } from './worldGroupConfirmBlock';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 type WorldSuggestedOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
@@ -1146,84 +1147,56 @@ function WorldCandidateGroupDetail({
   )));
   const identityEditable = pendingCandidates.length > 0 && !groupAutomaticPending
     && pendingCandidates.every(candidate => candidateDecision(candidate) !== null);
-  const duplicatePropertyPaths = (() => {
-    const orderedGroup = pendingCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
-    const seen = new Map<string, {
-      displayPath: string;
-      comparisonDecisionId?: string | null;
-      decisionSignature: string | null;
-    }>();
-    const duplicates = new Set<string>();
-    for (const candidate of pendingCandidates) {
-      if (!candidate.id) continue;
-      if ((decisions[candidate.id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE') continue;
-      const settingName = decisions[candidate.id]?.settingName
-        ?? candidate.proposedSettingName
-        ?? candidate.settingName;
-      if (!settingName) continue;
-      const selectedDecision = decisions[candidate.id] ?? candidateDecision(candidate);
-      const scopeName = selectedDecision
-        ? selectedDecision.scopeName ?? null
-        : candidate.proposedScopeName ?? candidate.scopeName ?? null;
-      const category = selectedDecision?.category ?? candidate.category;
-      const subjectName = selectedDecision?.subjectName ?? resolvedTargetSubjectName(candidate);
-      const normalizedScope = scopeName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') || null;
-      const normalizedSetting = settingName.trim().normalize('NFC').toLocaleLowerCase('ko-KR');
-      const normalizedSubject = subjectName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') ?? null;
-      // 누적 분석의 서로 다른 회차는 동일 경로를 순서대로 갱신한다.
-      // 같은 회차의 중복과 구응답/기본 모드의 중복 검사는 그대로 유지한다.
-      const normalized = JSON.stringify([category, normalizedSubject, normalizedScope, normalizedSetting,
-        orderedGroup ? candidate.source?.sourceKind === 'SETTING_BOOK' ? [candidate.source.settingBookId, candidate.source.revisionId] : candidate.sourceEpisodeNo ?? null : null]);
-      const displayPath = scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim();
-      const decisionSignature = selectedDecision
-        ? JSON.stringify([
-          selectedDecision.operation,
-          selectedDecision.category,
-          selectedDecision.subjectName,
-          selectedDecision.scopeName ?? null,
-          selectedDecision.settingName,
-          selectedDecision.value,
-        ])
-        : null;
-      const existing = seen.get(normalized);
-      if (existing) {
-        const sameSharedDecision = Boolean(
-          candidate.comparisonDecisionId
-          && existing.comparisonDecisionId === candidate.comparisonDecisionId
-          && existing.decisionSignature === decisionSignature,
-        );
-        if (!sameSharedDecision) duplicates.add(existing.displayPath);
-      } else {
-        seen.set(normalized, {
-          displayPath,
-          comparisonDecisionId: candidate.comparisonDecisionId,
-          decisionSignature,
-        });
-      }
-    }
-    return [...duplicates];
-  })();
-  const unresolvedConflicts = pendingCandidates.filter(candidate => candidate.id
-    && candidate.consolidationStatus === 'CONFLICT'
-    && !resolvedConflictIds.has(candidate.id)
-    && !candidate.userModified
-    && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
+  const orderedGroup = pendingCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
+  const blockRows: WorldGroupBlockRow[] = pendingCandidates.map(candidate => {
+    const id = candidate.id!;
+    const selectedDecision = decisions[id] ?? candidateDecision(candidate);
+    const excluded = (decisions[id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE';
+    const settingName = decisions[id]?.settingName ?? candidate.proposedSettingName ?? candidate.settingName;
+    const scopeName = selectedDecision
+      ? selectedDecision.scopeName ?? null
+      : candidate.proposedScopeName ?? candidate.scopeName ?? null;
+    const normalize = (value?: string | null) => value?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') ?? null;
+    // 누적 분석의 서로 다른 회차는 동일 경로를 순서대로 갱신한다.
+    // 같은 회차의 중복과 구응답/기본 모드의 중복 검사는 그대로 유지한다.
+    const pathKey = excluded || !settingName ? null : JSON.stringify([
+      selectedDecision?.category ?? candidate.category,
+      normalize(selectedDecision?.subjectName ?? resolvedTargetSubjectName(candidate)),
+      normalize(scopeName) || null, normalize(settingName),
+      orderedGroup ? candidate.source?.sourceKind === 'SETTING_BOOK' ? [candidate.source.settingBookId, candidate.source.revisionId] : candidate.sourceEpisodeNo ?? null : null,
+    ]);
+    const decisionSignature = selectedDecision ? JSON.stringify([selectedDecision.operation, selectedDecision.category,
+      selectedDecision.subjectName, selectedDecision.scopeName ?? null, selectedDecision.settingName, selectedDecision.value]) : null;
+    const bookChoiceNeeded = needsBookCurrentChoice(candidate, originalHoldReasons[id]);
+    const bookChoice = bookCurrentChoice(candidate, currentChoices);
+    return {
+      id,
+      pathKey,
+      displayPath: settingName ? scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim() : '',
+      sharedDecisionKey: candidate.comparisonDecisionId ? JSON.stringify([candidate.comparisonDecisionId, decisionSignature]) : null,
+      unsaved: dirtyCandidateIds.has(id),
+      quotaInterrupted: isQuotaInterruptedCandidate(candidate),
+      needsDecision: Boolean(presetTargets[id])
+        || !(!automaticReviewHoldLabel(candidate) || hasSavedDecision(candidate) || bookChoiceNeeded && Boolean(bookChoice))
+        || !(candidate.comparisonStatus === 'COMPLETED' || candidate.manualReviewAvailable === true && hasSavedDecision(candidate))
+        || !selectedDecision,
+      conflict: candidate.consolidationStatus === 'CONFLICT' && !resolvedConflictIds.has(id) && !candidate.userModified && !excluded,
+      bookChoicePending: bookChoiceNeeded && !bookChoice,
+    };
+  });
+  const duplicatePropertyPaths = worldDuplicatePaths(blockRows).paths;
+  const unresolvedConflicts = blockRows.filter(row => row.conflict);
+  const confirmBlock = computeWorldGroupConfirmBlock({
+    rows: blockRows,
+    automaticPendingMessage: groupAutomaticPending ? automaticApplicationPendingMessage(pendingCandidates.find(isAutomaticApplicationPending)?.source) : null,
+    filtered: confirmationFiltered,
+  });
   const retryAvailable = candidates.some(candidate => candidate.analysisMode !== 'ORDERED_PROVISIONAL'
     && !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable && ((
     candidate.comparisonStatus === 'FAILED'
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
-  const confirmable = !hasUnsavedChanges && !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
-    .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
-      && (!automaticReviewHoldLabel(candidate) || hasSavedDecision(candidate)
-        || needsBookCurrentChoice(candidate, originalHoldReasons[candidate.id!]) && Boolean(bookCurrentChoice(candidate, currentChoices)))
-      && (candidate.comparisonStatus === 'COMPLETED'
-        || (candidate.manualReviewAvailable === true && hasSavedDecision(candidate)))
-      && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
-    && duplicatePropertyPaths.length === 0
-    && unresolvedConflicts.length === 0
-    && !bookChoicesPending
-    && !confirmationFiltered;
+  const confirmable = confirmBlock === null;
   const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) =>
     canShowRootMoveProposal(candidate, candidates, decisions, confirmationFiltered);
   // 완료된 순차 검토는 선택한 속성만 확정하며 과거 비교의 부수 이동은 재실행하지 않는다.

@@ -81,13 +81,19 @@ import { UserMenu } from '../UserMenu';
 import { CharacterReviewComparison, CharacterTargetChoices } from './CharacterReviewPresentation';
 import { candidateEpisodesLabel, errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
 import { ActionButton } from './ReviewModalControls';
+import {
+  computeGroupConfirmBlock,
+  hasCharacterFactComparison,
+  hasManualReview,
+  isCandidateValueInvalid,
+  isGroupExclusionProposal,
+} from './groupConfirmBlock';
 import { CandidateEditModal } from './CandidateEditModal';
 import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { ReviewEvidence, ReviewInlineValue, ReviewNotice, ReviewSettingHeading } from '../review-ui/ReviewPrimitives';
 import {
-  getCharacterFactComparisonPolicy,
   resolveCharacterFactApplicationMode,
   type CharacterFactApplicationMode,
 } from '../character/character-fact-comparison-policy';
@@ -137,20 +143,6 @@ function isCharacterComparisonActive(
   status?: SettingCandidateResponse['comparisonStatus'],
 ): boolean {
   return status === 'PENDING' || status === 'PROCESSING';
-}
-
-function hasCharacterFactComparison(candidate: SettingCandidateResponse): boolean {
-  return candidate.candidateKind !== 'CHARACTER_DISCOVERY';
-}
-
-// Group confirmation accepts a completed exclusion proposal as one decision without
-// creating a current value or history. Single-candidate confirmation remains unchanged.
-function isGroupExclusionProposal(candidate: SettingCandidateResponse): boolean {
-  return candidate.comparisonStatus === 'COMPLETED' && candidate.suggestedOperation === 'EXCLUDE';
-}
-
-function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
-  return candidate.valueValidation?.status === 'INVALID';
 }
 
 function isCandidateValueRepairable(candidate: SettingCandidateResponse): boolean {
@@ -1765,63 +1757,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       variables: { query: { sourceAnalysisJobId }, path: { workId, candidateId } } });
   };
 
-  const hasManualReview = (candidate: SettingCandidateResponse) =>
-    candidate.reviewedApplicationMode != null
-    && candidate.manualReviewAvailable === true
-    && (candidate.source?.sourceKind !== 'SETTING_BOOK' || candidate.suggestedOperation !== 'REMOVE'
-      || candidate.reviewedApplicationMode === 'HISTORY_ONLY');
-  const currentSelections = new Map<string, SettingCandidateResponse[]>();
-  for (const candidate of pendingGroupCandidates) {
-    if (!hasCharacterFactComparison(candidate) || isGroupExclusionProposal(candidate)
-      || applicationModeForCandidate(candidate) !== 'APPLY_PROPOSAL') continue;
-    const key = candidate.resolvedCanonicalFactKey || candidate.attributeName;
-    if (key) currentSelections.set(key, [...(currentSelections.get(key) ?? []), candidate]);
-  }
   // 구형 다회차 검토는 같은 항목을 앞 회차부터 적용하는 비교 체인을 유지한다.
   const usesFinalCurrentSelection = acceptsDisplayedResults
     || pendingGroupCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
-  const duplicateCurrentSelection = usesFinalCurrentSelection
-    ? [...currentSelections.values()].find(candidates => candidates.length > 1)
-    : undefined;
-  const groupConfirmBlockedReason = legacyGroupedActionsUnsafe
-    ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'
-    : pendingGroupCandidates.length === 0
-    ? '확정할 검토 대기 설정이 없습니다.'
-    : groupAutomaticPending
-      ? automaticApplicationPendingMessage(sourceScope.source)
-    : pendingGroupCandidates.some(candidate => saveTracker.unresolved(candidate.id))
-      ? '저장 결과를 확인하는 설정이 있어요. 확인이 끝난 뒤 확정할 수 있어요.'
-    : pendingGroupCandidates.some(isCandidateValueInvalid)
-      ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'
-    : pendingGroupCandidates.some(candidate => candidate.matchStatus === 'AMBIGUOUS')
-      ? '캐릭터 연결이 모호한 설정을 먼저 해소해 주세요.'
-      : pendingGroupCandidates.some(candidate => candidate.reviewedApplicationMode != null && !candidate.manualReviewAvailable)
-        ? '이 후보의 기준 상태가 바뀌었습니다. 최신 검토 상태를 확인해 주세요.'
-      : pendingGroupCandidates.some(candidate => hasCharacterFactComparison(candidate)
-          && (candidate.manualReviewAvailable || candidate.analysisMode === 'ORDERED_PROVISIONAL' && candidate.userModified)
-          && !hasManualReview(candidate))
-        ? '확인할 설정이 남아 있어요. 각 설정에서 저장할 방법을 선택해 주세요.'
-      : pendingGroupCandidates.some(candidate => candidate.suggestedOperation === 'REVIEW_REQUIRED'
-          && !hasManualReview(candidate) && (!candidate.id || !applicationModes[candidate.id]))
-        ? '판단이 필요한 설정에서 저장할 방법을 선택해 주세요.'
-      : duplicateCurrentSelection
-        ? `‘${toSettingDisplay(duplicateCurrentSelection[0].attributeName, duplicateCurrentSelection[0].attributeDisplayName, labels).nameLabel}’에 현재 반영을 여러 번 선택했어요. 현재로 남길 하나를 선택하고 나머지는 이력에 저장하거나 제외해 주세요.`
-      : pendingGroupCandidates.some(candidate => currentApplicationKey(candidate)
-          && applicationModeForCandidate(candidate) === 'APPLY_PROPOSAL' && !isGroupExclusionProposal(candidate)
-          && !appliesToCurrent(candidate))
-        ? '현재 설정에 반영할지 이력에만 남길지 각 항목에서 선택해 주세요.'
-      : !groupHasSharedComparisonRevision
-        ? '모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'
-      : pendingGroupCandidates.some(candidate => (
-          hasCharacterFactComparison(candidate)
-          && !hasManualReview(candidate)
-          && !isGroupExclusionProposal(candidate)
-          && !getCharacterFactComparisonPolicy(candidate).canConfirm
-        ))
-        ? '모든 설정의 현재값 비교가 끝난 뒤 함께 확정할 수 있습니다.'
-        : pendingGroupCandidates.some(candidate => !candidate.id)
-          ? '식별할 수 없는 설정이 있어 확정할 수 없습니다.'
-          : null;
+  const groupConfirmBlock = computeGroupConfirmBlock({
+    candidates: pendingGroupCandidates,
+    legacyPartial: legacyGroupedActionsUnsafe,
+    automaticPendingMessage: automaticApplicationPendingMessage(sourceScope.source),
+    usesFinalCurrentSelection,
+    sharedComparisonRevision: groupHasSharedComparisonRevision,
+    isSaveUnresolved: saveTracker.unresolved,
+    hasLocalChoice: candidate => Boolean(candidate.id && applicationModes[candidate.id]),
+    applicationMode: applicationModeForCandidate,
+    needsCurrentChoice: candidate => Boolean(currentApplicationKey(candidate))
+      && applicationModeForCandidate(candidate) === 'APPLY_PROPOSAL' && !isGroupExclusionProposal(candidate)
+      && !appliesToCurrent(candidate),
+    settingLabel: candidate => toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName, labels).nameLabel,
+  });
+  const groupConfirmBlockedReason = groupConfirmBlock?.reason ?? null;
   // 연결한 후보가 재조회 뒤 이 묶음에서 빠졌을 때만 안내한다. 같은 묶음에 남으면 카드만 갱신된다.
   const visibleRecentLink = recentLink && !selectedGroupCandidates.some(candidate => candidate.id && recentLink.candidateIds.includes(candidate.id))
     && (selectedGroupKey === recentLink.sourceGroupKey
