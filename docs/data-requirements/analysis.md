@@ -292,6 +292,8 @@ GET /api/v1/works/{workId}/world-setting-candidates/progress?batchId={batchId}
 
 사이드 메뉴의 `분석 목록`에서 같은 작품의 분석을 `UploadBatch` 단위로 조회하는 화면이다. 한 번에 함께 올린 회차들의 Job과 설정 후보 검토 상태를 한 카드로 집계하며, `SETTING_EXTRACTION`과 `EPISODE_VALIDATION`이 같은 배치에 있으면 목적별 하위 요약은 유지하되 카드 액션은 배치 상태에 맞는 버튼 하나만 표시한다.
 
+> **신규 회차 검수 카드 (#314 F2)**: 배치 요약에 `validationReports[]`(reportId·episodeId·sourceEpisodeNo·reviewStage)가 있으면 회차 카드는 `N화 · 신규 회차 검수`와 `reviewStage`의 공통 문구(오류 검사 준비 중/오류 검사 중/오류 검토/설정 추출 중/설정 추출 실패/확정 보류/확정 완료/기준 준비 보류/재검수 필요, `validation-report-labels.ts`의 `VALIDATION_STAGE_SUMMARY`)를 표시하고 주 액션은 `오류 리포트 보기`(`/episode-validation-report?workId&reportId`)다. 0건·부분 결과·확정 보류·확정·무효 모두 같은 리포트를 연다. 배치 `status`/`episodeStatus`의 `ERROR_REVIEW_*`나 `EPISODE_VALIDATION` Job 유형으로 단계를 추측하지 않으며 `reviewStage`가 없는 구응답만 배치 상태를 표시용으로 쓴다. 설정 추출 실패 단계는 검토 종료가 만든 추출 Job의 `추출 상태 보기`를 함께 둔다. 카드마다 검수 단건·결과·회차 조회를 보태지 않고, 기준 준비·검사·추출 중 단계가 있으면 같은 요약을 10초마다 다시 읽는다. 원고 목록의 최근 배치 배너도 최신 배치가 검수 배치면 같은 단계 문구와 `오류 리포트 보기`를 표시한다(확정 완료 제외). 원고 목록 행은 `validationReportId`가 있으면 `validationReviewStage` 배지를 리포트 링크로 표시하고, 단계가 없으면 `analysisStatus`의 `ERROR_REVIEW_*`를 표시용 fallback으로만 쓴다.
+
 > **목록·보존 정책**
 > - 서버 페이지네이션은 한 페이지 10개이며, 배치의 최근 분석 요청 시각 내림차순과 배치 ID 내림차순을 사용한다.
 > - 배치 상태는 `IN_PROGRESS`·`PARTIALLY_FAILED`·`FAILED`·`CANCELED`·`REVIEW_REQUIRED`·`COMPLETED`를 사용한다. 순차 분석의 선행 실패·저장 미완료에 막힌 후행 대기는 진행 중으로 세지 않는다. 완료된 앞 회차가 있으면 일부 중단, 없으면 실패, 무효화는 취소로 안내하며 원본 Job 상태를 수정하지 않는다.
@@ -399,7 +401,7 @@ GET /api/v1/works/{workId}/analysis-jobs/batches?page={page}&size=10
 
 **화면명:** 오류 리포트 · **명세 상태:** 2026-10-28 오류 검사 우선 정책 반영안 · **관련 이슈:** [#300](https://github.com/catchhole-soma/catchhole-backend-java/issues/300)
 
-**예정 URL:** `/episode-validation-report?workId={workId}&reportId={reportId}`. 현재 이 경로는 작품 선택으로 이동하며 리포트는 아직 구현되지 않았다.
+**URL:** `/episode-validation-report?workId={workId}&reportId={reportId}`. #314 F1에서 생성 SDK 기반 리포트 화면(R1~R8, 판단 저장·검토 완료 후 설정 추출·명시 반영·중단 재시도·이력)을 연결했다. `workId`+`episodeId`로 들어오면 서버의 현재 report로 주소를 바꾼다. #314 F2에서 업로드 접수·분석 목록/원고 목록 진입, A9 원고 파일 변경 복귀, A10 설정 관리 이동·복귀, A11 `수정 내용으로 재검수`를 연결했다(아래 "F2 구현 상태"). 현재 공개 계약에는 등급·대상 필터와 항목의 대상/설정명·비교 자료 목록, 정정할 기준 항목 식별자가 없어 화면도 제공하지 않는다.
 
 작가가 **새 회차 한 편**의 설정 충돌·충돌 의심·추가 확인 필요 결과를 근거와 함께 읽고, 판단을 남기거나 원고·설정을 고친 뒤 재검수하는 화면이다. [합의한 제품 기획](../planning/gh-300-error-report-product-brief.md)을 기준으로 이 절의 과거 다회차·캐릭터 전용·재검수 미지원 안을 대체한다. 업로드·분석 목록·설정 관리 화면은 여기서 필요한 연결만 정의하고 각각의 전체 명세는 별도로 검토한다.
 
@@ -506,6 +508,12 @@ AI 결과 유형 `추가 확인 필요`와 영향 등급 `심각`을 함께 표�
 | A17 | `원문 유지` | 현재 원고의 해당 항목 검토만 해소. 제안/AI 사유는 보존 | 작품 예외 사전 등록·새 원고 판단 승계·자동 추출 없음. 저장 실패 시 기존 판단 유지 |
 | A18 | `검토 필요로 되돌리기` | 해당 오탈자 항목을 미검토로 변경해 추출 보류. A16↔A17 변경 가능 | 원문·AI 제안은 변경하지 않음. 저장 실패 시 기존 판단 유지 |
 
+**F2 구현 상태 (2026-10-30)**
+
+- A9 `원고 파일 변경`: 현재(무효가 아닌) 결과의 항목 상세 `원고·설정 수정`에서 `/dashboard?workId&nav=manuscripts&modal=episode-replace&episodeId={report.episodeId}&returnTo=validation-report&reportId&reportFindingId&reportBranch&reportJudgment&reportOutcome&reportPage`로 이동해 같은 회차의 기존 교체 모달을 연다. 검수 회차의 경고는 재분석이 아닌 재검수를 안내한다. 성공·취소·실패 모두 `오류 리포트로 돌아가기`를 유지하고 실패는 모달의 파일·오류를 보존한다. 교체는 분석·검수를 시작하지 않으며 열린 리포트 조회만 무효화한다. 복귀한 리포트는 서버의 무효 상태를 그대로 표시한다.
+- A10 `설정 정보 정정`: 공개 응답(staging·results·finding payload)에는 `baselineId`·`baselineRevision`·`baselineHash`는 있지만 정정 요청이 요구하는 기준 항목 `entryRef`의 `expectedEntryHash`, 대상 캐릭터/세계관 ID와 설정 slot(factType/factKey)이 없다. finding의 `evidence_refs`·`disagreements[].fact_ref`가 B-ref를 가리키는 경우도 해시·대상이 없어 연결할 수 없다. 따라서 `/dashboard?workId&nav=settingDB&tab=characters&returnTo=validation-report…`로만 이동하고 `저장만으로는 정정이 연결되지 않아요` 안내와 복귀를 제공한다. `correctValidationBaselineSetting` 호출과 정정 receipt 기반 재검수는 Backend 공개 계약 보강(B2 후보) 뒤 연결한다. 일반 저장은 기존 계약대로 report를 무효화할 수 있고 재검수는 그때의 설정으로 새 기준을 준비한다.
+- A11 `수정 내용으로 재검수`: 현재 report의 `allowedActions`에 `RECHECK`가 있거나(무효화된 현재 report) `reviewStage=APPLIED` report의 진단 재검수이고, 회차 자격 조회(`getEpisodeValidationEligibility?episodeId`)의 `latestEpisode=true`일 때만 연다. 확인 영역은 대상 회차, 적용할 변경(원고 revision이 검사 당시보다 커졌으면 원고 교체, 아니면 설정 변경·확정 기준), `새 결과는 모두 검토 필요로 시작해요.`와 진단 여부를 보여 준다. 요청은 `recheckEpisodeValidation{idempotencyKey, expectedReportVersion, expectedContentHash, expectedContentS3Key, expectedContentS3Version, expectedContentRevision, expectedBaselineHash}`이며 원고 값은 직전 `getEpisode`, 기준 hash는 report의 `baselineFingerprint`(무효화 뒤에도 남고 서버가 비교하는 값)다. 성공하면 새 `reportId`로 replace 이동한다. 응답 유실·5xx는 `getCurrentEpisodeValidation`으로 새 report를 확인하고 없으면 같은 키로 다시 보낼 수 있게 둔다. `VALIDATION_RECHECK_INPUT_UNCHANGED`는 같은 입력 안내와 `중단된 검사 다시 시도`(서버가 RETRY를 허용할 때)를 보여 준다.
+
 설정 항목은 A6/A7, 오탈자는 A16/A17의 두 판단 버튼과 각 되돌리기로 구성하는 화면안이다. 현재 판단은 선택됨으로 표시하며 같은 상태의 중복 저장은 하지 않는다. 저장 성공 후 최신 상세·목록·집계를 함께 반영한다. 저장 결과 불명은 재조회로 확인하고, 다른 창의 변경이 있으면 최신 판단을 보여 준 뒤 사용자가 다시 선택한다. 자동 덮어쓰기는 하지 않는다.
 
 `충돌 아님` 또는 `원문 유지` 판단 저장은 설정 추출·확정 명령이 아니다. 마지막 판단을 저장해도 추출하지 않으며 A15에서 별도로 시작한다. 두 검사 정상 완료·설정 검사 3유형 합계와 오탈자 제안 모두 0건일 때만 서버가 자동으로 추출을 시작한다. 원고·기준이 바뀌었거나 미판단·수정 필요·미검사가 남으면 완료 버튼을 잠근다. 검토 종료 이후의 추출 실패/후보 확인 필요는 별도 상태로 표시하고, 이미 확정한 뒤 판단을 되돌려도 확정 설정을 자동 롤백하지 않는다.
@@ -547,7 +555,7 @@ AI 결과 유형 `추가 확인 필요`와 영향 등급 `심각`을 함께 표�
 | 검수 이력 | 보고 있는 회차, 펼친 이력 여부. 이전 결과 주소 직접 진입은 해당 요약과 최신 결과 이동 제공 |
 
 - 새로고침·뒤로가기에서 필터·항목·열린 근거를 복원한다. 같은 화면 복귀의 스크롤·초점은 클라이언트가 보존하되 원문·인용·설정값을 URL에 넣지 않는다.
-- 원고 교체 대상 지정, 특정 설정 편집과 리포트 복귀 문맥은 **추가해야 할 연결**이다. 위 기존 주소가 모든 연결을 이미 지원한다는 뜻은 아니다.
+- 원고 교체 대상 지정과 리포트 복귀 문맥은 #314 F2에서 연결했다(`modal=episode-replace&episodeId`, `returnTo=validation-report&reportId`와 `report` 접두 필터 키). 특정 캐릭터·세계관 설정 편집으로의 이동(`charId`·`settingId`)은 공개 계약에 대상 식별자가 없어 아직 연결하지 않았다.
 - 유효한 항목 직접 주소는 필터와 무관하게 상세를 열고 `현재 필터에 없는 항목`으로 안내한다. 조회되지 않는 항목이면 이유를 표시하고 목록 선택으로 복귀한다.
 - 잘못된 필터/페이지는 허용 범위로 정규화한다. 다른 작품·권한 없는 결과를 URL 보정으로 열지 않는다.
 

@@ -25,11 +25,40 @@ import { PageHeading } from './ui-v2/PageHeading';
 import { AnalysisListBookCard } from './AnalysisListBookCard';
 import { invalidateAppliedSettings } from '../../lib/analysis-source';
 import { AnalysisCard, CandidateReviewCount } from './AnalysisCard';
+import {
+  ACTIVE_VALIDATION_STAGES,
+  VALIDATION_STAGE_SUMMARY,
+  validationReportUrl,
+} from './validation/validation-report-labels';
 
 const PAGE_SIZE = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type AnalysisBatchStatus = NonNullable<AnalysisBatchSummaryResponse['episodeStatus']>;
+
+type ValidationRequest = NonNullable<AnalysisBatchSummaryResponse['validationReports']>[number];
+
+const VALIDATION_STAGE_ICONS: Record<keyof typeof VALIDATION_STAGE_SUMMARY, typeof Clock3> = {
+  PREPARING_BASELINE: Clock3,
+  VALIDATING: Clock3,
+  AWAITING_REVIEW: FileSearch,
+  REVIEW_COMPLETED: Clock3,
+  EXTRACTION_FAILED: AlertCircle,
+  APPLICATION_HELD: TriangleAlert,
+  APPLIED: CheckCircle2,
+  HELD_INCOMPLETE: TriangleAlert,
+  INVALIDATED: AlertCircle,
+};
+
+/** 배치 요약의 현재 검수 report. 리포트를 열 수 있는 식별자가 있는 것만 사용한다. */
+function validationRequest(batch: AnalysisBatchSummaryResponse): ValidationRequest | undefined {
+  return batch.validationReports?.find(report => Boolean(report.reportId));
+}
+
+/** 검수 기준 준비·검사·검토 종료 뒤 추출 중에는 같은 배치 요약만 다시 읽어 단계를 갱신한다. */
+function hasActiveValidation(batch: AnalysisBatchSummaryResponse) {
+  return (batch.validationReports ?? []).some(report => report.reviewStage && ACTIVE_VALIDATION_STAGES.has(report.reviewStage));
+}
 
 const STATUS_VIEW: Record<AnalysisBatchStatus, {
   label: string;
@@ -73,31 +102,71 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
     tone: 'success',
     icon: CheckCircle2,
   },
+  // GH314: 오류 검사 우선 검수의 배치 상태. 검토 종료 뒤 단계는 reviewStage가 결정하므로 결과를 단정하지 않는다.
   ERROR_REVIEW_PREPARING: {
-    label: '오류 검사 기준 준비 중',
-    description: '오류 검사에 필요한 기준을 준비하고 있습니다.',
+    label: '오류 검사 중',
+    description: '설정 충돌을 확인하고 있어요.',
     tone: 'primary',
     icon: Clock3,
   },
   ERROR_REVIEW_PENDING: {
-    label: '오류 검사·검토 대기',
-    description: '오류 검사와 검토가 완료되기를 기다리고 있습니다.',
+    label: '오류 검토',
+    description: '오류 리포트에서 검사 결과와 설정 추출 상태를 확인해 주세요.',
     tone: 'warning',
     icon: FileSearch,
   },
   ERROR_REVIEW_HELD: {
-    label: '오류 검수 보류',
-    description: '오류 검수가 완료되지 않았습니다. 현재 상태를 확인해 주세요.',
+    label: '오류 검사 보류',
+    description: '비교할 기준을 준비하지 못했어요.',
     tone: 'warning',
     icon: TriangleAlert,
   },
   ERROR_REVIEW_INVALIDATED: {
-    label: '오류 검수 다시 확인',
-    description: '이전 오류 검수 결과를 사용할 수 없습니다. 현재 상태를 확인해 주세요.',
+    label: '재검수 필요',
+    description: '원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.',
     tone: 'warning',
     icon: AlertCircle,
   },
 };
+
+/**
+ * 신규 회차 검수 배치 카드. 단계는 배치 요약의 reviewStage만 쓰고, 모든 단계에서 같은 오류 리포트를 연다.
+ * 설정 추출 실패만 검토 종료가 만든 추출 Job의 기존 진행 화면을 함께 연다.
+ */
+function ValidationBatchCard({ batch, validation, reportId, fallbackView, onOpenReport, onOpenProgress }: {
+  batch: AnalysisBatchSummaryResponse;
+  validation: ValidationRequest;
+  reportId: string;
+  fallbackView: (typeof STATUS_VIEW)[AnalysisBatchStatus];
+  onOpenReport: (reportId: string) => void;
+  onOpenProgress: (group: AnalysisBatchJobGroupResponse) => void;
+}) {
+  const stage = validation.reviewStage;
+  // reviewStage가 없는 구응답만 배치 상태를 표시용으로 사용한다.
+  const view = stage ? { ...VALIDATION_STAGE_SUMMARY[stage], icon: VALIDATION_STAGE_ICONS[stage] } : fallbackView;
+  const extractionGroup = stage === 'EXTRACTION_FAILED' ? findActionJobGroup(batch, 'FAILED') : undefined;
+  return (
+    <AnalysisCard
+      testId="validation-analysis-card"
+      icon={view.icon}
+      tone={view.tone}
+      title={<>{validation.sourceEpisodeNo != null ? `${validation.sourceEpisodeNo}화` : episodeRange(batch)}<small>신규 회차 검수</small></>}
+      status={view.label}
+      description={view.description}
+      activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
+      actions={<>
+        {extractionGroup && (extractionGroup.currentAnalysisJobIds?.length ?? 0) > 0 && (
+          <button type="button" className="analysis-card-action analysis-tone--danger" onClick={() => onOpenProgress(extractionGroup)}>
+            추출 상태 보기
+          </button>
+        )}
+        <button type="button" className="analysis-card-action analysis-tone--primary" onClick={() => onOpenReport(reportId)}>
+          오류 리포트 보기
+        </button>
+      </>}
+    />
+  );
+}
 
 function parsePage(value: string | null): number {
   const parsed = Number.parseInt(value ?? '1', 10);
@@ -178,7 +247,8 @@ export function AnalysisList({ workId }: { workId: string }) {
     retry: false,
     refetchInterval: query => (
       query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS'
-        || batch.settingBooks?.some(book => book.status === 'PENDING' || book.status === 'IN_PROGRESS'))
+        || batch.settingBooks?.some(book => book.status === 'PENDING' || book.status === 'IN_PROGRESS')
+        || hasActiveValidation(batch))
         ? 10_000
         : false
     ),
@@ -270,6 +340,10 @@ export function AnalysisList({ workId }: { workId: string }) {
     );
   };
 
+  /** 0건·부분 결과·보류·확정·무효를 포함한 모든 검수 단계는 같은 오류 리포트를 연다. */
+  const openValidationReport = (reportId: string) => navigate(validationReportUrl(workId, reportId), 'dissolve',
+    { returnToAnalysisList: `${location.pathname}${location.search}`, returnHistoryDelta: -1 });
+
   const openReview = (batch: AnalysisBatchSummaryResponse) => {
     if (!batch.batchId) return;
     const jobType = batch.episodeJobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.jobType
@@ -351,6 +425,9 @@ export function AnalysisList({ workId }: { workId: string }) {
             ));
             if (batch.episodeStatus == null) return <div key={batch.batchId}>{bookCards}</div>;
             const status = batch.episodeStatus;
+            const validation = validationRequest(batch);
+            if (validation?.reportId) return <div key={batch.batchId}><ValidationBatchCard batch={batch} validation={validation} reportId={validation.reportId}
+              fallbackView={STATUS_VIEW[status]} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)} />{bookCards}</div>;
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
             const hasTokenInterruption = hasSettledTokenInterruption(batch);
             const analysisFailure = hasAnalysisFailure(batch);

@@ -1009,6 +1009,32 @@ flowchart TD
 
 #303은 추출 없는 접수·기준·우회 차단 기반이다. 검수 Worker·판단/검토 종료·추출 허용·화면 연결은 후속 구현이다. 기존 `기존 설정 구축`의 동작은 유지한다.
 
+**#314 F1 (2026-10-30):** `/episode-validation-report?workId&reportId`가 위 흐름의 리포트 화면이다. 단계 문구는 서버 `reviewStage`, 판단·완료·반영·재시도 버튼은 서버의 `allowedActions`·`canCompleteReview`·`judgmentLocked`로만 연다. URL은 `branch`·`judgment`(생략=검토 필요, `ALL` 명시)·`outcome`·1-based `page`·`findingId`·`evidence`·`history=1`을 보존하고 인용·본문은 넣지 않는다. 768px 이하는 목록→상세→`목록으로`이며 초점은 상세 제목과 원래 항목으로 돌아간다. 업로드·목록 진입과 재검수 연결은 F2다.
+
+**#314 F2 (2026-10-30): 업로드 → 리포트 → 교체/정정 → 재검수 흐름**
+
+```mermaid
+flowchart TD
+    U["/episode-upload<br/>단일 회차 · 신규 회차 검수"] -->|"작품 단위 자격 조회<br/>nextEpisodeAdmission.allowed=false"| X["차단 안내 · 현재 리포트로 이동<br/>(모든 업로드 방식 저장 잠금)"]
+    U -->|"uploadEpisodes → getEpisode<br/>→ startEpisodeValidation"| R["/episode-validation-report<br/>?workId&reportId (replace)"]
+    U -->|"접수 응답 유실·새로고침"| C["getCurrentEpisodeValidation<br/>있으면 리포트, 없으면 접수 다시 시도"]
+    C --> R
+    L["분석 목록 카드·원고 목록 배지·최근 배치 배너<br/>(reviewStage)"] --> R
+    R -->|"A9 원고 파일 변경"| M["/dashboard?nav=manuscripts&modal=episode-replace<br/>&episodeId&returnTo=validation-report&reportId…"]
+    M -->|"교체 성공(분석 시작 없음)"| B["오류 리포트로 돌아가기"]
+    R -->|"A10 설정 정보 정정"| S["/dashboard?nav=settingDB&tab=characters<br/>&returnTo=validation-report&reportId…"]
+    S --> B
+    B --> R2["리포트: 무효 · 재검수 필요"]
+    R2 -->|"A11 확인 뒤 recheckEpisodeValidation"| N["새 reportId의 리포트 (replace)"]
+```
+
+- 업로드는 화면 진입과 전송 직전에 `getEpisodeValidationEligibility`(episodeId 없음)를 읽는다. 차단이면 `이 회차의 검토와 설정 저장을 마친 뒤 다음 회차를 등록할 수 있어요.`, 검토 중인 회차 번호·단계와 `현재 리포트로 이동`을 보여 주고 세 업로드 방식의 저장을 잠근다. 조회 중·실패는 잠그지 않고 409 `VALIDATION_NEXT_EPISODE_BLOCKED`(error.context)를 같은 안내로 바꾸며 입력·파일을 유지한다.
+- `신규 회차 검수`는 단일 회차에서만 고를 수 있다. 업로드 뒤 설정 추출 Job을 만들지 않고 회차 상세의 원고 hash/key/version으로 검수를 한 번 접수한 뒤 리포트로 replace 이동한다. 주소에는 `validationEpisodeId`·`batchId`만 남겨 새로고침에도 현재 검수만 확인한다. 비교 자료 없음·접수 대상 아님은 서버 사유를 보여 주고 사용자가 고른 경우에만 기존 설정 구축으로 분석한다.
+- 분석 목록 검수 카드, 원고 목록 행 배지, 원고 목록의 최근 배치 배너는 배치 요약·원고 목록의 `reviewStage`만 표시하며 0건·부분 결과·확정 보류·확정·무효 모두 같은 리포트를 연다. 카드마다 상세 조회를 보태지 않는다. 설정 추출 실패 단계만 기존 진행 화면의 `추출 상태 보기`를 함께 둔다.
+- A9 복귀 문맥은 `returnTo=validation-report`, `reportId`, `reportFindingId`·`reportBranch`·`reportJudgment`·`reportOutcome`·`reportPage`이며 식별자·필터 값만 담는다. 교체 성공·취소·실패 모두 `오류 리포트로 돌아가기`를 유지하고 교체 자체는 검사·분석을 시작하지 않는다.
+- A10은 공개 계약에 기준 항목(entryRef·entryHash)과 대상 식별자가 없어 설정 관리로만 이동하고 `저장만으로는 정정이 연결되지 않아요` 안내와 복귀를 제공한다. 정정 receipt(`/corrections`) 연결은 Backend 후속이다.
+- A11은 서버가 `RECHECK`를 허용했거나(무효화된 현재 report) 확정 완료 report의 진단 재검수이고, 회차 자격 조회가 최신 회차라고 확인했을 때만 연다. 확인 영역에서 대상 회차·적용할 변경·`새 결과는 모두 검토 필요로 시작해요`를 보여 준 뒤 요청한다.
+
 ### 2026-10-29 일반 설정의 검증 가능한 인용만 표시
 
 설정 검토·검색·세계관 이력은 서버가 검증한 공개 근거만 표시한다. 캐릭터 원문 패널과 가족 근거는 전달받은 본문 구간도 확인하고 위치가 없거나 일치하지 않는 인용은 숨긴다. 정상 인용과 설정값은 유지한다. 모든 인용이 숨겨지면 기존 근거 영역에 `표시할 원문 근거가 없습니다.`를 표시하며, 저장된 인용 fallback·별도 검토 행동은 제공하지 않는다.

@@ -1,0 +1,44 @@
+/* GH314 F2 업로드·목록·원고 화면의 오류 리포트 진입 안내. Theme V2 의미 토큰만 사용한다. */
+.validation-entry-notice .review-cb-notice { margin: 0 0 16px; align-items: center; }
+.validation-entry-notice .review-cb-notice__content p { margin: 4px 0 0; color: var(--ch-text); }
+.validation-entry-notice .review-cb-notice.is-warning .review-cb-notice__content p { color: var(--ch-warning-ink); }
+.validation-entry-notice .review-cb-notice.is-success .review-cb-notice__content p { color: var(--ch-success-ink); }
+.validation-entry-link { min-height: 44px; text-decoration: none; }
+.validation-entry-link:focus-visible,
+.validation-entry-action:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+
+.validation-stage-badge {
+  display: inline-flex; align-items: center; max-width: 100%; min-height: 22px; padding: 2px 8px;
+  border: 1px solid var(--ch-border); border-radius: 999px; background: var(--ch-canvas);
+  color: var(--ch-text); font-size: 11px; font-weight: 750; line-height: 1.4; white-space: normal; overflow-wrap: anywhere;
+}
+.validation-stage-badge.is-primary { border-color: rgb(8 126 242 / 22%); background: var(--ch-surface-accent); color: var(--ch-primary-ink); }
+.validation-stage-badge.is-warning { border-color: #eed8ac; background: #fff9ef; color: var(--ch-warning-ink); }
+.validation-stage-badge.is-danger { border-color: #edc4ca; background: #fff3f4; color: var(--ch-danger-ink); }
+.validation-stage-badge.is-success { border-color: #c2e3d0; background: #effaf4; color: var(--ch-success-ink); }
+
+/* 업로드 목적 선택: 다회차에서 신규 회차 검수를 잠근 이유와 검수 안내 */
+.episode-upload-purpose-note { margin: -12px 0 20px; color: var(--ch-text-muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.episode-upload-purpose-note strong { color: var(--ch-ink); }
+
+/* 업로드 직후 검수 접수 상태 */
+.validation-intake { display: flex; flex-direction: column; gap: 14px; }
+.validation-intake__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.validation-intake__actions .ch-action { min-height: 44px; }
+
+/* 대시보드 복귀 안내: 설정 관리 탭 위, 원고 목록 위 */
+.setting-db-return { flex-shrink: 0; padding: 14px 40px 0; }
+.setting-db-return .validation-entry-notice .review-cb-notice { margin: 0; }
+.dashboard-manuscripts .validation-entry-notice .review-cb-notice { margin: 0; }
+/* 원고 목록의 첫 열 보조색 규칙(.dashboard-manuscripts > div > div > div:first-child)이 안내 제목을 흐리게 만들지 않게 한다. */
+.dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-info { color: var(--ch-primary-ink); }
+.dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-warning { color: var(--ch-warning-ink); }
+.dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-success { color: var(--ch-success-ink); }
+.dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-danger { color: var(--ch-danger-ink); }
+.manuscript-validation-link { display: inline-flex; max-width: 100%; min-height: 32px; align-items: center; border-radius: 999px; text-decoration: none; }
+.manuscript-validation-link:hover .validation-stage-badge { text-decoration: underline; }
+.manuscript-validation-link:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.manuscript-status--validation { display: flex; min-width: 0; align-items: center; }
+@media (max-width: 768px) {
+  .setting-db-return { padding: 12px 16px 0; }
+}

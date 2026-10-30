@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, type NavId, type WorkId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -45,8 +45,18 @@ import {
   replaceEpisodeFileMutation,
   updateEpisodeTitleMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
-import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
+import type { AnalysisBatchSummaryResponse, EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
+import { ReviewNotice } from './review-ui/ReviewPrimitives';
+import { ValidationStageBadge } from './validation/ValidationEntryNotices';
+import { ReportReturnNotice } from './validation/ValidationReturnNotice';
+import {
+  ACTIVE_VALIDATION_STAGES,
+  ERROR_REVIEW_STATUS_LABELS,
+  VALIDATION_STAGE_SUMMARY,
+  validationReportUrl,
+} from './validation/validation-report-labels';
+import { readReportReturn } from './validation/validation-return';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
   label: string;
@@ -215,8 +225,20 @@ function episodeAnalysisLabel(episode: EpisodeSummaryResponse): { label: string;
     case 'COMPLETED': return { label: '분석 완료', color: C.success };
     case 'IN_PROGRESS': return { label: '분석 중', color: C.primary };
     case 'FAILED': return { label: '분석 실패', color: C.danger };
+    // 검수 회차의 기존 상태값은 표시용 fallback이다. 단계는 validationReviewStage가 우선한다.
+    case 'ERROR_REVIEW_PREPARING':
+    case 'ERROR_REVIEW_PENDING':
+    case 'ERROR_REVIEW_HELD':
+    case 'ERROR_REVIEW_INVALIDATED':
+      return { label: ERROR_REVIEW_STATUS_LABELS[episode.analysisStatus], color: C.warning };
     default: return { label: '재분석 필요', color: C.warning };
   }
+}
+
+const EPISODE_REPLACE_MODAL = 'episode-replace';
+
+function batchValidationActive(batch: AnalysisBatchSummaryResponse) {
+  return (batch.validationReports ?? []).some(report => report.reviewStage != null && ACTIVE_VALIDATION_STAGES.has(report.reviewStage));
 }
 
 export default function S1Dashboard() {
@@ -510,13 +532,14 @@ export default function S1Dashboard() {
     enabled: episodeApiEnabled && activeNav === 'manuscripts',
     retry: false,
     refetchInterval: query => (
-      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS')
+      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS' || batchValidationActive(batch))
         ? 10_000
         : false
     ),
   });
   const overviewAnalysisActive = analysisOverviewQuery.data?.data?.content
     ?.some(batch => batch.status === 'IN_PROGRESS') ?? false;
+  const overviewValidationActive = analysisOverviewQuery.data?.data?.content?.some(batchValidationActive) ?? false;
   const previousOverviewActivityRef = useRef<{ workId: string; active: boolean } | null>(null);
   const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
   const episodesNeeded = activeNav === 'manuscripts' || episodeReanalysisTarget !== null;
@@ -527,8 +550,9 @@ export default function S1Dashboard() {
     refetchInterval: query => {
       if (!episodesNeeded) return false;
       const episodes = query.state.data?.data ?? [];
-      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS')
-        || (activeNav === 'manuscripts' && overviewAnalysisActive) ? 10_000 : false;
+      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS'
+        || (episode.validationReviewStage != null && ACTIVE_VALIDATION_STAGES.has(episode.validationReviewStage)))
+        || (activeNav === 'manuscripts' && (overviewAnalysisActive || overviewValidationActive)) ? 10_000 : false;
     },
   });
 
@@ -638,6 +662,33 @@ export default function S1Dashboard() {
     queryKey: getEpisodesQueryKey({ path: { workId: effectiveWorkId } }),
   });
 
+  // A9/A10 리포트 복귀 문맥. 형식이 맞는 식별자·필터만 받아 같은 리포트 주소로 되돌린다.
+  const reportReturn = readReportReturn(searchParams, effectiveWorkId);
+  const [replacedForReport, setReplacedForReport] = useState<string | null>(null);
+  // 리포트의 `원고 파일 변경`은 같은 episodeId의 교체 모달을 주소로 연다. 회차 번호·제목으로 대상을 고르지 않는다.
+  const urlReplaceEpisodeId = activeNav === 'manuscripts' && searchParams.get('modal') === EPISODE_REPLACE_MODAL
+    ? searchParams.get('episodeId') : null;
+  // 교체 가능 여부는 서버가 판단한다. 목록에 없는 회차만 열지 않고 안내한다.
+  const urlReplaceTarget = urlReplaceEpisodeId
+    ? (episodesQuery.data?.data ?? []).find(episode => episode.id === urlReplaceEpisodeId) ?? null : null;
+  const urlReplaceUnavailable = Boolean(urlReplaceEpisodeId) && episodesQuery.isSuccess && !urlReplaceTarget;
+  const replaceModalTarget = replaceEpisodeTarget ?? urlReplaceTarget;
+  const clearReplaceModalParams = () => {
+    if (searchParams.get('modal') !== EPISODE_REPLACE_MODAL) return;
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.delete('modal');
+      next.delete('episodeId');
+      return next;
+    }, { replace: true });
+  };
+  const closeReplaceModal = () => {
+    setReplaceEpisodeTarget(null);
+    setReplacementFile(null);
+    setReplacementFileError(null);
+    clearReplaceModalParams();
+  };
+
   const changeManuscriptPage = (nextPage: number) => {
     setMsPage(nextPage);
     setSearchParams(params => {
@@ -681,17 +732,28 @@ export default function S1Dashboard() {
   };
 
   const replaceEpisodeFile = async () => {
-    if (!replaceEpisodeTarget?.id || !replacementFile || replacementFileError) return;
+    const target = replaceModalTarget;
+    if (!target?.id || !replacementFile || replacementFileError) return;
     setEpisodeActionError(null);
     try {
       await replaceEpisodeFileRequest.mutateAsync({
-        path: { workId: effectiveWorkId, episodeId: replaceEpisodeTarget.id },
+        path: { workId: effectiveWorkId, episodeId: target.id },
         body: { file: replacementFile },
       });
+      // 파일 교체는 검수를 시작하지 않는다. 열려 있던 리포트가 무효 상태를 바로 읽도록 검수 조회만 갱신한다.
+      const reportId = reportReturn?.reportId ?? target.validationReportId ?? null;
+      if (reportId) {
+        setReplacedForReport(reportId);
+        void queryClient.invalidateQueries({
+          predicate: query => {
+            const params = query.queryKey[0] as { path?: { reportId?: string; workId?: string }; _id?: string } | undefined;
+            return params?.path?.reportId === reportId
+              || (params?.path?.workId === effectiveWorkId && (params?._id === 'getCurrentEpisodeValidation' || params?._id === 'getEpisodeValidationEligibility'));
+          },
+        });
+      }
       await refreshEpisodeList();
-      setReplaceEpisodeTarget(null);
-      setReplacementFile(null);
-      setReplacementFileError(null);
+      closeReplaceModal();
     } catch (error) {
       setEpisodeActionError(toApiError(error)?.message ?? '회차 원문 파일을 변경하지 못했습니다.');
     }
@@ -752,7 +814,13 @@ export default function S1Dashboard() {
   const overviewBatches = analysisOverviewQuery.data?.data?.content ?? [];
   // 서버가 최근 분석 요청순으로 정렬하므로 원고 배너는 가장 최신 배치만 반영한다.
   const latestAnalysisBatch = overviewBatches[0];
-  const analysisNotice = latestAnalysisBatch?.status === 'FAILED'
+  // 최근 배치가 신규 회차 검수면 배치 status 대신 reviewStage로 안내하고 오류 리포트로 바로 보낸다.
+  const latestValidation = latestAnalysisBatch?.validationReports?.find(report => Boolean(report.reportId));
+  const latestValidationView = latestValidation?.reviewStage && latestValidation.reviewStage !== 'APPLIED'
+    ? VALIDATION_STAGE_SUMMARY[latestValidation.reviewStage] : null;
+  const returnTarget = reportReturn ?? (replacedForReport
+    ? { reportId: replacedForReport, url: validationReportUrl(effectiveWorkId, replacedForReport) } : null);
+  const analysisNotice = latestValidation ? null : latestAnalysisBatch?.status === 'FAILED'
     || latestAnalysisBatch?.status === 'PARTIALLY_FAILED'
     ? {
         label: '일부 분석에 실패했습니다.',
@@ -885,6 +953,15 @@ export default function S1Dashboard() {
                     <BtnP label="회차 올리기" onClick={() => navigate(`/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`, 'push-right')} icon={<Upload size={12} />} />
                   </div>
                 </div>
+
+                {reportReturn && (
+                  <div className="setting-db-return">
+                    <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 설정 정보를 정정하러 왔어요.">
+                      <p>고칠 캐릭터나 세계관 설정을 찾아 수정해 주세요. 리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
+                      <p>저장만으로는 정정이 연결되지 않아요. 저장한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
+                    </ReportReturnNotice>
+                  </div>
+                )}
 
                 <label className="setting-db-mobile-navigation">
                   작품 설정
@@ -1022,6 +1099,28 @@ export default function S1Dashboard() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
+                    {returnTarget && (replacedForReport === returnTarget.reportId ? (
+                      <ReportReturnNotice reportReturn={returnTarget} tone="success" title="원고 파일을 바꿨어요.">
+                        <p>파일 변경만으로 검사나 분석을 시작하지 않아요. 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
+                      </ReportReturnNotice>
+                    ) : (
+                      <ReportReturnNotice reportReturn={returnTarget} title="오류 리포트에서 원고 파일을 바꾸러 왔어요.">
+                        <p>리포트의 회차 파일만 바꿔요. 취소하거나 실패해도 오류 리포트로 돌아갈 수 있어요.</p>
+                      </ReportReturnNotice>
+                    ))}
+                    {urlReplaceUnavailable && (
+                      <ReviewNotice tone="warning" title="변경할 회차를 찾지 못했어요. 원고 목록에서 회차를 확인해 주세요." />
+                    )}
+                    {latestValidation?.reportId && latestValidationView && !returnTarget && (
+                      <div className="validation-entry-notice" data-testid="latest-validation-notice">
+                        <ReviewNotice tone={latestValidationView.tone === 'danger' ? 'danger' : latestValidationView.tone === 'primary' ? 'info' : latestValidationView.tone}
+                          title={`${latestValidation.sourceEpisodeNo != null ? `${latestValidation.sourceEpisodeNo}화 ` : ''}신규 회차 검수 · ${latestValidationView.label}`}
+                          action={<ActionButton size="compact" variant="secondary" className="validation-entry-action"
+                            onClick={() => navigate(validationReportUrl(effectiveWorkId, latestValidation.reportId!), 'dissolve')}>오류 리포트 보기</ActionButton>}>
+                          <p>{latestValidationView.description}</p>
+                        </ReviewNotice>
+                      </div>
+                    )}
                     {analysisNotice && (
                       <div role="status" className="dashboard-analysis-notice" style={{
                         display: 'flex',
@@ -1135,7 +1234,22 @@ export default function S1Dashboard() {
                                   </span>
                                   <span className="manuscript-date" style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
                                   <span className="manuscript-char-count" style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
-                                  <span className="manuscript-status" style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  {episode.validationReportId ? (
+                                    // 검수 회차는 reviewStage 배지 자체가 오류 리포트 링크다. analysisStatus는 단계가 없을 때만 표시한다.
+                                    <span className="manuscript-status manuscript-status--validation">
+                                      <Link className="manuscript-validation-link"
+                                        to={validationReportUrl(effectiveWorkId, episode.validationReportId)}
+                                        state={{ transition: 'dissolve' }}
+                                        aria-label={`${episode.episodeNo}화 오류 리포트 보기 · ${episode.validationReviewStage
+                                          ? VALIDATION_STAGE_SUMMARY[episode.validationReviewStage].label : status.label}`}>
+                                        {episode.validationReviewStage
+                                          ? <ValidationStageBadge stage={episode.validationReviewStage} />
+                                          : <span className="validation-stage-badge is-warning">{status.label}</span>}
+                                      </Link>
+                                    </span>
+                                  ) : (
+                                    <span className="manuscript-status" style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  )}
                                   <div className="manuscript-mobile-meta">
                                     <span title={episode.originalFilename ?? ''}>{episode.originalFilename ?? '파일명 없음'}</span>
                                     <span>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
@@ -1214,12 +1328,15 @@ export default function S1Dashboard() {
       <ComingSoonToast feature={comingSoonFeature} onClose={closeComingSoon} />
 
       <AnimatePresence>
-      {replaceEpisodeTarget && (
+      {replaceModalTarget && (
         <SourceFileModal
           title="회차 파일 변경"
-          description={`${replaceEpisodeTarget.episodeNo}화 ${replaceEpisodeTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
-          currentFilename={replaceEpisodeTarget.originalFilename}
-        warning="파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요."
+          description={`${replaceModalTarget.episodeNo}화 ${replaceModalTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
+          currentFilename={replaceModalTarget.originalFilename}
+          warning={replaceModalTarget.validationReportId
+            // 검수 회차는 재분석이 아니라 오류 리포트의 재검수로 이어진다.
+            ? '파일을 변경하면 이 회차의 이전 원문과 당시 검사 근거가 삭제되고, 지금의 오류 리포트는 다시 검수해야 해요. 파일 변경만으로 검사나 분석을 시작하지 않아요. 변경한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.'
+            : '파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요.'}
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}
@@ -1232,9 +1349,7 @@ export default function S1Dashboard() {
           }}
           onClose={() => {
             if (replaceEpisodeFileRequest.isPending) return;
-            setReplaceEpisodeTarget(null);
-            setReplacementFile(null);
-            setReplacementFileError(null);
+            closeReplaceModal();
             setEpisodeActionError(null);
           }}
           onSubmit={() => void replaceEpisodeFile()}

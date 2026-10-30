@@ -1,0 +1,33 @@
+{
+  "_source": "GET /episode-validations/{reportId} 응답(ValidationStagingResponse). 필드는 Backend OpenAPI와 docs/episode-validation-staging.md 필드 표만 사용하고 값은 합성이다.",
+  "awaitingReview": {
+    "reportId": "00000000-0000-4000-8000-000000000011",
+    "baselineId": "00000000-0000-4000-8000-000000000011",
+    "batchId": "00000000-0000-4000-8000-000000000021",
+    "episodeId": "00000000-0000-4000-8000-000000000002",
+    "current": true,
+    "revision": 2,
+    "reportVersion": 12,
+    "baselineRevision": 2,
+    "mode": "BEFORE_CONFIRMATION",
+    "previousReportId": "00000000-0000-4000-8000-000000000001",
+    "previousApplicationReceipt": null,
+    "baselineFingerprint": "b5f1c2d39e0a4f6c8d7e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+    "targetRevision": 3,
+    "validationJobId": "00000000-0000-4000-8000-000000000031",
+    "executionStatus": "COMPLETED",
+    "extractionJobId": null,
+    "candidateGeneration": null,
+    "candidateDigest": null,
+    "extractionStatus": "NOT_STARTED",
+    "candidateStatus": "NOT_STARTED",
+    "errorReviewStatus": "PENDING",
+    "baselineStatus": "READY",
+    "status": "WAITING_FOR_ERROR_REVIEW",
+    "holdReason": null,
+    "confirmedStateHash": "1c3e5a7b9d0f2e4c6a8b0d2f4e6c8a0b2d4f6e8c0a2b4d6f8e0c2a4b6d8f0e2c",
+    "baselineHash": "2d4f6e8c0a2b4d6f8e0c2a4b6d8f0e2c1c3e5a7b9d0f2e4c6a8b0d2f4e6c8a0b",
+    "sourcePreparationStatus": "NOT_PREPARED",
+    "reviewStage": "AWAITING_REVIEW"
+  }
+}
