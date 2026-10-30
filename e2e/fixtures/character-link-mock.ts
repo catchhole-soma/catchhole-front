@@ -4,10 +4,10 @@ import type { Page, Route } from '@playwright/test';
  * #211 후속 2차(작품 전체 인물 검색·연결 미리보기·선택 연결)용 목 API.
  * 인물 이름·설정값은 모두 합성 데이터다. 후보 연결 상태는 메모리에 반영해 재조회 결과로 화면이 바뀌게 한다.
  */
-export const workId = '51111111-1111-4111-8111-111111111111';
+const workId = '51111111-1111-4111-8111-111111111111';
 export const batchId = '52222222-2222-4222-8222-222222222222';
 export const listPath = `/api/v1/works/${workId}/setting-candidates`;
-export const charactersPath = `/api/v1/works/${workId}/characters`;
+const charactersPath = `/api/v1/works/${workId}/characters`;
 
 export interface MockCharacter {
   id: string;

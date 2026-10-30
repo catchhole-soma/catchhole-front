@@ -7,7 +7,7 @@ import { shouldRetryQuery } from '../../../lib/query-client';
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 
 /** 대상 연결 카드가 한 번에 보여 주는 기존 대상 수. */
-export const WORLD_TARGET_PAGE_SIZE = 6;
+const WORLD_TARGET_PAGE_SIZE = 6;
 
 /**
  * 실제 등록된 세계관 대상을 이름으로 찾는 검색 상태. 검색어·페이지는 이 훅을 쓰는 화면(행 패널·묶음 피커)이 각자 가진다.
