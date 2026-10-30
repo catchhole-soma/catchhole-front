@@ -58,6 +58,8 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
   }, []);
   const contextOf = () => `${window.location.pathname}?reportId=${new URLSearchParams(window.location.search).get('reportId') ?? ''}`;
   const stillHere = (context: string) => mounted.current && contextOf() === context;
+  // 원고 확인을 기다리는 동안 확인 영역이 닫히거나(취소·권한 변경) 화면을 떠나면 요청을 보내지 않는다.
+  const confirmationOpen = useRef(false);
 
   const eligibilityQuery = useQuery({
     ...getEpisodeValidationEligibilityOptions({ path: { workId }, query: { episodeId } }),
@@ -74,13 +76,18 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
   });
   const mutation = useMutation(recheckEpisodeValidationMutation());
   const summaryStale = report.summaryQuery.isError;
-  const pending = mutation.isPending;
+  // 한 번의 제출은 현재 원고 확인(preparing) → 재검수 요청(sending) 순서다. 요청을 보내기 전까지만 취소할 수 있다.
+  const [phase, setPhase] = useState<'idle' | 'preparing' | 'sending'>('idle');
+  const submission = useRef(0);
+  const sending = phase === 'sending' || mutation.isPending;
+  const pending = phase !== 'idle' || mutation.isPending;
   const canRecheck = listed && latest === true && !summaryStale && report.reportVersion != null;
   const lockReason = !listed ? null
     : summaryStale ? '최신 검수 상태를 확인하지 못해 재검수를 잠갔어요.'
       : eligibilityQuery.isError ? '가장 마지막 회차인지 확인하지 못했어요. 다시 확인해 주세요.'
         : latest === false ? '가장 마지막 회차만 재검수할 수 있어요. 이 회차 뒤에 다른 회차가 있어요.'
           : latest == null ? '재검수할 수 있는지 확인하고 있어요.' : null;
+  useEffect(() => { confirmationOpen.current = listed && open; });
   // 이미 확정한 회차(확정 report 또는 결과 전용 재검수)의 다음 검수는 결과만 제공한다.
   const diagnostic = summary?.mode === 'DIAGNOSTIC_ONLY' || summary?.application?.status === 'APPLIED';
 
@@ -118,6 +125,9 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     const version = report.reportVersion;
     if (!canRecheck || pending || version == null) return;
     const context = contextOf();
+    const token = ++submission.current;
+    const settle = () => { if (submission.current === token && mounted.current) setPhase('idle'); };
+    setPhase('preparing');
     setNotice(null);
     let episode;
     try {
@@ -125,10 +135,16 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     } catch {
       episode = undefined;
     }
-    if (!episode?.contentHash || !episode.contentS3Key || episode.contentRevision == null) {
-      if (stillHere(context)) setNotice({ tone: 'danger', text: '현재 원고 정보를 확인하지 못했어요. 잠시 후 다시 눌러 주세요.' });
+    if (submission.current !== token || !confirmationOpen.current || !stillHere(context)) {
+      settle();
       return;
     }
+    if (!episode?.contentHash || !episode.contentS3Key || episode.contentRevision == null) {
+      settle();
+      setNotice({ tone: 'danger', text: '현재 원고 정보를 확인하지 못했어요. 잠시 후 다시 눌러 주세요.' });
+      return;
+    }
+    setPhase('sending');
     try {
       const response = await mutation.mutateAsync({
         path: { workId, reportId },
@@ -160,6 +176,8 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
         return;
       }
       await recoverLostResponse(context);
+    } finally {
+      settle();
     }
   };
 
@@ -169,7 +187,14 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     lockReason,
     open,
     openConfirmation: () => { setNotice(null); setOpen(true); },
-    closeConfirmation: () => { if (!pending) { setOpen(false); setNotice(null); } },
+    // 원고 확인 중 취소는 이번 제출을 무효로 만든다. 재검수 요청을 보낸 뒤에는 취소하지 않는다.
+    closeConfirmation: () => {
+      if (sending) return;
+      submission.current += 1;
+      setPhase('idle');
+      setOpen(false);
+      setNotice(null);
+    },
     episode: episodeQuery.data?.data,
     episodeLoading: episodeQuery.isPending && episodeQuery.fetchStatus !== 'idle',
     episodeError: episodeQuery.isError,
@@ -179,6 +204,8 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     diagnostic,
     notice,
     pending,
+    preparing: phase === 'preparing',
+    sending,
     submit,
   };
 }

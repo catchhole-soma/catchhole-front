@@ -190,6 +190,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     /** 테스트가 풀어 줄 때까지 재검수·현재 검수 응답을 붙잡아 둔다. */
     recheckHold: null as Promise<void> | null,
     currentHold: null as Promise<void> | null,
+    episodeDetailHold: null as Promise<void> | null,
   };
 
   const counts = () => {
@@ -272,7 +273,10 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
         analysisStatus: state.staging.status === 'INVALIDATED' ? 'ERROR_REVIEW_INVALIDATED' : 'ERROR_REVIEW_PENDING',
         validationReportId: state.staging.reportId, validationReviewStage: state.staging.reviewStage }]);
     }
-    if (path === `/api/v1/works/${WORK_ID}/episodes/${EPISODE_ID}`) return success(route, episodeDetail(state.episodeRevision));
+    if (path === `/api/v1/works/${WORK_ID}/episodes/${EPISODE_ID}`) {
+      if (state.episodeDetailHold) { const hold = state.episodeDetailHold; state.episodeDetailHold = null; await hold; }
+      return success(route, episodeDetail(state.episodeRevision));
+    }
     if (path === `/api/v1/works/${WORK_ID}/episodes/${EPISODE_ID}/file` && method === 'PUT') {
       if (state.replaceFailure) {
         const { status, code, message } = state.replaceFailure;
@@ -390,6 +394,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     failNextRecheck: (failure: Failure) => { state.recheckFailure = failure; },
     loseNextRecheckResponse: () => { state.recheckResponseLost = true; },
     holdNextRecheck: () => { let release!: () => void; state.recheckHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
+    holdNextEpisodeDetail: () => { let release!: () => void; state.episodeDetailHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     holdNextCurrent: () => { let release!: () => void; state.currentHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     requestsTo: (suffix: string, method = 'POST') => state.requests.filter(item => item.method === method && item.path.endsWith(suffix)),
     episodeDetail: () => episodeDetail(state.episodeRevision),

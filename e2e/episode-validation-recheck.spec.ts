@@ -207,6 +207,43 @@ test('재검수 응답 유실 뒤 현재 검수 확인 중에 나가도 늦은 �
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
+test('현재 원고를 확인하는 동안 취소하면 재검수 요청을 보내지 않고 리포트를 그대로 둔다', async ({ page }) => {
+  const mock = await open(page, invalidated);
+  let detailAnswered = 0;
+  page.on('requestfinished', request => { if (new URL(request.url()).pathname.endsWith(`/episodes/${EPISODE_ID}`)) detailAnswered += 1; });
+  await recheckButton(page).click();
+  const confirm = page.getByTestId('validation-recheck-confirm');
+  await expect(confirm).toContainText('검사에 쓴 설정이 바뀌었어요.');
+  const answeredBefore = detailAnswered;
+  const release = mock.holdNextEpisodeDetail();
+  await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
+  // 요청을 보내기 전(현재 원고 확인 중)에는 다시 누를 수 없고 취소만 할 수 있다.
+  await expect(confirm.getByRole('button', { name: '현재 원고를 확인하고 있어요…' })).toBeDisabled();
+  await expect(confirm.getByRole('button', { name: '취소', exact: true })).toBeEnabled();
+  await confirm.getByRole('button', { name: '취소', exact: true }).click();
+  await expect(confirm).toHaveCount(0);
+  release();
+  await expect.poll(() => detailAnswered).toBeGreaterThan(answeredBefore);
+  await page.waitForTimeout(400);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(0);
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(recheckButton(page)).toBeEnabled();
+});
+
+test('재검수 요청을 보낸 뒤에는 응답이 올 때까지 취소와 재시작을 잠근다', async ({ page }) => {
+  const mock = await open(page, invalidated);
+  const release = mock.holdNextRecheck();
+  await recheckButton(page).click();
+  const confirm = page.getByTestId('validation-recheck-confirm');
+  await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
+  await expect.poll(() => mock.requestsTo('/rechecks').length).toBe(1);
+  await expect(confirm.getByRole('button', { name: '재검수를 요청하고 있어요…' })).toBeDisabled();
+  await expect(confirm.getByRole('button', { name: '취소', exact: true })).toBeDisabled();
+  release();
+  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
 test('확정 완료 회차의 진단 재검수는 같은 버튼으로 결과 전용 안내와 함께 시작한다', async ({ page }) => {
   const appliedSummary = {
     allowedActions: [], canCompleteReview: false, completionMode: 'COMPLETED', judgmentLocked: true, lockReason: 'REVIEW_COMPLETED',

@@ -89,9 +89,9 @@ export function ValidationRecheckPanel({ workId, reportId, report, onRetry }: {
       {notice}
       <div className="vr-actions">
         <ActionButton onClick={() => void recheck.submit()} disabled={!recheck.canRecheck || recheck.pending || recheck.episodeLoading}>
-          {recheck.pending ? '재검수를 요청하고 있어요…' : '재검수 시작'}
+          {recheck.sending ? '재검수를 요청하고 있어요…' : recheck.preparing ? '현재 원고를 확인하고 있어요…' : '재검수 시작'}
         </ActionButton>
-        <ActionButton variant="secondary" onClick={recheck.closeConfirmation} disabled={recheck.pending}>취소</ActionButton>
+        <ActionButton variant="secondary" onClick={recheck.closeConfirmation} disabled={recheck.sending}>취소</ActionButton>
       </div>
     </section>
   );
