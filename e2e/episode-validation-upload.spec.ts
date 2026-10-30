@@ -254,6 +254,37 @@ test('접수 중 새로고침하면 현재 검수만 확인하고 없을 때만 
   expect(calls.starts[1]).toMatchObject({ batchId: BATCH_ID, episodeId: EPISODE_ID });
 });
 
+for (const purpose of ['VALIDATION', 'SETTING_EXTRACTION'] as const) {
+  test(`저장 응답 전에 헤더로 떠나면 늦은 저장 응답이 떠난 화면 주소를 바꾸지 않는다 (${purpose})`, async ({ page }) => {
+    const held = gate();
+    let uploadAnswered = false;
+    const calls = await setup(page, {
+      upload: () => ({ ...ok({ batchId: BATCH_ID, createdEpisodes: [{ id: EPISODE_ID, episodeNo: 101, status: 'UPLOADED' }] }),
+        wait: held.wait, onFulfilled: () => { uploadAnswered = true; } }),
+    });
+    await page.goto(`/episode-upload?workId=${WORK_ID}`);
+    await modeButton(page, 'SINGLE_EPISODE').click();
+    await chooseFiles(page);
+    await expect(page.getByPlaceholder('비우면 파일에서 감지')).toHaveValue('101');
+    if (purpose === 'VALIDATION') await validationPurpose(page).click();
+    await page.getByRole('button', { name: purpose === 'VALIDATION' ? '다음 — 검수 시작' : '다음 — 분석 시작' }).click();
+    await expect.poll(() => calls.uploads.length).toBe(1);
+    await page.getByRole('button', { name: '원고 목록으로 돌아가기' }).click();
+    const destination = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=manuscripts$`);
+    await expect(page).toHaveURL(destination);
+    held.open();
+    await expect.poll(() => uploadAnswered).toBe(true);
+    // 이미 저장한 원고의 서버 후속 처리(검수 접수 또는 설정 추출 Job 생성)는 이어 가되 화면은 바꾸지 않는다.
+    if (purpose === 'VALIDATION') await expect.poll(() => calls.starts.length).toBe(1);
+    else await expect.poll(() => calls.analysisJobs.length).toBe(1);
+    await page.waitForTimeout(400);
+    await expect(page).toHaveURL(destination);
+    for (const leaked of ['episode-upload', 'episode-validation-report', 'batchId=', 'validationEpisodeId=', 'analysisJobIds=']) {
+      expect(page.url()).not.toContain(leaked);
+    }
+  });
+}
+
 test('접수 응답 전에 화면을 떠나면 늦은 응답이 떠난 화면을 리포트로 바꾸지 않는다', async ({ page }) => {
   const held = gate();
   let answered = false;

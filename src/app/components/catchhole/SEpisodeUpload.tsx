@@ -477,6 +477,18 @@ function EpisodeUpload() {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeWorkId = searchParams.get('workId');
   const workId = routeWorkId ?? selectedWork;
+  // 업로드 화면을 떠난 뒤(헤더 뒤로가기·다른 화면 이동) 늦은 응답이 주소와 화면 상태를 바꾸지 않게 한다.
+  // 이미 보낸 서버 요청과 그 서버 후속 처리는 취소하지 않는다.
+  const uploadScreenMounted = useRef(true);
+  useEffect(() => {
+    uploadScreenMounted.current = true;
+    return () => { uploadScreenMounted.current = false; };
+  }, []);
+  const latestWorkId = useRef(workId);
+  useEffect(() => { latestWorkId.current = workId; });
+  const submissionContext = () => ({ path: window.location.pathname, workId });
+  const isSubmissionActive = (context: { path: string; workId: string }) => uploadScreenMounted.current
+    && window.location.pathname === context.path && latestWorkId.current === context.workId;
   const initialTrackedAnalysisJobIds = (searchParams.get('analysisJobIds') ?? '').split(',').filter(Boolean);
   const initialTrackedAnalysisJobIdSet = new Set(initialTrackedAnalysisJobIds);
   const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
@@ -1085,7 +1097,7 @@ function EpisodeUpload() {
     if (multiFiles.length === 0) setMultiFilesError(null);
   };
 
-  const createBatchAnalysisJob = async (batchId: string, automatic = automaticReview) => {
+  const createBatchAnalysisJob = async (batchId: string, automatic = automaticReview, context = submissionContext()) => {
     if (blockedAnalysisStart?.batchId === batchId || createAnalysisJobMutation.isPending) return;
     setAnalysisStartError(null);
     try {
@@ -1100,11 +1112,13 @@ function EpisodeUpload() {
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
+      if (!isSubmissionActive(context)) return;
       if (analysisJobIds.length === 0) throw new Error('분석 시작을 확인하지 못했습니다. 다시 시도해 주세요.');
       setTrackedAnalysisJobIds(analysisJobIds);
       setCurrentAnalysisJobIds(analysisJobIds);
       persistAnalysisRoute(batchId, analysisJobIds, analysisJobIds);
     } catch (error) {
+      if (!isSubmissionActive(context)) return;
       if (toApiError(error)?.code === 'ANALYSIS_FUTURE_HISTORY_CONFLICT') {
         setBlockedAnalysisStart({ batchId, reason: 'future-history' });
         setAnalysisStartError('원고는 저장되었습니다. 이미 확정한 뒤 회차의 설정이 있어 이 원고를 자동으로 분석할 수 없습니다. 다시 업로드하지 말고 원고 목록에서 해당 회차의 ‘재분석’을 선택해 직접 검토해 주세요.');
@@ -1130,6 +1144,7 @@ function EpisodeUpload() {
   };
 
   const submitEpisodeUploadOnce = async (uploadType: EpisodeUploadType) => {
+    const context = submissionContext();
     setRequestError(null);
     // 전송 직전 작품 단위 차단을 다시 확인한다. 조회 실패는 업로드를 막지 않고 서버 409로 판단한다.
     try {
@@ -1138,6 +1153,8 @@ function EpisodeUpload() {
     } catch {
       // 자격 조회 실패는 업로드를 잠그지 않는다.
     }
+    // 업로드를 보내기 전에 화면을 떠났으면 이번 제출을 보내지 않는다.
+    if (!isSubmissionActive(context)) return;
     const startsValidation = validationPurpose;
     const sourceEpisodeFiles = uploadType === 'SINGLE_EPISODE'
       ? (singleFile ? [singleFile] : [])
@@ -1168,9 +1185,16 @@ function EpisodeUpload() {
       const episodeUpload = response.data;
       if (!episodeUpload?.batchId) throw new Error('업로드 결과를 확인하지 못했습니다. 다시 시도해 주세요.');
       trackMetaEpisodeUploaded();
+      const createdEpisodeId = episodeUpload.createdEpisodes?.[0]?.id;
+      // 저장이 끝나기 전에 화면을 떠났으면 주소·화면은 그대로 두고 사용자가 고른 서버 후속 처리만 이어 간다.
+      // (검수 접수·설정 추출 Job 생성은 각자의 가드가 화면 이동을 막는다.)
+      if (!isSubmissionActive(context)) {
+        if (startsValidation && createdEpisodeId) await validationIntake.start({ batchId: episodeUpload.batchId, episodeId: createdEpisodeId });
+        else if (!startsValidation) await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context);
+        return;
+      }
       setEpisodeUploadBatchId(episodeUpload.batchId);
       setUploadedEpisodes(episodeUpload.createdEpisodes ?? []);
-      const createdEpisodeId = episodeUpload.createdEpisodes?.[0]?.id;
       if (startsValidation && createdEpisodeId) {
         // 신규 회차 검수는 설정 추출 Job을 만들지 않고 검수를 접수한 뒤 오류 리포트로 이동한다.
         persistValidationIntakeRoute(episodeUpload.batchId, createdEpisodeId);
@@ -1183,8 +1207,9 @@ function EpisodeUpload() {
         setAnalysisStartError('원고는 저장했지만 저장한 회차를 확인하지 못해 검수를 시작하지 못했습니다. 원고 목록에서 회차를 확인해 주세요.');
         return;
       }
-      await createBatchAnalysisJob(episodeUpload.batchId);
+      await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context);
     } catch (error) {
+      if (!isSubmissionActive(context)) return;
       const block = admissionBlockFromError(error);
       if (block) {
         // 미완료 검수 동안의 다음 회차 등록 409. 입력과 파일은 그대로 두고 같은 안내로 리포트를 연결한다.
@@ -1215,6 +1240,7 @@ function EpisodeUpload() {
       || analysisSuperseded
       || batchRetryInFlight.current
     ) return;
+    const context = submissionContext();
     batchRetryInFlight.current = true;
     setBatchRetryPending(true);
     setAnalysisStartError(null);
@@ -1268,6 +1294,8 @@ function EpisodeUpload() {
         });
       });
 
+      // 재시도 응답 전에 화면을 떠났으면 Job 캐시만 갱신하고 주소·화면은 바꾸지 않는다.
+      if (!isSubmissionActive(context)) return;
       const retainedCurrentAnalysisJobIds = currentAnalysisJobIds.filter(
         analysisJobId => !successfullyRetriedJobIds.has(analysisJobId)
           || retryAnalysisJobIds.includes(analysisJobId),
@@ -1290,6 +1318,7 @@ function EpisodeUpload() {
       } catch {
         // The bulk query keeps its last successful rows and exposes the status retry banner.
       }
+      if (!isSubmissionActive(context)) return;
       const unresolvedRetryFailure = responses.some((response, index) => {
         if (response.status !== 'rejected') return false;
         const latest = refreshedJobs.find(job => job.id === retryableFailedAnalysisJobIds[index]);
@@ -1317,6 +1346,7 @@ function EpisodeUpload() {
 
   const restartInvalidatedAnalysis = async () => {
     if (!canRestartOrderedAnalysis || !episodeUploadBatchId || orderedRestartInFlight.current) return;
+    const context = submissionContext();
     orderedRestartInFlight.current = true;
     setOrderedRestartError(null);
     try {
@@ -1333,6 +1363,7 @@ function EpisodeUpload() {
           { ...response, data: job },
         );
       });
+      if (!isSubmissionActive(context)) return;
       const trackedIds = [...new Set([...trackedAnalysisJobIds, ...newIds])];
       setTrackedAnalysisJobIds(trackedIds);
       setCurrentAnalysisJobIds(newIds);
@@ -1346,6 +1377,7 @@ function EpisodeUpload() {
         // Creation succeeded. Keep its IDs and let the progress query expose the status retry.
       }
     } catch (error) {
+      if (!isSubmissionActive(context)) return;
       const apiError = toApiError(error);
       if (apiError?.code === 'AI_TOKEN_QUOTA_EXHAUSTED') {
         setOrderedRestartOpen(false);
