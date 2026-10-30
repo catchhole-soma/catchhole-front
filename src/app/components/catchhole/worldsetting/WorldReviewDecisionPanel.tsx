@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getWorldSettingOptions, getWorldSettingsOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { getWorldSettingOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import { shouldRetryQuery } from '../../../lib/query-client';
-import { WorldSubjectImage } from './WorldSubjectImage';
 import type { WorldSettingCandidateResponse } from '../../../api/generated/types.gen';
+import { useWorldTargetSearch } from './useWorldTargetSearch';
+import { NEW_WORLD_TARGET_ID, WorldTargetPicker } from './WorldTargetPicker';
 import { ReviewChoiceCards, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
 import { combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft, type WorldReviewDraft } from './worldReviewDecisions';
 
@@ -23,8 +24,6 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     disabledRef.current = disabled;
     return () => { disabledRef.current = true; };
   }, [disabled]);
-  const [targetQuery, setTargetQuery] = useState('');
-  const [targetPage, setTargetPage] = useState(0);
   const [targetLoading, setTargetLoading] = useState(false);
   const [targetLoadFailed, setTargetLoadFailed] = useState(false);
   const [targetBefore, setTargetBefore] = useState<string | null>(null);
@@ -34,13 +33,8 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const subjectUnresolved = targetChanged || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
     || candidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
     || candidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED';
-  const targetsQuery = useQuery({
-    ...getWorldSettingsOptions({ path: { workId: candidate.workId ?? '' }, query: {
-      category: candidate.category, q: targetQuery || undefined, page: targetPage, size: 6, sort: 'CATEGORY_SUBJECT_ASC',
-    } }),
-    enabled: subjectUnresolved && Boolean(candidate.workId), retry: shouldRetryQuery,
-  });
-  const targets = targetsQuery.data?.data?.worldSettings;
+  const targetSearch = useWorldTargetSearch({ workId: candidate.workId, category: candidate.category, enabled: subjectUnresolved });
+  const targets = targetSearch.targets;
   const [draft, setDraft] = useState(initialDraft);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
@@ -152,7 +146,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const savedTargetQuery = useQuery({
     ...getWorldSettingOptions({ path: { workId: candidate.workId ?? '', worldSettingId: selectedTarget ?? '' } }),
     enabled: subjectUnresolved && saved && Boolean(candidate.workId) && Boolean(selectedTarget)
-      && selectedTarget !== 'new-target' && !selectedTargetId,
+      && selectedTarget !== NEW_WORLD_TARGET_ID && !selectedTargetId,
     retry: shouldRetryQuery,
   });
   const savedTarget = savedTargetQuery.data?.data;
@@ -165,36 +159,16 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const extractedName = candidate.subjectName ?? sourceDraft.subjectName;
 
   return <div className="review-cb-decision-panel">
-    {subjectUnresolved && <div className="review-cb-target-search">
-      <ReviewChoiceCards label={`‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`} value={selectedTarget} disabled={disabled || targetLoading}
-        choices={[
-          ...(targets?.content ?? []).flatMap(target => target.id && target.subjectName ? [{ id: target.id,
-            title: target.subjectName, description: `설정 ${target.propertyCount ?? 0}개`,
-            image: <WorldSubjectImage category={target.category} path={target.image?.thumbnailUrl} vaultId={target.image?.vaultId} />,
-            footnote: '이 대상에 연결' }] : []),
-          { id: 'new-target', title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 모두 확정할 때 등록' },
-        ]}
-        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }}>
-        <div className="review-cb-target-search__controls">
-          <p className="review-cb-help">추출된 이름과 작품에 저장된 대상이 같은지 확인하는 단계예요. 같은 대상이면 연결하고, 별개라면 새로 등록해 주세요.</p>
-          <label>기존 {categoryLabel} 검색<input aria-label="기존 세계관 대상 검색" placeholder="기존 대상 이름으로 검색" value={targetQuery}
-            onChange={event => { setTargetQuery(event.target.value); setTargetPage(0); }} /></label>
-          {targetsQuery.isPending && <p className="review-cb-help" role="status">기존 {categoryLabel} 목록을 불러오고 있어요.</p>}
-          {targetsQuery.isError && <ReviewNotice tone="warning" action={<button type="button" className="review-cb-secondary" onClick={() => void targetsQuery.refetch()}>다시 불러오기</button>}>기존 {categoryLabel} 목록을 불러오지 못했어요. 등록된 대상이 없는지 아직 확인할 수 없어요.</ReviewNotice>}
-          {targetsQuery.isSuccess && targets?.content?.length === 0 && <p className="review-cb-help" role="status">{targetQuery
-            ? `‘${targetQuery}’ 검색 결과가 없어요. 다른 이름으로 검색하거나 새로 등록할지 선택해 주세요.`
-            : targetPage > 0 ? `이 페이지에 표시할 ${categoryLabel} 항목이 없어요. 이전 페이지를 확인해 주세요.`
-              : `등록된 ${categoryLabel} 항목이 없어요. 새로 등록할지 직접 선택해 주세요.`}</p>}
-        </div>
-      </ReviewChoiceCards>
+    {subjectUnresolved && <WorldTargetPicker search={targetSearch}
+      label={`‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`} categoryLabel={categoryLabel}
+      value={selectedTarget} disabled={disabled || targetLoading} pagerDisabled={targetLoading}
+      help="추출된 이름과 작품에 저장된 대상이 같은지 확인하는 단계예요. 같은 대상이면 연결하고, 별개라면 새로 등록해 주세요."
+      newTarget={{ title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 모두 확정할 때 등록' }}
+      onChange={id => { if (id === NEW_WORLD_TARGET_ID) { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }}
+      footer={targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}>
       {targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
         onClick={() => void chooseTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
-      {(targetPage > 0 || targets?.hasNext) && <div className="review-cb-actions">
-        <button type="button" className="review-cb-secondary" disabled={targetPage === 0 || targetLoading} onClick={() => setTargetPage(page => page - 1)}>이전 대상</button>
-        <button type="button" className="review-cb-secondary" disabled={!targets?.hasNext || targetLoading} onClick={() => setTargetPage(page => page + 1)}>다음 대상</button>
-      </div>}
-      {targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}
-    </div>}
+    </WorldTargetPicker>}
     {currentTargetBefore && <ReviewChoiceCards label="이 대상에 같은 설정이 있어요. 어떻게 반영할까요?" value={draft.operation === 'ADD' ? null : draft.operation}
       choices={[
         { id: 'MERGE', title: '기존 내용과 합치기', preview: combineWorldReviewValues(currentTargetBefore, incoming) },
