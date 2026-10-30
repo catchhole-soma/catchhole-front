@@ -20,6 +20,12 @@ const RECHECK_ERROR_COPY: Record<string, string> = {
   VALIDATION_TARGET_INVALID: '재검수는 가장 마지막 회차에서 진행 중인 분석이 없을 때만 할 수 있어요.',
   VALIDATION_CORRECTION_CONFLICT: '설정 정정 기록이 이 검수와 맞지 않아요. 최신 상태를 확인한 뒤 다시 눌러 주세요.',
 };
+/**
+ * 같은 VALIDATION_SOURCE_VERSION_CONFLICT라도 `context.reason`이 있으면 원고가 아니라 report의 기준 식별값 문제다(#314 B2).
+ * 화면은 최신 report를 다시 읽고 원고 충돌 문구와 다른 안내를 보여 준다.
+ */
+const BASELINE_FINGERPRINT_REASONS = new Set(['BASELINE_FINGERPRINT_REQUIRED', 'BASELINE_FINGERPRINT_MISMATCH']);
+const BASELINE_FINGERPRINT_COPY = '검사 기준 식별값이 바뀌어 최신 검수 상태를 다시 확인했어요. 확인한 뒤 다시 눌러 주세요.';
 
 function newIdempotencyKey() {
   const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -29,9 +35,9 @@ function newIdempotencyKey() {
 }
 
 /**
- * A11 수정 내용으로 재검수. 서버가 RECHECK를 허용했거나(무효화된 현재 report) 확정 완료 report의 진단 재검수이고,
- * 자격 조회가 최신 회차라고 확인한 경우에만 연다. 요청은 회차 상세의 현재 원고 hash/key/version/revision과
- * report의 고정 기준 fingerprint를 그대로 보낸다. 같은 의도의 재시도는 같은 키를 쓰고 응답 유실은 현재 검수로 확인한다.
+ * A11 수정 내용으로 재검수. 서버 검토 요약의 `allowedActions`에 RECHECK가 있고(무효화된 현재 report, #314 B2부터 서버가 받는
+ * 회차의 APPLIED report 포함) 자격 조회가 최신 회차라고 확인한 경우에만 연다. 요청은 회차 상세의 현재 원고 hash/key/version/revision과
+ * report의 고정 기준 fingerprint, 설정 정정 receipt가 있으면 그 ID를 그대로 보낸다. 같은 의도의 재시도는 같은 키를 쓰고 응답 유실은 현재 검수로 확인한다.
  */
 export function useValidationRecheck({ workId, reportId, report, correctionReceiptId, onRechecked }: {
   workId: string;
@@ -45,11 +51,10 @@ export function useValidationRecheck({ workId, reportId, report, correctionRecei
   const { staging, summary } = report;
   const episodeId = staging?.episodeId ?? '';
   const current = staging?.current !== false;
+  // 확정 완료(APPLIED) report의 진단 재검수도 서버가 RECHECK로 알려 준다. 단계·최신 회차로 추측하지 않는다.
   const serverAllowed = summary?.allowedActions?.includes('RECHECK') === true;
-  // 확정 완료 report는 무효화되지 않지만 회차 전체 확정이 기준 입력을 바꾼 것으로 보아 진단 재검수를 받는다(Backend 재검수 규칙).
-  const diagnosticOfApplied = summary?.reviewStage === 'APPLIED' && summary.mode !== 'DIAGNOSTIC_ONLY';
   // 검토 요약을 읽기 전에는 허용으로 추측하지 않는다.
-  const listed = current && Boolean(episodeId) && Boolean(summary) && (serverAllowed || diagnosticOfApplied);
+  const listed = current && Boolean(episodeId) && Boolean(summary) && serverAllowed;
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<RecheckNotice>(null);
   const key = useRef<{ key: string; version: number } | null>(null);
@@ -171,11 +176,14 @@ export function useValidationRecheck({ workId, reportId, report, correctionRecei
       if (api && api.status >= 400 && api.status < 500) {
         key.current = null;
         if (!stillHere(context)) return;
+        const reason = typeof api.context?.reason === 'string' ? api.context.reason : null;
+        const baselineChanged = api.code === 'VALIDATION_SOURCE_VERSION_CONFLICT' && reason !== null && BASELINE_FINGERPRINT_REASONS.has(reason);
         setNotice({
           tone: api.status === 409 ? 'warning' : 'danger',
-          text: RECHECK_ERROR_COPY[api.code] ?? (api.message || '재검수를 시작하지 못했어요.'),
+          text: baselineChanged ? BASELINE_FINGERPRINT_COPY : RECHECK_ERROR_COPY[api.code] ?? (api.message || '재검수를 시작하지 못했어요.'),
           suggestRetry: api.code === 'VALIDATION_RECHECK_INPUT_UNCHANGED',
         });
+        // 기준 식별값 충돌은 보고 있는 report의 fingerprint가 오래된 경우다. 최신 report를 다시 읽어 다음 요청에 쓴다.
         void report.refreshReport();
         void eligibilityQuery.refetch();
         return;
