@@ -19,6 +19,7 @@ npm run doctor
 
 - 미사용 코드·의존성은 고정 버전 Knip으로 검사합니다. `knip.json`은 PostCSS 설정과 E2E의 Vite `/src/*` 모듈 경로를 포함합니다. 생성 API는 검사에서 제외하고, fixture는 실제 import 경로를 확인한 뒤 제거합니다.
 - React Doctor는 고정 버전으로 전체 범위를 검사하는 참고용 명령입니다. `doctor.config.json`은 생성 API 파일만 제외하며, 남은 진단·오탐과 리디자인 후속 범위는 `docs/react-doctor-cleanup.md`에 기록합니다. 종료 코드 0만으로 오류가 없다고 판단하지 않습니다.
+- 검토 흐름 조작 수 측정은 `e2e/review-flow-metrics.spec.ts`를 `METRICS_FLOW`로 실행하며 결과 JSON을 `docs/review-flow-metrics/`에 둔다. 절감률은 측정 후에만 문서에 쓴다.
 
 ## 설정집 분석 (GH221)
 

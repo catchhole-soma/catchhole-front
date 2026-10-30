@@ -399,3 +399,86 @@ React Doctor 전체 검사는 완료했으나 기존 `WorldSettingDatabase.tsx`�
 - 목 API E2E(합성 데이터): 신규 `review-action-bar` 8개, `review-confirm-and-next` 3개, `review-summary-cards` 5개, `review-keyboard` 7개. 기존 spec은 확정 버튼 이름(`N개 설정 모두 확정`·`모두 확정` → `확정하고 다음`/`모두 확정`), 선택 카드 role(`button`+`aria-pressed` → `radio`+`aria-checked`), 요약으로 접히는 카드의 `펼치기`, 저장 상태 문구, 세계관 확정 영역 안내 위치를 갱신했다.
 - 전체 E2E 1,013개(`--workers=4`, 5.7분): 985개 통과, 25개 건너뜀(실서버 연동 live), 3개 실패. 실패 중 2개는 1·2차와 같은 `family-tree.spec.ts`의 퍼센트 인코딩된 한글 경로 `ENOENT`이고, 1개(`family-relationships.spec.ts` 다른 창 판단 채택)는 이번 변경 밖의 토글 카드 흐름으로 단독 3회 반복에서 모두 통과했다(부하 중 표시 대기 경합).
 - 고정 여부: 1280×800·320×568에서 상세를 800px 내린 뒤에도 확정 영역 하단이 뷰포트 하단과 1px 안으로 일치한다(캐릭터·세계관). 320×568에서 선택 바를 함께 쌓은 높이는 화면의 45% 이하, 선택이 없을 때는 30% 이하이며 가로 넘침이 없다.
+
+## 2026-10-31 #211 후속 측정: 개선 전후 조작 수
+
+이슈 마지막 확인 항목(내용과 정답 대상을 미리 아는 합성 사례로 개선 전후의 화면 왕복·검색 반복·저장/확정 동작 수를 기록)을 `e2e/review-flow-metrics.spec.ts`로 측정했다. 결과 JSON은 [`docs/review-flow-metrics/`](review-flow-metrics/README.md)에 있다.
+
+- 기준선: `baseline-2026-10-30.json` — main 화면 `4f60c0c`, 기준선 어댑터 `flows/baseline.ts`, 별도 main 체크아웃에서 실행.
+- 개선 후: `after-f3-2026-10-31.json` — 작업 브랜치 화면 `0283a31`(F1~F3 + V1 문구 정리), 개선 어댑터 `flows/improved.ts`.
+- 두 측정은 같은 합성 사례(`fixture.ts`), 같은 측정기(`meter.ts`), 같은 끝 조건을 쓴다. 목 API는 개선 화면의 새 요청(`GET characters?query=`, `PATCH selected-character-match`, 대상 상세)을 V0 때부터 처리하고 있어 V1에서 바꾸지 않았고, 처리하지 못한 요청은 두 측정 모두 0건이다.
+- 실행: `METRICS_FLOW=improved METRICS_LABEL=after-f3 node node_modules/@playwright/test/cli.js test e2e/review-flow-metrics.spec.ts --workers=1`(같은 화면에서 네 번 실행해 모든 값이 같았다).
+
+### 합성 사례와 지표
+
+- A 캐릭터: 미상 묶음 후보 4건(1화 직업→인물H, 2화 소속·상태→인물B, 3화 나이→새 인물 인물J)을 정답 인물에 연결하고 현재 반영을 골라 확정한다. 기존 인물 9명 중 인물H는 최근 수정순 8명 목록의 2페이지에 있다. 사례 밖의 인물A 묶음(반영 방식 저장 완료 1건)이 남아 있다.
+- B 세계관: 대상 미연결(`SUBJECT_UNRESOLVED`) 후보 5건을 기존 대상 장소X에 연결해 확정한다. 같은 분류의 다른 장소 7개 때문에 장소X는 대상 목록 첫 페이지(6개)에 없다.
+- C 복구: A의 첫 현재 반영 선택 PATCH가 서버에는 저장되지만 응답이 유실된다. 끝 조건은 서버 저장과 화면의 저장 완료 표시가 일치하는 것.
+- 화면 왕복 = 검토 화면 밖 이동 + URL `group` 변경(사이드바·안내 버튼으로 고른 이동과 연결·확정 뒤 자동 이동) + 탭 전환. 검색 = 검색 입력 횟수 + 응답을 받은 캐릭터 목록 요청(모달을 열 때의 첫 목록·페이지 넘김 포함) + 세계관 대상 `q` 검색 요청. 쓰기 요청 = 보낸 PATCH/POST(응답 유실 포함). 클릭 = 어댑터가 수행한 UI 클릭. 화면이 스스로 취소한 조회(`cancelledReads`)는 어느 지표에도 넣지 않는다.
+
+### 전/후 비교
+
+**목 API 기준 조작 수다. 원문 읽기·서버 대기 시간은 제외했고(시간은 기록하지 않음) 합성 사례 1건의 결과다.** 변화율은 (개선 후 − 기준선) ÷ 기준선이며 음수가 줄어든 것이다. 기준선이 0이면 변화율을 쓰지 않는다.
+
+| 시나리오 | 지표 | 기준선 | 개선 후 | 차이(변화율) |
+|---|---|---|---|---|
+| A 캐릭터 | 화면 왕복 (직접 고름 / 자동) | 13 (6 / 7) | 6 (2 / 4) | −7 (−54%) |
+| A 캐릭터 | 검색 (입력 / 목록 요청) | 5 (0 / 5) | 7 (2 / 5) | **+2 (+40%)** |
+| A 캐릭터 | 연결 모달 열기 | 4 | 3 | −1 (−25%) |
+| A 캐릭터 | 쓰기 요청 | 11 (단건 연결 4·반영 방식 4·묶음 확정 3) | 10 (선택 연결 1·단건 연결 2·반영 방식 4·묶음 확정 3) | −1 (−9%) |
+| A 캐릭터 | 클릭 | 26 | 20 | −6 (−23%) |
+| A 캐릭터 | 이름 입력(새 인물) | 1 | 1 | 0 |
+| B 세계관 | 화면 왕복 | 0 | 0 | 0 |
+| B 세계관 | 검색 (입력 / 대상 검색 요청) | 10 (5 / 5) | 2 (1 / 1) | −8 (−80%) |
+| B 세계관 | 대상 모달 열기 | 0 | 1 | **+1** |
+| B 세계관 | 쓰기 요청 | 6 (결정 저장 5·모두 확정 1) | 2 (결정 저장 1·모두 확정 1) | −4 (−67%) |
+| B 세계관 | 클릭 | 11 | 5 | −6 (−55%) |
+| C 복구 구간 | 쓰기 요청 (응답 유실 / 재전송) | 2 (1 / 1) | 1 (1 / 0) | −1 (−50%) |
+| C 복구 구간 | 클릭 | 2 | 1 | −1 (−50%) |
+| C 전체 | 화면 왕복 (직접 고름 / 자동) | 2 (1 / 1) | 2 (2 / 0) | 0 |
+| C 전체 | 검색 (입력 / 목록 요청) | 2 (0 / 2) | 3 (1 / 2) | **+1 (+50%)** |
+| C 전체 | 쓰기 요청 | 3 | 2 | −1 (−33%) |
+| C 전체 | 클릭 | 7 | 6 | −1 (−14%) |
+
+### 개선 어댑터가 밟은 절차
+
+- A: 사이드바에서 `미연결 후보 4개` 묶음 열기 → 소속·상태 체크 → `선택 항목 연결` → `인물B` 서버 검색 → 고르고 미리보기(현재 설정·이 설정의 기존값) 확인 → 연결(미연결 묶음 유지) → 직업 `캐릭터 연결 변경` → `인물H` 서버 검색 → 연결(묶음 유지) → 나이 `캐릭터 연결 변경` → `새 캐릭터로 등록`·이름 `인물J` → 미연결 묶음이 비어 인물J 묶음이 자동으로 열림 → 현재 반영 → `확정하고 다음` → 직전 목록에서 인물J 뒤에 묶음이 없어 첫 묶음(인물A, 사례 밖)이 열림 → 사이드바에서 인물H → 현재 반영 → `확정하고 다음` → 인물B 자동 → 현재 반영 2건 → `확정하고 다음` → 인물A.
+- B: `모두 선택(5)` → `선택 항목 대상 연결` → `장소X` 검색 1회 → 장소X 선택(5건 모두 `기존값 없음 → 추가로 저장`) → `고른 대상에 연결`(결정 저장 1회, 묶음 유지) → `모두 확정`.
+- C: 미연결 묶음 → 직업 `캐릭터 연결 변경` → `인물H` 검색·연결 → 안내의 `연결한 묶음 보기` → (복구 구간) 현재 반영 1회 → 응답 유실 뒤 화면이 스스로 후보를 다시 읽어 `저장했어요 · 확정 전까지 바꿀 수 있어요`로 바뀐다. 추가 조작과 재전송은 없다.
+
+### 해석과 나빠진 지표
+
+- 줄어든 것: 연결 직후 연결된 인물 묶음으로 끌려가던 자동 이동과 미상 묶음 재진입(A 직접 고름 6→2, 자동 7→4), 세계관 행마다의 대상 검색·결정 저장 반복(B 검색 10→2, 쓰기 6→2), 응답 유실 뒤 같은 선택을 다시 보내던 재전송(C 1→0).
+- **A·C의 검색은 늘었다.** 개선 어댑터는 계획대로 이름을 입력해 서버 검색을 했고(A 2회, C 1회), 기준선 어댑터는 인물B가 최근 수정순 첫 페이지에 있어 검색 없이 고르고 인물H는 다음 페이지 한 번으로 찾았다. 인물 9명인 이 사례에서는 페이지 넘김 비용이 1회라 서버 검색의 이점이 드러나지 않는다. 개선 화면에서도 첫 페이지에 보이는 인물은 검색 없이 고를 수 있다.
+- **B의 모달 열기는 0→1로 늘었다.** 기준선은 행 안 대상 선택을 다섯 번 반복했고(모달 없음), 개선 후에는 묶음 단위 대상 연결 모달을 한 번 연다.
+- A의 자동 이동 4회 중 1회(인물J 확정 뒤 인물A)는 사례 밖 묶음으로 간 이동이라 사이드바 선택 1회가 더 들었다. 규칙(사라진 묶음 뒤 → 직전 목록에 없던 묶음 → 첫 묶음)대로이며, 마지막 연결로 생긴 인물J 묶음이 목록 맨 뒤라 다음 묶음이 첫 묶음으로 돌아간 결과다.
+- C 전체의 화면 왕복은 같다(2→2). 개선 화면은 연결 뒤 묶음을 유지하므로, 현재 반영을 고르려면 안내의 `연결한 묶음 보기`를 직접 누른다(기준선은 자동 이동).
+
+### 한계
+
+- 목 API·합성 사례 1건의 조작 수다. 원문 읽기·판단 시간, 서버 대기 시간, 운영 데이터·실서버 동작은 측정하지 않았다.
+- 어댑터는 "정답을 아는 작가의 최소 절차"를 가정하며 화면 문구·역할 이름에 의존한다. 기준선 어댑터는 main 문구를 쓰므로 작업 브랜치에서는 실행되지 않는다(기본 실행은 개선 어댑터).
+- 인물 수·대상 수가 적은 사례라 검색·페이지 이동 비용 차이가 작게 나타난다.
+
+### 이슈 확인 방법 8건과 테스트
+
+아래 테스트는 모두 V1 전체 회귀에서 통과했다(Front는 목 API E2E, Backend는 H2 MockMvc·단위 테스트).
+
+| # | 확인 항목 | Front 테스트 | Backend 테스트 |
+|---|---|---|---|
+| 1 | 서로 다른 인물의 미상 후보를 연속 연결해도 미상 묶음에 다시 들어갈 필요가 없고, 단건 연결이 나머지 후보를 바꾸지 않음 | `character-match-scope` 「단건 연결은 현재 묶음을 유지하고 연결한 묶음 이동은 안내의 버튼으로 고른다」「같은 대상을 다시 고르면 묶음에 남은 설정만 갱신하고 안내하지 않는다」, `character-selection-link` 「미연결 묶음에서 체크한 설정만 같은 인물에 연결하고 읽던 묶음에 남는다」, `review-flow-metrics` A(미상 묶음 재선택 0회) | `SettingCandidateControllerIntegrationTest.selectedCharacterMatchChangesOnlyRequestedCandidates`, `singleCharacterMatchMovesOnlySelectedCandidate` |
+| 2 | 같은 대상의 여러 후보를 골라 검색·연결을 한 번에, 충돌은 해당 항목만, 고르지 않은 후보는 그대로 | `character-selection-link` 「서버가 특정 후보 때문에 거절하면 그 카드만 표시하고 선택을 유지한다」「필터로 숨은 후보는 모두 선택과 연결 요청에 넣지 않는다」, `world-selection-target` 「체크한 행 중 대상에 같은 경로가 없는 행만 추가로 저장하고 같은 경로가 있는 행은 결정으로 남긴다」 | `selectedCharacterMatchRejectsNonPendingWithCandidateIdsContext`, `selectedCharacterMatchAcceptsCandidatesFromDifferentGroups`, `WorldSettingCandidateControllerIntegrationTest.updateDecisionSubsetLeavesUnselectedCandidateUnchanged` |
+| 3 | 다른 페이지의 캐릭터를 이름으로 검색하고 같은 이름·정보 없음·검색 실패를 구분 | `character-search-link` 「작품 전체 검색은 입력이 멈춘 뒤 한 번만 서버에 묻고 구분 정보를 보여 준다」「검색 결과가 없으면 새 인물 등록으로 바로 넘어갈 수 있다」「검색 실패는 결과 없음과 다른 경고로 보여 주고 입력을 유지한 채 다시 시도한다」「첫 등장·역할·대표 정보가 없는 인물은 첫 등장 정보 없음으로 표시한다」 | `CharacterControllerIntegrationTest.getCharactersFiltersByNameQueryIgnoringCase`, `getCharactersEscapesLikeWildcardsInQuery`, `getCharactersWithQueryOrdersByName`, `getCharactersWithQuerySortsNamesInKoreanOrderIndependentOfDatabaseCollation`, `getCharactersIncludesRoleLabel` |
+| 4 | 연결 판단과 기존값 대조를 같은 화면에서, 이력만 저장은 현재값을 바꾸지 않음 | `character-search-link` 「고른 인물의 저장된 현재 설정과 이 설정의 기존값을 모달 안에서 보여 준다」「대상에 같은 설정이 없으면 기존값 없음으로, 상세를 못 읽으면 다른 경고로 보여 준다」, `manual-character-final-review` 「같은 회차에서 수정·제외 후 다른 선택을 유지하고 최종 결과를 타임스탬프와 함께 확정한다」, `review-clear-blue-character` 「변경 diff는 최종 제안 문장을 표시하며 이력 선택은 삭제처럼 표시하지 않는다」 | `SettingCandidateServiceImplTest.confirmHistoryOnlyDoesNotValidateCurrentSnapshotContext`, `SettingCandidatePromotionServiceTest.historyOnlyOverrideKeepsStatusesForRemoveProposal` |
+| 5 | 한 번의 최종 행동으로 확정하고 다음으로 가며, 저장·새로고침·뒤로가기 뒤에도 위치 유지 | `review-confirm-and-next` 3개, `review-position-restore` 「확정 뒤 직전 목록의 바로 다음 그룹을 열고 제목에 초점을 두며 맨 위에서 읽게 한다」「탭을 오가도…」「새로고침 뒤에도…」「세계관 2페이지 그룹에서 결정을 저장해도 읽던 페이지를 유지한다」, 기존 `setting-review` 「브라우저 뒤로가기 직후 이전 검토 화면이 클릭을 가로채지 않고 늦은 응답도 복귀시키지 않는다」 | 변경 없음(기존 그룹 확정) |
+| 6 | 저장 실패·응답 유실·조회 실패·다른 화면 수정에서 선택과 서버 상태를 구별하고 중복 반영이 없음 | `review-save-recovery` 6개, `character-selection-link` 「선택 연결 응답을 잃어도 다시 읽어 저장을 확인하고 같은 요청을 다시 보내지 않는다」, `review-clear-blue-character` 「초안 저장 충돌은 선택 완료로 간주하지 않고 재요청할 수 있다」, `review-flow-metrics` C | `selectedCharacterMatchIsIdempotentForSameTarget`, `SettingCandidateServiceImplTest.confirmSettingCandidateGroupIsIdempotentForSameDecision`, `WorldSettingCandidateControllerIntegrationTest.confirmNewSubjectIsIdempotent` |
+| 7 | 긴 묶음·좁은 화면·키보드에서 미결정 항목과 확정 버튼을 찾음 | `review-action-bar` 8개(막는 후보로 이동, 1280·320px 고정, 320px 선택 바와 함께 쌓기, 세계관 결정 필요 행 이동·고정), `review-keyboard` 7개 | 해당 없음 |
+| 8 | 합성 사례 전후 기록 | `review-flow-metrics` A·B·C(개선 어댑터), `baseline-2026-10-30.json`·`after-f3-2026-10-31.json` | 해당 없음 |
+
+남은 틈: 분석 목록으로 나갔다가 브라우저 뒤로가기로 돌아온 뒤의 스크롤·초점 복원은 전용 E2E가 없다(같은 sessionStorage 경로를 쓰는 탭 왕복·새로고침 복원만 검증). 실서버·PostgreSQL에서의 연결·검색은 이번 회귀에서 실행하지 않았다.
+
+### 전체 회귀(V1)
+
+- Front 전체 E2E(`--workers=4`, 한 번, 5.6분): 1,013개 중 989개 통과, 22개 건너뜀(실서버 연동 live 16개, 관계 화면 비공개 빌드 전용 4개, 명시적 랜딩 에셋 갱신 1개, 설정집 로컬 Backend·DB fixture 1개 — 모두 실행 조건이 없어 건너뜀), 2개 실패. 실패 2개는 1~3차와 같은 `family-tree.spec.ts`의 퍼센트 인코딩된 한글 경로 `ENOENT`(`src/assets/landing/rien-fire-mage.webp`를 읽지 못함)이며 이번 변경과 무관하다. 측정 spec 3개는 이제 건너뛰지 않고 개선 어댑터로 통과한다.
+- `tsc -p . --noEmit` 통과, `eslint .` 오류 0(기존 Fast Refresh 경고 2), `tsc -b && vite build` 통과(기존 청크 크기 경고), `scripts/*.test.ts` 108개 중 107개 통과·1개 건너뜀(로컬 50인 관계도 fixture), knip은 기존 미사용 파일 2개(`e2e/episode-source-list.ts`, `scripts/analysis-list-benchmark.mjs`)와 설정 힌트 1개만 남음.
+- Backend(`feat/gh-211-review-flow` `fbcbfe85`) `./gradlew test bootJar`(5분 10초): 4,465개 중 4,148개 통과, 317개 건너뜀(PostgreSQL·Worker 환경 변수가 있어야 실행되는 27개 클래스), 실패 0. bootJar 생성.

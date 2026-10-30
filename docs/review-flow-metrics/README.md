@@ -7,8 +7,9 @@
 | 파일 | 내용 |
 |---|---|
 | `baseline-2026-10-30.json` | 기준선. #211 후속 개선 전 main 화면(`4f60c0c`)을 기준선 어댑터로 측정 |
+| `after-f3-2026-10-31.json` | 개선 후. F1~F3과 V1 문구 정리까지 반영한 작업 브랜치 화면(`0283a31`)을 개선 어댑터로 측정 |
 
-JSON의 `uiCommit`은 측정한 화면 코드의 커밋, `headCommit`은 측정 spec·어댑터가 들어 있는 커밋이다. `scenarios.*.trace`에 어댑터가 밟은 조작과 요청이 순서대로 남는다.
+JSON의 `uiCommit`은 측정한 화면 코드의 커밋, `headCommit`은 측정 spec·어댑터가 들어 있는 커밋이다. `scenarios.*.trace`에 어댑터가 밟은 조작과 요청이 순서대로 남는다. 전/후 비교표와 해석은 [`docs/review-clear-blue.md`의 2026-10-31 #211 후속 측정 절](../review-clear-blue.md#2026-10-31-211-후속-측정-개선-전후-조작-수)에 있다.
 
 ## 합성 사례와 끝 조건
 
@@ -44,14 +45,14 @@ main 화면에서 세 시나리오 모두 끝 조건에 도달했다. 아래는 
 npm이 없는 환경에서는 `node`로 각 도구를 직접 실행한다.
 
 ```bash
-# 개선 화면(기본 METRICS_FLOW=improved). 개선 어댑터가 준비되기 전에는 skip된다.
+# 개선 화면(기본 METRICS_FLOW=improved). 일반 전체 E2E에도 이 경로로 포함된다.
 node node_modules/vite/bin/vite.js --port 3000 --strictPort &
-METRICS_FLOW=improved METRICS_LABEL=after-<단계> node node_modules/@playwright/test/cli.js test e2e/review-flow-metrics.spec.ts --workers=1
+METRICS_FLOW=improved METRICS_LABEL=after-f3 node node_modules/@playwright/test/cli.js test e2e/review-flow-metrics.spec.ts --workers=1
 
-# 기준선: main 체크아웃에서 기준선 어댑터로 실행
+# 기준선: main 체크아웃(별도 git worktree)에 측정 spec·fixture·어댑터를 복사해 기준선 어댑터로 실행
 METRICS_FLOW=baseline METRICS_LABEL=baseline-main METRICS_UI_COMMIT=<main 커밋> \
   node node_modules/@playwright/test/cli.js test e2e/review-flow-metrics.spec.ts --workers=1
 cat test-results/review-flow-metrics/baseline-main.json
 ```
 
-결과는 `test-results/review-flow-metrics/<METRICS_LABEL>.json`에 남는다. 다른 dev 서버와 포트를 나누려면 `CATCHHOLE_E2E_PORT=<포트>`를 주는데, 이때 Playwright가 `npm run dev -- --port <포트> --strictPort`로 서버를 직접 띄우므로 npm이 없으면 같은 인자를 Vite로 넘기는 `npm` 대체 스크립트를 PATH 앞에 둔다. 측정 전에는 절감률을 문서·PR·이슈에 쓰지 않는다.
+결과는 `test-results/review-flow-metrics/<METRICS_LABEL>.json`에 남는다. 다른 dev 서버와 포트를 나누려면 `CATCHHOLE_E2E_PORT=<포트>`를 주는데, 이때 Playwright가 `npm run dev -- --port <포트> --strictPort`로 서버를 직접 띄우므로 npm이 없으면 같은 인자를 Vite로 넘기는 `npm` 대체 스크립트를 PATH 앞에 둔다. 절감률은 측정한 뒤에만 쓰고, 쓸 때는 목 API 기준 조작 수(원문 읽기·서버 대기 제외, 합성 사례 1건)임을 함께 밝힌다.
