@@ -28,6 +28,7 @@ import {
   updateSettingCandidateCharacterMatchMutation,
   updateSettingCandidateGroupCharacterMatchMutation,
   updateSettingCandidateMutation,
+  updateSettingCandidateSelectedCharacterMatchMutation,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type { Options } from '../../../api/generated/sdk.gen';
 import type {
@@ -40,6 +41,8 @@ import type {
   SettingCandidateResponse,
   UpdateSettingCandidateCharacterMatchData,
   UpdateSettingCandidateData,
+  UpdateSettingCandidateGroupCharacterMatchData,
+  UpdateSettingCandidateSelectedCharacterMatchData,
 } from '../../../api/generated/types.gen';
 import {
   isUnidentifiedCharacterName,
@@ -76,7 +79,7 @@ import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import { CharacterReviewComparison, CharacterTargetChoices } from './CharacterReviewPresentation';
-import { errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
+import { candidateEpisodesLabel, errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
 import { ActionButton } from './ReviewModalControls';
 import { CandidateEditModal } from './CandidateEditModal';
 import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal';
@@ -205,6 +208,8 @@ function isCharacterReviewLocation(workId: string, batchId: string, sourceAnalys
 const characterGroupKey = normalizeCharacterGroupName;
 
 type MatchVariables = Options<UpdateSettingCandidateCharacterMatchData>;
+type SelectedMatchVariables = Options<UpdateSettingCandidateSelectedCharacterMatchData>;
+type GroupMatchVariables = Options<UpdateSettingCandidateGroupCharacterMatchData>;
 type UpdateVariables = Options<UpdateSettingCandidateData>;
 type ConfirmVariables = Options<ConfirmSettingCandidateGroupData>;
 
@@ -215,10 +220,38 @@ type CharacterSaveIntent =
   | { kind: 'dismiss'; candidateId: string; variables: Options<DismissSettingCandidateData> }
   | { kind: 'retry'; candidateId: string; previousStatus?: SettingCandidateResponse['comparisonStatus'];
     variables: Options<RetrySettingCandidateComparisonData> }
-  | { kind: 'confirm'; groupKey: string; previousGroups: SettingCandidateGroupResponse[]; variables: ConfirmVariables };
+  | { kind: 'confirm'; groupKey: string; previousGroups: SettingCandidateGroupResponse[]; variables: ConfirmVariables }
+  /** 체크한 후보만 한 대상에 연결(selected-character-match). 전부 성공하거나 전부 거절된다. */
+  | { kind: 'selectedMatch'; candidateIds: string[]; context: MatchContext; variables: SelectedMatchVariables }
+  /** 이름 있는 묶음의 대기 후보 전체를 한 대상에 연결(group-character-match). */
+  | { kind: 'groupMatch'; candidateIds: string[]; variables: GroupMatchVariables };
 
 function saveKey(intent: CharacterSaveIntent): string {
-  return intent.kind === 'confirm' ? `confirm:${intent.groupKey}` : intent.candidateId;
+  if (intent.kind === 'confirm') return `confirm:${intent.groupKey}`;
+  if (intent.kind === 'selectedMatch') return `selected-match:${intent.candidateIds.join(',')}`;
+  if (intent.kind === 'groupMatch') return `group-match:${intent.candidateIds.join(',')}`;
+  return intent.candidateId;
+}
+
+/** 여러 후보를 한 요청으로 바꾸는 의도가 함께 잠그는 후보. 응답을 확인할 때까지 이 후보들의 다른 쓰기와 확정을 막는다. */
+function coveredCandidateIds(intent: CharacterSaveIntent): string[] {
+  return intent.kind === 'selectedMatch' || intent.kind === 'groupMatch' ? intent.candidateIds : [];
+}
+
+type MatchBody = { resolutionType: 'MATCH_EXISTING' | 'CREATE_NEW'; matchedCharacterId?: string | null; entityName?: string | null };
+
+/** 다시 읽은 후보가 이미 요청한 연결 상태인지. 같은 대상 재연결은 서버에서 no-op이라 재전송해도 안전하다. */
+function candidateLinkedAsRequested(candidate: SettingCandidateResponse, body: MatchBody): boolean {
+  return body.resolutionType === 'MATCH_EXISTING'
+    ? candidate.matchedCharacterId === body.matchedCharacterId
+    : !candidate.matchedCharacterId && candidate.matchStatus === 'UNRESOLVED'
+      && normalizeCharacterGroupName(candidate.entityName) === normalizeCharacterGroupName(body.entityName);
+}
+
+/** 연결 응답이 없을 때(재조회로 확인한 경우) 서버와 같은 규칙으로 연결 뒤 그룹 키를 만든다. */
+function linkedGroupKey(body: MatchBody): string {
+  return body.resolutionType === 'MATCH_EXISTING'
+    ? `existing:${body.matchedCharacterId}` : normalizeCharacterGroupName(body.entityName);
 }
 
 function sameText(first?: string | null, second?: string | null): boolean {
@@ -227,12 +260,8 @@ function sameText(first?: string | null, second?: string | null): boolean {
 
 /** 다시 읽은 후보가 작가가 보낸 변경을 이미 담고 있는지 판단한다. */
 function candidateMatchesIntent(candidate: SettingCandidateResponse, intent: CharacterSaveIntent): boolean {
-  if (intent.kind === 'match') {
-    const body = intent.variables.body;
-    return body.resolutionType === 'MATCH_EXISTING'
-      ? candidate.matchedCharacterId === body.matchedCharacterId
-      : !candidate.matchedCharacterId && candidate.matchStatus === 'UNRESOLVED'
-        && normalizeCharacterGroupName(candidate.entityName) === normalizeCharacterGroupName(body.entityName);
+  if (intent.kind === 'match' || intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') {
+    return candidateLinkedAsRequested(candidate, intent.variables.body);
   }
   if (intent.kind === 'update') {
     const body = intent.variables.body;
@@ -272,7 +301,8 @@ interface PendingGroupAdvance {
 }
 
 interface RecentCandidateLink {
-  candidateId: string;
+  /** 함께 연결한 후보. 첫 후보 ID로 연결한 묶음과 페이지를 찾는다. */
+  candidateIds: string[];
   sourceGroupKey: string;
   label: string;
   discovery: boolean;
@@ -282,6 +312,7 @@ interface RecentCandidateLink {
   advancedGroupKey?: string | null;
 }
 
+/** 연결을 보낸 시점의 화면 문맥. 응답을 잃어 재조회로 확인한 경우에도 같은 후속 처리를 하기 위해 기억한다. */
 interface MatchContext {
   sourceGroupKey: string | null;
   previousGroups: SettingCandidateGroupResponse[];
@@ -541,6 +572,8 @@ export function CandidateDetail({
   localChoiceMarked = false,
   saveState,
   saveActionsDisabled = false,
+  selection,
+  selectionError = null,
 }: {
   candidate: SettingCandidateResponse;
   workId?: string;
@@ -566,6 +599,10 @@ export function CandidateDetail({
   localChoiceMarked?: boolean;
   saveState?: ReviewSaveState;
   saveActionsDisabled?: boolean;
+  /** 체크해 함께 연결할 수 있는 대기 후보에만 넘긴다. */
+  selection?: { checked: boolean; disabled: boolean; disabledReason?: string; onChange: (checked: boolean) => void };
+  /** 선택 연결이 이 후보 때문에 거절됐을 때 서버 문구. 카드에 표시하고 선택은 유지한다. */
+  selectionError?: string | null;
 }) {
   const labels = useCharacterSettingLabels();
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
@@ -598,9 +635,7 @@ export function CandidateDetail({
       ? '확인 필요' : candidate.suggestedOperation === 'EXCLUDE' ? '제외 제안'
       : candidate.suggestedOperation === 'ADD' ? '새 설정' : '직접 확인';
   const unlinked = !candidate.matchedCharacterId && isUnidentifiedCharacterName(candidate.entityName);
-  return <section className={`review-cb-card setting-candidate-detail${readOnly ? ' is-read-only' : ''}`}
-    aria-label={`${headingTitle} 설정 후보`} data-candidate-id={candidate.id} tabIndex={-1}>
-    <ReviewSettingHeading title={headingTitle}
+  const heading = <ReviewSettingHeading title={headingTitle}
       subtitle={`캐릭터 · ${unlinked ? '미연결' : candidate.entityName || '인물 미상'}`}
       image={<ReviewSubjectThumbnail kind="character" workId={workId} characterId={candidate.matchedCharacterId} />}
       badge={<StatusBadge label={statusLabel} color={processing ? C.primary : readOnly ? reviewColor(reviewStatus) : manuallyReviewed ? C.success : C.warning} />}
@@ -612,7 +647,18 @@ export function CandidateDetail({
           disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : invalidValue && !invalidValueRepairable ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.' : undefined}
           onClick={onEdit}>수정</ActionButton>
         <ActionButton disabled={!onDismiss || actionPending || automaticPending} tone={C.danger} onClick={onDismiss}>{dismissing ? '제외 중…' : '제외'}</ActionButton>
-      </>} />
+      </>} />;
+  return <section className={`review-cb-card setting-candidate-detail${readOnly ? ' is-read-only' : ''}${selectionError ? ' is-selection-invalid' : ''}`}
+    aria-label={`${headingTitle} 설정 후보`} aria-invalid={selectionError ? true : undefined}
+    data-candidate-id={candidate.id} tabIndex={-1}>
+    {selection ? <div className="review-cb-selectable-heading">
+      <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
+        <input type="checkbox" aria-label={`선택: ${headingTitle}`} checked={selection.checked} disabled={selection.disabled}
+          onChange={event => selection.onChange(event.target.checked)} />
+      </label>
+      {heading}
+    </div> : heading}
+    {selectionError && <ReviewNotice tone="danger" title="이 설정 때문에 선택 연결을 하지 못했어요">{selectionError}</ReviewNotice>}
 
     {automaticPending ? <ReviewNotice title="분석이 진행 중이에요">분석이 끝나면 설정을 수정하고 확정할 수 있어요.</ReviewNotice> : <>
       {readOnly && <ReviewNotice tone={reviewStatus === 'CONFIRMED' ? 'success' : 'info'} title={removed ? '현재 설정에서 제거했어요' : reviewStatus === 'CONFIRMED' ? '반영을 마친 설정이에요' : '검토 목록에서 제외했어요'}>
@@ -720,6 +766,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     return next;
   });
   const [groupMatchOpen, setGroupMatchOpen] = useState(false);
+  // 체크한 후보는 체크한 묶음 안에서만 유효하다. 묶음·필터·페이지를 바꾸거나 화면을 떠나면 비운다.
+  const [checkedSelection, setCheckedSelection] = useState<{ groupKey: string | null; ids: string[] }>({ groupKey: null, ids: [] });
+  const [selectionMatchOpen, setSelectionMatchOpen] = useState(false);
+  // 마지막으로 보낸 선택 연결의 저장 추적 키. 응답을 잃은 뒤 목록이 바뀌어도 같은 요청의 상태를 보여 준다.
+  const [selectionRequestKey, setSelectionRequestKey] = useState<string | null>(null);
+  // 선택 연결이 특정 후보 때문에 거절되면 그 후보만 표시한다. 선택은 유지한다.
+  const [selectionRejection, setSelectionRejection] = useState<{ candidateIds: string[]; message: string } | null>(null);
+  const clearCheckedSelection = () => {
+    setCheckedSelection({ groupKey: null, ids: [] });
+    setSelectionMatchOpen(false);
+    setSelectionRejection(null);
+    setSelectionRequestKey(null);
+  };
   const [matchTarget, setMatchTarget] = useState<{
     candidate: SettingCandidateResponse;
     resolution: MatchResolution;
@@ -739,6 +798,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const matchContextRef = useRef(new Map<string, MatchContext>());
   const chooseCurrentRef = useRef(new Map<string, Pick<SettingCandidateResponse, 'currentSnapshotVersion' | 'matchedCharacterId'>>());
   const confirmRequestRef = useRef<{ groupKey: string; previousGroups: SettingCandidateGroupResponse[] } | null>(null);
+  const selectionIntentRef = useRef<Extract<CharacterSaveIntent, { kind: 'selectedMatch' }> | null>(null);
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
 
@@ -835,6 +895,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
   const groupExclusionCount = pendingGroupCandidates.filter(isGroupExclusionProposal).length;
+  const selectedGroupUnlinked = Boolean(selectedGroup && isUnlinkedCandidateGroup(selectedGroup));
   const comparisonCandidates = pendingGroupCandidates.filter(candidate => (
     hasCharacterFactComparison(candidate) && candidate.analysisMode !== 'ORDERED_PROVISIONAL'
   ));
@@ -1008,7 +1069,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           advance.target = nextKey;
           focusGroupKeyRef.current = nextKey;
           if (advance.linkedCandidateId) {
-            setRecentLink(link => link && link.candidateId === advance.linkedCandidateId ? { ...link, advancedGroupKey: nextKey } : link);
+            setRecentLink(link => link && link.candidateIds[0] === advance.linkedCandidateId ? { ...link, advancedGroupKey: nextKey } : link);
           }
           preserveViewport();
           setSearchParams(previous => {
@@ -1068,6 +1129,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     setEditCandidate(null);
     setMatchTarget(null);
     setGroupMatchOpen(false);
+    setSelectionMatchOpen(false);
+    setSelectionRejection(null);
   }, [selectedGroup]);
 
   useEffect(() => {
@@ -1076,6 +1139,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     setEditCandidate(null);
     setMatchTarget(null);
     setGroupMatchOpen(false);
+    setCheckedSelection({ groupKey: null, ids: [] });
+    setSelectionMatchOpen(false);
+    setSelectionRejection(null);
   }, [batchId, sourceAnalysisJobId, workId]);
 
   const currentApplicationKey = (candidate: SettingCandidateResponse) => hasCharacterFactComparison(candidate) ? bookReviewValueKey(
@@ -1175,13 +1241,23 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
    * 이동은 안내의 버튼으로 작가가 고른다. 이 후보가 마지막이라 묶음이 비면 직전 목록의 다음 묶음을 연다.
    */
   const afterMatchSaved = async (candidateId: string, saved: SettingCandidateResponse | undefined, targetWorkId = workId) => {
-    onClearApplicationModes([candidateId]);
     const context = matchContextRef.current.get(candidateId);
     matchContextRef.current.delete(candidateId);
     setMatchTarget(current => current?.candidate.id === candidateId ? null : current);
-    if (saved) {
+    await afterLinksSaved([candidateId], saved ? [saved] : [], context, targetWorkId);
+  };
+
+  /**
+   * 단건·선택 연결의 공통 후속 처리. 현재 묶음을 유지하고, 연결한 후보가 묶음을 떠나면 안내를 준비하며,
+   * 묶음이 비면 직전 목록 순서의 다음 묶음을 연다(재조회가 끝난 뒤 판단).
+   */
+  const afterLinksSaved = async (candidateIds: string[], savedCandidates: SettingCandidateResponse[],
+    context: MatchContext | undefined, targetWorkId = workId) => {
+    onClearApplicationModes(candidateIds);
+    savedCandidates.forEach(saved => {
       queryClient.setQueryData(listOptions.queryKey, previous => replaceCandidateInList(previous, saved));
-    }
+    });
+    const saved = savedCandidates[0];
     let advance: PendingGroupAdvance | null = null;
     if (context?.sourceGroupKey && isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
       preserveViewport();
@@ -1191,7 +1267,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       // 안내는 후보가 실제로 이 묶음을 떠날 때만 준비한다. 화면에 띄울지는 재조회 결과로 다시 판단한다.
       const leavesGroup = hiddenByFilter || (targetGroupKey ?? normalizeCharacterGroupName(saved?.entityName)) !== context.sourceGroupKey;
       setRecentLink(saved && leavesGroup ? {
-        candidateId,
+        candidateIds,
         sourceGroupKey: context.sourceGroupKey,
         label: context.label,
         discovery: context.discovery,
@@ -1200,7 +1276,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         hiddenByFilter,
       } : null);
       advance = { groupKey: context.sourceGroupKey, previous: context.previousGroups, force: false, armed: false,
-        linkedCandidateId: candidateId };
+        linkedCandidateId: candidateIds[0] };
       advanceRef.current = advance;
     }
     await invalidateCandidateData(targetWorkId);
@@ -1264,8 +1340,56 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       await afterMatchSaved(variables.path.candidateId, response.data, variables.path.workId);
     },
   });
+  /** 체크한 후보만 연결한다. 거절되면 서버가 알려 준 후보만 표시하고 선택·모달 입력은 그대로 둔다. */
+  const selectedMatchMutation = useMutation({
+    ...guardReviewSourceMutation(updateSettingCandidateSelectedCharacterMatchMutation(), sourceScope.canWrite),
+    onError: async error => {
+      if (isResponseLost(error)) return;
+      selectionIntentRef.current = null;
+      const apiError = toApiError(error);
+      const rejectedIds = Array.isArray(apiError?.context?.candidateIds)
+        ? apiError.context.candidateIds.filter((id): id is string => typeof id === 'string') : [];
+      setSelectionRejection(rejectedIds.length
+        ? { candidateIds: rejectedIds, message: errorMessage(error, '이 설정은 지금 연결할 수 없어요.') } : null);
+      await refreshAutomaticApplicationState(error);
+      // 다른 곳에서 확정·처리된 후보 때문에 거절되면 최신 상태를 다시 받아 카드에 반영한다.
+      if (apiError?.status === 409) await invalidateCandidateData();
+    },
+    onSuccess: async (response, variables) => {
+      const intent = selectionIntentRef.current;
+      selectionIntentRef.current = null;
+      await afterSelectionLinked(variables.body.candidateIds, response.data?.candidates ?? [], intent?.context, variables.path.workId);
+    },
+  });
+
+  /** 선택 연결이 저장됐을 때(응답 또는 재조회로 확인) 선택을 비우고 단건과 같은 위치 유지·안내를 적용한다. */
+  const afterSelectionLinked = async (candidateIds: string[], savedCandidates: SettingCandidateResponse[],
+    context: MatchContext | undefined, targetWorkId = workId) => {
+    setSelectionMatchOpen(false);
+    setCheckedSelection({ groupKey: null, ids: [] });
+    setSelectionRejection(null);
+    setSelectionRequestKey(null);
+    await afterLinksSaved(candidateIds, savedCandidates, context, targetWorkId);
+  };
+
+  /** 이름 있는 묶음 전체 연결은 연결한 묶음으로 화면을 옮긴다(묶음 전체가 함께 이동하므로). */
+  const afterGroupLinked = async (candidateIds: string[], groupKey: string | null | undefined, targetWorkId = workId) => {
+    onClearApplicationModes(candidateIds);
+    setGroupMatchOpen(false);
+    selectionGroupRef.current = null;
+    if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (groupKey) next.set('group', groupKey);
+        next.delete('candidate');
+        return next;
+      }, { replace: true, state: location.state });
+    }
+    await invalidateCandidateData(targetWorkId);
+  };
 
   const saveTracker = useCandidateSaveTracker<CharacterSaveIntent>({
+    covers: coveredCandidateIds,
     check: async (_key, intent): Promise<SaveCheckResult> => {
       if (intent.kind === 'confirm') {
         // 응답을 잃은 확정도 재조회에서 그룹이 사라지면 성공으로 본다. 그 전에 첫 그룹으로 되돌리지 않게 붙잡아 둔다.
@@ -1279,6 +1403,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         return group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id)
           && candidate.reviewStatus === 'PENDING_REVIEW') ? 'different' : 'matched';
       }
+      if (intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') {
+        // 한 요청으로 바뀐 후보를 모두 다시 읽어 요청한 대상에 연결됐는지 본다. 전부 같아야 저장된 것으로 본다.
+        const linked = await Promise.all(intent.candidateIds.map(fetchCandidate));
+        void invalidateCandidateData();
+        if (linked.some(candidate => !candidate)) return 'unknown';
+        return linked.every(candidate => candidateMatchesIntent(candidate!, intent)) ? 'matched' : 'different';
+      }
       const candidate = await fetchCandidate(intent.candidateId);
       void invalidateCandidateData();
       if (!candidate) return 'unknown';
@@ -1287,6 +1418,14 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     onConfirmed: (_key, intent) => {
       if (intent.kind === 'confirm') {
         void afterConfirmSaved(intent.variables, intent.groupKey, intent.previousGroups);
+        return;
+      }
+      if (intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') {
+        const verifiedCandidates = intent.candidateIds.flatMap(candidateId => queryClient.getQueryData(getSettingCandidateOptions({
+          path: { workId, candidateId }, query: { sourceAnalysisJobId, batchId },
+        }).queryKey)?.data ?? []);
+        if (intent.kind === 'selectedMatch') void afterSelectionLinked(intent.candidateIds, verifiedCandidates, intent.context);
+        else void afterGroupLinked(intent.candidateIds, linkedGroupKey(intent.variables.body));
         return;
       }
       const verified = queryClient.getQueryData(getSettingCandidateOptions({
@@ -1337,6 +1476,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     };
     saveTracker.begin(key, intent);
     if (intent.kind === 'match') matchMutation.mutate(intent.variables, callbacks);
+    else if (intent.kind === 'selectedMatch') {
+      selectionIntentRef.current = intent;
+      selectedMatchMutation.mutate(intent.variables, callbacks);
+    } else if (intent.kind === 'groupMatch') groupMatchMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'update') updateMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'dismiss') dismissMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'retry') retryComparisonMutation.mutate(intent.variables, callbacks);
@@ -1347,20 +1490,12 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   const groupMatchMutation = useMutation({
     ...guardReviewSourceMutation(updateSettingCandidateGroupCharacterMatchMutation(), sourceScope.canWrite),
-    onError: refreshAutomaticApplicationState,
+    onError: async error => {
+      if (isResponseLost(error)) return;
+      await refreshAutomaticApplicationState(error);
+    },
     onSuccess: async (response, variables) => {
-      onClearApplicationModes(variables.body.candidateIds);
-      setGroupMatchOpen(false);
-      selectionGroupRef.current = null;
-      if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
-        setSearchParams(previous => {
-          const next = new URLSearchParams(previous);
-          if (response.data?.groupKey) next.set('group', response.data.groupKey);
-          next.delete('candidate');
-          return next;
-        }, { replace: true, state: location.state });
-      }
-      await invalidateCandidateData(variables.path.workId);
+      await afterGroupLinked(variables.body.candidateIds, response.data?.groupKey, variables.path.workId);
     },
   });
 
@@ -1389,15 +1524,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const groupConfirmError = respondedError(confirmMutation)
     ? errorMessage(confirmMutation.error, '캐릭터 설정 묶음을 확정하지 못했습니다. 다시 시도해 주세요.')
     : null;
-  const groupMatchError = groupMatchMutation.isError
+  const groupMatchSaveKey = `group-match:${pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []).join(',')}`;
+  const groupMatchError = unverifiedMessageFor(groupMatchSaveKey) ?? (respondedError(groupMatchMutation)
     ? errorMessage(groupMatchMutation.error, '캐릭터 연결을 일괄 적용하지 못했습니다.')
-    : null;
+    : null);
   const actionPending = sourceScope.blocked || confirmMutation.isPending
     || dismissMutation.isPending
     || updateMutation.isPending
     || matchMutation.isPending
     || retryComparisonMutation.isPending
     || groupMatchMutation.isPending
+    || selectedMatchMutation.isPending
     // 필터·페이지가 바뀐 직후 placeholder 목록은 새 URL 조건과 일치하지 않는다.
     // 조회용 탐색은 유지하되 이전 행에 대한 쓰기만 잠근다.
     || listQuery.isPlaceholderData;
@@ -1410,6 +1547,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     matchMutation.reset();
     retryComparisonMutation.reset();
     groupMatchMutation.reset();
+    selectedMatchMutation.reset();
   };
   /** 작가가 직접 다른 묶음·필터·페이지로 옮기면 연결 안내와 자동 다음 묶음 이동을 거둔다. */
   const clearNavigationIntent = () => {
@@ -1419,6 +1557,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   const updateFilters = (nextReview: ReviewFilter, nextMatch: MatchFilter) => {
     setMobileDetailOpen(false);
+    clearCheckedSelection();
     setEditCandidate(null);
     setMatchTarget(null);
     setGroupMatchOpen(false);
@@ -1440,6 +1579,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   const selectGroup = (groupKey: string) => {
     preserveViewport();
+    if (groupKey !== selectedGroup?.groupKey) clearCheckedSelection();
     resetActionsIfSettled();
     clearNavigationIntent();
     setMobileDetailOpen(true);
@@ -1456,6 +1596,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   /** 연결 안내의 버튼으로만 연결한 묶음으로 이동한다. 실제 페이지는 후보 ID로 서버에서 찾는다. */
   const openLinkedGroup = (link: RecentCandidateLink) => {
     preserveViewport();
+    clearCheckedSelection();
     resetActionsIfSettled();
     clearNavigationIntent();
     setMobileDetailOpen(true);
@@ -1466,12 +1607,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       const next = new URLSearchParams(previous);
       if (link.targetGroupKey) next.set('group', link.targetGroupKey);
       else next.delete('group');
-      next.set('candidate', link.candidateId);
+      next.set('candidate', link.candidateIds[0]);
       return next;
     }, { replace: true, state: location.state });
   };
   const changePage = (page: number) => {
     setMobileDetailOpen(false);
+    clearCheckedSelection();
     clearNavigationIntent();
     selectionGroupRef.current = null;
     setSearchParams(previous => {
@@ -1513,17 +1655,18 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
-    if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe) return;
-    if (groupHasInvalidCandidate || groupAutomaticPending) {
+    if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe
+      || saveTracker.busy(groupMatchSaveKey)) return;
+    if (groupHasInvalidCandidate || groupAutomaticPending || selectedGroupUnlinked) {
       setGroupMatchOpen(false);
       return;
     }
-    groupMatchMutation.mutate({
+    submitIntent({ kind: 'groupMatch', candidateIds, variables: {
       query: { sourceAnalysisJobId }, path: { workId },
       body: resolution === 'MATCH_EXISTING'
         ? { batchId, candidateIds, resolutionType: resolution, matchedCharacterId: value }
         : { batchId, candidateIds, resolutionType: resolution, entityName: value },
-    });
+    } });
   };
   const matchSelectedCandidate = (candidateId: string, resolution: MatchResolution, value: string) => {
     if (actionPending || saveTracker.busy(candidateId)) return;
@@ -1548,6 +1691,69 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         : { resolutionType: resolution, entityName: value },
     } });
   };
+  /** 체크할 수 없는 이유. 서버가 거절할 상태(자동 반영 대기·값 오류·비교 처리 중)와 저장 확인 중인 후보를 막는다. */
+  const selectionBlockedReason = (candidate: SettingCandidateResponse): string | null => (
+    isAutomaticApplicationPending(candidate) ? automaticApplicationPendingMessage(candidate.source)
+      : isCandidateValueInvalid(candidate) ? '값 형식이 잘못된 설정은 수정하거나 제외한 뒤 연결해 주세요.'
+      : candidate.comparisonStatus === 'PROCESSING' ? '비교 중인 설정은 비교가 끝난 뒤 연결할 수 있어요.'
+      : saveTracker.busy(candidate.id) ? '저장 결과를 확인하고 있어요.'
+      : null
+  );
+  // 화면에 그려진 대기 후보만 체크할 수 있다. 필터로 숨은 후보는 선택 연결에 포함되지 않는다.
+  const checkableCandidates = pendingGroupCandidates.filter(candidate => candidate.id && !selectionBlockedReason(candidate));
+  const checkedIds = checkedSelection.groupKey === (selectedGroup?.groupKey ?? null) ? checkedSelection.ids : [];
+  const checkedCandidates = pendingGroupCandidates.filter(candidate => candidate.id && checkedIds.includes(candidate.id));
+  const checkedCandidateIds = checkedCandidates.map(candidate => candidate.id!);
+  const selectionSaveState = saveTracker.stateFor(selectionRequestKey);
+  const toggleCandidateSelection = (candidateId: string, checked: boolean) => {
+    const groupKey = selectedGroup?.groupKey ?? null;
+    setSelectionRejection(null);
+    setCheckedSelection(current => {
+      const ids = current.groupKey === groupKey ? current.ids : [];
+      return { groupKey, ids: checked ? [...new Set([...ids, candidateId])] : ids.filter(id => id !== candidateId) };
+    });
+  };
+  const toggleAllSelection = (checked: boolean) => {
+    setSelectionRejection(null);
+    setCheckedSelection({ groupKey: selectedGroup?.groupKey ?? null,
+      ids: checked ? checkableCandidates.map(candidate => candidate.id!) : [] });
+  };
+  const openSelectionMatch = () => {
+    if (!checkedCandidates.length || actionPending) return;
+    selectedMatchMutation.reset();
+    setSelectionMatchOpen(true);
+  };
+  /** 체크한 후보만 고른 인물(또는 같은 이름의 새 인물)에 연결한다. 응답을 잃으면 재조회로 결과를 확인한다. */
+  const matchCheckedCandidates = (resolution: MatchResolution, value: string) => {
+    const candidateIds = checkedCandidateIds;
+    if (!selectedGroup || candidateIds.length === 0 || actionPending
+      || candidateIds.some(candidateId => saveTracker.busy(candidateId))) return;
+    if (checkedCandidates.some(candidate => isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate))) {
+      setSelectionMatchOpen(false);
+      return;
+    }
+    const first = checkedCandidates[0];
+    setRecentLink(null);
+    setSelectionRejection(null);
+    setSelectionRequestKey(`selected-match:${candidateIds.join(',')}`);
+    submitIntent({ kind: 'selectedMatch', candidateIds, context: {
+      sourceGroupKey: selectedGroup.groupKey ?? null,
+      previousGroups: groups,
+      label: candidateIds.length > 1 ? `${candidateIds.length}개 설정`
+        : hasCharacterFactComparison(first)
+          ? toSettingDisplay(first.attributeName, first.attributeDisplayName, labels).nameLabel
+          : first.rawEntityMention || first.entityName || '이름 없는 인물',
+      discovery: candidateIds.length === 1 && !hasCharacterFactComparison(first),
+    }, variables: {
+      query: { sourceAnalysisJobId }, path: { workId },
+      body: resolution === 'MATCH_EXISTING'
+        ? { batchId, candidateIds, resolutionType: resolution, matchedCharacterId: value }
+        : { batchId, candidateIds, resolutionType: resolution, entityName: value },
+    } });
+  };
+  const selectionMatchError = unverifiedMessageFor(selectionRequestKey) ?? (respondedError(selectedMatchMutation)
+    ? errorMessage(selectedMatchMutation.error, '선택한 설정을 연결하지 못했습니다. 다시 시도해 주세요.')
+    : null);
   const retryCandidateComparison = (candidateId: string) => {
     const candidate = selectedGroupCandidates.find(item => item.id === candidateId);
     if (actionPending || !candidate || candidate.analysisMode === 'ORDERED_PROVISIONAL'
@@ -1613,9 +1819,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         : pendingGroupCandidates.some(candidate => !candidate.id)
           ? '식별할 수 없는 설정이 있어 확정할 수 없습니다.'
           : null;
-  const selectedGroupUnlinked = Boolean(selectedGroup && isUnlinkedCandidateGroup(selectedGroup));
   // 연결한 후보가 재조회 뒤 이 묶음에서 빠졌을 때만 안내한다. 같은 묶음에 남으면 카드만 갱신된다.
-  const visibleRecentLink = recentLink && !selectedGroupCandidates.some(candidate => candidate.id === recentLink.candidateId)
+  const visibleRecentLink = recentLink && !selectedGroupCandidates.some(candidate => candidate.id && recentLink.candidateIds.includes(candidate.id))
     && (selectedGroupKey === recentLink.sourceGroupKey
       || recentLink.advancedGroupKey != null && selectedGroupKey === recentLink.advancedGroupKey)
     ? recentLink : null;
@@ -1899,8 +2104,11 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 </span>
                               </h2>
                             </div>
-                            {pendingGroupCandidates.length > 0 && (
+                            {/* 미연결 묶음은 서로 다른 인물일 수 있어 묶음 전체 연결을 두지 않고 체크한 설정만 연결한다. */}
+                            {pendingGroupCandidates.length > 0 && !selectedGroupUnlinked && (
                               <ActionButton
+                                title="같은 이름 묶음의 대기 설정 전체를 한 인물에 연결해요."
+                                ariaDescribedBy="character-link-scope-help"
                                 disabled={actionPending
                                   || groupAutomaticPending
                                   || groupHasInvalidCandidate
@@ -1928,10 +2136,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 ? '인물이 확인되지 않은 설정이에요. 같은 인물로 가정하지 않으니 설정마다 대상을 확인해 연결해 주세요.'
                                 : '같은 캐릭터에서 추출된 설정을 아래로 이어서 검토하고 남은 항목을 함께 확정합니다.'}
                             </p>
+                            {checkableCandidates.length > 0 && <div className="review-selection-header">
+                              <label className="review-select-all">
+                                <input type="checkbox" checked={checkedCandidates.length > 0 && checkableCandidates.every(candidate => checkedIds.includes(candidate.id!))}
+                                  ref={element => { if (element) element.indeterminate = checkedCandidates.length > 0 && checkedCandidates.length < checkableCandidates.length; }}
+                                  disabled={actionPending} onChange={event => toggleAllSelection(event.target.checked)} />
+                                모두 선택({checkableCandidates.length})
+                              </label>
+                              <span id="character-link-scope-help" className="review-selection-header__help">
+                                {selectedGroupUnlinked ? '같은 인물의 설정만 체크해 한 번에 연결할 수 있어요.'
+                                  : '‘캐릭터 일괄 연결’은 이 이름 묶음 전체를, ‘선택 항목 연결’은 체크한 설정만 연결해요.'}
+                              </span>
+                            </div>}
                             {pendingGroupCandidates.some(candidate => candidate.manualReviewAvailable
                               && !isAutomaticApplicationPending(candidate)) && <OrderedReviewImpactNotice />}
                             {visibleRecentLink && <ReviewNotice tone="info"
-                              title={`‘${visibleRecentLink.label}’ ${visibleRecentLink.discovery ? '인물 후보를' : '설정을'} ‘${visibleRecentLink.characterName}’에 연결했어요.`}
+                              title={visibleRecentLink.candidateIds.length > 1
+                                ? `${visibleRecentLink.candidateIds.length}개를 ‘${visibleRecentLink.characterName}’에 연결했어요.`
+                                : `‘${visibleRecentLink.label}’ ${visibleRecentLink.discovery ? '인물 후보를' : '설정을'} ‘${visibleRecentLink.characterName}’에 연결했어요.`}
                               action={<span className="review-cb-notice__buttons">
                                 <button type="button" className="review-cb-secondary" onClick={() => openLinkedGroup(visibleRecentLink)}>연결한 묶음 보기</button>
                                 <button type="button" className="review-cb-secondary" onClick={() => setRecentLink(null)}>닫기</button>
@@ -1997,6 +2219,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 onApplicationModeChange(candidate.id!, mode);
                               }}
                               onRetryComparison={() => retryCandidateComparison(candidate.id!)}
+                              selection={candidate.reviewStatus === 'PENDING_REVIEW' ? {
+                                checked: checkedIds.includes(candidate.id),
+                                disabled: actionPending || Boolean(selectionBlockedReason(candidate)),
+                                disabledReason: selectionBlockedReason(candidate) ?? undefined,
+                                onChange: checked => toggleCandidateSelection(candidate.id!, checked),
+                              } : undefined}
+                              selectionError={selectionRejection?.candidateIds.includes(candidate.id) ? selectionRejection.message : null}
                             />
                           ))}
 
@@ -2008,6 +2237,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
                               display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                             }}>
+                              {checkedCandidates.length > 0 && <div className="review-selection-bar" role="region" aria-label="선택한 설정">
+                                <div className="review-selection-bar__summary">
+                                  <strong>{[`${checkedCandidates.length}개 선택`, candidateEpisodesLabel(checkedCandidates)].filter(Boolean).join(' · ')}</strong>
+                                  {(matchFilter !== 'ALL' || legacyGroupedActionsUnsafe) && <span>필터로 숨은 후보는 포함되지 않아요.</span>}
+                                </div>
+                                <div className="review-selection-bar__actions">
+                                  <ActionButton tone={C.primary} disabled={actionPending || saveTracker.busy(selectionRequestKey)}
+                                    onClick={openSelectionMatch}>선택 항목 연결</ActionButton>
+                                  <ActionButton disabled={selectedMatchMutation.isPending || selectionSaveState.kind !== 'idle'} onClick={clearCheckedSelection}>선택 해제</ActionButton>
+                                </div>
+                                {selectionSaveState.kind === 'unverified' && <div className="review-group-save-state" role="status">
+                                  <span>{unverifiedSaveMessage(selectionSaveState.attempt, selectionSaveState.final)}</span>
+                                  {selectionSaveState.final && <span className="review-cb-notice__buttons">
+                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={selectionSaveState.check}>{REVIEW_SAVE_TEXT.check}</button>
+                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={selectionSaveState.retry}>{REVIEW_SAVE_TEXT.retry}</button>
+                                  </span>}
+                                </div>}
+                              </div>}
                               <div style={{ flex: 1, minWidth: 220 }}>
                                 <strong style={{ color: 'var(--ch-ink)', fontSize: 13 }}>
                                   {selectedGroupUnlinked
@@ -2112,6 +2359,25 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
             setGroupMatchOpen(false);
           }}
           onSubmit={matchSelectedGroup}
+        />
+      )}
+      {selectedGroup && selectionMatchOpen && checkedCandidates[0] && (
+        <CharacterMatchModal
+          key={`selection-${selectedGroup.groupKey}`}
+          workId={workId}
+          candidate={checkedCandidates[0]}
+          candidates={checkedCandidates}
+          selection
+          initialResolution="MATCH_EXISTING"
+          pending={selectedMatchMutation.isPending}
+          automaticPending={checkedCandidates.some(isAutomaticApplicationPending)}
+          readOnly={sourceScope.blocked}
+          error={selectionMatchError}
+          onClose={() => {
+            if (selectedMatchMutation.isPending) return;
+            setSelectionMatchOpen(false);
+          }}
+          onSubmit={matchCheckedCandidates}
         />
       )}
       {matchTarget?.candidate.id && (

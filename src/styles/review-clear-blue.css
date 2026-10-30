@@ -257,3 +257,25 @@
   .review-match-results { min-height: 120px; }
   .review-link-preview__section dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+
+/* #211 후속 2차: 체크한 후보만 연결. 체크박스는 44px 터치 영역을 갖고, 선택 바는 확정 영역 위에 함께 고정된다. */
+.review-cb-selectable-heading { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.review-cb-selectable-heading > .review-cb-heading { flex: 1; min-width: 0; }
+.review-select-check { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; margin: 8px 0 0 -10px; border-radius: 10px; cursor: pointer; }
+.review-select-check:has(input:disabled) { cursor: not-allowed; }
+.review-select-check input, .review-select-all input { width: 18px; height: 18px; margin: 0; accent-color: var(--ch-primary); cursor: inherit; }
+.review-select-check:has(input:focus-visible), .review-select-all:has(input:focus-visible) { outline: 3px solid var(--ch-primary); outline-offset: 1px; }
+.review-selection-header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 10px; }
+.review-select-all { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 4px; border-radius: 9px; color: var(--ch-text); font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-selection-header__help { flex: 1 1 220px; color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; }
+.review-selection-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--ch-primary); border-radius: 10px; background: var(--ch-surface-soft); }
+.review-selection-bar__summary { display: flex; flex: 1 1 200px; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; line-height: 1.6; }
+.review-selection-bar__summary strong { color: var(--ch-ink); font-size: 13px; }
+.review-selection-bar__summary span { color: var(--ch-warning-ink); }
+.review-selection-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.setting-review-screen .setting-candidate-detail.is-selection-invalid { border-color: var(--ch-danger) !important; box-shadow: inset 0 0 0 1px var(--ch-danger), 0 7px 24px rgb(31 55 88 / 5%); }
+@media (max-width: 650px) {
+  .review-select-check { margin: 4px 0 0 -6px; }
+  .review-selection-bar__actions { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .review-selection-bar__actions .review-action { min-height: 44px !important; }
+}

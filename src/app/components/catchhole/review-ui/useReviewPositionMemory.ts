@@ -50,12 +50,14 @@ export function useReviewPositionMemory({ mainRef, storageKey, groupKey, ready }
 
   const save = useCallback(() => {
     if (!storageKey || !settledRef.current) return;
+    // scroll 이벤트는 다음 프레임에 오므로, 화면이 아직 있으면(새로고침) 현재 값을 직접 읽는다.
+    if (mainRef.current) scrollTopRef.current = mainRef.current.scrollTop;
     saveReviewPosition(storageKey, {
       scrollTop: scrollTopRef.current,
       candidateId: candidateIdRef.current,
       groupKey: groupKeyRef.current,
     });
-  }, [storageKey]);
+  }, [mainRef, storageKey]);
 
   useEffect(() => {
     window.addEventListener('beforeunload', save);

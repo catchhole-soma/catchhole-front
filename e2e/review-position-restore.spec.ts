@@ -139,6 +139,8 @@ async function scrollAndFocusCandidate(page: Page) {
   await expect(page.locator('[data-candidate-id="a-5"]')).toBeFocused();
   await main(page).evaluate(element => { element.scrollTop = 400; });
   await expect.poll(() => main(page).evaluate(element => element.scrollTop)).toBe(400);
+  // 화면은 scroll 이벤트로 위치를 기억한다. 이벤트가 전달되는 다음 프레임까지 기다린 뒤 탭을 바꾼다.
+  await main(page).evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 test('탭을 오가도 캐릭터 검토의 스크롤과 초점 후보를 복원한다', async ({ page }) => {

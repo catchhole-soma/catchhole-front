@@ -41,10 +41,17 @@ function characterFacts(character: CharacterSummaryResponse): string[] {
 }
 
 /** 무엇을 연결하는지 모달 맨 위에서 다시 보여 준다. 카드로 돌아가지 않고 대상과 대조하기 위함이다. */
-function LinkSubjectSummary({ candidates, grouped }: { candidates: SettingCandidateResponse[]; grouped: boolean }) {
+function LinkSubjectSummary({ candidates, grouped, selection }: { candidates: SettingCandidateResponse[]; grouped: boolean; selection: boolean }) {
   const labels = useCharacterSettingLabels();
   const first = candidates[0];
   if (!first) return null;
+  if (selection) {
+    return <div className="review-match-summary" role="group" aria-label="연결할 설정">
+      <strong>선택 {candidates.length}개</strong>
+      {candidateEpisodesLabel(candidates) && <span>{candidateEpisodesLabel(candidates)}</span>}
+      <span>적용: 연결만(내용과 반영 방식은 각 설정에서 결정해요)</span>
+    </div>;
+  }
   if (grouped) {
     return <div className="review-match-summary" role="group" aria-label="연결할 설정">
       <strong>설정 {candidates.length}개</strong>
@@ -70,6 +77,7 @@ export function CharacterMatchModal({
   readOnly = false,
   error,
   groupCandidateCount,
+  selection = false,
   onClose,
   onSubmit,
 }: {
@@ -85,6 +93,8 @@ export function CharacterMatchModal({
   readOnly?: boolean;
   error: string | null;
   groupCandidateCount?: number;
+  /** 체크한 후보만 연결한다(selected-character-match). 묶음 전체 연결과 문구를 구분한다. */
+  selection?: boolean;
   onClose: () => void;
   onSubmit: (resolution: MatchResolution, value: string) => void;
 }) {
@@ -162,8 +172,10 @@ export function CharacterMatchModal({
 
   return (
     <ModalLayer
-      title={groupCandidateCount ? '캐릭터 일괄 연결' : '캐릭터 연결 확인'}
-      description={groupCandidateCount
+      title={selection ? '선택 항목 연결' : groupCandidateCount ? '캐릭터 일괄 연결' : '캐릭터 연결 확인'}
+      description={selection
+        ? `체크한 설정 ${linkedCandidates.length}개를 같은 인물에 연결합니다. 체크하지 않은 설정은 바뀌지 않아요.`
+        : groupCandidateCount
         ? `“${candidate.entityName || '이름 없음'}”의 검토 대기 설정 ${groupCandidateCount}개에 같은 연결 결정을 적용합니다.`
         : `“${candidate.rawEntityMention || candidate.entityName || '이름 없음'}” 후보가 누구인지 선택해 주세요.`}
       pending={pending}
@@ -171,10 +183,10 @@ export function CharacterMatchModal({
       onClose={onClose}
     >
       <form className="review-modal__form" onSubmit={submit} noValidate>
-        <LinkSubjectSummary candidates={linkedCandidates} grouped={Boolean(groupCandidateCount)} />
+        <LinkSubjectSummary candidates={linkedCandidates} grouped={Boolean(groupCandidateCount)} selection={selection} />
         {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
         {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
-        {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
+        {!automaticPending && linkedCandidates.some(item => item.manualReviewAvailable) && <OrderedReviewImpactNotice />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 20 }}>
           {([
             ['MATCH_EXISTING', '기존 캐릭터에 연결'],

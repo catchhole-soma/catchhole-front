@@ -8,14 +8,19 @@ export function ActionButton({
   children,
   disabled = false,
   disabledTitle,
+  title,
   tone = C.t2,
   type = 'button',
   ariaPressed,
+  ariaDescribedBy,
   onClick,
 }: {
   children: ReactNode;
   disabled?: boolean;
   disabledTitle?: string;
+  /** 사용할 수 있을 때의 보조 설명. */
+  title?: string;
+  ariaDescribedBy?: string;
   tone?: string;
   type?: 'button' | 'submit';
   ariaPressed?: boolean;
@@ -26,9 +31,10 @@ export function ActionButton({
       type={type}
       disabled={disabled}
       aria-pressed={ariaPressed}
+      aria-describedby={ariaDescribedBy}
       onClick={onClick}
       className="review-action"
-      title={disabled ? disabledTitle : undefined}
+      title={disabled ? disabledTitle : title}
       style={{
         minHeight: 38, padding: '0 18px', borderRadius: 7,
         border: `1px solid ${disabled ? C.border : tone}`,

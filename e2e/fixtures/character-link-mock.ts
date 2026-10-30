@@ -57,6 +57,8 @@ export interface CharacterLinkMockOptions {
   failDetail?: (id: string) => boolean;
   /** 선택 연결 요청에 응답 대신 오류를 돌려줄 때 사용한다(한 번 쓰면 사라진다). */
   selectedMatchError?: { status: number; code: string; message: string; candidateIds: string[] } | null;
+  /** 선택 연결을 서버에 반영한 뒤 응답만 끊는다(한 번). */
+  loseSelectedMatchResponse?: boolean;
   groupPageSize?: number;
 }
 
@@ -68,6 +70,7 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
     detailRequests: [] as string[],
     writes: [] as Array<{ path: string; body: Record<string, unknown> }>,
     selectedMatchError: options.selectedMatchError ?? null,
+    loseSelectedMatchResponse: options.loseSelectedMatchResponse ?? false,
   };
   const success = (route: Route, data: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) });
   const failure = (route: Route, status: number, code: string, message: string, context: Record<string, unknown> = {}) => route.fulfill({
@@ -151,6 +154,10 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
         }
         const selected = (body.candidateIds as string[]).map(id => state.candidates.find(candidate => candidate.id === id)!);
         selected.forEach(candidate => link(candidate, body));
+        if (state.loseSelectedMatchResponse) {
+          state.loseSelectedMatchResponse = false;
+          return route.abort('failed');
+        }
         const first = selected[0];
         return success(route, {
           groupKey: first.matchedCharacterId ? `existing:${first.matchedCharacterId}` : normalize(first.entityName),

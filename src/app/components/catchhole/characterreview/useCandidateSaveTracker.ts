@@ -14,13 +14,15 @@ type TrackerEntry<TIntent> =
  * 읽지 못하면 1→3→8초 뒤 최대 3회 다시 확인한다. 서버 쓰기는 같은 요청을 다시 보내도 같은 최종 상태가 되는
  * 계약이지만, 버전 검증 때문에 재전송 전에 반드시 다시 읽어 이미 저장된 경우를 먼저 걸러 낸다.
  */
-export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend }: {
+export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, covers }: {
   /** 서버 값을 다시 읽어 의도대로 저장됐는지 판단한다. 읽지 못하면 'unknown'. */
   check: (key: string, intent: TIntent) => Promise<SaveCheckResult>;
   /** 응답 없이 저장이 확인됐을 때 정상 응답과 같은 후속 처리를 한다. */
   onConfirmed: (key: string, intent: TIntent) => void;
   /** 작가가 다시 시도를 누르면 최신 상태를 기준으로 같은 요청을 보낸다. */
   resend: (key: string, intent: TIntent) => void;
+  /** 여러 후보를 한 요청으로 바꾸는 의도(선택·묶음 연결)가 함께 잠그는 후보 키. */
+  covers?: (intent: TIntent) => string[];
 }) {
   const [entries, setEntries] = useState<Record<string, TrackerEntry<TIntent>>>({});
   const entriesRef = useRef(entries);
@@ -128,13 +130,14 @@ export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend }:
     return { kind: 'unverified', attempt: entry.attempt, final: entry.final,
       retry: () => retry(key), check: () => recheck(key) };
   };
+  /** 이 키를 직접 쓰거나, 여러 후보를 바꾸는 요청이 이 키를 함께 덮고 있는 항목. */
+  const entriesFor = (key: string) => Object.entries(entries).flatMap(([entryKey, entry]) => (
+    entryKey === key || covers?.(entry.intent).includes(key) ? [entry] : []
+  ));
   /** 저장 결과가 확정되지 않은 대상. 그룹 확정은 확인이 끝날 때까지 막는다. */
-  const unresolved = (key?: string | null) => Boolean(key && entries[key]);
+  const unresolved = (key?: string | null) => Boolean(key && entriesFor(key).length);
   /** 요청 중이거나 자동 확인 중인 대상. 같은 대상의 다른 쓰기를 막는다. */
-  const busy = (key?: string | null) => {
-    const entry = key ? entries[key] : undefined;
-    return Boolean(entry && (entry.kind === 'saving' || !entry.final));
-  };
+  const busy = (key?: string | null) => Boolean(key && entriesFor(key).some(entry => entry.kind === 'saving' || !entry.final));
 
   return { begin, settle, lose, stateFor, unresolved, busy };
 }
