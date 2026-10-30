@@ -39,7 +39,7 @@ type Basis = {
 };
 type Finding = { findingId: string; branch: 'SETTING' | 'TYPO' };
 type FindingDetail = Finding & {
-  payload: { impact?: string } | null;
+  payload: { impact?: string; reason?: string } | null;
   subject: { type: string; id: string | null; name: string } | null;
   settingName: string | null;
   settingKey: string | null;
@@ -60,10 +60,14 @@ async function readFindings(request: APIRequestContext, reportUrl: string, heade
 
 const characterBasis = (finding: FindingDetail) => (finding.basis ?? []).filter(entry => entry.subjectType === 'CHARACTER' && entry.subjectName === CHARACTER);
 
-/** 서윤 나이 충돌: 서윤 basis가 나이 slot을 가리키거나, 서윤을 비교한 항목의 설정 키가 나이다. */
+/**
+ * soft 판정용 서윤 나이 충돌: 서윤 캐릭터 basis가 있고 나이를 가리키는 표시가 하나라도 있다. 서버는 모델 문구가 slot과 정확히 맞을 때만
+ * basis slot·`settingKey`를 채우므로(Backend validation-review-v1.md B2 "알려진 한계") 설정명과 판정 사유 문구도 본다. 정정 대상 선택에는 쓰지 않는다.
+ */
 const isAgeConflict = (finding: FindingDetail) => {
   const entries = characterBasis(finding);
-  return entries.length > 0 && (entries.some(entry => entry.factType === 'AGE') || finding.settingKey === 'AGE:age');
+  return entries.length > 0 && (entries.some(entry => entry.factType === 'AGE') || finding.settingKey === 'AGE:age'
+    || (finding.settingName ?? '').includes('나이') || /나이|살/.test(finding.payload?.reason ?? ''));
 };
 
 /**
@@ -165,6 +169,7 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     // 정정할 항목은 서윤 캐릭터 basis가 있는 설정 검사 항목이다. 없으면 심은 나이 모순을 서버 기준과 잇지 못한 것이므로 멈춘다.
     const before = await readFindings(request, reportUrl(reportId), headers);
     note('findings', before.counts);
+    note('setting-findings-before', summarize(before.settings));
     const ageBefore = before.settings.filter(isAgeConflict).length;
     note('age-conflict-before', String(ageBefore));
     expect.soft(ageBefore, `정정 전 리포트는 ${CHARACTER}의 나이 충돌을 짚어야 합니다(모델 판정).`).toBeGreaterThan(0);
@@ -278,6 +283,7 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     // 정정한 나이(28)는 2화의 스물여덟 살과 맞으므로 같은 나이 충돌이 다시 나오지 않아야 한다(모델 판정).
     const after = await readFindings(request, reportUrl(recheckId), headers);
     note('recheck-findings', after.counts);
+    note('setting-findings-after', summarize(after.settings));
     const ageAfter = after.settings.filter(isAgeConflict).length;
     note('age-conflict-after', String(ageAfter));
     expect.soft(ageAfter, `정정 뒤 재검수는 ${CHARACTER}의 나이 충돌을 다시 짚지 않아야 합니다(모델 판정).`).toBe(0);
