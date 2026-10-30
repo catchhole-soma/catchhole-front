@@ -953,6 +953,15 @@ export default function S1Dashboard() {
                   </div>
                 </div>
 
+                {reportReturn && (
+                  <div className="setting-db-return">
+                    <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 설정 정보를 정정하러 왔어요.">
+                      <p>고칠 캐릭터나 세계관 설정을 찾아 수정해 주세요. 리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
+                      <p>저장만으로는 정정이 연결되지 않아요. 저장한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
+                    </ReportReturnNotice>
+                  </div>
+                )}
+
                 <label className="setting-db-mobile-navigation">
                   작품 설정
                   <select

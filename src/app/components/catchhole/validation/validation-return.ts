@@ -35,10 +35,15 @@ function episodeReplaceUrl(workId: string, episodeId: string, reportId: string, 
     + `&episodeId=${encodeURIComponent(episodeId)}&${returnQuery(reportId, reportParams)}`;
 }
 
-/** A9는 현재 결과에서만 기존 수정 화면으로 보낸다. 무효·이전 결과는 episodeId 없이 호출한다. */
+/** A10: 기존 설정 관리로 이동한다. 공개 계약에 대상·기준 항목 식별자가 없어 특정 캐릭터·세계관을 열지 않는다. */
+function settingCorrectionUrl(workId: string, reportId: string, reportParams: URLSearchParams) {
+  return `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB&tab=characters&${returnQuery(reportId, reportParams)}`;
+}
+
+/** A9·A10은 현재 결과에서만 기존 수정 화면으로 보낸다. 무효·이전 결과는 episodeId 없이 호출한다. */
 export function reportFixLinks(workId: string, reportId: string, episodeId: string | undefined, reportParams: URLSearchParams) {
   return episodeId
-    ? { replace: episodeReplaceUrl(workId, episodeId, reportId, reportParams) }
+    ? { replace: episodeReplaceUrl(workId, episodeId, reportId, reportParams), correct: settingCorrectionUrl(workId, reportId, reportParams) }
     : undefined;
 }
 

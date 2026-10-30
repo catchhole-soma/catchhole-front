@@ -131,8 +131,8 @@ export function FindingDetailView({
   onSelectEvidence: (key: string | null) => void;
   sourceLink?: string;
   topNotice?: ReactNode;
-  /** A9 원고 파일 변경 이동 주소. 현재 결과가 아니면 제공하지 않는다. */
-  fixLinks?: { replace: string };
+  /** A9 원고 파일 변경·A10 설정 정보 정정 이동 주소. 현재 결과가 아니면 제공하지 않는다. A10은 설정 검사 항목에만 보인다. */
+  fixLinks?: { replace: string; correct: string };
 }) {
   const branch: Branch = detail.branch === 'TYPO' ? 'TYPO' : 'SETTING';
   const payload = readPayload(detail);
@@ -266,12 +266,16 @@ export function FindingDetailView({
         </section>
 
         {fixLinks && (
-          <section className="vr-section vr-fix" aria-label="원고 수정">
-            <h3>원고 수정</h3>
-            <p className="vr-muted">고친 뒤 이 리포트로 돌아와 수정 내용으로 재검수해 주세요. 파일을 바꿔도 검사는 자동으로 시작하지 않아요.</p>
+          <section className="vr-section vr-fix" aria-label="원고·설정 수정">
+            <h3>원고·설정 수정</h3>
+            <p className="vr-muted">고친 뒤 이 리포트로 돌아와 수정 내용으로 재검수해 주세요. 파일을 바꾸거나 설정을 저장해도 검사는 자동으로 시작하지 않아요.</p>
             <div className="vr-actions">
               <Link className="ch-action ch-action--secondary vr-fix-link" to={fixLinks.replace}>원고 파일 변경</Link>
+              {branch === 'SETTING' && <Link className="ch-action ch-action--secondary vr-fix-link" to={fixLinks.correct}>설정 정보 정정</Link>}
             </div>
+            {branch === 'SETTING' && (
+              <p className="vr-muted">설정 정보 정정은 기존 설정 관리에서 직접 고쳐요. 저장만으로는 정정이 연결되지 않아요. 저장한 뒤 돌아와 재검수하면 그때 저장된 설정으로 새로 검사해요.</p>
+            )}
           </section>
         )}
       </div>
