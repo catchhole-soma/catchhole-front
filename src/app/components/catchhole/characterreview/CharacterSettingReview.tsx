@@ -2,16 +2,14 @@ import { guardReviewSourceMutation, useReviewAnalysisSource } from '../../../hoo
 import { analysisSourceLabel, analysisSourceReaderUrl, analysisSourcesLabel, bookWorkspaceUrl, isSameReviewScope } from '../../../lib/analysis-source';
 import { bookReviewValueKey } from '../../../lib/book-current-review';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ChevronLeft,
   Loader2,
-  Search,
   RefreshCw,
   Sparkles,
-  X,
 } from 'lucide-react';
 import {
   useLocation,
@@ -22,7 +20,6 @@ import {
   confirmSettingCandidateGroupMutation,
   dismissSettingCandidateMutation,
   getCharactersQueryKey,
-  getCharactersOptions,
   getSettingCandidateOptions,
   getSettingCandidatesQueryKey,
   getSettingCandidatesOptions,
@@ -60,7 +57,6 @@ import {
   type ReviewReturnState,
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
-import { CHARACTER_FACT_TYPE_LABELS, type CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import {
   automaticApplicationPendingMessage,
@@ -73,7 +69,6 @@ import {
   remainingReviewLabel,
 } from '../../../lib/setting-review-progress';
 import { SettingReviewSummary } from '../SettingReviewSummary';
-import { AutomaticApplicationNotice } from '../AutomaticApplicationNotice';
 import { OrderedReviewImpactNotice } from '../OrderedReviewImpactNotice';
 import { C } from '../constants';
 import { useCharacterSettingLabels } from '../character/CharacterSettingLabelProvider';
@@ -81,15 +76,22 @@ import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import { CharacterReviewComparison, CharacterTargetChoices } from './CharacterReviewPresentation';
+import { errorMessage, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
+import { ActionButton } from './ReviewModalControls';
+import { CandidateEditModal } from './CandidateEditModal';
+import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
-import { ReviewChoiceCards, ReviewEvidence, ReviewInlineValue, ReviewNotice, ReviewSettingHeading } from '../review-ui/ReviewPrimitives';
+import { ReviewEvidence, ReviewInlineValue, ReviewNotice, ReviewSettingHeading } from '../review-ui/ReviewPrimitives';
 import {
   getCharacterFactComparisonPolicy,
   resolveCharacterFactApplicationMode,
   type CharacterFactApplicationMode,
 } from '../character/character-fact-comparison-policy';
 import { OtherSettingReviewAction, SettingReviewTabs } from '../worldsetting/SettingReviewTabs';
+
+// 랜딩·최초 안내가 같은 버튼을 이 모듈에서 가져간다.
+export { ActionButton };
 
 type ReviewStatus = NonNullable<SettingCandidateResponse['reviewStatus']>;
 type MatchStatus = NonNullable<SettingCandidateResponse['matchStatus']>;
@@ -122,79 +124,6 @@ const MATCH_LABELS: Record<MatchStatus, string> = {
   UNRESOLVED: '새 캐릭터 후보',
   AMBIGUOUS: '캐릭터 연결 확인 필요',
 };
-function settingTypeLabels(labels: CharacterFactTypeLabels): Record<string, string> {
-  return {
-    age: '나이/레벨',
-    level: '나이/레벨',
-    profile: '프로필',
-    stats: labels.STAT,
-    skill: labels.SKILL,
-    skills: labels.SKILL,
-    item: labels.ITEM,
-    items: labels.ITEM,
-    status: '상태',
-    statuses: '상태',
-    time: '시간/사건',
-  };
-}
-const SETTING_NAME_LABELS: Record<string, string> = {
-  age: '나이',
-  level: '레벨',
-  profile: '프로필',
-  'profile.gender': '성별',
-  'profile.species': '종족',
-  'profile.affiliation': '소속',
-  'profile.occupation': '직업',
-  'profile.eye_color': '눈 색깔',
-  'profile.description': '설명',
-  'profile.attribute': '특징',
-  'stats.strength': '근력',
-  'stats.mana': '마나',
-  'stats.physique': '육체',
-  'stats.mental': '정신',
-  'stats.supernatural': '이능',
-  'stats.item_level': '아이템 레벨',
-  'stats.combat_power': '전투지수',
-  'stats.agility': '민첩성',
-  'stats.endurance': '지구력',
-  'stats.soul_power': '영혼력',
-  'stats.magic_resistance': '항마력',
-  'stats.physical_resistance': '물리내성',
-  'stats.natural_regeneration': '자연재생력',
-  'stats.bone_strength': '골강도',
-  'stats.energy': '기력',
-  'stats.perception': '인지력',
-  'stats.mental_power': '정신력',
-  'statuses.condition': '상태',
-  'skills.skill': CHARACTER_FACT_TYPE_LABELS.SKILL,
-  'items.item': CHARACTER_FACT_TYPE_LABELS.ITEM,
-};
-const DECIMAL_VALUE_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
-
-interface SettingDisplay {
-  typeLabel: string;
-  nameLabel: string;
-}
-
-/**
- * 저장용 attributeName은 유지하고, 목록과 상세에서 사용할 사용자용 문구만 만든다.
- */
-function toSettingDisplay(
-  attributeName?: string | null,
-  attributeDisplayName?: string | null,
-  labels: CharacterFactTypeLabels = CHARACTER_FACT_TYPE_LABELS,
-): SettingDisplay {
-  const normalized = attributeName?.trim();
-  if (!normalized) return { typeLabel: '설정', nameLabel: '설정명 없음' };
-
-  const [prefix, ...suffixParts] = normalized.split('.');
-  const suffix = suffixParts.join('.');
-  return {
-    typeLabel: settingTypeLabels(labels)[prefix] ?? '기타',
-    nameLabel: attributeDisplayName?.trim() || ((normalized === 'skills.skill' ? labels.SKILL : SETTING_NAME_LABELS[normalized])
-      ?? (suffix ? suffix.replace(/_/g, ' ') : normalized.replace(/_/g, ' '))),
-  };
-}
 
 function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolean {
   return toApiError(error)?.status !== 404
@@ -224,39 +153,6 @@ function isCandidateValueInvalid(candidate: SettingCandidateResponse): boolean {
 function isCandidateValueRepairable(candidate: SettingCandidateResponse): boolean {
   return isCandidateValueInvalid(candidate)
     && candidate.valueValidation?.repairable !== false;
-}
-
-function validateCandidateDisplayValue(
-  valueType: SettingCandidateResponse['valueType'],
-  value: string,
-): string | null {
-  const normalized = value.trim();
-  if (valueType === 'NUMBER' && !DECIMAL_VALUE_PATTERN.test(normalized)) {
-    return '숫자 설정값은 숫자만 입력해 주세요. (예: 36, -1.5)';
-  }
-  if (valueType === 'BOOLEAN' && normalized !== 'true' && normalized !== 'false') {
-    return '참/거짓 설정값은 true 또는 false로 입력해 주세요.';
-  }
-  return null;
-}
-
-function splitDynamicSettingName(attributeName: string, dynamicPrefix?: string | null): {
-  prefix: string;
-  suffix: string;
-} {
-  const normalized = attributeName.trim();
-  if (dynamicPrefix && normalized.startsWith(dynamicPrefix)) {
-    return {
-      prefix: dynamicPrefix,
-      suffix: normalized.slice(dynamicPrefix.length).replace(/_/g, ' '),
-    };
-  }
-  const separatorIndex = normalized.indexOf('.');
-  if (separatorIndex < 0) return { prefix: `${normalized}.`, suffix: '' };
-  return {
-    prefix: normalized.slice(0, separatorIndex + 1),
-    suffix: normalized.slice(separatorIndex + 1).replace(/_/g, ' '),
-  };
 }
 
 function parsePositiveInteger(value: string | null, fallback: number, maximum?: number): number {
@@ -417,10 +313,6 @@ function matchColor(status: MatchStatus | undefined): string {
   if (status === 'AMBIGUOUS') return C.warning;
   if (isConnectedMatch(status)) return C.primary;
   return C.t2;
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return toApiError(error)?.message ?? (error instanceof Error ? error.message : fallback);
 }
 
 function formatEpisodeRange(start?: number | null, end?: number | null, count = 0): string {
@@ -603,566 +495,6 @@ export function CandidateGroupCard({
         </div>
       )}
     </button>
-  );
-}
-
-export function ActionButton({
-  children,
-  disabled = false,
-  disabledTitle,
-  tone = C.t2,
-  type = 'button',
-  ariaPressed,
-  onClick,
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  disabledTitle?: string;
-  tone?: string;
-  type?: 'button' | 'submit';
-  ariaPressed?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type={type}
-      disabled={disabled}
-      aria-pressed={ariaPressed}
-      onClick={onClick}
-      className="review-action"
-      title={disabled ? disabledTitle : undefined}
-      style={{
-        minHeight: 38, padding: '0 18px', borderRadius: 7,
-        border: `1px solid ${disabled ? C.border : tone}`,
-        background: disabled ? C.bg : `${tone}12`,
-        color: disabled ? REVIEW_TEXT.muted : reviewToneInk(tone), fontFamily: 'inherit',
-        fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.58 : 1,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-const modalInputStyle = {
-  width: '100%',
-  minHeight: 40,
-  boxSizing: 'border-box' as const,
-  borderRadius: 7,
-  border: `1px solid ${C.border}`,
-  background: C.bg,
-  color: REVIEW_TEXT.ink,
-  padding: '0 12px',
-  fontFamily: 'inherit',
-  fontSize: 13,
-};
-
-function ModalLayer({
-  title,
-  description,
-  pending,
-  onClose,
-  children,
-}: {
-  title: string;
-  description: string;
-  pending: boolean;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const titleId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  const pendingRef = useRef(pending);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-    pendingRef.current = pending;
-  }, [onClose, pending]);
-
-  useEffect(() => {
-    const previousActiveElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const dialog = dialogRef.current;
-    const focusableSelector = [
-      'button:not([disabled])',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])',
-    ].join(',');
-    const focusableElements = () => (
-      dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)) : []
-    );
-    (focusableElements()[0] ?? dialog)?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pendingRef.current) {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const elements = focusableElements();
-      if (elements.length === 0) {
-        event.preventDefault();
-        dialog?.focus();
-        return;
-      }
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousActiveElement?.focus();
-    };
-  }, []);
-
-  return (
-    <div
-      className="review-modal-layer"
-      onMouseDown={event => {
-        if (event.target === event.currentTarget && !pending) onClose();
-      }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 220, padding: 24,
-        background: 'rgba(4, 4, 8, 0.76)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div
-        className="review-modal"
-        ref={dialogRef}
-        role="dialog"
-        tabIndex={-1}
-        aria-modal="true"
-        aria-labelledby={titleId}
-        style={{
-          width: 'min(620px, 100%)', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
-          borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
-          boxShadow: '0 24px 80px rgba(0,0,0,0.58)', padding: 26, boxSizing: 'border-box',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <h2 id={titleId} style={{ color: REVIEW_TEXT.ink, fontSize: 18, margin: 0 }}>
-              {title}
-            </h2>
-            <p style={{ color: REVIEW_TEXT.muted, fontSize: 12, lineHeight: 1.6, margin: '6px 0 0' }}>
-              {description}
-            </p>
-          </div>
-          <button
-            type="button"
-            aria-label={`${title} 닫기`}
-            disabled={pending}
-            onClick={onClose}
-            style={{
-              border: 'none', background: 'transparent', color: REVIEW_TEXT.muted,
-              padding: 4, lineHeight: 0, cursor: pending ? 'default' : 'pointer',
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function CandidateEditModal({
-  candidate,
-  pending,
-  automaticPending = false,
-  readOnly = false,
-  error,
-  onClose,
-  onSubmit,
-}: {
-  candidate: SettingCandidateResponse;
-  pending: boolean;
-  automaticPending?: boolean;
-  readOnly?: boolean;
-  error: string | null;
-  onClose: () => void;
-  onSubmit: (attributeName: string, attributeValue: string | null, reviewedApplicationMode?: CharacterFactApplicationMode) => void;
-}) {
-  const labels = useCharacterSettingLabels();
-  const originalName = candidate.attributeName?.trim() ?? '';
-  const editableName = candidate.attributeNameEditable === true
-    && Boolean(candidate.attributeNamePrefix);
-  const dynamicName = splitDynamicSettingName(originalName, candidate.attributeNamePrefix);
-  const [attributeSuffix, setAttributeSuffix] = useState(dynamicName.suffix);
-  const [attributeValue, setAttributeValue] = useState(candidate.attributeValue ?? '');
-  const supportsManualDecision = candidate.manualReviewAvailable
-    && candidate.matchStatus !== 'AMBIGUOUS' && Boolean(candidate.entityName && candidate.entityName !== '미상');
-  const bookRemoval = candidate.source?.sourceKind === 'SETTING_BOOK' && candidate.suggestedOperation === 'REMOVE';
-  const [reviewMode, setReviewMode] = useState<CharacterFactApplicationMode | null>(
-    bookRemoval && candidate.reviewedApplicationMode !== 'HISTORY_ONLY' ? null : candidate.reviewedApplicationMode ?? null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const valueFormatError = validateCandidateDisplayValue(candidate.valueType, attributeValue);
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (pending || automaticPending || readOnly || supportsManualDecision && !reviewMode) return;
-    const nextName = editableName ? `${dynamicName.prefix}${attributeSuffix.trim()}` : originalName;
-    if (!nextName) {
-      setValidationError('설정명 정보가 없어 수정할 수 없습니다.');
-      return;
-    }
-    if (editableName && !attributeSuffix.trim()) {
-      setValidationError('설정명 뒷부분을 입력해 주세요.');
-      return;
-    }
-    if (valueFormatError) {
-      setValidationError(valueFormatError);
-      return;
-    }
-    setValidationError(null);
-    onSubmit(nextName, attributeValue.trim() || null, supportsManualDecision ? reviewMode ?? undefined : undefined);
-  };
-
-  return (
-    <ModalLayer
-      title={candidate.manualReviewAvailable ? '설정 직접 확인' : '설정 후보 수정'}
-      description={candidate.manualReviewAvailable
-        ? '원문과 설정값을 직접 확인해 주세요. 확인한 값을 저장한 뒤 이 캐릭터의 설정을 함께 확정할 수 있습니다.'
-        : '설정명이나 값을 바꾸면 화면에 표시하지 않는 AI 세부 속성은 정리되며, 최초 원문 근거는 유지됩니다.'}
-      pending={pending}
-      onClose={onClose}
-    >
-      <form className="review-modal__form" onSubmit={submit} noValidate>
-        {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
-        {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
-        {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
-        <div style={{ marginTop: 22 }}>
-          <label htmlFor="candidate-attribute-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
-            설정명
-          </label>
-          {!editableName ? (
-            <>
-              <input
-                id="candidate-attribute-name"
-                value={toSettingDisplay(originalName, candidate.attributeDisplayName, labels).nameLabel}
-                readOnly
-                aria-describedby="candidate-attribute-name-help"
-                style={{ ...modalInputStyle, marginTop: 7, color: REVIEW_TEXT.muted }}
-              />
-              <div id="candidate-attribute-name-help" style={{ color: REVIEW_TEXT.muted, fontSize: 11, marginTop: 6 }}>
-                이 설정명은 변경할 수 없습니다.
-              </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', marginTop: 7 }}>
-              <span style={{
-                minHeight: 40, padding: '0 11px', borderRadius: '7px 0 0 7px',
-                border: `1px solid ${C.border}`, borderRight: 'none', background: C.bg,
-                color: REVIEW_TEXT.muted, display: 'inline-flex', alignItems: 'center', fontSize: 13,
-                flexShrink: 0, whiteSpace: 'nowrap',
-              }}>
-                {settingTypeLabels(labels)[dynamicName.prefix.slice(0, -1)] ?? '설정'}
-              </span>
-              <input
-                id="candidate-attribute-name"
-                aria-label="설정명 뒷부분"
-                value={attributeSuffix}
-                disabled={pending}
-                onChange={event => setAttributeSuffix(event.target.value)}
-                style={{
-                  ...modalInputStyle,
-                  width: 'auto',
-                  minWidth: 0,
-                  flex: 1,
-                  borderRadius: '0 7px 7px 0',
-                }}
-              />
-            </div>
-          )}
-        </div>
-        <div style={{ marginTop: 18 }}>
-          <label htmlFor="candidate-attribute-value" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
-            설정값
-          </label>
-          <input
-            id="candidate-attribute-value"
-            value={attributeValue}
-            disabled={pending}
-            aria-invalid={Boolean(valueFormatError)}
-            aria-describedby={valueFormatError ? 'candidate-attribute-value-error' : undefined}
-            onChange={event => {
-              setAttributeValue(event.target.value);
-              setValidationError(null);
-            }}
-            style={{ ...modalInputStyle, marginTop: 7 }}
-          />
-        </div>
-        {supportsManualDecision && <ReviewChoiceCards label="수정한 내용을 어디에 반영할까요?" value={reviewMode}
-          disabled={pending || automaticPending} onChange={mode => setReviewMode(mode as CharacterFactApplicationMode)}
-          choices={[
-            ...(!bookRemoval ? [{ id: 'APPLY_PROPOSAL', title: '현재 설정에 반영', description: '위의 값으로 현재 설정을 바꿉니다.' }] : []),
-            { id: 'HISTORY_ONLY', title: '이력에만 저장', description: candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고 이 설정집의 기록으로 남깁니다.' : '현재 설정은 유지하고 이 회차의 기록으로 남깁니다.' },
-          ]} />}
-        {(validationError || valueFormatError || error) && (
-          <div id="candidate-attribute-value-error" role="alert" style={{
-            marginTop: 14, padding: '10px 12px', borderRadius: 7,
-            border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-            color: REVIEW_TEXT.danger, fontSize: 12,
-          }}>
-            {validationError ?? valueFormatError ?? error}
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
-          <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending || readOnly || Boolean(valueFormatError) || Boolean(supportsManualDecision && !reviewMode)}
-            disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : valueFormatError ?? (supportsManualDecision && !reviewMode ? '반영 방식을 먼저 선택해 주세요.' : undefined)} tone={C.primary}>
-            {pending ? '저장 중…' : candidate.manualReviewAvailable ? '확인한 값 저장' : '저장'}
-          </ActionButton>
-        </div>
-      </form>
-    </ModalLayer>
-  );
-}
-
-type MatchResolution = 'MATCH_EXISTING' | 'CREATE_NEW';
-
-function CharacterMatchModal({
-  workId,
-  candidate,
-  initialResolution,
-  pending,
-  automaticPending = false,
-  readOnly = false,
-  error,
-  groupCandidateCount,
-  onClose,
-  onSubmit,
-}: {
-  workId: string;
-  candidate: SettingCandidateResponse;
-  initialResolution: MatchResolution;
-  pending: boolean;
-  automaticPending?: boolean;
-  readOnly?: boolean;
-  error: string | null;
-  groupCandidateCount?: number;
-  onClose: () => void;
-  onSubmit: (resolution: MatchResolution, value: string) => void;
-}) {
-  const [resolution, setResolution] = useState(initialResolution);
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [selectedCharacterId, setSelectedCharacterId] = useState('');
-  const [newCharacterName, setNewCharacterName] = useState(candidate.entityName ?? '');
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const charactersQuery = useQuery({
-    ...getCharactersOptions({ path: { workId }, query: { page, size: 8 } }),
-    enabled: resolution === 'MATCH_EXISTING',
-  });
-  const characterPage = charactersQuery.data?.data;
-  useEffect(() => {
-    const matchedCharacterId = candidate.matchedCharacterId;
-    if (!matchedCharacterId
-      || !characterPage?.content?.some(character => character.id === matchedCharacterId)) {
-      return;
-    }
-    setSelectedCharacterId(current => current || matchedCharacterId);
-  }, [candidate.matchedCharacterId, characterPage?.content]);
-  const characters = useMemo(() => {
-    const keyword = search.trim().toLocaleLowerCase();
-    const content = characterPage?.content ?? [];
-    if (!keyword) return content;
-    return content.filter(character => character.name?.toLocaleLowerCase().includes(keyword));
-  }, [characterPage?.content, search]);
-  const selectedCharacterVisible = characters.some(character => character.id === selectedCharacterId);
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (pending || automaticPending || readOnly) return;
-    if (resolution === 'MATCH_EXISTING' && !selectedCharacterVisible) {
-      setValidationError('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
-      return;
-    }
-    const value = resolution === 'MATCH_EXISTING'
-      ? selectedCharacterId
-      : newCharacterName.trim();
-    if (!value) {
-      setValidationError(
-        resolution === 'MATCH_EXISTING'
-          ? '연결할 기존 캐릭터를 선택해 주세요.'
-          : '새 캐릭터 이름을 입력해 주세요.',
-      );
-      return;
-    }
-    setValidationError(null);
-    onSubmit(resolution, value);
-  };
-
-  return (
-    <ModalLayer
-      title={groupCandidateCount ? '캐릭터 일괄 연결' : '캐릭터 연결 확인'}
-      description={groupCandidateCount
-        ? `“${candidate.entityName || '이름 없음'}”의 검토 대기 설정 ${groupCandidateCount}개에 같은 연결 결정을 적용합니다.`
-        : `“${candidate.rawEntityMention || candidate.entityName || '이름 없음'}” 후보가 누구인지 선택해 주세요.`}
-      pending={pending}
-      onClose={onClose}
-    >
-      <form className="review-modal__form" onSubmit={submit} noValidate>
-        {readOnly && <p role="status">이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.</p>}
-        {automaticPending && <AutomaticApplicationNotice source={candidate.source} />}
-        {!automaticPending && candidate.manualReviewAvailable && <OrderedReviewImpactNotice />}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 20 }}>
-          {([
-            ['MATCH_EXISTING', '기존 캐릭터에 연결'],
-            ['CREATE_NEW', '새 캐릭터로 등록'],
-          ] as const).map(([value, label]) => (
-            <ActionButton
-              key={value}
-              disabled={pending}
-              tone={resolution === value ? C.primary : C.t3}
-              ariaPressed={resolution === value}
-              onClick={() => {
-                setResolution(value);
-                setValidationError(null);
-              }}
-            >
-              {label}
-            </ActionButton>
-          ))}
-        </div>
-
-        {resolution === 'MATCH_EXISTING' ? (
-          <div style={{ marginTop: 18 }}>
-            <label htmlFor="character-page-search" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
-              현재 페이지에서 검색
-            </label>
-            <div style={{ position: 'relative', marginTop: 7 }}>
-              <Search
-                size={14}
-                color={C.t3}
-                style={{ position: 'absolute', left: 12, top: 13 }}
-              />
-              <input
-                id="character-page-search"
-                value={search}
-                disabled={pending}
-                onChange={event => {
-                  setSearch(event.target.value);
-                  setSelectedCharacterId('');
-                  setValidationError(null);
-                }}
-                style={{ ...modalInputStyle, paddingLeft: 34 }}
-              />
-            </div>
-
-            <div style={{
-              minHeight: 180, maxHeight: 260, overflowY: 'auto',
-              display: 'flex', flexDirection: 'column', gap: 7, marginTop: 12,
-            }}>
-              {charactersQuery.isPending ? (
-                <div style={{ color: REVIEW_TEXT.muted, fontSize: 12, padding: 20, textAlign: 'center' }}>
-                  <Loader2 size={15} className="spin" /> 캐릭터를 불러오는 중입니다.
-                </div>
-              ) : charactersQuery.isError ? (
-                <div role="alert" style={{ color: REVIEW_TEXT.danger, fontSize: 12, padding: 20, textAlign: 'center' }}>
-                  <div>{errorMessage(charactersQuery.error, '캐릭터 목록을 불러오지 못했습니다.')}</div>
-                  <div style={{ marginTop: 10 }}>
-                    <ActionButton
-                      disabled={charactersQuery.isFetching}
-                      tone={C.danger}
-                      onClick={() => void charactersQuery.refetch()}
-                    >
-                      다시 불러오기
-                    </ActionButton>
-                  </div>
-                </div>
-              ) : characters.length === 0 ? (
-                <div style={{ color: REVIEW_TEXT.muted, fontSize: 12, padding: 20, textAlign: 'center' }}>
-                  현재 페이지에 조건과 맞는 캐릭터가 없습니다.
-                </div>
-              ) : characters.map((character: CharacterSummaryResponse) => (
-                <button
-                  key={character.id}
-                  type="button"
-                  className={`review-modal__choice${selectedCharacterId === character.id ? ' is-selected' : ''}`}
-                  disabled={pending || !character.id}
-                  aria-pressed={selectedCharacterId === character.id}
-                  onClick={() => setSelectedCharacterId(character.id ?? '')}
-                  style={{
-                    minHeight: 48, borderRadius: 7, padding: '9px 12px',
-                    border: `1px solid ${selectedCharacterId === character.id ? C.primary : C.border}`,
-                    background: selectedCharacterId === character.id ? `${C.primary}14` : C.bg,
-                    color: REVIEW_TEXT.ink, textAlign: 'left', fontFamily: 'inherit',
-                    cursor: pending ? 'default' : 'pointer',
-                  }}
-                >
-                  <strong style={{ fontSize: 13 }}>{character.name || '이름 없음'}</strong>
-                  <span style={{ color: REVIEW_TEXT.muted, fontSize: 11, marginLeft: 8 }}>
-                    {character.representativeAttributeLabel && character.representativeAttributeValue
-                      ? `${character.representativeAttributeLabel} · ${character.representativeAttributeValue}`
-                      : character.firstAppearanceEpisodeNo == null
-                        ? '대표 정보 없음'
-                        : `${character.firstAppearanceEpisodeNo}화 첫 등장`}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <PageNavigation
-              page={characterPage?.page ?? page}
-              totalPages={characterPage?.totalPages ?? 0}
-              disabled={pending || charactersQuery.isFetching}
-              onPageChange={nextPage => {
-                setPage(nextPage);
-                setSearch('');
-                setSelectedCharacterId('');
-              }}
-            />
-          </div>
-        ) : (
-          <div style={{ marginTop: 18 }}>
-            <label htmlFor="new-character-name" style={{ color: REVIEW_TEXT.text, fontSize: 12 }}>
-              새 캐릭터 이름
-            </label>
-            <input
-              id="new-character-name"
-              value={newCharacterName}
-              disabled={pending}
-              onChange={event => setNewCharacterName(event.target.value)}
-              style={{ ...modalInputStyle, marginTop: 7 }}
-            />
-          </div>
-        )}
-
-        {(validationError || error) && (
-          <div role="alert" style={{
-            marginTop: 14, padding: '10px 12px', borderRadius: 7,
-            border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
-            color: REVIEW_TEXT.danger, fontSize: 12,
-          }}>
-            {validationError ?? error}
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
-          <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending || readOnly} tone={C.primary}>
-            {pending ? '연결 중…' : resolution === 'MATCH_EXISTING' ? '선택한 캐릭터에 연결' : '새 캐릭터로 등록'}
-          </ActionButton>
-        </div>
-      </form>
-    </ModalLayer>
   );
 }
 
