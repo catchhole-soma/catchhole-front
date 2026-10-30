@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CharacterSettingLabelProvider } from './character/CharacterSettingLabelProvider';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, type NavId, type WorkId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -45,8 +45,16 @@ import {
   replaceEpisodeFileMutation,
   updateEpisodeTitleMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
-import type { EpisodeSummaryResponse } from '../../api/generated/types.gen';
+import type { AnalysisBatchSummaryResponse, EpisodeSummaryResponse } from '../../api/generated/types.gen';
 import { toApiError } from '../../lib/api-errors';
+import { ReviewNotice } from './review-ui/ReviewPrimitives';
+import { ValidationStageBadge } from './validation/ValidationEntryNotices';
+import {
+  ACTIVE_VALIDATION_STAGES,
+  ERROR_REVIEW_STATUS_LABELS,
+  VALIDATION_STAGE_SUMMARY,
+  validationReportUrl,
+} from './validation/validation-report-labels';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
   label: string;
@@ -215,8 +223,18 @@ function episodeAnalysisLabel(episode: EpisodeSummaryResponse): { label: string;
     case 'COMPLETED': return { label: '분석 완료', color: C.success };
     case 'IN_PROGRESS': return { label: '분석 중', color: C.primary };
     case 'FAILED': return { label: '분석 실패', color: C.danger };
+    // 검수 회차의 기존 상태값은 표시용 fallback이다. 단계는 validationReviewStage가 우선한다.
+    case 'ERROR_REVIEW_PREPARING':
+    case 'ERROR_REVIEW_PENDING':
+    case 'ERROR_REVIEW_HELD':
+    case 'ERROR_REVIEW_INVALIDATED':
+      return { label: ERROR_REVIEW_STATUS_LABELS[episode.analysisStatus], color: C.warning };
     default: return { label: '재분석 필요', color: C.warning };
   }
+}
+
+function batchValidationActive(batch: AnalysisBatchSummaryResponse) {
+  return (batch.validationReports ?? []).some(report => report.reviewStage != null && ACTIVE_VALIDATION_STAGES.has(report.reviewStage));
 }
 
 export default function S1Dashboard() {
@@ -509,13 +527,14 @@ export default function S1Dashboard() {
     enabled: episodeApiEnabled && activeNav === 'manuscripts',
     retry: false,
     refetchInterval: query => (
-      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS')
+      query.state.data?.data?.content?.some(batch => batch.status === 'IN_PROGRESS' || batchValidationActive(batch))
         ? 10_000
         : false
     ),
   });
   const overviewAnalysisActive = analysisOverviewQuery.data?.data?.content
     ?.some(batch => batch.status === 'IN_PROGRESS') ?? false;
+  const overviewValidationActive = analysisOverviewQuery.data?.data?.content?.some(batchValidationActive) ?? false;
   const previousOverviewActivityRef = useRef<{ workId: string; active: boolean } | null>(null);
   const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
   const episodesNeeded = activeNav === 'manuscripts' || episodeReanalysisTarget !== null;
@@ -526,8 +545,9 @@ export default function S1Dashboard() {
     refetchInterval: query => {
       if (!episodesNeeded) return false;
       const episodes = query.state.data?.data ?? [];
-      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS')
-        || (activeNav === 'manuscripts' && overviewAnalysisActive) ? 10_000 : false;
+      return episodes.some(episode => episode.analysisStatus === 'IN_PROGRESS'
+        || (episode.validationReviewStage != null && ACTIVE_VALIDATION_STAGES.has(episode.validationReviewStage)))
+        || (activeNav === 'manuscripts' && (overviewAnalysisActive || overviewValidationActive)) ? 10_000 : false;
     },
   });
 
@@ -751,7 +771,11 @@ export default function S1Dashboard() {
   const overviewBatches = analysisOverviewQuery.data?.data?.content ?? [];
   // 서버가 최근 분석 요청순으로 정렬하므로 원고 배너는 가장 최신 배치만 반영한다.
   const latestAnalysisBatch = overviewBatches[0];
-  const analysisNotice = latestAnalysisBatch?.status === 'FAILED'
+  // 최근 배치가 신규 회차 검수면 배치 status 대신 reviewStage로 안내하고 오류 리포트로 바로 보낸다.
+  const latestValidation = latestAnalysisBatch?.validationReports?.find(report => Boolean(report.reportId));
+  const latestValidationView = latestValidation?.reviewStage && latestValidation.reviewStage !== 'APPLIED'
+    ? VALIDATION_STAGE_SUMMARY[latestValidation.reviewStage] : null;
+  const analysisNotice = latestValidation ? null : latestAnalysisBatch?.status === 'FAILED'
     || latestAnalysisBatch?.status === 'PARTIALLY_FAILED'
     ? {
         label: '일부 분석에 실패했습니다.',
@@ -1021,6 +1045,16 @@ export default function S1Dashboard() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240 }}>
+                    {latestValidation?.reportId && latestValidationView && (
+                      <div className="validation-entry-notice" data-testid="latest-validation-notice">
+                        <ReviewNotice tone={latestValidationView.tone === 'danger' ? 'danger' : latestValidationView.tone === 'primary' ? 'info' : latestValidationView.tone}
+                          title={`${latestValidation.sourceEpisodeNo != null ? `${latestValidation.sourceEpisodeNo}화 ` : ''}신규 회차 검수 · ${latestValidationView.label}`}
+                          action={<ActionButton size="compact" variant="secondary" className="validation-entry-action"
+                            onClick={() => navigate(validationReportUrl(effectiveWorkId, latestValidation.reportId!), 'dissolve')}>오류 리포트 보기</ActionButton>}>
+                          <p>{latestValidationView.description}</p>
+                        </ReviewNotice>
+                      </div>
+                    )}
                     {analysisNotice && (
                       <div role="status" className="dashboard-analysis-notice" style={{
                         display: 'flex',
@@ -1134,7 +1168,22 @@ export default function S1Dashboard() {
                                   </span>
                                   <span className="manuscript-date" style={{ color: C.t3, fontSize: 11 }}>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
                                   <span className="manuscript-char-count" style={{ color: C.t3, fontSize: 11 }}>{(episode.charCount ?? 0).toLocaleString()}자</span>
-                                  <span className="manuscript-status" style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  {episode.validationReportId ? (
+                                    // 검수 회차는 reviewStage 배지 자체가 오류 리포트 링크다. analysisStatus는 단계가 없을 때만 표시한다.
+                                    <span className="manuscript-status manuscript-status--validation">
+                                      <Link className="manuscript-validation-link"
+                                        to={validationReportUrl(effectiveWorkId, episode.validationReportId)}
+                                        state={{ transition: 'dissolve' }}
+                                        aria-label={`${episode.episodeNo}화 오류 리포트 보기 · ${episode.validationReviewStage
+                                          ? VALIDATION_STAGE_SUMMARY[episode.validationReviewStage].label : status.label}`}>
+                                        {episode.validationReviewStage
+                                          ? <ValidationStageBadge stage={episode.validationReviewStage} />
+                                          : <span className="validation-stage-badge is-warning">{status.label}</span>}
+                                      </Link>
+                                    </span>
+                                  ) : (
+                                    <span className="manuscript-status" style={{ color: status.color, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+                                  )}
                                   <div className="manuscript-mobile-meta">
                                     <span title={episode.originalFilename ?? ''}>{episode.originalFilename ?? '파일명 없음'}</span>
                                     <span>{formatEpisodeDate(episode.contentUpdatedAt)}</span>
