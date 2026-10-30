@@ -116,7 +116,7 @@ for (const width of [1280, 320]) {
       await savedNotice.screenshot({ path: `docs/screens/gh180-world-saved-notice-${width}.png` });
       await pendingNotice.screenshot({ path: `docs/screens/gh180-world-review-notice-${width}.png` });
     }
-    await scopeChoice.getByRole('button', { name: /기존 범위에 합치기/ }).click();
+    await scopeChoice.getByRole('radio', { name: /기존 범위에 합치기/ }).click();
     await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(() => savedBody).toEqual({ batchId, candidates: [{ candidateId, category: 'LOCATION',
       subjectName: '미궁', scopeName: '1층', settingName: '광원', value: '벽의 수정들이 주변을 밝힌다.\n수정들이 적어지며 어둠이 드리운다.', operation: 'MERGE' }] });

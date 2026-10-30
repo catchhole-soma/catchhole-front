@@ -93,6 +93,8 @@ import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
 import { ReviewGroupActionBar } from '../review-ui/ReviewGroupActionBar';
 import { useReviewCardNavigation } from '../review-ui/useReviewCardNavigation';
+import { useReviewKeyboardNavigation } from '../review-ui/useReviewKeyboardNavigation';
+import { ReviewShortcutHelp } from '../review-ui/ReviewShortcutHelp';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { ReviewEvidence, ReviewInlineValue, ReviewNotice, ReviewSettingHeading } from '../review-ui/ReviewPrimitives';
 import {
@@ -838,6 +840,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const reviewNavigationState = location.state as ReviewReturnState | null;
   const detailRef = useRef<HTMLElement>(null);
   const cardNavigation = useReviewCardNavigation(detailRef);
+  const edgeGroupRef = useRef<'first' | 'last' | null>(null);
 
   const listOptions = getSettingCandidatesOptions({
     path: { workId },
@@ -1120,7 +1123,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         }
       }
     }
-    const nextGroup = selectedGroup ?? groups[0];
+    // 키보드로 페이지 경계를 넘으면 다음 페이지는 첫 묶음, 이전 페이지는 마지막 묶음을 열고 제목에 초점을 둔다.
+    const edge = selectedGroup ? null : edgeGroupRef.current;
+    const nextGroup = selectedGroup ?? (edge === 'last' ? groups[groups.length - 1] : groups[0]);
+    if (edge && nextGroup?.groupKey) {
+      edgeGroupRef.current = null;
+      focusGroupKeyRef.current = nextGroup.groupKey;
+    }
     if (!nextGroup?.groupKey) {
       if (!selectedGroupKey && !legacyCandidateId) return;
       setSearchParams(previous => {
@@ -1660,6 +1669,30 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       return next;
     }, { replace: true, state: location.state });
   };
+  /** Alt+Shift+↓/↑: 목록의 다음·이전 묶음을 열고 제목에 초점을 둔다. 페이지 끝이면 옆 페이지의 첫·마지막 묶음으로 간다. */
+  const stepGroup = (direction: 1 | -1) => {
+    const index = groups.findIndex(group => group.groupKey === selectedGroup?.groupKey);
+    const target = index >= 0 ? groups[index + direction] : undefined;
+    if (target?.groupKey) {
+      selectGroup(target.groupKey);
+      focusGroupKeyRef.current = target.groupKey;
+      return true;
+    }
+    const page = currentPage + direction;
+    if (page < 0 || page >= totalPages) return false;
+    clearCheckedSelection();
+    clearNavigationIntent();
+    selectionGroupRef.current = null;
+    edgeGroupRef.current = direction > 0 ? 'first' : 'last';
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set('page', String(page + 1));
+      next.delete('group');
+      next.delete('candidate');
+      return next;
+    }, { replace: true, state: location.state });
+    return true;
+  };
   const dismissCandidate = (candidateId: string) => {
     if (actionPending || candidateAutomaticPending(candidateId) || saveTracker.busy(candidateId)) return;
     confirmMutation.reset();
@@ -1910,6 +1943,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     && (listData.processingCandidateCount ?? 0) === 0 && total > 0 && groups.length === 0;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
+  const onReviewKeyDown = useReviewKeyboardNavigation({
+    containerRef: detailRef,
+    disabled: Boolean(editCandidate || matchTarget || groupMatchOpen || selectionMatchOpen),
+    stepCard: cardNavigation.stepCard,
+    stepGroup,
+    jumpToBlocking: () => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? []),
+  });
   // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
   const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
     && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
@@ -2111,7 +2151,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                     />
                   </aside>
 
-                  <section className="setting-review-detail" ref={detailRef}>
+                  <section className="setting-review-detail" ref={detailRef} onKeyDown={onReviewKeyDown}>
                     <button
                       type="button"
                       className="setting-review-mobile-back"
@@ -2287,6 +2327,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 || saveTracker.busy(confirmSaveKey)}
                               onConfirm={confirmSelectedGroup}
                               onJumpToBlocking={() => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? [])}
+                              shortcuts={<ReviewShortcutHelp />}
                               status={<>
                                 {groupConfirmError && (
                                   <div role="alert" className="review-action-bar__error">{groupConfirmError}</div>

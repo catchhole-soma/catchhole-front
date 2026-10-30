@@ -1,7 +1,7 @@
 import { guardReviewSourceMutation, useReviewAnalysisSource } from '../../../hooks/useReviewAnalysisSource';
 import { analysisSourceLabel, analysisSourceReaderUrl, analysisSourcesLabel, bookWorkspaceUrl, isSameReviewScope } from '../../../lib/analysis-source';
 import { bookReviewValueKey, isBookProtectionHold } from '../../../lib/book-current-review';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -85,6 +85,9 @@ import { ReviewSettingHeading, ReviewValueComparison, ReviewEvidence, ReviewNoti
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
 import { ReviewGroupActionBar } from '../review-ui/ReviewGroupActionBar';
 import { useReviewCardNavigation } from '../review-ui/useReviewCardNavigation';
+import { useReviewKeyboardNavigation } from '../review-ui/useReviewKeyboardNavigation';
+import { ReviewShortcutHelp } from '../review-ui/ReviewShortcutHelp';
+import { useModalFocusTrap } from '../review-ui/useModalFocusTrap';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { WorldReviewDecisionPanel, type WorldPresetTarget } from './WorldReviewDecisionPanel';
 import {
@@ -1444,6 +1447,7 @@ function WorldCandidateGroupDetail({
         disabled={actionPending || decisionRecoveryRequired || !confirmable}
         onConfirm={() => { if (!hasUnsavedChanges) onConfirm(); }}
         onJumpToBlocking={() => onJumpToBlocking(confirmBlock?.candidateIds ?? [])}
+        shortcuts={<ReviewShortcutHelp />}
         secondaryActions={retryAvailable && <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
           <RefreshCw size={12} /> 다시 비교
         </ActionButton>}
@@ -1482,6 +1486,7 @@ function CandidateEditModal({
   onRecover,
   onClose,
   onSubmit,
+  returnFocusTo,
 }: {
   initialDecision: DecisionDraft;
   identityOnly?: boolean;
@@ -1501,6 +1506,8 @@ function CandidateEditModal({
   onRecover?: () => void;
   onClose: () => void;
   onSubmit: (draft: DecisionDraft) => void;
+  /** 닫히면 초점을 돌려줄 요소(수정 버튼). 열린 동안 그 버튼은 잠긴다. */
+  returnFocusTo?: HTMLElement | null;
 }) {
   const initialCategory = initialDecision.category;
   const initialSubject = initialDecision.subjectName;
@@ -1513,6 +1520,10 @@ function CandidateEditModal({
   const [operation, setOperation] = useState<WorldOperation>(initialDecision.operation);
   const [value, setValue] = useState(initialDecision.value);
   const [validationError, setValidationError] = useState<string | null>(null);
+  // 캐릭터 검토 모달과 같은 키보드 계약(Esc 닫기·Tab 가두기·닫으면 연 버튼으로 초점 복귀)을 쓴다.
+  const titleId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalFocusTrap(formRef, pending, onClose, returnFocusTo);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (pending || automaticPending || readOnly) return;
@@ -1554,13 +1565,13 @@ function CandidateEditModal({
       position: 'fixed', inset: 0, zIndex: 200, padding: 20, display: 'flex',
       alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.68)',
     }}>
-      <form className="review-modal" onSubmit={submit} style={{
+      <form className="review-modal" ref={formRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onSubmit={submit} style={{
         width: 'min(720px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
         borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
       }}>
         <div style={{ padding: '19px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
-          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 16 }}>
+          <strong id={titleId} style={{ color: REVIEW_TEXT.ink, fontSize: 16 }}>
             {identityOnly
               ? '분류·대상 일괄 수정'
               : `${initialDecision.scopeName ? `${initialDecision.scopeName} › ` : ''}${initialDecision.settingName || '설정 항목'} 반영 내용 수정`}
@@ -1698,6 +1709,12 @@ export function WorldSettingReview() {
     Object.entries(previous).filter(([candidateId]) => !candidateIds.includes(candidateId)),
   ));
   const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
+  // 수정 창을 연 버튼. 창이 열린 동안 잠기므로 열 때 기억해 닫으면 초점을 돌려준다.
+  const editTriggerRef = useRef<HTMLElement | null>(null);
+  const rememberEditTrigger = () => {
+    editTriggerRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement : null;
+  };
   const [editIdentityOnly, setEditIdentityOnly] = useState(false);
   // 대상 연결을 위해 체크한 후보. 체크한 묶음 안에서만 유효하고 묶음·필터·페이지를 바꾸면 비운다.
   const [linkSelection, setLinkSelection] = useState<{ groupKey: string | null; ids: string[] }>({ groupKey: null, ids: [] });
@@ -1740,6 +1757,7 @@ export function WorldSettingReview() {
   const reviewNavigationState = location.state as ReviewReturnState | null;
   const detailRef = useRef<HTMLElement>(null);
   const cardNavigation = useReviewCardNavigation(detailRef);
+  const edgeGroupRef = useRef<'first' | 'last' | null>(null);
 
   const listRequest = {
     path: { workId },
@@ -1935,8 +1953,14 @@ export function WorldSettingReview() {
         }
       }
     }
-    const nextGroup = selectedGroup ?? groups[0];
+    // 키보드로 페이지 경계를 넘으면 다음 페이지는 첫 묶음, 이전 페이지는 마지막 묶음을 열고 제목에 초점을 둔다.
+    const edge = selectedGroup ? null : edgeGroupRef.current;
+    const nextGroup = selectedGroup ?? (edge === 'last' ? groups[groups.length - 1] : groups[0]);
     if (!nextGroup?.groupKey) return;
+    if (edge) {
+      edgeGroupRef.current = null;
+      focusGroupKeyRef.current = nextGroup.groupKey;
+    }
     if (selectedGroupKey === nextGroup.groupKey && !legacyCandidateId) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -2483,6 +2507,30 @@ export function WorldSettingReview() {
     }, { replace: true, state: location.state });
   };
 
+  /** Alt+Shift+↓/↑: 목록의 다음·이전 묶음을 열고 제목에 초점을 둔다. 페이지 끝이면 옆 페이지의 첫·마지막 묶음으로 간다. */
+  const stepGroup = (direction: 1 | -1) => {
+    const index = groups.findIndex(group => group.groupKey === selectedGroup?.groupKey);
+    const target = index >= 0 ? groups[index + direction] : undefined;
+    if (target?.groupKey) {
+      selectGroup(target.groupKey);
+      focusGroupKeyRef.current = target.groupKey;
+      return true;
+    }
+    const page = (groupPage?.page ?? apiPage) + direction;
+    if (page < 0 || page >= (groupPage?.totalPages ?? 0)) return false;
+    clearTargetLinkState();
+    selectionGroupRef.current = null;
+    edgeGroupRef.current = direction > 0 ? 'first' : 'last';
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set('page', String(page + 1));
+      next.delete('group');
+      next.delete('candidate');
+      return next;
+    }, { replace: true, state: location.state });
+    return true;
+  };
+
   const pendingCandidates = (selectedGroup?.candidates ?? []).filter(candidate => (
     candidate.id && candidate.reviewStatus === 'PENDING_REVIEW'
   ));
@@ -2755,6 +2803,18 @@ export function WorldSettingReview() {
     : undefined;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
+  const onReviewKeyDown = useReviewKeyboardNavigation({
+    containerRef: detailRef,
+    disabled: Boolean(editCandidate || targetLinkOpen),
+    stepCard: cardNavigation.stepCard,
+    stepGroup,
+    // 막는 행 목록은 상세 카드가 계산하므로 화면에 표시된 `다음 미결정 항목` 버튼과 같은 동작을 쓴다.
+    jumpToBlocking: () => {
+      const jump = detailRef.current?.querySelector<HTMLButtonElement>('.review-action-bar__jump');
+      jump?.click();
+      return Boolean(jump);
+    },
+  });
   // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
   const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
     && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
@@ -3008,7 +3068,7 @@ export function WorldSettingReview() {
                       disabled={listQuery.isPending} onPageChange={changePage} />
                   </aside>
 
-                  <section className="world-setting-review-detail" ref={detailRef}>
+                  <section className="world-setting-review-detail" ref={detailRef} onKeyDown={onReviewKeyDown}>
                     <button type="button" className="world-setting-review-mobile-back" onClick={() => setMobileDetailOpen(false)} style={{
                       display: 'none', marginBottom: 10, border: 'none', background: 'none',
                       color: REVIEW_TEXT.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
@@ -3041,6 +3101,7 @@ export function WorldSettingReview() {
                         onExclude={dismissCandidate}
                         onEditIdentity={() => {
                           if (groupAutomaticPending) return;
+                          rememberEditTrigger();
                           const candidate = pendingCandidates.find(item => item.id && candidateDecision(item));
                           if (!candidate) return;
                           confirmMutation.reset();
@@ -3052,6 +3113,7 @@ export function WorldSettingReview() {
                         }}
                         onEdit={candidate => {
                           if (isAutomaticApplicationPending(candidate)) return;
+                          rememberEditTrigger();
                           confirmMutation.reset();
                           dismissMutation.reset();
                           updateDecisionMutation.reset();
@@ -3179,6 +3241,7 @@ export function WorldSettingReview() {
             setScopeMergeCandidateIds([]);
           }}
           onSubmit={submitEditedCandidate}
+          returnFocusTo={editTriggerRef.current}
         />
       )}
       <style>{`

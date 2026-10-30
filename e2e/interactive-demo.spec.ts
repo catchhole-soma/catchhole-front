@@ -415,10 +415,10 @@ for (const width of [1280, 320]) {
     const character = page.getByRole('region', { name: '직업 설정 후보', exact: true });
     await expect(character.locator('.review-cb-heading__image img')).toBeVisible();
     await expect(character.locator('.review-cb-comparison.is-change')).toBeVisible();
-    await character.getByRole('button', { name: /이력에만 저장/ }).click();
+    await character.getByRole('radio', { name: /이력에만 저장/ }).click();
     await expect(character.locator('.review-cb-comparison.is-neutral')).toBeVisible();
     await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeDisabled();
-    await character.getByRole('button', { name: /현재 설정에 반영/ }).click();
+    await character.getByRole('radio', { name: /현재 설정에 반영/ }).click();
     await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeEnabled();
     await expectNoHorizontalOverflow(page);
     await character.screenshot({ path: `docs/screens/gh215/demo-character-${width}.png` });

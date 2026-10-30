@@ -35,7 +35,7 @@ test('실제 서버에서 세계관 병합·캐릭터 결정 저장→재조회�
   await expect(worldRow.getByText('위험 기준', { exact: true })).toBeVisible();
   await worldRow.screenshot({ path: 'docs/screens/gh215/world-scope-choice.png' });
   const worldPatch = page.waitForResponse(response => response.url().endsWith('/world-setting-candidates/decisions') && response.request().method() === 'PATCH');
-  await worldRow.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  await worldRow.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   expect((await worldPatch).status()).toBe(200);
   const worldDraft = (await candidates('world-setting')).find(row => row.id === worldBefore.id)!;
   expect(worldDraft.finalOperation).toBe('MERGE');

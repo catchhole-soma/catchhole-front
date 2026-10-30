@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { C } from '../constants';
+import { useModalFocusTrap } from '../review-ui/useModalFocusTrap';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 
 export function ActionButton({
@@ -67,63 +68,7 @@ export function ModalLayer({
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  const pendingRef = useRef(pending);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-    pendingRef.current = pending;
-  }, [onClose, pending]);
-
-  useEffect(() => {
-    const previousActiveElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const dialog = dialogRef.current;
-    const focusableSelector = [
-      'button:not([disabled])',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])',
-    ].join(',');
-    const focusableElements = () => (
-      dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)) : []
-    );
-    (focusableElements()[0] ?? dialog)?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pendingRef.current) {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const elements = focusableElements();
-      if (elements.length === 0) {
-        event.preventDefault();
-        dialog?.focus();
-        return;
-      }
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousActiveElement?.focus();
-    };
-  }, []);
+  useModalFocusTrap(dialogRef, pending, onClose);
 
   return (
     <div

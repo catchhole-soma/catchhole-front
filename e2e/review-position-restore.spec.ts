@@ -215,7 +215,7 @@ test('세계관 2페이지 그룹에서 결정을 저장해도 읽던 페이지�
   await page.addInitScript(() => localStorage.setItem('accessToken', 'world-page-test'));
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&page=2&size=1&group=${encodeURIComponent('LOCATION|합성 장소 2')}`);
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /내용·저장 위치 수정/ }).click();
+  await row.getByRole('radio', { name: /내용·저장 위치 수정/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('해가 지면 문을 닫고 등불을 켠다.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');

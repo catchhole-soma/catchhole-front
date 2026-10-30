@@ -121,7 +121,7 @@ test('체크한 행 중 대상에 같은 경로가 없는 행만 추가로 저�
   const dialog = await openTargetLink(page);
   await dialog.getByLabel('연결할 세계관 대상 검색').fill('은빛');
   await expect.poll(() => state.searches.some(url => url.searchParams.get('q') === '은빛')).toBe(true);
-  await dialog.getByRole('button', { name: /^은빛 항구/ }).click();
+  await dialog.getByRole('radio', { name: /^은빛 항구/ }).click();
   const outcome = dialog.getByRole('region', { name: '체크한 설정의 저장 방법' });
   await expect(outcome).toContainText('기후기존값 있음 → 병합/교체 결정 필요');
   await expect(outcome).toContainText('인구기존값 없음 → 추가로 저장');
@@ -141,12 +141,12 @@ test('체크한 행 중 대상에 같은 경로가 없는 행만 추가로 저�
   expect(new URL(page.url()).searchParams.get('group')).toBe('LOCATION|항구');
   const climate = page.locator('[data-candidate-id="w1"]');
   await expect(climate).toContainText('대상은 골랐어요. 기존값과 어떻게 합칠지 정해 주세요.');
-  await expect(climate.getByRole('group', { name: '이 대상에 같은 설정이 있어요. 어떻게 반영할까요?' })).toBeVisible();
+  await expect(climate.getByRole('radiogroup', { name: '이 대상에 같은 설정이 있어요. 어떻게 반영할까요?' })).toBeVisible();
   await expect(page.locator('[data-candidate-id="w2"]')).toHaveCount(0);
   await notice.getByRole('button', { name: '첫 항목으로', exact: true }).click();
   await expect(climate).toBeFocused();
   // 같은 경로가 있는 행은 작가가 고르고 검토 완료를 누른 뒤에만 저장한다.
-  await climate.getByRole('button', { name: /이번 내용으로 바꾸기/ }).click();
+  await climate.getByRole('radio', { name: /이번 내용으로 바꾸기/ }).click();
   expect(state.writes).toHaveLength(1);
   await climate.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => state.writes.length).toBe(2);
@@ -165,7 +165,7 @@ test('공유 결정의 원문은 함께 체크되고 새 대상 이름으로 모
   await page.getByRole('checkbox', { name: '선택: 인구' }).check();
   await expect(page.getByRole('region', { name: '선택한 설정' })).toContainText('3개 선택');
   const dialog = await openTargetLink(page);
-  await dialog.getByRole('button', { name: /^새 대상으로 등록/ }).click();
+  await dialog.getByRole('radio', { name: /^새 대상으로 등록/ }).click();
   await dialog.getByLabel('새 대상 이름').fill('안개 항구');
   await expect(dialog.getByRole('region', { name: '체크한 설정의 저장 방법' })).toContainText('항로새 대상 → 추가로 저장');
   await dialog.getByRole('button', { name: '고른 대상에 연결', exact: true }).click();

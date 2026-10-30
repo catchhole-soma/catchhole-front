@@ -93,7 +93,7 @@ for (const width of [1280, 320]) {
       if (scenario.reason === 'SUBJECT_UNRESOLVED') {
         await expect(row.locator('.review-cb-comparison')).toHaveCount(0);
         await expect(row.getByRole('textbox', { name: '기존 세계관 대상 검색' })).toBeVisible();
-        await expect(row.getByRole('button', { name: /‘정령술’ 새로 등록/ })).toBeVisible();
+        await expect(row.getByRole('radio', { name: /‘정령술’ 새로 등록/ })).toBeVisible();
         await expect(row.getByText('없음', { exact: true })).toHaveCount(0);
       }
       const comparisonBox = row.locator('.review-cb-inline-value').first();
@@ -131,7 +131,7 @@ for (const width of [1280, 320]) {
       await row.scrollIntoViewIfNeeded();
       await page.screenshot({ path: `docs/screens/gh180-world-unresolved-scope-${width}.png` });
     }
-    await row.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+    await row.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
     await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(state.savedBody).toEqual({ batchId, candidates: [{ candidateId,
       category: 'POWER_SYSTEM', subjectName: '정령술', scopeName: '불의 정령', settingName: '소환 유지 시간',

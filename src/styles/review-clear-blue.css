@@ -100,19 +100,19 @@
 .review-cb-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .review-cb-choices.has-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .review-cb-choice { display: flex; flex-direction: column; gap: 13px; min-width: 0; min-height: 92px; padding: 15px; text-align: left; border: 1px solid var(--ch-border-strong); border-radius: 12px; background: var(--ch-surface); color: var(--ch-text); font-family: inherit; cursor: pointer; box-shadow: 0 2px 6px rgb(31 55 88 / 3%); transition: border-color 120ms, background-color 120ms; }
-.review-cb-choice:hover:not(:disabled) { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
-.review-cb-choice[aria-pressed=true] { border-color: var(--ch-primary); background: var(--ch-surface-soft); box-shadow: inset 0 0 0 1px var(--ch-primary); }
-.review-cb-choice:disabled { cursor: not-allowed; opacity: .6; }
+.review-cb-choice:hover:not(:disabled):not([aria-disabled=true]) { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
+.review-cb-choice[aria-pressed=true], .review-cb-choice[aria-checked=true] { border-color: var(--ch-primary); background: var(--ch-surface-soft); box-shadow: inset 0 0 0 1px var(--ch-primary); }
+.review-cb-choice:disabled, .review-cb-choice[aria-disabled=true] { cursor: not-allowed; opacity: .6; }
 .review-cb-choice__top { display: flex; align-items: center; gap: 11px; width: 100%; }
 .review-cb-choice__image { width: 48px; height: 50px; flex-shrink: 0; border-radius: 9px; overflow: hidden; background: var(--ch-canvas); }
 .review-cb-choice__identity { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .review-cb-choice__identity strong { color: var(--ch-ink); font-size: 14px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
 .review-cb-choice__identity > span { color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 .review-cb-choice__radio { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex-shrink: 0; border: 1px solid var(--ch-border-strong); border-radius: 50%; color: white; background: var(--ch-surface); }
-.review-cb-choice[aria-pressed=true] .review-cb-choice__radio { background: var(--ch-primary); border-color: var(--ch-primary); }
+.review-cb-choice[aria-pressed=true] .review-cb-choice__radio, .review-cb-choice[aria-checked=true] .review-cb-choice__radio { background: var(--ch-primary); border-color: var(--ch-primary); }
 .review-cb-choice__preview { display: block; color: var(--ch-text); font-size: 12px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .review-cb-choice__effect { display: block; width: 100%; margin-top: auto; padding: 8px 9px; text-align: center; background: var(--ch-canvas); color: var(--ch-text-muted); border-radius: 7px; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
-.review-cb-choice[aria-pressed=true] .review-cb-choice__effect { background: var(--ch-primary-hover); color: var(--ch-primary-contrast); }
+.review-cb-choice[aria-pressed=true] .review-cb-choice__effect, .review-cb-choice[aria-checked=true] .review-cb-choice__effect { background: var(--ch-primary-hover); color: var(--ch-primary-contrast); }
 
 .review-cb-inline-value { display: flex; align-items: baseline; gap: 14px; margin: 15px 0; padding: 14px 16px; border-left: 3px solid var(--ch-primary); border-radius: 0 10px 10px 0; background: var(--ch-surface-soft); color: var(--ch-text); }
 .review-cb-inline-value > strong { flex-shrink: 0; color: var(--ch-primary-ink); font-size: 11px; }
@@ -346,3 +346,17 @@
   .review-cb-summary__actions { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .review-cb-summary__actions button, .review-cb-fold { min-height: 44px; }
 }
+
+/* #211 후속 3차: 검토 단축키 안내. 확정 영역 끝의 버튼으로 열고 Esc·바깥 클릭으로 닫는다. */
+.review-shortcut { position: relative; }
+.review-shortcut__toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 12px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-surface); color: var(--ch-text-muted); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-shortcut__toggle[aria-expanded=true] { border-color: var(--ch-primary); color: var(--ch-primary-ink); }
+.review-shortcut__toggle:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-shortcut__panel { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 4; width: min(340px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-surface); box-shadow: 0 12px 32px rgb(31 55 88 / 14%); color: var(--ch-text); font-size: 12px; line-height: 1.6; }
+.review-shortcut__panel dl { display: grid; gap: 6px; margin: 0; }
+.review-shortcut__panel dl > div { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.review-shortcut__panel dd { margin: 0; }
+.review-shortcut__panel kbd { font: inherit; font-weight: 700; color: var(--ch-ink); white-space: nowrap; }
+.review-shortcut__panel p { margin: 10px 0 0; color: var(--ch-text-muted); font-size: 11px; }
+/* 단축키는 물리 키보드용이므로 좁은 화면에서는 안내 버튼을 숨겨 확정 영역을 줄인다. */
+@media (max-width: 768px) { .review-shortcut { display: none; } }

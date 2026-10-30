@@ -120,7 +120,7 @@ for (const width of [1280, 320]) {
       await page.screenshot({ path: `docs/screens/gh180-auto-pending-${candidateType}-${width}.png`, fullPage: true });
       await earlierRow.getByRole('button', { name: '수정', exact: true }).click();
       if (candidateType === 'character') {
-        await page.locator('.review-modal').getByRole('button', { name: /이력에만 저장/ }).click();
+        await page.locator('.review-modal').getByRole('radio', { name: /이력에만 저장/ }).click();
       }
       await expect(page.locator('.review-modal').getByRole('button', { name: candidateType === 'character' ? '확인한 값 저장' : '수정안 적용' })).toBeEnabled();
       expect(mutations).toBe(0);

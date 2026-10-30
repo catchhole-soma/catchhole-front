@@ -16,7 +16,7 @@ export function focusReviewElement(element: HTMLElement) {
  * 상세 패널(`containerRef`) 안의 후보 카드(`[data-candidate-id]`) 사이 초점 이동.
  *
  * 마지막으로 초점이 머문 카드를 기억한다. 확정 영역의 `다음 미결정 항목`을 누르면 초점이 버튼으로 옮겨 가므로,
- * 다음 차단 후보는 그 기억한 카드 다음부터 찾는다(연속으로 누르면 차단 후보를 차례로 돈다).
+ * 그때는 기억한 카드 다음부터 찾는다(연속으로 누르면 차단 후보를 차례로 돈다).
  */
 export function useReviewCardNavigation(containerRef: RefObject<HTMLElement | null>) {
   const lastCardRef = useRef<string | null>(null);
@@ -38,14 +38,20 @@ export function useReviewCardNavigation(containerRef: RefObject<HTMLElement | nu
     const list = cards();
     const active = document.activeElement;
     let index = list.findIndex(card => card.contains(active));
-    if (index < 0 && lastCardRef.current) index = list.findIndex(card => card.dataset.candidateId === lastCardRef.current);
+    // 확정 영역의 버튼을 누른 경우(브라우저에 따라 초점이 버튼 또는 body에 남는다)에는 마지막 카드부터 이어 찾는다.
+    // 묶음 제목처럼 상세 안의 다른 곳에 초점이 있으면 처음부터 찾는다.
+    const fromActionBar = !active || active === document.body || Boolean(active.closest('.review-action-bar'))
+      || !containerRef.current?.contains(active);
+    if (index < 0 && lastCardRef.current && fromActionBar) {
+      index = list.findIndex(card => card.dataset.candidateId === lastCardRef.current);
+    }
     const blocking = list.filter(card => candidateIds.includes(card.dataset.candidateId ?? ''));
     const next = blocking.find(card => list.indexOf(card) > index) ?? blocking[0];
     if (!next) return false;
     lastCardRef.current = next.dataset.candidateId ?? null;
     focusReviewElement(next);
     return true;
-  }, [cards]);
+  }, [cards, containerRef]);
 
   /** 초점이 있는 카드의 다음(이전) 카드로 간다. 카드 밖(묶음 제목 등)이면 첫 카드부터 시작한다. */
   const stepCard = useCallback((direction: 1 | -1) => {

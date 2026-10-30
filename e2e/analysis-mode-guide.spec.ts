@@ -90,7 +90,7 @@ test('한 줄의 5단계에서 실제 컴포넌트를 보여주고 예시 조작
   await expect(comparison.locator('.is-before')).toContainText('왕국 정찰병');
   await expect(comparison.locator('.is-after')).toContainText('북부 원정대 정찰병');
   await expect(comparison.locator('mark')).not.toHaveCount(0);
-  const selectedChoice = preview.locator('.review-cb-choice[aria-pressed=true]').first();
+  const selectedChoice = preview.locator('.review-cb-choice[aria-checked=true]').first();
   await expect(selectedChoice.locator('.review-cb-choice__effect')).toHaveCount(0);
   expect(await computedContrastRatio(selectedChoice.locator('strong'), selectedChoice)).toBeGreaterThanOrEqual(4.5);
   expect(await computedContrastRatio(selectedChoice.locator('.review-cb-choice__preview'), selectedChoice)).toBeGreaterThanOrEqual(4.5);
@@ -127,7 +127,7 @@ test('한 줄의 5단계에서 실제 컴포넌트를 보여주고 예시 조작
   await expect(target).not.toBeFocused();
   const targetBox = (await target.boundingBox())!;
   await page.mouse.click(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2);
-  await expect(target).toHaveAttribute('aria-pressed', 'false');
+  await expect(target).toHaveAttribute('aria-checked', 'false');
   await expect(preview.locator('.review-character-targets')).toBeVisible();
   await dialog.getByRole('region', { name: '단계별 예시' }).focus();
   await page.screenshot({ path: 'docs/screens/gh215/analysis-guide-exception-desktop.png', animations: 'disabled' });

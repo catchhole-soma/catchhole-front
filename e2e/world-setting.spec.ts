@@ -538,7 +538,7 @@ test(scopeUnresolved
   await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(page.getByRole('button', { name: '분류·대상 일괄 수정' })).toBeDisabled();
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).first().click();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).first().click();
   await expect(page.locator('.review-modal')).toHaveCount(0);
 
   await expect.poll(() => updatedBody).toEqual({
@@ -696,8 +696,8 @@ test('출력 한도를 넘은 후보는 원문 경로와 값을 직접 확인한
 
   await expect(page.getByText('비교 분량 확인 필요', { exact: true })).toHaveCount(2);
   await expect(page.locator('.review-cb-inline-editor')).toHaveCount(1);
-  await expect(page.getByRole('button', { name: /이 내용 그대로 추가/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /내용·저장 위치 수정/ })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /이 내용 그대로 추가/ })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /내용·저장 위치 수정/ })).toBeVisible();
   await expect(page.getByText('한 번에 비교할 수 있는 분량을 넘어 이 설정의 비교를 보류했습니다. 원문을 확인한 뒤 반영할 내용을 직접 정해 주세요.').first()).toBeVisible();
   await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 

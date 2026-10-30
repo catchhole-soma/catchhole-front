@@ -116,7 +116,7 @@ test('반영 방식 저장 응답을 잃어도 서버에 저장됐으면 재전�
   const card = page.locator('[data-candidate-id="c-1"]');
   state.losePatch = 'saved';
   holdDetail();
-  await card.getByRole('button', { name: /이력에만 저장/ }).click();
+  await card.getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(card.getByRole('status').filter({ hasText: unverifiedText })).toBeVisible();
   await expect(card.getByText(savedText, { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
@@ -134,7 +134,7 @@ test('저장되지 않은 반영 방식은 세 번 다시 확인한 뒤 다시 �
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent(`existing:${firstCharacterId}`)}`);
   const card = page.locator('[data-candidate-id="c-1"]');
   state.losePatch = 'unsaved';
-  await card.getByRole('button', { name: /이력에만 저장/ }).click();
+  await card.getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(card.getByRole('status').filter({ hasText: /최신 상태를 확인하는 중이에요\(1\/3\)/ })).toBeVisible({ timeout: 5_000 });
   const retry = card.getByRole('button', { name: '다시 시도', exact: true });
   await expect(retry).toBeVisible({ timeout: 20_000 });
@@ -192,8 +192,8 @@ test('로컬 선택은 저장 완료가 아니라 확정 때 적용할 선택으
   const { state } = await characterFixture(page, candidates, existingKey);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent(`existing:${firstCharacterId}`)}`);
   const card = page.locator('[data-candidate-id="c-1"]');
-  await card.getByRole('button', { name: /이력에만 저장/ }).click();
-  await expect(card.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  await card.getByRole('radio', { name: /이력에만 저장/ }).click();
+  await expect(card.getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
   await expect(card.getByText('선택됨 · 확정할 때 적용', { exact: true })).toBeVisible();
   await expect(card.getByText(savedText, { exact: true })).toHaveCount(0);
   expect(state.patches).toHaveLength(0);
@@ -244,7 +244,7 @@ test('세계관 결정 저장 응답을 잃고 확인 조회도 실패하면 1·
   await page.addInitScript(() => localStorage.setItem('accessToken', 'world-save-recovery-test'));
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&group=${encodeURIComponent('LOCATION|안개 항구')}`);
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /내용·저장 위치 수정/ }).click();
+  await row.getByRole('radio', { name: /내용·저장 위치 수정/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('밤에는 등불을 단 배만 들어온다.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect(page.getByText('저장 결과를 아직 확인하지 못했어요.', { exact: false })).toBeVisible();

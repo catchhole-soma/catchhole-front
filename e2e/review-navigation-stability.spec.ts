@@ -98,13 +98,13 @@ for (const mode of ['APPLY_PROPOSAL', 'HISTORY_ONLY']) {
     await page.addInitScript(() => localStorage.setItem('accessToken', 'scroll-save-fixture'));
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent(selectedKey)}`);
     const detail = page.locator('.setting-candidate-detail').nth(3);
-    const choice = detail.getByRole('button', { name: mode === 'APPLY_PROPOSAL' ? /현재 설정에 반영/ : /이력에만 저장/ });
+    const choice = detail.getByRole('radio', { name: mode === 'APPLY_PROPOSAL' ? /현재 설정에 반영/ : /이력에만 저장/ });
     await choice.scrollIntoViewIfNeeded();
     const main = page.locator('.setting-review-main');
     const before = await main.evaluate(el => el.scrollTop);
     expect(before).toBeGreaterThan(300);
     await choice.click();
-    await expect(choice).toHaveAttribute('aria-pressed', 'true');
+    await expect(choice).toHaveAttribute('aria-checked', 'true');
     await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe(selectedKey);
     await expect.poll(() => main.evaluate(el => el.scrollTop)).toBe(before);
     await expect(page.locator('.candidate-group-card.is-selected')).toContainText('인물 1');
