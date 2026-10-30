@@ -9,12 +9,11 @@ import { buildEpisode1Settings, data, poll, STAGE_TIMEOUT, submitValidation, TER
  * 같은 API에 붙은 추출·검수 Worker, `CATCHHOLE_E2E_VALIDATION_WORKER=1`)에서만 실행한다.
  * 2화에 1화(서른 살)와 바로 어긋나는 나이 서술 하나를 심고, 검토 대기(AWAITING_REVIEW) 리포트의 설정 검사 항목에서 서윤의 나이를 정정한다.
  * 나이가 바뀌었다고 읽힐 문장(`올해로 … 되었다`)은 변화·예외 판단을 부르므로(#341) 변화 없는 서술로 심는다.
- * 2화 검사와 재검수는 각각 PARTIAL로 끝나면(#341) 서버가 RETRY를 허용할 때만 작가 경로(`중단된 검사 다시 시도`)로 한 번씩 다시 시도한다.
+ * 2화 검사와 재검수는 각각 PARTIAL로 끝나면 서버가 RETRY를 허용할 때만 작가 경로(`중단된 검사 다시 시도`)로 한 번씩 다시 시도한다.
  * 정정은 고정 기준과 현재 설정이 그대로일 때만 저장되므로 검토 완료·설정 추출 전에 한다(Backend validation-execution-v1.md "명시적 기준 정정").
  * 화면·서버 흐름(정정 저장·기준 무효화·RECHECK·새 report 연결·재검수 종료)은 바로 확인한다.
- * 모델 판정(정정 전 나이 충돌·정정 후 해소)과 #341(검수 Worker가 변화·예외 조회 없는 충돌 의심 판정을 분기 전체 실패로 처리)의
- * 알려진 PARTIAL(`INVALID_DECISION_CHANGE_SEARCH_MISSING`)은 annotation으로만 남기고 spec을 실패시키지 않으며,
- * #341 해결 뒤 재검수 COMPLETED를 hard로 되돌린다. 그 외 비정상 종료는 실패한다.
+ * 재검수 실행 완료(COMPLETED)는 hard다(#341은 AI PR catchhole-backend-ai#111로 해결).
+ * 모델 판정(정정 전 나이 충돌·정정 후 해소)은 annotation으로만 남긴다.
  */
 // episode-validation-live의 2화 첫 문단 뒤에 변화가 아닌 나이 모순 문단 하나만 더했다. 오탈자(됬다)와 나머지 문장은 같다.
 const EPISODE_2 = `2화 조용한 저녁
@@ -117,15 +116,15 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
   const readStaging = async (reportId: string) => data<Staging>(await request.get(reportUrl(reportId), { headers }));
   const note = (type: string, description: string) => testInfo.annotations.push({ type, description });
   const untilTerminal = (reportId: string, label: string) => poll(() => readStaging(reportId), value => TERMINAL_EXECUTION.has(value.executionStatus), STAGE_TIMEOUT, label);
-  /** COMPLETED가 아니면 실패 메시지·annotation에 남길 실행 요약과 실패 코드. `/results`의 상태·실패 코드만 쓰고 원문·인용은 넣지 않는다. */
+  /** COMPLETED가 아니면 실패 메시지·annotation에 남길 실행 요약. `/results`의 상태·실패 코드만 쓰고 원문·인용은 넣지 않는다. */
   const execution = async (staging: Staging) => {
-    if (staging.executionStatus === 'COMPLETED') return { summary: '', failureCode: null };
+    if (staging.executionStatus === 'COMPLETED') return { summary: '' };
     const response = await request.get(`${reportUrl(staging.reportId)}/results`, { headers });
     const results = response.ok() ? ((await response.json()) as { data?: Record<string, unknown> }).data ?? {} : {};
     const field = (key: string) => String(results[key] ?? '없음');
     const summary = ` executionStatus=${staging.executionStatus} status=${field('status')} settingStatus=${field('settingStatus')} `
       + `typoStatus=${field('typoStatus')} failureCode=${field('failureCode')}`;
-    return { summary, failureCode: typeof results.failureCode === 'string' ? results.failureCode : null };
+    return { summary };
   };
   /**
    * PARTIAL이면 작가 경로로 한 번만 다시 시도한다. 서버 `/review`가 RETRY를 허용할 때만 리포트의 `중단된 검사 다시 시도`를 누르고,
@@ -286,12 +285,7 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     note('recheck-stage', `${finished.reviewStage} mode=${finished.mode}`);
     const recheckExecution = await execution(finished);
     note('recheck-execution', recheckExecution.summary.trim() || `executionStatus=${finished.executionStatus}`);
-    expect(['FAILED', 'CANCELED'], `재검수가 실패·취소로 끝났습니다.${recheckExecution.summary}`).not.toContain(finished.executionStatus);
-    const recheckCompleted = finished.executionStatus === 'COMPLETED';
-    // #341의 알려진 PARTIAL은 기록만 하고 실패시키지 않는다. 해결 뒤 이 분기를 지우고 COMPLETED를 hard로 되돌린다.
-    const knownPartial = finished.executionStatus === 'PARTIAL' && recheckExecution.failureCode === 'INVALID_DECISION_CHANGE_SEARCH_MISSING';
-    if (knownPartial) note('known-issue', 'catchhole-backend-java#341');
-    else expect(finished.executionStatus, `정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.${recheckExecution.summary}`).toBe('COMPLETED');
+    expect(finished.executionStatus, `정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.${recheckExecution.summary}`).toBe('COMPLETED');
     // 아무것도 확정하지 않았으므로 서버가 정하는 검수 종류는 확정 전이다(모델 판정이 아닌 서버 규칙).
     expect(finished.mode, '아무것도 확정하지 않았으므로 확정 전 검수다.').toBe('BEFORE_CONFIRMATION');
 
@@ -299,8 +293,8 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     const after = await readFindings(request, reportUrl(recheckId), headers);
     note('recheck-findings', after.counts);
     note('setting-findings-after', summarize(after.settings));
-    // 모델 판정이므로 기록만 한다. 검사를 마치지 못한 재검수에서는 충돌이 없다는 판단을 내릴 수 없다.
-    note('age-conflict-after', recheckCompleted ? String(after.settings.filter(isAgeConflict).length) : '미판정');
+    // 모델 판정이므로 기록만 한다.
+    note('age-conflict-after', String(after.settings.filter(isAgeConflict).length));
     // 실행 기록용: 이 일회용 계정이 쓴 AI 사용량(1화 추출·두 번의 검수 합계).
     const usage = await data<{ usedTokens: number }>(await request.get(`${api}/api/v1/ai-token-usages/me`, { headers }));
     note('ai-used-tokens', String(usage.usedTokens));
