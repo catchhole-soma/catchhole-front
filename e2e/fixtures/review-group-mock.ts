@@ -123,7 +123,9 @@ export function worldCandidate(id: string, subjectName: string, settingName: str
 
 const worldGroupKeyOf = (row: MockCandidate) => `${row.finalCategory ?? row.category}|${normalize(row.finalSubjectName ?? row.targetSubjectName ?? row.subjectName)}`;
 
-export async function routeWorldReview(page: Page, candidates: MockCandidate[], options: { characterPending?: number } = {}) {
+export interface MockWorldTarget { id: string; category: string; subjectName: string; properties: Array<{ scopeName: string | null; settingName: string; value: string }> }
+
+export async function routeWorldReview(page: Page, candidates: MockCandidate[], options: { characterPending?: number; targets?: MockWorldTarget[] } = {}) {
   const writes: Write[] = [];
   const counts = () => {
     const pending = candidates.filter(row => row.reviewStatus === 'PENDING_REVIEW').length;
@@ -174,7 +176,16 @@ export async function routeWorldReview(page: Page, candidates: MockCandidate[], 
     }
     const detail = path.match(new RegExp(`^${worldListPath}/([^/]+)$`));
     if (detail && method === 'GET') return ok(route, candidates.find(row => row.id === detail[1]));
-    if (path === `${workPath}/world-settings`) return ok(route, { totalWorldSettingCount: 0, worldSettings: pageOf([], 0, 6) });
+    const targets = options.targets ?? [];
+    if (path === `${workPath}/world-settings`) {
+      const q = normalize(url.searchParams.get('q'));
+      const category = url.searchParams.get('category');
+      const list = targets.filter(item => (!category || item.category === category) && (!q || normalize(item.subjectName).includes(q)))
+        .map(item => ({ id: item.id, workId, category: item.category, subjectName: item.subjectName, propertyCount: item.properties.length }));
+      return ok(route, { totalWorldSettingCount: list.length, worldSettings: pageOf(list, Number(url.searchParams.get('page') ?? 0), Number(url.searchParams.get('size') ?? 6)) });
+    }
+    const target = targets.find(item => path === `${workPath}/world-settings/${item.id}`);
+    if (target) return ok(route, { ...target, workId, propertyCount: target.properties.length, version: 1 });
     if (path === characterListPath) {
       const pending = options.characterPending ?? 0;
       return ok(route, { batchId, totalCandidateCount: pending, pendingCandidateCount: pending, directReviewCandidateCount: pending,

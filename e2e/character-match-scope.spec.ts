@@ -98,7 +98,7 @@ test('단건 연결은 현재 묶음을 유지하고 연결한 묶음 이동은 
   await page.reload();
   await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
   await page.getByRole('region', { name: '소속 설정 후보', exact: true }).getByRole('button', { name: /이력에만 저장/ }).click();
-  await expect(page.getByText('저장했어요 · 모두 확정 전까지 바꿀 수 있어요', { exact: true })).toBeVisible();
+  await expect(page.getByText('저장했어요 · 확정 전까지 바꿀 수 있어요', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`group=existing%3A${targetId}`));
   await page.getByRole('button', { name: '이전 페이지', exact: true }).click();

@@ -2488,7 +2488,7 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
     + `&matchStatus=AMBIGUOUS&candidate=${firstCandidateId}`,
   );
 
-  await page.getByRole('button', { name: '다른 인물 찾기', exact: true }).click();
+  await page.getByRole('button', { name: '검색으로 찾기', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
   await dialog.getByLabel('작품 전체에서 인물 검색').fill('지우');
   const characterButton = dialog.getByRole('button', { name: /윤지우/ });

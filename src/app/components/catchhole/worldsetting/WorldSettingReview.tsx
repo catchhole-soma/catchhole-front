@@ -854,7 +854,8 @@ function WorldKeyDiffRow({
   candidate, decision, conflictResolved, recompared, rootMoveApplication,
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
-  currentChoice = null, onCurrentChoice, saveCheckPending = false, presetTarget, selection,
+  currentChoice = null, onCurrentChoice, saveCheckPending = false, presetTarget, selection, blocked = false,
+  compactTargetPicker = false, recentTargets, onTargetChosen,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -880,6 +881,13 @@ function WorldKeyDiffRow({
   presetTarget?: WorldPresetTarget;
   /** 대상 연결을 위해 체크할 수 있는 대기 행에만 넘긴다. */
   selection?: { checked: boolean; disabled: boolean; disabledReason?: string; onChange: (checked: boolean) => void };
+  /** 이 행 때문에 묶음 확정이 막혀 있다(중복 경로 등). 결정이 저장돼 있어도 요약으로 접지 않는다. */
+  blocked?: boolean;
+  /** 묶음에 대상 미정 행이 여럿이면 행의 대상 선택을 최근 대상과 `대상 검색`으로 줄인다. */
+  compactTargetPicker?: boolean;
+  /** 이번 검토에서 고른 기존 대상(최근 순). 대상 미정 행의 축소형 선택지로 쓴다. */
+  recentTargets?: WorldLinkTarget[];
+  onTargetChosen?: (target: WorldLinkTarget) => void;
 }) {
   const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
   const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
@@ -939,21 +947,49 @@ function WorldKeyDiffRow({
     && candidate.comparisonStatus === 'COMPLETED' && (operation === 'MERGE' || operation === 'UPDATE')
     && Boolean(before && proposedValue && before !== proposedValue);
   const noticeTitle = reviewableFailure ? '자동 비교를 마치지 못했어요' : undefined;
+  // 서버가 저장한 결정이 있고 더 정할 것이 없는 행은 처음 열 때 한 줄 요약으로 접는다(D6). 방금 저장한 행은 펼친 채 두고,
+  // 다시 미결정·미저장·결과 확인 중이 되면 펼친다.
+  const summarizable = pending && saved && !inlineDirty && !saveCheckPending && !presetTarget && !automaticPending && !blocked
+    && !(bookChoiceRequired && !currentChoice);
+  const [collapsed, setCollapsed] = useState(summarizable);
+  if (collapsed && !summarizable) setCollapsed(false);
+  const subtitle = [category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ');
+  const rowActions = <>
+    <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
+    {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
+  </>;
+  const checkbox = selection && <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
+    <input type="checkbox" aria-label={`선택: ${propertyPath}`} checked={selection.checked} disabled={selection.disabled}
+      onChange={event => selection.onChange(event.target.checked)} />
+  </label>;
+  if (collapsed && summarizable) {
+    return <section className="world-setting-diff-row review-cb-setting-card is-summary" data-candidate-id={candidate.id} tabIndex={-1}>
+      <div className="review-cb-summary">
+        {checkbox}
+        <div className="review-cb-summary__identity">
+          <div className="review-cb-summary__title"><h3>{keyName}</h3>
+            <Badge label={operation === 'EXCLUDE' ? '제외 예정' : '저장했어요'} color={operation === 'EXCLUDE' ? C.t3 : C.success} neutral={operation === 'EXCLUDE'} /></div>
+          <p className="review-cb-summary__value">{[subtitle, proposedValue || candidate.extractedValue || '설정값이 없습니다.'].join(' · ')}</p>
+        </div>
+        <div className="review-cb-summary__actions review-cb-heading__actions">
+          {rowActions}
+          <button type="button" className="review-cb-fold" aria-expanded={false} onClick={() => setCollapsed(false)}>펼치기</button>
+        </div>
+      </div>
+    </section>;
+  }
   const heading = <ReviewSettingHeading title={keyName}
-      subtitle={[category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ')}
+      subtitle={subtitle}
       image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
       badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
       episode={analysisSourceLabel(candidate.source, candidate.sourceEpisodeNo)}
       actions={<>
-        <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
-        {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
+        {rowActions}
+        {summarizable && <button type="button" className="review-cb-fold" aria-expanded onClick={() => setCollapsed(true)}>접기</button>}
       </>} />;
   return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id} tabIndex={-1}>
-    {selection ? <div className="review-cb-selectable-heading">
-      <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
-        <input type="checkbox" aria-label={`선택: ${propertyPath}`} checked={selection.checked} disabled={selection.disabled}
-          onChange={event => selection.onChange(event.target.checked)} />
-      </label>
+    {checkbox ? <div className="review-cb-selectable-heading">
+      {checkbox}
       {heading}
     </div> : heading}
 
@@ -986,6 +1022,7 @@ function WorldKeyDiffRow({
         key={JSON.stringify([candidate.finalOperation, candidate.finalCategory, candidate.finalSubjectName,
           candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue, presetTarget ?? null])}
         presetTarget={presetTarget}
+        compactTargetPicker={compactTargetPicker} recentTargets={recentTargets} onTargetChosen={onTargetChosen}
         initialDraft={initialDraft} disabled={disabled || automaticPending} sharedChoiceAvailable={linkedCandidateIds.length > 0}
         sourceValue={sourceValue}
         onDirtyChange={reportDirty}
@@ -1093,6 +1130,8 @@ function WorldCandidateGroupDetail({
   hasNextGroup,
   confirmPending,
   onJumpToBlocking,
+  recentTargets,
+  onTargetChosen,
 }: {
   group: WorldSettingCandidateGroupResponse;
   originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
@@ -1133,6 +1172,8 @@ function WorldCandidateGroupDetail({
   /** 확정 요청 중. */
   confirmPending: boolean;
   onJumpToBlocking: (candidateIds: string[]) => void;
+  recentTargets: WorldLinkTarget[];
+  onTargetChosen: (target: WorldLinkTarget) => void;
 }) {
   const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
   const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
@@ -1236,6 +1277,11 @@ function WorldCandidateGroupDetail({
     includeRootMoveNotice(candidate) && candidate.proposedScopeName
     && (candidate.existingRootPropertyNamesToMove?.length ?? 0) > 0
   )) : [];
+  // 대상을 아직 고르지 않은 행 수. 둘 이상이면 행마다 같은 검색 목록이 반복되므로 축소형 대상 선택을 쓴다.
+  const subjectUnresolvedCount = pendingCandidates.filter(candidate => !hasSavedDecision(candidate)
+    && (candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
+      || candidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
+      || candidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED')).length;
   const orderedImpactVisible = !groupAutomaticPending && preservedMoveCandidates.length === 0
     && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
   // 대상 연결은 화면에 그려진 대기 행만 체크한다. 공유 결정의 원문은 함께 체크된다.
@@ -1317,6 +1363,10 @@ function WorldCandidateGroupDetail({
             currentChoice={bookCurrentChoice(candidate, currentChoices)}
             onCurrentChoice={mode => onCurrentChoice(candidate, mode)}
             presetTarget={presetTargets[candidate.id]}
+            blocked={Boolean(confirmBlock?.candidateIds.includes(candidate.id))}
+            compactTargetPicker={subjectUnresolvedCount > 1}
+            recentTargets={recentTargets}
+            onTargetChosen={onTargetChosen}
             selection={candidate.reviewStatus === 'PENDING_REVIEW' ? {
               checked: selection.checkedIds.includes(candidate.id),
               disabled: actionPending || decisionRecoveryRequired || Boolean(worldLinkBlockedReason(candidate, confirmationFiltered)),
@@ -1655,6 +1705,12 @@ export function WorldSettingReview() {
   // 선택 대상 연결에서 저장하지 않고 결정으로 남긴 행의 대상. 새로고침하면 사라지는 화면 안 초안이다.
   const [presetTargets, setPresetTargets] = useState<Record<string, WorldPresetTarget>>({});
   const [targetLinkNotice, setTargetLinkNotice] = useState<WorldTargetLinkNotice | null>(null);
+  // 이번 검토에서 고른 기존 대상(최근 순, 3개). 대상 미정 행은 긴 검색 목록 대신 이 대상과 `대상 검색`을 먼저 보여 준다.
+  const [recentTargets, setRecentTargets] = useState<WorldLinkTarget[]>([]);
+  const rememberTarget = useCallback((target: WorldLinkTarget) => {
+    if (!target.worldSettingId) return;
+    setRecentTargets(previous => [target, ...previous.filter(item => item.worldSettingId !== target.worldSettingId)].slice(0, 3));
+  }, []);
   const targetLinkRequestRef = useRef<WorldTargetLinkStay | null>(null);
   const clearLinkSelection = () => {
     setLinkSelection({ groupKey: null, ids: [] });
@@ -1940,6 +1996,7 @@ export function WorldSettingReview() {
     setTargetLinkOpen(false);
     setPresetTargets({});
     setTargetLinkNotice(null);
+    setRecentTargets([]);
   }, [batchId, sourceAnalysisJobId, workId]);
 
   const invalidateReviewSummary = (scope = { workId, batchId, sourceAnalysisJobId }) => queryClient.invalidateQueries({
@@ -2546,6 +2603,7 @@ export function WorldSettingReview() {
    */
   const applyTargetLink = (target: WorldLinkTarget, plan: ReturnType<typeof planWorldTargetLink>) => {
     if (!selectedGroup?.groupKey || actionPending || decisionRecoveryRequired) return;
+    rememberTarget(target);
     const presets: Record<string, WorldPresetTarget> = Object.fromEntries(plan.pending.flatMap(row => (
       row.unit.candidateIds.map(candidateId => [candidateId, { target, reason: row.outcome as WorldPresetTarget['reason'] }])
     )));
@@ -3051,6 +3109,8 @@ export function WorldSettingReview() {
                         hasNextGroup={hasNextGroup}
                         confirmPending={confirmMutation.isPending}
                         onJumpToBlocking={cardNavigation.jumpToBlocking}
+                        recentTargets={recentTargets}
+                        onTargetChosen={rememberTarget}
                       />
                     )}
                   </section>

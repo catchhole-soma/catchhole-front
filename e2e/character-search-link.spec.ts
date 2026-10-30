@@ -94,13 +94,13 @@ test('검색 결과의 다음 페이지로 가도 검색어는 남고 선택만 
   expect(state.writes).toEqual([]);
 });
 
-test('다른 인물 찾기는 원문 표현을 검색어로 넣어 연다', async ({ page }) => {
+test('검색으로 찾기는 원문 표현을 검색어로 넣어 연다', async ({ page }) => {
   const state = await routeCharacterLinkMock(page, {
     candidates: [settingCandidate('candidate-1', { matchStatus: 'AMBIGUOUS', rawEntityMention: '아리', entityName: '아리' })],
     characters,
   });
   await page.goto(reviewUrl());
-  await page.getByRole('button', { name: '다른 인물 찾기', exact: true }).click();
+  await page.getByRole('button', { name: '검색으로 찾기', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
   await expect(dialog.getByLabel('작품 전체에서 인물 검색')).toHaveValue('아리');
   await expect(dialog.getByRole('button', { name: /^아리아/ })).toBeVisible();

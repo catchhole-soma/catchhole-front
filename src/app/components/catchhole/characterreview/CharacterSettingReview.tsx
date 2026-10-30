@@ -328,6 +328,15 @@ function withSelectableGroupKey(
   };
 }
 
+/** 결정이 끝난 대기 후보의 한 줄 요약(설정명 · 최종값 · 상태). */
+interface CandidateSummary {
+  badge: string;
+  /** 반영 방식처럼 값 앞에 붙일 짧은 설명. */
+  detail?: string | null;
+  value?: string | null;
+  tone?: 'success' | 'neutral';
+}
+
 function reviewColor(status: ReviewStatus | undefined): string {
   if (status === 'CONFIRMED') return C.success;
   if (status === 'DISMISSED') return C.t3;
@@ -568,6 +577,8 @@ export function CandidateDetail({
   saveActionsDisabled = false,
   selection,
   selectionError = null,
+  summary = null,
+  showChoiceExample = true,
 }: {
   candidate: SettingCandidateResponse;
   workId?: string;
@@ -580,7 +591,7 @@ export function CandidateDetail({
   retryError: string | null;
   onDismiss?: () => void;
   onEdit?: () => void;
-  /** `searchMention`이면 원문 표현을 검색어로 넣어 연결 모달을 연다(‘다른 인물 찾기’). */
+  /** `searchMention`이면 원문 표현을 검색어로 넣어 연결 모달을 연다(‘검색으로 찾기’). */
   onMatch?: (resolution: MatchResolution, options?: { searchMention?: boolean }) => void;
   onResolveTarget?: (resolution: MatchResolution, value: string) => void;
   onSaveValue?: (value: string | null) => void;
@@ -597,8 +608,16 @@ export function CandidateDetail({
   selection?: { checked: boolean; disabled: boolean; disabledReason?: string; onChange: (checked: boolean) => void };
   /** 선택 연결이 이 후보 때문에 거절됐을 때 서버 문구. 카드에 표시하고 선택은 유지한다. */
   selectionError?: string | null;
+  /** 결정이 끝난 대기 후보의 한 줄 요약. 있으면 처음 열 때 접어 둔다. 미결정·오류·결과 미확인이면 넘기지 않는다. */
+  summary?: CandidateSummary | null;
+  /** `이력에만 저장` 예문을 이 카드에 보여 줄지. 묶음의 첫 미결정 카드에만 둔다. */
+  showChoiceExample?: boolean;
 }) {
   const labels = useCharacterSettingLabels();
+  // 처음 열 때 결정이 끝나 있던 카드만 접는다. 이 화면에서 방금 고른 카드는 펼친 채 두고,
+  // 다시 미결정·오류가 되면 펼친다(이후 다시 결정해도 갑자기 접지 않는다).
+  const [collapsed, setCollapsed] = useState(Boolean(summary));
+  if (collapsed && !summary) setCollapsed(false);
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
@@ -629,27 +648,48 @@ export function CandidateDetail({
       ? '확인 필요' : candidate.suggestedOperation === 'EXCLUDE' ? '제외 제안'
       : candidate.suggestedOperation === 'ADD' ? '새 설정' : '직접 확인';
   const unlinked = !candidate.matchedCharacterId && isUnidentifiedCharacterName(candidate.entityName);
+  const rowActions = <>
+    {!automaticPending && <ActionButton disabled={!onMatch || disabled || invalidValue}
+      onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결 변경</ActionButton>}
+    <ActionButton disabled={!onEdit || disabled || invalidValue && !invalidValueRepairable}
+      disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : invalidValue && !invalidValueRepairable ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.' : undefined}
+      onClick={onEdit}>수정</ActionButton>
+    <ActionButton disabled={!onDismiss || actionPending || automaticPending} tone={C.danger} onClick={onDismiss}>{dismissing ? '제외 중…' : '제외'}</ActionButton>
+  </>;
   const heading = <ReviewSettingHeading title={headingTitle}
       subtitle={`캐릭터 · ${unlinked ? '미연결' : candidate.entityName || '인물 미상'}`}
       image={<ReviewSubjectThumbnail kind="character" workId={workId} characterId={candidate.matchedCharacterId} />}
       badge={<StatusBadge label={statusLabel} color={processing ? C.primary : readOnly ? reviewColor(reviewStatus) : manuallyReviewed ? C.success : C.warning} />}
       episode={analysisSourceLabel(candidate.source, candidate.episodeNo)}
       actions={!readOnly && <>
-        {!automaticPending && <ActionButton disabled={!onMatch || disabled || invalidValue}
-          onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결 변경</ActionButton>}
-        <ActionButton disabled={!onEdit || disabled || invalidValue && !invalidValueRepairable}
-          disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : invalidValue && !invalidValueRepairable ? '이 설정의 입력 형식을 확인하지 못해 지금은 수정할 수 없습니다.' : undefined}
-          onClick={onEdit}>수정</ActionButton>
-        <ActionButton disabled={!onDismiss || actionPending || automaticPending} tone={C.danger} onClick={onDismiss}>{dismissing ? '제외 중…' : '제외'}</ActionButton>
+        {rowActions}
+        {summary && <button type="button" className="review-cb-fold" aria-expanded onClick={() => setCollapsed(true)}>접기</button>}
       </>} />;
+  const checkbox = selection && <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
+    <input type="checkbox" aria-label={`선택: ${headingTitle}`} checked={selection.checked} disabled={selection.disabled}
+      onChange={event => selection.onChange(event.target.checked)} />
+  </label>;
+  if (collapsed && summary) {
+    return <section className="review-cb-card setting-candidate-detail is-summary" aria-label={`${headingTitle} 설정 후보`}
+      data-candidate-id={candidate.id} tabIndex={-1}>
+      <div className="review-cb-summary">
+        {checkbox}
+        <div className="review-cb-summary__identity">
+          <div className="review-cb-summary__title"><h3>{headingTitle}</h3><StatusBadge label={summary.badge} color={summary.tone === 'neutral' ? C.t3 : C.success} /></div>
+          <p className="review-cb-summary__value">{[summary.detail, summary.value || '값 없음'].filter(Boolean).join(' · ')}</p>
+        </div>
+        <div className="review-cb-summary__actions review-cb-heading__actions">
+          {rowActions}
+          <button type="button" className="review-cb-fold" aria-expanded={false} onClick={() => setCollapsed(false)}>펼치기</button>
+        </div>
+      </div>
+    </section>;
+  }
   return <section className={`review-cb-card setting-candidate-detail${readOnly ? ' is-read-only' : ''}${selectionError ? ' is-selection-invalid' : ''}`}
     aria-label={`${headingTitle} 설정 후보`} aria-invalid={selectionError ? true : undefined}
     data-candidate-id={candidate.id} tabIndex={-1}>
-    {selection ? <div className="review-cb-selectable-heading">
-      <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
-        <input type="checkbox" aria-label={`선택: ${headingTitle}`} checked={selection.checked} disabled={selection.disabled}
-          onChange={event => selection.onChange(event.target.checked)} />
-      </label>
+    {checkbox ? <div className="review-cb-selectable-heading">
+      {checkbox}
       {heading}
     </div> : heading}
     {selectionError && <ReviewNotice tone="danger" title="이 설정 때문에 선택 연결을 하지 못했어요">{selectionError}</ReviewNotice>}
@@ -674,7 +714,7 @@ export function CandidateDetail({
         applicationMode={applicationMode} reviewed={manuallyReviewed} decisionChosen={decisionChosen} disabled={disabled || readOnly}
         onModeChange={onApplicationModeChange} onReview={onReviewDecision} onEdit={onEdit}
         onRetry={onRetryComparison} retrying={retrying} retryError={retryError}
-        saveState={saveState} localChoiceMarked={localChoiceMarked} />}
+        saveState={saveState} localChoiceMarked={localChoiceMarked} showChoiceExample={showChoiceExample} />}
       {!comparisonEnabled && !needsTarget && <ReviewInlineValue
         label={existingCharacterConnected ? '연결된 인물' : reviewStatus === 'CONFIRMED' ? '등록된 인물' : readOnly ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '설정집에서 찾은 인물' : '원고에서 찾은 인물' : '새로 등록할 인물'}
         tone={existingCharacterConnected ? 'neutral' : 'new'}>{candidate.entityName || '이름을 확인해 주세요'}</ReviewInlineValue>}
@@ -696,7 +736,8 @@ export function CandidateDetail({
       </div>
       {candidate.comparisonReason && !comparisonReasonVisible && <div><strong>AI 판단 근거</strong><p>{candidate.comparisonReason}</p></div>}
       {holdLabel && <p>확인 요청 · {holdLabel}</p>}
-      <p>{MATCH_LABELS[matchStatus]}</p>
+      {/* 연결 상태가 제목 줄(인물 이름·미연결·인물 확인 필요)에 이미 드러나면 근거에서 되풀이하지 않는다. */}
+      {matchStatus !== 'MATCHED' && matchStatus !== 'AMBIGUOUS' && !unlinked && <p>{MATCH_LABELS[matchStatus]}</p>}
     </ReviewEvidence>
   </section>;
 }
@@ -1794,6 +1835,37 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       && hasCharacterFactComparison(candidate) && applicationModeForCandidate(candidate) === 'HISTORY_ONLY').length;
     return { ready: unblockedGroupCandidates.length - exclude - history, history, exclude };
   })();
+  const candidateActionError = (candidateId?: string) => dismissErrorForCandidate(candidateId)
+    ?? (respondedError(updateMutation) && updateMutation.variables?.path.candidateId === candidateId
+      ? errorMessage(updateMutation.error, '설정값을 저장하지 못했습니다. 입력을 유지했어요.') : null)
+    ?? (respondedError(matchMutation) && matchMutation.variables?.path.candidateId === candidateId
+      ? errorMessage(matchMutation.error, '인물을 연결하지 못했습니다. 다시 선택해 주세요.') : null);
+  const localChoiceMarked = (candidate: SettingCandidateResponse) => !hasManualReview(candidate) && (currentApplicationKey(candidate)
+    ? appliesToCurrent(candidate) : Boolean(candidate.id && applicationModes[candidate.id]));
+  /**
+   * 결정이 끝난 대기 후보의 한 줄 요약(D6). 서버가 저장한 선택·제외 제안·확정 때 적용할 로컬 선택·연결만 필요한 인물 카드가
+   * 대상이다. 막는 후보·저장 중·결과 미확인·오류·값 오류·자동 반영 대기·선택 연결 거절은 항상 펼친다.
+   */
+  const candidateSummaryFor = (candidate: SettingCandidateResponse): CandidateSummary | null => {
+    if (!candidate.id || candidate.reviewStatus !== 'PENDING_REVIEW' || groupBlockedIds.has(candidate.id)
+      || isAutomaticApplicationPending(candidate) || isCandidateValueInvalid(candidate)
+      || saveTracker.stateFor(candidate.id).kind !== 'idle' || saveTracker.unresolved(candidate.id)
+      || candidateActionError(candidate.id) || retryErrorForCandidate(candidate.id)
+      || selectionRejection?.candidateIds.includes(candidate.id)) return null;
+    const comparison = hasCharacterFactComparison(candidate);
+    const mode = applicationModeForCandidate(candidate);
+    const modeLabel = mode === 'HISTORY_ONLY' ? '이력에만 저장' : '현재 설정에 반영';
+    const appliedValue = mode === 'APPLY_PROPOSAL' && !hasManualReview(candidate)
+      ? candidate.proposedFactValue ?? candidate.attributeValue : candidate.attributeValue;
+    if (comparison && hasManualReview(candidate)) return { badge: '저장했어요', detail: modeLabel, value: appliedValue };
+    if (isGroupExclusionProposal(candidate)) return { badge: '제외 예정', value: candidate.attributeValue, tone: 'neutral' };
+    if (comparison && localChoiceMarked(candidate)) return { badge: REVIEW_SAVE_TEXT.localChoice, detail: modeLabel, value: appliedValue };
+    if (!comparison && isConnectedMatch(candidate.matchStatus)) return { badge: '연결됨', value: candidate.entityName };
+    return null;
+  };
+  // `이력에만 저장` 예문은 묶음에서 요약으로 접히지 않는 첫 비교 카드(첫 미결정 카드)에만 둔다.
+  const firstChoiceExampleId = pendingGroupCandidates.find(candidate => candidate.id && hasCharacterFactComparison(candidate)
+    && candidate.matchStatus !== 'AMBIGUOUS' && !isCandidateValueInvalid(candidate) && !candidateSummaryFor(candidate))?.id ?? null;
   const confirmSelectedGroup = () => {
     if (!selectedGroup?.groupKey || actionPending || groupConfirmBlockedReason || saveTracker.busy(confirmSaveKey)) return;
     submitIntent({ kind: 'confirm', groupKey: selectedGroup.groupKey, previousGroups: groups, variables: {
@@ -2144,6 +2216,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               key={candidate.id}
                               candidate={candidate}
                               workId={workId}
+                              summary={candidateSummaryFor(candidate)}
+                              showChoiceExample={candidate.id === firstChoiceExampleId}
                               onSaveValue={value => updateSelectedCandidate(candidate.id!, candidate.attributeName!, value)}
                               onReviewDecision={candidate.manualReviewAvailable
                                 ? mode => updateSelectedCandidate(candidate.id!, candidate.attributeName!, candidate.attributeValue?.trim() || null, mode,
@@ -2154,17 +2228,12 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 ? appliesToCurrent(candidate) || applicationModeForCandidate(candidate) === 'HISTORY_ONLY'
                                 : hasManualReview(candidate) || Boolean(applicationModes[candidate.id!])}
                               applicationMode={applicationModeForCandidate(candidate)}
-                              actionError={dismissErrorForCandidate(candidate.id)
-                                ?? (respondedError(updateMutation) && updateMutation.variables?.path.candidateId === candidate.id
-                                  ? errorMessage(updateMutation.error, '설정값을 저장하지 못했습니다. 입력을 유지했어요.') : null)
-                                ?? (respondedError(matchMutation) && matchMutation.variables?.path.candidateId === candidate.id
-                                  ? errorMessage(matchMutation.error, '인물을 연결하지 못했습니다. 다시 선택해 주세요.') : null)}
+                              actionError={candidateActionError(candidate.id)}
                               actionPending={actionPending || saveTracker.busy(candidate.id)}
                               saveState={saveTracker.stateFor(candidate.id).kind === 'idle' && hasManualReview(candidate)
                                 ? { kind: 'saved' } : saveTracker.stateFor(candidate.id)}
                               saveActionsDisabled={actionPending}
-                              localChoiceMarked={!hasManualReview(candidate) && (currentApplicationKey(candidate)
-                                ? appliesToCurrent(candidate) : Boolean(applicationModes[candidate.id!]))}
+                              localChoiceMarked={localChoiceMarked(candidate)}
                               dismissing={dismissMutation.isPending
                                 && dismissMutation.variables.path.candidateId === candidate.id}
                               retrying={retryComparisonMutation.isPending

@@ -97,6 +97,10 @@ for (const width of [1280, 320]) {
     await expect(confirm).toBeDisabled();
     const pendingNotice = page.locator('.world-setting-diff-row').last().locator('.review-cb-notice.is-warning');
     const savedNotice = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"] .review-cb-notice.is-success`);
+    // 저장된 결정은 처음 열 때 한 줄 요약으로 접혀 있다. 펼쳐서 저장 완료 안내를 확인한다.
+    const savedRow = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"]`);
+    await expect(savedRow).toContainText('저장했어요');
+    await savedRow.getByRole('button', { name: '펼치기', exact: true }).click();
     for (const notice of [pendingNotice, savedNotice]) {
       await expect(notice).toBeVisible();
       expect(await computedContrastRatio(notice.locator('strong'), notice)).toBeGreaterThanOrEqual(4.5);

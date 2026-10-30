@@ -324,3 +324,25 @@
   footer.review-action-bar:has(.review-selection-bar) .review-action-bar__reason { display: none; }
   .review-group-confirm-notes { margin: 10px 10px 0; }
 }
+
+/* #211 후속 3차: 결정이 끝난 카드의 한 줄 요약. 수정·제외·연결 변경은 남기고 펼치면 원문·근거를 그대로 본다. */
+.setting-review-screen .setting-candidate-detail.is-summary,
+.setting-review-screen .world-setting-diff-row.is-summary { padding: 12px 16px !important; box-shadow: none; }
+.review-cb-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.review-cb-summary > .review-select-check { margin: 0 0 0 -10px; }
+.review-cb-summary__identity { flex: 1 1 240px; min-width: 0; }
+.review-cb-summary__title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.review-cb-summary__title h3 { margin: 0; color: var(--ch-ink); font-size: 15px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
+.review-cb-summary__value { margin: 2px 0 0; color: var(--ch-text); font-size: 12px; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.review-cb-summary__actions { flex: 0 1 auto; }
+.review-cb-fold { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-primary-ink); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-cb-fold:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.setting-review-screen .review-cb-fold { font-size: 12px; font-weight: 750; }
+.review-cb-target-search.is-compact .review-cb-choices { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+@media (max-width: 650px) {
+  .setting-review-screen .setting-candidate-detail.is-summary,
+  .setting-review-screen .world-setting-diff-row.is-summary { padding: 10px 12px !important; }
+  .review-cb-summary__identity { flex-basis: 160px; }
+  .review-cb-summary__actions { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .review-cb-summary__actions button, .review-cb-fold { min-height: 44px; }
+}

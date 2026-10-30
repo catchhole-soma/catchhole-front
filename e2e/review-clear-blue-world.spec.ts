@@ -811,6 +811,10 @@ test('제안과 같은 내용을 수동 저장해 userModified가 false여도 �
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 준비됨');
   expect(state.confirmed).toHaveLength(0);
   await page.reload();
+  // 저장된 결정은 다시 열면 한 줄 요약으로 접히고, 펼치면 검토 완료 상태를 그대로 본다.
+  await expect(row).toContainText('저장했어요');
+  await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
+  await row.getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
 });
@@ -902,7 +906,8 @@ test('저장으로 기존 반영방식 필터에서 빠진 초안도 같은 출�
   const row = page.locator('.world-setting-diff-row');
   await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
-  await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
+  // 필터가 바뀌어 묶음을 다시 열면 저장된 결정은 요약으로 접힌다.
+  await expect(row).toContainText('저장했어요');
   expect(state.requests).toContain(`GET /api/v1/works/${workId}/world-setting-candidates/${candidateId}`);
   await expect.poll(() => new URL(page.url()).searchParams.get('operation')).toBe('ADD');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);

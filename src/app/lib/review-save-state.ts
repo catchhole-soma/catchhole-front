@@ -21,8 +21,9 @@ export const REVIEW_RECHECK_LIMIT = REVIEW_RECHECK_DELAYS_MS.length;
 
 export const REVIEW_SAVE_TEXT = {
   saving: '저장 중…',
-  saved: '저장했어요 · 모두 확정 전까지 바꿀 수 있어요',
-  localChoice: '선택됨 · 모두 확정할 때 적용',
+  // 확정 버튼이 묶음에 따라 `확정하고 다음`/`모두 확정`으로 바뀌므로 버튼 이름 대신 `확정`으로 부른다.
+  saved: '저장했어요 · 확정 전까지 바꿀 수 있어요',
+  localChoice: '선택됨 · 확정할 때 적용',
   check: '최신 상태 확인',
   retry: '다시 시도',
 } as const;

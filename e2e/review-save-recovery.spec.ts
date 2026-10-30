@@ -7,7 +7,7 @@ const firstCharacterId = '44444444-4444-4444-8444-444444444444';
 const secondCharacterId = '55555555-5555-4555-8555-555555555555';
 const listPath = `/api/v1/works/${workId}/setting-candidates`;
 const worldListPath = `/api/v1/works/${workId}/world-setting-candidates`;
-const savedText = '저장했어요 · 모두 확정 전까지 바꿀 수 있어요';
+const savedText = '저장했어요 · 확정 전까지 바꿀 수 있어요';
 const unverifiedText = '저장 결과를 확인하지 못했어요.';
 const member = { id: 1, email: 'save-recovery@example.invalid', displayName: '저장 확인', role: 'AUTHOR', status: 'ACTIVE' };
 const pageOf = (content: unknown[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0, hasNext: false });
@@ -194,7 +194,7 @@ test('로컬 선택은 저장 완료가 아니라 확정 때 적용할 선택으
   const card = page.locator('[data-candidate-id="c-1"]');
   await card.getByRole('button', { name: /이력에만 저장/ }).click();
   await expect(card.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(card.getByText('선택됨 · 모두 확정할 때 적용', { exact: true })).toBeVisible();
+  await expect(card.getByText('선택됨 · 확정할 때 적용', { exact: true })).toBeVisible();
   await expect(card.getByText(savedText, { exact: true })).toHaveCount(0);
   expect(state.patches).toHaveLength(0);
 });

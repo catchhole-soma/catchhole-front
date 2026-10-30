@@ -1686,7 +1686,8 @@ test('서로 다른 원문 값은 사용자가 최종값을 정한 뒤에만 모
 
   await expect(page.getByText('검토 완료', { exact: true }).last()).toBeVisible();
   await page.reload();
-  await expect(page.getByText('검토 완료', { exact: true }).last()).toBeVisible();
+  // 다시 열면 저장된 결정은 한 줄 요약으로 접힌다.
+  await expect(page.getByText('저장했어요', { exact: true }).last()).toBeVisible();
   await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
 

@@ -331,6 +331,8 @@ test('설정집의 기존 인물 등장 후보는 없는 현재 반영 선택 �
   const fixture = await setup(page, { bookDiscovery: true });
   await page.goto(reviewUrl('character'));
   const row = characterCard(page, '인물 연결');
+  await expect(row).toContainText('연결됨');
+  await row.getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(row.getByText('연결된 인물', { exact: true })).toBeVisible();
   await expect(row.getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
   await expect(row.getByRole('button', { name: /이력에만 저장/ })).toHaveCount(0);
