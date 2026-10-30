@@ -15,6 +15,8 @@ const RETURN_PAIRS = [
   ['branch', 'reportBranch', (value: string) => value === 'SETTING' || value === 'TYPO'],
   ['judgment', 'reportJudgment', (value: string) => ENUM.test(value)],
   ['outcome', 'reportOutcome', (value: string) => ENUM.test(value)],
+  ['impact', 'reportImpact', (value: string) => ENUM.test(value)],
+  ['subjectType', 'reportSubjectType', (value: string) => ENUM.test(value)],
   ['page', 'reportPage', (value: string) => PAGE.test(value)],
 ] as const;
 

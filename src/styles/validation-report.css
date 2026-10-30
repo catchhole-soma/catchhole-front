@@ -93,6 +93,11 @@
   color: var(--ch-ink); font-size: 14px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* #314 F3 R4·R5: 대상·설정명 제목 아래의 판단 이유 한 줄, 대상 종류 라벨, 상세의 대상 줄 */
+.validation-report-screen .vr-row__reason { color: var(--ch-text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.validation-report-screen .vr-chip--subject { color: var(--ch-ink); }
+.validation-report-screen .vr-detail-subject { margin: 4px 0 0; color: var(--ch-text); font-size: 13px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 .validation-report-screen .vr-row__quote { color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .validation-report-screen .vr-list-note { margin: 0; color: var(--ch-text-muted); font-size: 11px; }

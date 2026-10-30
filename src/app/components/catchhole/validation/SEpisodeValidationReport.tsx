@@ -18,19 +18,24 @@ import { ValidationRecheckPanel } from './ValidationRecheckPanel';
 import { useValidationReportActions, type ReportActionArea } from './useValidationReportActions';
 import { reportFixLinks } from './validation-return';
 import {
+  IMPACT_FILTER_OPTIONS,
   judgmentOptions,
   LOCK_REASON_COPY,
   outcomeOptions,
+  SUBJECT_TYPE_FILTER_OPTIONS,
   type BranchFilter,
+  type ImpactFilter,
   type JudgmentFilter,
+  type SubjectTypeFilter,
 } from './validation-report-labels';
+import type { FindingFilterChange } from './ValidationFindingList';
 import '../../../../styles/validation-report.css';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MOBILE_QUERY = '(max-width: 768px)';
 const REPORT_PATH = '/episode-validation-report';
 const SELECTION_KEYS = ['findingId', 'evidence'];
-const FILTER_KEYS = ['branch', 'judgment', 'outcome', 'page', ...SELECTION_KEYS];
+const FILTER_KEYS = ['branch', 'judgment', 'outcome', 'impact', 'subjectType', 'page', ...SELECTION_KEYS];
 // 검사가 시작되지 않았거나 기준을 준비하지 못한 단계에는 집계·목록을 0건처럼 보여 주지 않는다.
 const LIST_HIDDEN_STAGES = new Set(['PREPARING_BASELINE', 'HELD_INCOMPLETE', 'INVALIDATED']);
 
@@ -59,11 +64,17 @@ function readFilters(params: URLSearchParams) {
   const judgment = (judgmentOptions(branch).find(option => option.value === rawJudgment)?.value ?? 'PENDING') as JudgmentFilter;
   const rawOutcome = params.get('outcome');
   const outcome = outcomeOptions(branch).find(option => option.value === rawOutcome)?.value ?? 'ALL';
+  // 등급·대상은 설정 검사 항목에만 있으므로 오탈자 분류에서는 버린다.
+  const rawImpact = params.get('impact');
+  const impact: ImpactFilter = branch === 'TYPO' ? 'ALL' : IMPACT_FILTER_OPTIONS.find(option => option.value === rawImpact)?.value ?? 'ALL';
+  const rawSubjectType = params.get('subjectType');
+  const subjectType: SubjectTypeFilter = branch === 'TYPO' ? 'ALL'
+    : SUBJECT_TYPE_FILTER_OPTIONS.find(option => option.value === rawSubjectType)?.value ?? 'ALL';
   const rawPage = Number.parseInt(params.get('page') ?? '1', 10);
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const findingId = UUID.test(params.get('findingId') ?? '') ? params.get('findingId') : null;
   return {
-    branch, judgment, outcome, page, findingId,
+    branch, judgment, outcome, impact, subjectType, page, findingId,
     evidence: findingId ? params.get('evidence') : null,
     historyOpen: params.get('history') === '1',
   };
@@ -76,6 +87,8 @@ function normalizedParams(params: URLSearchParams): URLSearchParams | null {
     branch: filters.branch === 'ALL' ? null : filters.branch,
     judgment: filters.judgment === 'PENDING' ? null : filters.judgment,
     outcome: filters.outcome === 'ALL' ? null : filters.outcome,
+    impact: filters.impact === 'ALL' ? null : filters.impact,
+    subjectType: filters.subjectType === 'ALL' ? null : filters.subjectType,
     page: filters.page === 1 ? null : String(filters.page),
     findingId: filters.findingId,
     evidence: filters.evidence,
@@ -208,6 +221,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
       branch: filters.branch === 'ALL' ? undefined : filters.branch,
       judgment: filters.judgment === 'ALL' ? undefined : filters.judgment,
       outcome: filters.outcome === 'ALL' ? undefined : filters.outcome,
+      impact: filters.impact === 'ALL' ? undefined : filters.impact,
+      subjectType: filters.subjectType === 'ALL' ? undefined : filters.subjectType,
       page: filters.page - 1,
     },
     findingId: filters.findingId,
@@ -287,18 +302,23 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     setMobileDetailOpen(false);
     updateParams(next => SELECTION_KEYS.forEach(key => next.delete(key)));
   };
-  const changeFilters = (change: { branch?: BranchFilter; judgment?: JudgmentFilter; outcome?: string }) => {
+  const changeFilters = (change: FindingFilterChange) => {
     setMobileDetailOpen(false);
     actions.clearJudgmentNotice();
     updateParams(next => {
       const branch = change.branch ?? filters.branch;
       const judgment = change.judgment ?? filters.judgment;
       const outcome = change.outcome ?? filters.outcome;
+      const impact = change.impact ?? filters.impact;
+      const subjectType = change.subjectType ?? filters.subjectType;
       if (branch === 'ALL') next.delete('branch'); else next.set('branch', branch);
       if (judgment === 'PENDING' || !judgmentOptions(branch).some(option => option.value === judgment)) next.delete('judgment');
       else next.set('judgment', judgment);
       if (outcome === 'ALL' || !outcomeOptions(branch).some(option => option.value === outcome)) next.delete('outcome');
       else next.set('outcome', outcome);
+      if (impact === 'ALL' || branch === 'TYPO') next.delete('impact'); else next.set('impact', impact);
+      if (subjectType === 'ALL' || branch === 'TYPO') next.delete('subjectType'); else next.set('subjectType', subjectType);
+      // 필터를 바꾸면 첫 페이지로 돌아간다. 건수는 서버의 totalElements만 쓴다.
       next.delete('page');
       SELECTION_KEYS.forEach(key => next.delete(key));
     });
@@ -362,14 +382,17 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   const execution = summary?.executionStatus ?? staging.executionStatus;
   const emptyState = listReady ? (
     <FindingEmptyState scope={pendingFor(summary?.counts, filters.branch)} execution={execution}
-      defaultView={filters.judgment === 'PENDING' && filters.outcome === 'ALL'}
+      defaultView={filters.judgment === 'PENDING' && filters.outcome === 'ALL' && filters.impact === 'ALL' && filters.subjectType === 'ALL'}
       onShowAll={() => changeFilters({ judgment: 'ALL' })} onReset={resetFilters} />
   ) : null;
 
   const selectedInList = rows.some(row => row.findingId === filters.findingId);
+  const detailImpact = (detail?.payload as Record<string, unknown> | undefined)?.impact;
   const matchesFilter = detail && (filters.branch === 'ALL' || detail.branch === filters.branch)
     && (filters.judgment === 'ALL' || (detail.judgment?.value ?? 'PENDING') === filters.judgment)
-    && (filters.outcome === 'ALL' || detail.outcome === filters.outcome);
+    && (filters.outcome === 'ALL' || detail.outcome === filters.outcome)
+    && (filters.impact === 'ALL' || (detail.branch === 'SETTING' && detailImpact === filters.impact))
+    && (filters.subjectType === 'ALL' || (detail.branch === 'SETTING' && detail.subject?.type === filters.subjectType));
   const outsideNotice = detailMatchesUrl && listReady && !selectedInList ? (
     <ReviewNotice tone="info" title={matchesFilter ? '이 항목은 현재 페이지 목록에 없어요.' : '이 항목은 현재 필터에서 제외됐어요.'}
       action={firstId ? <ActionButton variant="secondary" size="compact" onClick={() => selectFinding(firstId)}>다음 항목</ActionButton> : undefined} />
@@ -444,6 +467,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
               branch={filters.branch}
               judgment={filters.judgment}
               outcome={filters.outcome}
+              impact={filters.impact}
+              subjectType={filters.subjectType}
               onFilterChange={changeFilters}
               page={Math.min(filters.page - 1, Math.max(totalPages - 1, 0))}
               totalPages={totalPages}

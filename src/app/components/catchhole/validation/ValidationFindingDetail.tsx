@@ -14,6 +14,8 @@ import {
   judgmentActionLabel,
   outcomeLabel,
   sourceRefLabel,
+  subjectHeading,
+  subjectTypeLabel,
   type Branch,
   type Judgment,
 } from './validation-report-labels';
@@ -157,6 +159,9 @@ export function FindingDetailView({
   const history = detail.judgmentHistory ?? [];
   const basis = basisLabel(payload.basis);
   const needsContext = detail.outcome === 'NEEDS_CONTEXT';
+  // 상세 첫 줄: 대상 종류·이름·설정명(#314 B2). 대상이 없으면 표시하지 않는다.
+  const heading = branch === 'SETTING' ? subjectHeading(detail.subject, detail.settingName) : null;
+  const subjectLine = heading ? [subjectTypeLabel(detail.subject?.type), heading].filter(Boolean).join(' · ') : null;
 
   return (
     <article className="vr-card vr-detail-card" aria-labelledby="validation-finding-title">
@@ -164,6 +169,7 @@ export function FindingDetailView({
         <div className="review-cb-heading">
           <div className="review-cb-heading__identity">
             <div className="review-cb-heading__subtitle">{`${branch === 'SETTING' ? '설정 검사' : '오탈자 검사'} · ${outcomeLabel(detail.outcome)}`}</div>
+            {subjectLine && <p className="vr-detail-subject">{subjectLine}</p>}
             <div className="review-cb-heading__title">
               <h2 id="validation-finding-title" ref={headingRef} tabIndex={-1}>{title}</h2>
             </div>
