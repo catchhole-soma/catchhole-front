@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getWorldSettingOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { getWorldSettingOptions, getWorldSettingsOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import type { WorldSettingCandidateResponse } from '../../../api/generated/types.gen';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
@@ -15,6 +15,31 @@ import {
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 
 const PREVIEW_PROPERTY_LIMIT = 5;
+/** 새 대상 이름을 기존 대상과 대조할 때 받는 검색 결과 수. */
+const SAME_NAME_LOOKUP_SIZE = 20;
+
+const normalizeTargetName = (value?: string | null) => (value ?? '').trim().normalize('NFC').toLocaleLowerCase('ko-KR');
+
+/**
+ * 새 대상 이름과 정규화(trim·NFC·소문자)한 이름이 같은 기존 대상을 같은 분류에서 서버 검색으로 찾는다.
+ * 같은 이름을 새로 등록하면 기존 대상에 같은 경로가 있어도 추가로 저장되므로(D4 위반) 기존 대상을 고르게 한다.
+ */
+function useSameNameTarget(workId: string, category: WorldCategory | undefined, name: string, enabled: boolean) {
+  const [checkedName, setCheckedName] = useState(name.trim());
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCheckedName(name.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [name]);
+  const query = useQuery({
+    ...getWorldSettingsOptions({ path: { workId }, query: { category, q: checkedName || undefined, page: 0,
+      size: SAME_NAME_LOOKUP_SIZE, sort: 'CATEGORY_SUBJECT_ASC' } }),
+    enabled: enabled && Boolean(checkedName) && Boolean(category), retry: shouldRetryQuery,
+  });
+  const settled = checkedName === name.trim() && query.isSuccess;
+  const match = settled ? query.data?.data?.worldSettings?.content?.find(item => item.id && item.category === category
+    && normalizeTargetName(item.subjectName) === normalizeTargetName(name)) : undefined;
+  return { query, settled, match };
+}
 
 const OUTCOME_TEXT: Record<WorldTargetLinkOutcome, string> = {
   add: '기존값 없음 → 추가로 저장',
@@ -122,8 +147,12 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
   const detailQuery = useWorldTargetDetail(workId, selectedId);
   const detail = detailQuery.data?.data;
   const isNew = selectedId === NEW_WORLD_TARGET_ID;
+  const typedNewTarget: WorldLinkTarget | null = isNew && newName.trim() && search.category
+    ? { worldSettingId: null, category: search.category, subjectName: newName.trim() } : null;
+  const sameName = useSameNameTarget(workId, search.category, newName, isNew);
+  // 같은 이름의 기존 대상이 있는지 확인이 끝나고 없을 때만 새 대상으로 연결한다.
   const target: WorldLinkTarget | null = isNew
-    ? newName.trim() && search.category ? { worldSettingId: null, category: search.category, subjectName: newName.trim() } : null
+    ? typedNewTarget && sameName.settled && !sameName.match ? typedNewTarget : null
     : detail && detail.id === selectedId && detail.category && detail.subjectName && !detailQuery.isError
       ? { worldSettingId: detail.id, category: detail.category, subjectName: detail.subjectName } : null;
   const existingPaths = useMemo(() => new Set((isNew ? [] : detail?.properties ?? [])
@@ -151,9 +180,19 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
           onChange={setSelectedId}>
           {isNew && <label className="review-target-link__name">새 대상 이름<input aria-label="새 대상 이름" value={newName} disabled={pending}
             onChange={event => setNewName(event.target.value)} /></label>}
+          {isNew && sameName.match && <div role="alert" className="review-cb-notice is-warning">
+            <div>같은 이름의 대상 ‘{sameName.match.subjectName}’이 이미 있어요 — 기존 대상을 골라 주세요. 새로 등록하면 같은 설정이 있어도 추가로 저장될 수 있어요.</div>
+            <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={pending}
+              onClick={() => setSelectedId(sameName.match!.id!)}>기존 ‘{sameName.match.subjectName}’ 고르기</button></div>
+          </div>}
+          {isNew && typedNewTarget && sameName.query.isError && <div role="alert" className="review-cb-notice is-warning">
+            <div>같은 이름의 기존 대상이 있는지 확인하지 못했어요. 확인한 뒤 새로 등록할 수 있어요.</div>
+            <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={pending}
+              onClick={() => void sameName.query.refetch()}>다시 확인</button></div>
+          </div>}
         </WorldTargetPicker>
       </div>
-      <WorldTargetPreview selectedId={selectedId} newTarget={isNew ? target : null} detailQuery={detailQuery}
+      <WorldTargetPreview selectedId={selectedId} newTarget={isNew ? typedNewTarget : null} detailQuery={detailQuery}
         categoryLabels={categoryLabels} rows={plan?.rows ?? null} />
     </div>
     {plan && <p className="review-target-link__plan" role="status">
@@ -164,7 +203,9 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22, flexWrap: 'wrap' }}>
       <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
       <ActionButton tone={C.primary} disabled={pending || !plan || !target}
-        disabledTitle={!target ? isNew ? '새 대상 이름을 입력해 주세요.' : '연결할 대상을 고르고 정보를 불러온 뒤 적용할 수 있어요.' : undefined}
+        disabledTitle={!target ? isNew ? !typedNewTarget ? '새 대상 이름을 입력해 주세요.'
+          : sameName.match ? '같은 이름의 기존 대상을 골라 주세요.' : '같은 이름의 기존 대상이 있는지 확인하고 있어요.'
+          : '연결할 대상을 고르고 정보를 불러온 뒤 적용할 수 있어요.' : undefined}
         onClick={() => { if (target && plan) onApply(target, plan); }}>
         {pending ? '저장 중…' : '고른 대상에 연결'}
       </ActionButton>

@@ -134,9 +134,12 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
       && (!target?.id || !target.subjectName || !target.category)) return;
     await loadTarget(id);
   };
-  /** 고른 대상의 현재 설정을 읽어 같은 경로가 있으면 병합·교체 선택을, 없으면 추가 초안을 연다. */
-  const loadTarget = async (id: string) => {
-    if (!candidate.workId) return;
+  /**
+   * 고른 대상의 현재 설정을 읽어 같은 경로가 있으면 병합·교체 선택을, 없으면 추가 초안을 연다.
+   * 저장 요청·복구 확인 중에 도착한 결과는 버리고 `false`를 돌려준다(묶음에서 골라 둔 대상은 다시 불러온다).
+   */
+  const loadTarget = async (id: string): Promise<boolean> => {
+    if (!candidate.workId) return true;
     setSelectedTargetId(id);
     setTargetBefore(null);
     setTargetLoadFailed(false);
@@ -144,7 +147,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     setError(null);
     try {
       const response = await queryClient.fetchQuery(getWorldSettingOptions({ path: { workId: candidate.workId!, worldSettingId: id } }));
-      if (disabledRef.current) return;
+      if (disabledRef.current) return false;
       const detail = response.data;
       if (detail?.id !== id || !detail.category || !detail.subjectName) throw new Error('missing target');
       onTargetChosen?.({ worldSettingId: id, category: detail.category, subjectName: detail.subjectName });
@@ -158,9 +161,11 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
         setTargetBefore(existing.value);
         setEditing(false);
       } else setEditing(true);
+      return true;
     } catch {
       setTargetLoadFailed(true);
       setError('대상의 현재 설정을 불러오지 못했습니다. 선택한 대상을 다시 불러와 주세요.');
+      return true;
     } finally { setTargetLoading(false); }
   };
   // 묶음에서 골라 둔 대상은 처음 열 때 한 번 불러온다(패널 key가 대상마다 바뀐다).
@@ -171,7 +176,8 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     presetAppliedRef.current = true;
     const { target } = presetTarget;
     if (target.worldSettingId) {
-      void loadTarget(target.worldSettingId);
+      // 불러오는 사이 행이 잠겨 결과를 버렸으면 잠금이 풀린 뒤(disabled 변화로 이 effect가 다시 돈다) 다시 불러온다.
+      void loadTarget(target.worldSettingId).then(applied => { if (!applied) presetAppliedRef.current = false; });
       return;
     }
     setSelectedTargetId(NEW_WORLD_TARGET_ID);

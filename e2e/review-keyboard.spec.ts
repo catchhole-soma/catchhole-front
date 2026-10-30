@@ -111,6 +111,21 @@ test('선택 카드는 방향키로 초점만 옮기고 Space로 고르면 한 �
   await expect(radios.first()).toBeFocused();
 });
 
+test('수정 창은 한글 조합 중 Esc로 닫지 않고, 조합이 끝난 Esc로 닫는다', async ({ page }) => {
+  await routeCharacterReview(page, [undecided('a-1', 0, '직업')]);
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await card(page, 'a-1').getByRole('button', { name: '수정', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const input = dialog.getByRole('textbox').last();
+  await input.focus();
+  await input.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'Escape', code: 'Escape', isComposing: true, keyCode: 229, bubbles: true, cancelable: true,
+  })));
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});
+
 test('세계관 수정 창은 Esc로 닫히고 연 버튼으로 초점이 돌아온다', async ({ page }) => {
   await routeWorldReview(page, [worldCandidate('w-1', '은빛 항구', '기후', { manualReviewAvailable: true })]);
   await page.goto(worldReviewUrl('LOCATION|은빛 항구'));

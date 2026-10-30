@@ -34,6 +34,8 @@ export function useModalFocusTrap(dialogRef: RefObject<HTMLElement | null>, pend
     (focusableElements()[0] ?? dialog)?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // 한글 조합 중 Esc는 조합 취소이므로 창을 닫지 않는다.
+      if (event.isComposing || event.keyCode === 229) return;
       if (event.key === 'Escape' && !pendingRef.current) {
         event.preventDefault();
         onCloseRef.current();

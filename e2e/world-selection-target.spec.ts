@@ -181,6 +181,38 @@ test('공유 결정의 원문은 함께 체크되고 새 대상 이름으로 모
   expect(new URL(page.url()).searchParams.get('group')).toBe('LOCATION|항구');
 });
 
+test('새 대상 이름이 같은 분류의 기존 대상과 같으면 새로 등록하지 않고 기존 대상을 고르게 한다', async ({ page }) => {
+  const { state } = await routeWorldMock(page);
+  await page.goto(groupUrl());
+  await page.getByRole('checkbox', { name: '선택: 기후' }).check();
+  await page.getByRole('checkbox', { name: '선택: 인구' }).check();
+  const dialog = await openTargetLink(page);
+  await dialog.getByRole('radio', { name: /^새 대상으로 등록/ }).click();
+  // 앞뒤 공백·대소문자만 다른 같은 이름은 같은 대상으로 본다. 새로 등록하면 같은 경로(기후)도 추가로 저장되기 때문이다(D4).
+  await dialog.getByLabel('새 대상 이름').fill('  은빛 항구 ');
+  const warning = dialog.getByRole('alert').filter({ hasText: '같은 이름의 대상 ‘은빛 항구’이 이미 있어요' });
+  await expect(warning).toBeVisible();
+  const apply = dialog.getByRole('button', { name: '고른 대상에 연결', exact: true });
+  await expect(apply).toBeDisabled();
+  await warning.getByRole('button', { name: '기존 ‘은빛 항구’ 고르기' }).click();
+  await expect(dialog.getByRole('radio', { name: /^은빛 항구/ })).toHaveAttribute('aria-checked', 'true');
+  const plan = dialog.getByRole('region', { name: '체크한 설정의 저장 방법' });
+  await expect(plan).toContainText('기후기존값 있음 → 병합/교체 결정 필요');
+  await expect(plan).toContainText('인구기존값 없음 → 추가로 저장');
+  await apply.click();
+  await expect(dialog).toHaveCount(0);
+  const drafts = state.writes[0].body.candidates as Array<Record<string, unknown>>;
+  expect(drafts.map(draft => draft.candidateId)).toEqual(['w2']);
+
+  // 다른 이름이면 새 대상으로 등록할 수 있다.
+  await page.getByRole('checkbox', { name: '선택: 특산물' }).check();
+  const next = await openTargetLink(page);
+  await next.getByRole('radio', { name: /^새 대상으로 등록/ }).click();
+  await next.getByLabel('새 대상 이름').fill('은빛 항구 별관');
+  await expect(next.getByRole('alert')).toHaveCount(0);
+  await expect(next.getByRole('button', { name: '고른 대상에 연결', exact: true })).toBeEnabled();
+});
+
 test('필터로 같은 결정의 원문이 숨을 수 있으면 공유 결정 행은 체크할 수 없다', async ({ page }) => {
   await routeWorldMock(page);
   await page.goto(groupUrl({ operation: 'REVIEW_REQUIRED' }));
