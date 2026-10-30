@@ -2416,14 +2416,17 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
     const pathname = requestUrl.pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     if (pathname === `/api/v1/works/${workId}/characters`) {
+      // 서버 이름 검색(query)을 흉내 낸다.
+      const keyword = requestUrl.searchParams.get('query') ?? '';
+      const content = [
+        { id: characterId, name: '윤지우', firstAppearanceEpisodeNo: 1 },
+        { id: '88888888-8888-4888-8888-888888888888', name: '서하린' },
+      ].filter(character => character.name.includes(keyword));
       return fulfill(route, {
-        content: [
-          { id: characterId, name: '윤지우', firstAppearanceEpisodeNo: 1 },
-          { id: '88888888-8888-4888-8888-888888888888', name: '서하린' },
-        ],
+        content,
         page: 0,
         size: 8,
-        totalElements: 2,
+        totalElements: content.length,
         totalPages: 1,
         hasNext: false,
       });
@@ -2487,20 +2490,20 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
 
   await page.getByRole('button', { name: '다른 인물 찾기', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
-  await dialog.getByLabel('현재 페이지에서 검색').fill('지우');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('지우');
   const characterButton = dialog.getByRole('button', { name: /윤지우/ });
   await characterButton.click();
-  await dialog.getByLabel('현재 페이지에서 검색').fill('하린');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('하린');
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
   await expect(dialog.getByRole('alert')).toHaveText('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
   await expect.poll(() => matchRequestCount).toBe(0);
 
-  await dialog.getByLabel('현재 페이지에서 검색').fill('지우');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('지우');
   await dialog.getByRole('button', { name: /윤지우/ }).click();
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
 
   await expect(dialog.getByRole('alert')).toHaveText('선택한 캐릭터에 연결하지 못했습니다.');
-  await expect(dialog.getByLabel('현재 페이지에서 검색')).toHaveValue('지우');
+  await expect(dialog.getByLabel('작품 전체에서 인물 검색')).toHaveValue('지우');
   await expect(characterButton).toHaveAttribute('aria-pressed', 'true');
 
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();

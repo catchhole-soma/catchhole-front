@@ -204,3 +204,28 @@
   .review-type-complete-mobile-action { display: block; }
   .review-type-complete-mobile-action > button { min-height: 44px; }
 }
+
+/* #211 후속 2차: 작품 전체 인물 검색. 결과 없음·검색 실패·정보 없음은 문장과 role로 구분하고 색은 보조로만 쓴다. */
+.review-match-search { margin-top: 18px; min-width: 0; }
+.review-match-search__help { margin: 6px 0 0; color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; }
+.review-match-results { display: flex; flex-direction: column; gap: 7px; min-height: 180px; max-height: 300px; margin-top: 10px; overflow-y: auto; }
+.review-match-results[aria-busy=true] > .review-match-result { opacity: .62; }
+.review-match-result { display: flex; flex-direction: column; gap: 3px; min-height: 52px; padding: 9px 12px; border: 1px solid var(--ch-border); border-radius: 9px; text-align: left; font-family: inherit; cursor: pointer; }
+.review-match-result:disabled { cursor: default; }
+.review-match-result:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-match-result__name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.review-match-result__name strong { color: var(--ch-ink); font-size: 13px; overflow-wrap: anywhere; }
+.review-match-result mark { padding: 0 1px; border-radius: 3px; background: var(--ch-surface-accent); color: inherit; }
+.review-modal__choice .review-match-result__badge { padding: 1px 7px; border: 1px solid #eed8ac; border-radius: 999px; background: #fff9ef; color: var(--ch-warning-ink) !important; font-size: 10px; font-weight: 650; line-height: 1.6; }
+.review-match-result__facts { font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-match-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 16px; border: 1px dashed var(--ch-border-strong); border-radius: 10px; color: var(--ch-text); font-size: 12px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
+.review-match-state > strong { color: var(--ch-ink); }
+.review-match-state.is-error { border-style: solid; border-color: #edc4ca; background: var(--review-remove-bg); color: var(--ch-danger-ink); }
+.review-match-state.is-error > strong { color: var(--ch-danger-ink); }
+.review-match-skeleton { height: 52px; margin-bottom: 7px; border-radius: 9px; background: var(--ch-canvas); animation: review-match-pulse 1.2s ease-in-out infinite; }
+@keyframes review-match-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .review-match-skeleton { animation: none; } }
+@media (max-width: 650px) {
+  .review-match-result { min-height: 56px; }
+  .review-match-state .review-action { width: 100%; min-height: 44px !important; }
+}

@@ -76,7 +76,7 @@ import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import { CharacterReviewComparison, CharacterTargetChoices } from './CharacterReviewPresentation';
-import { errorMessage, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
+import { errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
 import { ActionButton } from './ReviewModalControls';
 import { CandidateEditModal } from './CandidateEditModal';
 import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal';
@@ -553,7 +553,8 @@ export function CandidateDetail({
   retryError: string | null;
   onDismiss?: () => void;
   onEdit?: () => void;
-  onMatch?: (resolution: MatchResolution) => void;
+  /** `searchMention`이면 원문 표현을 검색어로 넣어 연결 모달을 연다(‘다른 인물 찾기’). */
+  onMatch?: (resolution: MatchResolution, options?: { searchMention?: boolean }) => void;
   onResolveTarget?: (resolution: MatchResolution, value: string) => void;
   onSaveValue?: (value: string | null) => void;
   onReviewDecision?: (mode: CharacterFactApplicationMode) => void;
@@ -626,7 +627,7 @@ export function CandidateDetail({
       {needsTarget && !readOnly && <>
         <ReviewInlineValue label={candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서' : '이번 원고에서'}>{candidate.attributeValue || '인물의 등장'}</ReviewInlineValue>
         {(workId || previewCharacters) && onResolveTarget ? <CharacterTargetChoices candidate={candidate} workId={workId} previewCharacters={previewCharacters}
-          disabled={disabled || invalidValue} resolutionError={actionError} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING')} />
+          disabled={disabled || invalidValue} resolutionError={actionError} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING', { searchMention: true })} />
           : <ReviewNotice title="누구에 관한 내용인가요?" action={<ActionButton disabled={disabled || invalidValue} onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결</ActionButton>}>원문에 등장한 인물을 선택해 주세요.</ReviewNotice>}
       </>}
       {comparisonEnabled && !invalidValue && <CharacterReviewComparison candidate={candidate}
@@ -722,6 +723,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const [matchTarget, setMatchTarget] = useState<{
     candidate: SettingCandidateResponse;
     resolution: MatchResolution;
+    initialSearch?: string;
   } | null>(null);
   const [legacyResolutionError, setLegacyResolutionError] = useState(false);
   const [legacyResolutionAttempt, setLegacyResolutionAttempt] = useState(0);
@@ -1983,9 +1985,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 : undefined}
                               onMatch={candidate.reviewStatus === 'PENDING_REVIEW'
                                 && !isCandidateValueInvalid(candidate)
-                                ? resolution => {
+                                ? (resolution, options) => {
                                     matchMutation.reset();
-                                    setMatchTarget({ candidate, resolution });
+                                    setMatchTarget({ candidate, resolution,
+                                      initialSearch: options?.searchMention ? mentionSearchText(candidate) : undefined });
                                   }
                                 : undefined}
                               onApplicationModeChange={mode => {
@@ -2116,6 +2119,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           workId={workId}
           candidate={matchTarget.candidate}
           initialResolution={matchTarget.resolution}
+          initialSearch={matchTarget.initialSearch}
           pending={matchMutation.isPending}
           automaticPending={candidateAutomaticPending(matchTarget.candidate.id)}
           readOnly={sourceScope.blocked}

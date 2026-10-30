@@ -1,5 +1,6 @@
 import { toApiError } from '../../../lib/api-errors';
 import { CHARACTER_FACT_TYPE_LABELS, type CharacterFactTypeLabels } from '../../../lib/character-setting-labels';
+import { isUnidentifiedCharacterName } from '../../../lib/setting-review-groups';
 import type { SettingCandidateResponse } from '../../../api/generated/types.gen';
 import { C } from '../constants';
 import { REVIEW_TEXT } from '../review-v2-colors';
@@ -127,3 +128,12 @@ export const modalInputStyle = {
   fontFamily: 'inherit',
   fontSize: 13,
 };
+
+/** Backend `GET /characters`의 query 길이 상한과 같다. */
+export const CHARACTER_SEARCH_MAX_LENGTH = 100;
+
+/** 원문 표현을 인물 검색어로 쓸 수 있을 때만 돌려준다. `미상`·빈 값은 검색어가 아니다. */
+export function mentionSearchText(candidate: SettingCandidateResponse): string {
+  const mention = candidate.rawEntityMention?.trim() ?? '';
+  return isUnidentifiedCharacterName(mention) ? '' : mention.slice(0, CHARACTER_SEARCH_MAX_LENGTH);
+}
