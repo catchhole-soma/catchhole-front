@@ -19,6 +19,7 @@ import {
   type Branch,
   type Judgment,
 } from './validation-report-labels';
+import type { SubjectLink } from './validation-return';
 
 type Occurrence = { key: string; sourceRef: string; start: number | null; end: number | null; quote: string | null };
 
@@ -120,7 +121,7 @@ function EvidenceSection({ title, groups, selectedEvidence, onSelectEvidence, so
 
 export function FindingDetailView({
   detail, headingRef, canJudge, lockMessage, saving, judgmentNotice, onSaveJudgment, selectedEvidence, onSelectEvidence,
-  sourceLink, topNotice, fixLinks,
+  sourceLink, topNotice, fixLinks, subject,
 }: {
   detail: ValidationFindingDetailResponse;
   headingRef: Ref<HTMLHeadingElement>;
@@ -135,6 +136,8 @@ export function FindingDetailView({
   topNotice?: ReactNode;
   /** A9 원고 파일 변경·A10 설정 정보 정정 이동 주소. 현재 결과가 아니면 제공하지 않는다. A10은 설정 검사 항목에만 보인다. */
   fixLinks?: { replace: string; correct: string };
+  /** A5 대상 설정 보기. 설정 검사 항목에만 보인다. */
+  subject?: SubjectLink;
 }) {
   const branch: Branch = detail.branch === 'TYPO' ? 'TYPO' : 'SETTING';
   const payload = readPayload(detail);
@@ -218,10 +221,15 @@ export function FindingDetailView({
           <EvidenceSection title={branch === 'SETTING' ? '이번 원고의 모든 발생 위치' : '원문 위치'} groups={[{ label: '이번 원고', items: target }]}
             selectedEvidence={selectedEvidence} onSelectEvidence={onSelectEvidence} sourceLink={sourceLink} />
         )}
-        {branch === 'SETTING' && (
+        {branch === 'SETTING' && subject && (
           <div className="vr-occurrence__links">
-            <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-target-lock">대상 설정 보기</ActionButton>
-            <span id="validation-target-lock" className="vr-locked">연결된 대상 설정 정보가 제공되지 않아 열 수 없어요.</span>
+            {subject.url !== null ? <>
+              <Link className="vr-link-button" to={subject.url} aria-describedby="validation-target-name">대상 설정 보기</Link>
+              <span id="validation-target-name" className="vr-locked">{`${subject.label} · 지금 저장된 설정을 열어요.`}</span>
+            </> : <>
+              <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-target-lock">대상 설정 보기</ActionButton>
+              <span id="validation-target-lock" className="vr-locked">{subject.lockReason}</span>
+            </>}
           </div>
         )}
 

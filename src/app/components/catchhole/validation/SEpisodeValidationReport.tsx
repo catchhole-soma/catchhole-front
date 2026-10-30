@@ -16,7 +16,7 @@ import { ValidationHistoryPanel } from './ValidationHistoryPanel';
 import { ReportBasisCard, ReportStatusCard } from './ValidationReportOverview';
 import { ValidationRecheckPanel } from './ValidationRecheckPanel';
 import { useValidationReportActions, type ReportActionArea } from './useValidationReportActions';
-import { reportFixLinks } from './validation-return';
+import { reportFixLinks, subjectLink } from './validation-return';
 import {
   IMPACT_FILTER_OPTIONS,
   judgmentOptions,
@@ -495,6 +495,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
                   onSelectEvidence={key => updateParams(next => { if (key) next.set('evidence', key); else next.delete('evidence'); })}
                   sourceLink={sourceLink} topNotice={outsideNotice}
                   fixLinks={reportFixLinks(workId, reportId, report.invalidated || pastReport ? undefined : staging?.episodeId, searchParams)}
+                  subject={subjectLink(workId, reportId, detail, searchParams)}
                 />
               ) : detailMissing ? (
                 <StateCard title="이 항목을 찾을 수 없어요." description="다시 검사되었거나 이 결과에 없는 항목이에요."

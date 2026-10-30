@@ -56,7 +56,7 @@ import {
   VALIDATION_STAGE_SUMMARY,
   validationReportUrl,
 } from './validation/validation-report-labels';
-import { readReportReturn } from './validation/validation-return';
+import { readReportReturn, REPORT_VIEW_SUBJECT } from './validation/validation-return';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
   label: string;
@@ -956,10 +956,17 @@ export default function S1Dashboard() {
 
                 {reportReturn && (
                   <div className="setting-db-return">
-                    <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 설정 정보를 정정하러 왔어요.">
-                      <p>고칠 캐릭터나 세계관 설정을 찾아 수정해 주세요. 리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
-                      <p>저장만으로는 정정이 연결되지 않아요. 저장한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
-                    </ReportReturnNotice>
+                    {/* A5 대상 설정 보기는 보기만 하러 온 것이므로 정정 안내와 구분한다. */}
+                    {searchParams.get('reportView') === REPORT_VIEW_SUBJECT ? (
+                      <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 대상 설정을 보러 왔어요.">
+                        <p>리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
+                      </ReportReturnNotice>
+                    ) : (
+                      <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 설정 정보를 정정하러 왔어요.">
+                        <p>고칠 캐릭터나 세계관 설정을 찾아 수정해 주세요. 리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
+                        <p>저장만으로는 정정이 연결되지 않아요. 저장한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
+                      </ReportReturnNotice>
+                    )}
                   </div>
                 )}
 

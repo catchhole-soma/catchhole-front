@@ -1,10 +1,13 @@
-import { validationReportUrl } from './validation-report-labels';
+import type { ValidationFindingDetailResponse } from '../../../api/generated/types.gen';
+import { SUBJECT_TYPE_LABELS, validationReportUrl, type SubjectType } from './validation-report-labels';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ENUM = /^[A-Z_]{1,40}$/;
 const PAGE = /^[1-9]\d{0,4}$/;
 
 const REPORT_RETURN_VALUE = 'validation-report';
+/** A5 대상 설정 보기로 열었음을 대시보드 안내에 알리는 값. 정정 문맥과 구분한다. */
+export const REPORT_VIEW_SUBJECT = 'subject';
 
 /**
  * 리포트 URL의 선택·필터 키와 복귀 문맥 키. 원고 목록의 `page`와 겹치지 않도록 `report` 접두사를 붙인다.
@@ -31,6 +34,13 @@ function returnQuery(reportId: string, reportParams: URLSearchParams) {
   return params.toString();
 }
 
+function settingDbUrl(workId: string, type: SubjectType, targetId: string) {
+  const base = `/dashboard?workId=${encodeURIComponent(workId)}&nav=settingDB`;
+  return type === 'CHARACTER'
+    ? `${base}&tab=characters&modal=char-detail&charId=${encodeURIComponent(targetId)}`
+    : `${base}&tab=worldsettings&settingId=${encodeURIComponent(targetId)}`;
+}
+
 /** A9: 같은 episodeId의 기존 파일 교체 모달을 리포트 복귀 문맥과 함께 연다. 회차 번호·제목으로 대상을 고르지 않는다. */
 function episodeReplaceUrl(workId: string, episodeId: string, reportId: string, reportParams: URLSearchParams) {
   return `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts&modal=episode-replace`
@@ -47,6 +57,25 @@ export function reportFixLinks(workId: string, reportId: string, episodeId: stri
   return episodeId
     ? { replace: episodeReplaceUrl(workId, episodeId, reportId, reportParams), correct: settingCorrectionUrl(workId, reportId, reportParams) }
     : undefined;
+}
+
+export type SubjectLink = { url: string; label: string } | { url: null; lockReason: string };
+
+/**
+ * A5 `대상 설정 보기`. 서버가 고정 기준에서 연결한 실제 캐릭터·세계관 ID가 있을 때만 그 상세를 연다.
+ * ID가 없으면 이름이 같은 설정을 찾아 연결하지 않고 잠근다(#314 B2 `subject.id`).
+ */
+export function subjectLink(workId: string, reportId: string, detail: ValidationFindingDetailResponse, reportParams: URLSearchParams): SubjectLink {
+  const subject = detail.subject;
+  const type = subject?.type;
+  if (!subject || !type || !SUBJECT_TYPE_LABELS[type]) return { url: null, lockReason: '연결된 대상이 없어요.' };
+  if (!subject.id || !UUID.test(subject.id)) {
+    return { url: null, lockReason: '연결된 대상이 없어요. 이름이 같은 설정으로 대신 연결하지 않아요.' };
+  }
+  return {
+    url: `${settingDbUrl(workId, type, subject.id)}&${returnQuery(reportId, reportParams)}&reportView=${REPORT_VIEW_SUBJECT}`,
+    label: [SUBJECT_TYPE_LABELS[type], subject.name].filter(Boolean).join(' · '),
+  };
 }
 
 /** 대시보드 URL의 복귀 문맥을 검증해 리포트 주소로 되돌린다. 형식이 맞지 않는 값은 버린다. */
