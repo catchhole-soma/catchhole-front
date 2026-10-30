@@ -35,7 +35,11 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   const graphOptions = getEpisodeRelationshipGraphOptions({ path: { workId }, query: episodeNo ? { episodeNo } : undefined });
   const graph = useQuery({ ...graphOptions, queryKey: [{ ...graphOptions.queryKey[0], tags: [`session:${session}`] }], gcTime: 0,
     enabled, refetchOnWindowFocus: true, refetchInterval: query => !episodeNo || query.state.data?.data?.analysisStatus === 'PROCESSING' ? 10000 : false });
-  const data = graph.data?.data;
+  const graphError = toApiError(graph.error);
+  // Keep this query's successful data through temporary refresh failures, never access/removal errors.
+  const canShowGraph = !graph.isError || !graphError || graphError.status >= 500;
+  const data = canShowGraph ? graph.data?.data : undefined;
+  const partialAnalysis = data?.analysisStatus === 'PARTIAL' || data?.partial === true;
   const selectedEpisode = data?.selectedEpisode;
   const people = useMemo<EpisodePerson[]>(() => (data?.nodes ?? []).flatMap(person => person.id && person.name ? [{
     id: person.id, name: person.name, description: person.description ?? undefined, registered: person.profileRegistered,
@@ -84,19 +88,22 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
         {(data?.availableEpisodes ?? []).map(episode => <option key={episode.id} value={episode.episodeNo}>{episode.episodeNo}화</option>)}
         {episodeNo && !(data?.availableEpisodes ?? []).some(episode => episode.episodeNo === episodeNo) && <option value={episodeNo}>{episodeNo}화</option>}
       </select></label>
-      <label>인물 찾기<input aria-label="관계도 인물 검색" value={search} onChange={event => setSearch(event.target.value)} placeholder="이름으로 연결 찾기" disabled={!data || graph.isError} /></label>
+      <label>인물 찾기<input aria-label="관계도 인물 검색" value={search} onChange={event => setSearch(event.target.value)} placeholder="이름으로 연결 찾기" disabled={!data} /></label>
       {effectiveFocus && <ActionButton variant="secondary" onClick={() => focus('')}>전체 인물 보기</ActionButton>}
     </div>
-    {search.trim() && !graph.isError && <div className="episode-relationship-results" aria-label="인물 검색 결과">
+    {search.trim() && data && <div className="episode-relationship-results" aria-label="인물 검색 결과">
       {matching.length ? matching.map(person => <button type="button" key={person.id} onClick={() => focus(person.id)}>{person.name} 중심으로 보기</button>) : <p>이 회차까지 확인된 인물 중에는 없어요.</p>}
     </div>}
     {graph.isPending && <p role="status">이 회차의 관계도를 불러오고 있어요.</p>}
-    {graph.isError && <RelationshipQueryError title="이 회차의 관계도를 불러오지 못했어요." onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
-    {data && !graph.isError && <>
+    {graph.isError && <RelationshipQueryError title={data ? '관계도를 갱신하지 못했어요. 이전 내용을 표시하고 있어요.' : '이 회차의 관계도를 불러오지 못했어요.'}
+      onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
+    {data && <>
       {data.analysisStatus === 'PROCESSING' && <p role="status" className="relationship-muted">새 회차의 관계를 정리하고 있어요.</p>}
       {(data.analysisStatus === 'FAILED' || data.analysisStatus === 'INVALIDATED') && <p role="status" className="relationship-notice">관계 분석을 마치지 못한 회차가 있어요. 분석 목록에서 진행 상황을 확인해 주세요.</p>}
       <div className="episode-relationship-caption"><p>{selectedEpisode?.episodeNo ? <><strong>{selectedEpisode.episodeNo}화</strong>까지 확인된 관계</> : '분석한 회차의 관계가 여기에 표시돼요.'}</p>
         <p>인물 {visiblePeople.length}명 · 관계 {visibleConnections.length}개</p></div>
+      {partialAnalysis && data.analysisStatus !== 'FAILED' && data.analysisStatus !== 'INVALIDATED'
+        && <p className="relationship-muted" role="status">관계 분석에 반영하지 못한 내용이 있어요.</p>}
       {data.truncated && <p className="relationship-notice" role="status">관계가 많아 일부만 표시하고 있어요.</p>}
       {!connections.length ? <div className="relationship-empty"><GitBranch size={28} aria-hidden="true" /><h3>아직 표시할 인물 관계가 없어요.</h3>
         <p>새 회차를 분석하면 근거가 확인된 관계가 자동으로 나타나요.</p></div> : <>

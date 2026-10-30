@@ -9,7 +9,8 @@ const episodes = [{ id: 'ep1', episodeNo: 1, title: '함께 걷는 길' }, { id:
 function success(route: Route, data: unknown) { return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) }); }
 async function setup(context: BrowserContext) {
   const calls = { graphs: [] as string[], profiles: 0, family: 0, writes: [] as unknown[] };
-  let fail = false, conflict = false, deleted = false, summary: string | null = null, version = 1;
+  let failureStatus = 0, conflict = false, deleted = false, summary: string | null = null, version = 1;
+  let analysisStatus: 'COMPLETED' | 'PARTIAL' = 'COMPLETED', partial = false;
   let hold: { wait: Promise<void>; received: () => void } | null = null;
   const nodes = (episode: number) => [
     { id: 'p1', name: episode === 1 ? '가면을 쓴 사람' : '라온', description: null, profileRegistered: true },
@@ -32,10 +33,10 @@ async function setup(context: BrowserContext) {
       calls.graphs.push(url.searchParams.get('episodeNo') ?? 'latest');
       const waiting = hold; hold = null;
       if (waiting) { waiting.received(); await waiting.wait; }
-      if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'COMMON_ERROR', status: 503 } }) });
+      if (failureStatus) return route.fulfill({ status: failureStatus, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'COMMON_ERROR', status: failureStatus } }) });
       const episode = Number(url.searchParams.get('episodeNo') ?? 2);
       return success(route, { selectedEpisode: episodes[episode - 1], availableEpisodes: episodes, revision: String(version),
-        nodes: nodes(episode), edges: edges(episode), truncated: false, totalEdgeCount: edges(episode).length });
+        analysisStatus, partial, nodes: nodes(episode), edges: edges(episode), truncated: false, totalEdgeCount: edges(episode).length });
     }
     if (path.startsWith(`${prefix}/relationship-graph/edges/`)) {
       if (request.method() !== 'GET') {
@@ -51,7 +52,9 @@ async function setup(context: BrowserContext) {
     }
     return success(route, []);
   });
-  return { calls, fail(value: boolean) { fail = value; }, conflict() { conflict = true; }, empty() { deleted = true; },
+  return { calls, fail(value: boolean | number) { failureStatus = typeof value === 'number' ? value : value ? 503 : 0; },
+    analysis(status: 'COMPLETED' | 'PARTIAL', incomplete: boolean) { analysisStatus = status; partial = incomplete; },
+    conflict() { conflict = true; }, empty() { deleted = true; },
     hold(wait: Promise<void>, received: () => void) { hold = { wait, received }; } };
 }
 
@@ -165,6 +168,8 @@ test('selected person is highlighted without fetching current profiles or requir
 test('changing account session clears the old graph and evidence while the new read is pending', async ({ context, page }) => {
   const fixture = await setup(context); await page.goto(`${workspace}&relationEdge=r1`);
   await expect(page.getByText('라온', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  await page.getByLabel('관계 설명').fill('이전 계정에서만 작성한 초안');
   let release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   fixture.hold(pending, () => {});
@@ -174,6 +179,9 @@ test('changing account session clears the old graph and evidence while the new r
   await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toHaveCount(0);
   release();
   await expect(page.getByText('2화까지 확인된 관계')).toBeVisible();
+  await expect(page.getByRole('button', { name: '설명 수정' })).toBeVisible();
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  await expect(page.getByText('이전 계정에서만 작성한 초안')).toHaveCount(0);
 });
 
 test('summary correction preserves draft on version conflict and requires explicit adoption', async ({ context, page }) => {
@@ -188,6 +196,127 @@ test('summary correction preserves draft on version conflict and requires explic
   await page.getByRole('button', { name: '변경사항 저장' }).click();
   await expect(page.getByLabel('관계 설명')).toHaveCount(0);
   expect(fixture.calls.writes).toEqual([{ expectedVersion: 1, summary: '세린만 상대의 안내를 믿는다.' }, { expectedVersion: 2, summary: '세린만 상대의 안내를 믿는다.' }]);
+});
+
+for (const conflict of [false, true]) test(`background graph failure and retry preserve the ${conflict ? '409 conflict' : 'unsaved'} draft`, async ({ context, page }) => {
+  const fixture = await setup(context);
+  await page.clock.install();
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  const draft = '세린의 신뢰와 라온의 거리감을 구분한다.';
+  await page.getByLabel('관계 설명').fill(draft);
+  if (conflict) {
+    fixture.conflict();
+    await page.getByRole('button', { name: '변경사항 저장' }).click();
+    await expect(page.getByText('다른 곳에서 이 관계가 변경됐어요. 입력은 유지했어요.')).toBeVisible();
+    await expect(page.getByText('현재 저장된 설명: 다른 화면에서 수정한 설명')).toBeVisible();
+  }
+  fixture.fail(true);
+  await page.clock.runFor(12000);
+  await expect(page.getByLabel('관계 설명')).toHaveValue(draft);
+  await expect(page.getByText('관계도를 갱신하지 못했어요. 이전 내용을 표시하고 있어요.')).toBeVisible();
+  await expect(page.locator('.episode-relationship-canvas')).toBeVisible();
+  if (conflict) await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeDisabled();
+  fixture.fail(false);
+  await page.getByRole('button', { name: '다시 불러오기' }).click();
+  await expect(page.getByText('관계도를 갱신하지 못했어요. 이전 내용을 표시하고 있어요.')).toHaveCount(0);
+  await expect(page.getByLabel('관계 설명')).toHaveValue(draft);
+  if (conflict) {
+    await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeDisabled();
+    await page.getByRole('button', { name: '변경 내용 확인' }).click();
+  }
+  await page.getByRole('button', { name: '변경사항 저장' }).click();
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  expect(fixture.calls.writes.at(-1)).toEqual({ expectedVersion: conflict ? 2 : 1, summary: draft });
+});
+
+for (const status of [403, 404]) test(`background graph ${status} hides cached names, evidence and edits until access recovers`, async ({ context, page }) => {
+  const fixture = await setup(context);
+  await page.clock.install();
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  await page.getByLabel('관계 설명').fill('접근할 수 없어진 관계의 초안');
+  fixture.fail(status);
+  await page.clock.runFor(12000);
+  await expect(page.getByText('이 회차의 관계도를 불러오지 못했어요.')).toBeVisible();
+  await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
+  await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toHaveCount(0);
+  await expect(page.getByText('라온', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  expect(fixture.calls.writes).toEqual([]);
+  fixture.fail(false);
+  await page.getByRole('button', { name: '다시 불러오기' }).click();
+  await expect(page.getByRole('button', { name: '설명 수정' })).toBeVisible();
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+});
+
+test('changing episode after a refresh failure clears the newer graph and its draft while the older read is pending', async ({ context, page }) => {
+  const fixture = await setup(context);
+  await page.clock.install();
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  await page.getByLabel('관계 설명').fill('2화의 정체를 포함한 초안');
+  fixture.fail(true);
+  await page.clock.runFor(12000);
+  await expect(page.getByLabel('관계 설명')).toHaveValue('2화의 정체를 포함한 초안');
+  let release!: () => void;
+  fixture.fail(false);
+  fixture.hold(new Promise<void>(resolve => { release = resolve; }), () => {});
+  await page.getByLabel('관계도 회차').selectOption('1');
+  await expect(page.getByText('이 회차의 관계도를 불러오고 있어요.')).toBeVisible();
+  await expect(page.getByText('라온', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  release();
+  await expect(page.getByText('1화까지 확인된 관계')).toBeVisible();
+  await page.getByRole('list', { name: '이 회차의 관계 목록' }).getByRole('button').first().click();
+  await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toContainText('가면을 쓴 사람');
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  await expect(page.getByText('2화의 정체를 포함한 초안')).toHaveCount(0);
+});
+
+test('changing work does not reuse cached graph or edit state while the new work is pending', async ({ context, page }) => {
+  await setup(context);
+  const nextWorkId = '22222222-2222-4222-8222-222222222222';
+  const nextPrefix = `/api/v1/works/${nextWorkId}`;
+  await context.route(`**${nextPrefix}`, route => success(route, { id: nextWorkId, title: '다른 관계의 이야기', genre: '판타지', lifecycleStatus: 'ACTIVE' }));
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await context.route(`**${nextPrefix}/relationship-graph`, async route => {
+    await pending;
+    return success(route, { selectedEpisode: episodes[1], availableEpisodes: episodes, revision: '1', analysisStatus: 'COMPLETED', partial: false,
+      nodes: [], edges: [], truncated: false, totalEdgeCount: 0 });
+  });
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  await page.getByLabel('관계 설명').fill('이전 작품에서 작성한 초안');
+  await page.evaluate(next => { window.history.pushState({}, '', next); window.dispatchEvent(new PopStateEvent('popstate')); },
+    `/dashboard?workId=${nextWorkId}&nav=graph&relationMode=people&relationEdge=r1`);
+  await expect(page.getByText('이 회차의 관계도를 불러오고 있어요.')).toBeVisible();
+  await expect(page.getByText('라온', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toHaveCount(0);
+  release();
+  await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('button', { name: '설명 수정' })).toBeVisible();
+  await expect(page.getByLabel('관계 설명')).toHaveCount(0);
+  await expect(page.getByText('이전 작품에서 작성한 초안')).toHaveCount(0);
+});
+
+for (const status of ['PARTIAL', 'COMPLETED'] as const) for (const empty of [false, true]) test(`${status} with partial=${status === 'COMPLETED'} explains incomplete analysis in an ${empty ? 'empty' : 'populated'} graph`, async ({ context, page }) => {
+  const fixture = await setup(context);
+  fixture.analysis(status, status === 'COMPLETED');
+  if (empty) fixture.empty();
+  await page.goto(workspace);
+  await expect(page.getByRole('status').filter({ hasText: '관계 분석에 반영하지 못한 내용이 있어요.' })).toBeVisible();
+  if (empty) {
+    await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toBeVisible();
+    await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
+  } else {
+    await expect(page.getByRole('list', { name: '이 회차의 관계 목록' }).getByRole('button')).toHaveCount(2);
+  }
+  await expect(page.getByText('확인·연결', { exact: true })).toHaveCount(0);
+  expect(fixture.calls.family).toBe(0);
+  expect(fixture.calls.writes).toEqual([]);
 });
 
 test('delete explains cross-episode correction and hides the selected connection after success', async ({ context, page }) => {
