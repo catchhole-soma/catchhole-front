@@ -7,16 +7,17 @@ import { buildEpisode1Settings, data, poll, STAGE_TIMEOUT, submitValidation, TER
  * GH314 F3 실제 연결: A10 설정 정보 정정 → receipt → A11 수정 내용으로 재검수.
  * Front → Java(local) → 일회용 PostgreSQL → AI Worker(실제 모델). `episode-validation-live`와 같은 조건(live fixture 변수 +
  * 같은 API에 붙은 추출·검수 Worker, `CATCHHOLE_E2E_VALIDATION_WORKER=1`)에서만 실행한다.
- * 2화에 1화(서른 살)와 어긋나는 나이 문장 하나를 심고, 검토 대기(AWAITING_REVIEW) 리포트의 설정 검사 항목에서 서윤의 나이를 정정한다.
+ * 2화에 1화(서른 살)와 바로 어긋나는 나이 서술 하나를 심고, 검토 대기(AWAITING_REVIEW) 리포트의 설정 검사 항목에서 서윤의 나이를 정정한다.
+ * 나이가 바뀌었다고 읽힐 문장(`올해로 … 되었다`)은 변화·예외 판단을 부르므로(#341) 변화 없는 서술로 심는다.
  * 정정은 고정 기준과 현재 설정이 그대로일 때만 저장되므로 검토 완료·설정 추출 전에 한다(Backend validation-execution-v1.md "명시적 기준 정정").
  * 화면·서버 흐름(정정 저장·기준 무효화·RECHECK·새 report 연결)은 바로 확인하고, 모델 판정(정정 전 나이 충돌·정정 후 해소)은 soft로 남긴다.
  */
-// episode-validation-live의 2화 첫 문단 뒤에 나이 모순 문단 하나만 더했다. 오탈자(됬다)와 나머지 문장은 같다.
+// episode-validation-live의 2화 첫 문단 뒤에 변화가 아닌 나이 모순 문단 하나만 더했다. 오탈자(됬다)와 나머지 문장은 같다.
 const EPISODE_2 = `2화 조용한 저녁
 
 저녁 여섯 시가 되자 서윤은 등대 계단을 올라 불을 켰다. 하얀 진돗개 모래는 계단 아래에서 꼬리를 흔들며 기다렸다.
 
-서윤은 올해로 스물여덟 살이 되었다.
+등대지기 서윤은 스물여덟 살이다.
 
 해가 지기 전에 마을의 배들이 하나둘 항구로 돌아왔다. 마지막 배까지 무사히 돌아오게 됬다.
 
@@ -29,7 +30,7 @@ const LINKED_COPY = '저장됐어요. 리포트로 돌아가 재검수해 주세
 
 type AuthHeaders = { Authorization: string };
 type Staging = {
-  reportId: string; reviewStage: string; executionStatus: string; current: boolean; mode: string; previousReportId: string | null;
+  reportId: string; reportVersion: number; reviewStage: string; executionStatus: string; current: boolean; mode: string; previousReportId: string | null;
   baselineId: string | null; baselineRevision: number | null; baselineHash: string | null;
 };
 type Basis = {
@@ -107,6 +108,35 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
   const reportUrl = (reportId: string) => `${workUrl}/episode-validations/${reportId}`;
   const readStaging = async (reportId: string) => data<Staging>(await request.get(reportUrl(reportId), { headers }));
   const note = (type: string, description: string) => testInfo.annotations.push({ type, description });
+  const untilTerminal = (reportId: string, label: string) => poll(() => readStaging(reportId), value => TERMINAL_EXECUTION.has(value.executionStatus), STAGE_TIMEOUT, label);
+  /** COMPLETED가 아니면 실패 메시지에 남길 실행 요약. `/results`의 상태·실패 코드만 쓰고 원문·인용은 넣지 않는다. */
+  const execution = async (staging: Staging) => {
+    if (staging.executionStatus === 'COMPLETED') return '';
+    const response = await request.get(`${reportUrl(staging.reportId)}/results`, { headers });
+    const results = response.ok() ? ((await response.json()) as { data?: Record<string, unknown> }).data ?? {} : {};
+    const field = (key: string) => String(results[key] ?? '없음');
+    return ` executionStatus=${staging.executionStatus} status=${field('status')} settingStatus=${field('settingStatus')} `
+      + `typoStatus=${field('typoStatus')} failureCode=${field('failureCode')}`;
+  };
+  /**
+   * PARTIAL이면 작가 경로로 한 번만 다시 시도한다. 서버 `/review`가 RETRY를 허용할 때만 리포트의 `중단된 검사 다시 시도`를 누르고,
+   * 접수(실행 상태가 종료를 벗어나거나 reportVersion 증가 — 서버는 둘을 한 트랜잭션에서 바꾼다)를 확인한 뒤 다시 종료까지 기다린다.
+   */
+  const retryPartialOnce = async (partial: Staging) => {
+    const review = await data<{ reviewStage: string; allowedActions: string[] }>(await request.get(`${reportUrl(partial.reportId)}/review`, { headers }));
+    if (!review.allowedActions.includes('RETRY')) {
+      throw new Error(`검사가 PARTIAL로 끝났지만 다시 시도를 허용하지 않습니다: executionStatus=${partial.executionStatus} reviewStage=${review.reviewStage}`);
+    }
+    await page.reload();
+    const retryStartedAt = Date.now();
+    await page.getByRole('region', { name: '검사 기준과 범위' }).getByRole('button', { name: '중단된 검사 다시 시도', exact: true }).click();
+    await poll(() => readStaging(partial.reportId),
+      value => !TERMINAL_EXECUTION.has(value.executionStatus) || value.reportVersion > partial.reportVersion, 60_000, '중단된 검사 다시 시도 접수');
+    const retried = await untilTerminal(partial.reportId, '다시 시도한 오류 검사');
+    note('retry-used', '1');
+    note('retry-seconds', String(Math.round((Date.now() - retryStartedAt) / 1000)));
+    return retried;
+  };
   // 새 fixture 계정이면 첫 분석 안내가 한 번 열린다. 서버 판단을 먼저 읽어 그때만 기다린다.
   const guideFirst = (await data<{ shouldShow: boolean }>(await request.get(`${api}/api/v1/analysis-mode-guides`, { headers }))).shouldShow;
   try {
@@ -126,9 +156,10 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     const reportId = await submitValidation(page, workId, 2, EPISODE_2);
     await expect(page.locator('#validation-report-title')).toHaveText('2화 오류 리포트');
     const startedAt = Date.now();
-    const staging = await poll(() => readStaging(reportId), value => TERMINAL_EXECUTION.has(value.executionStatus), STAGE_TIMEOUT, '오류 검사');
+    let staging = await untilTerminal(reportId, '오류 검사');
     note('validation-seconds', String(Math.round((Date.now() - startedAt) / 1000)));
-    expect(staging.executionStatus, '실제 모델 검사가 두 분기 모두 끝나야 합니다.').toBe('COMPLETED');
+    if (staging.executionStatus === 'PARTIAL') staging = await retryPartialOnce(staging);
+    expect(staging.executionStatus, `실제 모델 검사가 두 분기 모두 끝나야 합니다.${await execution(staging)}`).toBe('COMPLETED');
     expect(staging.reviewStage).toBe('AWAITING_REVIEW');
 
     // 정정할 항목은 서윤 캐릭터 basis가 있는 설정 검사 항목이다. 없으면 심은 나이 모순을 서버 기준과 잇지 못한 것이므로 멈춘다.
@@ -238,10 +269,10 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     expect((await readStaging(reportId)).current, '재검수 뒤 이전 report는 현재 결과가 아니다').toBe(false);
 
     const recheckStartedAt = Date.now();
-    const finished = await poll(() => readStaging(recheckId), value => TERMINAL_EXECUTION.has(value.executionStatus), STAGE_TIMEOUT, '재검수 오류 검사');
+    const finished = await untilTerminal(recheckId, '재검수 오류 검사');
     note('recheck-seconds', String(Math.round((Date.now() - recheckStartedAt) / 1000)));
     note('recheck-stage', `${finished.reviewStage} mode=${finished.mode}`);
-    expect(finished.executionStatus, '정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.').toBe('COMPLETED');
+    expect(finished.executionStatus, `정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.${await execution(finished)}`).toBe('COMPLETED');
     expect.soft(finished.mode, '아무것도 확정하지 않았으므로 확정 전 검수다.').toBe('BEFORE_CONFIRMATION');
 
     // 정정한 나이(28)는 2화의 스물여덟 살과 맞으므로 같은 나이 충돌이 다시 나오지 않아야 한다(모델 판정).
