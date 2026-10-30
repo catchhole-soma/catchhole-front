@@ -1,8 +1,7 @@
-import { expect, type APIRequestContext, type Page } from '@playwright/test';
-import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
-import { isCompletedOrderedAnalysis, isInvalidatedAnalysis } from '../src/app/lib/ordered-analysis';
+import { expect } from '@playwright/test';
 import { test } from './local-live-fixture';
 import { purgeWorkAndWait } from './live-work-purge';
+import { buildEpisode1Settings, data, poll, STAGE_TIMEOUT, submitValidation, TERMINAL_EXECUTION } from './validation-live-helpers';
 
 /**
  * GH314 V1 실제 연결: Front → Java(local) → 일회용 PostgreSQL → AI Worker(실제 모델).
@@ -10,14 +9,6 @@ import { purgeWorkAndWait } from './live-work-purge';
  * 있을 때만 실행한다. 모델 호출을 줄이려고 한 작품의 짧은 합성 원고 두 회차만 사용한다.
  * 핵심 경로만 확인한다: 1화 기존 설정 구축 → 2화 신규 회차 검수 → 실제 리포트 → 판단 저장 → 검토 완료 → 확정 단계 → 다음 회차 차단.
  */
-const EPISODE_1 = `1화 등대지기
-
-바닷가 마을 하람에는 오래된 하얀 등대가 있다. 등대지기 서윤은 서른 살이고, 매일 저녁 여섯 시에 등대에 불을 켠다.
-
-서윤에게는 하얀 털을 가진 진돗개 모래가 있다. 모래는 서윤이 등대 계단을 오를 때마다 계단 아래에서 기다린다.
-
-하람 마을의 배들은 해가 지기 전에 항구로 돌아와야 한다. 이것은 마을 사람들이 오래전부터 지켜 온 약속이다.
-`;
 // 맞춤법 오탈자 하나(됬다 → 됐다)만 심었다. 설정은 1화와 모두 같다.
 const EPISODE_2 = `2화 조용한 저녁
 
@@ -27,41 +18,8 @@ const EPISODE_2 = `2화 조용한 저녁
 
 서윤은 등대 창가에 앉아 오늘 바다가 조용했다고 일지에 적었다.
 `;
-const STAGE_TIMEOUT = 25 * 60_000;
-const TERMINAL_EXECUTION = new Set(['COMPLETED', 'PARTIAL', 'FAILED', 'CANCELED']);
-
-type Json = Record<string, unknown> & { data?: unknown };
 type Staging = { reportId: string; reviewStage: string; executionStatus: string };
 type Finding = { findingId: string; branch: 'SETTING' | 'TYPO'; checkRevision: number | null; judgment: { value: string; version: number } | null };
-
-async function data<T>(response: Awaited<ReturnType<APIRequestContext['get']>>): Promise<T> {
-  expect(response.ok(), `${response.status()} ${response.url()}`).toBeTruthy();
-  return ((await response.json()) as Json).data as T;
-}
-
-async function poll<T>(read: () => Promise<T>, done: (value: T) => boolean, timeout: number, label: string): Promise<T> {
-  const deadline = Date.now() + timeout;
-  for (;;) {
-    const value = await read();
-    if (done(value)) return value;
-    if (Date.now() > deadline) throw new Error(`${label} 대기 시간이 지났습니다.`);
-    await new Promise(resolve => setTimeout(resolve, 5_000));
-  }
-}
-
-/** 처음 분석하는 계정의 일회 안내는 조회·400ms 타이머·선점 뒤 늦게 열린다. analysis-mode-guide-live처럼 열릴 때까지 기다렸다 닫는다. */
-async function chooseSingleUpload(page: Page, workId: string, episodeNo: number, text: string, expectGuide: boolean) {
-  await page.goto(`/episode-upload?workId=${workId}`);
-  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
-  const guide = page.getByRole('dialog', { name: '설정이 반영되는 과정을 살펴보세요' });
-  if (expectGuide) {
-    await expect(guide).toBeVisible();
-    await page.keyboard.press('Escape');
-  }
-  await expect(guide).toHaveCount(0);
-  await page.locator('input[type=file]').first().setInputFiles({ name: `${episodeNo}화.txt`, mimeType: 'text/plain', buffer: Buffer.from(text) });
-  await expect(page.getByPlaceholder('비우면 파일에서 감지')).toHaveValue(String(episodeNo));
-}
 
 test.setTimeout(45 * 60_000);
 
@@ -82,25 +40,10 @@ test('1화 설정 구축 뒤 2화 신규 회차 검수가 실제 리포트·판�
     await page.setViewportSize({ width: 1440, height: 900 });
 
     // 1화: 기존 설정 구축(자동 반영). 화면이 SETTING_EXTRACTION Job을 만들고 Worker가 처리한다.
-    await chooseSingleUpload(page, workId, 1, EPISODE_1, guideFirst);
-    await expect(page.getByRole('button', { name: /^기존 설정 구축/ })).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-    await expect(page).toHaveURL(/currentAnalysisJobIds=/);
-    // 화면과 같은 완료 기준(SUCCEEDED+SEALED+자동 반영 시각)까지 기다리고, 스스로 끝나지 않는 상태에서는 바로 멈춘다.
-    const stopped = (job: AnalysisJobResponse) => job.status === 'FAILED' || job.status === 'CANCELED' || isInvalidatedAnalysis(job)
-      || (job.status === 'SUCCEEDED' && job.analysisRun?.journalStatus === 'INCOMPLETE');
-    const jobs = await poll(async () => data<AnalysisJobResponse[]>(await request.get(`${base(workId)}/analysis-jobs`, { headers })),
-      list => list.length === 1 && (isCompletedOrderedAnalysis(list[0]) || stopped(list[0])), STAGE_TIMEOUT, '1화 설정 추출·자동 반영');
-    expect(isCompletedOrderedAnalysis(jobs[0]),
-      `1화 설정 추출이 자동 반영까지 끝나지 않았습니다: status=${jobs[0].status} journal=${jobs[0].analysisRun?.journalStatus ?? '없음'} `
-      + `automaticAppliedAt=${jobs[0].automaticAppliedAt ?? '없음'} failureCode=${jobs[0].failureCode ?? '없음'}`).toBe(true);
+    await buildEpisode1Settings(page, request, { workId, workUrl: base(workId), headers }, guideFirst);
 
     // 2화: 신규 회차 검수. 업로드 뒤 설정 추출 Job 없이 접수하고 리포트로 이동한다.
-    await chooseSingleUpload(page, workId, 2, EPISODE_2, false);
-    await page.getByRole('button', { name: /^신규 회차 검수/ }).click();
-    await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
-    await expect(page).toHaveURL(/\/episode-validation-report\?workId=.+&reportId=/, { timeout: 60_000 });
-    const reportId = new URL(page.url()).searchParams.get('reportId')!;
+    const reportId = await submitValidation(page, workId, 2, EPISODE_2);
     await expect(page.locator('#validation-report-title')).toHaveText('2화 오류 리포트');
     expect(await data<unknown[]>(await request.get(`${base(workId)}/analysis-jobs`, { headers }))).toHaveLength(1);
 
