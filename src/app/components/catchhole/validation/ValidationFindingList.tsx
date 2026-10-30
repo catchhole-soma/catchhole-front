@@ -5,15 +5,20 @@ import type {
 } from '../../../api/generated/types.gen';
 import { PageNavigation } from '../PageNavigation';
 import {
+  IMPACT_FILTER_OPTIONS,
   impactLabel,
   JUDGMENT_LABELS,
   judgmentOptions,
   outcomeLabel,
   outcomeOptions,
+  SUBJECT_TYPE_FILTER_OPTIONS,
+  subjectHeading,
+  subjectTypeLabel,
   type BranchFilter,
+  type ImpactFilter,
   type JudgmentFilter,
+  type SubjectTypeFilter,
 } from './validation-report-labels';
-
 
 function count(value?: number) {
   return value == null ? '—' : `${value}`;
@@ -114,10 +119,29 @@ const BRANCH_OPTIONS: Array<{ value: BranchFilter; label: string }> = [
   { value: 'TYPO', label: '오탈자' },
 ];
 
+const IMPACT_TONE: Record<string, string> = { SEVERE: ' is-danger', CAUTION: ' is-warning' };
+
+/**
+ * R4 행에 쓰는 표시값. 대상·설정명이 있으면 제목으로 쓰고 판단 이유는 한 줄로 둔다(#314 B2).
+ * 대상이 없으면 판단 이유가 제목이다. 등급·대상 라벨은 설정 검사 항목에만 있다.
+ */
+function rowView(finding: ValidationFindingSummaryResponse) {
+  const setting = finding.branch === 'SETTING';
+  const reason = finding.summary?.reason || outcomeLabel(finding.outcome);
+  const heading = setting ? subjectHeading(finding.subject, finding.settingName) : null;
+  return {
+    title: heading ?? reason,
+    reason: heading ? reason : null,
+    subjectType: heading ? subjectTypeLabel(finding.subject?.type) : null,
+    impact: setting ? impactLabel(finding.summary?.impact) : null,
+    impactTone: IMPACT_TONE[finding.summary?.impact ?? ''] ?? '',
+  };
+}
+
 function FindingRow({ finding, selected, onSelect }: {
   finding: ValidationFindingSummaryResponse; selected: boolean; onSelect: () => void;
 }) {
-  const impact = finding.branch === 'SETTING' ? impactLabel(finding.summary?.impact) : null;
+  const view = rowView(finding);
   const judgment = finding.judgment?.value ?? 'PENDING';
   const quote = finding.summary?.spans?.[0]?.quote;
   return (
@@ -125,11 +149,13 @@ function FindingRow({ finding, selected, onSelect }: {
       <button type="button" className={`vr-row${selected ? ' is-selected' : ''}`} data-finding-id={finding.findingId}
         aria-current={selected ? 'true' : undefined} onClick={onSelect}>
         <span className="vr-row__meta">
-          {impact && <span className={`vr-chip ${finding.summary?.impact === 'SEVERE' ? 'is-danger' : finding.summary?.impact === 'CAUTION' ? 'is-warning' : ''}`}>{`영향 ${impact}`}</span>}
+          {view.subjectType && <span className="vr-chip vr-chip--subject">{view.subjectType}</span>}
+          {view.impact && <span className={`vr-chip${view.impactTone}`}>{`영향 ${view.impact}`}</span>}
           <span className="vr-chip is-primary">{outcomeLabel(finding.outcome)}</span>
           {finding.changed && <span className="vr-chip is-warning">새 근거로 다시 확인 필요</span>}
         </span>
-        <span className="vr-row__title">{finding.summary?.reason || outcomeLabel(finding.outcome)}</span>
+        <span className="vr-row__title">{view.title}</span>
+        {view.reason && <span className="vr-row__reason">{view.reason}</span>}
         {quote && <span className="vr-row__quote">{`이번 원고 · “${quote}”`}</span>}
         <span className="vr-row__foot">
           <span className={`vr-chip${judgment === 'PENDING' ? ' is-warning' : ''}`}>{`작가 판단 · ${JUDGMENT_LABELS[judgment]}`}</span>
@@ -140,8 +166,12 @@ function FindingRow({ finding, selected, onSelect }: {
   );
 }
 
+export type FindingFilterChange = {
+  branch?: BranchFilter; judgment?: JudgmentFilter; outcome?: string; impact?: ImpactFilter; subjectType?: SubjectTypeFilter;
+};
+
 export function FindingListPanel({
-  findings, totalElements, loading, error, selectedId, onSelect, branch, judgment, outcome, onFilterChange,
+  findings, totalElements, loading, error, selectedId, onSelect, branch, judgment, outcome, impact, subjectType, onFilterChange,
   page, totalPages, onPageChange, emptyState, headingRef,
 }: {
   findings: ValidationFindingSummaryResponse[];
@@ -153,7 +183,9 @@ export function FindingListPanel({
   branch: BranchFilter;
   judgment: JudgmentFilter;
   outcome: string;
-  onFilterChange: (next: { branch?: BranchFilter; judgment?: JudgmentFilter; outcome?: string }) => void;
+  impact: ImpactFilter;
+  subjectType: SubjectTypeFilter;
+  onFilterChange: (next: FindingFilterChange) => void;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -166,7 +198,15 @@ export function FindingListPanel({
       <FilterGroup label="분류" value={branch} options={BRANCH_OPTIONS} onChange={value => onFilterChange({ branch: value })} />
       <FilterGroup label="작가 판단" value={judgment} options={judgmentOptions(branch)} onChange={value => onFilterChange({ judgment: value })} />
       <FilterGroup label="AI 결과 유형" value={outcome} options={outcomeOptions(branch)} onChange={value => onFilterChange({ outcome: value })} />
+      {/* 등급·대상은 설정 검사 항목에만 있어 오탈자 분류에서는 두지 않는다. */}
+      {branch !== 'TYPO' && <>
+        <FilterGroup label="등급" value={impact} options={IMPACT_FILTER_OPTIONS} onChange={value => onFilterChange({ impact: value })} />
+        <FilterGroup label="대상" value={subjectType} options={SUBJECT_TYPE_FILTER_OPTIONS} onChange={value => onFilterChange({ subjectType: value })} />
+      </>}
       <p className="vr-list-note">원고에 처음 나온 순서 · 한 페이지 20개{totalElements != null ? ` · 조건에 맞는 항목 ${totalElements}개` : ''}</p>
+      {branch === 'ALL' && (impact !== 'ALL' || subjectType !== 'ALL') && (
+        <p className="vr-list-note">등급·대상으로 거르면 오탈자와 대상이 없는 항목은 빠져요.</p>
+      )}
       {error}
       {loading && findings.length === 0 ? (
         <div className="vr-empty" role="status">항목을 불러오고 있어요.</div>

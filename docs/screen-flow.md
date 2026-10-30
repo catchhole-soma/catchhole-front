@@ -1032,8 +1032,33 @@ flowchart TD
 - `신규 회차 검수`는 단일 회차에서만 고를 수 있다. 업로드 뒤 설정 추출 Job을 만들지 않고 회차 상세의 원고 hash/key/version으로 검수를 한 번 접수한 뒤 리포트로 replace 이동한다. 주소에는 `validationEpisodeId`·`batchId`만 남겨 새로고침에도 현재 검수만 확인한다. 비교 자료 없음·접수 대상 아님은 서버 사유를 보여 주고 사용자가 고른 경우에만 기존 설정 구축으로 분석한다.
 - 분석 목록 검수 카드, 원고 목록 행 배지, 원고 목록의 최근 배치 배너는 배치 요약·원고 목록의 `reviewStage`만 표시하며 0건·부분 결과·확정 보류·확정·무효 모두 같은 리포트를 연다. 카드마다 상세 조회를 보태지 않는다. 설정 추출 실패 단계만 기존 진행 화면의 `추출 상태 보기`를 함께 둔다.
 - A9 복귀 문맥은 `returnTo=validation-report`, `reportId`, `reportFindingId`·`reportBranch`·`reportJudgment`·`reportOutcome`·`reportPage`이며 식별자·필터 값만 담는다. 교체 성공·취소·실패 모두 `오류 리포트로 돌아가기`를 유지하고 교체 자체는 검사·분석을 시작하지 않는다.
-- A10은 공개 계약에 기준 항목(entryRef·entryHash)과 대상 식별자가 없어 설정 관리로만 이동하고 `저장만으로는 정정이 연결되지 않아요` 안내와 복귀를 제공한다. 정정 receipt(`/corrections`) 연결은 Backend 후속이다.
-- A11은 서버가 `RECHECK`를 허용했거나(무효화된 현재 report) 확정 완료 report의 진단 재검수이고, 회차 자격 조회가 최신 회차라고 확인했을 때만 연다. 확인 영역에서 대상 회차·적용할 변경·`새 결과는 모두 검토 필요로 시작해요`를 보여 준 뒤 요청한다.
+- A10은 공개 계약에 기준 항목(entryRef·entryHash)과 대상 식별자가 없어 설정 관리로만 이동하고 `저장만으로는 정정이 연결되지 않아요` 안내와 복귀를 제공한다. 정정 receipt(`/corrections`) 연결은 Backend 후속이다. (F3에서 아래 정정 흐름으로 대체)
+- A11은 서버가 `RECHECK`를 허용했거나(무효화된 현재 report) 확정 완료 report의 진단 재검수이고, 회차 자격 조회가 최신 회차라고 확인했을 때만 연다. 확인 영역에서 대상 회차·적용할 변경·`새 결과는 모두 검토 필요로 시작해요`를 보여 준 뒤 요청한다. (F3부터 확정 완료 report도 서버 `RECHECK`로만 연다)
+
+**#314 F3 (2026-10-30): 대상·설정명, 등급·대상 필터, 대상 설정 보기, 정정 → receipt → 재검수**
+
+Backend B2(catchhole-backend-java#335) 계약을 화면에 연결했다. 생성 SDK는 그 OpenAPI로 다시 만들었다.
+
+```mermaid
+flowchart TD
+    R["/episode-validation-report 상세<br/>basis[] · subject"] -->|"A5 subject.id 있음"| V["/dashboard?nav=settingDB&tab=characters&modal=char-detail&charId<br/>또는 tab=worldsettings&settingId · &reportView=subject"]
+    V --> B["오류 리포트로 돌아가기"]
+    R -->|"A10 basis 1개: 바로 · 여러 개: 작가가 고름"| E["캐릭터 상세 편집(mode=edit) 또는 세계관 상세의 해당 설정 수정<br/>&correctionBaselineId·Revision·Hash·EntryRef·EntryHash·TargetId·Version<br/>(+FactType·FactKey / ScopeName·SettingName)"]
+    E -->|"저장 = correctValidationBaselineSetting 하나<br/>(설정 편집 + receipt 한 트랜잭션)"| OK["저장됐어요. 리포트로 돌아가 재검수해 주세요.<br/>&correctionResult=linked&correctionReceiptId"]
+    E -->|"409 VALIDATION_CORRECTION_CONFLICT<br/>(아무것도 저장 안 됨, 입력 유지)"| P["다시 저장 = 기준 연결 없이 일반 저장"]
+    P --> UN["저장됐지만 검수 기준 연결을 확인하지 못했어요<br/>&correctionResult=unlinked"]
+    OK --> B2["오류 리포트로 돌아가기 (&correctionReceiptId)"]
+    UN --> B
+    B2 --> RC["리포트: 무효 · allowedActions RECHECK"]
+    RC -->|"A11 recheckEpisodeValidation<br/>+ correctionReceiptId"| N["새 reportId의 리포트 (replace)"]
+```
+
+- 목록 행 제목은 `subject.name · settingName`, 설정명이 없으면 대상 이름이고 판단 이유는 한 줄로 그 아래에 둔다. 대상이 없으면(오탈자·대상 없는 질문) 판단 이유가 제목이다. 대상 종류는 `캐릭터`/`세계관` 라벨이다. 상세 첫 줄도 `대상 종류 · 대상 · 설정명`이다.
+- 필터 막대에 `등급`(impact)·`대상`(subjectType)을 더했다. URL `impact`·`subjectType`, 768px 이하 이름 있는 선택 메뉴, 바꾸면 첫 페이지·선택 해제다. 서버가 오탈자와 대상 없는 항목을 빼므로 `오탈자` 분류에서는 두 필터를 숨기고 주소에서 지운다. 건수는 목록 `totalElements`, 결과 요약은 `/review` 그대로다.
+- A5는 `subject.id`가 있을 때만 상세를 연다. 없으면 `연결된 대상이 없어요.`(대상은 있으나 ID 없음은 `이름이 같은 설정으로 대신 연결하지 않아요.`를 덧붙임)로 잠근다.
+- A10 정정 문맥은 basis와 report 단건 조회 값만 옮긴다(`expectedBaselineHash`는 단건 조회의 `baselineHash`). 요청 직전 report를 다시 읽어 `expectedReportVersion`을 넣는다. 캐릭터는 slot 하나만 바꿀 수 있고(basis의 factType/factKey, 없으면 작가가 바꾼 slot) 이름·역할·첫 등장이나 여러 slot을 바꾸면 요청 전에 안내한다. 세계관은 basis 경로가 있으면 그 설정의 수정을 바로 열고 `expectedVersion`·`edit.version`에 basis version을 쓴다. 응답 유실은 같은 키·같은 요청으로 다시 보내 원래 receipt를 받는다. basis가 없거나 당시 version이 없으면 잠근다.
+- 안내는 설정 관리 위와 해당 상세 모달 안에 함께 보이며 모두 `오류 리포트로 돌아가기`를 둔다. 복귀만으로 재검수하지 않는다.
+- A11은 `allowedActions`의 `RECHECK`로만 연다(확정 완료 report도 서버가 알려 줄 때만). 409 `VALIDATION_SOURCE_VERSION_CONFLICT`의 `context.reason`이 `BASELINE_FINGERPRINT_REQUIRED|MISMATCH`면 report를 다시 읽고 `검사 기준 식별값이 바뀌어 최신 검수 상태를 다시 확인했어요.`를 보여 주며, context가 없으면 기존 원고 충돌 문구를 유지한다.
 
 ### 2026-10-29 일반 설정의 검증 가능한 인용만 표시
 

@@ -8,12 +8,13 @@ import { useValidationRecheck } from './useValidationRecheck';
 import { formatDateTime, validationReportUrl } from './validation-report-labels';
 
 /** 확인창에 보여 줄 변경 요약. 원고 revision이 검사 당시보다 커졌을 때만 원고 교체로 표시한다. */
-function changeSummary(staging: ValidationStagingResponse | undefined, episode: EpisodeResponse | undefined, stage?: string) {
+function changeSummary(staging: ValidationStagingResponse | undefined, episode: EpisodeResponse | undefined, stage: string | undefined, corrected: boolean) {
   const replaced = episode?.contentRevision != null && staging?.targetRevision != null && episode.contentRevision > staging.targetRevision;
   if (replaced) {
     const changedAt = formatDateTime(episode?.contentUpdatedAt);
     return `원고 파일을 바꿨어요${changedAt ? ` (${changedAt})` : ''}. 바꾼 원고로 다시 검사해요.`;
   }
+  if (corrected) return '검사에 쓴 설정을 정정했어요. 정정한 설정을 작가 정정으로 연결해 다시 검사해요.';
   if (stage === 'INVALIDATED') return '검사에 쓴 설정이 바뀌었어요. 지금 저장된 설정을 기준으로 다시 검사해요.';
   return '원고는 그대로예요. 확정한 설정을 기준으로 검사 결과만 다시 만들어요.';
 }
@@ -22,17 +23,18 @@ function changeSummary(staging: ValidationStagingResponse | undefined, episode: 
  * A11 `수정 내용으로 재검수`. 별도 다단계 확인창 없이 대상 회차·적용할 변경·새 결과의 시작 상태를 한 번에 보여 준다.
  * 실행 가능 여부는 useValidationRecheck가 서버 응답으로만 정한다.
  */
-export function ValidationRecheckPanel({ workId, reportId, report, onRetry }: {
+export function ValidationRecheckPanel({ workId, reportId, report, correctionReceiptId, onRetry }: {
   workId: string;
   reportId: string;
   report: ReturnType<typeof useEpisodeValidationReport>;
+  correctionReceiptId?: string | null;
   onRetry: () => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   // 성공하면 새 report로 주소를 바꾼다. 이전 report는 검사 이력에서 다시 열 수 있다.
   const recheck = useValidationRecheck({
-    workId, reportId, report,
+    workId, reportId, report, correctionReceiptId,
     onRechecked: nextReportId => navigate(validationReportUrl(workId, nextReportId), { replace: true, state: location.state }),
   });
   const { staging, summary } = report;
@@ -55,6 +57,9 @@ export function ValidationRecheckPanel({ workId, reportId, report, onRetry }: {
           수정 내용으로 재검수
         </ActionButton>
         {recheck.lockReason && <span id="validation-recheck-lock" className="vr-muted">{recheck.lockReason}</span>}
+        {recheck.corrected && !recheck.lockReason && (
+          <span className="vr-muted">설정 정정을 저장했어요. 수정 내용으로 재검수하면 정정한 설정으로 다시 검사해요.</span>
+        )}
         {recheck.eligibilityError && (
           <ActionButton variant="secondary" size="compact" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={recheck.reloadEligibility}>다시 확인</ActionButton>
         )}
@@ -72,7 +77,7 @@ export function ValidationRecheckPanel({ workId, reportId, report, onRetry }: {
           <dt>적용할 변경</dt>
           <dd>{recheck.episodeLoading ? '현재 원고를 확인하고 있어요.'
             : recheck.episodeError ? '현재 원고를 확인하지 못했어요.'
-              : changeSummary(staging, recheck.episode, stage)}</dd>
+              : changeSummary(staging, recheck.episode, stage, recheck.corrected)}</dd>
         </div>
       </dl>
       <ul className="vr-hold-list">

@@ -14,9 +14,12 @@ import {
   judgmentActionLabel,
   outcomeLabel,
   sourceRefLabel,
+  subjectHeading,
+  subjectTypeLabel,
   type Branch,
   type Judgment,
 } from './validation-report-labels';
+import type { CorrectionLink, SubjectLink } from './validation-return';
 
 type Occurrence = { key: string; sourceRef: string; start: number | null; end: number | null; quote: string | null };
 
@@ -116,9 +119,49 @@ function EvidenceSection({ title, groups, selectedEvidence, onSelectEvidence, so
   );
 }
 
+/** A10: 정정할 저장 설정 선택. basis가 하나면 바로 이동하고 여럿이면 작가가 고른다. 없으면 이유와 함께 잠근다. */
+function CorrectionActions({ corrections }: { corrections: CorrectionLink[] }) {
+  if (corrections.length === 0) {
+    return (
+      <div className="vr-occurrence__links">
+        <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-correction-lock">설정 정보 정정</ActionButton>
+        <span id="validation-correction-lock" className="vr-locked">이 항목에는 고칠 수 있는 저장 설정이 연결되지 않았어요.</span>
+      </div>
+    );
+  }
+  if (corrections.length === 1) {
+    const [only] = corrections;
+    return (
+      <div className="vr-occurrence__links">
+        {only.url
+          ? <Link className="ch-action ch-action--secondary vr-fix-link" to={only.url} aria-describedby="validation-correction-target">설정 정보 정정</Link>
+          : <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-correction-target">설정 정보 정정</ActionButton>}
+        <span id="validation-correction-target" className="vr-locked">{only.url ? `${only.label} 설정을 고쳐요.` : only.lockReason}</span>
+      </div>
+    );
+  }
+  return (
+    <div role="group" aria-labelledby="validation-correction-choose">
+      <p id="validation-correction-choose" className="vr-muted">이 항목이 비교한 저장 설정이 여러 개예요. 고칠 설정을 골라 주세요.</p>
+      <ul className="vr-correction-list">
+        {corrections.map((item, index) => (
+          <li key={item.key}>
+            {item.url
+              ? <Link className="ch-action ch-action--secondary vr-fix-link" to={item.url}>{`${item.label} 정정`}</Link>
+              : <>
+                <ActionButton variant="secondary" size="compact" disabled aria-describedby={`validation-correction-lock-${index}`}>{`${item.label} 정정`}</ActionButton>
+                <span id={`validation-correction-lock-${index}`} className="vr-locked">{item.lockReason}</span>
+              </>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function FindingDetailView({
   detail, headingRef, canJudge, lockMessage, saving, judgmentNotice, onSaveJudgment, selectedEvidence, onSelectEvidence,
-  sourceLink, topNotice, fixLinks,
+  sourceLink, topNotice, fix, subject,
 }: {
   detail: ValidationFindingDetailResponse;
   headingRef: Ref<HTMLHeadingElement>;
@@ -131,8 +174,10 @@ export function FindingDetailView({
   onSelectEvidence: (key: string | null) => void;
   sourceLink?: string;
   topNotice?: ReactNode;
-  /** A9 원고 파일 변경·A10 설정 정보 정정 이동 주소. 현재 결과가 아니면 제공하지 않는다. A10은 설정 검사 항목에만 보인다. */
-  fixLinks?: { replace: string; correct: string };
+  /** A9 원고 파일 변경 주소와 A10 정정할 저장 설정. 현재 결과가 아니면 제공하지 않는다. A10은 설정 검사 항목에만 보인다. */
+  fix?: { replace: string; corrections: CorrectionLink[] };
+  /** A5 대상 설정 보기. 설정 검사 항목에만 보인다. */
+  subject?: SubjectLink;
 }) {
   const branch: Branch = detail.branch === 'TYPO' ? 'TYPO' : 'SETTING';
   const payload = readPayload(detail);
@@ -157,6 +202,9 @@ export function FindingDetailView({
   const history = detail.judgmentHistory ?? [];
   const basis = basisLabel(payload.basis);
   const needsContext = detail.outcome === 'NEEDS_CONTEXT';
+  // 상세 첫 줄: 대상 종류·이름·설정명(#314 B2). 대상이 없으면 표시하지 않는다.
+  const heading = branch === 'SETTING' ? subjectHeading(detail.subject, detail.settingName) : null;
+  const subjectLine = heading ? [subjectTypeLabel(detail.subject?.type), heading].filter(Boolean).join(' · ') : null;
 
   return (
     <article className="vr-card vr-detail-card" aria-labelledby="validation-finding-title">
@@ -164,6 +212,7 @@ export function FindingDetailView({
         <div className="review-cb-heading">
           <div className="review-cb-heading__identity">
             <div className="review-cb-heading__subtitle">{`${branch === 'SETTING' ? '설정 검사' : '오탈자 검사'} · ${outcomeLabel(detail.outcome)}`}</div>
+            {subjectLine && <p className="vr-detail-subject">{subjectLine}</p>}
             <div className="review-cb-heading__title">
               <h2 id="validation-finding-title" ref={headingRef} tabIndex={-1}>{title}</h2>
             </div>
@@ -212,10 +261,15 @@ export function FindingDetailView({
           <EvidenceSection title={branch === 'SETTING' ? '이번 원고의 모든 발생 위치' : '원문 위치'} groups={[{ label: '이번 원고', items: target }]}
             selectedEvidence={selectedEvidence} onSelectEvidence={onSelectEvidence} sourceLink={sourceLink} />
         )}
-        {branch === 'SETTING' && (
+        {branch === 'SETTING' && subject && (
           <div className="vr-occurrence__links">
-            <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-target-lock">대상 설정 보기</ActionButton>
-            <span id="validation-target-lock" className="vr-locked">연결된 대상 설정 정보가 제공되지 않아 열 수 없어요.</span>
+            {subject.url !== null ? <>
+              <Link className="vr-link-button" to={subject.url} aria-describedby="validation-target-name">대상 설정 보기</Link>
+              <span id="validation-target-name" className="vr-locked">{`${subject.label} · 지금 저장된 설정을 열어요.`}</span>
+            </> : <>
+              <ActionButton variant="secondary" size="compact" disabled aria-describedby="validation-target-lock">대상 설정 보기</ActionButton>
+              <span id="validation-target-lock" className="vr-locked">{subject.lockReason}</span>
+            </>}
           </div>
         )}
 
@@ -265,17 +319,19 @@ export function FindingDetailView({
           )}
         </section>
 
-        {fixLinks && (
+        {fix && (
           <section className="vr-section vr-fix" aria-label="원고·설정 수정">
             <h3>원고·설정 수정</h3>
             <p className="vr-muted">고친 뒤 이 리포트로 돌아와 수정 내용으로 재검수해 주세요. 파일을 바꾸거나 설정을 저장해도 검사는 자동으로 시작하지 않아요.</p>
             <div className="vr-actions">
-              <Link className="ch-action ch-action--secondary vr-fix-link" to={fixLinks.replace}>원고 파일 변경</Link>
-              {branch === 'SETTING' && <Link className="ch-action ch-action--secondary vr-fix-link" to={fixLinks.correct}>설정 정보 정정</Link>}
+              <Link className="ch-action ch-action--secondary vr-fix-link" to={fix.replace}>원고 파일 변경</Link>
             </div>
-            {branch === 'SETTING' && (
-              <p className="vr-muted">설정 정보 정정은 기존 설정 관리에서 직접 고쳐요. 저장만으로는 정정이 연결되지 않아요. 저장한 뒤 돌아와 재검수하면 그때 저장된 설정으로 새로 검사해요.</p>
-            )}
+            {branch === 'SETTING' && <>
+              <CorrectionActions corrections={fix.corrections} />
+              {fix.corrections.some(item => item.url) && (
+                <p className="vr-muted">설정 정보 정정은 고른 저장 설정 하나만 고쳐 이 검사 기준과 연결해요. 저장한 뒤 돌아와 수정 내용으로 재검수해 주세요.</p>
+              )}
+            </>}
           </section>
         )}
       </div>

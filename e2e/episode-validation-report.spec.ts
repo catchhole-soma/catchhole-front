@@ -4,6 +4,7 @@ import review from './fixtures/validation/validation-review-v1.json' with { type
 import results from './fixtures/validation/validation-results-v1.json' with { type: 'json' };
 import {
   authenticate,
+  CHARACTER_ID,
   defaultFindings,
   EPISODE_ID,
   findingId,
@@ -12,6 +13,7 @@ import {
   RECHECK_REPORT_ID,
   REPORT_ID,
   WORK_ID,
+  WORLD_ID,
   type ReportScenario,
 } from './fixtures/validation/report-mock';
 
@@ -167,8 +169,131 @@ test('추가 확인 필요와 심각 등급은 별도 축으로 표시하고 AI 
   await expect(page).not.toHaveURL(/page=/);
   await expect(rows(page)).toHaveCount(1);
   expect(mock.state.findingQueries.at(-1)).toContain('outcome=NEEDS_CONTEXT');
-  // 서버에 없는 등급·대상 필터는 만들지 않는다.
-  await expect(page.getByRole('group', { name: /등급|대상/ })).toHaveCount(0);
+});
+
+test('목록 행은 대상·설정명을 제목으로, 판단 이유를 한 줄로 보여 주고 대상이 없으면 판단 이유만 제목으로 쓴다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const findings = defaultFindings();
+  // 대상이 기준 항목으로 이어지지 않은 설정 항목(subject=null)은 판단 이유가 제목이다.
+  findings.push({ ...structuredClone(findings[1]), findingId: findingId(4), subject: null, settingName: null, settingKey: null, basis: [] });
+  await open(page, { findings });
+  const title = (index: number) => row(page, index).locator('.vr-row__title');
+  const reason = (index: number) => row(page, index).locator('.vr-row__reason');
+  await expect(title(0)).toHaveText('비요른 · 검');
+  await expect(reason(0)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  await expect(row(page, 0).locator('.vr-chip--subject')).toHaveText('캐릭터');
+  await expect(title(1)).toHaveText('왕궁 · 마법 / 사용 제한');
+  await expect(row(page, 1).locator('.vr-chip--subject')).toHaveText('세계관');
+  // 설정명이 없으면 대상 이름과 판단 이유를 함께 보여 준다.
+  await expect(title(2)).toHaveText('에르웬');
+  await expect(reason(2)).toHaveText('망토의 색이 이전 회차와 달라요.');
+  // 오탈자와 대상 없는 설정 항목은 판단 이유만 제목으로 쓰고 대상 라벨을 두지 않는다.
+  for (const index of [3, 4]) {
+    await expect(reason(index)).toHaveCount(0);
+    await expect(row(page, index).locator('.vr-chip--subject')).toHaveCount(0);
+  }
+  await expect(title(3)).toHaveText('‘되어요’의 준말은 ‘돼요’예요.');
+  await expect(title(4)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+
+  // 상세 첫 줄은 대상 종류·이름·설정명이고 제목은 판단 이유다.
+  await expect(page.locator('.vr-detail-subject')).toHaveText('캐릭터 · 비요른 · 검');
+  await expect(detailHeading(page)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  await row(page, 4).click();
+  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  await expect(page.locator('.vr-detail-subject')).toHaveCount(0);
+});
+
+test('등급·대상 필터는 서버에 보내고 첫 페이지로 돌아가며 건수는 목록 응답, 집계는 검토 요약을 쓴다', async ({ page }) => {
+  const base = defaultFindings();
+  // 21개 이상이어야 2페이지가 생긴다. 계약 모양은 그대로 두고 ID·등급·대상만 바꾼다.
+  const extra = Array.from({ length: 20 }, (_, index) => ({
+    ...structuredClone(base[index % 2 === 0 ? 0 : 1]),
+    findingId: `00000000-0000-4000-8000-0000000003${String(index).padStart(2, '0')}`,
+  }));
+  const mock = await open(page, { findings: [...base, ...extra] }, '&judgment=ALL&page=2');
+  await expect(rows(page)).toHaveCount(4);
+  await expect(page.getByText('조건에 맞는 항목 24개', { exact: false })).toBeVisible();
+
+  await page.getByRole('group', { name: '등급' }).getByRole('button', { name: '심각' }).click();
+  await expect(page).toHaveURL(/impact=SEVERE/);
+  await expect(page).not.toHaveURL(/[?&]page=/);
+  await expect.poll(() => mock.state.findingQueries.at(-1)).toContain('impact=SEVERE');
+  expect(mock.state.findingQueries.at(-1)).toContain('page=0');
+  // 서버가 오탈자와 다른 등급을 뺀 결과의 totalElements를 그대로 보여 준다.
+  await expect(page.getByText('조건에 맞는 항목 22개', { exact: false })).toBeVisible();
+  await expect(page.getByText('등급·대상으로 거르면 오탈자와 대상이 없는 항목은 빠져요.')).toBeVisible();
+  await expect(counts(page, '오탈자', '전체')).toHaveText('1');
+
+  await page.getByRole('group', { name: '대상' }).getByRole('button', { name: '세계관' }).click();
+  await expect(page).toHaveURL(/subjectType=WORLD_SETTING/);
+  await expect.poll(() => mock.state.findingQueries.at(-1)).toMatch(/impact=SEVERE.*subjectType=WORLD_SETTING|subjectType=WORLD_SETTING.*impact=SEVERE/);
+  await expect(page.getByText('조건에 맞는 항목 11개', { exact: false })).toBeVisible();
+  await expect(rows(page).first().locator('.vr-chip--subject')).toHaveText('세계관');
+  // 새로고침은 URL의 필터를 그대로 서버에 보낸다.
+  await page.reload();
+  await expect(page.getByRole('group', { name: '대상' }).getByRole('button', { name: '세계관' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => mock.state.findingQueries.at(-1)).toContain('subjectType=WORLD_SETTING');
+
+  // 오탈자 분류에는 등급·대상이 없어 필터를 숨기고 주소에서도 지운다.
+  await page.getByRole('group', { name: '분류' }).getByRole('button', { name: '오탈자' }).click();
+  await expect(page).not.toHaveURL(/impact=|subjectType=/);
+  await expect(page.getByRole('group', { name: '등급' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: '대상' })).toHaveCount(0);
+  await expect.poll(() => mock.state.findingQueries.at(-1)).not.toMatch(/impact=|subjectType=/);
+
+  // 작은 화면은 같은 필터를 이름 있는 선택 메뉴로 제공한다.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('combobox', { name: '분류' }).selectOption('SETTING');
+  await page.getByRole('combobox', { name: '등급' }).selectOption('CAUTION');
+  await expect(page).toHaveURL(/impact=CAUTION/);
+  await expect.poll(() => mock.state.findingQueries.at(-1)).toContain('impact=CAUTION');
+  await expect(page.getByText('조건에 맞는 항목이 없어요.')).toBeVisible();
+});
+
+test('A5 대상 설정 보기는 연결된 캐릭터·세계관 상세를 열고 돌아오며 연결이 없으면 이름으로 잇지 않고 잠근다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const findings = defaultFindings();
+  findings.push({ ...structuredClone(findings[2]), findingId: findingId(4), subject: { type: 'CHARACTER', id: null, name: '에르웬' } });
+  const noSubject = { ...structuredClone(findings[2]), findingId: '00000000-0000-4000-8000-000000000151', subject: null, settingName: null, basis: [] };
+  findings.push(noSubject);
+  const mock = await open(page, { findings }, `&branch=SETTING&findingId=${findingId(0)}`);
+  const view = page.getByRole('link', { name: '대상 설정 보기', exact: true });
+  await expect(page.locator('#validation-target-name')).toHaveText('캐릭터 · 비요른 · 지금 저장된 설정을 열어요.');
+  const href = new URL(await view.getAttribute('href') ?? '', 'http://localhost');
+  expect(Object.fromEntries(href.searchParams)).toEqual({
+    workId: WORK_ID, nav: 'settingDB', tab: 'characters', modal: 'char-detail', charId: CHARACTER_ID,
+    returnTo: 'validation-report', reportId: REPORT_ID, reportFindingId: findingId(0), reportBranch: 'SETTING', reportView: 'subject',
+  });
+  await view.click();
+  const dialog = page.getByRole('dialog', { name: '비요른 캐릭터 상세' });
+  await expect(dialog).toBeVisible();
+  const inside = dialog.getByTestId('validation-correction-notice');
+  await expect(inside).toHaveCount(0);
+  await expect(page.getByTestId('validation-report-return')).toContainText('오류 리포트에서 대상 설정을 보러 왔어요.');
+  // 보기만 했으므로 정정 요청이나 일반 저장을 보내지 않는다.
+  expect(mock.state.requests.filter(item => item.method !== 'GET')).toEqual([]);
+  await dialog.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByTestId('validation-report-return').getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}.*findingId=${findingId(0)}`));
+
+  // 세계관 대상은 세계관 상세를 연다.
+  await row(page, 1).click();
+  await expect(page.locator('#validation-target-name')).toHaveText('세계관 · 왕궁 · 지금 저장된 설정을 열어요.');
+  const worldHref = new URL(await view.getAttribute('href') ?? '', 'http://localhost');
+  expect(worldHref.searchParams.get('tab')).toBe('worldsettings');
+  expect(worldHref.searchParams.get('settingId')).toBe(WORLD_ID);
+  expect(worldHref.searchParams.get('modal')).toBeNull();
+  await view.click();
+  await expect(page.getByRole('dialog', { name: '왕궁 세계관 상세' })).toBeVisible();
+  await page.goBack();
+
+  // 서버가 실제 대상 ID를 주지 않으면 같은 이름의 설정으로 연결하지 않는다.
+  await row(page, 4).click();
+  await expect(view).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '대상 설정 보기' })).toBeDisabled();
+  await expect(page.locator('#validation-target-lock')).toHaveText('연결된 대상이 없어요. 이름이 같은 설정으로 대신 연결하지 않아요.');
+  await page.locator(`[data-finding-id="${noSubject.findingId}"]`).click();
+  await expect(page.locator('#validation-target-lock')).toHaveText('연결된 대상이 없어요.');
 });
 
 test('판단 변경과 검토 필요로 되돌리기는 현재 version을 보내고 같은 값은 다시 저장하지 않는다', async ({ page }) => {
@@ -556,7 +681,10 @@ test('주요 문구와 상태 배지는 Theme V2 표면에서 4.5:1 이상 대�
     ['검토 필요 건수', counts(page, '설정 충돌', '검토 필요'), page.locator('.vr-counts__group').first()],
     ['집계 라벨', page.locator('.vr-counts__metrics dt').first(), page.locator('.vr-counts__group').first()],
     ['분석 목록 링크', page.getByRole('button', { name: '← 분석 목록' }), canvas],
-    ['잠긴 링크 설명', page.locator('#validation-target-lock'), page.locator('.vr-detail-body')],
+    ['대상 설정 안내', page.locator('#validation-target-name'), page.locator('.vr-detail-body')],
+    ['대상 라벨', row(page, 0).locator('.vr-chip--subject'), row(page, 0).locator('.vr-chip--subject')],
+    ['판단 이유 한 줄', row(page, 1).locator('.vr-row__reason'), row(page, 1)],
+    ['상세 대상', page.locator('.vr-detail-subject'), page.locator('.vr-detail-card > header')],
     ['판단 안내', page.locator('.vr-judgment > .vr-muted'), page.locator('.vr-detail-body')],
   ];
   for (const [name, text, background] of checks) {

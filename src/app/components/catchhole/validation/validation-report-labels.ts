@@ -1,7 +1,9 @@
 import type {
+  ListValidationFindingsData,
   ValidationApplicationHoldReason,
   ValidationEligibilityResponse,
   ValidationFindingJudgment,
+  ValidationFindingSubject,
   ValidationReviewSummaryResponse,
   ValidationStagingResponse,
 } from '../../../api/generated/types.gen';
@@ -35,6 +37,42 @@ const IMPACT_LABELS: Record<string, string> = { SEVERE: '심각', CAUTION: '주�
 export function impactLabel(impact?: string | null): string | null {
   return impact ? IMPACT_LABELS[impact] ?? null : null;
 }
+
+export type SubjectType = NonNullable<ValidationFindingSubject['type']>;
+export const SUBJECT_TYPE_LABELS: Record<SubjectType, string> = { CHARACTER: '캐릭터', WORLD_SETTING: '세계관' };
+
+export function subjectTypeLabel(type?: string | null): string | null {
+  return type === 'CHARACTER' || type === 'WORLD_SETTING' ? SUBJECT_TYPE_LABELS[type] : null;
+}
+
+/**
+ * R4 대상 줄. 서버의 고정 기준 대상 이름과 설정명만 쓴다(#314 B2). 둘 다 있으면 `대상 · 설정명`,
+ * 설정명이 없으면 대상 이름만, 대상이 없으면 null(호출부가 판단 이유를 제목으로 쓴다).
+ */
+export function subjectHeading(subject?: ValidationFindingSubject | null, settingName?: string | null): string | null {
+  const name = subject?.name?.trim();
+  if (!name) return null;
+  const setting = settingName?.trim();
+  return setting ? `${name} · ${setting}` : name;
+}
+
+export type Impact = NonNullable<NonNullable<ListValidationFindingsData['query']>['impact']>;
+export type ImpactFilter = Impact | 'ALL';
+export type SubjectTypeFilter = SubjectType | 'ALL';
+
+/** 등급·대상 서버 필터(#314 B2). 지정하면 서버가 오탈자와 대상 없는 항목을 뺀다. */
+export const IMPACT_FILTER_OPTIONS: Array<{ value: ImpactFilter; label: string }> = [
+  { value: 'ALL', label: '전체' },
+  { value: 'SEVERE', label: '심각' },
+  { value: 'CAUTION', label: '주의' },
+  { value: 'REFERENCE', label: '참고' },
+];
+
+export const SUBJECT_TYPE_FILTER_OPTIONS: Array<{ value: SubjectTypeFilter; label: string }> = [
+  { value: 'ALL', label: '전체' },
+  { value: 'CHARACTER', label: SUBJECT_TYPE_LABELS.CHARACTER },
+  { value: 'WORLD_SETTING', label: SUBJECT_TYPE_LABELS.WORLD_SETTING },
+];
 
 export const JUDGMENT_LABELS: Record<Judgment, string> = {
   PENDING: '검토 필요',

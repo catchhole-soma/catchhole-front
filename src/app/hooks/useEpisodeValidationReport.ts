@@ -31,7 +31,7 @@ import type {
   ValidationStagingResponse,
 } from '../api/generated/types.gen';
 import { shouldRetryQuery } from '../lib/query-client';
-import type { Branch, Judgment } from '../components/catchhole/validation/validation-report-labels';
+import type { Branch, Impact, Judgment, SubjectType } from '../components/catchhole/validation/validation-report-labels';
 
 const FINDINGS_PAGE_SIZE = 20;
 const ACTIVE_POLL_MS = 3_000;
@@ -46,6 +46,9 @@ export type FindingFilters = {
   branch?: Branch;
   judgment?: Judgment;
   outcome?: string;
+  /** #314 B2 서버 필터. 지정하면 서버가 오탈자와 대상 없는 항목을 뺀다. */
+  impact?: Impact;
+  subjectType?: SubjectType;
   /** API의 0-based 페이지 */
   page: number;
 };
@@ -207,6 +210,8 @@ export function useEpisodeValidationReport({ workId, reportId, filters, findingI
         branch: filters.branch,
         judgment: filters.judgment,
         outcome: filters.outcome,
+        impact: filters.impact,
+        subjectType: filters.subjectType,
         page: filters.page,
         size: FINDINGS_PAGE_SIZE,
       },

@@ -12,8 +12,9 @@ import {
 } from './fixtures/validation/report-mock';
 
 /**
- * GH314 F2 A9 원고 파일 변경 → 리포트 복귀 → A11 재검수, A10 설정 정정 이동, 진단 재검수.
+ * GH314 F2 A9 원고 파일 변경 → 리포트 복귀 → A11 재검수, 진단 재검수. A10 설정 정정은 episode-validation-correction.spec.ts.
  * 목 API는 Backend 계약 예시(validation-review-v1.json)와 F1 report fixture를 그대로 사용한다.
+ * #314 B2(F3)부터 재검수 버튼은 검토 요약 allowedActions의 RECHECK로만 연다.
  */
 async function open(page: Page, scenario: ReportScenario = {}, query = '') {
   const mock = await mockValidationReport(page, scenario);
@@ -244,13 +245,17 @@ test('재검수 요청을 보낸 뒤에는 응답이 올 때까지 취소와 재
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
-test('확정 완료 회차의 진단 재검수는 같은 버튼으로 결과 전용 안내와 함께 시작한다', async ({ page }) => {
-  const appliedSummary = {
-    allowedActions: [], canCompleteReview: false, completionMode: 'COMPLETED', judgmentLocked: true, lockReason: 'REVIEW_COMPLETED',
+const appliedSummary = (allowedActions: string[]) => ({
+  allowedActions, canCompleteReview: false, completionMode: 'COMPLETED', judgmentLocked: true, lockReason: 'REVIEW_COMPLETED',
     completion: review.responses.reviewSummary.completion, extractionState: 'SUCCEEDED', reviewStage: 'APPLIED',
     application: { ...review.responses.reviewSummary.application, status: 'APPLIED', holdReasons: [], appliedAt: '2026-10-30T11:07:00' },
-  };
-  const mock = await open(page, { staging: { reviewStage: 'APPLIED', extractionStatus: 'READY', candidateStatus: 'READY' }, summary: appliedSummary as never }, '&judgment=ALL');
+});
+const appliedStaging = { reviewStage: 'APPLIED', extractionStatus: 'READY', candidateStatus: 'READY' } as const;
+
+test('확정 완료 회차는 서버가 RECHECK를 알려 줄 때만 같은 버튼으로 결과 전용 진단 재검수를 시작한다', async ({ page }) => {
+  // 계약 예시 reviewSummaryApplied와 같은 APPLIED + allowedActions=[RECHECK].
+  expect(review.responses.reviewSummaryApplied.allowedActions).toEqual(['RECHECK']);
+  const mock = await open(page, { staging: appliedStaging, summary: appliedSummary(['RECHECK']) as never }, '&judgment=ALL');
   await expect(page.getByText('이번 회차의 설정을 확정했어요.', { exact: false }).first()).toBeVisible();
   await expect(recheckButton(page)).toBeEnabled();
   await recheckButton(page).click();
@@ -264,6 +269,44 @@ test('확정 완료 회차의 진단 재검수는 같은 버튼으로 결과 전
   await expect(page.getByRole('button', { name: '검토 완료 후 설정 추출' })).toHaveCount(0);
 });
 
+test('확정 완료 회차라도 서버가 RECHECK를 알려 주지 않으면 재검수 버튼을 두지 않는다', async ({ page }) => {
+  // 다음 회차가 이미 있거나 추출·비교가 진행 중이면 Backend가 RECHECK를 빼고, 화면은 단계로 추측하지 않는다.
+  const mock = await open(page, { staging: appliedStaging, summary: appliedSummary([]) as never }, '&judgment=ALL');
+  await expect(page.getByText('이번 회차의 설정을 확정했어요.', { exact: false }).first()).toBeVisible();
+  await expect(recheckButton(page)).toHaveCount(0);
+  await expect(page.getByTestId('validation-recheck-confirm')).toHaveCount(0);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(0);
+});
+
+for (const reason of ['BASELINE_FINGERPRINT_MISMATCH', 'BASELINE_FINGERPRINT_REQUIRED'] as const) {
+  test(`재검수 409 ${reason}은 원고 충돌과 다른 기준 식별값 안내를 보여 주고 report를 다시 읽는다`, async ({ page }) => {
+    const mock = await open(page, invalidated);
+    const stagingReads: string[] = [];
+    page.on('request', request => { if (new URL(request.url()).pathname === `/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}`) stagingReads.push(request.url()); });
+    // 계약 예시 errors.recheckBaselineFingerprint*의 code·context를 그대로 쓴다.
+    const example = reason === 'BASELINE_FINGERPRINT_MISMATCH' ? review.errors.recheckBaselineFingerprintMismatch : review.errors.recheckBaselineFingerprintRequired;
+    mock.failNextRecheck({ status: 409, code: example.error.code, message: example.message, context: example.error.context });
+    await recheckButton(page).click();
+    const confirm = page.getByTestId('validation-recheck-confirm');
+    await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
+    await expect(confirm).toContainText('검사 기준 식별값이 바뀌어 최신 검수 상태를 다시 확인했어요. 확인한 뒤 다시 눌러 주세요.');
+    await expect(confirm).not.toContainText('최신 원고를 다시 확인한 뒤 눌러 주세요.');
+    await expect.poll(() => stagingReads.length).toBeGreaterThan(0);
+    await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+    expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+  });
+}
+
+test('재검수 409 원고 충돌(context 없음)은 기존 원고 충돌 안내를 유지한다', async ({ page }) => {
+  const mock = await open(page, invalidated);
+  mock.failNextRecheck({ status: 409, code: 'VALIDATION_SOURCE_VERSION_CONFLICT', message: '원고 버전이 변경되었습니다. 현재 원고를 다시 확인해 주세요.' });
+  await recheckButton(page).click();
+  const confirm = page.getByTestId('validation-recheck-confirm');
+  await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
+  await expect(confirm).toContainText('원고나 비교 기준이 방금 바뀌었어요. 최신 원고를 다시 확인한 뒤 눌러 주세요.');
+  await expect(confirm).not.toContainText('기준 식별값');
+});
+
 test('가장 마지막 회차가 아니면 재검수를 잠그고 이유를 보여 준다', async ({ page }) => {
   const mock = await open(page, {
     staging: { status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED' },
@@ -273,26 +316,4 @@ test('가장 마지막 회차가 아니면 재검수를 잠그고 이유를 보�
   await expect(recheckButton(page)).toBeDisabled();
   await expect(page.getByText('가장 마지막 회차만 재검수할 수 있어요. 이 회차 뒤에 다른 회차가 있어요.')).toBeVisible();
   expect(mock.requestsTo('/rechecks')).toHaveLength(0);
-});
-
-test('A10 설정 정보 정정은 기존 설정 관리로 이동해 정정 연결 한계를 알리고 리포트로 돌아온다', async ({ page }) => {
-  const mock = await open(page, {}, `&findingId=${findingId(0)}`);
-  await expect(page.getByText('설정 정보 정정은 기존 설정 관리에서 직접 고쳐요. 저장만으로는 정정이 연결되지 않아요.', { exact: false })).toBeVisible();
-  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\?/);
-  const params = new URL(page.url()).searchParams;
-  expect(Object.fromEntries(params)).toMatchObject({
-    workId: WORK_ID, nav: 'settingDB', tab: 'characters', returnTo: 'validation-report', reportId: REPORT_ID, reportFindingId: findingId(0),
-  });
-  await expect(returnNotice(page)).toContainText('오류 리포트에서 설정 정보를 정정하러 왔어요.');
-  await expect(returnNotice(page)).toContainText('저장만으로는 정정이 연결되지 않아요.');
-  // 탭을 바꿔도 복귀 문맥을 유지한다.
-  await page.locator('.setting-db-tab', { hasText: '세계관 설정' }).click();
-  await expect(page).toHaveURL(/tab=worldsettings/);
-  await expect(returnNotice(page)).toBeVisible();
-  // 공개 계약에 기준 항목 식별자가 없어 정정 receipt 요청을 만들지 않는다.
-  expect(mock.state.requests.filter(item => item.path.endsWith('/corrections'))).toEqual([]);
-  await returnNotice(page).getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}.*findingId=${findingId(0)}`));
-  await expect(page.locator('#validation-finding-title')).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
 });
