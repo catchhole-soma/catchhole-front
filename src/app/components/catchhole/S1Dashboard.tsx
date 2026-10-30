@@ -56,7 +56,8 @@ import {
   VALIDATION_STAGE_SUMMARY,
   validationReportUrl,
 } from './validation/validation-report-labels';
-import { readReportReturn, REPORT_VIEW_SUBJECT } from './validation/validation-return';
+import { readReportReturn } from './validation/validation-return';
+import { useReportSettingLink } from './validation/useReportSettingLink';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
   label: string;
@@ -664,6 +665,8 @@ export default function S1Dashboard() {
 
   // A9/A10 리포트 복귀 문맥. 형식이 맞는 식별자·필터만 받아 같은 리포트 주소로 되돌린다.
   const reportReturn = readReportReturn(searchParams, effectiveWorkId);
+  // A5 대상 설정 보기·A10 정정: 설정 관리 위 안내와 캐릭터·세계관 상세의 정정 저장.
+  const reportSettingLink = useReportSettingLink({ workId: effectiveWorkId, searchParams, setSearchParams });
   const [replacedForReport, setReplacedForReport] = useState<string | null>(null);
   // 리포트의 `원고 파일 변경`은 같은 episodeId의 교체 모달을 주소로 연다. 회차 번호·제목으로 대상을 고르지 않는다.
   const urlReplaceEpisodeId = activeNav === 'manuscripts' && searchParams.get('modal') === EPISODE_REPLACE_MODAL
@@ -870,6 +873,7 @@ export default function S1Dashboard() {
       onArchiveClose={() => setCharacterArchiveOpen(false)}
       onEditChange={setSelectedCharEditing}
       onEditComplete={completeCharacterEditing}
+      correction={reportSettingLink.character}
       onAnalyze={() => navigate(
         `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
         'push-right',
@@ -954,21 +958,7 @@ export default function S1Dashboard() {
                   </div>
                 </div>
 
-                {reportReturn && (
-                  <div className="setting-db-return">
-                    {/* A5 대상 설정 보기는 보기만 하러 온 것이므로 정정 안내와 구분한다. */}
-                    {searchParams.get('reportView') === REPORT_VIEW_SUBJECT ? (
-                      <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 대상 설정을 보러 왔어요.">
-                        <p>리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
-                      </ReportReturnNotice>
-                    ) : (
-                      <ReportReturnNotice reportReturn={reportReturn} title="오류 리포트에서 설정 정보를 정정하러 왔어요.">
-                        <p>고칠 캐릭터나 세계관 설정을 찾아 수정해 주세요. 리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요.</p>
-                        <p>저장만으로는 정정이 연결되지 않아요. 저장한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.</p>
-                      </ReportReturnNotice>
-                    )}
-                  </div>
-                )}
+                {reportSettingLink.notice && <div className="setting-db-return">{reportSettingLink.notice}</div>}
 
                 <label className="setting-db-mobile-navigation">
                   작품 설정
@@ -1040,6 +1030,7 @@ export default function S1Dashboard() {
                         <WorldSettingDatabase
                           workId={effectiveWorkId}
                           enabled={episodeApiEnabled}
+                          correction={reportSettingLink.world}
                           onAnalyze={() => navigate(
                             `/episode-upload?workId=${encodeURIComponent(effectiveWorkId)}`,
                             'push-right',

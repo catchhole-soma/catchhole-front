@@ -16,7 +16,7 @@ import { ValidationHistoryPanel } from './ValidationHistoryPanel';
 import { ReportBasisCard, ReportStatusCard } from './ValidationReportOverview';
 import { ValidationRecheckPanel } from './ValidationRecheckPanel';
 import { useValidationReportActions, type ReportActionArea } from './useValidationReportActions';
-import { reportFixLinks, subjectLink } from './validation-return';
+import { CORRECTION_RECEIPT_KEY, correctionLinks, reportReplaceUrl, subjectLink } from './validation-return';
 import {
   IMPACT_FILTER_OPTIONS,
   judgmentOptions,
@@ -352,6 +352,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   const candidateReviewUrl = staging?.batchId
     ? `/setting-review?workId=${encodeURIComponent(workId)}&batchId=${encodeURIComponent(staging.batchId)}${holdTypes.size === 1 && holdTypes.has('WORLD_SETTING') ? '&candidateType=world' : ''}`
     : undefined;
+  // A11: 설정 정정 화면이 돌려준 정정 receipt. 재검수 요청에 그대로 보낸다.
+  const correctionReceiptId = UUID.test(searchParams.get(CORRECTION_RECEIPT_KEY) ?? '') ? searchParams.get(CORRECTION_RECEIPT_KEY) : null;
   const sourceLink = !report.invalidated && !pastReport && staging?.episodeId
     ? `/editor?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}` : undefined;
   // 리포트끼리 이동하면 history가 늘어나므로 분석 목록 복귀의 상대 이동(returnHistoryDelta)은 버리고 저장한 목록 주소만 넘긴다.
@@ -393,6 +395,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     && (filters.outcome === 'ALL' || detail.outcome === filters.outcome)
     && (filters.impact === 'ALL' || (detail.branch === 'SETTING' && detailImpact === filters.impact))
     && (filters.subjectType === 'ALL' || (detail.branch === 'SETTING' && detail.subject?.type === filters.subjectType));
+  const replaceUrl = reportReplaceUrl(workId, reportId, report.invalidated || pastReport ? undefined : staging?.episodeId, searchParams);
   const outsideNotice = detailMatchesUrl && listReady && !selectedInList ? (
     <ReviewNotice tone="info" title={matchesFilter ? '이 항목은 현재 페이지 목록에 없어요.' : '이 항목은 현재 필터에서 제외됐어요.'}
       action={firstId ? <ActionButton variant="secondary" size="compact" onClick={() => selectFinding(firstId)}>다음 항목</ActionButton> : undefined} />
@@ -426,7 +429,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
             <ActionButton onClick={backToLatest}>최신 결과로 돌아가기</ActionButton>
           </div>
         )}
-        <ValidationRecheckPanel workId={workId} reportId={reportId} report={report} onRetry={() => actions.requestAction('retry')} />
+        <ValidationRecheckPanel workId={workId} reportId={reportId} report={report} correctionReceiptId={correctionReceiptId}
+          onRetry={() => actions.requestAction('retry')} />
       </ReportStatusCard>
 
       {!pastReport && (
@@ -494,7 +498,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
                   selectedEvidence={filters.evidence}
                   onSelectEvidence={key => updateParams(next => { if (key) next.set('evidence', key); else next.delete('evidence'); })}
                   sourceLink={sourceLink} topNotice={outsideNotice}
-                  fixLinks={reportFixLinks(workId, reportId, report.invalidated || pastReport ? undefined : staging?.episodeId, searchParams)}
+                  fix={replaceUrl ? { replace: replaceUrl, corrections: correctionLinks(workId, reportId, staging, detail, searchParams) } : undefined}
                   subject={subjectLink(workId, reportId, detail, searchParams)}
                 />
               ) : detailMissing ? (

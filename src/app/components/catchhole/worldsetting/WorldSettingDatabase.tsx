@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,6 +45,7 @@ import { C } from '../constants';
 import { PageNavigation } from '../PageNavigation';
 import { WorldSettingDialog } from './WorldSettingDialog';
 import { useWorldSettingPagination } from './useWorldSettingPagination';
+import type { WorldCorrectionBinding } from '../validation/useReportSettingLink';
 
 type WorldCategory = NonNullable<WorldSettingDetailResponse['category']>;
 type WorldSort = 'CATEGORY_SUBJECT_ASC' | 'UPDATED_DESC';
@@ -405,6 +406,7 @@ function PropertyEditor({
   pending,
   error,
   conflict,
+  saveLabel,
   onChange,
   onCancel,
   onReload,
@@ -414,6 +416,8 @@ function PropertyEditor({
   pending: boolean;
   error?: string | null;
   conflict: boolean;
+  /** 오류 리포트 정정이 거절된 뒤의 일반 저장처럼 저장 의미가 다를 때의 버튼 이름 */
+  saveLabel?: string;
   onChange: (next: PropertyDraft) => void;
   onCancel: () => void;
   onReload: () => void;
@@ -482,7 +486,7 @@ function PropertyEditor({
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 7, marginTop: 10 }}>
         <Button disabled={pending} onClick={onCancel}>취소</Button>
         <Button primary disabled={pending} onClick={onSave}>
-          <Check size={12} /> {pending ? '저장 중…' : draft.mode === 'add' ? '추가' : '저장'}
+          <Check size={12} /> {pending ? '저장 중…' : draft.mode === 'add' ? '추가' : saveLabel ?? '저장'}
         </Button>
       </div>
     </div>
@@ -496,6 +500,7 @@ function WorldSettingDetail({
   propertyPending,
   propertyError,
   propertyConflict,
+  propertySaveLabel,
   expandedEvidence,
   onEditIdentity,
   onEditImage,
@@ -513,6 +518,7 @@ function WorldSettingDetail({
   propertyPending: boolean;
   propertyError?: string | null;
   propertyConflict: boolean;
+  propertySaveLabel?: string;
   expandedEvidence: string | null;
   onEditIdentity: () => void;
   onEditImage: () => void;
@@ -629,6 +635,7 @@ function WorldSettingDetail({
                       pending={propertyPending}
                       error={propertyError}
                       conflict={propertyConflict}
+                      saveLabel={propertySaveLabel}
                       onChange={onDraftChange}
                       onCancel={onCancelDraft}
                       onReload={onReload}
@@ -956,10 +963,31 @@ function EditIdentityModal({
 
 export function WorldSettingDatabase(props: {
   workId: string; enabled: boolean; onAnalyze: () => void; fixture?: WorldSettingDatabaseFixture;
+  /** GH314 A5·A10: 오류 리포트에서 연 세계관 대상의 안내와 정정 저장. */
+  correction?: WorldCorrectionBinding;
 }) {
   return <WorldImageThemeProvider workId={props.workId} enabled={props.enabled && !props.fixture}>
     <WorldSettingDatabaseContent {...props} />
   </WorldImageThemeProvider>;
+}
+
+function samePath(path: { scopeName: string | null; settingName: string }, scopeName?: string | null, settingName?: string | null) {
+  return (path.scopeName?.trim() || null) === (scopeName?.trim() || null) && path.settingName === settingName;
+}
+
+/** 오류 리포트 정정이 가리키는 저장 설정의 수정 초안. 현재 상세에 그 경로가 없으면 만들지 않는다. */
+function autoEditDraft(worldSettingId: string, detail: WorldSettingDetailResponse, path: { scopeName: string | null; settingName: string }) {
+  const property = (detail.properties ?? []).find(item => samePath(path, item.scopeName, item.settingName));
+  if (!property) return null;
+  const scopeName = property.scopeName?.trim() || null;
+  const name = property.settingName ?? path.settingName;
+  const value = property.value ?? '';
+  const draft: PropertyDraft = {
+    worldSettingId, mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
+    scopeName: scopeName ?? '', settingName: name, settingValue: value,
+    initialScopeName: scopeName ?? '', initialSettingName: name, initialSettingValue: value,
+  };
+  return { key: `${worldSettingId}:${propertyPathKey(scopeName, name)}`, draft };
 }
 
 function WorldSettingDatabaseContent({
@@ -967,11 +995,13 @@ function WorldSettingDatabaseContent({
   enabled,
   onAnalyze,
   fixture,
+  correction,
 }: {
   workId: string;
   enabled: boolean;
   onAnalyze: () => void;
   fixture?: WorldSettingDatabaseFixture;
+  correction?: WorldCorrectionBinding;
 }) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -991,8 +1021,9 @@ function WorldSettingDatabaseContent({
   const [searchDraft, setSearchDraft] = useState(q);
   const [createDraft, setCreateDraft] = useState<CreateWorldSettingDraft>(emptyCreateDraft);
   const [identityDraft, setIdentityDraft] = useState<IdentityDraft | null>(null);
-  const [storedPropertyDraft, setPropertyDraft] = useState<PropertyDraft | null>(null);
-  const propertyDraft = storedPropertyDraft?.worldSettingId === selectedId ? storedPropertyDraft : null;
+  const [storedPropertyDraft, storePropertyDraft] = useState<PropertyDraft | null>(null);
+  // 오류 리포트 정정이 연 설정 수정을 작가가 한 번 다루면(입력·취소·저장) 다시 열지 않는다.
+  const [autoEditHandled, setAutoEditHandled] = useState<string | null>(null);
   const [propertyValidationError, setPropertyValidationError] = useState<string | null>(null);
   const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -1081,6 +1112,21 @@ function WorldSettingDatabaseContent({
   const detail = fixtureMode
     ? fixture?.settings.find(setting => setting.id === selectedId)
     : detailQuery.data?.data;
+  // 오류 리포트 문맥은 지정된 대상에만 적용한다. 저장 경로가 정해져 있으면 그 설정의 수정만 정정으로 보낸다.
+  const reportBinding = !fixtureMode && correction && correction.targetId === selectedId ? correction : undefined;
+  const correctionSave = reportBinding?.save;
+  const reportNoticeRef = useRef<HTMLDivElement>(null);
+  const boundEdit = (draft: PropertyDraft | null) => Boolean(correctionSave && draft?.mode === 'edit'
+    && (!reportBinding?.path || samePath(reportBinding.path, draft.currentScopeName, draft.currentSettingName)));
+  // 경로가 정해진 정정은 상세를 열면 그 설정의 수정을 바로 보여 준다. 저장 전까지는 화면 초안일 뿐이다.
+  const autoEdit = correctionSave?.mode === 'link' && reportBinding?.path && detail && selectedId
+    ? autoEditDraft(selectedId, detail, reportBinding.path) : null;
+  const propertyDraft = (storedPropertyDraft?.worldSettingId === selectedId ? storedPropertyDraft : null)
+    ?? (autoEdit && autoEditHandled !== autoEdit.key ? autoEdit.draft : null);
+  const setPropertyDraft = (next: PropertyDraft | null) => {
+    if (autoEdit) setAutoEditHandled(autoEdit.key);
+    storePropertyDraft(next);
+  };
 
   const invalidateWorldSettings = async (worldSettingId?: string) => {
     await Promise.all([
@@ -1139,10 +1185,14 @@ function WorldSettingDatabaseContent({
       setPropertyDraft(null);
       setPropertyValidationError(null);
       setSuccessMessage('설정을 수정했습니다.');
+      // 정정이 거절된 뒤 기준 연결 없이 저장한 경우 리포트 안내를 결과로 바꾼다.
+      const plainCorrection = correctionSave?.mode === 'plain' && variables.path.worldSettingId === reportBinding?.targetId
+        && (!reportBinding.path || samePath(reportBinding.path, variables.body.currentScopeName, variables.body.currentSettingName));
+      if (plainCorrection) correctionSave.onPlainSaved();
     },
   });
 
-  const propertyPending = addPropertyMutation.isPending || updatePropertyMutation.isPending;
+  const propertyPending = addPropertyMutation.isPending || updatePropertyMutation.isPending || Boolean(correctionSave?.pending);
   const propertyMutationError = addPropertyMutation.isError
     ? addPropertyMutation.error
     : updatePropertyMutation.isError
@@ -1251,6 +1301,25 @@ function WorldSettingDatabaseContent({
       return;
     }
     setPropertyValidationError(null);
+    if (correctionSave?.mode === 'link' && boundEdit(propertyDraft)) {
+      // 정정 문맥의 저장은 설정 편집과 정정 receipt를 한 요청으로 보낸다. 실패하면 아무것도 저장되지 않아 입력을 그대로 둔다.
+      const worldSettingId = selectedId;
+      void correctionSave.submit({
+        currentScopeName: propertyDraft.currentScopeName?.trim() || undefined,
+        currentSettingName: propertyDraft.currentSettingName!,
+        scopeName,
+        settingName,
+        settingValue,
+      }).then(async saved => {
+        // 결과 안내는 상세 위쪽에 있으므로 저장한 설정에서 보이도록 옮긴다.
+        reportNoticeRef.current?.scrollIntoView?.({ block: 'nearest' });
+        if (!saved) return;
+        setPropertyDraft(null);
+        setSuccessMessage('설정을 정정했습니다.');
+        await invalidateWorldSettings(worldSettingId);
+      });
+      return;
+    }
     if (propertyDraft.mode === 'add') {
       addPropertyMutation.mutate({
         path: { workId, worldSettingId: selectedId },
@@ -1474,6 +1543,7 @@ function WorldSettingDatabaseContent({
           onClose={closeDetail}
         >
           <section className="world-setting-db-detail">
+            {reportBinding && <div ref={reportNoticeRef} className="world-setting-report-notice">{reportBinding.notice}</div>}
             {!fixtureMode && detailQuery.isPending ? (
               <PanelState
                 icon={<Loader2 size={26} color={C.primary} className="spin" />}
@@ -1497,6 +1567,7 @@ function WorldSettingDatabaseContent({
                 propertyPending={propertyPending}
                 propertyError={propertyError}
                 propertyConflict={isVersionConflict(propertyMutationError)}
+                propertySaveLabel={correctionSave?.mode === 'plain' && boundEdit(propertyDraft) ? '기준 연결 없이 저장' : undefined}
                 expandedEvidence={expandedEvidence}
                 onEditImage={() => {
                   if (fixtureMode) { explainFixtureReadOnly(); return; }

@@ -35,6 +35,11 @@
 .dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-warning { color: var(--ch-warning-ink); }
 .dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-success { color: var(--ch-success-ink); }
 .dashboard-manuscripts .validation-entry-notice .review-cb-notice.is-danger { color: var(--ch-danger-ink); }
+/* #314 F3 A5·A10: 오류 리포트에서 연 캐릭터·세계관 상세 안의 안내 */
+.character-detail-report-notice,
+.world-setting-report-notice { margin: 0 0 14px; }
+.character-detail-report-notice .validation-entry-notice .review-cb-notice,
+.world-setting-report-notice .validation-entry-notice .review-cb-notice { margin: 0; }
 .manuscript-validation-link { display: inline-flex; max-width: 100%; min-height: 32px; align-items: center; border-radius: 999px; text-decoration: none; }
 .manuscript-validation-link:hover .validation-stage-badge { text-decoration: underline; }
 .manuscript-validation-link:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }

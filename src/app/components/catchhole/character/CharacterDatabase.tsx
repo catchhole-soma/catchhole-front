@@ -59,6 +59,7 @@ import { getDemoCharacterEvidence, saveDemoCharacterState } from './demoCharacte
 import './character-evidence.css';
 import { CharacterSubjectImage } from './CharacterSubjectImage';
 import { CharacterImagePicker } from '../worldsetting/WorldImagePicker';
+import type { CharacterCorrectionBinding } from '../validation/useReportSettingLink';
 
 type SettingValueType = CharacterSettingUpdateRequest['valueType'];
 type SettingGroupKey = 'profile' | 'stats' | 'skills' | 'items' | 'statuses';
@@ -131,6 +132,8 @@ interface Props {
   onEditChange: (editing: boolean) => void;
   onEditComplete: () => void;
   onAnalyze: () => void;
+  /** GH314 A5·A10: 오류 리포트에서 연 캐릭터의 안내와 정정 저장. 해당 캐릭터 상세에만 적용한다. */
+  correction?: CharacterCorrectionBinding;
 }
 
 const CHARACTER_CARD_HEIGHT = 177;
@@ -1128,6 +1131,7 @@ export function CharacterDatabase({
   onEditChange,
   onEditComplete,
   onAnalyze,
+  correction,
 }: Props) {
   const labels = useCharacterSettingLabels();
   const groupLabels = settingGroupLabels(labels);
@@ -1142,6 +1146,10 @@ export function CharacterDatabase({
   const [restoringCharacterId, setRestoringCharacterId] = useState<string | null>(null);
   const draftCharacterIdRef = useRef<string | null>(null);
   const detailLayerRef = useRef<HTMLDivElement>(null);
+  // 오류 리포트 문맥은 지정된 캐릭터에만 적용한다. 다른 캐릭터의 저장은 기존 일반 저장이다.
+  const reportBinding = !demoMode && correction && correction.targetId === selectedCharacterId ? correction : undefined;
+  const correctionSave = reportBinding?.save;
+  const reportNoticeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!detailOnly || !selectedCharacterId) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -1230,7 +1238,9 @@ export function CharacterDatabase({
       setConfirming(null);
       setActionError(null);
       setFeedback('캐릭터 설정을 저장했습니다.');
-      onEditComplete();
+      // 정정이 거절된 뒤의 일반 저장은 결과 안내와 편집 닫기를 한 번의 주소 변경으로 처리한다.
+      if (correctionSave?.mode === 'plain') correctionSave.onPlainSaved();
+      else onEditComplete();
     },
     onError: (error, variables) => {
       if (
@@ -1518,6 +1528,23 @@ export function CharacterDatabase({
         onEditComplete();
         return;
       }
+      if (correctionSave?.mode === 'link') {
+        // 정정 문맥의 저장은 설정 편집과 정정 receipt를 한 요청으로 보낸다. 실패하면 아무것도 저장되지 않아 입력을 그대로 둔다.
+        const characterId = selectedCharacterId;
+        void correctionSave.submit(body, detail).then(saved => {
+          setConfirming(null);
+          // 결과 안내는 상세 위쪽에 있으므로 저장 버튼에서 보이도록 옮긴다.
+          reportNoticeRef.current?.scrollIntoView?.({ block: 'nearest' });
+          if (!saved) return;
+          setActionError(null);
+          setFeedback('캐릭터 설정을 정정했습니다.');
+          void Promise.all([
+            queryClient.invalidateQueries({ queryKey: getCharacterQueryKey({ path: { workId, characterId } }) }),
+            queryClient.invalidateQueries({ queryKey: getCharactersQueryKey({ path: { workId } }) }),
+          ]);
+        });
+        return;
+      }
       updateMutation.mutate({ path: { workId, characterId: selectedCharacterId }, body });
     } catch (error) {
       setConfirming(null);
@@ -1568,7 +1595,8 @@ export function CharacterDatabase({
   const loadingList = !demoMode && (!layoutReady || charactersQuery.isPending);
   const listError = !demoMode && charactersQuery.isLoadingError;
   const listRefetchError = !demoMode && charactersQuery.isRefetchError && hasCharacterPage;
-  const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending;
+  const mutationPending = updateMutation.isPending || deleteMutation.isPending || restoreMutation.isPending
+    || Boolean(correctionSave?.pending);
   const closeDetail = () => {
     if (mutationPending) return;
     setConfirming(null);
@@ -1783,7 +1811,7 @@ export function CharacterDatabase({
             {confirming && (
               <ConfirmLayer
                 kind={confirming}
-                busy={updateMutation.isPending || deleteMutation.isPending}
+                busy={updateMutation.isPending || deleteMutation.isPending || Boolean(correctionSave?.pending)}
                 onCancel={() => setConfirming(null)}
                 onConfirm={confirming === 'save' ? save : archive}
               />
@@ -1859,6 +1887,7 @@ export function CharacterDatabase({
                 </div>
 
                 <div className="character-detail-body" style={{ padding: '22px 28px 26px', maxHeight: 'calc(100dvh - 190px)', overflowY: 'auto' }}>
+                  {reportBinding && <div ref={reportNoticeRef} className="character-detail-report-notice">{reportBinding.notice}</div>}
                   {actionError && (
                     <div className="database-inline-alert is-error" role="alert" style={{ padding: '10px 13px', marginBottom: 14, borderRadius: 7, background: C.danger + '12', border: `1px solid ${C.danger}44`, color: C.danger, fontSize: 12 }}>
                       {actionError}
@@ -2048,7 +2077,9 @@ export function CharacterDatabase({
                   {isEditing && (
                     <div className="character-detail-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
                       <ModalButton onClick={() => onEditChange(false)}>취소</ModalButton>
-                      <ModalButton primary onClick={() => { setActionError(null); setConfirming('save'); }}><Check size={14} /> 저장</ModalButton>
+                      <ModalButton primary disabled={Boolean(correctionSave?.pending)} onClick={() => { setActionError(null); setConfirming('save'); }}>
+                        <Check size={14} /> {correctionSave?.mode === 'plain' ? '기준 연결 없이 저장' : '저장'}
+                      </ModalButton>
                     </div>
                   )}
                   {!isEditing && !timelineOpen && (

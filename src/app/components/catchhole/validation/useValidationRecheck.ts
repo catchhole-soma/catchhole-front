@@ -18,6 +18,7 @@ const RECHECK_ERROR_COPY: Record<string, string> = {
   VALIDATION_REPORT_VERSION_CONFLICT: '다른 곳에서 검수 상태가 바뀌었어요. 최신 상태를 확인한 뒤 다시 눌러 주세요.',
   VALIDATION_SOURCE_VERSION_CONFLICT: '원고나 비교 기준이 방금 바뀌었어요. 최신 원고를 다시 확인한 뒤 눌러 주세요.',
   VALIDATION_TARGET_INVALID: '재검수는 가장 마지막 회차에서 진행 중인 분석이 없을 때만 할 수 있어요.',
+  VALIDATION_CORRECTION_CONFLICT: '설정 정정 기록이 이 검수와 맞지 않아요. 최신 상태를 확인한 뒤 다시 눌러 주세요.',
 };
 
 function newIdempotencyKey() {
@@ -32,10 +33,12 @@ function newIdempotencyKey() {
  * 자격 조회가 최신 회차라고 확인한 경우에만 연다. 요청은 회차 상세의 현재 원고 hash/key/version/revision과
  * report의 고정 기준 fingerprint를 그대로 보낸다. 같은 의도의 재시도는 같은 키를 쓰고 응답 유실은 현재 검수로 확인한다.
  */
-export function useValidationRecheck({ workId, reportId, report, onRechecked }: {
+export function useValidationRecheck({ workId, reportId, report, correctionReceiptId, onRechecked }: {
   workId: string;
   reportId: string;
   report: ReportData;
+  /** A10 정정 화면이 돌려준 receipt. 같은 report의 정정만 서버가 받는다. */
+  correctionReceiptId?: string | null;
   onRechecked: (nextReportId: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -157,6 +160,8 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
           expectedContentRevision: episode.contentRevision,
           // 서버는 재검수 기준을 report의 고정 기준 fingerprint와 비교한다. 무효화 뒤에도 남는 값이다.
           ...(staging?.baselineFingerprint ? { expectedBaselineHash: staging.baselineFingerprint } : {}),
+          // 정정 receipt가 있으면 서버가 그 정정을 새 기준의 작가 정정으로 연결한다.
+          ...(correctionReceiptId ? { correctionReceiptId } : {}),
         },
       });
       if (response.data?.reportId && response.data.reportId !== reportId) finish(response.data.reportId, context);
@@ -202,6 +207,7 @@ export function useValidationRecheck({ workId, reportId, report, onRechecked }: 
     reloadEligibility: () => void eligibilityQuery.refetch(),
     eligibilityError: eligibilityQuery.isError,
     diagnostic,
+    corrected: Boolean(correctionReceiptId),
     notice,
     pending,
     preparing: phase === 'preparing',

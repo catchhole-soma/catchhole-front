@@ -127,6 +127,10 @@
 .validation-report-screen .vr-fix .vr-actions { margin-top: 10px; }
 .validation-report-screen .vr-fix-link { text-decoration: none; }
 .validation-report-screen .vr-fix .vr-muted { margin: 8px 0 0; }
+/* #314 F3 A10: 정정할 저장 설정 선택 */
+.validation-report-screen .vr-correction-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.validation-report-screen .vr-correction-list li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.validation-report-screen .vr-correction-list .ch-action { min-height: 44px; }
 .validation-report-screen .vr-section > h3 { margin: 0 0 8px; color: var(--ch-ink); font-size: 13px; font-weight: 750; }
 .validation-report-screen .vr-reason { margin: 0; color: var(--ch-text); font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
 .validation-report-screen .vr-reason-list { display: grid; gap: 8px; margin: 0; }
