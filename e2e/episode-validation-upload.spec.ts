@@ -12,7 +12,7 @@ const JOB_ID = '00000000-0000-4000-8000-000000000051';
 const ALLOWED = { ...review.responses.eligibilityWorkOnlyBlocked, nextEpisodeAdmission: { ...review.responses.eligibilityEligible.nextEpisodeAdmission } };
 const BLOCKED = review.responses.eligibilityWorkOnlyBlocked;
 
-type Reply = { status?: number; body?: unknown; abort?: boolean };
+type Reply = { status?: number; body?: unknown; abort?: boolean; wait?: Promise<void>; onFulfilled?: () => void };
 type Options = {
   eligibility?: (call: number) => Reply;
   upload?: (call: number) => Reply;
@@ -25,8 +25,19 @@ const ok = (data: unknown): Reply => ({ body: { success: true, message: '성공'
 const fail = (status: number, code: string, message: string, context: Record<string, unknown> = {}): Reply => ({
   status, body: { success: false, message, data: null, error: { code, status, details: [], context } },
 });
-const reply = (route: Route, value: Reply) => value.abort ? route.abort('failed')
-  : route.fulfill({ status: value.status ?? 200, contentType: 'application/json', body: JSON.stringify(value.body) });
+async function reply(route: Route, value: Reply) {
+  if (value.wait) await value.wait;
+  if (value.abort) await route.abort('failed');
+  else await route.fulfill({ status: value.status ?? 200, contentType: 'application/json', body: JSON.stringify(value.body) });
+  value.onFulfilled?.();
+}
+
+/** 응답을 테스트가 풀어 줄 때까지 붙잡아 둔다. */
+function gate() {
+  let open!: () => void;
+  const wait = new Promise<void>(resolve => { open = resolve; });
+  return { wait, open };
+}
 
 async function setup(page: Page, options: Options = {}) {
   await mockValidationReport(page);
@@ -217,6 +228,46 @@ test('접수 중 새로고침하면 현재 검수만 확인하고 없을 때만 
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
   expect(calls.starts).toHaveLength(2);
   expect(calls.starts[1]).toMatchObject({ batchId: BATCH_ID, episodeId: EPISODE_ID });
+});
+
+test('접수 응답 전에 화면을 떠나면 늦은 응답이 떠난 화면을 리포트로 바꾸지 않는다', async ({ page }) => {
+  const held = gate();
+  let answered = false;
+  const calls = await setup(page, {
+    start: () => ({ ...ok({ ...stagingFixture.awaitingReview, reviewStage: 'VALIDATING' }), wait: held.wait, onFulfilled: () => { answered = true; } }),
+  });
+  await prepareSingleValidation(page);
+  await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
+  await expect(page.getByTestId('validation-intake')).toContainText('검수를 접수하고 있어요');
+  await expect.poll(() => calls.starts.length).toBe(1);
+  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  held.open();
+  await expect.poll(() => answered).toBe(true);
+  // 늦은 응답 처리 뒤에도 사용자가 고른 화면을 유지한다. 서버 접수 요청은 취소하지 않는다.
+  await page.waitForTimeout(400);
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await expect(page).not.toHaveURL(/episode-validation-report/);
+  expect(calls.starts).toHaveLength(1);
+});
+
+test('응답 유실 뒤 현재 검수 확인 중에 화면을 떠나도 늦은 확인 결과로 리포트로 이동하지 않는다', async ({ page }) => {
+  const held = gate();
+  let answered = false;
+  const calls = await setup(page, {
+    start: () => ({ abort: true }),
+    current: () => ({ ...ok(stagingFixture.awaitingReview), wait: held.wait, onFulfilled: () => { answered = true; } }),
+  });
+  await prepareSingleValidation(page);
+  await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
+  await expect(page.getByTestId('validation-intake')).toContainText('검수 접수 결과를 확인하고 있어요');
+  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  held.open();
+  await expect.poll(() => answered).toBe(true);
+  await page.waitForTimeout(400);
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  expect(calls.starts).toHaveLength(1);
 });
 
 test('비교 자료가 없으면 서버 안내와 기존 설정 구축을 제안하고 고른 경우에만 설정 추출을 시작한다', async ({ page }) => {

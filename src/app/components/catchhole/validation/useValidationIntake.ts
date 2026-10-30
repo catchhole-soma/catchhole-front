@@ -101,6 +101,14 @@ export function useValidationIntake({ workId, resumeTarget, onReport }: {
   const inFlight = useRef(false);
   const onReportRef = useRef(onReport);
   useEffect(() => { onReportRef.current = onReport; });
+  // 사용자가 접수 응답 전에 화면을 떠나면 늦은 응답으로 화면을 바꾸지 않는다. 서버의 접수 자체는 취소하지 않는다.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const contextOf = () => window.location.pathname;
+  const stillHere = (context: string) => mounted.current && contextOf() === context;
 
   // 새로고침·재진입: 접수 여부를 현재 검수로만 확인한다.
   useEffect(() => {
@@ -114,13 +122,14 @@ export function useValidationIntake({ workId, resumeTarget, onReport }: {
     return () => { cancelled = true; };
   }, [initialTarget, queryClient, workId]);
 
-  const recover = async ({ batchId, episodeId }: IntakeTarget) => {
+  const recover = async ({ batchId, episodeId }: IntakeTarget, context = contextOf()) => {
     const target = { batchId, episodeId };
-    if (inFlight.current) return;
+    if (inFlight.current || !stillHere(context)) return;
     inFlight.current = true;
     setIntake({ ...target, phase: 'recovering' });
     try {
       const result = await findCurrentReport(queryClient, workId, target.episodeId);
+      if (!stillHere(context)) return;
       if (typeof result === 'object') onReportRef.current(result.reportId);
       else setIntake(failedIntake(target, result));
     } finally {
@@ -130,6 +139,7 @@ export function useValidationIntake({ workId, resumeTarget, onReport }: {
 
   const start = async ({ batchId, episodeId }: IntakeTarget) => {
     const target = { batchId, episodeId };
+    const context = contextOf();
     if (inFlight.current) return;
     inFlight.current = true;
     setIntake({ ...target, phase: 'starting' });
@@ -152,13 +162,16 @@ export function useValidationIntake({ workId, resumeTarget, onReport }: {
           ...(episode.contentS3Version ? { expectedContentS3Version: episode.contentS3Version } : {}),
         },
       });
+      if (!stillHere(context)) return;
       if (response.data?.reportId) onReportRef.current(response.data.reportId);
       else lost = true;
     } catch (error) {
       const api = toApiError(error);
       if (api && api.status >= 400 && api.status < 500) {
         keyRef.current = null;
+        if (!stillHere(context)) return;
         const refusal = await intakeRefusal(queryClient, workId, target.episodeId, api);
+        if (!stillHere(context)) return;
         if ('reportId' in refusal) onReportRef.current(refusal.reportId);
         else setIntake({ ...target, phase: 'failed', failure: refusal });
       } else {
@@ -167,7 +180,7 @@ export function useValidationIntake({ workId, resumeTarget, onReport }: {
     } finally {
       inFlight.current = false;
     }
-    if (lost) await recover(target);
+    if (lost) await recover(target, context);
   };
 
   return { intake, start, recover, clear: () => setIntake(null) };
