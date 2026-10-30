@@ -1,4 +1,6 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
+import { isCompletedOrderedAnalysis, isInvalidatedAnalysis } from '../src/app/lib/ordered-analysis';
 import { test } from './local-live-fixture';
 import { purgeWorkAndWait } from './live-work-purge';
 
@@ -47,18 +49,16 @@ async function poll<T>(read: () => Promise<T>, done: (value: T) => boolean, time
   }
 }
 
-async function dismissGuide(page: Page) {
-  const guide = page.getByRole('dialog', { name: '설정이 반영되는 과정을 살펴보세요' });
-  if (await guide.isVisible().catch(() => false)) {
-    await page.keyboard.press('Escape');
-    await expect(guide).toHaveCount(0);
-  }
-}
-
-async function chooseSingleUpload(page: Page, workId: string, episodeNo: number, text: string) {
+/** 처음 분석하는 계정의 일회 안내는 조회·400ms 타이머·선점 뒤 늦게 열린다. analysis-mode-guide-live처럼 열릴 때까지 기다렸다 닫는다. */
+async function chooseSingleUpload(page: Page, workId: string, episodeNo: number, text: string, expectGuide: boolean) {
   await page.goto(`/episode-upload?workId=${workId}`);
   await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
-  await dismissGuide(page);
+  const guide = page.getByRole('dialog', { name: '설정이 반영되는 과정을 살펴보세요' });
+  if (expectGuide) {
+    await expect(guide).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
+  await expect(guide).toHaveCount(0);
   await page.locator('input[type=file]').first().setInputFiles({ name: `${episodeNo}화.txt`, mimeType: 'text/plain', buffer: Buffer.from(text) });
   await expect(page.getByPlaceholder('비우면 파일에서 감지')).toHaveValue(String(episodeNo));
 }
@@ -74,23 +74,29 @@ test('1화 설정 구축 뒤 2화 신규 회차 검수가 실제 리포트·판�
   const base = (workId: string) => `${api}/api/v1/works/${workId}`;
   const workId = (await data<{ id: string }>(await request.post(`${api}/api/v1/works`, { headers, data: { title: '등대 검수 검증', genre: '일상' } }))).id;
   const note = (type: string, description: string) => testInfo.annotations.push({ type, description });
+  // 새 fixture 계정이면 첫 분석 안내가 한 번 열린다. 서버 판단을 먼저 읽어 그때만 기다린다.
+  const guideFirst = (await data<{ shouldShow: boolean }>(await request.get(`${api}/api/v1/analysis-mode-guides`, { headers }))).shouldShow;
   try {
     await page.goto('/login');
     await page.evaluate(value => localStorage.setItem('accessToken', value), token);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     // 1화: 기존 설정 구축(자동 반영). 화면이 SETTING_EXTRACTION Job을 만들고 Worker가 처리한다.
-    await chooseSingleUpload(page, workId, 1, EPISODE_1);
+    await chooseSingleUpload(page, workId, 1, EPISODE_1, guideFirst);
     await expect(page.getByRole('button', { name: /^기존 설정 구축/ })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
     await expect(page).toHaveURL(/currentAnalysisJobIds=/);
-    const jobs = await poll(async () => data<Array<{ status: string; automaticAppliedAt: string | null }>>(await request.get(`${base(workId)}/analysis-jobs`, { headers })),
-      list => list.length === 1 && ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(list[0].status), STAGE_TIMEOUT, '1화 설정 추출');
-    expect(jobs[0].status).toBe('SUCCEEDED');
-    expect(jobs[0].automaticAppliedAt).not.toBeNull();
+    // 화면과 같은 완료 기준(SUCCEEDED+SEALED+자동 반영 시각)까지 기다리고, 스스로 끝나지 않는 상태에서는 바로 멈춘다.
+    const stopped = (job: AnalysisJobResponse) => job.status === 'FAILED' || job.status === 'CANCELED' || isInvalidatedAnalysis(job)
+      || (job.status === 'SUCCEEDED' && job.analysisRun?.journalStatus === 'INCOMPLETE');
+    const jobs = await poll(async () => data<AnalysisJobResponse[]>(await request.get(`${base(workId)}/analysis-jobs`, { headers })),
+      list => list.length === 1 && (isCompletedOrderedAnalysis(list[0]) || stopped(list[0])), STAGE_TIMEOUT, '1화 설정 추출·자동 반영');
+    expect(isCompletedOrderedAnalysis(jobs[0]),
+      `1화 설정 추출이 자동 반영까지 끝나지 않았습니다: status=${jobs[0].status} journal=${jobs[0].analysisRun?.journalStatus ?? '없음'} `
+      + `automaticAppliedAt=${jobs[0].automaticAppliedAt ?? '없음'} failureCode=${jobs[0].failureCode ?? '없음'}`).toBe(true);
 
     // 2화: 신규 회차 검수. 업로드 뒤 설정 추출 Job 없이 접수하고 리포트로 이동한다.
-    await chooseSingleUpload(page, workId, 2, EPISODE_2);
+    await chooseSingleUpload(page, workId, 2, EPISODE_2, false);
     await page.getByRole('button', { name: /^신규 회차 검수/ }).click();
     await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
     await expect(page).toHaveURL(/\/episode-validation-report\?workId=.+&reportId=/, { timeout: 60_000 });
