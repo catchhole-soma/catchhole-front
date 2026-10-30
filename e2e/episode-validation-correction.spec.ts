@@ -250,6 +250,105 @@ test('정정 응답이 유실되면 입력을 유지하고 다시 저장할 때 
   expect(new URL(page.url()).searchParams.get('correctionReceiptId')).toBe(CORRECTION_RECEIPT_ID);
 });
 
+type CorrectionBody = { idempotencyKey: string };
+/** 다시 연결되면 Query가 화면의 조회를 다시 읽는다. 응답 유실 뒤 서버에 이미 저장된 값이 상세에 들어온다. */
+async function reconnectAndRefetch(page: Page, path: string) {
+  const refetched = page.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === path);
+  await page.context().setOffline(true);
+  await page.context().setOffline(false);
+  return (await (await refetched).json()).data;
+}
+
+test('정정 응답 유실 뒤 다시 읽은 캐릭터 상세가 초안과 같아도 바뀐 설정을 따지기 전에 같은 요청을 다시 보낸다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const mock = await open(page, {}, `&findingId=${findingId(0)}`);
+  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  const dialog = characterDialog(page, '비요른');
+  mock.loseNextCorrectionResponse();
+  await dialog.getByRole('textbox', { name: '검 값' }).fill('다시 벼린 검');
+  await saveCharacter(page, '비요른');
+  await expect(modalNotice(page).locator('strong')).toHaveText('정정 결과를 확인하지 못했어요.');
+
+  // 서버는 이미 저장했으므로 다시 읽은 상세의 값이 편집 초안과 같다.
+  const detail = await reconnectAndRefetch(page, `/api/v1/works/${WORK_ID}/characters/${CHARACTER_ID}`) as { items: Array<{ key: string; value: string }> };
+  expect(detail.items.find(item => item.key === 'item.검')?.value).toBe('다시 벼린 검');
+  await expect(dialog.getByRole('textbox', { name: '검 값' })).toHaveValue('다시 벼린 검');
+
+  await saveCharacter(page, '비요른');
+  await expect(modalNotice(page)).toContainText('저장됐어요. 리포트로 돌아가 재검수해 주세요.');
+  await expect(modalNotice(page)).not.toContainText('바뀐 설정이 없어요');
+  const requests = correctionRequests(mock);
+  expect(requests).toHaveLength(2);
+  const [first, second] = requests;
+  expect((second.body as CorrectionBody).idempotencyKey).toBe((first.body as CorrectionBody).idempotencyKey);
+  expect(second.body).toEqual(first.body);
+  expect(mock.state.corrections.size).toBe(1);
+  expect(new URL(page.url()).searchParams.get('correctionResult')).toBe('linked');
+  expect(new URL(page.url()).searchParams.get('correctionReceiptId')).toBe(CORRECTION_RECEIPT_ID);
+});
+
+test('세계관 정정도 응답 유실 뒤 상세를 다시 읽으면 같은 키·같은 요청으로 receipt를 확인한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const mock = await open(page, {}, `&findingId=${findingId(1)}`);
+  await page.getByRole('region', { name: '원고·설정 수정' }).getByRole('link', { name: '세계관 · 왕궁 · 마법 / 사용 제한 정정', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: '왕궁 세계관 상세' }).locator('.world-setting-property-editor');
+  const value = '왕궁 건물 안에서만 마법을 쓸 수 없다';
+  mock.loseNextCorrectionResponse();
+  await editor.getByRole('textbox', { name: '설정값' }).fill(value);
+  await editor.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(modalNotice(page).locator('strong')).toHaveText('정정 결과를 확인하지 못했어요.');
+
+  const detail = await reconnectAndRefetch(page, `/api/v1/works/${WORK_ID}/world-settings/${WORLD_ID}`) as { version: number; properties: Array<{ scopeName?: string | null; settingName: string; value: string }> };
+  expect(detail.properties.find(item => item.scopeName === '마법' && item.settingName === '사용 제한')?.value).toBe(value);
+  expect(detail.version).toBe(5);
+  await expect(editor.getByRole('textbox', { name: '설정값' })).toHaveValue(value);
+
+  await editor.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(modalNotice(page)).toContainText('저장됐어요. 리포트로 돌아가 재검수해 주세요.');
+  const requests = correctionRequests(mock);
+  expect(requests).toHaveLength(2);
+  expect(requests[1].body).toEqual(requests[0].body);
+  expect(mock.state.corrections.size).toBe(1);
+  expect(new URL(page.url()).searchParams.get('correctionReceiptId')).toBe(CORRECTION_RECEIPT_ID);
+});
+
+test('정정 응답을 기다리는 동안 리포트로 돌아가면 늦은 성공이 리포트 주소를 바꾸지 않고 리포트만 다시 읽는다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  const reportGets: string[] = [];
+  page.on('request', request => {
+    if (request.method() === 'GET' && new URL(request.url()).pathname === `/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}`) reportGets.push(request.url());
+  });
+  const mock = await open(page, {}, `&findingId=${findingId(1)}`);
+  await page.getByRole('region', { name: '원고·설정 수정' }).getByRole('link', { name: '세계관 · 왕궁 · 마법 / 사용 제한 정정', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: '왕궁 세계관 상세' }).locator('.world-setting-property-editor');
+  const release = mock.holdNextCorrection();
+  await editor.getByRole('textbox', { name: '설정값' }).fill('왕궁 건물 안에서만 마법을 쓸 수 없다');
+  await editor.getByRole('button', { name: '저장', exact: true }).click();
+  await expect.poll(() => correctionRequests(mock).length).toBe(1);
+
+  // 응답을 기다리는 동안에도 리포트로 돌아가는 링크는 열려 있다.
+  await modalNotice(page).getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
+  await expect(page).toHaveURL(/\/episode-validation-report\?/);
+  await expect(page.locator('#validation-report-title')).toBeVisible();
+  const reportUrl = page.url();
+  const before = reportGets.length;
+
+  const corrected = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/corrections'));
+  release();
+  expect((await corrected).ok()).toBe(true);
+  // 늦은 성공은 리포트 캐시만 무효화한다. 리포트는 정정으로 바뀐 서버 상태를 다시 읽는다.
+  await expect.poll(() => reportGets.length).toBeGreaterThan(before);
+  await expect(page.getByText('원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.').first()).toBeVisible();
+  expect(page.url()).toBe(reportUrl);
+  const params = new URL(page.url()).searchParams;
+  expect(new URL(page.url()).pathname).toBe('/episode-validation-report');
+  expect([...params.keys()].filter(key => key.startsWith('correction'))).toEqual([]);
+  for (const key of ['mode', 'modal', 'nav', 'returnTo']) expect(params.get(key), key).toBeNull();
+  expect(pageErrors).toEqual([]);
+});
+
 test('basis가 없거나 당시 버전이 없는 항목은 설정 정보 정정을 잠그고 이름으로 대상을 추측하지 않는다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const findings = defaultFindings();

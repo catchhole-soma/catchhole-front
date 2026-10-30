@@ -203,6 +203,23 @@ type CharacterDetail = {
   profile: ReturnType<typeof characterSetting>[]; stats: ReturnType<typeof characterSetting>[]; skills: ReturnType<typeof characterSetting>[];
   items: ReturnType<typeof characterSetting>[]; statuses: ReturnType<typeof characterSetting>[];
 };
+const CHARACTER_GROUPS = ['profile', 'stats', 'skills', 'items', 'statuses'] as const;
+type CharacterEdit = Pick<CharacterDetail, 'currentAge' | 'currentLevel'> & Record<typeof CHARACTER_GROUPS[number], Array<{
+  key: string; value: string | null; properties: Array<{ key: string; value: string | null; valueType: string }>;
+}>>;
+/** 정정 저장(Backend correctCharacterSetting)처럼 편집한 값·세부 속성을 snapshot에 그대로 남긴다. 다시 읽은 상세는 보낸 편집과 같다. */
+function applyCharacterEdit(character: CharacterDetail, edit: CharacterEdit) {
+  character.currentAge = edit.currentAge ?? null;
+  character.currentLevel = edit.currentLevel ?? null;
+  for (const group of CHARACTER_GROUPS) {
+    for (const item of edit[group] ?? []) {
+      const target = character[group].find(existing => existing.key === item.key);
+      if (!target) continue;
+      target.value = item.value ?? '';
+      target.properties = (item.properties ?? []).map(property => ({ ...property, displayName: property.key === 'name' ? '이름' : property.key }));
+    }
+  }
+}
 type WorldDetail = {
   id: string; category: string; subjectName: string; version: number;
   properties: Array<{ scopeName: string | null; settingName: string; value: string }>;
@@ -273,6 +290,8 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     correctionFailure: null as Failure | null,
     /** true면 정정을 저장한 뒤 응답을 끊는다(응답 유실). */
     correctionResponseLost: false,
+    /** 테스트가 풀어 줄 때까지 정정 요청 처리를 붙잡아 둔다. 풀면 저장한 뒤 응답한다. */
+    correctionHold: null as Promise<void> | null,
     /** 발급한 정정 receipt. 같은 키 재전송은 같은 receipt를 돌려준다. */
     corrections: new Map<string, { correctionId: string; body: string; reportVersion: number }>(),
   };
@@ -488,7 +507,8 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     }
     if (rest === '/corrections') {
       // Backend ValidationCorrectionServiceImpl: 같은 키는 원래 receipt, 그 밖에는 설정 편집과 receipt를 함께 저장한다.
-      const body = request.postDataJSON() as { idempotencyKey: string; expectedReportVersion: number; character?: { targetId: string; edit: { items: Array<{ key: string; value: string | null }> } }; worldSetting?: { targetId: string; edit: { currentScopeName?: string | null; currentSettingName: string; settingValue: string } } };
+      const body = request.postDataJSON() as { idempotencyKey: string; expectedReportVersion: number; character?: { targetId: string; edit: CharacterEdit }; worldSetting?: { targetId: string; edit: { currentScopeName?: string | null; currentSettingName: string; settingValue: string } } };
+      if (state.correctionHold) { const hold = state.correctionHold; state.correctionHold = null; await hold; }
       const existing = state.corrections.get(body.idempotencyKey);
       const receipt = (correctionId: string, reportVersion: number) => ({ correctionId, reportId: state.staging.reportId, reportVersion,
         baselineId: state.staging.baselineId, baselineRevision: state.staging.baselineRevision, baselineHash: 'a'.repeat(64), entryRef: 'B1', entityVersion: 4 });
@@ -500,11 +520,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
       }
       if (body.expectedReportVersion !== state.staging.reportVersion) return failure(route, 409, 'VALIDATION_REPORT_VERSION_CONFLICT', '검수 상태가 바뀌었습니다.');
       if (body.character) {
-        const character = state.characters.find(item => item.id === body.character!.targetId)!;
-        for (const item of body.character.edit.items) {
-          const target = character.items.find(existing => existing.key === item.key);
-          if (target) target.value = item.value ?? '';
-        }
+        applyCharacterEdit(state.characters.find(item => item.id === body.character!.targetId)!, body.character.edit);
       }
       if (body.worldSetting) {
         const world = state.worldSettings.find(item => item.id === body.worldSetting!.targetId)!;
@@ -557,6 +573,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     failNextCorrection: (failure: Failure) => { state.correctionFailure = failure; },
     loseNextCorrectionResponse: () => { state.correctionResponseLost = true; },
     loseNextRecheckResponse: () => { state.recheckResponseLost = true; },
+    holdNextCorrection: () => { let release!: () => void; state.correctionHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     holdNextRecheck: () => { let release!: () => void; state.recheckHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     holdNextEpisodeDetail: () => { let release!: () => void; state.episodeDetailHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },
     holdNextCurrent: () => { let release!: () => void; state.currentHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },

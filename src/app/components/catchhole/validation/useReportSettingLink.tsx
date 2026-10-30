@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation, useQueryClient, type Query } from '@tanstack/react-query';
 import type { SetURLSearchParams } from 'react-router';
 import {
@@ -193,6 +193,16 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
   // 응답 유실 뒤 같은 편집을 다시 저장하면 같은 키·같은 요청으로 보내 서버가 원래 receipt를 돌려주게 한다.
   const pendingRequest = useRef<PendingRequest | null>(null);
   const [pending, setPending] = useState(false);
+  // 응답 전에 리포트로 돌아가거나 다른 화면·정정 문맥으로 바뀌면 늦은 응답으로 주소와 안내를 바꾸지 않는다.
+  // 서버의 정정은 취소하지 않으며 리포트 캐시 무효화는 request() 안에서 그대로 한다.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const liveSignature = useRef(signature);
+  useEffect(() => { liveSignature.current = signature; });
+  const stillHere = (captured: string | null) => mounted.current && captured !== null && liveSignature.current === captured;
 
   if (!reportReturn) return { notice: null, character: undefined, world: undefined };
 
@@ -268,25 +278,42 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
 
   const send = async (current: CorrectionContext, target: Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>) => {
     if (pending) return false;
+    const captured = signature;
     setFeedback(null);
     setPending(true);
     try {
       const outcome = await request(current, target);
       if ('receiptId' in outcome) {
-        finish('linked', outcome.receiptId);
+        // 저장은 끝났으므로 true를 돌려주되, 결과 주소는 요청을 시작한 정정 화면에 그대로 있을 때만 남긴다.
+        if (stillHere(captured)) finish('linked', outcome.receiptId);
         return true;
       }
-      if (outcome.plain) setPlainFor(signature);
+      if (!stillHere(captured)) return false;
+      if (outcome.plain) setPlainFor(captured);
       say(outcome.tone, outcome.text);
       return false;
     } finally {
-      setPending(false);
+      if (mounted.current) setPending(false);
     }
+  };
+
+  /**
+   * 응답을 잃은 정정이 같은 캐릭터·같은 편집이면 그 대상을 돌려준다. 서버가 이미 저장했다면 다시 읽은 상세가 초안과 같아
+   * 바뀐 설정을 따질 수 없으므로, slot 확인 전에 이 대상으로 보내 request()가 같은 키·같은 요청으로 다시 보내게 한다.
+   */
+  const lostCharacterTarget = (current: CorrectionContext, edit: CharacterUpdateRequest) => {
+    const lost = pendingRequest.current;
+    if (!lost) return null;
+    const target = JSON.parse(lost.target) as Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>;
+    const character = target.character;
+    return character && character.targetId === current.targetId && character.expectedSnapshotVersion === current.currentVersion
+      && JSON.stringify(character.edit) === JSON.stringify(edit) ? target : null;
   };
 
   const target = modalTarget(context, searchParams);
   const modalNotice = renderNotice({ reportReturn, context, feedback: activeFeedback, searchParams, testId: 'validation-correction-notice' });
-  const onPlainSaved = () => finish('unlinked');
+  // 일반 저장 성공은 설정 관리의 mutation 콜백에서 오므로 화면을 떠난 뒤에도 불릴 수 있다. 저장을 시작한 정정 화면에서만 결과를 남긴다.
+  const onPlainSaved = () => { if (stillHere(signature)) finish('unlinked'); };
   const saveBase = { mode, pending, onPlainSaved };
 
   const character: CharacterCorrectionBinding | undefined = target?.type === 'CHARACTER' ? {
@@ -295,6 +322,8 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
     save: context?.subjectType === 'CHARACTER' ? {
       ...saveBase,
       submit: async (edit, detail) => {
+        const lost = lostCharacterTarget(context, edit);
+        if (lost) return send(context, lost);
         const slot = characterSlotFor(context, detail, edit);
         if (typeof slot === 'string') {
           say('warning', slot);
