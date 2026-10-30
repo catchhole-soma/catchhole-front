@@ -200,7 +200,7 @@ flowchart TD
 flowchart LR
   landing["랜딩<br/>/landing"]:::public -->|"로그인 없이 체험"| manuscript["가상 원고 확인<br/>AI 분석 시작"]:::public
   manuscript --> analysis["fixture 분석 시뮬레이션<br/>자동 진행"]:::modal
-  analysis --> character["캐릭터 후보<br/>1개 설정 모두 확정"]:::public
+  analysis --> character["캐릭터 후보<br/>모두 확정"]:::public
   character --> world["세계관 후보<br/>인라인 최종 내용 검토 → 모두 확정"]:::public
   world --> unsupported["근거 부족 후보<br/>제외"]:::public
   unsupported --> characterDb["캐릭터 설정 DB<br/>에단 렌 카드 선택"]:::public

@@ -148,7 +148,8 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expect(page.getByText('추천 문장 사용', { exact: true })).toHaveCount(0);
   await checkLayout();
 
-  const approveCharacterButton = page.getByRole('button', { name: '1개 설정 모두 확정' });
+  await expect(page.getByTestId('demo-coachmark')).toContainText('‘모두 확정’을 눌러 직업 변경을 반영해 보세요.');
+  const approveCharacterButton = page.getByRole('button', { name: '모두 확정', exact: true });
   await expectGuideCenteredOn(page, approveCharacterButton);
   await activate(approveCharacterButton, keyboard);
   await expect(page.getByRole('heading', { name: '세계관 후보 확정' })).toBeVisible();
@@ -417,12 +418,12 @@ for (const width of [1280, 320]) {
     await expect(character.locator('.review-cb-comparison.is-change')).toBeVisible();
     await character.getByRole('radio', { name: /이력에만 저장/ }).click();
     await expect(character.locator('.review-cb-comparison.is-neutral')).toBeVisible();
-    await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
     await character.getByRole('radio', { name: /현재 설정에 반영/ }).click();
-    await expect(page.getByRole('button', { name: '1개 설정 모두 확정' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
     await expectNoHorizontalOverflow(page);
     await character.screenshot({ path: `docs/screens/gh215/demo-character-${width}.png` });
-    await page.getByRole('button', { name: '1개 설정 모두 확정' }).click();
+    await page.getByRole('button', { name: '모두 확정', exact: true }).click();
     const world = page.locator('.world-setting-diff-row');
     await expect(world.locator('.review-cb-heading__image img')).toBeVisible();
     await expect(world.locator('.review-cb-comparison')).toHaveCount(0);
@@ -450,7 +451,7 @@ for (const width of [320, 1280]) {
     await page.goto('/demo');
     await page.getByRole('button', { name: 'AI 분석 시작', exact: true }).click();
     await page.getByRole('button', { name: '설정 후보 검토', exact: true }).click();
-    await page.getByRole('button', { name: '1개 설정 모두 확정', exact: true }).click();
+    await page.getByRole('button', { name: '모두 확정', exact: true }).click();
     await page.getByRole('button', { name: '수정', exact: true }).click();
     await page.getByRole('textbox', { name: '최종 내용' }).fill(EDITED_WORLD_VALUE);
     await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();

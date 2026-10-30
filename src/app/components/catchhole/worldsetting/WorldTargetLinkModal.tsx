@@ -147,7 +147,7 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
             onChange={event => { search.setCategory((event.target.value || undefined) as WorldCategory | undefined); setSelectedId(null); }}>
             {Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select></label>}
-          newTarget={{ title: '새 대상으로 등록', description: `기존 ${categoryLabel} 항목과 별개라면 이름을 정해 새로 등록해요.`, footnote: '모두 확정할 때 등록' }}
+          newTarget={{ title: '새 대상으로 등록', description: `기존 ${categoryLabel} 항목과 별개라면 이름을 정해 새로 등록해요.`, footnote: '확정할 때 등록' }}
           onChange={setSelectedId}>
           {isNew && <label className="review-target-link__name">새 대상 이름<input aria-label="새 대상 이름" value={newName} disabled={pending}
             onChange={event => setNewName(event.target.value)} /></label>}

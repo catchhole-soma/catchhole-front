@@ -24,7 +24,7 @@ test('현재 제품 컴포넌트에서 랜딩 미리보기 이미지를 갱신�
   await page.setViewportSize({ width: 390, height: 1400 });
   await capture(review, 'review-mobile');
   await page.setViewportSize({ width: 1280, height: 1100 });
-  await page.getByRole('button', { name: '1개 설정 모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
   await page.getByRole('button', { name: '수정', exact: true }).click();
   await page.getByRole('textbox', { name: '최종 내용' }).fill('수호자의 이름이 지워지면 모든 귀환문이 즉시 닫힌다.');
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();

@@ -165,6 +165,9 @@ test('공유 결정의 원문은 함께 체크되고 새 대상 이름으로 모
   await page.getByRole('checkbox', { name: '선택: 인구' }).check();
   await expect(page.getByRole('region', { name: '선택한 설정' })).toContainText('3개 선택');
   const dialog = await openTargetLink(page);
+  // 확정 버튼 이름이 묶음에 따라 바뀌므로 새 대상 카드는 버튼 이름 대신 ‘확정할 때’로 안내한다.
+  await expect(dialog.getByRole('radio', { name: /^새 대상으로 등록/ })).toContainText('확정할 때 등록');
+  await expect(dialog.getByRole('radio', { name: /^새 대상으로 등록/ })).not.toContainText('모두 확정');
   await dialog.getByRole('radio', { name: /^새 대상으로 등록/ }).click();
   await dialog.getByLabel('새 대상 이름').fill('안개 항구');
   await expect(dialog.getByRole('region', { name: '체크한 설정의 저장 방법' })).toContainText('항로새 대상 → 추가로 저장');

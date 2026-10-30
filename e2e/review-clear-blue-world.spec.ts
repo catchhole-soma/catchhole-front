@@ -684,6 +684,7 @@ test('새 대상 선택은 편집·초안 저장 후에만 별도로 모두 확�
   await expect(panel.getByRole('heading', { name: '‘별빛 미궁’ — 기존 장소에 연결할까요, 새로 등록할까요?' })).toBeVisible();
   await expect(panel).toContainText('등록된 장소 항목이 없어요.');
   const newTarget = panel.getByRole('radio', { name: /별빛 미궁.*새로 등록/ });
+  await expect(newTarget).toContainText('이름·설정을 검토한 뒤 확정할 때 등록');
   await newTarget.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByLabel('반영할 대상', { exact: true })).toHaveValue('별빛 미궁');

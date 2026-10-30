@@ -218,7 +218,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const editorBefore = currentTargetBefore ?? (!subjectUnresolved ? candidate.beforeValue : null);
   const extractedName = candidate.subjectName ?? sourceDraft.subjectName;
   const pickerLabel = `‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`;
-  const newTargetCard = { title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 모두 확정할 때 등록' };
+  const newTargetCard = { title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 확정할 때 등록' };
   const chooseTargetCard = (id: string) => {
     if (id !== NEW_WORLD_TARGET_ID) {
       void chooseTarget(id);
