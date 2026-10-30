@@ -279,3 +279,11 @@
   .review-selection-bar__actions { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); }
   .review-selection-bar__actions .review-action { min-height: 44px !important; }
 }
+
+/* #211 후속 2차: 세계관 선택 대상 연결. 결정이 남는 행은 경고 잉크로 문장과 함께 구분한다. */
+.world-identity-hint { margin: 6px 0 0; }
+.review-target-link__name { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; color: var(--ch-text); font-size: 12px; font-weight: 650; }
+.review-target-link__name input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-ink); font: inherit; font-size: 13px; }
+.review-target-link__plan { margin: 14px 0 0; color: var(--ch-text); font-size: 12px; line-height: 1.7; }
+.review-link-preview__section dl > div.is-decision dd { color: var(--ch-warning-ink); font-weight: 650; }
+.review-cb-target-search__controls select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-ink); font: inherit; font-size: 13px; }

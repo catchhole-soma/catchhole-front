@@ -84,8 +84,12 @@ import { OtherSettingReviewAction, SettingReviewTabs } from './SettingReviewTabs
 import { ReviewSettingHeading, ReviewValueComparison, ReviewEvidence, ReviewNotice, ReviewInlineValue, ReviewChoiceCards } from '../review-ui/ReviewPrimitives';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
-import { WorldReviewDecisionPanel } from './WorldReviewDecisionPanel';
-import { compatibleWorldReviewSources, combineWorldReviewValues } from './worldReviewDecisions';
+import { WorldReviewDecisionPanel, type WorldPresetTarget } from './WorldReviewDecisionPanel';
+import {
+  compatibleWorldReviewSources, combineWorldReviewValues, worldReviewSourceDraft,
+  type planWorldTargetLink, type WorldLinkTarget, type WorldTargetLinkUnit,
+} from './worldReviewDecisions';
+import { WorldTargetLinkModal } from './WorldTargetLinkModal';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 type WorldSuggestedOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
@@ -211,7 +215,7 @@ function errorMessage(error: unknown, fallback: string): string {
  */
 type WorldRecoveryContext =
   | { kind: 'decision'; drafts: WorldSettingCandidateDecisionUpdateItem[]; acknowledged: boolean; lost: boolean;
-    groupKey?: string; error?: unknown }
+    groupKey?: string; error?: unknown; stay?: WorldTargetLinkStay }
   | { kind: 'confirm'; groupKey: string | null; candidateIds: string[];
     previousGroups: WorldSettingCandidateGroupResponse[]; error: unknown }
   | { kind: 'read' };
@@ -220,6 +224,24 @@ type DecisionRecoveryResult =
   | { status: 'busy' }
   | { status: 'failed' }
   | { status: 'read'; matches: boolean; data?: GetWorldSettingCandidatesResponse };
+
+/**
+ * 선택 대상 연결의 저장 문맥. 저장 뒤에도 읽던 묶음에 남고(비면 다음 묶음), 저장하지 않은 행은 고른 대상과 함께 결정으로 남긴다.
+ */
+interface WorldTargetLinkStay {
+  sourceGroupKey: string;
+  previousGroups: WorldSettingCandidateGroupResponse[];
+  targetName: string;
+  presets: Record<string, WorldPresetTarget>;
+}
+
+/** 선택 대상 연결 결과 안내. 저장한 행·결정이 남은 행과 연결한 묶음으로 가는 길을 함께 준다. */
+interface WorldTargetLinkNotice {
+  savedIds: string[];
+  pendingIds: string[];
+  targetName: string;
+  linkedGroupKey: string | null;
+}
 
 /** 확정으로 사라진 그룹 다음에 볼 그룹을 고르기 위한 직전 목록. 재조회가 끝난 뒤(armed)에만 판단한다. */
 interface WorldGroupAdvance {
@@ -394,6 +416,50 @@ function candidateEditDecision(candidate: WorldSettingCandidateResponse): Decisi
     settingName,
     value,
   };
+}
+
+/** 대상 연결을 위해 체크할 수 없는 이유. 같은 결정의 원문이 필터로 숨으면 한 결정을 나눠 저장하지 않도록 막는다. */
+function worldLinkBlockedReason(candidate: WorldSettingCandidateResponse, filtered: boolean): string | null {
+  if (isAutomaticApplicationPending(candidate)) return automaticApplicationPendingMessage(candidate.source);
+  if (isQuotaInterruptedCandidate(candidate)) return '사용량 부족으로 비교가 중단된 설정은 비교를 이어서 마친 뒤 연결할 수 있어요.';
+  if ((candidate.comparisonStatus !== 'COMPLETED' && candidate.manualReviewAvailable !== true) || !candidateEditDecision(candidate)) {
+    return '비교가 끝난 뒤 연결할 수 있어요.';
+  }
+  if (candidate.comparisonDecisionId && filtered) return '같은 결정의 다른 원문이 필터로 숨어 있어요.';
+  return null;
+}
+
+/** 이 행을 체크하면 함께 체크되는 후보. 공유 결정의 원문은 한 결정이므로 같이 연결한다. */
+function worldLinkedIds(candidate: WorldSettingCandidateResponse, candidates: WorldSettingCandidateResponse[], filtered: boolean): string[] {
+  if (!candidate.id) return [];
+  if (!candidate.comparisonDecisionId) return [candidate.id];
+  const linked = compatibleWorldReviewSources(candidate, candidates, filtered);
+  return linked.length ? linked : [candidate.id];
+}
+
+/**
+ * 체크한 행을 대상 연결 단위로 묶는다. 초안은 행 패널의 대상 연결과 같이 원문 기준 경로와 추출값(공유 결정이면 원문들의 추출값)을 쓴다.
+ * 원문마다 내용이 다른데 아직 정리하지 않은 행은 자동 저장하지 않도록 표시한다.
+ */
+function worldTargetLinkUnits(candidates: WorldSettingCandidateResponse[], checkedIds: string[], filtered: boolean,
+  resolvedConflictIds: Set<string>): WorldTargetLinkUnit[] {
+  const used = new Set<string>();
+  return candidates.flatMap(candidate => {
+    if (!candidate.id || candidate.reviewStatus !== 'PENDING_REVIEW' || !checkedIds.includes(candidate.id) || used.has(candidate.id)) return [];
+    const fallback = candidateEditDecision(candidate);
+    if (!fallback) return [];
+    const candidateIds = worldLinkedIds(candidate, candidates, filtered).filter(id => checkedIds.includes(id));
+    candidateIds.forEach(id => used.add(id));
+    const sourceValue = candidateIds.length > 1 ? [...new Set(candidates
+      .filter(source => source.id && candidateIds.includes(source.id))
+      .map(source => source.extractedValue?.trim()).filter((value): value is string => Boolean(value)))].join('\n') || undefined : undefined;
+    const draft = worldReviewSourceDraft(candidate, fallback);
+    return [{
+      candidate, candidateIds,
+      draft: { ...draft, value: sourceValue ?? candidate.extractedValue ?? draft.value },
+      conflict: candidate.consolidationStatus === 'CONFLICT' && !candidate.userModified && !resolvedConflictIds.has(candidate.id),
+    }];
+  });
 }
 
 function groupDecisionIdentity(
@@ -785,7 +851,7 @@ function WorldKeyDiffRow({
   candidate, decision, conflictResolved, recompared, rootMoveApplication,
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
-  currentChoice = null, onCurrentChoice, saveCheckPending = false,
+  currentChoice = null, onCurrentChoice, saveCheckPending = false, presetTarget, selection,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -807,6 +873,10 @@ function WorldKeyDiffRow({
   currentChoice?: 'CURRENT' | 'DEFAULT' | null;
   onCurrentChoice?: (mode: 'CURRENT' | 'DEFAULT') => void;
   saveCheckPending?: boolean;
+  /** 묶음의 선택 대상 연결에서 저장하지 않고 이 행의 결정으로 남긴 대상. */
+  presetTarget?: WorldPresetTarget;
+  /** 대상 연결을 위해 체크할 수 있는 대기 행에만 넘긴다. */
+  selection?: { checked: boolean; disabled: boolean; disabledReason?: string; onChange: (checked: boolean) => void };
 }) {
   const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
   const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
@@ -866,8 +936,7 @@ function WorldKeyDiffRow({
     && candidate.comparisonStatus === 'COMPLETED' && (operation === 'MERGE' || operation === 'UPDATE')
     && Boolean(before && proposedValue && before !== proposedValue);
   const noticeTitle = reviewableFailure ? '자동 비교를 마치지 못했어요' : undefined;
-  return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id} tabIndex={-1}>
-    <ReviewSettingHeading title={keyName}
+  const heading = <ReviewSettingHeading title={keyName}
       subtitle={[category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ')}
       image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
       badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
@@ -875,7 +944,15 @@ function WorldKeyDiffRow({
       actions={<>
         <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
         {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
-      </>} />
+      </>} />;
+  return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id} tabIndex={-1}>
+    {selection ? <div className="review-cb-selectable-heading">
+      <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
+        <input type="checkbox" aria-label={`선택: ${propertyPath}`} checked={selection.checked} disabled={selection.disabled}
+          onChange={event => selection.onChange(event.target.checked)} />
+      </label>
+      {heading}
+    </div> : heading}
 
     {automaticPending && <ReviewNotice tone="info" title="분석이 진행 중이에요"
       action={<button type="button" className="review-cb-secondary" onClick={onAnalysis}>분석 진행 보기</button>}>
@@ -900,11 +977,12 @@ function WorldKeyDiffRow({
     {operation === 'EXCLUDE' && pending && <ReviewNotice tone="info" title={before ? "기존 내용은 그대로 유지해요" : "이 설정은 추가하지 않아요"}>이 항목은 모두 확정 시 추가하지 않고 제외됩니다. 내용이 다르면 수정에서 반영할 내용을 정할 수 있어요.</ReviewNotice>}
     {candidate.consolidationStatus === 'MERGED' && <p className="review-cb-help">여러 원문에서 추출된 내용을 하나로 정리했습니다.</p>}
 
-    {!saved && (needsReview || operation === 'MERGE' || operation === 'UPDATE') && canEdit && initialDraft
+    {(!saved || presetTarget) && (needsReview || operation === 'MERGE' || operation === 'UPDATE' || presetTarget) && canEdit && initialDraft
       && <WorldReviewDecisionPanel candidate={choiceCandidate}
         categoryLabel={candidate.category ? CATEGORY_META[candidate.category].label : '대상'}
         key={JSON.stringify([candidate.finalOperation, candidate.finalCategory, candidate.finalSubjectName,
-          candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue])}
+          candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue, presetTarget ?? null])}
+        presetTarget={presetTarget}
         initialDraft={initialDraft} disabled={disabled || automaticPending} sharedChoiceAvailable={linkedCandidateIds.length > 0}
         sourceValue={sourceValue}
         onDirtyChange={reportDirty}
@@ -1006,6 +1084,9 @@ function WorldCandidateGroupDetail({
   canResumeTokenInterrupted,
   currentChoices,
   onCurrentChoice,
+  selection,
+  presetTargets,
+  linkNotice,
 }: {
   group: WorldSettingCandidateGroupResponse;
   originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
@@ -1031,6 +1112,16 @@ function WorldCandidateGroupDetail({
   canResumeTokenInterrupted: boolean;
   currentChoices: BookCurrentChoices;
   onCurrentChoice: (candidate: WorldSettingCandidateResponse, mode: 'CURRENT' | 'DEFAULT') => void;
+  /** 대상 연결을 위해 체크한 후보. 확정·제외에는 쓰지 않는다. */
+  selection: {
+    checkedIds: string[];
+    onChange: (candidateIds: string[], checked: boolean) => void;
+    onSelectAll: (candidateIds: string[]) => void;
+    onClear: () => void;
+    onOpen: () => void;
+  };
+  presetTargets: Record<string, WorldPresetTarget>;
+  linkNotice?: ReactNode;
 }) {
   const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
   const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
@@ -1145,6 +1236,12 @@ function WorldCandidateGroupDetail({
     includeRootMoveNotice(candidate) && candidate.proposedScopeName
     && (candidate.existingRootPropertyNamesToMove?.length ?? 0) > 0
   )) : [];
+  // 대상 연결은 화면에 그려진 대기 행만 체크한다. 공유 결정의 원문은 함께 체크된다.
+  const linkableCandidates = pendingCandidates.filter(candidate => !worldLinkBlockedReason(candidate, confirmationFiltered));
+  const checkedCandidates = pendingCandidates.filter(candidate => selection.checkedIds.includes(candidate.id!));
+  const allLinkableIds = [...new Set(linkableCandidates.flatMap(candidate => worldLinkedIds(candidate, candidates, confirmationFiltered)))];
+  const identityHintId = `world-identity-hint-${group.groupKey ?? 'group'}`;
+  const identityHintVisible = !identityEditable && pendingCandidates.length > 0 && !groupAutomaticPending;
   return (
     <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
       <header style={{ padding: '21px 22px 18px' }}>
@@ -1154,7 +1251,9 @@ function WorldCandidateGroupDetail({
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
-          <button type="button" disabled={actionPending || !identityEditable} onClick={onEditIdentity} style={{
+          <button type="button" disabled={actionPending || !identityEditable} onClick={onEditIdentity}
+            aria-describedby={identityHintVisible ? identityHintId : undefined}
+            title={identityHintVisible ? '결정이 없는 설정이 있어요. 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.' : undefined} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
             background: 'transparent', color: actionPending || !identityEditable ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
@@ -1167,6 +1266,20 @@ function WorldCandidateGroupDetail({
             ? '같은 분류·이름으로 묶였지만 서로 다른 기존 대상에 연결된 후보가 있습니다. 각 항목의 연결 대상을 확인해 주세요.'
             : '같은 분류·이름으로 묶인 후보를 항목별로 검토합니다.'}
         </p>
+        {identityHintVisible && <p id={identityHintId} className="review-cb-help world-identity-hint">
+          결정이 없는 설정이 있어요 — 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.
+        </p>}
+        {linkableCandidates.length > 0 && <div className="review-selection-header">
+          <label className="review-select-all">
+            <input type="checkbox" checked={checkedCandidates.length > 0 && allLinkableIds.every(id => selection.checkedIds.includes(id))}
+              ref={element => { if (element) element.indeterminate = checkedCandidates.length > 0 && !allLinkableIds.every(id => selection.checkedIds.includes(id)); }}
+              disabled={actionPending || decisionRecoveryRequired}
+              onChange={event => { if (event.target.checked) selection.onSelectAll(allLinkableIds); else selection.onClear(); }} />
+            모두 선택({allLinkableIds.length})
+          </label>
+          <span className="review-selection-header__help">체크한 설정을 한 대상에 연결해요. 확정과 제외는 기존처럼 따로 해요.</span>
+        </div>}
+        {linkNotice}
       </header>
 
       <RecomparisonNotice group={group} activeComparisonJobCount={activeComparisonJobCount}
@@ -1200,6 +1313,13 @@ function WorldCandidateGroupDetail({
             onAnalysis={onAnalysis}
             currentChoice={bookCurrentChoice(candidate, currentChoices)}
             onCurrentChoice={mode => onCurrentChoice(candidate, mode)}
+            presetTarget={presetTargets[candidate.id]}
+            selection={candidate.reviewStatus === 'PENDING_REVIEW' ? {
+              checked: selection.checkedIds.includes(candidate.id),
+              disabled: actionPending || decisionRecoveryRequired || Boolean(worldLinkBlockedReason(candidate, confirmationFiltered)),
+              disabledReason: worldLinkBlockedReason(candidate, confirmationFiltered) ?? undefined,
+              onChange: checked => selection.onChange(worldLinkedIds(candidate, candidates, confirmationFiltered), checked),
+            } : undefined}
           />
         );
       })}
@@ -1259,6 +1379,16 @@ function WorldCandidateGroupDetail({
         borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
         display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9, flexWrap: 'wrap',
       }}>
+        {checkedCandidates.length > 0 && <div className="review-selection-bar" role="region" aria-label="선택한 설정">
+          <div className="review-selection-bar__summary">
+            <strong>{checkedCandidates.length}개 선택</strong>
+            {confirmationFiltered && <span>필터로 숨은 설정은 포함되지 않아요.</span>}
+          </div>
+          <div className="review-selection-bar__actions">
+            <ActionButton tone={C.primary} disabled={actionPending || decisionRecoveryRequired} onClick={selection.onOpen}>선택 항목 대상 연결</ActionButton>
+            <ActionButton disabled={actionPending} onClick={selection.onClear}>선택 해제</ActionButton>
+          </div>
+        </div>}
         {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
         {!groupAutomaticPending && preservedMoveCandidates.length === 0
           && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
@@ -1520,6 +1650,23 @@ export function WorldSettingReview() {
   ));
   const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
   const [editIdentityOnly, setEditIdentityOnly] = useState(false);
+  // 대상 연결을 위해 체크한 후보. 체크한 묶음 안에서만 유효하고 묶음·필터·페이지를 바꾸면 비운다.
+  const [linkSelection, setLinkSelection] = useState<{ groupKey: string | null; ids: string[] }>({ groupKey: null, ids: [] });
+  const [targetLinkOpen, setTargetLinkOpen] = useState(false);
+  // 선택 대상 연결에서 저장하지 않고 결정으로 남긴 행의 대상. 새로고침하면 사라지는 화면 안 초안이다.
+  const [presetTargets, setPresetTargets] = useState<Record<string, WorldPresetTarget>>({});
+  const [targetLinkNotice, setTargetLinkNotice] = useState<WorldTargetLinkNotice | null>(null);
+  const targetLinkRequestRef = useRef<WorldTargetLinkStay | null>(null);
+  const clearLinkSelection = () => {
+    setLinkSelection({ groupKey: null, ids: [] });
+    setTargetLinkOpen(false);
+  };
+  /** 작가가 직접 다른 묶음·필터·페이지로 옮기면 선택·안내·화면 안 대상 초안을 거둔다. */
+  const clearTargetLinkState = () => {
+    clearLinkSelection();
+    setTargetLinkNotice(null);
+    setPresetTargets({});
+  };
   const [scopeMergeCandidateIds, setScopeMergeCandidateIds] = useState<string[]>([]);
   const [confirmedTarget, setConfirmedTarget] = useState<{
     id?: string;
@@ -1788,6 +1935,10 @@ export function WorldSettingReview() {
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
+    setLinkSelection({ groupKey: null, ids: [] });
+    setTargetLinkOpen(false);
+    setPresetTargets({});
+    setTargetLinkNotice(null);
   }, [batchId, sourceAnalysisJobId, workId]);
 
   const invalidateReviewSummary = (scope = { workId, batchId, sourceAnalysisJobId }) => queryClient.invalidateQueries({
@@ -1995,10 +2146,13 @@ export function WorldSettingReview() {
       }
     }
   };
-  const finishDecisionSave = async (drafts: WorldSettingCandidateDecisionUpdateItem[], nextGroupKey?: string) => {
+  const finishDecisionSave = async (drafts: WorldSettingCandidateDecisionUpdateItem[], nextGroupKey?: string,
+    stay?: WorldTargetLinkStay) => {
     if (!isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
     const updatedIds = new Set(drafts.map(candidate => candidate.candidateId));
     clearCurrentChoices([...updatedIds]);
+    setPresetTargets(previous => ({ ...Object.fromEntries(Object.entries(previous)
+      .filter(([candidateId]) => !updatedIds.has(candidateId))), ...stay?.presets }));
     const firstDecision = drafts[0];
     setDecisionOverrides(previous => Object.fromEntries(
       Object.entries(previous).filter(([candidateId]) => !updatedIds.has(candidateId)),
@@ -2008,6 +2162,18 @@ export function WorldSettingReview() {
     setScopeMergeCandidateIds([]);
     selectionGroupRef.current = null;
     preserveViewport();
+    if (stay) {
+      // 선택 대상 연결은 읽던 묶음에 남는다. 행이 모두 옮겨 가 묶음이 비면 직전 목록 순서의 다음 묶음을 연다.
+      setLinkSelection({ groupKey: null, ids: [] });
+      setTargetLinkOpen(false);
+      setTargetLinkNotice({ savedIds: [...updatedIds], pendingIds: Object.keys(stay.presets), targetName: stay.targetName,
+        linkedGroupKey: nextGroupKey ?? null });
+      const advance: WorldGroupAdvance = { groupKey: stay.sourceGroupKey, previous: stay.previousGroups, force: false, armed: false };
+      advanceRef.current = advance;
+      armAdvance(advance);
+      await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
+      return;
+    }
     // 저장한 후보의 그룹이 지금 페이지에 그대로 있으면 읽던 페이지를 유지한다. 분류·대상이 바뀌어 그룹이
     // 다른 페이지로 옮겨 갔거나 필터를 바꿔야 할 때만 첫 페이지에서 다시 찾는다.
     const refreshedGroups = queryClient.getQueryData(listOptions.queryKey)?.data?.groups?.content ?? groups;
@@ -2070,7 +2236,7 @@ export function WorldSettingReview() {
       recoveryContextRef.current = null;
       // 응답을 잃었지만 서버에 같은 초안이 저장됐으면 저장 성공과 같이 접는다.
       if (context.lost) setVerifiedLostError(context.error);
-      await finishDecisionSave(context.drafts, context.groupKey);
+      await finishDecisionSave(context.drafts, context.groupKey, context.stay);
       return;
     }
     recoveryContextRef.current = null;
@@ -2101,6 +2267,12 @@ export function WorldSettingReview() {
     return runRecovery();
   };
 
+  /** 이 저장이 선택 대상 연결이었는지 꺼낸다. 요청한 후보가 같을 때만 쓰고 한 번 쓰면 비운다. */
+  const takeTargetLinkStay = (drafts: WorldSettingCandidateDecisionUpdateItem[]) => {
+    const stay = targetLinkRequestRef.current;
+    targetLinkRequestRef.current = null;
+    return stay && drafts.every(draft => draft.operation === 'ADD') ? stay : undefined;
+  };
   const updateDecisionMutation = useMutation({
     ...guardReviewSourceMutation(updateWorldSettingCandidateDecisionsMutation(), sourceScope.canWrite),
     onError: async (error, variables) => {
@@ -2109,9 +2281,10 @@ export function WorldSettingReview() {
           || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
       await refreshAutomaticApplicationState(error);
       if (!isWorldReviewLocation(variables.path.workId, variables.body.batchId, variables.query?.sourceAnalysisJobId)) return;
+      const stay = takeTargetLinkStay(variables.body.candidates);
       setDecisionRecoveryRequired(true);
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: false,
-        lost: isResponseLost(error), error });
+        lost: isResponseLost(error), error, stay });
     },
     onSuccess: async (response, variables) => {
       await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
@@ -2122,7 +2295,7 @@ export function WorldSettingReview() {
       await queryClient.cancelQueries({ queryKey });
       await queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: true, lost: false,
-        groupKey: response.data?.groupKey });
+        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates) });
     },
   });
 
@@ -2138,6 +2311,7 @@ export function WorldSettingReview() {
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
+    setTargetLinkOpen(false);
   }, [selectedGroup, updateDecisionMutation.isPending, decisionRecoveryRequired]);
 
   useEffect(() => {
@@ -2201,6 +2375,7 @@ export function WorldSettingReview() {
 
   const updateFilters = (nextReview: ReviewFilter, nextCategory: CategoryFilter, nextOperation: OperationFilter) => {
     setMobileDetailOpen(false);
+    clearTargetLinkState();
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
@@ -2223,6 +2398,7 @@ export function WorldSettingReview() {
 
   const selectGroup = (groupKey: string) => {
     preserveViewport();
+    if (groupKey !== selectedGroup?.groupKey) clearTargetLinkState();
     setMobileDetailOpen(true);
     setEditCandidate(null);
     setEditIdentityOnly(false);
@@ -2238,6 +2414,7 @@ export function WorldSettingReview() {
 
   const changePage = (page: number) => {
     setMobileDetailOpen(false);
+    clearTargetLinkState();
     selectionGroupRef.current = null;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -2352,6 +2529,80 @@ export function WorldSettingReview() {
       },
     });
   };
+
+  const checkedLinkIds = linkSelection.groupKey === (selectedGroup?.groupKey ?? null) ? linkSelection.ids : [];
+  const linkUnits = worldTargetLinkUnits(selectedGroup?.candidates ?? [], checkedLinkIds, confirmationFiltered, resolvedConflictIds);
+  const changeLinkSelection = (candidateIds: string[], checked: boolean) => {
+    const groupKey = selectedGroup?.groupKey ?? null;
+    setLinkSelection(current => {
+      const ids = current.groupKey === groupKey ? current.ids : [];
+      return { groupKey, ids: checked ? [...new Set([...ids, ...candidateIds])] : ids.filter(id => !candidateIds.includes(id)) };
+    });
+  };
+  /**
+   * 체크한 행을 고른 대상에 연결한다. 대상에 같은 경로가 없는 행만 ADD 초안으로 한 번에 저장하고(같은 현재 묶음의 일부 PATCH),
+   * 같은 경로가 있거나 원문 충돌이 있는 행은 저장하지 않고 고른 대상과 함께 행의 결정으로 남긴다.
+   */
+  const applyTargetLink = (target: WorldLinkTarget, plan: ReturnType<typeof planWorldTargetLink>) => {
+    if (!selectedGroup?.groupKey || actionPending || decisionRecoveryRequired) return;
+    const presets: Record<string, WorldPresetTarget> = Object.fromEntries(plan.pending.flatMap(row => (
+      row.unit.candidateIds.map(candidateId => [candidateId, { target, reason: row.outcome as WorldPresetTarget['reason'] }])
+    )));
+    if (!plan.saves.length) {
+      setPresetTargets(previous => ({ ...previous, ...presets }));
+      clearLinkSelection();
+      setTargetLinkNotice({ savedIds: [], pendingIds: Object.keys(presets), targetName: target.subjectName, linkedGroupKey: null });
+      return;
+    }
+    const sources = plan.saves.flatMap(save => pendingCandidates.filter(candidate => candidate.id === save.candidateId));
+    if (sources.length !== plan.saves.length || sources.some(candidate => isAutomaticApplicationPending(candidate)
+      || isQuotaInterruptedCandidate(candidate))) return;
+    setOriginalHoldReasons(previous => ({ ...previous, ...Object.fromEntries(sources
+      .filter(source => source.id && source.automaticReviewHoldReason)
+      .map(source => [source.id!, source.automaticReviewHoldReason])) }));
+    confirmMutation.reset();
+    dismissMutation.reset();
+    updateDecisionMutation.reset();
+    targetLinkRequestRef.current = { sourceGroupKey: selectedGroup.groupKey, previousGroups: groups, targetName: target.subjectName, presets };
+    updateDecisionMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates: plan.saves } });
+  };
+  /** 결정이 남은 첫 행으로 초점과 스크롤을 옮긴다. */
+  const focusFirstPendingLink = () => {
+    const firstId = (selectedGroup?.candidates ?? []).find(candidate => candidate.id && targetLinkNotice?.pendingIds.includes(candidate.id))?.id;
+    const row = firstId ? Array.from(mainRef.current?.querySelectorAll<HTMLElement>('[data-candidate-id]') ?? [])
+      .find(element => element.dataset.candidateId === firstId) : undefined;
+    row?.scrollIntoView({ block: 'start' });
+    row?.focus({ preventScroll: true });
+  };
+  /** 연결한 묶음은 후보 ID로 실제 묶음과 페이지를 찾아 연다(공유 링크와 같은 경로). */
+  const openLinkedTargetGroup = (notice: WorldTargetLinkNotice) => {
+    const candidateId = notice.savedIds[0];
+    if (!candidateId) return;
+    preserveViewport();
+    clearTargetLinkState();
+    setMobileDetailOpen(true);
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.delete('group');
+      next.set('candidate', candidateId);
+      return next;
+    }, { replace: true, state: location.state });
+  };
+  const visiblePendingLinkIds = targetLinkNotice?.pendingIds.filter(candidateId => (selectedGroup?.candidates ?? [])
+    .some(candidate => candidate.id === candidateId && candidate.reviewStatus === 'PENDING_REVIEW')) ?? [];
+  const targetLinkNoticeView = targetLinkNotice && <ReviewNotice tone="info"
+    title={[targetLinkNotice.savedIds.length ? `${targetLinkNotice.savedIds.length}개 저장(추가)` : null,
+      targetLinkNotice.pendingIds.length ? `${targetLinkNotice.pendingIds.length}개는 내용 결정이 남았어요` : null].filter(Boolean).join(' · ')}
+    action={<span className="review-cb-notice__buttons">
+      {visiblePendingLinkIds.length > 0 && <button type="button" className="review-cb-secondary" onClick={focusFirstPendingLink}>첫 항목으로</button>}
+      {targetLinkNotice.savedIds.length > 0 && <button type="button" className="review-cb-secondary" onClick={() => openLinkedTargetGroup(targetLinkNotice)}>연결한 묶음 보기</button>}
+      <button type="button" className="review-cb-secondary" onClick={() => setTargetLinkNotice(null)}>닫기</button>
+    </span>}>
+    {targetLinkNotice.savedIds.length
+      ? `‘${targetLinkNotice.targetName}’에 같은 설정이 없는 항목을 추가로 저장했어요. 저장한 설정은 연결한 묶음에서 확정해요.`
+      : `‘${targetLinkNotice.targetName}’에 바로 추가할 수 있는 설정이 없었어요.`}
+    {targetLinkNotice.pendingIds.length > 0 && ' 남은 설정은 고른 대상과 함께 열어 두었어요. 기존값과 합칠지·바꿀지 정해 주세요.'}
+  </ReviewNotice>;
 
   const backToAnalysisList = () => {
     // 화면 전환 애니메이션 동안 남아 있는 effect가 검토 URL을 다시 쓰지 못하게 한다.
@@ -2779,6 +3030,19 @@ export function WorldSettingReview() {
                           confirmMutation.reset();
                           setCurrentChoices(previous => ({ ...previous, [candidate.id!]: { valueKey, mode } }));
                         }}
+                        selection={{
+                          checkedIds: checkedLinkIds,
+                          onChange: changeLinkSelection,
+                          onSelectAll: candidateIds => setLinkSelection({ groupKey: selectedGroup.groupKey ?? null, ids: candidateIds }),
+                          onClear: clearLinkSelection,
+                          onOpen: () => {
+                            if (!linkUnits.length || actionPending || decisionRecoveryRequired) return;
+                            updateDecisionMutation.reset();
+                            setTargetLinkOpen(true);
+                          },
+                        }}
+                        presetTargets={presetTargets}
+                        linkNotice={targetLinkNoticeView}
                       />
                     )}
                   </section>
@@ -2801,6 +3065,23 @@ export function WorldSettingReview() {
         </div>
       </main>
 
+      {selectedGroup && targetLinkOpen && linkUnits.length > 0 && (
+        <WorldTargetLinkModal
+          key={`target-link-${selectedGroup.groupKey}`}
+          workId={workId}
+          units={linkUnits}
+          groupCategory={selectedGroup.category ?? undefined}
+          groupSubjectName={selectedGroup.subjectName ?? undefined}
+          categoryLabels={Object.fromEntries(Object.entries(CATEGORY_META).map(([value, meta]) => [value, meta.label])) as Record<WorldCategory, string>}
+          pending={updateDecisionMutation.isPending || decisionRecoveryPending}
+          error={actionError}
+          onClose={() => {
+            if (updateDecisionMutation.isPending) return;
+            setTargetLinkOpen(false);
+          }}
+          onApply={applyTargetLink}
+        />
+      )}
       {editCandidate?.id && editDecision && (
         <CandidateEditModal
           key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : scopeMergeCandidateIds.length ? 'scope-merge' : isBatchLimitExceededCandidate(editCandidate) ? 'batch-limit' : 'candidate'}`}

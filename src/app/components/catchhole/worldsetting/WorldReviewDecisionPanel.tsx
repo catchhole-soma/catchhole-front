@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getWorldSettingOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import { shouldRetryQuery } from '../../../lib/query-client';
@@ -6,15 +6,32 @@ import type { WorldSettingCandidateResponse } from '../../../api/generated/types
 import { useWorldTargetSearch } from './useWorldTargetSearch';
 import { NEW_WORLD_TARGET_ID, WorldTargetPicker } from './WorldTargetPicker';
 import { ReviewChoiceCards, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
-import { combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft, type WorldReviewDraft } from './worldReviewDecisions';
+import {
+  combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft,
+  type WorldLinkTarget, type WorldReviewDraft, type WorldTargetLinkOutcome,
+} from './worldReviewDecisions';
 
-export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraft, disabled, sharedChoiceAvailable, sourceValue, onSave, onDirtyChange }: {
+/** 묶음의 선택 대상 연결에서 저장하지 않고 이 행에 남긴 대상. 행에서 병합·교체·최종 내용을 정한다. */
+export interface WorldPresetTarget {
+  target: WorldLinkTarget;
+  reason: Exclude<WorldTargetLinkOutcome, 'add'>;
+}
+
+const PRESET_TITLES: Record<WorldPresetTarget['reason'], string> = {
+  existing: '대상은 골랐어요. 기존값과 어떻게 합칠지 정해 주세요.',
+  conflict: '대상은 골랐어요. 원문마다 다른 내용을 하나로 정해 주세요.',
+  duplicate: '대상은 골랐어요. 함께 고른 다른 설정과 위치가 같아 내용을 정해 주세요.',
+};
+
+export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraft, disabled, sharedChoiceAvailable, sourceValue, presetTarget, onSave, onDirtyChange }: {
   candidate: WorldSettingCandidateResponse;
   categoryLabel: string;
   initialDraft: WorldReviewDraft;
   disabled: boolean;
   sharedChoiceAvailable: boolean;
   sourceValue?: string;
+  /** 처음 열 때 이미 골라 둔 대상. 대상의 현재 설정을 읽어 행에서 이어서 결정하게 한다. */
+  presetTarget?: WorldPresetTarget;
   onSave: (draft: WorldReviewDraft) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -95,6 +112,11 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     if (disabled || targetLoading || !candidate.workId) return;
     // 검색·페이지가 바뀌어도 실패한 선택은 동일 ID로 다시 조회한다.
     if (id !== selectedTargetId && (!target?.id || !target.subjectName || !target.category)) return;
+    await loadTarget(id);
+  };
+  /** 고른 대상의 현재 설정을 읽어 같은 경로가 있으면 병합·교체 선택을, 없으면 추가 초안을 연다. */
+  const loadTarget = async (id: string) => {
+    if (!candidate.workId) return;
     setSelectedTargetId(id);
     setTargetBefore(null);
     setTargetLoadFailed(false);
@@ -120,6 +142,23 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
       setError('대상의 현재 설정을 불러오지 못했습니다. 선택한 대상을 다시 불러와 주세요.');
     } finally { setTargetLoading(false); }
   };
+  // 묶음에서 골라 둔 대상은 처음 열 때 한 번 불러온다(패널 key가 대상마다 바뀐다).
+  const presetAppliedRef = useRef(false);
+  useEffect(() => {
+    // 저장 요청·복구 확인 중에는 늦은 응답을 버리므로, 행을 다시 쓸 수 있게 된 뒤 한 번 적용한다.
+    if (!presetTarget || presetAppliedRef.current || disabled) return;
+    presetAppliedRef.current = true;
+    const { target } = presetTarget;
+    if (target.worldSettingId) {
+      void loadTarget(target.worldSettingId);
+      return;
+    }
+    setSelectedTargetId(NEW_WORLD_TARGET_ID);
+    setEditing(true);
+    setDraft({ ...sourceDraft, category: target.category, subjectName: target.subjectName, operation: 'ADD', value: incoming });
+  // 한 번만 적용한다. 이후 작가의 선택을 덮지 않는다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabled]);
   const choose = (id: string, value: WorldReviewDraft) => {
     setSelected(id);
     setDraft(value);
@@ -159,6 +198,12 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const extractedName = candidate.subjectName ?? sourceDraft.subjectName;
 
   return <div className="review-cb-decision-panel">
+    {presetTarget && <ReviewNotice tone="warning" title={PRESET_TITLES[presetTarget.reason]}>
+      연결할 대상 ‘{presetTarget.target.subjectName}’에 저장하기 전에 이 설정의 내용을 확인해 주세요.
+    </ReviewNotice>}
+    {presetTarget && !subjectUnresolved && targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary"
+      disabled={disabled || targetLoading} onClick={() => void loadTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
+    {presetTarget && !subjectUnresolved && targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}
     {subjectUnresolved && <WorldTargetPicker search={targetSearch}
       label={`‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`} categoryLabel={categoryLabel}
       value={selectedTarget} disabled={disabled || targetLoading} pagerDisabled={targetLoading}

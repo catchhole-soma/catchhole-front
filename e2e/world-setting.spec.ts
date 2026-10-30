@@ -1669,7 +1669,9 @@ test('서로 다른 원문 값은 사용자가 최종값을 정한 뒤에만 모
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world`);
 
   await expect(page.getByRole('region', { name: '설정 후보 검토 요약' }).locator('.is-direct')).toContainText('1개');
-  await expect(page.getByRole('checkbox')).toHaveCount(0);
+  // 세계관 행의 체크박스는 대상 연결 선택에만 쓰고, 일부만 확정·제외하는 선택 버튼은 두지 않는다.
+  await expect(page.getByRole('checkbox', { name: '선택: 통신 반경' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /선택 항목 (제외|확정)/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '통신 반경 제외', exact: true })).toBeVisible();
   await expect(page.getByText('내용 확인 필요', { exact: true })).toBeVisible();
   await expect(page.getByText('최종 내용을 확인해 주세요', { exact: true })).toBeVisible();
