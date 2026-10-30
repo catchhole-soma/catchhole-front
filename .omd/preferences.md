@@ -765,3 +765,20 @@ source_context: "src/app/components/catchhole/characterreview/CharacterSettingRe
 ```
 
 Use a shared page header that covers both character and world-setting candidates on `/setting-review`. The implemented title is `설정 후보 검토`; candidate types remain distinguished by their tabs.
+
+## 2026-10-27T11:29:42.000Z — error-report-setting-review-consistency
+
+```omd-meta
+id: pref_mvqlsfw0_49da71ce
+timestamp: 2026-10-27T11:29:42.000Z
+scope: visualTheme
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "docs/planning/gh-300-error-report-design-draft.md; /setting-review; GH300"
+```
+
+Keep the current error-report draft structure and align its final visual design as closely as possible with the current character and world-setting confirmation screens.
+
+2026-10-27 사용자는 오류 리포트 초안에서 현재 수정할 부분을 찾지 못했으며, 최종 디자인에서 캐릭터·세계관 설정 확정 화면과 최대한 통일성을 유지하도록 요청했다. 현재 초안의 정보 구조와 흐름을 유지하고 최종 작업 시 실제 `/setting-review`의 캐릭터·세계관 화면을 함께 비교한다. 공통 패널·버튼·필터·선택/상태 표시·글자·간격·원문 근거 표현을 맞추되, 오류 리포트의 판단 저장과 설정 확정의 서로 다른 동작 의미는 보존한다. 이번 피드백은 최종 시각 정리의 기준이며 기능 구현 완료나 최종 시안 확정을 뜻하지 않는다.

@@ -111,8 +111,14 @@ FE가 와이어프레임을 기준으로 각 화면의 기능, 사용자 액션,
 | 설정 검토 | [`/setting-review`](https://www.catchhole.com/setting-review) | [캐릭터 후보](./character.md#설정-검토-ssettingreview) · [세계관 후보](./world-setting.md#설정-후보-검토--세계관-후보-탭) |
 | 분석 진행 (Post-MVP 전체 화면) | [`/loading`](https://www.catchhole.com/loading) | [analysis](./analysis.md#분석-진행-s4loading) |
 | 오류 리포트 (Post-MVP) | [`/report`](https://www.catchhole.com/report) | [analysis](./analysis.md#오류-리포트-s5report) |
-| 회차 검사 결과 (Post-MVP) | [`/episode-validation-report`](https://www.catchhole.com/episode-validation-report) | [analysis](./analysis.md#회차-검사-결과-sepisodevalidationreport) |
+| 오류 리포트 (단일 회차 · 화면 명세 검토안) | 예정: `/episode-validation-report` | [analysis](./analysis.md#충돌-의심-상세-리포트-sepisodevalidationreport) |
 
 대시보드 공통 UI 상태: [모바일 메뉴 서랍](../screens/DY6xk.png) · [업데이트 예정 토스트](../screens/rXnD6.png) · [모바일 업데이트 예정 토스트](../screens/T0B8WR.png). 이 상태들은 별도 서버 데이터 계약을 추가하지 않는다.
 
 > 캡처 이미지(`../screens/*.png`)는 Pencil 노드 id를 파일명으로 씁니다. 현재 활성 범위는 `Active / ...` 프레임의 PNG를 사용하고, Post-MVP 전체 화면은 보존 프레임을 계속 참조합니다. 시각 디자인 원본은 `design/catchhole.pen`입니다.
+
+### GH300 오류 리포트 정책 기준
+
+**AI 결과 분류 합의:** 설정 검사 결과는 `설정 충돌 / 충돌 의심 / 추가 확인 필요`의 세 유형이다. 설정 충돌은 같은 대상·시점·조건에서 양립할 수 없는 내용이 직접 근거로 확인된 경우, 충돌 의심은 기존 상태와 어긋나 보이나 변화·예외를 확인하지 못한 경우, 추가 확인 필요는 대상·시점·해석이 불명확해 비교 판단이 어려운 경우다. 세 유형 모두 시스템 판단으로 작가가 `충돌 아님`으로 정정할 수 있으며 영향 등급 `심각 / 주의 / 참고`와 별개다. 검색 횟수나 검색 결과 없음만으로 충돌 의심을 설정 충돌로 높이지 않는다. 실행 미완료·자료 조회 실패는 추가 확인 필요가 아닌 검사 미완료다. 세 유형의 미검토는 모두 추출 보류이며 자동 0건은 세 유형 합계 0건을 뜻한다.
+
+2026-10-28부터 [오류 리포트 화면안](analysis.md#충돌-의심-상세-리포트-sepisodevalidationreport)은 오류 검사·작가 검토를 설정 추출보다 먼저 수행한다. [제품 기획](../planning/gh-300-error-report-product-brief.md)·[구현 계획](../planning/gh-300-error-report-implementation-plan.md)을 함께 확인한다. 기존 설정 구축 화면의 완료/재시도 규칙을 새 검수에 그대로 적용하지 않으며, Pencil/PNG는 상태·행동 동기화 대기다. 이후 합의한 오탈자 독립 병렬 검사와 질문 생성/누락 방지의 구현 제안은 [상세안](../planning/gh-300-validation-question-planning.md)을 따른다. 두 검사 모두 정상 완료·설정 검사 3유형 합계·오탈자 제안 모두 0건이면 자동 추출한다. 항목이 있었다면 설정 모두 충돌 아님·오탈자 확인 완료·수정 대기 없음 뒤 명시적 완료 버튼을 사용한다. 의도한 표현은 유지할 수 있다. 오탈자 미검토·수정 대기·실패/일부 중단/재시도 실패는 추출 보류이며 검사 생략 우회 없이 같은 입력 성공 결과를 보존해 미완료 범위를 재시도한다. 오탈자는 문자 오타·맞춤법·띄어쓰기·분명한 문자/조사 중복·누락을 검사하고 허용 표기·의도적 표현·문체 통일·윤문·추측 보충·고유명사 표기 차이는 제외한다. 이름 주변 일반 오타는 검사하며 이름 차이를 설정 검사로 자동 이관하지 않는다. 수정 필요/원문 유지/검토 필요로 되돌리기를 사용하고 원문 유지만 현재 항목을 해소한다. 수정 필요는 외부 수정·파일 교체·새 검사로 확인하며 수정 완료 체크 우회·원문 자동 편집·예외 사전 등록·새 원고 판단 자동 승계는 없다. 배치·enum/HTTP 필드는 제안이고 오탈자 초기 모델은 사용자 지정 **6.1 Terra**, 추론은 **low**(사용자 표현 lite를 낮은 추론으로 해석)이며 품질 수치·처리 시간 한도는 미정이다. 같은 신규 회차 내부 모순 검사는 첫 버전에서 제외하며, 과거 확정 설정·앞선 원문과 비교하기 위한 현재 회차 문맥 해석은 유지한다.
