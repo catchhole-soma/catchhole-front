@@ -126,6 +126,8 @@ test('320px에서 연결 안내의 버튼을 세로로 놓고 가로로 넘치�
   const [openBox, closeBox] = [await open.boundingBox(), await close.boundingBox()];
   expect(openBox && closeBox && closeBox.y >= openBox.y + openBox.height - 1).toBe(true);
   expect(openBox!.height).toBeGreaterThanOrEqual(44);
+  const noticeBox = await notice.boundingBox();
+  expect(openBox!.x + openBox!.width).toBeLessThanOrEqual(noticeBox!.x + noticeBox!.width);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await notice.screenshot({ path: testInfo.outputPath('link-notice-320.png') });
 });
