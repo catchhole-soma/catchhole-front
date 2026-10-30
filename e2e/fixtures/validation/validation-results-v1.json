@@ -1,0 +1,39 @@
+{
+  "_source": "GET /episode-validations/{reportId}/results 응답의 Map 키. validation-execution-v1.json에는 공개 results 예시가 없어 Backend ValidationResultServiceImpl.getValidationProgress/progressView가 넣는 키만 사용하고 값은 합성이다.",
+  "completed": {
+    "reportId": "00000000-0000-4000-8000-000000000011",
+    "reportVersion": 12,
+    "jobId": "00000000-0000-4000-8000-000000000031",
+    "status": "COMPLETED",
+    "failureCode": null,
+    "settingStatus": "COMPLETED",
+    "typoStatus": "COMPLETED",
+    "completedNoCheckSegments": 3,
+    "completedChecks": 4,
+    "totalChecks": 4,
+    "checks": [
+      {"checkId": "00000000-0000-4000-8000-000000000102", "revision": 2, "outcome": "CONFLICT", "reason": "합성 충돌 판정", "changeReason": "NEW_CLUE"}
+    ],
+    "coverage": {
+      "gridReady": true,
+      "requiredStages": 8,
+      "completedStages": 8,
+      "stages": [
+        {"branch": "SETTING", "stage": "PLANNER", "ref": "TSEG1", "successful": true},
+        {"branch": "TYPO", "stage": "TYPO_SEGMENT", "ref": "TSEG1", "successful": true}
+      ]
+    },
+    "findings": [],
+    "evidence": [],
+    "extractionJobId": null,
+    "candidateGeneration": null
+  },
+  "notStarted": {
+    "reportId": "00000000-0000-4000-8000-000000000011",
+    "reportVersion": 3,
+    "status": "NOT_STARTED",
+    "stages": [],
+    "checks": [],
+    "findings": []
+  }
+}
