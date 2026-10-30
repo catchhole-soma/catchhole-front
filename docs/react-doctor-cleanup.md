@@ -344,3 +344,7 @@ Doctor 전체는 직전과 같은 186건(기존 오류 2·경고 184)이며 새 
 ### 2026-10-30 GH314 오류 리포트 화면 (F1)
 
 SDK 재생성 직후 기준은 241개 파일/245개 진단(기존 WorldSettingDatabase 상태 updater 오류 2개)이고, 리포트 화면 추가 뒤 전체 검사는 251개 파일/249개 진단(같은 기존 오류 2개)이다. 새 진단 4개는 모두 `no-high-complexity-react-function` 유지보수 권고로 `ValidationReport`, `FindingDetailView`, `ReportStatusCard`, `ReportBasisCard`의 서버 상태별 분기에서 나온다. 판단·검토 완료·재시도 요청은 `useValidationReportActions`, 0건 안내는 `FindingEmptyState`로 분리해 큰 컴포넌트·배열 탐색·Intl 생성·JSON 복제 권고는 해소했다. 남은 분기는 `reviewStage`·`allowedActions`별 문구 선택이며 권한을 화면에서 계산하지 않기 위해 하나의 표로 합치지 않았다. 진단을 억제하거나 전체 무경고로 해석하지 않는다.
+
+### 2026-10-30 GH314 업로드·목록·재검수 연결 (F2)
+
+F1 뒤 251개 파일/249개 진단에서 F2 뒤 전체 검사는 262개 파일/252개 진단(같은 기존 WorldSettingDatabase 오류 2개)이다. 새 진단 3개는 모두 `no-high-complexity-react-function` 유지보수 권고로 `ValidationIntakeStatus`(접수 실패 종류별 안내), `ValidationRecheckPanel`(확인 전·확인 중 두 화면), `useValidationRecheck`(서버 허용·최신 회차·응답 유실 분기)에서 나온다. 처음 검사에서 나온 `AnalysisList`·`ValidationReport`의 `no-giant-component`는 검수 카드를 `ValidationBatchCard`로, 재검수 hook 연결을 `ValidationRecheckPanel`로, 수정 이동 주소를 `reportFixLinks`로 옮겨 해소했다. 남은 분기는 서버 응답(`allowedActions`·`reviewStage`·오류 코드)별 문구 선택이라 권한을 화면에서 계산하지 않도록 한곳에 두었다. 진단을 억제하거나 전체 무경고로 해석하지 않는다.
