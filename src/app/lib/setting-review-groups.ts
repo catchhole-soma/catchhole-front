@@ -27,10 +27,12 @@ export function isUnlinkedCandidateGroup(group: GroupLike & { entityName?: strin
 /**
  * 확정·연결로 사라진 그룹 다음에 검토할 그룹을 고른다.
  *
- * `previous`는 사라지기 직전 화면의 목록 순서, `current`는 서버에서 다시 받은 목록이다.
- * 직전 목록에서 사라진 그룹보다 뒤에 있던 그룹 중 지금 남아 있는 첫 그룹을 고른다.
- * 직전 목록에 없던 그룹은 다음 페이지에서 당겨져 온 그룹이므로 뒤에 있던 그룹으로 본다.
- * 뒤 그룹이 없으면 현재 목록의 첫 그룹, 현재 목록이 비면 `null`이다(페이지 보정은 화면이 처리한다).
+ * `previous`는 사라지기 직전 화면의 목록 순서, `current`는 서버에서 다시 받은 목록이다. 다음 우선순위로 고른다.
+ * 1. 직전 목록에서 사라진 그룹보다 뒤에 있던 그룹 중 지금 남아 있는 첫 그룹(현재 목록 순서 기준).
+ * 2. 없으면 직전 목록에 없던 그룹 중 현재 목록의 첫 그룹. 다음 페이지에서 당겨진 그룹이거나 연결로 새로 생긴
+ *    `existing:<id>` 그룹이다. 새로 생긴 그룹이 원래 다음 차례였던 그룹을 앞지르지 않도록 1보다 뒤에 둔다.
+ * 3. 없으면 현재 목록의 첫 그룹.
+ * 4. 현재 목록이 비면 `null`(페이지 보정은 화면이 처리한다).
  */
 export function nextGroupKeyAfter(
   previous: ReadonlyArray<GroupLike>,
@@ -46,11 +48,10 @@ export function nextGroupKeyAfter(
     group.groupKey != null && group.groupKey !== removedKey
   ));
   if (removedIndex != null) {
-    const following = remaining.find(group => {
-      const index = previousIndex.get(group.groupKey);
-      return index == null || index > removedIndex;
-    });
+    const following = remaining.find(group => (previousIndex.get(group.groupKey) ?? -1) > removedIndex);
     if (following) return following.groupKey;
   }
+  const arrived = remaining.find(group => !previousIndex.has(group.groupKey));
+  if (arrived) return arrived.groupKey;
   return remaining[0]?.groupKey ?? null;
 }

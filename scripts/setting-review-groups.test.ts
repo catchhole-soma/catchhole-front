@@ -21,7 +21,21 @@ test('첫 그룹이 사라지면 두 번째였던 그룹을 고른다', () => {
   assert.equal(nextGroupKeyAfter(groups('a', 'b', 'c'), 'a', groups('b', 'c')), 'b');
 });
 
-test('사라진 그룹을 직전 목록에서 찾지 못하면 현재 첫 그룹을 고르고, 남아 있어도 다시 고르지 않는다', () => {
+test('연결로 새로 생긴 그룹보다 원래 다음 차례였던 그룹을 먼저 고른다', () => {
+  // 직전 [A, 레온, B, 미상]에서 레온 전부를 기존 인물 X에 연결하면 재조회 목록에 existing:X가 레온 자리에 생긴다.
+  assert.equal(nextGroupKeyAfter(groups('a', '레온', 'b', '미상'), '레온', groups('a', 'existing:x', 'b', '미상')), 'b');
+  // 원래 다음 차례가 모두 사라졌다면 직전 목록에 없던 그룹(연결로 생긴 그룹)을 고른다.
+  assert.equal(nextGroupKeyAfter(groups('a', '레온', 'b'), '레온', groups('a', 'existing:x')), 'existing:x');
+});
+
+test('마지막 미상 묶음이 비면 새로 생긴 그룹을, 없으면 현재 첫 그룹을 고른다', () => {
+  assert.equal(nextGroupKeyAfter(groups('a', 'b', '미상'), '미상', groups('a', 'existing:x', 'b')), 'existing:x');
+  assert.equal(nextGroupKeyAfter(groups('a', 'b', '미상'), '미상', groups('a', 'b')), 'a');
+  assert.equal(nextGroupKeyAfter(groups('a', '미상'), '미상', []), null);
+});
+
+test('사라진 그룹을 직전 목록에서 찾지 못하면 새로 생긴 그룹, 없으면 현재 첫 그룹을 고르고, 남아 있어도 다시 고르지 않는다', () => {
+  assert.equal(nextGroupKeyAfter(groups('a', 'b'), 'x', groups('a', 'c', 'b')), 'c');
   assert.equal(nextGroupKeyAfter(groups('a', 'b'), 'x', groups('b', 'a')), 'b');
   assert.equal(nextGroupKeyAfter(groups('a', 'b', 'c'), 'b', groups('a', 'b', 'c')), 'c');
 });
