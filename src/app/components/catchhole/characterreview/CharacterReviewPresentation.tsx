@@ -8,6 +8,7 @@ import { isReviewableComparisonFailure, orderedComparisonRecoveryMessage } from 
 import { ReviewChoiceCards, ReviewInlineValue, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
 import { bookReviewValueKey } from '../../../lib/book-current-review';
 import { PageNavigation } from '../PageNavigation';
+import { REVIEW_SAVE_TEXT, type ReviewSaveState } from '../../../lib/review-save-state';
 
 function displayValue(text: string | null | undefined, structured: unknown): string | null {
   if (text != null) return text;
@@ -81,7 +82,8 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
   </div>;
 }
 
-export function CharacterReviewComparison({ candidate, applicationMode, reviewed, decisionChosen, disabled, onModeChange, onReview, onEdit, onRetry, retrying, retryError }: {
+export function CharacterReviewComparison({ candidate, applicationMode, reviewed, decisionChosen, disabled, onModeChange, onReview, onEdit, onRetry, retrying, retryError,
+  saveState, localChoiceMarked = false }: {
   candidate: SettingCandidateResponse;
   applicationMode: CharacterFactApplicationMode;
   reviewed: boolean;
@@ -93,6 +95,8 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
   onRetry?: () => void;
   retrying: boolean;
   retryError: string | null;
+  saveState?: ReviewSaveState;
+  localChoiceMarked?: boolean;
 }) {
   const originalLabel = candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서' : '이번 원고에서';
   const status = candidate.comparisonStatus ?? 'NOT_REQUIRED';
@@ -189,7 +193,12 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
           description: '현재 설정을 바꿔야 한다면 값을 수정해 주세요.', footnote: '수정 창 열기' }] : []),
       ]}
       onChange={id => { if (id === 'edit') onEdit?.(); else if (manual && onReview) onReview(id as CharacterFactApplicationMode); else onModeChange(id as CharacterFactApplicationMode); }} />}
-    {reviewed && pending && <div className="review-draft-saved" role="status">선택한 내용을 저장했어요. 아래에서 이 인물의 설정을 모두 확정해 주세요.</div>}
+    {/* 서버가 저장한 선택, 저장 중, 확정 때 적용할 로컬 선택을 문장으로 구분한다. 결과 미확인은 카드 안내가 대신한다. */}
+    {pending && (saveState?.kind === 'saving' ? <div className="review-draft-saved is-pending" role="status">{REVIEW_SAVE_TEXT.saving}</div>
+      : saveState?.kind === 'unverified' || saveState?.kind === 'failed' ? null
+      : reviewed ? <div className="review-draft-saved" role="status">{REVIEW_SAVE_TEXT.saved}</div>
+      : localChoiceMarked && !manual ? <div className="review-draft-saved is-local" role="status">{REVIEW_SAVE_TEXT.localChoice}</div>
+      : null)}
     {exclude && pending && <ReviewNotice title="모두 확정하면 이 후보는 제외돼요">이 내용은 현재 설정이나 이력에 추가하지 않고, 기존 설정은 그대로 유지합니다. 반영하려면 확정 전에 내용을 수정해 주세요.</ReviewNotice>}
   </section>;
 }

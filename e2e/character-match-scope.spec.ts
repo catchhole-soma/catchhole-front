@@ -38,8 +38,9 @@ async function fixture(page: Page) {
         const selected = path.endsWith('/group-character-match')
           ? candidates.filter(candidate => body.candidateIds.includes(candidate.id))
           : candidates.filter(candidate => path === `${listPath}/${candidate.id}/character-match`);
-        selected.forEach(candidate => { candidate.matchedCharacterId = targetId; candidate.entityName = '베른'; });
-        return success(path.endsWith('/group-character-match') ? { groupKey: `existing:${targetId}`, candidates: selected } : selected[0]);
+        const matchedId = body.matchedCharacterId ?? targetId;
+        selected.forEach(candidate => { candidate.matchedCharacterId = matchedId; candidate.entityName = matchedId === sourceId ? '아리아' : '베른'; });
+        return success(path.endsWith('/group-character-match') ? { groupKey: `existing:${matchedId}`, candidates: selected } : selected[0]);
       }
     }
     if (path === listPath) {
@@ -67,26 +68,53 @@ async function fixture(page: Page) {
   return { writes, candidate: candidates[0], holdDetails: () => { detailGate = new Promise<void>(resolve => { releaseDetails = resolve; }); }, releaseDetails: () => releaseDetails?.() };
 }
 
-test('단건 연결은 해당 설정만 이동하고 다른 페이지의 대상 묶음을 연다', async ({ page }) => {
-  const { writes } = await fixture(page);
+async function linkFirstSettingTo(page: Page, name: RegExp) {
   await page.getByRole('region', { name: '소속 설정 후보', exact: true }).getByRole('button', { name: '캐릭터 연결 변경' }).click();
   const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
-  await dialog.getByRole('button', { name: /^베른/ }).click();
+  await dialog.getByRole('button', { name }).click();
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
+test('단건 연결은 현재 묶음을 유지하고 연결한 묶음 이동은 안내의 버튼으로 고른다', async ({ page }) => {
+  const { writes } = await fixture(page);
+  const main = page.locator('.setting-review-main');
+  await linkFirstSettingTo(page, /^베른/);
+  const notice = page.getByRole('status').filter({ hasText: '‘소속’ 설정을 ‘베른’에 연결했어요.' });
+  await expect(notice).toContainText('이 묶음에서는 더 이상 보이지 않아요.');
+  // 화면은 출발 묶음·페이지에 남고, 이동한 설정만 빠진다.
+  await expect(page.getByRole('heading', { name: '아리아1개 설정' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '소속 설정 후보', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '직업 설정 후보', exact: true })).toContainText('캐릭터 · 아리아');
+  await expect(page).toHaveURL(new RegExp(`group=existing%3A${sourceId}`));
+  expect(new URL(page.url()).searchParams.get('candidate')).toBeNull();
+  expect(writes).toEqual([{ path: `${listPath}/candidate-0/character-match`, body: { resolutionType: 'MATCH_EXISTING', matchedCharacterId: targetId } }]);
+  await notice.getByRole('button', { name: '연결한 묶음 보기', exact: true }).click();
   await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
   await expect(page.getByRole('region', { name: '소속 설정 후보', exact: true })).toContainText('캐릭터 · 베른');
-  await expect(page.getByRole('region', { name: '직업 설정 후보', exact: true })).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`group=existing%3A${targetId}`));
-  expect(writes).toEqual([{ path: `${listPath}/candidate-0/character-match`, body: { resolutionType: 'MATCH_EXISTING', matchedCharacterId: targetId } }]);
+  await expect(page).toHaveURL(/[?&]page=2(?:&|$)/);
+  await expect(page.getByRole('status').filter({ hasText: '연결했어요.' })).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
   await page.getByRole('region', { name: '소속 설정 후보', exact: true }).getByRole('button', { name: /이력에만 저장/ }).click();
-  await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toBeVisible();
+  await expect(page.getByText('저장했어요 · 모두 확정 전까지 바꿀 수 있어요', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`group=existing%3A${targetId}`));
   await page.getByRole('button', { name: '이전 페이지', exact: true }).click();
   await expect(page.getByRole('heading', { name: '아리아1개 설정' })).toBeVisible();
   await expect(page.getByRole('region', { name: '직업 설정 후보', exact: true })).toContainText('캐릭터 · 아리아');
+  expect(await main.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+});
+
+test('같은 대상을 다시 고르면 묶음에 남은 설정만 갱신하고 안내하지 않는다', async ({ page }) => {
+  const { writes } = await fixture(page);
+  await linkFirstSettingTo(page, /^아리아/);
+  await expect.poll(() => writes.length).toBe(1);
+  await expect(page.getByRole('heading', { name: '아리아2개 설정' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '소속 설정 후보', exact: true })).toContainText('캐릭터 · 아리아');
+  await expect(page.getByRole('status').filter({ hasText: '연결했어요.' })).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`group=existing%3A${sourceId}`));
 });
 
 test('일괄 연결에서만 묶음의 모든 대기 설정을 함께 변경한다', async ({ page }) => {
@@ -101,7 +129,7 @@ test('일괄 연결에서만 묶음의 모든 대기 설정을 함께 변경한�
   expect(writes).toEqual([{ path: `${listPath}/group-character-match`, body: { batchId, candidateIds: ['candidate-0', 'candidate-1'], resolutionType: 'MATCH_EXISTING', matchedCharacterId: targetId } }]);
 });
 
-test('단건 연결 후 상세 재조회가 늦어도 옛 캐시로 검토 필터를 바꾸지 않는다', async ({ page }) => {
+test('연결한 묶음으로 이동할 때 상세 재조회가 늦어도 옛 캐시로 검토 필터를 바꾸지 않는다', async ({ page }) => {
   const state = await fixture(page);
   await page.getByRole('region', { name: '소속 설정 후보', exact: true }).waitFor();
   await page.evaluate(async ({ workId, batchId, candidate }) => {
@@ -114,10 +142,8 @@ test('단건 연결 후 상세 재조회가 늦어도 옛 캐시로 검토 필�
   }, { workId, batchId, candidate: state.candidate });
   state.holdDetails();
   try {
-    await page.getByRole('region', { name: '소속 설정 후보', exact: true }).getByRole('button', { name: '캐릭터 연결 변경' }).click();
-    const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
-    await dialog.getByRole('button', { name: /^베른/ }).click();
-    await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
+    await linkFirstSettingTo(page, /^베른/);
+    await page.getByRole('button', { name: '연결한 묶음 보기', exact: true }).click();
     await expect(page.getByRole('heading', { name: '베른1개 설정' })).toBeVisible();
     expect(new URL(page.url()).searchParams.get('reviewStatus')).toBeNull();
   } finally {

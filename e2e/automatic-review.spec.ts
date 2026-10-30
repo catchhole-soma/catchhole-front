@@ -130,7 +130,7 @@ for (const grouped of [false, true]) {
     const matchedDialog = await openMatch();
     await expect(matchedDialog).toHaveCount(0);
     await expect(confirm).toBeDisabled();
-    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toHaveCount(0);
+    await expect(page.getByText('저장했어요 · 모두 확정 전까지 바꿀 수 있어요', { exact: true })).toHaveCount(0);
     candidate = { ...candidate, comparisonStatus: 'FAILED' };
     await expect(page.getByRole('button', { name: /현재 설정에 반영/ })).toBeEnabled();
     await expect(confirm).toBeDisabled();
@@ -266,7 +266,7 @@ for (const scenario of [
     await dialog.getByRole('button', { name: /현재 설정에 반영/ }).click();
     await dialog.getByRole('button', { name: '확인한 값 저장' }).click();
     await expect.poll(() => updateBody).toEqual({ attributeName: 'profile.eye_color', attributeValue: scenario.value, reviewedApplicationMode: 'APPLY_PROPOSAL', expectedUpdatedAt: '2026-10-02T01:00:00' });
-    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toBeVisible();
+    await expect(page.getByText('저장했어요 · 모두 확정 전까지 바꿀 수 있어요', { exact: true })).toBeVisible();
     await expect(confirm).toBeEnabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();

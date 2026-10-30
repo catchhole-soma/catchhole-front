@@ -115,7 +115,8 @@ for (const width of [1280, 320]) {
     await expect(page.getByText('끝까지 포기하지 않는다.', { exact: true }).first()).toBeVisible();
     if (width === 320) await page.getByRole('button', { name: '후보 목록으로', exact: true }).click();
     await page.getByRole('button', { name: '다음 페이지' }).click();
-    await expect(page.locator('.candidate-group-card')).toContainText('미상');
+    // 미상 묶음은 같은 인물이 아니라 미연결 후보로 표시한다.
+    await expect(page.locator('.candidate-group-card')).toContainText('미연결 후보 1개');
     await expect(page.locator('.candidate-group-card')).toContainText('직접 확인 1개');
     await expectProgress(page, { confirmed: 120, dismissed: 5, direct: 4 });
     const connectionFilter = page.getByRole('group', { name: '캐릭터 연결 상태', exact: true });

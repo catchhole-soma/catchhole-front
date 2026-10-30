@@ -84,6 +84,14 @@
 .review-additional-changes { margin: 14px 0; }
 .review-additional-changes > summary { min-height: 44px; padding: 10px 0; color: var(--ch-primary-ink); cursor: pointer; font-size: 12px; }
 .review-draft-saved { color: var(--ch-success-ink); font-size: 12px; line-height: 1.7; }
+/* 저장 중·확정 때 적용할 선택은 저장 완료와 다른 문장과 중립색으로 구분한다. */
+.review-draft-saved.is-pending, .review-draft-saved.is-local { color: var(--ch-text-muted); }
+.review-cb-notice__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.review-group-save-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; color: var(--ch-warning-ink); font-size: 12px; line-height: 1.6; }
+.setting-review-group-title:focus, .setting-candidate-detail[data-candidate-id]:focus,
+.world-candidate-detail-title:focus, .world-setting-diff-row[data-candidate-id]:focus { outline: none; }
+.setting-review-group-title:focus-visible, .world-candidate-detail-title:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 3px; border-radius: 4px; }
+.setting-candidate-detail[data-candidate-id]:focus-visible, .world-setting-diff-row[data-candidate-id]:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
 
 .review-cb-decisions { margin: 20px 0; }
 .review-cb-decisions__question { margin-bottom: 13px; }
@@ -183,6 +191,7 @@
   .review-cb-notice { flex-wrap: wrap; }
   .review-cb-notice > div:not(.review-cb-notice__action) { flex: 1; }
   .review-cb-notice__action { width: 100%; margin-left: 26px; }
+  .review-cb-notice__buttons > button, .review-group-save-state button { flex: 1 1 100%; min-height: 44px; }
   .review-cb-evidence__button { min-height: 44px; }
   .setting-review-screen .setting-candidate-detail, .setting-review-screen .world-setting-diff-row { margin: 10px; padding: 16px 12px !important; border-radius: 13px; }
   .setting-review-screen .setting-review-detail article > footer, .setting-review-screen .world-candidate-detail-card > footer { margin: 10px; }

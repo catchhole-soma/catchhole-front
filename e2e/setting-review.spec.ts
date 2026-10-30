@@ -3159,7 +3159,7 @@ test('후보 polling 중에도 수정 모달의 입력 포커스를 유지한다
   await expect(valueInput).toHaveValue('입력 중인 설정값');
 });
 
-test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토한다', async ({ page }) => {
+test('이름 없는 캐릭터 그룹도 미연결 후보로 마지막 목록에서 선택해 검토한다', async ({ page }) => {
   const unnamed = { ...candidates[0], entityName: '', rawEntityMention: '' };
   await page.route('**/api/v1/**', route => {
     const requestUrl = new URL(route.request().url());
@@ -3197,8 +3197,10 @@ test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  await expect(page.getByRole('button', { name: /이름 없는 캐릭터 1개 설정/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '이름 없는 캐릭터' })).toBeVisible();
+  // 이름이 비어 있으면 서버도 인물을 확인하지 못한 묶음이므로 같은 캐릭터로 표현하지 않는다.
+  await expect(page.getByRole('button', { name: /미연결 후보 1개 1개 설정/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '인물 미확인1개 설정' })).toBeVisible();
+  await expect(page.getByText('같은 캐릭터 후보', { exact: true })).toHaveCount(0);
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toContain('__unnamed__:');
 });
 
