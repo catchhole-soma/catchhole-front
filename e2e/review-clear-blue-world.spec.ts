@@ -141,7 +141,7 @@ for (const operation of ['ADD', 'MERGE', 'UPDATE'] as const) {
     { searchTargets: true, targetSubjectName: '수로관리청', targetValue: operation === 'ADD' ? undefined : before, pauseReadback: true });
     const row = page.locator('.world-setting-diff-row');
     const target = row.getByRole('button', { name: /수로관리청.*이 대상에 연결/ });
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await target.click();
     if (operation !== 'ADD') {
       const choice = row.getByRole('button', { name: operation === 'MERGE' ? /기존 내용과 합치기/ : /이번 내용으로 바꾸기/ });
@@ -199,7 +199,7 @@ test('대상 연결이 아닌 같은 값 추가 카드는 기존처럼 즉시 �
   expect(state.saved[0].candidates[0]).toMatchObject({ operation: 'ADD', value: base.extractedValue });
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveCount(0);
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 완료');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   state.allowReadback();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
@@ -208,15 +208,15 @@ test('대상 연결이 아닌 같은 값 추가 카드는 기존처럼 즉시 �
 
 test('범위 미정은 예 한 번으로 기존 내용과 이번 내용을 함께 저장하고 마지막에 그룹 확정한다', async ({ page }) => {
   const { saved, confirmed } = await setup(page);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'MERGE', scopeName: '탐사 규칙', settingName: '귀환 조건', value: '해가 지면 돌아온다.\n생명력이 낮으면 돌아온다.' });
   expect(confirmed).toHaveLength(0);
   await expect(page.locator('.review-modal')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(page.locator('.world-setting-diff-row')).not.toContainText('범위 확인 필요');
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => confirmed.length).toBe(1);
 });
 
@@ -309,7 +309,7 @@ test('직접 검토 가능한 비교 실패는 없는 기존값을 단정하지 
   await row.getByLabel('최종 내용', { exact: true }).fill('안전 기준에 따라 귀환한다.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   expect(requests.some(request => request.includes('/retry'))).toBe(false);
 });
 
@@ -325,7 +325,7 @@ test('세계관 대상 선택은 실제 저장된 대상을 검색하고 선택�
 test('충돌은 여러 줄 원문 전체를 보존하고 최종 내용을 직접 저장해야 확정할 수 있다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonReviewReason: 'GENERAL_UNCERTAINTY', consolidationStatus: 'CONFLICT',
     beforeValue: null, matchedPropertyName: null, matchedScopeName: null, extractedValue: '매일 열린다.\n한 달에 한 번 열린다.', proposedValue: '매일 열린다.\n한 달에 한 번 열린다.' });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(page.getByRole('button', { name: /추출 내용 [12]/ })).toHaveCount(0);
   await expect(page.getByLabel('최종 내용', { exact: true })).toHaveValue('매일 열린다.\n한 달에 한 번 열린다.');
   await page.getByLabel('최종 내용', { exact: true }).fill('한 달에 한 번 열린다.');
@@ -333,7 +333,7 @@ test('충돌은 여러 줄 원문 전체를 보존하고 최종 내용을 직접
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ value: '한 달에 한 번 열린다.', conflictResolved: true });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
 });
 
 test('저장 충돌 시 인라인 작성값을 보존한다', async ({ page }) => {
@@ -343,14 +343,14 @@ test('저장 충돌 시 인라인 작성값을 보존한다', async ({ page }) =
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   await expect(page.getByLabel('최종 내용', { exact: true })).toHaveValue('입력을 보존해야 한다.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('분석 중에는 간단한 안내와 기존 분석 화면 이동만 제공한다', async ({ page }) => {
   const { saved } = await setup(page, { analysisMode: 'ORDERED_PROVISIONAL', automaticApplicationPending: true });
   await expect(page.getByRole('button', { name: '분석 진행 보기' })).toBeVisible();
   await expect(page.getByRole('button', { name: /예, 포함된 내용이에요/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(page.locator('.world-setting-diff-row').getByRole('button', { name: /제외/ })).toBeDisabled();
   expect(saved).toHaveLength(0);
 });
@@ -379,7 +379,7 @@ test('세계관 선택 카드와 diff는 320px에서 잘리지 않고 조작할 
   await expect(yes).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await yes.click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -391,11 +391,11 @@ test('대상 동일성 보류는 ADD 제안이어도 새 설정으로 단정하�
   const row = page.locator('.world-setting-diff-row');
   await expect(row.locator('.review-cb-heading')).toContainText('같은 대상인지 확인');
   await expect(row.locator('.review-cb-heading')).not.toContainText('새 설정');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
 });
 
 
@@ -461,12 +461,12 @@ test('상위종 비교 실패는 수동 확인 선택으로만 초안을 준비�
   await expect(row).toContainText('자동 비교를 마치지 못했어요');
   await expect(row.getByLabel('반영할 대상', { exact: true })).toHaveCount(0);
   await expect(row).not.toContainText('기존 설정 없음');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await row.screenshot({ path: testInfo.outputPath('world-comparison-failure-choices.png') });
   await row.getByRole('button', { name: /이 내용 그대로 추가/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', subjectName: '상위종', settingName: '분류 기준', value: '상위종은 높은 지능을 가진다.' });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   const editor = await reopenSavedDraft(page);
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('상위종');
   expect(confirmed).toHaveLength(0);
@@ -515,7 +515,7 @@ test('수동 복구 초안이 준비되면 실패 그룹의 상단과 목록도 
   await setup(page, { comparisonStatus: 'FAILED', comparisonFailureCode: 'LLM_NETWORK_ERROR', comparisonReviewReason: undefined,
     beforeValue: null, matchedScopeName: null, matchedPropertyName: null });
   await page.getByRole('button', { name: /이 내용 그대로 추가/ }).click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 준비됨');
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 대기 1개');
   await expect(page.locator('.world-candidate-detail-card')).toContainText('확정할 내용이 준비됐어요');
@@ -525,7 +525,7 @@ test('수동 복구 초안이 준비되면 실패 그룹의 상단과 목록도 
 
 test('저장한 초안을 다시 편집하면 모두 확정을 잠그고 취소 또는 재저장 뒤에만 연다', async ({ page }) => {
   const { saved, confirmed } = await setup(page);
-  const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
   await expect(confirm).toBeEnabled();
   let editor = await reopenSavedDraft(page);
@@ -550,7 +550,7 @@ test('저장한 초안을 다시 편집하면 모두 확정을 잠그고 취소 
 
 test('기존 저장안이 있어도 재저장 실패 후 미저장 입력을 확정하지 못한다', async ({ page }) => {
   const { saved, confirmed } = await setup(page, {}, { failSaveAfter: 1 });
-  const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
   await expect(confirm).toBeEnabled();
   const editor = await reopenSavedDraft(page);
@@ -573,7 +573,7 @@ for (const failure of ['http', 'incomplete'] as const) {
     const retry = page.getByRole('button', { name: '선택한 대상 다시 불러오기' });
     await expect(retry).toBeVisible();
     await expect(target).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
     expect(state.saved).toHaveLength(0);
     if (failure === 'http') {
       await page.getByLabel('기존 세계관 대상 검색', { exact: true }).fill('왕도');
@@ -593,7 +593,7 @@ test('저장된 대상을 수정하다 재저장이 실패하면 이전 초안�
   await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => state.saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   const editor = await reopenSavedDraft(page);
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('북부 미궁');
   await editor.getByRole('textbox', { name: '대상', exact: true }).fill('왕도 미궁');
@@ -601,7 +601,7 @@ test('저장된 대상을 수정하다 재저장이 실패하면 이전 초안�
   await expect.poll(() => state.saved.length).toBe(2);
   expect(state.saved[1].candidates[0]).toMatchObject({ subjectName: '왕도 미궁', value: base.extractedValue });
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('왕도 미궁');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.confirmed).toHaveLength(0);
 });
 
@@ -675,7 +675,7 @@ test('대상 연결 조회 중·빈 검색·실패를 구분하고 재시도해�
   await expect(panel).toContainText('‘실패 검색’ 검색 결과가 없어요.');
   expect(state.saved).toHaveLength(0);
   expect(state.confirmed).toHaveLength(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('새 대상 선택은 편집·초안 저장 후에만 별도로 모두 확정한다', async ({ page }) => {
@@ -689,12 +689,12 @@ test('새 대상 선택은 편집·초안 저장 후에만 별도로 모두 확�
   await expect(page.getByLabel('반영할 대상', { exact: true })).toHaveValue('별빛 미궁');
   expect(saved).toHaveLength(0);
   await page.getByLabel('반영할 대상', { exact: true }).fill('새 별빛 미궁');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', subjectName: '새 별빛 미궁', value: base.extractedValue });
   expect(confirmed).toHaveLength(0);
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => confirmed.length).toBe(1);
 });
 
@@ -786,7 +786,7 @@ test('저장 응답만 있고 목록 확인이 실패하면 기존 초안 편집
   await editor.getByRole('button', { name: '수정안 적용', exact: true }).click();
   await expect.poll(() => state.saved.length).toBe(1);
   await expect(editor.getByRole('textbox', { name: '최종 설정값', exact: true })).toHaveValue('목록 확인 전에는 보존할 수정.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.confirmed).toHaveLength(0);
   await expect(editor.getByRole('button', { name: '최신 상태 다시 확인', exact: true })).toBeEnabled();
   state.allowReadback();
@@ -826,7 +826,7 @@ test('저장 뒤 다른 최종값을 조회하면 인라인 입력을 유지하�
   await expect(page.getByRole('button', { name: '최신 상태 다시 확인', exact: true })).toBeVisible();
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue('이번 요청에서 작성한 내용.');
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 완료');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   state.allowReadback();
   await page.getByRole('button', { name: '최신 상태 다시 확인', exact: true }).click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
@@ -868,11 +868,11 @@ test('최신 상태 재확인 중에는 중복 조회를 막고 불일치 뒤에
   await expect.poll(state.delayedListFinished).toBe(true);
   await expect(recover).toBeEnabled();
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue('재확인 중에도 보존할 내용.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await recover.click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   expect(state.saved).toHaveLength(1);
   expect(state.confirmed).toHaveLength(0);
 });

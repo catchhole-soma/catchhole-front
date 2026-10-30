@@ -95,10 +95,10 @@ for (const width of [1280, 320]) {
         await expect(pendingRow.getByRole('button', { name: '새 캐릭터로 등록' })).toHaveCount(0);
         await expect(pendingRow.locator('.review-cb-choice')).toHaveCount(0);
         await expect(page.getByRole('button', { name: '캐릭터 일괄 연결' })).toBeDisabled();
-        await expect(page.getByRole('button', { name: /설정 모두 확정/ })).toBeDisabled();
+        await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
       } else {
         await expect(page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true })).toBeDisabled();
-        await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+        await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
       }
       await expect(earlierRow.getByRole('button', { name: '수정', exact: true })).toBeEnabled();
       await expect(earlierRow.getByRole('button', { name: /제외/ })).toBeEnabled();
@@ -237,7 +237,7 @@ test('자동 반영 대기의 개별 비교 실패·재비교 대기·연결 대
   await expect(page.locator('.world-candidate-group-card')).toContainText('분석 중 3개');
   await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
   await expect(page.locator('.review-cb-notice').filter({ hasText: '분석이 진행 중이에요' })).toHaveCount(3);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await page.getByRole('button', { name: /^캐릭터 후보/ }).click();
   await expect(page.locator('.candidate-group-card')).toContainText('분석 중 1개');
   await expect(page.locator('.candidate-group-card')).not.toContainText('직접 확인');
@@ -260,9 +260,9 @@ test('새 대기 필드가 없는 이전 응답의 수동 후보는 계속 직�
   });
   await open(page, 'character');
   await expectCounts(page, 2, 0);
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await page.getByRole('button', { name: /^세계관 후보/ }).click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(page.locator('.automatic-application-notice')).toHaveCount(0);
 });
 

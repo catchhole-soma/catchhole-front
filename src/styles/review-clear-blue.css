@@ -287,3 +287,40 @@
 .review-target-link__plan { margin: 14px 0 0; color: var(--ch-text); font-size: 12px; line-height: 1.7; }
 .review-link-preview__section dl > div.is-decision dd { color: var(--ch-warning-ink); font-weight: 650; }
 .review-cb-target-search__controls select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-ink); font: inherit; font-size: 13px; }
+
+/* #211 후속 3차: 묶음 확정 영역. 상세 스크롤 영역 하단에 붙고, 선택 바를 같은 영역 맨 위에 쌓는다. */
+.setting-review-screen .setting-review-detail article > footer.review-action-bar,
+.setting-review-screen .world-candidate-detail-card > footer.review-action-bar {
+  position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 10px;
+  margin: 16px 0 0; padding: 12px 20px; border: 0 !important; border-top: 1px solid var(--ch-border) !important; border-radius: 0;
+  background: var(--ch-surface) !important; box-shadow: 0 -10px 24px rgb(31 55 88 / 8%) !important;
+}
+.review-action-bar__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.review-action-bar__summary { flex: 1 1 240px; min-width: 0; }
+.review-action-bar__counts { margin: 0; color: var(--ch-ink); font-size: 13px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
+.review-action-bar__counts .is-blocking { color: var(--ch-warning-ink); }
+.review-action-bar__reason { margin: 2px 0 0; color: var(--ch-warning-ink); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-action-bar__error { width: 100%; color: var(--ch-danger-ink); font-size: 12px; line-height: 1.6; }
+.review-action-bar__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.review-action-bar__primary { min-height: 44px; padding: 0 20px; border: 1px solid var(--ch-primary-hover); border-radius: 10px; background: var(--ch-primary-hover); color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.review-action-bar__primary:hover:not([aria-disabled=true]) { background: var(--ch-primary-pressed); }
+.review-action-bar__primary[aria-disabled=true] { border-color: var(--ch-border-strong); background: var(--ch-canvas); color: var(--ch-text-muted); cursor: not-allowed; }
+.review-action-bar__jump { min-height: 44px; }
+.review-action-bar__primary:focus-visible, .review-action-bar__jump:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-group-confirm-notes { margin: 16px 22px 0; display: grid; gap: 10px; }
+.review-group-confirm-notes > * { margin: 0; }
+[data-candidate-id] { scroll-margin-top: 12px; }
+@media (max-width: 650px) {
+  .setting-review-screen .setting-review-detail article > footer.review-action-bar,
+  .setting-review-screen .world-candidate-detail-card > footer.review-action-bar { gap: 8px; margin-top: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .review-action-bar__summary { flex-basis: 100%; }
+  .review-action-bar__actions { width: 100%; flex-wrap: nowrap; }
+  .review-action-bar__actions > button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px; }
+  /* 선택 바와 확정 버튼 줄이 함께 고정되므로 320px에서도 선택 바 버튼을 두 칸으로 놓아 영역 높이를 줄인다. */
+  .review-selection-bar { padding: 8px 10px; }
+  .review-selection-bar__actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setting-review-screen .review-selection-bar__actions .review-action { min-height: 44px !important; padding: 0 8px !important; }
+  /* 선택 중에는 막는 이유 문장을 접는다. 수치·이동 버튼은 남고, 문장은 주 버튼의 설명(aria-describedby)으로 계속 읽힌다. */
+  footer.review-action-bar:has(.review-selection-bar) .review-action-bar__reason { display: none; }
+  .review-group-confirm-notes { margin: 10px 10px 0; }
+}

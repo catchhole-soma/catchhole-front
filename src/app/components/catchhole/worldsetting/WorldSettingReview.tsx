@@ -83,6 +83,8 @@ import { UserMenu } from '../UserMenu';
 import { OtherSettingReviewAction, SettingReviewTabs } from './SettingReviewTabs';
 import { ReviewSettingHeading, ReviewValueComparison, ReviewEvidence, ReviewNotice, ReviewInlineValue, ReviewChoiceCards } from '../review-ui/ReviewPrimitives';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
+import { ReviewGroupActionBar } from '../review-ui/ReviewGroupActionBar';
+import { useReviewCardNavigation } from '../review-ui/useReviewCardNavigation';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { WorldReviewDecisionPanel, type WorldPresetTarget } from './WorldReviewDecisionPanel';
 import {
@@ -1088,6 +1090,9 @@ function WorldCandidateGroupDetail({
   selection,
   presetTargets,
   linkNotice,
+  hasNextGroup,
+  confirmPending,
+  onJumpToBlocking,
 }: {
   group: WorldSettingCandidateGroupResponse;
   originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
@@ -1123,6 +1128,11 @@ function WorldCandidateGroupDetail({
   };
   presetTargets: Record<string, WorldPresetTarget>;
   linkNotice?: ReactNode;
+  /** 확정 뒤 같은 탭에 열 묶음이 남는지. 주 버튼 이름(`확정하고 다음`/`모두 확정`)을 고른다. */
+  hasNextGroup: boolean;
+  /** 확정 요청 중. */
+  confirmPending: boolean;
+  onJumpToBlocking: (candidateIds: string[]) => void;
 }) {
   const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
   const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
@@ -1197,6 +1207,23 @@ function WorldCandidateGroupDetail({
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
   const confirmable = confirmBlock === null;
+  const blockNoticeIds = {
+    duplicate: `world-block-duplicate-${group.groupKey ?? 'group'}`,
+    conflict: `world-block-conflict-${group.groupKey ?? 'group'}`,
+    filtered: `world-block-filtered-${group.groupKey ?? 'group'}`,
+    unsaved: `world-block-unsaved-${group.groupKey ?? 'group'}`,
+    book: `world-block-book-${group.groupKey ?? 'group'}`,
+    recovery: `world-block-recovery-${group.groupKey ?? 'group'}`,
+  };
+  const blockNoticeVisible = (kind: string) => !groupAutomaticPending && (kind === 'duplicate' || kind === 'conflict'
+    || kind === 'filtered' && pendingCandidates.length > 0 || kind === 'unsaved' || kind === 'book');
+  // 확정 영역의 수치. 막힌 행은 결정 필요로만 세고 나머지는 반영과 제외로 나눈다.
+  const decisionCounts = (() => {
+    const blocked = new Set(confirmBlock?.candidateIds ?? []);
+    const unblocked = pendingCandidates.filter(candidate => !blocked.has(candidate.id!));
+    const exclude = unblocked.filter(candidate => (decisions[candidate.id!] ?? candidateDecision(candidate))?.operation === 'EXCLUDE').length;
+    return { ready: unblocked.length - exclude, exclude };
+  })();
   const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) =>
     canShowRootMoveProposal(candidate, candidates, decisions, confirmationFiltered);
   // 완료된 순차 검토는 선택한 속성만 확정하며 과거 비교의 부수 이동은 재실행하지 않는다.
@@ -1209,6 +1236,8 @@ function WorldCandidateGroupDetail({
     includeRootMoveNotice(candidate) && candidate.proposedScopeName
     && (candidate.existingRootPropertyNamesToMove?.length ?? 0) > 0
   )) : [];
+  const orderedImpactVisible = !groupAutomaticPending && preservedMoveCandidates.length === 0
+    && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
   // 대상 연결은 화면에 그려진 대기 행만 체크한다. 공유 결정의 원문은 함께 체크된다.
   const linkableCandidates = pendingCandidates.filter(candidate => !worldLinkBlockedReason(candidate, confirmationFiltered));
   const checkedCandidates = pendingCandidates.filter(candidate => selection.checkedIds.includes(candidate.id!));
@@ -1216,7 +1245,8 @@ function WorldCandidateGroupDetail({
   const identityHintId = `world-identity-hint-${group.groupKey ?? 'group'}`;
   const identityHintVisible = !identityEditable && pendingCandidates.length > 0 && !groupAutomaticPending;
   return (
-    <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
+    // clip은 스크롤 컨테이너를 만들지 않아 하단 확정 영역이 상세 스크롤 영역 기준으로 고정된다.
+    <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'clip' }}>
       <header style={{ padding: '21px 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <strong className="world-candidate-detail-title" data-review-group-title tabIndex={-1} style={{ color: REVIEW_TEXT.ink, fontSize: 18 }}>
@@ -1298,7 +1328,7 @@ function WorldCandidateGroupDetail({
       })}
 
       {!groupAutomaticPending && duplicatePropertyPaths.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.duplicate} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1309,7 +1339,7 @@ function WorldCandidateGroupDetail({
       )}
 
       {!groupAutomaticPending && unresolvedConflicts.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.conflict} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1319,7 +1349,7 @@ function WorldCandidateGroupDetail({
       )}
 
       {(actionError || decisionRecoveryRequired) && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.recovery} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
           color: REVIEW_TEXT.danger, fontSize: 12, lineHeight: 1.55,
@@ -1332,7 +1362,7 @@ function WorldCandidateGroupDetail({
       )}
 
       {!groupAutomaticPending && confirmationFiltered && pendingCandidates.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.filtered} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1341,17 +1371,33 @@ function WorldCandidateGroupDetail({
         </div>
       )}
 
-      {hasUnsavedChanges && <div style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
+      {hasUnsavedChanges && <div id={blockNoticeIds.unsaved} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
         수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.
       </ReviewNotice></div>}
-      {bookChoicesPending && !groupAutomaticPending && <div style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
+      {bookChoicesPending && !groupAutomaticPending && <div id={blockNoticeIds.book} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
         각 항목에서 내용을 확인하고 확정할 방법을 선택해 주세요.
       </ReviewNotice></div>}
-      <footer style={{
-        position: 'sticky', bottom: 0, zIndex: 2, marginTop: 18, padding: '16px 22px',
-        borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
-        display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9, flexWrap: 'wrap',
-      }}>
+      {(preservedMoveCandidates.length > 0 || orderedImpactVisible) && <div className="review-group-confirm-notes">
+        {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
+        {orderedImpactVisible && <OrderedReviewImpactNotice />}
+      </div>}
+      <ReviewGroupActionBar
+        readyCount={decisionCounts.ready}
+        excludeCount={decisionCounts.exclude}
+        blockingCount={confirmBlock?.candidateIds.length ?? 0}
+        // 같은 문장의 경고가 이미 위에 있으면 버튼 설명을 그 경고에 잇고 문장을 되풀이하지 않는다.
+        reason={!decisionRecoveryRequired && confirmBlock && !blockNoticeVisible(confirmBlock.kind) ? confirmBlock.reason : null}
+        describedBy={decisionRecoveryRequired ? [blockNoticeIds.recovery]
+          : confirmBlock && blockNoticeVisible(confirmBlock.kind) ? [blockNoticeIds[confirmBlock.kind as keyof typeof blockNoticeIds]] : undefined}
+        hasNextGroup={hasNextGroup}
+        pending={confirmPending}
+        disabled={actionPending || decisionRecoveryRequired || !confirmable}
+        onConfirm={() => { if (!hasUnsavedChanges) onConfirm(); }}
+        onJumpToBlocking={() => onJumpToBlocking(confirmBlock?.candidateIds ?? [])}
+        secondaryActions={retryAvailable && <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
+          <RefreshCw size={12} /> 다시 비교
+        </ActionButton>}
+      >
         {checkedCandidates.length > 0 && <div className="review-selection-bar" role="region" aria-label="선택한 설정">
           <div className="review-selection-bar__summary">
             <strong>{checkedCandidates.length}개 선택</strong>
@@ -1362,27 +1408,7 @@ function WorldCandidateGroupDetail({
             <ActionButton disabled={actionPending} onClick={selection.onClear}>선택 해제</ActionButton>
           </div>
         </div>}
-        {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
-        {!groupAutomaticPending && preservedMoveCandidates.length === 0
-          && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
-          <div style={{ flexBasis: '100%' }}><OrderedReviewImpactNotice /></div>
-        )}
-        {retryAvailable && (
-          <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
-            <RefreshCw size={12} /> 다시 비교
-          </ActionButton>
-        )}
-        <button type="button" disabled={actionPending || decisionRecoveryRequired || !confirmable} onClick={() => { if (!hasUnsavedChanges) onConfirm(); }} style={{
-          minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
-          background: actionPending || !confirmable ? C.border : C.primary,
-          color: actionPending || !confirmable ? REVIEW_TEXT.muted : '#fff', fontFamily: 'inherit',
-          fontSize: 12, fontWeight: 800, cursor: actionPending || !confirmable ? 'not-allowed' : 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-        }}>
-          {actionPending ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-          모두 확정
-        </button>
-      </footer>
+      </ReviewGroupActionBar>
     </article>
   );
 }
@@ -1656,6 +1682,8 @@ export function WorldSettingReview() {
   const automaticRetryIds = useRef(new Set<string>());
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
+  const detailRef = useRef<HTMLElement>(null);
+  const cardNavigation = useReviewCardNavigation(detailRef);
 
   const listRequest = {
     path: { workId },
@@ -2669,6 +2697,10 @@ export function WorldSettingReview() {
     : undefined;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
+  // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
+  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
+    && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
+    || groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0;
 
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
@@ -2918,7 +2950,7 @@ export function WorldSettingReview() {
                       disabled={listQuery.isPending} onPageChange={changePage} />
                   </aside>
 
-                  <section className="world-setting-review-detail">
+                  <section className="world-setting-review-detail" ref={detailRef}>
                     <button type="button" className="world-setting-review-mobile-back" onClick={() => setMobileDetailOpen(false)} style={{
                       display: 'none', marginBottom: 10, border: 'none', background: 'none',
                       color: REVIEW_TEXT.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
@@ -2929,7 +2961,7 @@ export function WorldSettingReview() {
                         title={worldReviewComplete ? '세계관 검토를 마쳤어요'
                           : groups.length === 0 ? '조건에 맞는 세계관 대상이 없습니다.' : '세계관 대상을 선택해 주세요.'}
                         description={worldReviewComplete
-                          ? characterPending > 0 ? '남은 캐릭터 후보를 확인해 주세요. 반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.' : '반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
+                          ? characterPending > 0 ? `캐릭터 후보 ${characterPending}개가 남았어요. 반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.` : '반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
                           : groups.length === 0 ? '검토 상태·분류·반영 방식 필터를 바꾸면 다른 대상을 확인할 수 있어요.'
                           : '목록에서 대상을 선택하면 같은 대상의 설정 항목과 1차 원문 근거를 함께 확인할 수 있습니다.'}
                         action={worldReviewComplete && characterPending > 0 ? <OtherSettingReviewAction current="world" /> : undefined}
@@ -3016,6 +3048,9 @@ export function WorldSettingReview() {
                         }}
                         presetTargets={presetTargets}
                         linkNotice={targetLinkNoticeView}
+                        hasNextGroup={hasNextGroup}
+                        confirmPending={confirmMutation.isPending}
+                        onJumpToBlocking={cardNavigation.jumpToBlocking}
                       />
                     )}
                   </section>

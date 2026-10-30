@@ -76,7 +76,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
 }
 
 const card = (page: Page) => page.getByRole('region', { name: '소속 설정 후보', exact: true });
-const confirm = (page: Page) => page.getByRole('button', { name: /1개 설정 모두 확정/ });
+const confirm = (page: Page) => page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
 
 for (const width of [1020, 1217, 320]) test(`원문 카드의 제목과 모든 근거는 ${width}px에서 테두리 안쪽에 여백을 둔다`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 1100 });
@@ -365,7 +365,7 @@ test('완료된 제외 제안은 묶음 확정에 포함하고 현재값이나 �
   await expect(card(page).getByText('제외 제안', { exact: true })).toBeVisible();
   await expect(card(page).getByText('모두 확정하면 이 후보는 제외돼요', { exact: true })).toBeVisible();
   await expect(card(page).getByText(/이 내용은 현재 설정이나 이력에 추가하지 않고/)).toBeVisible();
-  await expect(page.getByText('반영 0개 · 제외 1개', { exact: true })).toBeVisible();
+  await expect(page.locator('.review-action-bar__counts')).toHaveText('제외 1');
   await expect(page.getByText('모든 설정의 현재값 비교가 끝난 뒤 함께 확정할 수 있습니다.', { exact: true })).toHaveCount(0);
   await expect(confirm(page)).toBeEnabled();
   await expect(card(page).getByRole('button', { name: '제외', exact: true })).toBeEnabled();
@@ -408,8 +408,8 @@ test('등장·반영·제외가 섞인 인물 묶음은 한 요청으로 확정�
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mixed-exclusion-test'));
   await page.goto(url);
-  await expect(page.getByText('반영 2개 · 제외 1개', { exact: true })).toBeVisible();
-  const groupConfirm = page.getByRole('button', { name: '3개 설정 모두 확정', exact: true });
+  await expect(page.locator('.review-action-bar__counts')).toHaveText('확정 가능 2 · 제외 1');
+  const groupConfirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(groupConfirm).toBeEnabled();
   await groupConfirm.click();
   await expect.poll(() => writes.length).toBe(1);
@@ -587,7 +587,7 @@ test('같은 항목에 두 현재 반영을 선택하면 하나를 이력으로 
       groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
   });
   await page.reload();
-  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  const button = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(button).toBeDisabled();
   await expect(page.getByText(/‘소속’에 현재 반영을 여러 번 선택했어요/)).toBeVisible();
   await card(page).last().getByRole('button', { name: /이력에만 저장/ }).click();
@@ -608,7 +608,7 @@ test('기존 다회차 직접 검토는 동일 항목의 순차 반영을 막지
       groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
   });
   await page.reload();
-  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  const button = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(button).toBeEnabled();
   await expect(page.getByText(/현재 반영을 여러 번 선택했어요/)).toHaveCount(0);
   await button.click();

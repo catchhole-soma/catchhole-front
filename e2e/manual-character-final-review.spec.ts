@@ -68,7 +68,7 @@ test('같은 회차에서 수정·제외 후 다른 선택을 유지하고 최�
   await expect(page.getByText('설정을 비교하고 있어요', { exact: true })).toHaveCount(0);
   await expect(firstCard.getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(secondCard.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: '2개 설정 모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => requests.some(r => r.path.endsWith('/group-confirm'))).toBe(true);
   const submitted = requests.find(r => r.path.endsWith('/group-confirm'))!.body;
   expect(submitted).toMatchObject({ acceptDisplayedResults: true, candidates: [

@@ -41,9 +41,9 @@ test('실제 서버에서 세계관 병합·캐릭터 결정 저장→재조회�
   expect(worldDraft.finalOperation).toBe('MERGE');
   expect(worldDraft.finalValue).toBe(`${worldBefore.beforeValue}\n${worldBefore.extractedValue}`);
   await page.reload();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   const worldConfirm = page.waitForResponse(response => response.url().endsWith('/world-setting-candidates/group-confirm') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   expect((await worldConfirm).status()).toBe(200);
   const worldRead = await page.request.get(`${base}/world-settings/${worldBefore.targetWorldSettingId}`, { headers });
   expect(worldRead.status()).toBe(200);
@@ -64,7 +64,7 @@ test('실제 서버에서 세계관 병합·캐릭터 결정 저장→재조회�
     expect(saved.temporalScope).toBe(characterBefore.temporalScope);
     await page.reload();
     await expect(row.getByRole('button', { name: new RegExp(`^${title}`) })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   }
   const stale = await page.request.patch(`${base}/setting-candidates/${characterBefore.id}`, { headers, data: {
     attributeName: characterBefore.attributeName, attributeValue: characterBefore.attributeValue,
@@ -72,7 +72,7 @@ test('실제 서버에서 세계관 병합·캐릭터 결정 저장→재조회�
   } });
   expect(stale.status()).toBe(409);
   const characterConfirm = page.waitForResponse(response => response.url().endsWith('/setting-candidates/group-confirm') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: /1개 설정 모두 확정/ }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   const confirmedResponse = await characterConfirm;
   expect(confirmedResponse.status()).toBe(200);
   const confirmed = (await candidates('setting')).find(candidate => candidate.id === characterBefore.id)!;

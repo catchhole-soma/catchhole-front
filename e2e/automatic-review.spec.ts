@@ -109,7 +109,7 @@ for (const grouped of [false, true]) {
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
-    const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
     const saveManualReview = async () => {
       await page.getByRole('button', { name: /현재 설정에 반영/ }).click();
       await expect(confirm).toBeEnabled();
@@ -229,7 +229,7 @@ for (const scenario of [
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent('수아')}`);
-    const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
     const detail = page.locator('.setting-candidate-detail');
     await detail.locator('.review-cb-evidence summary').click();
     await expect(detail).toContainText(scenario.status === 'FAILED' ? '연결할 대상 확인' : '비교할 내용 확인');
@@ -326,7 +326,7 @@ for (const { status, width } of [
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&group=${encodeURIComponent('RACE|설인')}`);
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await expect(confirm).toBeDisabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     await page.locator('.world-setting-diff-row').getByRole('button', { name: '수정', exact: true }).click();

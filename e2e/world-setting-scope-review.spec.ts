@@ -93,7 +93,7 @@ for (const width of [1280, 320]) {
     await expect(source).not.toContainText('AI가 합친 비교값');
     await row.locator('.review-cb-evidence summary').click();
     await expect(row.locator('.world-setting-comparison-reason')).toContainText('같은 장소인지 확실하지 않아');
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await expect(confirm).toBeDisabled();
     const pendingNotice = page.locator('.world-setting-diff-row').last().locator('.review-cb-notice.is-warning');
     const savedNotice = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"] .review-cb-notice.is-success`);

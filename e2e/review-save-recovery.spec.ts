@@ -119,11 +119,11 @@ test('반영 방식 저장 응답을 잃어도 서버에 저장됐으면 재전�
   await card.getByRole('button', { name: /이력에만 저장/ }).click();
   await expect(card.getByRole('status').filter({ hasText: unverifiedText })).toBeVisible();
   await expect(card.getByText(savedText, { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   releaseDetail();
   await expect(card.getByText(savedText, { exact: true })).toBeVisible();
   await expect(card.getByRole('status').filter({ hasText: unverifiedText })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   expect(state.patches).toHaveLength(1);
 });
 
@@ -176,7 +176,7 @@ test('그룹 확정 응답을 잃어도 재조회에서 그룹이 사라지면 �
   const { state } = await characterFixture(page, candidates, existingKey);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent(`existing:${firstCharacterId}`)}`);
   state.loseConfirm = 'saved';
-  await page.getByRole('button', { name: '1개 설정 모두 확정' }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect(page).toHaveURL(new RegExp(`group=existing%3A${secondCharacterId}`));
   await expect(page.getByRole('heading', { name: '도윤1개 설정' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '도윤1개 설정' })).toBeFocused();

@@ -88,7 +88,7 @@ test('확정 뒤 직전 목록의 바로 다음 그룹을 열고 제목에 초�
   await expect(page.getByRole('heading', { name: '도윤5개 설정' })).toBeVisible();
   await main(page).evaluate(element => { element.scrollTop = 300; });
   await expect.poll(() => main(page).evaluate(element => element.scrollTop)).toBeGreaterThan(200);
-  await page.getByRole('button', { name: '5개 설정 모두 확정' }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect(page).toHaveURL(new RegExp(`group=${encodeURIComponent(groupKey(2))}`));
   const heading = page.getByRole('heading', { name: '세라1개 설정' });
   await expect(heading).toBeFocused();

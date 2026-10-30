@@ -91,6 +91,8 @@ import {
 import { CandidateEditModal } from './CandidateEditModal';
 import { CharacterMatchModal, type MatchResolution } from './CharacterMatchModal';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
+import { ReviewGroupActionBar } from '../review-ui/ReviewGroupActionBar';
+import { useReviewCardNavigation } from '../review-ui/useReviewCardNavigation';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { ReviewEvidence, ReviewInlineValue, ReviewNotice, ReviewSettingHeading } from '../review-ui/ReviewPrimitives';
 import {
@@ -793,6 +795,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const selectionIntentRef = useRef<Extract<CharacterSaveIntent, { kind: 'selectedMatch' }> | null>(null);
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
+  const detailRef = useRef<HTMLElement>(null);
+  const cardNavigation = useReviewCardNavigation(detailRef);
 
   const listOptions = getSettingCandidatesOptions({
     path: { workId },
@@ -886,7 +890,6 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const pendingGroupCandidates = selectedGroupCandidates.filter(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
-  const groupExclusionCount = pendingGroupCandidates.filter(isGroupExclusionProposal).length;
   const selectedGroupUnlinked = Boolean(selectedGroup && isUnlinkedCandidateGroup(selectedGroup));
   const comparisonCandidates = pendingGroupCandidates.filter(candidate => (
     hasCharacterFactComparison(candidate) && candidate.analysisMode !== 'ORDERED_PROVISIONAL'
@@ -1782,6 +1785,15 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     ? recentLink : null;
   const confirmSaveKey = selectedGroup?.groupKey ? `confirm:${selectedGroup.groupKey}` : null;
   const confirmSaveState = saveTracker.stateFor(confirmSaveKey);
+  // 확정 영역의 수치. 막힌 후보는 결정 필요로만 세고, 나머지는 실제 효과(현재 반영·이력 저장·제외)로 나눈다.
+  const groupBlockedIds = new Set(groupConfirmBlock?.candidateIds ?? []);
+  const unblockedGroupCandidates = pendingGroupCandidates.filter(candidate => !candidate.id || !groupBlockedIds.has(candidate.id));
+  const groupDecisionCounts = (() => {
+    const exclude = unblockedGroupCandidates.filter(isGroupExclusionProposal).length;
+    const history = unblockedGroupCandidates.filter(candidate => !isGroupExclusionProposal(candidate)
+      && hasCharacterFactComparison(candidate) && applicationModeForCandidate(candidate) === 'HISTORY_ONLY').length;
+    return { ready: unblockedGroupCandidates.length - exclude - history, history, exclude };
+  })();
   const confirmSelectedGroup = () => {
     if (!selectedGroup?.groupKey || actionPending || groupConfirmBlockedReason || saveTracker.busy(confirmSaveKey)) return;
     submitIntent({ kind: 'confirm', groupKey: selectedGroup.groupKey, previousGroups: groups, variables: {
@@ -1826,6 +1838,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     && (listData.processingCandidateCount ?? 0) === 0 && total > 0 && groups.length === 0;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
+  // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
+  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
+    && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
+    || groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0;
   const reviewComplete = listQuery.isSuccess
     && listData?.batchId === batchId
     && worldSummaryQuery.isSuccess
@@ -2023,7 +2039,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                     />
                   </aside>
 
-                  <section className="setting-review-detail">
+                  <section className="setting-review-detail" ref={detailRef}>
                     <button
                       type="button"
                       className="setting-review-mobile-back"
@@ -2037,7 +2053,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                         title={characterReviewComplete ? '캐릭터 검토를 마쳤어요'
                           : groups.length === 0 ? '조건에 맞는 캐릭터 후보가 없습니다.' : '캐릭터 후보 묶음을 선택해 주세요.'}
                         description={characterReviewComplete
-                          ? worldPending > 0 ? '남은 세계관 후보를 확인해 주세요. 반영·제외한 캐릭터 설정은 검토 상태 필터에서 다시 볼 수 있어요.' : '반영·제외한 캐릭터 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
+                          ? worldPending > 0 ? `세계관 후보 ${worldPending}개가 남았어요. 반영·제외한 캐릭터 설정은 검토 상태 필터에서 다시 볼 수 있어요.` : '반영·제외한 캐릭터 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
                           : groups.length === 0 ? '검토 상태와 캐릭터 연결 상태 필터를 바꾸면 다른 후보를 확인할 수 있어요.'
                           : '같은 이름으로 추출된 설정을 함께 확인하고 한 번에 확정할 수 있습니다.'}
                         action={characterReviewComplete && worldPending > 0 ? <OtherSettingReviewAction current="character" /> : undefined}
@@ -2046,7 +2062,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <article style={{
                           border: `1px solid ${C.border}`, borderRadius: 10,
-                          background: C.surface, overflow: 'hidden',
+                          // clip은 스크롤 컨테이너를 만들지 않아 하단 확정 영역이 상세 스크롤 영역 기준으로 고정된다.
+                          background: C.surface, overflow: 'clip',
                         }}>
                           <header style={{ padding: '18px 20px 15px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -2187,13 +2204,36 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                           ))}
 
                           {pendingGroupCandidates.length > 0 && (
-                            <footer style={{
-                              position: 'sticky', bottom: 0, zIndex: 2,
-                              borderTop: `1px solid ${C.border}`,
-                              padding: '14px 18px', background: `${C.surface}F5`,
-                              boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
-                              display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-                            }}>
+                            <ReviewGroupActionBar
+                              readyCount={groupDecisionCounts.ready}
+                              historyOnlyCount={groupDecisionCounts.history}
+                              excludeCount={groupDecisionCounts.exclude}
+                              blockingCount={groupConfirmBlock?.candidateIds.length ?? 0}
+                              reason={matchFilter !== 'ALL'
+                                ? '그룹 전체를 안전하게 확정하려면 연결 상태 필터를 전체로 바꿔 주세요.'
+                                : groupConfirmBlockedReason}
+                              hasNextGroup={hasNextGroup}
+                              pending={confirmMutation.isPending || confirmSaveState.kind !== 'idle'}
+                              disabled={Boolean(groupConfirmBlockedReason) || matchFilter !== 'ALL' || actionPending
+                                || saveTracker.busy(confirmSaveKey)}
+                              onConfirm={confirmSelectedGroup}
+                              onJumpToBlocking={() => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? [])}
+                              status={<>
+                                {groupConfirmError && (
+                                  <div role="alert" className="review-action-bar__error">{groupConfirmError}</div>
+                                )}
+                                {confirmSaveState.kind === 'unverified' && (
+                                  <div className="review-group-save-state" role="status">
+                                    <span>{unverifiedSaveMessage(confirmSaveState.attempt, confirmSaveState.final)}</span>
+                                    {/* 서버는 같은 묶음의 같은 결정을 decision hash로 한 번만 반영하므로 재전송해도 중복 반영되지 않는다. */}
+                                    {confirmSaveState.final && <span className="review-cb-notice__buttons">
+                                      <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={confirmSaveState.check}>{REVIEW_SAVE_TEXT.check}</button>
+                                      <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={confirmSaveState.retry}>{REVIEW_SAVE_TEXT.retry}</button>
+                                    </span>}
+                                  </div>
+                                )}
+                              </>}
+                            >
                               {checkedCandidates.length > 0 && <div className="review-selection-bar" role="region" aria-label="선택한 설정">
                                 <div className="review-selection-bar__summary">
                                   <strong>{[`${checkedCandidates.length}개 선택`, candidateEpisodesLabel(checkedCandidates)].filter(Boolean).join(' · ')}</strong>
@@ -2212,51 +2252,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                   </span>}
                                 </div>}
                               </div>}
-                              <div style={{ flex: 1, minWidth: 220 }}>
-                                <strong style={{ color: 'var(--ch-ink)', fontSize: 13 }}>
-                                  {selectedGroupUnlinked
-                                    ? `미연결 후보 ${pendingGroupCandidates.length}개 설정을 함께 확정합니다.`
-                                    : `${selectedGroup.entityName}의 ${pendingGroupCandidates.length}개 설정을 함께 확정합니다.`}
-                                </strong>
-                                {groupExclusionCount > 0 && <div className="review-group-decision-count" style={{ color: REVIEW_TEXT.text, fontSize: 12, marginTop: 4 }}>
-                                  반영 {pendingGroupCandidates.length - groupExclusionCount}개 · 제외 {groupExclusionCount}개
-                                </div>}
-                                <div style={{ color: groupConfirmBlockedReason ? REVIEW_TEXT.warning : REVIEW_TEXT.muted, fontSize: 11, marginTop: 4 }}>
-                                  {matchFilter !== 'ALL'
-                                    ? '그룹 전체를 안전하게 확정하려면 연결 상태 필터를 전체로 바꿔 주세요.'
-                                    : groupConfirmBlockedReason
-                                      ?? '각 항목에서 선택한 확정 방식을 함께 적용합니다.'}
-                                </div>
-                              </div>
-                              <ActionButton
-                                disabled={Boolean(groupConfirmBlockedReason) || matchFilter !== 'ALL' || actionPending
-                                  || saveTracker.busy(confirmSaveKey)}
-                                disabledTitle={matchFilter !== 'ALL'
-                                  ? '연결 상태 필터를 전체로 바꿔 주세요.'
-                                  : groupConfirmBlockedReason ?? undefined}
-                                tone={C.success}
-                                onClick={confirmSelectedGroup}
-                              >
-                                {confirmMutation.isPending
-                                  ? '전체 확정 중…'
-                                  : `${pendingGroupCandidates.length}개 설정 모두 확정`}
-                              </ActionButton>
-                              {groupConfirmError && (
-                                <div role="alert" style={{ width: '100%', color: REVIEW_TEXT.danger, fontSize: 12 }}>
-                                  {groupConfirmError}
-                                </div>
-                              )}
-                              {confirmSaveState.kind === 'unverified' && (
-                                <div className="review-group-save-state" role="status">
-                                  <span>{unverifiedSaveMessage(confirmSaveState.attempt, confirmSaveState.final)}</span>
-                                  {/* 서버는 같은 묶음의 같은 결정을 decision hash로 한 번만 반영하므로 재전송해도 중복 반영되지 않는다. */}
-                                  {confirmSaveState.final && <span className="review-cb-notice__buttons">
-                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={confirmSaveState.check}>{REVIEW_SAVE_TEXT.check}</button>
-                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={confirmSaveState.retry}>{REVIEW_SAVE_TEXT.retry}</button>
-                                  </span>}
-                                </div>
-                              )}
-                            </footer>
+                            </ReviewGroupActionBar>
                           )}
                         </article>
                       </div>

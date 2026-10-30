@@ -208,7 +208,7 @@ test('기존 height가 없는 실제 168·178 후보는 모두 미처리로 남�
   await expect(rows.nth(0).locator('.review-cb-inline-value')).toContainText('168');
   await expect(rows.nth(1).locator('.review-cb-inline-value')).toContainText('178');
   await expect(rows.locator('.review-cb-comparison__column.is-before')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '2개 설정 모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(fixture.calls).toHaveLength(0);
   await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters&modal=char-detail&charId=${characterId}`);
   await expect(page.getByRole('dialog')).toContainText('검정');
@@ -242,7 +242,7 @@ for (const publicWorldCase of ['conflict', 'uncertainty'] as const) test(`실제
   await expect(row.locator('.review-cb-comparison__column.is-before').first()).toContainText('서식지');
   await expect(row.locator('.review-cb-comparison__column.is-before').first()).toContainText('북부');
   await expect(row.locator('.review-cb-comparison__column.is-after').first()).toContainText(publicWorldCase === 'conflict' ? '북부 / 남부' : '남부');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('실제 168·178 후보의 수동 CURRENT·HISTORY 확정 뒤 필터와 탭을 복원한다', async ({ page }) => {
@@ -253,7 +253,7 @@ test('실제 168·178 후보의 수동 CURRENT·HISTORY 확정 뒤 필터와 탭
   await expect(rows.nth(0).getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
   await rows.nth(1).getByRole('button', { name: /이력에만 저장/ }).click();
   await expect(rows.nth(1).getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: '2개 설정 모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect(rows).toHaveCount(0);
   const confirmation = fixture.calls.find(call => call.path.endsWith('/group-confirm'))!;
   expect(confirmation.scope).toBe(jobId);
@@ -283,7 +283,7 @@ test('현재 반영이 허용되지 않은 설정집 REMOVE도 이력 선택으�
   await expect(row).toContainText('부상이 회복되어 멀쩡히 착지함');
   await expect(row.getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
   await row.getByRole('button', { name: /이력에만 저장/ }).click();
-  const confirm = page.getByRole('button', { name: '1개 설정 모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirm).toBeEnabled();
   await confirm.click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
@@ -300,7 +300,7 @@ test('이전에 현재로 저장한 설정집 REMOVE는 편집창에서도 이�
   const fixture = await setup(page, { bookRemove: true, bookRemoveEditedCurrent: true });
   await page.goto(reviewUrl('character'));
   const row = characterCard(page, '부상');
-  const confirm = page.getByRole('button', { name: '1개 설정 모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirm).toBeDisabled();
   await expect(row.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'false');
   await row.getByRole('button', { name: '수정', exact: true }).click();
@@ -334,7 +334,7 @@ test('설정집의 기존 인물 등장 후보는 없는 현재 반영 선택 �
   await expect(row.getByText('연결된 인물', { exact: true })).toBeVisible();
   await expect(row.getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
   await expect(row.getByRole('button', { name: /이력에만 저장/ })).toHaveCount(0);
-  const confirm = page.getByRole('button', { name: '1개 설정 모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirm).toBeEnabled();
   await confirm.click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
@@ -354,7 +354,7 @@ test('설정집 캐릭터의 명시 현재 선택만 실제 버전으로 확정�
   await occupation.getByRole('button', { name: /현재 설정에 반영/ }).click();
   await expect(occupation.getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
   await characterCard(page, '소속').getByRole('button', { name: /이력에만 저장/ }).click();
-  await page.getByRole('button', { name: '3개 설정 모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.filter(call => call.path.endsWith('/group-confirm')).length).toBe(1);
   const confirmation = fixture.calls.find(call => call.path.endsWith('/group-confirm'))!;
   expect(confirmation.scope).toBe(jobId);
@@ -373,7 +373,7 @@ test('설정집 세계관의 선택 경로만 실제 현재 버전·후보 시�
   const fixture = await setup(page);
   await page.goto(reviewUrl('world'));
   await worldCard(page).getByRole('button', { name: /현재 설정에 반영/ }).click();
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.filter(call => call.path.endsWith('/world-setting-candidates/group-confirm')).length).toBe(1);
   const confirmation = fixture.calls.find(call => call.path.endsWith('/world-setting-candidates/group-confirm'))!;
   expect(confirmation.scope).toBe(jobId);
@@ -400,7 +400,7 @@ for (const type of ['character', 'world'] as const) test(`${type} 현재 버전 
   const fixture = await setup(page, { stale: true });
   await page.goto(reviewUrl(type));
   await chooseCurrent(page, type);
-  const confirm = page.getByRole('button', { name: type === 'character' ? '3개 설정 모두 확정' : '모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await confirm.click();
   await expect(page.getByRole('alert').filter({ hasText: '현재 설정이 바뀌었습니다.' }).first()).toBeVisible();
   const row = type === 'character' ? characterCard(page, '직업') : worldCard(page);
@@ -424,7 +424,7 @@ for (const type of ['character', 'world'] as const) test(`${type} 선택 뒤 설
   const fixture = await setup(page, { superseded: true });
   await page.goto(reviewUrl(type));
   await chooseCurrent(page, type);
-  const confirm = page.getByRole('button', { name: type === 'character' ? '3개 설정 모두 확정' : '모두 확정', exact: true });
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await confirm.click();
   await expect(page.getByTestId('book-review-source-state')).toContainText('이전 분석 기록');
   await expect(confirm).toBeDisabled();
@@ -445,7 +445,7 @@ test('캐릭터 미래 제안은 현재 결정 초안 저장 후에만 명시 �
   expect(saved.body).toMatchObject({ attributeValue: '기록관', reviewedApplicationMode: 'APPLY_PROPOSAL', expectedUpdatedAt: originalStamp });
   expect(saved.body.applyToCurrent).toBeUndefined();
   expect(fixture.calls.some(call => call.method === 'POST')).toBe(false);
-  await page.getByRole('button', { name: '3개 설정 모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   expect((fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[])[0])
     .toMatchObject({ applyToCurrent: true, baseSnapshotVersion: 7, expectedUpdatedAt: savedStamp, applyEditedValue: true });
@@ -466,7 +466,7 @@ test('세계관 미래 제안은 현재 반영을 먼저 열지 않고 저장된
   expect(draft[0].applyToCurrent).toBeUndefined();
   expect(draft[0].expectedWorldSettingVersion).toBeUndefined();
   await row.getByRole('button', { name: /현재 설정에 반영/ }).click();
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   expect((fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[])[0])
     .toMatchObject({ applyToCurrent: true, expectedWorldSettingVersion: 9, expectedUpdatedAt: savedStamp });
@@ -486,7 +486,7 @@ test('현재 버전이 바뀐 설정집 세계관의 과거 비교값을 현재 
   await expect(history).toHaveAttribute('aria-pressed', 'true');
   await expect(before).toContainText('비교 당시 내용');
   await expect(before).not.toContainText('유지되는 기존 설정');
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   const confirmation = fixture.calls.find(call => call.path.endsWith('/group-confirm'))!;
   expect(confirmation.scope).toBe(jobId);
@@ -523,7 +523,7 @@ test('세계관 이력 선택은 현재 반영 권한과 버전 파라미터를 
   const fixture = await setup(page);
   await page.goto(reviewUrl('world'));
   await worldCard(page).getByRole('button', { name: /이력에만 저장/ }).click();
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   const decisions = fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[];
   for (const decision of decisions) {
@@ -540,7 +540,7 @@ test('세계관 저장 후 보류 사유가 사라진 기본 확정은 이력이
   await row.getByRole('button', { name: /이번 내용으로 바꾸기/ }).click();
   await expect(row.getByRole('button', { name: /이력에만 저장/ })).toHaveCount(0);
   await row.getByRole('button', { name: /검토한 내용 확정/ }).click();
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   expect((fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[])[0].applyToCurrent).toBeUndefined();
 });
@@ -551,8 +551,8 @@ test('세계관 실제 현재 버전이 없으면 override 선택과 가짜 vers
   const row = worldCard(page);
   await expect(row.getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
   await row.getByRole('button', { name: /이번 내용으로 바꾸기/ }).click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   const decisions = fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[];
   expect(decisions.some(decision => decision.applyToCurrent === true || decision.expectedWorldSettingVersion === 0)).toBe(false);
@@ -562,7 +562,7 @@ test('세계관 초안을 새 대상으로 바꾸면 이전 비교 대상의 현
   const fixture = await setup(page, { retargeted: true });
   await page.goto(reviewUrl('world'));
   await expect(worldCard(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => fixture.calls.some(call => call.path.endsWith('/group-confirm'))).toBe(true);
   const decision = (fixture.calls.find(call => call.path.endsWith('/group-confirm'))!.body.candidates as Record<string, unknown>[])[0];
   expect(decision).toMatchObject({ candidateId: firstId, operation: 'ADD', subjectName: '새 고대 왕국' });
