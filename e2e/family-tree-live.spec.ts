@@ -61,7 +61,7 @@ test('격리된 실제 프로필에서 가계도·과거 관계·근거·철회�
     if (incoming.method() !== 'GET' && /analysis-jobs|relationship-processing/.test(path)) unintendedWrites.push(path);
   });
   await page.addInitScript(accessToken => { localStorage.setItem('accessToken', accessToken); localStorage.removeItem('catchhole_demo_mode'); }, token);
-  await page.goto(`/dashboard?workId=${workId}&nav=graph`);
+  await page.goto(`/dashboard?workId=${workId}&nav=graph&relationMode=family`);
   const canvas = page.getByRole('region', { name: '가계도', exact: true });
   const representedRelationCount = () => canvas.locator('[data-connection-id]').evaluateAll(controls =>
     controls.flatMap(control => JSON.parse(control.getAttribute('data-relationship-ids') ?? '[]') as string[]).length);
@@ -173,7 +173,7 @@ test('등록되지 않은 얀델의 가족 판단을 보류·재판단하고 나
       || path.includes(`/characters/${encodeURIComponent(mention.id!)}`)) unexpectedRequests.push(path);
   });
   await page.addInitScript(accessToken => { localStorage.setItem('accessToken', accessToken); localStorage.removeItem('catchhole_demo_mode'); }, token);
-  await page.goto(`/dashboard?workId=${workId}&nav=graph`);
+  await page.goto(`/dashboard?workId=${workId}&nav=graph&relationMode=family`);
   const canvas = page.getByRole('region', { name: '가계도', exact: true });
   const mentionButton = canvas.getByRole('button', { name: '얀델 설정 근거 보기', exact: true });
   await expect(mentionButton).toBeVisible();
@@ -226,7 +226,7 @@ test('등록되지 않은 얀델의 가족 판단을 보류·재판단하고 나
   expect(judgmentWrites).toHaveLength(2);
   expect(judgmentWrites[1]).toEqual({ method: 'PUT', path: `/api/v1/works/${workId}${candidatePath}` });
   expect((await tree()).nodes!.find(node => node.nodeType === 'MENTION')!.id).toBe(mention.id);
-  await page.goto(`/dashboard?workId=${workId}&nav=graph`);
+  await page.goto(`/dashboard?workId=${workId}&nav=graph&relationMode=family`);
   await expect(mentionButton).toBeVisible();
   await mentionButton.click();
   await expect(page.getByText('얀델의 아들', { exact: true })).toBeVisible();

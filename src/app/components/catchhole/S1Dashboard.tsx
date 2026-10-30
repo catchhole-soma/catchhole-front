@@ -33,7 +33,7 @@ import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { ComingSoonToast } from './ComingSoonToast';
 import { useWorks } from '../../hooks/useWorks';
 import { isDemoMode } from '../../lib/worksApi';
-import { RELATIONSHIP_WORKSPACE_ENABLED, RELATIONSHIP_QUERY_KEYS } from '../../lib/relationship-feature';
+import { getRelationshipMode, RELATIONSHIP_WORKSPACE_ENABLED, RELATIONSHIP_QUERY_KEYS } from '../../lib/relationship-feature';
 import { FileDropArea } from './FileDropArea';
 import {
   createAnalysisJobMutation,
@@ -247,6 +247,7 @@ export default function S1Dashboard() {
       const next = new URLSearchParams(previous);
       if (RELATIONSHIP_WORKSPACE_ENABLED) {
         // 공개 상태에서는 기존 공유 링크의 후보·관계·근거 선택을 유지한다.
+        next.set('relationMode', getRelationshipMode(previous));
         next.set('nav', 'graph');
         next.delete('tab');
       } else {
@@ -984,7 +985,7 @@ export default function S1Dashboard() {
             {RELATIONSHIP_WORKSPACE_ENABLED && activeNav === 'graph' && (
               <motion.div key="graph" className="relationship-page" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
                 <RelationshipWorkspace key={effectiveWorkId} workId={effectiveWorkId} enabled={episodeApiEnabled && !demoMode} onOpenCharacter={id => openCharDetail(id, false)} />
-                {selectedCharDetail && searchParams.get('relationMode') !== 'people' && characterWorkspace}
+                {selectedCharDetail && getRelationshipMode(searchParams) === 'family' && characterWorkspace}
               </motion.div>
             )}
 

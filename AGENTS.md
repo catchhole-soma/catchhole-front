@@ -249,5 +249,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 ## GH323 회차별 인물 관계도
 
-- `relationMode=people`은 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
+- 관계 종류는 `인물 관계도 / 가계도` 순서다. 가족 상세 상태가 없는 `nav=graph` 진입은 인물 관계도가 기본이며, `relationMode=people|family`의 명시적 선택과 기존 가족 상세/legacy 링크는 `getRelationshipMode`로 복원한다. 인물 관계도는 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
 - 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.

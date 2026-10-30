@@ -13,8 +13,10 @@
     "typecheck": "tsc --noEmit",
     "doctor": "react-doctor --scope full --dead-code --no-supply-chain --no-score --blocking none --yes",
     "check:unused": "knip --no-progress",
-    "test:layout": "tsx --test scripts/family-tree-layout.test.ts scripts/episode-relationship-layout.test.ts",
-    "compare:family-tree": "tsx scripts/compare-family-tree-layout.mjs"
+    "test:layout": "tsx --test scripts/family-tree-layout.test.ts scripts/episode-relationship-*.test.ts",
+    "test:setting-evidence": "tsx --test scripts/setting-evidence.test.ts",
+    "compare:family-tree": "tsx scripts/compare-family-tree-layout.mjs",
+    "compare:relationships": "tsx scripts/compare-episode-relationship-layout.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.6",

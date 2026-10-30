@@ -47,10 +47,13 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   }] : []), [data?.edges]);
   const names = new Map(people.map(person => [person.id, person.name]));
   const effectiveFocus = names.has(focusId) ? focusId : '';
-  const visibleConnections = effectiveFocus ? connections.filter(edge => edge.source === effectiveFocus || edge.target === effectiveFocus) : connections;
-  const visibleIds = new Set(visibleConnections.flatMap(edge => [edge.source, edge.target]));
-  if (effectiveFocus) visibleIds.add(effectiveFocus);
-  const visiblePeople = effectiveFocus ? people.filter(person => visibleIds.has(person.id)) : people;
+  const visibleConnections = useMemo(() => effectiveFocus
+    ? connections.filter(edge => edge.source === effectiveFocus || edge.target === effectiveFocus) : connections, [connections, effectiveFocus]);
+  const visiblePeople = useMemo(() => {
+    if (!effectiveFocus) return people;
+    const visibleIds = new Set([effectiveFocus, ...visibleConnections.flatMap(edge => [edge.source, edge.target])]);
+    return people.filter(person => visibleIds.has(person.id));
+  }, [people, effectiveFocus, visibleConnections]);
   const matching = search.trim() ? people.filter(person => person.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) : [];
   function update(values: Record<string, string | null>) {
     setParams(previous => {
