@@ -292,7 +292,8 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     const knownPartial = finished.executionStatus === 'PARTIAL' && recheckExecution.failureCode === 'INVALID_DECISION_CHANGE_SEARCH_MISSING';
     if (knownPartial) note('known-issue', 'catchhole-backend-java#341');
     else expect(finished.executionStatus, `정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.${recheckExecution.summary}`).toBe('COMPLETED');
-    expect.soft(finished.mode, '아무것도 확정하지 않았으므로 확정 전 검수다.').toBe('BEFORE_CONFIRMATION');
+    // 아무것도 확정하지 않았으므로 서버가 정하는 검수 종류는 확정 전이다(모델 판정이 아닌 서버 규칙).
+    expect(finished.mode, '아무것도 확정하지 않았으므로 확정 전 검수다.').toBe('BEFORE_CONFIRMATION');
 
     // 정정한 나이(28)는 2화의 스물여덟 살과 맞으므로 같은 나이 충돌이 다시 나오지 않기를 기대한다(모델 판정).
     const after = await readFindings(request, reportUrl(recheckId), headers);
