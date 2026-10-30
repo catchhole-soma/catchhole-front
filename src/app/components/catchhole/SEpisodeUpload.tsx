@@ -1,5 +1,5 @@
 import { AnalysisReviewModeSelector } from './onboarding/AnalysisReviewModeSelector';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useLocation,
@@ -26,6 +26,8 @@ import {
   getEpisodesOptions,
   getEpisodesQueryKey,
   getEpisodeUploadPolicyOptions,
+  getEpisodeValidationEligibilityOptions,
+  getEpisodeValidationEligibilityQueryKey,
   getWorkOptions,
   getWorldSettingCandidateProgressOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
@@ -58,12 +60,23 @@ import { ModeCard } from './ReviewLayout';
 import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
 import { AnalysisModeGuide } from './onboarding/AnalysisModeGuide';
 import { SettingBookProgressRoute } from './SettingBookAnalysisStatus';
+import {
+  admissionBlockFromEligibility,
+  admissionBlockFromError,
+  type AdmissionBlock,
+} from './validation/validation-admission';
+import { NextEpisodeBlockedNotice } from './validation/ValidationEntryNotices';
+import { ValidationIntakeStatus } from './validation/ValidationIntakeStatus';
+import { useValidationIntake } from './validation/useValidationIntake';
+import { MULTI_EPISODE_VALIDATION_REASON, validationReportUrl } from './validation/validation-report-labels';
 import { UploadHeader as Header, UploadStepper as Stepper, AnalysisProgressHero, AnalysisProgressCard } from './UploadLayout';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
 type AnalysisJobType = AnalysisJobCreateRequest['jobType'];
 type ReviewMode = NonNullable<AnalysisJobCreateRequest['reviewMode']>;
 type EpisodeUploadType = EpisodeDetectionRequest['uploadType'];
+/** 업로드 목적. 신규 회차 검수는 AnalysisJob이 아니라 검수 접수(POST /episode-validations)로 시작한다. */
+type UploadPurpose = 'SETTING_EXTRACTION' | 'VALIDATION';
 
 type EpisodeConfirmation = {
   detectionOrder: number;
@@ -262,53 +275,60 @@ function Spinner({ size = 16 }: { size?: number }) {
   );
 }
 
-function AnalysisJobTypeSelector({ value, onChange, disabled }: {
-  value: AnalysisJobType;
-  onChange: (value: AnalysisJobType) => void;
+function UploadPurposeSelector({ value, onChange, disabled, validationAvailable, nextEpisodeNo }: {
+  value: UploadPurpose;
+  onChange: (value: UploadPurpose) => void;
   disabled: boolean;
+  /** 신규 회차 검수는 마지막 회차 뒤에 추가하는 단일 회차만 지원한다. */
+  validationAvailable: boolean;
+  nextEpisodeNo: number | null;
 }) {
+  const reasonId = useId();
+  const selected = (purpose: UploadPurpose) => value === purpose;
+  const optionStyle = (purpose: UploadPurpose, enabled: boolean): React.CSSProperties => ({
+    flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
+    background: selected(purpose) ? `${C.primary}14` : C.surface,
+    border: `1px solid ${selected(purpose) ? C.primary : C.border}`,
+    color: selected(purpose) ? C.t1 : enabled ? C.t2 : C.t3,
+    cursor: disabled || !enabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+    opacity: disabled || !enabled ? 0.55 : 1,
+  });
   return (
     <>
       <FieldLabel>분석 유형</FieldLabel>
       <div className="episode-analysis-types" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button
-          className={`episode-analysis-type${value === 'SETTING_EXTRACTION' ? ' is-selected' : ''}`}
+          className={`episode-analysis-type${selected('SETTING_EXTRACTION') ? ' is-selected' : ''}`}
           type="button"
+          aria-pressed={selected('SETTING_EXTRACTION')}
           disabled={disabled}
           onClick={() => onChange('SETTING_EXTRACTION')}
-          style={{
-            flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
-            background: value === 'SETTING_EXTRACTION' ? `${C.primary}14` : C.surface,
-            border: `1px solid ${value === 'SETTING_EXTRACTION' ? C.primary : C.border}`,
-            color: value === 'SETTING_EXTRACTION' ? C.t1 : C.t2,
-            cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
-            opacity: disabled ? 0.55 : 1,
-          }}
+          style={optionStyle('SETTING_EXTRACTION', true)}
         >
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>기존 설정 구축</div>
           <div style={{ fontSize: 11, color: C.t3 }}>원고에서 설정 후보를 추출합니다</div>
         </button>
         <button
-          className="episode-analysis-type is-disabled"
+          className={`episode-analysis-type${selected('VALIDATION') ? ' is-selected' : ''}${validationAvailable ? '' : ' is-disabled'}`}
           type="button"
-          disabled
-          aria-label="신규 회차 검수 업데이트 예정"
-          style={{
-            flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
-            background: C.surface, border: `1px solid ${C.border}`,
-            color: C.t3, cursor: 'not-allowed', fontFamily: 'inherit', opacity: 0.55,
-          }}
+          aria-pressed={selected('VALIDATION')}
+          aria-describedby={validationAvailable ? undefined : reasonId}
+          disabled={disabled || !validationAvailable}
+          onClick={() => onChange('VALIDATION')}
+          style={optionStyle('VALIDATION', validationAvailable)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>신규 회차 검수</span>
-            <span style={{
-              padding: '1px 6px', borderRadius: 8, border: `1px solid ${C.primary}44`,
-              color: C.t2, fontSize: 9, fontWeight: 600,
-            }}>업데이트 예정</span>
-          </div>
-          <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌 검사 기능을 준비하고 있습니다</div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>신규 회차 검수</div>
+          <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌과 오탈자를 먼저 검사합니다</div>
         </button>
       </div>
+      {!validationAvailable && <p id={reasonId} className="episode-upload-purpose-note">{MULTI_EPISODE_VALIDATION_REASON}</p>}
+      {validationAvailable && value === 'VALIDATION' && (
+        <p className="episode-upload-purpose-note" role="note">
+          <strong>오류 검사와 작가 검토를 마친 뒤 이번 회차의 설정을 추출해요.</strong>{' '}
+          {nextEpisodeNo ? `마지막 회차 바로 다음 회차(${nextEpisodeNo}화) 한 편만 검수할 수 있어요.` : '마지막 회차 바로 다음 회차 한 편만 검수할 수 있어요.'}
+          {' '}검수 결과는 오류 리포트에서 확인해요.
+        </p>
+      )}
     </>
   );
 }
@@ -461,9 +481,16 @@ function EpisodeUpload() {
   const initialTrackedAnalysisJobIdSet = new Set(initialTrackedAnalysisJobIds);
   const initialCurrentAnalysisJobIds = (searchParams.get('currentAnalysisJobIds') ?? '').split(',').filter(Boolean);
   const viewingExistingAnalysis = initialTrackedAnalysisJobIds.length > 0;
+  // 업로드 뒤 검수 접수 중 새로고침하면 URL의 회차·배치 ID로 현재 검수만 확인한다. 원고·인용은 URL에 넣지 않는다.
+  const [validationResumeTarget] = useState(() => {
+    const episodeId = searchParams.get('validationEpisodeId') ?? '';
+    const batchId = searchParams.get('batchId') ?? '';
+    return !viewingExistingAnalysis && UUID_PATTERN.test(episodeId) && UUID_PATTERN.test(batchId)
+      ? { batchId, episodeId } : null;
+  });
 
   const [step, setStep] = useState<UploadStep>(
-    initialTrackedAnalysisJobIds.length > 0 ? 'processing' : 'select-mode',
+    initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget ? 'processing' : 'select-mode',
   );
   const [uploadType, setUploadType] = useState<EpisodeUploadType | null>(null);
   const [episodeNo, setEpisodeNo] = useState('');
@@ -503,7 +530,9 @@ function EpisodeUpload() {
     && searchParams.get('jobType') === 'EPISODE_VALIDATION'
     ? 'EPISODE_VALIDATION'
     : 'SETTING_EXTRACTION';
-  const [analysisJobType, setAnalysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
+  const [analysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
+  const [uploadPurpose, setUploadPurpose] = useState<UploadPurpose>('SETTING_EXTRACTION');
+  const validationPurpose = uploadType === 'SINGLE_EPISODE' && uploadPurpose === 'VALIDATION';
   const [reviewMode, setReviewMode] = useState<ReviewMode>('AUTOMATIC');
   const [uploadCharactersByType, setUploadCharactersByType] = useState<Partial<Record<EpisodeUploadType, number>>>({});
   const [characterLimitErrors, setCharacterLimitErrors] = useState<Partial<Record<EpisodeUploadType, string>>>({});
@@ -529,6 +558,7 @@ function EpisodeUpload() {
   const orderedRestartInFlight = useRef(false);
   const detectionRequestSequence = useRef(0);
   const batchRetryInFlight = useRef(false);
+  const submitInFlight = useRef(false);
   const reviewReturnState = location.state as {
     returnToAnalysisList?: unknown;
     returnHistoryDelta?: unknown;
@@ -630,6 +660,31 @@ function EpisodeUpload() {
       : null)
     : null;
   const automaticReview = uploadType !== null && (uploadType !== 'SINGLE_EPISODE' || reviewMode === 'AUTOMATIC');
+
+  // 작품 단위 다음 회차 등록 차단. 조회 중·실패는 업로드를 잠그지 않고 서버 409를 최종 판단으로 사용한다.
+  const eligibilityOptions = getEpisodeValidationEligibilityOptions({ path: { workId } });
+  const eligibilityQuery = useQuery({
+    ...eligibilityOptions,
+    enabled: UUID_PATTERN.test(workId) && step !== 'processing',
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
+  const [conflictBlock, setConflictBlock] = useState<{ block: AdmissionBlock; at: number } | null>(null);
+  const eligibilityBlock = admissionBlockFromEligibility(eligibilityQuery.data?.data);
+  // 409로 확인한 차단은 그 뒤에 받은 자격 조회 성공 응답이 허용할 때까지 유지한다.
+  const admissionBlock = eligibilityBlock ?? (conflictBlock
+    && !(eligibilityQuery.isSuccess && eligibilityQuery.dataUpdatedAt > conflictBlock.at) ? conflictBlock.block : null);
+
+  const validationIntake = useValidationIntake({
+    workId,
+    resumeTarget: validationResumeTarget,
+    onReport: reportId => {
+      void queryClient.invalidateQueries({ queryKey: getEpisodesQueryKey({ path: { workId } }) });
+      void queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: { workId } }) });
+      void queryClient.invalidateQueries({ queryKey: getEpisodeValidationEligibilityQueryKey({ path: { workId } }) });
+      navigate(validationReportUrl(workId, reportId), 'dissolve', undefined, { replace: true });
+    },
+  });
 
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId } }),
@@ -766,6 +821,7 @@ function EpisodeUpload() {
       },
     }),
     enabled: step === 'processing'
+      && !validationIntake.intake
       && UUID_PATTERN.test(workId)
       && Boolean(episodeUploadBatchId),
     retry: false,
@@ -878,6 +934,18 @@ function EpisodeUpload() {
       if (retainedSupersededIds.length > 0) params.set('supersededJobIds', retainedSupersededIds.join(','));
       else params.delete('supersededJobIds');
       params.set('jobType', analysisJobType);
+      params.delete('validationEpisodeId');
+      return params;
+    }, { replace: true, state: location.state });
+  };
+
+  /** 검수 접수 전후 새로고침에서 현재 검수를 다시 확인할 회차·배치 ID만 남긴다. */
+  const persistValidationIntakeRoute = (batchId: string, episodeId: string) => {
+    setSearchParams(params => {
+      params.set('workId', workId);
+      params.set('batchId', batchId);
+      params.set('validationEpisodeId', episodeId);
+      for (const key of ['analysisJobIds', 'currentAnalysisJobIds', 'supersededJobIds', 'jobType']) params.delete(key);
       return params;
     }, { replace: true, state: location.state });
   };
@@ -1003,14 +1071,18 @@ function EpisodeUpload() {
     if (submitting) return;
     detectionRequestSequence.current += 1;
     setUploadType(nextUploadType);
-    if (nextUploadType !== uploadType) setReviewMode('AUTOMATIC');
+    if (nextUploadType !== uploadType) {
+      setReviewMode('AUTOMATIC');
+      // 신규 회차 검수는 단일 회차 전용이다. 방식을 바꾸면 기존 설정 구축으로 되돌린다.
+      setUploadPurpose('SETTING_EXTRACTION');
+    }
     setRequestError(null);
     if (!singleFile) setSingleFileError(null);
     if (!bulkFile) setBulkFileError(null);
     if (multiFiles.length === 0) setMultiFilesError(null);
   };
 
-  const createBatchAnalysisJob = async (batchId: string) => {
+  const createBatchAnalysisJob = async (batchId: string, automatic = automaticReview) => {
     if (blockedAnalysisStart?.batchId === batchId || createAnalysisJobMutation.isPending) return;
     setAnalysisStartError(null);
     try {
@@ -1018,8 +1090,8 @@ function EpisodeUpload() {
         path: { workId },
         body: {
           jobType: 'SETTING_EXTRACTION', batchId,
-          reviewMode: automaticReview ? 'AUTOMATIC' : 'MANUAL',
-          ...(automaticReview ? { analysisMode: 'ORDERED_PROVISIONAL' as const } : {}),
+          reviewMode: automatic ? 'AUTOMATIC' : 'MANUAL',
+          ...(automatic ? { analysisMode: 'ORDERED_PROVISIONAL' as const } : {}),
         },
       });
       const analysisJobIds = [...new Set(
@@ -1043,8 +1115,25 @@ function EpisodeUpload() {
   };
 
   const submitEpisodeUpload = async () => {
-    if (!uploadType || characterLimitError) return;
+    if (!uploadType || characterLimitError || admissionBlock || submitInFlight.current) return;
+    submitInFlight.current = true;
+    try {
+      await submitEpisodeUploadOnce(uploadType);
+    } finally {
+      submitInFlight.current = false;
+    }
+  };
+
+  const submitEpisodeUploadOnce = async (uploadType: EpisodeUploadType) => {
     setRequestError(null);
+    // 전송 직전 작품 단위 차단을 다시 확인한다. 조회 실패는 업로드를 막지 않고 서버 409로 판단한다.
+    try {
+      const latest = await queryClient.fetchQuery({ ...eligibilityOptions, staleTime: 0, retry: false });
+      if (admissionBlockFromEligibility(latest.data)) return;
+    } catch {
+      // 자격 조회 실패는 업로드를 잠그지 않는다.
+    }
+    const startsValidation = validationPurpose;
     const sourceEpisodeFiles = uploadType === 'SINGLE_EPISODE'
       ? (singleFile ? [singleFile] : [])
       : uploadType === 'MULTI_EPISODE_SINGLE_FILE'
@@ -1076,11 +1165,41 @@ function EpisodeUpload() {
       trackMetaEpisodeUploaded();
       setEpisodeUploadBatchId(episodeUpload.batchId);
       setUploadedEpisodes(episodeUpload.createdEpisodes ?? []);
+      const createdEpisodeId = episodeUpload.createdEpisodes?.[0]?.id;
+      if (startsValidation && createdEpisodeId) {
+        // 신규 회차 검수는 설정 추출 Job을 만들지 않고 검수를 접수한 뒤 오류 리포트로 이동한다.
+        persistValidationIntakeRoute(episodeUpload.batchId, createdEpisodeId);
+        setStep('processing');
+        await validationIntake.start({ batchId: episodeUpload.batchId, episodeId: createdEpisodeId });
+        return;
+      }
       setStep('processing');
+      if (startsValidation) {
+        setAnalysisStartError('원고는 저장했지만 저장한 회차를 확인하지 못해 검수를 시작하지 못했습니다. 원고 목록에서 회차를 확인해 주세요.');
+        return;
+      }
       await createBatchAnalysisJob(episodeUpload.batchId);
     } catch (error) {
+      const block = admissionBlockFromError(error);
+      if (block) {
+        // 미완료 검수 동안의 다음 회차 등록 409. 입력과 파일은 그대로 두고 같은 안내로 리포트를 연결한다.
+        setConflictBlock({ block, at: Date.now() });
+        void queryClient.invalidateQueries({ queryKey: getEpisodeValidationEligibilityQueryKey({ path: { workId } }) });
+        return;
+      }
       setRequestError(errorMessage(error, '회차 저장에 실패했습니다. 입력값과 파일을 유지했으니 다시 시도해주세요.'));
     }
+  };
+
+  /** 비교 자료가 없는 등 검수를 시작할 수 없는 회차를 사용자가 고른 경우에만 기존 설정 구축으로 분석한다. */
+  const startSettingExtractionInstead = async () => {
+    const target = validationIntake.intake;
+    if (!target || createAnalysisJobMutation.isPending) return;
+    setUploadPurpose('SETTING_EXTRACTION');
+    setEpisodeUploadBatchId(target.batchId);
+    validationIntake.clear();
+    // 검수 목적에서는 반영 방식을 고르지 않았으므로 단일 회차 기본값(자동 반영)을 사용한다.
+    await createBatchAnalysisJob(target.batchId, reviewMode === 'AUTOMATIC');
   };
 
   const retryFailedAnalysisJobs = async () => {
@@ -1255,6 +1374,7 @@ function EpisodeUpload() {
   const episodeConfirmationsValid = episodeConfirmations.length > 0
     && !episodeConfirmationValidationError;
   const canSubmit = UUID_PATTERN.test(workId)
+    && !admissionBlock
     && !characterLimitError
     && !detectEpisodesMutation.isPending
     && !submitting
@@ -1306,6 +1426,7 @@ function EpisodeUpload() {
                 <ErrorBanner message="기존 회차 번호를 불러오지 못했습니다. 번호를 직접 확인해주세요." onRetry={() => void episodesQuery.refetch()} />
               )}
               {requestError && <ErrorBanner message={requestError} />}
+              {admissionBlock && <NextEpisodeBlockedNotice workId={workId} block={admissionBlock} inputPreserved={conflictBlock !== null} />}
 
               <div className="episode-upload-mode-grid" style={{ display: 'flex', gap: 12, marginBottom: uploadType ? 28 : 0 }}>
                 <ModeCard
@@ -1477,12 +1598,14 @@ function EpisodeUpload() {
 
               {uploadType && (
                 <>
-                  <AnalysisJobTypeSelector
-                    value={analysisJobType}
-                    onChange={setAnalysisJobType}
+                  <UploadPurposeSelector
+                    value={uploadType === 'SINGLE_EPISODE' ? uploadPurpose : 'SETTING_EXTRACTION'}
+                    onChange={setUploadPurpose}
                     disabled={submitting}
+                    validationAvailable={uploadType === 'SINGLE_EPISODE'}
+                    nextEpisodeNo={suggestedEpisodeNo}
                   />
-                  {uploadType === 'SINGLE_EPISODE' ? (
+                  {validationPurpose ? null : uploadType === 'SINGLE_EPISODE' ? (
                     <AnalysisReviewModeSelector value={reviewMode} onChange={setReviewMode} disabled={submitting} />
                   ) : (
                     <div className="episode-upload-alert episode-upload-auto-notice" role="note">
@@ -1515,7 +1638,7 @@ function EpisodeUpload() {
                         </PrimaryButton>
                       ) : (
                         <PrimaryButton disabled={!canSubmit} onClick={() => void submitEpisodeUpload()}>
-                          {submitting ? '저장 중...' : '다음 — 분석 시작'}
+                          {submitting ? '저장 중...' : validationPurpose ? '다음 — 검수 시작' : '다음 — 분석 시작'}
                         </PrimaryButton>
                       )}
                     </div>
@@ -1533,6 +1656,7 @@ function EpisodeUpload() {
                 감지 경계는 고정됩니다. 번호와 제목만 확인·수정할 수 있습니다.
               </div>
               {requestError && <ErrorBanner message={requestError} />}
+              {admissionBlock && <NextEpisodeBlockedNotice workId={workId} block={admissionBlock} inputPreserved={conflictBlock !== null} />}
               <div className="episode-boundary-layout" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 14 }}>
                 <div className="episode-boundary-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {episodeConfirmations.map(confirmation => (
@@ -1626,7 +1750,20 @@ function EpisodeUpload() {
             </>
           )}
 
-          {step === 'processing' && (
+          {step === 'processing' && validationIntake.intake && (
+            <ValidationIntakeStatus
+              workId={workId}
+              workTitle={workTitle}
+              intake={validationIntake.intake}
+              onStart={() => { if (validationIntake.intake) void validationIntake.start(validationIntake.intake); }}
+              onRecover={() => { if (validationIntake.intake) void validationIntake.recover(validationIntake.intake); }}
+              onFallback={() => void startSettingExtractionInstead()}
+              fallbackPending={createAnalysisJobMutation.isPending}
+              onManuscripts={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts`, 'dissolve')}
+            />
+          )}
+
+          {step === 'processing' && !validationIntake.intake && (
             <div className="episode-processing">
               <AnalysisProgressHero
                 icon={analysisNotStarted
@@ -1671,6 +1808,7 @@ function EpisodeUpload() {
                 <ErrorBanner
                   message={analysisStartError}
                   onRetry={episodeUploadBatchId && currentAnalysisJobIds.length === 0 && !automaticStartBlocked
+                    && uploadPurpose !== 'VALIDATION'
                     ? () => void createBatchAnalysisJob(episodeUploadBatchId)
                     : undefined}
                 />
