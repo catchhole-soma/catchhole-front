@@ -3,13 +3,41 @@
 `design/catchhole.pen`은 CatchHole Front의 실제 브라우저 화면을 기준으로 유지하는 디자인 기준 파일이다. 활성 화면은 `Active / ...` 루트 프레임으로 구분하고, 현재 Front에 연결되지 않은 Post-MVP 시안은 별도 Presentation 영역에 그대로 보존한다.
 
 
-### 2026-10-30 GH314 오류 리포트 — Pencil 반영 대기
+### 2026-10-30 GH314 오류 리포트 — Pencil 반영 완료
 
-#314 F1·F2에서 `/episode-validation-report` 리포트 화면(상태·검사 기준·집계/필터·목록·근거·판단·오탈자·이력·재검수)과 업로드의 다음 회차 차단 안내, 분석 목록 카드·원고 목록 배지를 구현했고 V1에서 실제 Java·PostgreSQL·AI Worker 연결로 화면을 캡처했다. 동기화 기준은 [실제 화면 캡처](../docs/screens/gh314/)와 [GH300 디자인 초안의 실제 화면 절](../docs/planning/gh-300-error-report-design-draft.md#실제-화면-2026-10-30)이다. 2026-10-27 초안 7프레임(`sDtUe` 등)은 2026-10-28 정책 변경 전 상태 문구라 이 캡처로 교체해야 한다.
+2026-10-30에 `/episode-validation-report`와 업로드 다음 회차 차단·신규 회차 검수, 설정 관리의 캐릭터 정정, 분석 목록 카드, 원고 목록 배지를 `Active / …` 루트 프레임으로 동기화했다. 캔버스 위치는 `/setting-review` 구역 오른쪽의 섹션바 `B2Ck2`(`27 ACTIVE /EPISODE-VALIDATION-REPORT`) 아래다.
 
-이번 V1 작업 환경에는 Pencil 앱 연결이 없어 `.pen`을 열거나 수정하지 않았다. 연결 복구 뒤 위 캡처 기준으로 데스크톱·390px 프레임과 Workflow를 갱신해야 하며, 이 기록은 Pencil 동기화 완료를 뜻하지 않는다.
+- 동기화 기준: V1 [실제 화면 캡처](../docs/screens/gh314/) 32장과 F3 목 API 캡처 9장(`docs/screens/gh314/f3-*.png`: 목록 대상 제목·`등급`·`대상` 필터 데스크톱/모바일, 상세 `대상 설정 보기`·`설정 정보 정정`, 여러 기준 선택, 캐릭터 정정 중·저장됨·409, 정정 뒤 무효·재검수 확인). 문구는 `src/app/components/catchhole/validation/**`와 렌더 결과를 그대로 옮겼다.
+- 데이터: V1 캡처가 기준인 프레임은 V1 값(`2화`·`3화`), F3 요소가 있는 프레임은 목 API 값(`101화 · 비요른`)을 쓴다. `Findings`·`Judgment Saved`·모바일 `Finding Detail`은 상세·판단·정정 영역까지 보이도록 페이지 전체 높이이고, 나머지는 1440×900·390×844 뷰포트로 자른다.
+- 토큰: 실제 CSS의 경고·위험·성공 연한 배경·테두리(`review-cb-notice`, `vr-chip`)를 `ch-warning-soft/border`, `ch-danger-soft/border`, `ch-success-soft/border`, `ch-primary-border` 변수로 추가했다. 점선 테두리(빈 목록, 선택한 파일)는 Pencil에 없어 같은 색 실선으로 표현했다. 글꼴은 `Noto Sans KR`이며 650/750/780 굵기는 600/700/800으로 맞췄다.
+- 정정 뒤 무효 화면은 실제로 `설정 정정을 저장했어요…` 안내와 재검수 확인 상자가 동시에 보이지 않아 두 프레임으로 나눴다.
 
-F3(2026-10-30)는 목록 행의 대상·설정명 제목과 대상 라벨, `등급`·`대상` 필터, 상세의 `대상 설정 보기`, 정정할 저장 설정 선택, 설정 관리 화면 위·캐릭터/세계관 상세 안의 정정 안내(정정 중·저장됨·기준 연결 없이 저장)를 더했다. 흐름은 `docs/screen-flow.md`의 "#314 F3" 절이다. 이번에도 `.pen`은 수정하지 않았고 위 프레임과 함께 반영 대기다.
+| 화면 | 프레임 이름 | ID | 상태 |
+| --- | --- | --- | --- |
+| 리포트 검토 대기(목록 대상 제목·대상 라벨·`등급`·`대상` 필터, 상세 `대상 설정 보기`, `원고·설정 수정`의 `설정 정보 정정`, 판단, 추출 보류) | Active / Episode Validation Report / Desktop / Findings | `vXeCA` | ✅ 렌더·레이아웃 확인 |
+| 정정 뒤 무효 + 재검수 확인(`재검수 시작`) | Active / Episode Validation Report / Desktop / Invalidated · Recheck | `P1IMkW` | ✅ 렌더·레이아웃 확인 |
+| 정정 뒤 무효 + 정정 안내(`설정 정정을 저장했어요…`) | Active / Episode Validation Report / Desktop / Invalidated · Correction Saved | `rLulg` | ✅ 렌더·레이아웃 확인 |
+| 확정 완료 + 진단 재검수 진입 | Active / Episode Validation Report / Desktop / Applied | `wEGM9` | ✅ 렌더·레이아웃 확인 |
+| 검사 중 읽기 전용 | Active / Episode Validation Report / Desktop / Validating | `puCTe` | ✅ 렌더·레이아웃 확인 |
+| 일부 중단 + 중단된 검사 다시 시도 | Active / Episode Validation Report / Desktop / Partial · Retry | `pBSyc` | ✅ 렌더·레이아웃 확인 |
+| 판단 저장 뒤(필터 제외 안내·되돌리기·판단 기록) | Active / Episode Validation Report / Desktop / Judgment Saved | `Q0cRj` | ✅ 렌더·레이아웃 확인 |
+| 업로드 다음 회차 차단 | Active / Episode Upload / Desktop / Next Episode Blocked | `psRhG` | ✅ 렌더·레이아웃 확인 |
+| 업로드 `신규 회차 검수` 접수 | Active / Episode Upload / Desktop / Validation Intake | `hMeuv` | ✅ 렌더·레이아웃 확인 |
+| 캐릭터 상세 정정 중(`오류 리포트에서 설정 정보를 정정하러 왔어요.`) | Active / Setting DB / Character Detail / Correction | `TuptY` | ✅ 렌더·레이아웃 확인 |
+| 캐릭터 상세 정정 저장됨(`저장됐어요. 리포트로 돌아가 재검수해 주세요.`) | Active / Setting DB / Character Detail / Correction Saved | `tygFS` | ✅ 렌더·레이아웃 확인 |
+| 분석 목록 오류 검토 카드 | Active / Analysis List / Desktop / Awaiting Review | `uGYHZ` | ✅ 렌더·레이아웃 확인 |
+| 원고 목록 단계 배지 | Active / Manuscripts / Desktop / Stage Badges | `xN6Jt` | ✅ 렌더·레이아웃 확인 |
+| 모바일 목록(선택 메뉴 필터) | Active / Episode Validation Report / Mobile / Findings List | `b3YN4` | ✅ 렌더·레이아웃 확인 |
+| 모바일 상세·판단·정정 | Active / Episode Validation Report / Mobile / Finding Detail | `Jt0OQ` | ✅ 렌더·레이아웃 확인 |
+| 모바일 무효 | Active / Episode Validation Report / Mobile / Invalidated | `BbpUT` | ✅ 렌더·레이아웃 확인 |
+| 모바일 확정 완료 | Active / Episode Validation Report / Mobile / Applied | `ZXr5L` | ✅ 렌더·레이아웃 확인 |
+| 모바일 업로드 다음 회차 차단 | Active / Episode Upload / Mobile / Next Episode Blocked | `M3GtNT` | ✅ 렌더·레이아웃 확인 |
+
+프레임 PNG는 [`docs/screens/pencil/gh314/`](../docs/screens/pencil/gh314/)(`<ID>.png`)에 있다.
+
+아직 프레임이 없는 상태: 확정 보류(APPLICATION_HELD, 실제 실행에서 발생하지 않아 캡처 없음), 재시도 진행 중 읽기 전용·모두 판단했지만 검사 미완료·충돌 아님 판단·재검수 시작 직후·검사 이력 패널·원고 파일 변경 모달과 복귀, 세계관 상세 정정과 정정 409(캡처만 `f3-character-correction-conflict-desktop.png`), 분석 목록 확정 완료·모바일과 원고 목록 검토 대기 배지, Workflow 보드(WF-05) 갱신.
+
+2026-10-27 초안 7프레임(`sDtUe`, `ebnfV`, `GJa1U`, `QT3AS`, `PEh6v`, `FmAlB`, `QhduF`)은 정책 변경 전 기록으로 남기고 이름 끝에 `(2026-10-27 초안, 정책 변경 전)`을 붙였다. 화면 기준으로 쓰지 않는다. 보존된 Post-MVP `i8TgH`와 다른 Active 프레임은 바꾸지 않았다.
 
 ### 2026-10-17 GH260 가족 관계 — Pencil 반영 대기
 
@@ -44,9 +72,9 @@ F3(2026-10-30)는 목록 행의 대상·설정명 제목과 대상 라벨, `등�
 
 - 기준 브랜치: `feat/nvm-303-legal-documents`
 - 기준 화면 크기: 데스크톱 `1440×900`, 모바일 `390×844`
-- 동기화 대상: `/landing`, `/login`, `/signup`, `/demo`, `/terms`, `/privacy`, `/works`, `/dashboard`, `/editor`, `/episode-upload`, `/setting-review`
+- 동기화 대상: `/landing`, `/login`, `/signup`, `/demo`, `/terms`, `/privacy`, `/works`, `/dashboard`, `/editor`, `/episode-upload`, `/setting-review`, `/episode-validation-report`
 - 함께 관리하는 상태: 접근 가능한 모달·서랍·토스트, 로딩·빈 화면·오류, 제출·저장·분석·재시도, 토큰 중단·재개
-- 제외 대상: `/chat`, `/loading`, `/report`, `/episode-validation-report` 및 현재 `/works`로 리다이렉트되는 미래 화면
+- 제외 대상: `/chat`, `/loading`, `/report` 및 현재 `/works`로 리다이렉트되는 미래 화면
 - NVM-303의 `/terms`, `/privacy`, 회원가입 법률 문서 상태는 Front·Backend API와 Pencil을 함께 변경하고, 실제 문서 원문·현재 버전은 Backend `legal_documents`를 런타임 기준으로 사용한다.
 
 ## 보존된 Post-MVP 시안

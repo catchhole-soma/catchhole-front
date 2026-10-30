@@ -58,8 +58,37 @@
 | 원고 파일 변경 → 복귀 → 무효 → 재검수 확인 → 새 report | `report-replace-file-modal-desktop`, `manuscripts-replaced-return-desktop`, `report-invalidated-{desktop,mobile}`, `report-recheck-confirm-desktop`, `report-recheck-started-desktop` |
 | 0건 자동 추출 → 확정 완료, 확정 뒤 진단 재검수 | `report-auto-applied-{desktop,mobile}`, `report-diagnostic-recheck-{desktop,mobile}` |
 | 분석 목록 카드·원고 목록 배지 | `analysis-list-{applied,awaiting-review}-desktop`, `analysis-list-awaiting-review-mobile`, `manuscripts-stage-badges-desktop`, `manuscripts-awaiting-review-{desktop,mobile}` |
+| F3 목록 대상·설정명 제목, 대상 라벨, `등급`·`대상` 필터(모바일은 선택 메뉴) — 목 API | `f3-report-findings-filters-{desktop,mobile}` |
+| F3 상세 `대상 설정 보기`와 `원고·설정 수정`의 `설정 정보 정정`(기준 하나), 여러 기준 선택 — 목 API | `f3-report-detail-basis-desktop`, `f3-report-detail-basis-chooser-desktop` |
+| F3 캐릭터 상세 정정 중·저장됨·409(기준 연결 없이 저장 안내) — 목 API | `f3-character-correction-{notice,saved,conflict}-desktop` |
+| F3 정정 receipt로 돌아온 무효 리포트(정정 안내)와 재검수 확인 — 목 API | `f3-report-invalidated-with-receipt-desktop`, `f3-report-recheck-with-receipt-desktop` |
 
-확정 보류(APPLICATION_HELD) 화면은 이번 실제 실행에서 보류가 발생하지 않아 캡처하지 못했다(목 API Playwright로만 확인). Pencil 반영은 `design/PENCIL_MIGRATION.md`의 GH314 항목대로 대기다.
+확정 보류(APPLICATION_HELD) 화면은 이번 실제 실행에서 보류가 발생하지 않아 캡처하지 못했다(목 API Playwright로만 확인). F3 캡처는 `e2e/fixtures/validation/report-mock.ts`의 목 API로 찍었다. Pencil 반영 결과는 아래 「Pencil 최종 프레임 2026-10-30」과 `design/PENCIL_MIGRATION.md`의 GH314 항목에 있다.
+
+## Pencil 최종 프레임 2026-10-30
+
+위 「상태별 초안」 표의 2026-10-27 프레임은 정책 변경 전 기록이며 아래 `Active` 프레임이 대체한다. 초안 프레임은 이름 끝에 `(2026-10-27 초안, 정책 변경 전)`을 붙여 남겨 두었다. 프레임 PNG는 [`docs/screens/pencil/gh314/`](../screens/pencil/gh314/)에 있다.
+
+| 화면 | 프레임 이름 | ID | 상태 |
+| --- | --- | --- | --- |
+| 리포트 검토 대기(목록·상세·F3 대상/필터·정정 영역·추출 보류) | Active / Episode Validation Report / Desktop / Findings | `vXeCA` | ✅ 렌더·레이아웃 확인 |
+| 정정 뒤 무효 + 재검수 확인 | Active / Episode Validation Report / Desktop / Invalidated · Recheck | `P1IMkW` | ✅ 렌더·레이아웃 확인 |
+| 정정 뒤 무효 + 정정 안내 | Active / Episode Validation Report / Desktop / Invalidated · Correction Saved | `rLulg` | ✅ 렌더·레이아웃 확인 |
+| 확정 완료 + 진단 재검수 진입 | Active / Episode Validation Report / Desktop / Applied | `wEGM9` | ✅ 렌더·레이아웃 확인 |
+| 검사 중 읽기 전용 | Active / Episode Validation Report / Desktop / Validating | `puCTe` | ✅ 렌더·레이아웃 확인 |
+| 일부 중단 + 중단된 검사 다시 시도 | Active / Episode Validation Report / Desktop / Partial · Retry | `pBSyc` | ✅ 렌더·레이아웃 확인 |
+| 판단 저장 뒤 | Active / Episode Validation Report / Desktop / Judgment Saved | `Q0cRj` | ✅ 렌더·레이아웃 확인 |
+| 업로드 다음 회차 차단 | Active / Episode Upload / Desktop / Next Episode Blocked | `psRhG` | ✅ 렌더·레이아웃 확인 |
+| 업로드 신규 회차 검수 접수 | Active / Episode Upload / Desktop / Validation Intake | `hMeuv` | ✅ 렌더·레이아웃 확인 |
+| 캐릭터 상세 정정 중 | Active / Setting DB / Character Detail / Correction | `TuptY` | ✅ 렌더·레이아웃 확인 |
+| 캐릭터 상세 정정 저장됨 | Active / Setting DB / Character Detail / Correction Saved | `tygFS` | ✅ 렌더·레이아웃 확인 |
+| 분석 목록 오류 검토 카드 | Active / Analysis List / Desktop / Awaiting Review | `uGYHZ` | ✅ 렌더·레이아웃 확인 |
+| 원고 목록 단계 배지 | Active / Manuscripts / Desktop / Stage Badges | `xN6Jt` | ✅ 렌더·레이아웃 확인 |
+| 모바일 목록 | Active / Episode Validation Report / Mobile / Findings List | `b3YN4` | ✅ 렌더·레이아웃 확인 |
+| 모바일 상세 | Active / Episode Validation Report / Mobile / Finding Detail | `Jt0OQ` | ✅ 렌더·레이아웃 확인 |
+| 모바일 무효 | Active / Episode Validation Report / Mobile / Invalidated | `BbpUT` | ✅ 렌더·레이아웃 확인 |
+| 모바일 확정 완료 | Active / Episode Validation Report / Mobile / Applied | `ZXr5L` | ✅ 렌더·레이아웃 확인 |
+| 모바일 업로드 다음 회차 차단 | Active / Episode Upload / Mobile / Next Episode Blocked | `M3GtNT` | ✅ 렌더·레이아웃 확인 |
 
 ## 확인 범위와 남은 작업
 
