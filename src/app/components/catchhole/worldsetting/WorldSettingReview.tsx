@@ -789,7 +789,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
 }) {
   if (group.status === 'READY' || group.candidates?.some(isAutomaticApplicationPending)) return null;
   if (allPendingDraftsPrepared(group)) return <div style={{ margin: '0 22px 16px' }}><ReviewNotice tone="success" title="확정할 내용이 준비됐어요">
-    검토한 내용을 아래의 모두 확정으로 작품에 반영해 주세요.
+    검토한 내용을 아래 확정 버튼으로 작품에 반영해 주세요.
   </ReviewNotice></div>;
   const status = groupStatusMeta(group);
   const failureKind = groupFailureKind(group);
@@ -819,7 +819,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
         ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
         : quotaInstruction
       : failureKind === 'MANUAL_REVIEW'
-        ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.`
+        ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 직접 반영할 내용을 저장한 뒤 확정해 주세요.`
       : failureKind === 'MIXED_REVIEW'
         ? `${quotaInstruction} 검토가 필요한 항목은 원문을 확인하고 직접 반영할 내용을 저장해 주세요.`
       : failureKind === 'MIXED'
@@ -830,7 +830,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
           ? '다시 비교해야 하는 항목이 남아 있습니다. 직접 확인해서 반영할 수 있는 항목은 원문과 내용을 확인해 주세요.'
           : '기존 세계관과 비교 결과를 만들지 못했습니다. 아래의 다시 비교로 이어서 처리해 주세요.'
     : manualReviewAvailable
-      ? '자동으로 확정하지 못한 설정이 남았습니다. 원문을 확인하고 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.'
+      ? '자동으로 확정하지 못한 설정이 남았습니다. 원문을 확인하고 직접 반영할 내용을 저장한 뒤 확정해 주세요.'
       : group.status === 'RECOMPARISON_REQUIRED'
       ? (group.recomparisonScope === 'GROUP'
         ? '대상의 생성·이름·분류가 바뀌어 이 대상의 모든 설정 항목을 다시 비교합니다.'
@@ -1425,7 +1425,7 @@ function WorldCandidateGroupDetail({
       )}
 
       {hasUnsavedChanges && <div id={blockNoticeIds.unsaved} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
-        수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.
+        수정한 내용을 저장하거나 취소한 뒤 확정해 주세요.
       </ReviewNotice></div>}
       {bookChoicesPending && !groupAutomaticPending && <div id={blockNoticeIds.book} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
         각 항목에서 내용을 확인하고 확정할 방법을 선택해 주세요.

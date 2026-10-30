@@ -375,7 +375,7 @@ test('완료된 제외 제안은 묶음 확정에 포함하고 현재값이나 �
   await expect(card(page).getByRole('button', { name: '수정', exact: true })).toBeEnabled();
   await card(page).getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(card(page).getByText('제외 제안', { exact: true })).toBeVisible();
-  await expect(card(page).getByText('모두 확정하면 이 후보는 제외돼요', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('확정하면 이 후보는 제외돼요', { exact: true })).toBeVisible();
   await expect(card(page).getByText(/이 내용은 현재 설정이나 이력에 추가하지 않고/)).toBeVisible();
   await expect(page.locator('.review-action-bar__counts')).toHaveText('제외 1');
   await expect(page.getByText('모든 설정의 현재값 비교가 끝난 뒤 함께 확정할 수 있습니다.', { exact: true })).toHaveCount(0);

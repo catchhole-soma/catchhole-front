@@ -205,6 +205,6 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
       : reviewed ? <div className="review-draft-saved" role="status">{REVIEW_SAVE_TEXT.saved}</div>
       : localChoiceMarked && !manual ? <div className="review-draft-saved is-local" role="status">{REVIEW_SAVE_TEXT.localChoice}</div>
       : null)}
-    {exclude && pending && <ReviewNotice title="모두 확정하면 이 후보는 제외돼요">이 내용은 현재 설정이나 이력에 추가하지 않고, 기존 설정은 그대로 유지합니다. 반영하려면 확정 전에 내용을 수정해 주세요.</ReviewNotice>}
+    {exclude && pending && <ReviewNotice title="확정하면 이 후보는 제외돼요">이 내용은 현재 설정이나 이력에 추가하지 않고, 기존 설정은 그대로 유지합니다. 반영하려면 확정 전에 내용을 수정해 주세요.</ReviewNotice>}
   </section>;
 }

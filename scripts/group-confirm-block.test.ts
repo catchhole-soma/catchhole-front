@@ -102,7 +102,7 @@ test('세계관: 결정 없는 행·충돌 행·미저장 행·대상만 고른 
     row('dirty', { unsaved: true }),
   ], automaticPendingMessage: null, filtered: false });
   assert.equal(block?.kind, 'unsaved');
-  assert.equal(block?.reason, '수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.');
+  assert.equal(block?.reason, '수정한 내용을 저장하거나 취소한 뒤 확정해 주세요.');
   assert.deepEqual(block?.candidateIds, ['conflict', 'pending', 'dirty']);
 });
 

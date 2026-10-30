@@ -314,7 +314,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
         afterLabel="저장할 최종 내용" />}
       {error && <ReviewNotice tone="danger">{error}</ReviewNotice>}
       <footer className="review-cb-inline-editor__footer">
-        <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.'}</p>
+        <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래 확정 버튼으로 작품에 반영됩니다.'}</p>
         <div className="review-cb-actions">
           <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading || (conflict && !saved)}
             onClick={cancelDraft}>수정 닫기</button>
