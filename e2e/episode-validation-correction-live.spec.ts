@@ -9,6 +9,7 @@ import { buildEpisode1Settings, data, poll, STAGE_TIMEOUT, submitValidation, TER
  * 같은 API에 붙은 추출·검수 Worker, `CATCHHOLE_E2E_VALIDATION_WORKER=1`)에서만 실행한다.
  * 2화에 1화(서른 살)와 바로 어긋나는 나이 서술 하나를 심고, 검토 대기(AWAITING_REVIEW) 리포트의 설정 검사 항목에서 서윤의 나이를 정정한다.
  * 나이가 바뀌었다고 읽힐 문장(`올해로 … 되었다`)은 변화·예외 판단을 부르므로(#341) 변화 없는 서술로 심는다.
+ * 2화 검사와 재검수는 각각 PARTIAL로 끝나면(#341) 서버가 RETRY를 허용할 때만 작가 경로(`중단된 검사 다시 시도`)로 한 번씩 다시 시도한다.
  * 정정은 고정 기준과 현재 설정이 그대로일 때만 저장되므로 검토 완료·설정 추출 전에 한다(Backend validation-execution-v1.md "명시적 기준 정정").
  * 화면·서버 흐름(정정 저장·기준 무효화·RECHECK·새 report 연결)은 바로 확인하고, 모델 판정(정정 전 나이 충돌·정정 후 해소)은 soft로 남긴다.
  */
@@ -125,8 +126,9 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
   /**
    * PARTIAL이면 작가 경로로 한 번만 다시 시도한다. 서버 `/review`가 RETRY를 허용할 때만 리포트의 `중단된 검사 다시 시도`를 누르고,
    * 접수(실행 상태가 종료를 벗어나거나 reportVersion 증가 — 서버는 둘을 한 트랜잭션에서 바꾼다)를 확인한 뒤 다시 종료까지 기다린다.
+   * `run`은 다시 시도한 검사(`first` 2화 검사, `recheck` 재검수)이며 annotation으로 남긴다. 화면은 이미 그 report에 있다.
    */
-  const retryPartialOnce = async (partial: Staging) => {
+  const retryPartialOnce = async (partial: Staging, run: 'first' | 'recheck') => {
     const review = await data<{ reviewStage: string; allowedActions: string[] }>(await request.get(`${reportUrl(partial.reportId)}/review`, { headers }));
     if (!review.allowedActions.includes('RETRY')) {
       throw new Error(`검사가 PARTIAL로 끝났지만 다시 시도를 허용하지 않습니다: executionStatus=${partial.executionStatus} reviewStage=${review.reviewStage}`);
@@ -136,9 +138,9 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     await page.getByRole('region', { name: '검사 기준과 범위' }).getByRole('button', { name: '중단된 검사 다시 시도', exact: true }).click();
     await poll(() => readStaging(partial.reportId),
       value => !TERMINAL_EXECUTION.has(value.executionStatus) || value.reportVersion > partial.reportVersion, 60_000, '중단된 검사 다시 시도 접수');
-    const retried = await untilTerminal(partial.reportId, '다시 시도한 오류 검사');
-    note('retry-used', '1');
-    note('retry-seconds', String(Math.round((Date.now() - retryStartedAt) / 1000)));
+    const retried = await untilTerminal(partial.reportId, `다시 시도한 오류 검사(${run})`);
+    note('retry-used', run);
+    note(`retry-seconds-${run}`, String(Math.round((Date.now() - retryStartedAt) / 1000)));
     return retried;
   };
   // 새 fixture 계정이면 첫 분석 안내가 한 번 열린다. 서버 판단을 먼저 읽어 그때만 기다린다.
@@ -162,7 +164,7 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     const startedAt = Date.now();
     let staging = await untilTerminal(reportId, '오류 검사');
     note('validation-seconds', String(Math.round((Date.now() - startedAt) / 1000)));
-    if (staging.executionStatus === 'PARTIAL') staging = await retryPartialOnce(staging);
+    if (staging.executionStatus === 'PARTIAL') staging = await retryPartialOnce(staging, 'first');
     expect(staging.executionStatus, `실제 모델 검사가 두 분기 모두 끝나야 합니다.${await execution(staging)}`).toBe('COMPLETED');
     expect(staging.reviewStage).toBe('AWAITING_REVIEW');
 
@@ -274,8 +276,9 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     expect((await readStaging(reportId)).current, '재검수 뒤 이전 report는 현재 결과가 아니다').toBe(false);
 
     const recheckStartedAt = Date.now();
-    const finished = await untilTerminal(recheckId, '재검수 오류 검사');
+    let finished = await untilTerminal(recheckId, '재검수 오류 검사');
     note('recheck-seconds', String(Math.round((Date.now() - recheckStartedAt) / 1000)));
+    if (finished.executionStatus === 'PARTIAL') finished = await retryPartialOnce(finished, 'recheck');
     note('recheck-stage', `${finished.reviewStage} mode=${finished.mode}`);
     expect(finished.executionStatus, `정정한 설정으로 다시 검사한 두 분기가 모두 끝나야 합니다.${await execution(finished)}`).toBe('COMPLETED');
     expect.soft(finished.mode, '아무것도 확정하지 않았으므로 확정 전 검수다.').toBe('BEFORE_CONFIRMATION');

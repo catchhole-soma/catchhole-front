@@ -38,7 +38,7 @@ CATCHHOLE_E2E_VALIDATION_WORKER=1 CATCHHOLE_E2E_PORT=3321 VITE_API_BASE_URL=http
 
 - 원고: 1화는 위 spec과 같고(서윤 `서른 살`), 2화는 위 2화 첫 문단 뒤에 변화가 아닌 나이 모순 `등대지기 서윤은 스물여덟 살이다.` 한 문단만 더했다(오탈자 `됬다` 유지). 1화 업로드·설정 구축과 신규 회차 검수 접수는 두 spec이 `e2e/validation-live-helpers.ts`를 같이 쓴다.
 - 흐름: 1화 기존 설정 구축(서윤 현재 나이 30 확인) → 2화 신규 회차 검수 → 검토 대기(AWAITING_REVIEW)에서 서윤 캐릭터 basis가 있는 설정 검사 항목 선택(나이 slot basis 우선) → 리포트 `설정 정보 정정` → 캐릭터 상세에서 나이 28 저장(`POST /corrections` 하나, 일반 PATCH 없음) → receipt·`correctionResult=linked` → 현재 report 유지 + `RECHECK` → `수정 내용으로 재검수` → 새 report(`previousReportId`=이전 report, 이전 report `current=false`) 검사 완료.
-- 2화 검사가 PARTIAL로 끝나면 서버가 `RETRY`를 허용할 때만 리포트의 `중단된 검사 다시 시도`로 한 번 다시 시도한다(annotation `retry-used`·`retry-seconds`). 그래도 COMPLETED가 아니면 `/results`의 상태·실패 코드를 담아 실패한다.
+- 2화 검사와 재검수는 각각 PARTIAL로 끝나면 서버가 `RETRY`를 허용할 때만 리포트의 `중단된 검사 다시 시도`로 한 번씩 다시 시도할 수 있다(annotation `retry-used`=`first`·`recheck`, `retry-seconds-first`·`retry-seconds-recheck`). 그래도 COMPLETED가 아니면 `/results`의 상태·실패 코드를 담아 실패한다.
 - 정정은 고정 기준과 현재 설정이 그대로일 때만 저장되므로 검토 완료·설정 추출 전에 한다. 정정 409·응답 유실 안내가 나오면 그 화면 문구로 실패한다.
 - 흐름 사실은 바로 실패시키고, 모델 판정(정정 전 서윤 나이 충돌이 있음·재검수 뒤 없음)은 soft assertion과 annotation(`age-conflict-before`·`age-conflict-after`, 항목 수, 선택 항목, snapshot version, 사용량)으로 남긴다. 서윤 basis가 있는 설정 검사 항목이 없으면 실패한다.
 
