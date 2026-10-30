@@ -14,6 +14,7 @@ import SChat from './components/catchhole/chat/SChat';
 import S2Editor from './components/catchhole/S2Editor';
 import SEpisodeUpload from './components/catchhole/SEpisodeUpload';
 import SSettingReview from './components/catchhole/SSettingReview';
+import SEpisodeValidationReport from './components/catchhole/validation/SEpisodeValidationReport';
 import { C, TransitionType } from './components/catchhole/constants';
 import { getMeOptions } from './api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from './lib/auth';
@@ -175,10 +176,10 @@ function AnimatedRoutes() {
     ? 'public-auth'
     : location.pathname;
 
-  // 설정 검토는 URL query를 버튼 상태로 사용하고 상세에 sticky/scroll 영역이 많다.
+  // 설정 검토·오류 리포트는 URL query를 버튼 상태로 사용하고 상세에 sticky/scroll 영역이 많다.
   // 이 화면을 transform 합성 레이어 안에 두면 Safari/WebKit에서 query 변경 뒤 화면이
   // 사라지거나 Chromium에서 hit testing이 잠시 멈추는 경우가 있어 정적 레이어로 렌더링한다.
-  if (location.pathname === '/setting-review') {
+  if (location.pathname === '/setting-review' || location.pathname === '/episode-validation-report') {
     return <StaticRouteLayer key={routeKey} location={location} />;
   }
 
@@ -248,7 +249,7 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
         <Route path="/report" element={<Navigate to="/works" replace />} />
         <Route path="/episode-upload" element={<SEpisodeUpload />} />
         <Route path="/setting-review" element={<SSettingReview />} />
-        <Route path="/episode-validation-report" element={<Navigate to="/works" replace />} />
+        <Route path="/episode-validation-report" element={<SEpisodeValidationReport />} />
       </Route>
       <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>

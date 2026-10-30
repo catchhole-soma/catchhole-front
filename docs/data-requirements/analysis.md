@@ -399,7 +399,7 @@ GET /api/v1/works/{workId}/analysis-jobs/batches?page={page}&size=10
 
 **화면명:** 오류 리포트 · **명세 상태:** 2026-10-28 오류 검사 우선 정책 반영안 · **관련 이슈:** [#300](https://github.com/catchhole-soma/catchhole-backend-java/issues/300)
 
-**예정 URL:** `/episode-validation-report?workId={workId}&reportId={reportId}`. 현재 이 경로는 작품 선택으로 이동하며 리포트는 아직 구현되지 않았다.
+**URL:** `/episode-validation-report?workId={workId}&reportId={reportId}`. #314 F1에서 생성 SDK 기반 리포트 화면(R1~R8, 판단 저장·검토 완료 후 설정 추출·명시 반영·중단 재시도·이력)을 연결했다. `workId`+`episodeId`로 들어오면 서버의 현재 report로 주소를 바꾼다. 업로드·분석 목록 진입, 원고 교체·설정 정정 복귀와 `수정 내용으로 재검수`는 F2 범위이며 재검수 버튼은 서버가 허용해도 조건 안내만 하는 비활성 상태다. 현재 공개 계약에는 등급·대상 필터와 항목의 대상/설정명·비교 자료 목록이 없어 화면도 제공하지 않는다.
 
 작가가 **새 회차 한 편**의 설정 충돌·충돌 의심·추가 확인 필요 결과를 근거와 함께 읽고, 판단을 남기거나 원고·설정을 고친 뒤 재검수하는 화면이다. [합의한 제품 기획](../planning/gh-300-error-report-product-brief.md)을 기준으로 이 절의 과거 다회차·캐릭터 전용·재검수 미지원 안을 대체한다. 업로드·분석 목록·설정 관리 화면은 여기서 필요한 연결만 정의하고 각각의 전체 명세는 별도로 검토한다.
 

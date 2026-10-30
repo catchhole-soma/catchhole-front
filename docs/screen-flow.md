@@ -1005,3 +1005,5 @@ flowchart TD
 - 모바일은 목록→상세→목록 복귀에서 선택·필터를 유지한다. 기존 캐릭터·세계관 설정 확정 화면의 Theme V2·Clear Blue를 디자인 기준으로 삼는다.
 
 #303은 추출 없는 접수·기준·우회 차단 기반이다. 검수 Worker·판단/검토 종료·추출 허용·화면 연결은 후속 구현이다. 기존 `기존 설정 구축`의 동작은 유지한다.
+
+**#314 F1 (2026-10-30):** `/episode-validation-report?workId&reportId`가 위 흐름의 리포트 화면이다. 단계 문구는 서버 `reviewStage`, 판단·완료·반영·재시도 버튼은 서버의 `allowedActions`·`canCompleteReview`·`judgmentLocked`로만 연다. URL은 `branch`·`judgment`(생략=검토 필요, `ALL` 명시)·`outcome`·1-based `page`·`findingId`·`evidence`·`history=1`을 보존하고 인용·본문은 넣지 않는다. 768px 이하는 목록→상세→`목록으로`이며 초점은 상세 제목과 원래 항목으로 돌아간다. 업로드·목록 진입과 재검수 연결은 F2다.
