@@ -334,7 +334,8 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     : undefined;
   const sourceLink = !report.invalidated && !pastReport && staging?.episodeId
     ? `/editor?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}` : undefined;
-  const linkState = (location.state ?? {}) as ReportLinkState;
+  // 리포트끼리 이동하면 history가 늘어나므로 분석 목록 복귀의 상대 이동(returnHistoryDelta)은 버리고 저장한 목록 주소만 넘긴다.
+  const linkState = { ...(location.state as ReportLinkState | null), returnHistoryDelta: undefined };
   // 보던 주소도 그 사이 재검수로 퇴역했을 수 있어 회차의 현재 report를 새로 확인한다. 같으면 보던 필터·선택을 복원한다.
   const backToLatest = () => {
     const saved = typeof linkState.latestReportUrl === 'string' ? linkState.latestReportUrl : null;

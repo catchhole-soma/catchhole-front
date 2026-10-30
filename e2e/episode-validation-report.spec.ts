@@ -426,6 +426,44 @@ test('최신 결과로 돌아가기는 보던 결과가 그 사이 퇴역했으�
   await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
 });
 
+/** 분석 목록 2페이지의 검수 카드에서 리포트 A로 들어온다. 목록은 배치 요약만 응답한다. */
+async function enterFromAnalysisList(page: Page) {
+  const mock = await mockValidationReport(page);
+  await page.route('**/analysis-jobs/batches**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    success: true, data: { content: [{ batchId: mock.state.staging.batchId, uploadType: 'SINGLE_EPISODE', status: 'ERROR_REVIEW_PENDING',
+      episodeStatus: 'ERROR_REVIEW_PENDING', episodeStartNo: 101, episodeEndNo: 101, episodeCount: 1, jobGroups: [], episodeJobGroups: [],
+      settingBooks: [], validationReports: [{ ...review.responses.batchValidationReport, reviewStage: 'AWAITING_REVIEW' }] }],
+    page: 1, size: 10, totalPages: 2, totalElements: 11 }, error: null }) }));
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${WORK_ID}&nav=analyses&analysisPage=2`);
+  await page.getByTestId('validation-analysis-card').getByRole('button', { name: '오류 리포트 보기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page.locator('#validation-report-title')).toBeVisible();
+  await page.getByRole('button', { name: '검사 이력' }).click();
+  await page.getByRole('region', { name: '검사 이력' }).getByRole('link', { name: '이 검수 요약 보기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${PAST_REPORT_ID}`));
+  await expect(page.getByText('이전 검수 결과예요.')).toBeVisible();
+}
+
+const analysisListUrl = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses&analysisPage=2$`);
+
+test('분석 목록에서 들어와 이전 결과로 이동한 뒤에도 분석 목록 복귀는 원래 목록 페이지로 간다', async ({ page }) => {
+  await enterFromAnalysisList(page);
+  await page.getByRole('button', { name: '← 분석 목록' }).click();
+  await expect(page).toHaveURL(analysisListUrl);
+  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+});
+
+test('이전 결과에서 최신 결과로 돌아온 뒤 분석 목록 복귀도 원래 목록 페이지로 간다', async ({ page }) => {
+  await enterFromAnalysisList(page);
+  await page.getByRole('button', { name: '최신 결과로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
+  await page.getByRole('button', { name: '분석 목록으로', exact: true }).first().click();
+  await expect(page).toHaveURL(analysisListUrl);
+  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+});
+
 test('현재 결과가 없는 회차는 실행 없음과 분석 목록 이동을 제공한다', async ({ page }) => {
   await mockValidationReport(page, { currentReportMissing: true });
   await authenticate(page);
