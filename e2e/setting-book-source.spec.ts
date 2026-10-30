@@ -223,6 +223,40 @@ test('검색과 설정 이력의 책 근거는 수동 입력·없는 회차로 �
   await expect(page.locator('.character-evidence-panel')).not.toContainText('출처 회차 없음');
 });
 
+test('일부 인용의 위치가 잘못되어도 정상 인용과 설정값을 유지한다', async ({ page }) => {
+  await setup(page);
+  await page.route(`**/api/v1/works/${workId}/character-facts/${candidateId}/evidence`, route => envelope(route, {
+    characterFactId: candidateId, source: bookSource, episode: null, content: frozenContent,
+    evidenceSpans: [
+      { quote: '수아의 눈은 갈색이다.', startOffset: 2, endOffset: 14 },
+      { quote: '원문에 없는 잘못된 인용', startOffset: 2, endOffset: 15 },
+      { quote: '위치를 받지 못한 인용' },
+    ],
+  }));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters&modal=character-timeline&charId=${characterId}&timelineView=all`);
+  await expect(page.locator('.character-timeline-group')).toContainText('갈색');
+  await page.getByRole('button', { name: /설정집 · 북부 인물 설정.txt.*원문 근거 보기/ }).click();
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveText('수아의 눈은 갈색이다.');
+  await expect(page.locator('.character-evidence-panel')).not.toContainText('원문에 없는 잘못된 인용');
+  await expect(page.locator('.character-evidence-panel')).not.toContainText('위치를 받지 못한 인용');
+});
+
+for (const unavailableSource of [false, true]) test(`검증할 수 없는 인용은 저장 인용으로 재노출하지 않는다 (원문 ${unavailableSource ? '없음' : '있음'})`, async ({ page }, testInfo) => {
+  await setup(page);
+  await page.route(`**/api/v1/works/${workId}/character-facts/${candidateId}/evidence`, route => envelope(route, {
+    characterFactId: candidateId, source: bookSource, episode: null,
+    content: unavailableSource ? null : frozenContent,
+    evidenceSpans: [{ quote: '표시하면 안 되는 저장 인용', startOffset: 1, endOffset: 14 }],
+  }));
+  await page.goto(`/dashboard?workId=${workId}&nav=settingDB&tab=characters&modal=character-timeline&charId=${characterId}&timelineView=all`);
+  await expect(page.locator('.character-timeline-group')).toContainText('갈색');
+  await page.getByRole('button', { name: /설정집 · 북부 인물 설정.txt.*원문 근거 보기/ }).click();
+  await expect(page.locator('.character-evidence-panel')).toContainText('표시할 원문 근거가 없습니다.');
+  await expect(page.locator('.character-evidence-panel')).not.toContainText('표시하면 안 되는 저장 인용');
+  await expect(page.getByTestId('character-evidence-highlight')).toHaveCount(0);
+  if (!unavailableSource) await page.locator('.character-evidence-panel').screenshot({ path: testInfo.outputPath('hidden-invalid-evidence.png') });
+});
+
 test('분석 목록의 설정집은 회차 수 없이 해당 원문 검토로 연결한다', async ({ page }) => {
   await setup(page);
   await page.goto(`/dashboard?workId=${workId}&nav=analyses`);

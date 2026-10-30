@@ -178,7 +178,8 @@ async function setup(context: BrowserContext) {
     if (path.includes(`/character-facts/${factId}/evidence`)) {
       originalReads++;
       if (failOriginalReads) return failure(route, 503, '원문을 불러오지 못했어요.', 'COMMON_ERROR');
-      return success(route, { content: originalContent, evidenceSpans: [{ quote: originalQuote, paragraphIndex: 0 }],
+      const startOffset = originalContent == null ? -1 : Array.from(originalContent.slice(0, originalContent.indexOf(originalQuote))).length;
+      return success(route, { content: originalContent, evidenceSpans: [{ quote: originalQuote, startOffset, endOffset: startOffset + Array.from(originalQuote).length }],
         episode: { episodeNo: 1, title: '가족' } });
     }
     return success(route, []);
@@ -298,6 +299,31 @@ test('자동 반영 목록·별도 대기 개수·이전 원문 근거·철회',
   await expect(page.getByText('삭제된 연결', { exact: true })).toBeVisible();
   expect(fixture.calls.mutations).toEqual([`POST ${prefix}/relationships/${relationId}/withdraw`]);
   expect(fixture.calls.analyses).toBe(0);
+});
+
+test('가족 관계 근거도 위치가 없는 인용은 숨기고 정상 인용과 설정을 유지한다', async ({ page, context }) => {
+  await setup(context);
+  let includeValid = true;
+  await page.route(`**/api/v1/works/${workId}/character-facts/${factId}/evidence`, route => success(route, {
+    content: '도윤의 아버지 현우', episode: { episodeNo: 1, title: '가족' },
+    evidenceSpans: [
+      ...(includeValid ? [{ quote: '아버지 현우', startOffset: 4, endOffset: 10 }] : []),
+      { quote: '원문에 없는 가족 인용' },
+      { quote: '길이가 같은 오류 인용', startOffset: 0, endOffset: 12 },
+    ],
+  }));
+  await page.goto(workspace);
+  await page.getByRole('button', { name: '관계 근거 보기', exact: true }).click();
+  await expect(page.getByText('도윤의 가족 설정', { exact: true })).toBeVisible();
+  await expect(page.getByRole('blockquote')).toHaveText('아버지 현우');
+  await expect(page.locator('.family-evidence-original')).not.toContainText('원문에 없는 가족 인용');
+  await expect(page.locator('.family-evidence-original')).not.toContainText('길이가 같은 오류 인용');
+  includeValid = false;
+  await page.reload();
+  await expect(page.getByText('도윤의 가족 설정', { exact: true })).toBeVisible();
+  await expect(page.locator('.family-evidence-original')).toContainText('표시할 원문 근거가 없습니다.');
+  await expect(page.getByRole('blockquote')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '원문 근거 1', exact: true })).toHaveCount(0);
 });
 
 test('열린 확정 관계의 근거 재조회가 실패해도 행을 유지하고 다시 불러온 뒤 근거를 확인한다', async ({ page, context }) => {
@@ -1121,6 +1147,8 @@ test('320px 모바일 수정 버튼은 대비·키보드·링크를 유지하고
   await drawer.getByRole('button', { name: '관계도', exact: true }).click();
   await expect(drawer).toHaveCount(0);
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('graph');
+  await expect(page.getByRole('tab', { name: '인물 관계도', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: '가계도', exact: true }).click();
   await page.getByLabel('가족 관계 보기', { exact: true }).selectOption('review');
   await page.getByRole('button', { name: '도윤 가족 현우 관계 확인' }).click();
   await expect(page.getByRole('heading', { name: '도윤의 가족 관계 확인' })).toBeVisible();
@@ -1432,7 +1460,7 @@ test('숨겨진 창은 후보 주기 조회를 멈추고 돌아오면 즉시 외
   await expect(page.getByRole('button', { name: '변경사항 저장' })).toBeDisabled();
 });
 
-test('작품 설정의 가족 탭 대신 사이드바 관계도에서 현재 관계와 후보를 연다', async ({ page, context }) => {
+test('사이드바 관계도에서 가계도를 선택해 현재 가족 관계와 후보를 연다', async ({ page, context }) => {
   await setup(context);
   await page.goto(settings);
   await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
@@ -1445,6 +1473,8 @@ test('작품 설정의 가족 탭 대신 사이드바 관계도에서 현재 관
   await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('graph');
   expect(new URL(page.url()).searchParams.has('tab')).toBeFalsy();
   await expect(navigation).toHaveClass(/is-active/);
+  await expect(page.getByRole('tab', { name: '인물 관계도', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: '가계도', exact: true }).click();
   await expect(page.getByRole('button', { name: '가족 관계 목록', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '확인·연결 1', exact: true }).click();
   await page.getByRole('button', { name: '도윤 가족 현우 관계 확인', exact: true }).click();

@@ -8,7 +8,7 @@ const second = '30000000-0000-4000-8000-000000000002';
 const third = '30000000-0000-4000-8000-000000000003';
 const groupId = '60000000-0000-4000-8000-000000000001';
 const prefix = `/api/v1/works/${workId}`;
-const workspace = `/dashboard?workId=${workId}&nav=graph`;
+const workspace = `/dashboard?workId=${workId}&nav=graph&relationMode=family`;
 const panel = (page: Page) => page.getByRole('article', { name: '언급된 인물 근거' });
 const groupPanel = (page: Page) => panel(page).getByRole('region', { name: '같은 인물 묶음' });
 function success(route: Route, data: unknown) {
@@ -88,8 +88,7 @@ async function setup(context: BrowserContext, options: { grouped?: boolean; unav
     if (path === `${prefix}/relationship-mention-groups/${groupId}`) return success(route, group);
     if (path === `${prefix}/characters`) return success(route, { content: [], totalPages: 0, totalElements: 0 });
     if (path.includes('/character-facts/') && path.endsWith('/evidence')) {
-      const source = candidates.flatMap(item => item.evidence ?? []).find(item => path.includes(item.sourceFactId!));
-      return success(route, { content: source?.currentValue, evidenceSpans: [{ quote: '태조의 후손이라는 원문', paragraphIndex: 0 }], episode: { episodeNo: 1, title: '가문의 기록' } });
+      return success(route, { content: '태조의 후손이라는 원문', evidenceSpans: [{ quote: '태조의 후손이라는 원문', startOffset: 0, endOffset: 12 }], episode: { episodeNo: 1, title: '가문의 기록' } });
     }
     return success(route, []);
   });

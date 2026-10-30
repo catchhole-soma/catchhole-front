@@ -1,3 +1,4 @@
+import { readSettingEvidence } from '../../../lib/setting-evidence';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, ChevronDown, FileText, RefreshCw } from 'lucide-react';
@@ -67,7 +68,7 @@ function RelationshipOriginalQuotes({ workId, factId, index, onOpen }: {
   </div>;
 
   const original = query.data?.data;
-  const spans = original?.evidenceSpans.filter(span => span.quote.trim().length > 0) ?? [];
+  const spans = readSettingEvidence(original?.evidenceSpans, original?.content ?? null);
   const label = analysisSourceLabel(original?.source, original?.episode?.episodeNo);
   const title = original?.source?.sourceKind !== 'SETTING_BOOK' ? original?.episode?.title : null;
   return <div className="family-evidence-original">
@@ -76,10 +77,9 @@ function RelationshipOriginalQuotes({ workId, factId, index, onOpen }: {
       {spans.map((span, position) => <blockquote className="family-evidence-original__quote" key={`${span.startOffset}-${span.endOffset}-${position}`}>
         {span.quote}
       </blockquote>)}
-      {original?.content == null && <p className="family-evidence-original__status">저장된 인용문이에요. 전체 원문은 현재 확인할 수 없어요.</p>}
-    </> : <p className="family-evidence-original__status">저장된 인용문이 없어요.</p>}
-    {(spans.length > 0 || original?.content != null) && <button type="button" className="family-evidence-original__link" aria-label={`원문 근거 ${index + 1}`}
-      onClick={() => onOpen(factId)}><FileText size={14} aria-hidden="true" />{original?.content != null ? '전체 원문 보기' : '근거 상세 보기'}</button>}
+    </> : <p className="family-evidence-original__status">표시할 원문 근거가 없습니다.</p>}
+    {spans.length > 0 && <button type="button" className="family-evidence-original__link" aria-label={`원문 근거 ${index + 1}`}
+      onClick={() => onOpen(factId)}><FileText size={14} aria-hidden="true" />전체 원문 보기</button>}
   </div>;
 }
 

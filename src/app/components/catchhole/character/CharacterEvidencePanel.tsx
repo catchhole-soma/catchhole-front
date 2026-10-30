@@ -1,3 +1,4 @@
+import { readSettingEvidence } from '../../../lib/setting-evidence';
 import { useEffect, useMemo, useRef } from 'react';
 import { AlertCircle, FileText, Loader2, RefreshCw, X } from 'lucide-react';
 import type {
@@ -194,48 +195,6 @@ function HighlightedSource({
   );
 }
 
-function QuoteFallback({
-  spans,
-}: {
-  spans: CharacterFactEvidenceSpanResponse[];
-}) {
-  if (spans.length === 0) {
-    return (
-      <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: '42px 16px' }}>
-        원문이 삭제되었거나 저장된 근거가 없습니다.
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div style={{ color: C.warning, fontSize: 12, marginBottom: 12 }}>
-        원문에서 위치를 확인할 수 없어 저장된 인용문만 표시합니다.
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {spans.map((span, index) => (
-          <blockquote
-            className="theme-evidence__quote"
-            key={`${span.quote}-${index}`}
-            style={{
-              margin: 0,
-              padding: '14px 16px',
-              borderRadius: 7,
-              borderLeft: `3px solid ${C.primary}`,
-              background: C.bg,
-              color: C.t2,
-              fontSize: 13,
-              lineHeight: 1.7,
-            }}
-          >
-            “{span.quote}”
-          </blockquote>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function CharacterEvidencePanel({
   evidence,
   loading,
@@ -250,15 +209,14 @@ export function CharacterEvidencePanel({
 }: Props) {
   const content = evidence?.content ?? null;
   const spans = useMemo(
-    () => evidence?.evidenceSpans ?? [],
-    [evidence?.evidenceSpans],
+    () => readSettingEvidence(evidence?.evidenceSpans, content),
+    [evidence?.evidenceSpans, content],
   );
   const validRanges = useMemo(
     () => content == null ? [] : validHighlightRanges(content, spans),
     [content, spans],
   );
   const canHighlight = content != null && validRanges.length > 0;
-  const sourceUnavailable = evidence != null && content == null && spans.length > 0;
 
   return (
     <section className="character-evidence-panel" aria-label="캐릭터 설정 원문 근거">
@@ -363,12 +321,9 @@ export function CharacterEvidencePanel({
           <>
             {canHighlight
               ? <HighlightedSource content={content} ranges={validRanges} />
-              : <QuoteFallback spans={spans} />}
-            {sourceUnavailable && (
-              <button type="button" onClick={onRetry} style={{ ...retryButtonStyle, marginTop: 14 }}>
-                <RefreshCw size={13} /> 전체 원문 다시 불러오기
-              </button>
-            )}
+              : <div style={{ color: 'var(--ch-text-muted)', fontSize: 13, textAlign: 'center', padding: '42px 16px' }}>
+                  표시할 원문 근거가 없습니다.
+                </div>}
           </>
         )}
 

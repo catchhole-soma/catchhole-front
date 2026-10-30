@@ -6,7 +6,7 @@ const workId = '11111111-1111-4111-8111-111111111111';
 const selectedId = '22222222-2222-4222-8222-222222222222';
 const prefix = `/api/v1/works/${workId}`;
 const settings = `/dashboard?workId=${workId}&nav=settingDB&tab=characters`;
-const relationshipParams = ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory'];
+const relationshipParams = ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory', 'relationMode', 'relationEpisode', 'relationFocus', 'relationEdge'];
 
 function success(route: Route, data: unknown) {
   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
@@ -86,7 +86,7 @@ for (const destination of ['nav=graph', 'nav=settingDB&tab=relations']) {
     await page.clock.install();
     await page.goto('/works');
     await expect(page.getByRole('button', { name: '사용자 메뉴 열기' })).toBeVisible();
-    await page.goto(`/dashboard?workId=${workId}&${destination}&relationView=review&relationPage=2&relationshipCandidate=${selectedId}&relationshipId=${selectedId}&relationshipFactId=${selectedId}&familyFocus=${selectedId}&familyHistory=true`);
+    await page.goto(`/dashboard?workId=${workId}&${destination}&relationView=review&relationPage=2&relationshipCandidate=${selectedId}&relationshipId=${selectedId}&relationshipFactId=${selectedId}&familyFocus=${selectedId}&familyHistory=true&relationMode=people&relationEpisode=1&relationFocus=p1&relationEdge=r1`);
     await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
     await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('settingDB');
     await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('characters');
