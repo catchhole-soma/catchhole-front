@@ -246,3 +246,8 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - GH261 미등록 상대는 서버의 `displayableAsMention`과 가계도의 `nodeType=MENTION`/`sourceType=MENTION`을 따른다. `mention:<candidateId>`는 그래프 식별자이며 캐릭터 API·focusCharacterId에 전달하지 않는다. 선택은 근거·선택적 인물 연결로 열고, 실제 캐릭터는 기존 프로필로 연다. PENDING 전체와 선택적 연결 건수는 구분하고 프론트에서 이름을 해석하여 표시 자격이나 인물 동일성을 추측하지 않는다. 기존 후보 수정·확정의 버전·근거·권한·순환 검사를 유지한다.
 - GH261 부모·자녀 끝점 호칭은 서버의 `subjectRole`/`objectRole`만 표시한다. PARENT_OF의 subject는 부모, object는 자녀이며 누락·미상·상충 시 `부모·자녀`를 유지한다. 이름·좌우 위치·반대 끝점의 호칭으로 성별을 추측하거나 원문을 클라이언트에서 재해석하지 않는다. 공유선의 호칭은 인물별 관련 관계만 포함하며 원본 관계 ID를 누락시키거나 같은 ID를 새 관계로 중복 집계하지 않는다.
 - GH261 가계도 사진은 요약 응답의 `node.image`와 기존 인증 이미지 컴포넌트를 재사용한다. 사진을 위해 캐릭터별 상세 조회를 추가하지 않으며 언급 인물·무이미지·실패는 기본 아이콘을 유지한다. 사진 메타데이터는 순수 배치 입력에서 분리하고 이미지 저장 후 작품의 가계도 Query도 무효화한다.
+
+## GH323 회차별 인물 관계도
+
+- 관계 종류는 `인물 관계도 / 가계도` 순서다. 가족 상세 상태가 없는 `nav=graph` 진입은 인물 관계도가 기본이며, `relationMode=people|family`의 명시적 선택과 기존 가족 상세/legacy 링크는 `getRelationshipMode`로 복원한다. 인물 관계도는 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
+- 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.

@@ -22,8 +22,6 @@ import '../../../../styles/relationships-v2.css';
 const FamilyTreeView = lazy(() => import('./FamilyTreeView'));
 
 export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }: { workId: string; enabled: boolean; onOpenCharacter: (id: string) => void }) {
-  const familyModeId = useId();
-  const familyPanelId = useId();
   const [params, setParams] = useSearchParams();
   const client = useQueryClient();
   const view = params.get('relationView') === 'review' ? 'review' : params.get('relationView') === 'list' ? 'list' : 'tree';
@@ -179,12 +177,7 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
 
   if (!enabled) return <section className="relationship-workspace relationship-empty"><GitBranch aria-hidden="true" />
     <h2>관계도</h2><p>작품에 저장된 캐릭터 설정으로 가족 관계를 정리할 수 있어요.</p></section>;
-  return <section className="relationship-workspace" aria-label="관계도">
-    <div className="relationship-mode-tabs" role="tablist" aria-label="관계도 종류">
-      <button type="button" role="tab" id={familyModeId} aria-selected="true" aria-controls={familyPanelId}>가계도</button>
-      <button type="button" role="tab" aria-selected="false" disabled>인물 관계도<span>업데이트 예정</span></button>
-    </div>
-    <div role="tabpanel" id={familyPanelId} aria-labelledby={familyModeId}>
+  return <section aria-label="가족 관계">
     {processing.isPending && <p role="status">가족 관계 처리 상태를 불러오고 있어요.</p>}
     {processing.isError && <RelationshipQueryError title="가족 관계 처리 상태를 불러오지 못했어요." onRetry={() => void processing.refetch()} pending={processing.isFetching} />}
     {processingSummary}
@@ -288,7 +281,6 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
         onPageChange={next => updateUrl({ relationPage: String(next + 1), relationshipCandidate: null, relationshipFactId: null })} />
     </>)}
     {factId && <RelationshipEvidenceDialog key={factId} workId={workId} factId={factId} onClose={() => updateUrl({ relationshipFactId: null }, true)} />}
-    </div>
   </section>;
 }
 

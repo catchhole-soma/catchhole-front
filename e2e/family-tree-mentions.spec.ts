@@ -14,7 +14,7 @@ const motherRelationId = '40000000-0000-4000-8000-000000000002';
 const factId = '50000000-0000-4000-8000-000000000001';
 const mentionId = `mention:${candidateId}`;
 const prefix = `/api/v1/works/${workId}`;
-const workspace = `/dashboard?workId=${workId}&nav=graph`;
+const workspace = `/dashboard?workId=${workId}&nav=graph&relationMode=family`;
 const source = { sourceFactId: factId, characterId: bjorn, sourceToken: 'a'.repeat(64), current: true,
   hasEvidence: true, manuallyEdited: false, factKey: 'profile.family', currentValue: { factValue: '얀델의 아들 비요른' } };
 function success(route: Route, data: unknown) { return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) }); }
@@ -80,7 +80,7 @@ async function setup(context: BrowserContext, options: { sharedParents?: boolean
     if (path === `${prefix}/characters`) return success(route, { content: [character(bjorn, '비요른'), ...(registered ? [character(yandel, '얀델')] : [])], totalElements: registered ? 2 : 1, totalPages: 1, page: 0, size: 12 });
     if (path.startsWith(`${prefix}/characters/`)) { calls.profiles.push(path); return success(route, { id: yandel, name: '얀델', profile: [], stats: [], skills: [], items: [], statuses: [] }); }
     if (path.startsWith(`${prefix}/relationships/`)) { calls.relations.push(path); return success(route, { id: motherRelationId, kind: 'PARENT_OF', subjectCharacterName: '어머니', objectCharacterName: '비요른', validity: 'VALID', evidence: [source] }); }
-    if (path.endsWith(`/character-facts/${factId}/evidence`)) { calls.quotes++; return success(route, { content: '얀델의 아들 비요른이 문을 열었다.', evidenceSpans: [{ quote: '얀델의 아들 비요른', paragraphIndex: 0 }], episode: { episodeNo: 1, title: '첫 등장' } }); }
+    if (path.endsWith(`/character-facts/${factId}/evidence`)) { calls.quotes++; return success(route, { content: '얀델의 아들 비요른이 문을 열었다.', evidenceSpans: [{ quote: '얀델의 아들 비요른', startOffset: 0, endOffset: 10 }], episode: { episodeNo: 1, title: '첫 등장' } }); }
     return success(route, []);
   });
   return { calls, candidate: () => candidate, register() { registered = true; }, fail(value: boolean) { failing = value; } };

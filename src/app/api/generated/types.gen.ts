@@ -495,7 +495,7 @@ export type EpisodeSummaryResponse = {
     /**
      * 원고 목록용 분석 상태
      */
-    analysisStatus?: 'COMPLETED' | 'REANALYSIS_REQUIRED' | 'IN_PROGRESS' | 'FAILED';
+    analysisStatus?: 'COMPLETED' | 'REANALYSIS_REQUIRED' | 'IN_PROGRESS' | 'FAILED' | 'ERROR_REVIEW_PREPARING' | 'ERROR_REVIEW_PENDING' | 'ERROR_REVIEW_HELD' | 'ERROR_REVIEW_INVALIDATED';
     /**
      * 최신 유효 리포트의 미처리 항목 수
      */
@@ -516,6 +516,10 @@ export type EpisodeSummaryResponse = {
      * 회차 수정 시각
      */
     updatedAt?: string;
+    /**
+     * 설정 추출 전 오류 검수 요청 ID
+     */
+    validationReportId?: string | null;
 };
 
 export type SubjectResolutionInput = {
@@ -1470,6 +1474,15 @@ export type SettingToolItemV1 = {
     sources?: Array<SettingToolReferenceV1>;
     sourcesTruncated?: boolean;
     evidence?: SettingToolEvidenceV1;
+    provenance?: SettingToolProvenanceV1;
+};
+
+/**
+ * 인물 Fact별 원자료·내용 수정·보존된 확정 정보. 현재값 전체의 단일 출처나 마지막 반영 이벤트가 아닙니다.
+ */
+export type SettingToolProvenanceV1 = {
+    sources?: Array<SettingToolSourceProvenanceV1>;
+    sourcesTruncated?: boolean;
 };
 
 /**
@@ -1499,6 +1512,26 @@ export type SettingToolResponseV1 = {
     partial?: boolean;
     limitations?: Array<string>;
     collection?: SettingToolCollectionV1;
+};
+
+/**
+ * 참조 Fact에 연결된 저장 정보. 인용의 유효성·값의 입증은 evidence로 따로 확인합니다.
+ */
+export type SettingToolSourceProvenanceV1 = {
+    reference?: SettingToolReferenceV1;
+    sourceKind?: 'EPISODE' | 'SETTING_BOOK' | 'USER_INPUT' | 'UNKNOWN';
+    /**
+     * 후보 내용의 사용자 수정 여부. 명시적 저장 표지가 없으면 null이며 확정·연결 선택만으로 true로 추정하지 않습니다.
+     */
+    contentEdited?: boolean;
+    /**
+     * 후보에 보존된 자동/사용자 확정 정보. 현재 slot의 마지막 반영 행위를 복원한 값이 아닙니다.
+     */
+    applicationAction?: 'AUTOMATIC_CONFIRM' | 'USER_CONFIRM' | 'UNKNOWN';
+    /**
+     * Fact 생성 시각(서버 설정 시간대, offset 없음). 수정·현재 반영·작중 사건 시각이 아닙니다.
+     */
+    recordedAt?: string;
 };
 
 /**
@@ -2704,6 +2737,70 @@ export type EpisodeDetectionResponse = {
 };
 
 /**
+ * 저장한 신규 단일 회차의 검수 접수. 원문 전문이나 반영 정책을 클라이언트에서 받지 않습니다.
+ */
+export type ValidationStartRequest = {
+    idempotencyKey: string;
+    batchId: string;
+    episodeId: string;
+    expectedContentHash: string;
+    expectedContentS3Key: string;
+    expectedContentS3Version?: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseValidationStagingResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: ValidationStagingResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 오류 검사 우선 접수/기준 상태. 이번 단계에는 검사 Worker, 검토 완료 release, 설정 추출 Job/후보가 없습니다.
+ */
+export type ValidationStagingResponse = {
+    reportId?: string;
+    baselineId?: string;
+    batchId?: string;
+    episodeId?: string;
+    validationJobId?: string;
+    extractionJobId?: string;
+    candidateGeneration?: string;
+    candidateDigest?: string;
+    extractionStatus?: 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED' | 'INVALIDATED';
+    candidateStatus?: 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED' | 'INVALIDATED';
+    errorReviewStatus?: 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED' | 'INVALIDATED';
+    baselineStatus?: 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED' | 'INVALIDATED';
+    status?: 'PREPARING_BASELINE' | 'WAITING_FOR_ERROR_REVIEW' | 'HELD_INCOMPLETE' | 'INVALIDATED';
+    holdReason?: string;
+    confirmedStateHash?: string;
+    baselineHash?: string;
+    /**
+     * 기준 READY는 오류 검사/검색 준비 완료가 아닙니다.
+     */
+    sourcePreparationStatus?: string;
+};
+
+/**
  * 새 대화 생성. 응답 유실 시 같은 requestId로 재전송합니다.
  */
 export type ChatSessionCreateV1 = {
@@ -3676,6 +3773,47 @@ export type CommonResponseAiTokenExtensionAdminResponse = {
     timestamp?: string;
 };
 
+export type ValidationDataRequest = {
+    expectedBaselineHash: string;
+    expectedTargetHash: string;
+    operation: string;
+    offset?: number;
+    limit?: number;
+    sourceRef?: string;
+    expectedSourceHash?: string;
+    expectedSourceVersion?: string;
+    start?: number;
+    end?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseMapStringObject = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: {
+        [key: string]: unknown;
+    };
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
 /**
  * Spring이 실행에 고정한 인증 범위
  */
@@ -3794,7 +3932,7 @@ export type ChatReserveV1 = {
      * 실제 provider 호출마다 새 UUID
      */
     callId: string;
-    purpose: 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
+    purpose: 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
     model: string;
     reservedTokens?: number;
 };
@@ -3895,9 +4033,47 @@ export type CommonResponseChatDispatchV1 = {
 };
 
 /**
+ * 원문의 인물 표기. 이름이 확인되지 않으면 name은 null입니다.
+ */
+export type Endpoint = {
+    name?: string;
+    mention?: string;
+};
+
+/**
+ * 검증한 원문 인용과 전역 Unicode code point 위치
+ */
+export type Evidence = {
+    startOffset?: number;
+    endOffset?: number;
+    quote?: string;
+};
+
+/**
+ * 추출된 관계 관측. 실제 관계 확정과 구분합니다.
+ */
+export type Observation = {
+    ref?: string;
+    source?: Endpoint;
+    target?: Endpoint;
+    summary?: string;
+    evidence?: Array<Evidence>;
+};
+
+/**
+ * 관계 비교 준비 요청
+ */
+export type Prepare = {
+    formatVersion?: number;
+    sourceHash?: string;
+    observations?: Array<Observation>;
+    rejectedObservationCount?: number;
+};
+
+/**
  * 공통 API 응답 Envelope
  */
-export type CommonResponseWorkerWorldSettingCandidatePayload = {
+export type CommonResponseContext = {
     /**
      * 요청 처리 성공 여부
      */
@@ -3909,7 +4085,7 @@ export type CommonResponseWorkerWorldSettingCandidatePayload = {
     /**
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
-    data?: WorkerWorldSettingCandidatePayload;
+    data?: Context;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -3918,6 +4094,71 @@ export type CommonResponseWorkerWorldSettingCandidatePayload = {
      * 응답 생성 시각
      */
     timestamp?: string;
+};
+
+/**
+ * 재시도에도 유지되는 관계 비교 문맥
+ */
+export type Context = {
+    formatVersion?: number;
+    sourceHash?: string;
+    contextToken?: string;
+    status?: 'PENDING' | 'PREPARED' | 'COMPLETED' | 'FAILED' | 'APPLIED' | 'INVALIDATED';
+    sourceEpisodeNo?: number;
+    observations?: Array<ContextObservation>;
+    nodes?: Array<ContextNode>;
+    relationships?: Array<ContextRelationship>;
+    heldObservations?: Array<ContextObservation>;
+};
+
+/**
+ * 비교 가능한 인물 참조. 실제 DB 식별자를 모델에 전달하지 않습니다.
+ */
+export type ContextNode = {
+    ref?: string;
+    name?: string;
+    profileRegistered?: boolean;
+};
+
+/**
+ * 출처와 인물 후보 참조를 가진 관측
+ */
+export type ContextObservation = {
+    ref?: string;
+    source?: Endpoint;
+    target?: Endpoint;
+    summary?: string;
+    evidence?: Array<Evidence>;
+    sourceNodeRefs?: Array<string>;
+    targetNodeRefs?: Array<string>;
+    sourceEpisodeNo?: number;
+};
+
+/**
+ * 앞 회차까지 공개된 관계 상태
+ */
+export type ContextRelationship = {
+    ref?: string;
+    sourceNodeRef?: string;
+    targetNodeRef?: string;
+    axis?: 'SOCIAL' | 'ATTITUDE' | 'INTERACTION';
+    kind?: 'FRIENDSHIP' | 'COMPANIONSHIP' | 'COOPERATION' | 'MENTORSHIP' | 'ROMANCE' | 'HOSTILITY' | 'TRUST' | 'DISTRUST' | 'AFFECTION' | 'ACQUAINTANCE' | 'OTHER';
+    label?: string;
+    summary?: string;
+    direction?: 'DIRECTED' | 'MUTUAL' | 'UNDIRECTED';
+    status?: 'ACTIVE' | 'ENDED';
+    knownFromEpisodeNo?: number;
+    lastChangedEpisodeNo?: number;
+};
+
+/**
+ * 핵심 설정 분석과 분리한 관계 분석 실패
+ */
+export type Fail = {
+    formatVersion?: number;
+    sourceHash?: string;
+    contextToken?: string;
+    failureCode?: 'INVALID_RESPONSE' | 'EXTRACTION_FAILED' | 'COMPARISON_FAILED' | 'INPUT_TOO_LARGE';
 };
 
 /**
@@ -3947,6 +4188,41 @@ export type CommonResponseVoid = {
 };
 
 /**
+ * 관계 비교 결과 저장
+ */
+export type Complete = {
+    formatVersion?: number;
+    contextToken?: string;
+    decisions?: Array<Decision>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseWorkerWorldSettingCandidatePayload = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: WorkerWorldSettingCandidatePayload;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * Worker 세계관 설정 비교 실패 요청
  */
 export type WorkerWorldSettingComparisonFailRequest = {
@@ -3964,6 +4240,7 @@ export type WorkerWorldSettingComparisonFailRequest = {
      */
     sourceReasonCode?: 'CONTEXT_TARGET_DUPLICATED' | 'CONTEXT_TARGET_NOT_FOUND' | 'CONTEXT_VERSION_DUPLICATED' | 'EXACT_TARGET_NOT_IN_CONTEXT' | 'SELECTED_TARGET_NOT_IN_CONTEXT' | 'REVIEW_REASON_FORBIDDEN' | 'MATCHED_TARGET_REQUIRED' | 'PROPOSED_PATH_MISMATCH' | 'ADD_MATCHED_PATH_FORBIDDEN' | 'SCOPE_REVIEW_REQUIRED' | 'PROPOSED_PATH_CONFLICT' | 'EXCLUDE_MATCHED_PATH_INVALID' | 'EXCLUDE_MATCHED_SCOPE_WITHOUT_PROPERTY' | 'SCOPE_REVIEW_REASON_INVALID' | 'SCOPE_REVIEW_TARGET_REQUIRED' | 'SCOPE_REVIEW_CANDIDATE_ALREADY_SCOPED' | 'SCOPE_REVIEW_MATCHED_PATH_REQUIRED' | 'SCOPE_REVIEW_ROOT_PATH_EXISTS' | 'SCOPE_REVIEW_MATCHED_PATH_INVALID' | 'BATCH_CONTEXT_NOT_INITIALIZED' | 'BATCH_DECISION_REF_DUPLICATED' | 'BATCH_SOURCE_REF_DUPLICATED' | 'BATCH_SOURCE_REF_UNKNOWN' | 'BATCH_SOURCE_COVERAGE_INVALID' | 'BATCH_RESOLVED_TARGET_COVERAGE_INVALID' | 'BATCH_CANONICAL_SUBJECT_INVALID' | 'BATCH_CONSOLIDATION_STATUS_INVALID' | 'BATCH_SOURCE_SCOPE_INVALID' | 'ROOT_PROPERTY_MOVE_NOT_ALLOWED' | 'ROOT_PROPERTY_MOVE_INVALID' | 'ROOT_PROPERTY_MOVE_DUPLICATED' | 'ROOT_PROPERTY_MOVE_CONFLICT' | 'SCOPE_SETTING_NAME_DUPLICATED' | 'SYNTHETIC_SCOPE_SINGLETON' | 'BATCH_PROPOSED_PATH_DUPLICATED';
     diagnostics?: Array<WorldSettingComparisonDiagnostic>;
+    failureDiagnostics?: JsonNode;
 };
 
 export type WorkerWorldSettingComparisonBatchContextRequest = {
@@ -4125,6 +4402,7 @@ export type Failure = {
     failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     errorMessage: string;
     diagnostics?: Array<WorldSettingComparisonDiagnostic>;
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -4292,6 +4570,7 @@ export type WorkerWorldSettingComparisonCompleteRequest = {
 export type WorkerCharacterFactComparisonFailRequest = {
     failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     errorMessage: string;
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -4584,6 +4863,7 @@ export type WorkerAnalysisJobFailRequest = {
      * 실패 사유
      */
     errorMessage: string;
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -4746,6 +5026,7 @@ export type WorkerCharacterFactComparisonBatchFailure = {
     candidateRef: string;
     failureCode: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
     errorMessage: string;
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -4833,6 +5114,10 @@ export type WorkerAnalysisJobClaimRequest = {
      * 고정 원문 근거와 같은 인물의 전체 CURRENT 비교 문맥 지원. true인 Worker만 누적 작업을 claim합니다.
      */
     supportsFrozenComparisonEvidence?: boolean | null;
+    /**
+     * 독립 회차 관계 분석 v1 지원
+     */
+    supportsRelationshipAnalysis?: boolean | null;
 };
 
 /**
@@ -4862,6 +5147,10 @@ export type CommonResponseWorkerAnalysisJobPayload = {
 };
 
 export type ComparisonEvidenceContract = {
+    formatVersion?: number;
+};
+
+export type RelationshipAnalysisContract = {
     formatVersion?: number;
 };
 
@@ -5037,6 +5326,10 @@ export type WorkerAnalysisJobPayload = {
      * 누적 비교의 고정 supporting-evidence 계약 확인. 구 server의 silent downgrade를 허용하지 않습니다.
      */
     comparisonEvidenceContract?: ComparisonEvidenceContract;
+    /**
+     * 독립 관계 분석 계약. 존재할 때만 관계 단계를 실행합니다.
+     */
+    relationshipAnalysisContract?: RelationshipAnalysisContract;
 };
 
 /**
@@ -5200,7 +5493,7 @@ export type AiTokenReserveRequest = {
     /**
      * AI 토큰 사용 목적
      */
-    purpose: 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
+    purpose: 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
     /**
      * 같은 목적 안에서의 호출 순번
      */
@@ -5585,6 +5878,14 @@ export type SettingBookResponse = {
     contentChangedSinceAnalysis?: boolean;
     referenceTimeKind: 'UNSPECIFIED' | 'WORK_START' | 'EPISODE';
     referenceEpisodeNo?: number | null;
+};
+
+/**
+ * 잘못 표현된 관계 설명 수정. 서사상의 변화와 구분합니다.
+ */
+export type Correction = {
+    expectedVersion?: number;
+    summary?: string;
 };
 
 /**
@@ -6955,6 +7256,132 @@ export type CommonResponseListRelationshipMentionGroupResponse = {
 /**
  * 공통 API 응답 Envelope
  */
+export type CommonResponseGraph = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Graph;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 선택 회차의 관계
+ */
+export type Edge = {
+    id?: string;
+    sourceNodeId?: string;
+    targetNodeId?: string;
+    axis?: 'SOCIAL' | 'ATTITUDE' | 'INTERACTION';
+    kind?: 'FRIENDSHIP' | 'COMPANIONSHIP' | 'COOPERATION' | 'MENTORSHIP' | 'ROMANCE' | 'HOSTILITY' | 'TRUST' | 'DISTRUST' | 'AFFECTION' | 'ACQUAINTANCE' | 'OTHER';
+    label?: string;
+    summary?: string;
+    direction?: 'DIRECTED' | 'MUTUAL' | 'UNDIRECTED';
+    status?: 'ACTIVE' | 'ENDED';
+    version?: number;
+    evidenceCount?: number;
+};
+
+/**
+ * 관계도 회차 선택
+ */
+export type EpisodeRef = {
+    id?: string;
+    episodeNo?: number;
+    title?: string;
+};
+
+/**
+ * 회차까지 드러난 관계도. partial은 일부 분석을 완료하지 못했음을 의미합니다.
+ */
+export type Graph = {
+    selectedEpisode?: EpisodeRef;
+    availableEpisodes?: Array<EpisodeRef>;
+    revision?: string;
+    nodes?: Array<Node>;
+    edges?: Array<Edge>;
+    truncated?: boolean;
+    totalEdgeCount?: number;
+    analysisStatus?: string;
+    partial?: boolean;
+};
+
+/**
+ * 선택 회차에서 공개된 인물 이름
+ */
+export type Node = {
+    id?: string;
+    name?: string;
+    description?: string;
+    profileRegistered?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseDetail = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: Detail;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 선택 회차 기준 관계와 근거
+ */
+export type Detail = {
+    edge?: Edge;
+    sourceNode?: Node;
+    targetNode?: Node;
+    evidence?: Array<PublicEvidence>;
+    version?: number;
+};
+
+/**
+ * 관계가 드러난 회차의 원문 근거
+ */
+export type PublicEvidence = {
+    episodeId?: string;
+    episodeNo?: number;
+    episodeTitle?: string;
+    quote?: string;
+    startOffset?: number;
+    endOffset?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
 export type CommonResponsePageResponseRelationshipCandidateResponse = {
     /**
      * 요청 처리 성공 여부
@@ -8201,7 +8628,7 @@ export type AnalysisBatchJobGroupResponse = {
     /**
      * 분석 목적별 집계 상태
      */
-    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
+    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'ERROR_REVIEW_PREPARING' | 'ERROR_REVIEW_PENDING' | 'ERROR_REVIEW_HELD' | 'ERROR_REVIEW_INVALIDATED';
     /**
      * 현재 유효한 전체 작업 수
      */
@@ -8270,7 +8697,7 @@ export type AnalysisBatchSummaryResponse = {
     /**
      * 배치 전체 집계 상태
      */
-    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED';
+    status?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'ERROR_REVIEW_PREPARING' | 'ERROR_REVIEW_PENDING' | 'ERROR_REVIEW_HELD' | 'ERROR_REVIEW_INVALIDATED';
     /**
      * 분석 대상 시작 회차
      */
@@ -8338,11 +8765,15 @@ export type AnalysisBatchSummaryResponse = {
     /**
      * 회차 카드 상태. 회차 그룹이 없으면 null
      */
-    episodeStatus?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED' | null;
+    episodeStatus?: 'IN_PROGRESS' | 'CANCELED' | 'PARTIALLY_FAILED' | 'FAILED' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'ERROR_REVIEW_PREPARING' | 'ERROR_REVIEW_PENDING' | 'ERROR_REVIEW_HELD' | 'ERROR_REVIEW_INVALIDATED' | null;
     /**
      * 현재 페이지 설정집 카드 요약
      */
     settingBooks?: Array<AnalysisBatchSettingBookResponse>;
+    /**
+     * 설정 추출 전 오류 검수 요청. Job 수에 포함하지 않습니다.
+     */
+    validationReports?: Array<ValidationRequestSummaryResponse>;
 };
 
 /**
@@ -8399,6 +8830,15 @@ export type PageResponseAnalysisBatchSummaryResponse = {
      * 다음 페이지 존재 여부
      */
     hasNext?: boolean;
+};
+
+export type ValidationRequestSummaryResponse = {
+    reportId?: string;
+    episodeId?: string;
+    sourceEpisodeNo?: number;
+    status?: 'PREPARING_BASELINE' | 'WAITING_FOR_ERROR_REVIEW' | 'HELD_INCOMPLETE' | 'INVALIDATED';
+    baselineStatus?: 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED' | 'INVALIDATED';
+    holdReason?: string;
 };
 
 /**
@@ -10593,6 +11033,41 @@ export type DetectEpisodesResponses = {
 
 export type DetectEpisodesResponse = DetectEpisodesResponses[keyof DetectEpisodesResponses];
 
+export type StartEpisodeValidationData = {
+    body: ValidationStartRequest;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/episode-validations';
+};
+
+export type StartEpisodeValidationErrors = {
+    /**
+     * 신규 단일 회차/비교 자료/필드 검증 실패
+     */
+    400: CommonResponseValidationStagingResponse;
+    /**
+     * 작품 소유권 또는 검수 요청 없음
+     */
+    404: CommonResponseValidationStagingResponse;
+    /**
+     * 동일 키 다른 입력, 원고 버전 충돌 또는 토큰 한도
+     */
+    409: CommonResponseValidationStagingResponse;
+};
+
+export type StartEpisodeValidationError = StartEpisodeValidationErrors[keyof StartEpisodeValidationErrors];
+
+export type StartEpisodeValidationResponses = {
+    /**
+     * 접수 또는 동일 입력의 재전송
+     */
+    200: CommonResponseValidationStagingResponse;
+};
+
+export type StartEpisodeValidationResponse = StartEpisodeValidationResponses[keyof StartEpisodeValidationResponses];
+
 export type ListChatSessionsData = {
     body?: never;
     path: {
@@ -11427,6 +11902,28 @@ export type ApproveAiTokenExtensionRequestResponses = {
 
 export type ApproveAiTokenExtensionRequestResponse = ApproveAiTokenExtensionRequestResponses[keyof ApproveAiTokenExtensionRequestResponses];
 
+export type ReadValidationDataData = {
+    body: ValidationDataRequest;
+    headers: {
+        'X-Validation-Member-Id': number;
+    };
+    path: {
+        workId: string;
+        reportId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/works/{workId}/validation-reports/{reportId}/data';
+};
+
+export type ReadValidationDataResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseMapStringObject;
+};
+
+export type ReadValidationDataResponse = ReadValidationDataResponses[keyof ReadValidationDataResponses];
+
 export type QueryInternalSettingToolsData = {
     body: SettingToolQuery;
     headers?: {
@@ -11619,6 +12116,81 @@ export type CreateOperationalAiRunResponses = {
 };
 
 export type CreateOperationalAiRunResponse = CreateOperationalAiRunResponses[keyof CreateOperationalAiRunResponses];
+
+export type PrepareWorkerRelationshipAnalysisData = {
+    body: Prepare;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{jobId}/relationship-analysis/prepare';
+};
+
+export type PrepareWorkerRelationshipAnalysisErrors = {
+    /**
+     * 내부 인증 실패
+     */
+    401: CommonResponseContext;
+    /**
+     * lease·원문·입력 충돌
+     */
+    409: CommonResponseContext;
+};
+
+export type PrepareWorkerRelationshipAnalysisError = PrepareWorkerRelationshipAnalysisErrors[keyof PrepareWorkerRelationshipAnalysisErrors];
+
+export type FailWorkerRelationshipAnalysisData = {
+    body: Fail;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{jobId}/relationship-analysis/fail';
+};
+
+export type FailWorkerRelationshipAnalysisErrors = {
+    /**
+     * 내부 인증 실패
+     */
+    401: CommonResponseVoid;
+    /**
+     * lease·원문·입력 충돌
+     */
+    409: CommonResponseVoid;
+};
+
+export type FailWorkerRelationshipAnalysisError = FailWorkerRelationshipAnalysisErrors[keyof FailWorkerRelationshipAnalysisErrors];
+
+export type CompleteWorkerRelationshipAnalysisData = {
+    body: Complete;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{jobId}/relationship-analysis/complete';
+};
+
+export type CompleteWorkerRelationshipAnalysisErrors = {
+    /**
+     * 내부 인증 실패
+     */
+    401: CommonResponseVoid;
+    /**
+     * lease·원문·입력 충돌
+     */
+    409: CommonResponseVoid;
+};
+
+export type CompleteWorkerRelationshipAnalysisError = CompleteWorkerRelationshipAnalysisErrors[keyof CompleteWorkerRelationshipAnalysisErrors];
 
 export type ClaimNextWorkerWorldSettingComparisonData = {
     body?: never;
@@ -12748,6 +13320,130 @@ export type UpdateSettingBookResponses = {
 
 export type UpdateSettingBookResponse = UpdateSettingBookResponses[keyof UpdateSettingBookResponses];
 
+export type DeleteEpisodeRelationshipEdgeData = {
+    body?: never;
+    path: {
+        workId: string;
+        edgeId: string;
+    };
+    query: {
+        expectedVersion: number;
+    };
+    url: '/api/v1/works/{workId}/relationship-graph/edges/{edgeId}';
+};
+
+export type DeleteEpisodeRelationshipEdgeErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseVoid;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseVoid;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseVoid;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseVoid;
+};
+
+export type DeleteEpisodeRelationshipEdgeError = DeleteEpisodeRelationshipEdgeErrors[keyof DeleteEpisodeRelationshipEdgeErrors];
+
+export type DeleteEpisodeRelationshipEdgeResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseVoid;
+};
+
+export type DeleteEpisodeRelationshipEdgeResponse = DeleteEpisodeRelationshipEdgeResponses[keyof DeleteEpisodeRelationshipEdgeResponses];
+
+export type GetEpisodeRelationshipEdgeData = {
+    body?: never;
+    path: {
+        workId: string;
+        edgeId: string;
+    };
+    query?: {
+        episodeNo?: number;
+    };
+    url: '/api/v1/works/{workId}/relationship-graph/edges/{edgeId}';
+};
+
+export type GetEpisodeRelationshipEdgeErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseDetail;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseDetail;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseDetail;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseDetail;
+};
+
+export type GetEpisodeRelationshipEdgeError = GetEpisodeRelationshipEdgeErrors[keyof GetEpisodeRelationshipEdgeErrors];
+
+export type GetEpisodeRelationshipEdgeResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseDetail;
+};
+
+export type GetEpisodeRelationshipEdgeResponse = GetEpisodeRelationshipEdgeResponses[keyof GetEpisodeRelationshipEdgeResponses];
+
+export type UpdateEpisodeRelationshipEdgeData = {
+    body: Correction;
+    path: {
+        workId: string;
+        edgeId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/relationship-graph/edges/{edgeId}';
+};
+
+export type UpdateEpisodeRelationshipEdgeErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseVoid;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseVoid;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseVoid;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseVoid;
+};
+
+export type UpdateEpisodeRelationshipEdgeError = UpdateEpisodeRelationshipEdgeErrors[keyof UpdateEpisodeRelationshipEdgeErrors];
+
+export type UpdateEpisodeRelationshipEdgeResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseVoid;
+};
+
+export type UpdateEpisodeRelationshipEdgeResponse = UpdateEpisodeRelationshipEdgeResponses[keyof UpdateEpisodeRelationshipEdgeResponses];
+
 export type DeleteEpisodeData = {
     body?: never;
     path: {
@@ -13682,6 +14378,47 @@ export type GetRelationshipMentionGroupResponses = {
 
 export type GetRelationshipMentionGroupResponse = GetRelationshipMentionGroupResponses[keyof GetRelationshipMentionGroupResponses];
 
+export type GetEpisodeRelationshipGraphData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        episodeNo?: number;
+    };
+    url: '/api/v1/works/{workId}/relationship-graph';
+};
+
+export type GetEpisodeRelationshipGraphErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseGraph;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseGraph;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseGraph;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseGraph;
+};
+
+export type GetEpisodeRelationshipGraphError = GetEpisodeRelationshipGraphErrors[keyof GetEpisodeRelationshipGraphErrors];
+
+export type GetEpisodeRelationshipGraphResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseGraph;
+};
+
+export type GetEpisodeRelationshipGraphResponse = GetEpisodeRelationshipGraphResponses[keyof GetEpisodeRelationshipGraphResponses];
+
 export type GetWorkPurgeRequestByWorkData = {
     body?: never;
     path: {
@@ -13871,6 +14608,25 @@ export type GetEpisodeUploadPolicyResponses = {
 };
 
 export type GetEpisodeUploadPolicyResponse = GetEpisodeUploadPolicyResponses[keyof GetEpisodeUploadPolicyResponses];
+
+export type GetEpisodeValidationStagingData = {
+    body?: never;
+    path: {
+        workId: string;
+        reportId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/episode-validations/{reportId}';
+};
+
+export type GetEpisodeValidationStagingResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseValidationStagingResponse;
+};
+
+export type GetEpisodeValidationStagingResponse = GetEpisodeValidationStagingResponses[keyof GetEpisodeValidationStagingResponses];
 
 export type CloseChatSessionData = {
     body?: never;
@@ -14807,6 +15563,31 @@ export type GetOperationalAiReadinessResponses = {
 };
 
 export type GetOperationalAiReadinessResponse = GetOperationalAiReadinessResponses[keyof GetOperationalAiReadinessResponses];
+
+export type GetWorkerRelationshipAnalysisData = {
+    body?: never;
+    headers: {
+        'X-Worker-Lease-Token': string;
+    };
+    path: {
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/internal/v1/analysis-jobs/{jobId}/relationship-analysis';
+};
+
+export type GetWorkerRelationshipAnalysisErrors = {
+    /**
+     * 내부 인증 실패
+     */
+    401: CommonResponseContext;
+    /**
+     * lease·원문·입력 충돌
+     */
+    409: CommonResponseContext;
+};
+
+export type GetWorkerRelationshipAnalysisError = GetWorkerRelationshipAnalysisErrors[keyof GetWorkerRelationshipAnalysisErrors];
 
 export type GetWorkerWorldSettingSubjectsData = {
     body?: never;

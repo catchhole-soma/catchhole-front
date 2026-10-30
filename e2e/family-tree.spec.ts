@@ -7,7 +7,7 @@ test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'false', '관계 �
 const workId = '11111111-1111-4111-8111-111111111111';
 const factId = '66666666-6666-4666-8666-666666666666';
 const prefix = `/api/v1/works/${workId}`;
-const workspace = `/dashboard?workId=${workId}&nav=graph`;
+const workspace = `/dashboard?workId=${workId}&nav=graph&relationMode=family`;
 const uuid = (index: number, group = 2) => `${group}0000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
 type Edge = Required<Pick<RelationshipResponse, 'id' | 'subjectCharacterId' | 'objectCharacterId' | 'kind' | 'subtype' | 'temporalScope'>> & { version: number; timeLabel?: string };
 type Person = { id: string; name: string; image?: WorldSettingImageResponse | null; nodeType?: 'CHARACTER' | 'MENTION'; candidateId?: string };
@@ -119,7 +119,7 @@ async function setup(context: BrowserContext, family: ReturnType<typeof apiFixtu
     }
     if (path.endsWith(`/character-facts/${factId}/evidence`)) {
       calls.quotes++;
-      return success(route, { content: '지훈은 자녀 도윤과 함께 수연을 기다렸다.', evidenceSpans: [{ quote: '자녀 도윤', paragraphIndex: 0 }], episode: { episodeNo: 1, title: '가족의 시작' } });
+      return success(route, { content: '지훈은 자녀 도윤과 함께 수연을 기다렸다.', evidenceSpans: [{ quote: '자녀 도윤', startOffset: 4, endOffset: 9 }], episode: { episodeNo: 1, title: '가족의 시작' } });
     }
     return success(route, []);
   });
@@ -267,7 +267,7 @@ async function ordinaryReadability(page: Page) {
   });
 }
 
-test('관계도 기본 진입은 전체 가계도를 보여 주며 20번째 이후 관계도 빠짐없이 연결한다', async ({ page, context }, testInfo) => {
+test('가계도 명시 진입은 전체 가족을 보여 주며 20번째 이후 관계도 빠짐없이 연결한다', async ({ page, context }, testInfo) => {
   const family = apiFixture(createLargeFamilyFixture(28));
   const fixture = await setup(context, family);
   await page.goto(workspace);

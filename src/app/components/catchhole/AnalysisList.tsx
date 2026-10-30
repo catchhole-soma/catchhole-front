@@ -73,6 +73,30 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
     tone: 'success',
     icon: CheckCircle2,
   },
+  ERROR_REVIEW_PREPARING: {
+    label: '오류 검사 기준 준비 중',
+    description: '오류 검사에 필요한 기준을 준비하고 있습니다.',
+    tone: 'primary',
+    icon: Clock3,
+  },
+  ERROR_REVIEW_PENDING: {
+    label: '오류 검사·검토 대기',
+    description: '오류 검사와 검토가 완료되기를 기다리고 있습니다.',
+    tone: 'warning',
+    icon: FileSearch,
+  },
+  ERROR_REVIEW_HELD: {
+    label: '오류 검수 보류',
+    description: '오류 검수가 완료되지 않았습니다. 현재 상태를 확인해 주세요.',
+    tone: 'warning',
+    icon: TriangleAlert,
+  },
+  ERROR_REVIEW_INVALIDATED: {
+    label: '오류 검수 다시 확인',
+    description: '이전 오류 검수 결과를 사용할 수 없습니다. 현재 상태를 확인해 주세요.',
+    tone: 'warning',
+    icon: AlertCircle,
+  },
 };
 
 function parsePage(value: string | null): number {
