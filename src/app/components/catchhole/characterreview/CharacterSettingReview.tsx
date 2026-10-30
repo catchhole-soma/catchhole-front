@@ -1691,16 +1691,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         : { resolutionType: resolution, entityName: value },
     } });
   };
-  /** 체크할 수 없는 이유. 서버가 거절할 상태(자동 반영 대기·값 오류·비교 처리 중)와 저장 확인 중인 후보를 막는다. */
-  const selectionBlockedReason = (candidate: SettingCandidateResponse): string | null => (
+  /** 서버가 거절할 상태(자동 반영 대기·값 오류·비교 처리 중)라 체크할 수 없는 이유. */
+  const selectionStateReason = (candidate: SettingCandidateResponse): string | null => (
     isAutomaticApplicationPending(candidate) ? automaticApplicationPendingMessage(candidate.source)
       : isCandidateValueInvalid(candidate) ? '값 형식이 잘못된 설정은 수정하거나 제외한 뒤 연결해 주세요.'
       : candidate.comparisonStatus === 'PROCESSING' ? '비교 중인 설정은 비교가 끝난 뒤 연결할 수 있어요.'
-      : saveTracker.busy(candidate.id) ? '저장 결과를 확인하고 있어요.'
       : null
   );
+  /** 위 상태에 더해 저장 결과를 확인하는 동안에도 체크를 잠근다. */
+  const selectionBlockedReason = (candidate: SettingCandidateResponse): string | null => selectionStateReason(candidate)
+    ?? (saveTracker.busy(candidate.id) ? '저장 결과를 확인하고 있어요.' : null);
   // 화면에 그려진 대기 후보만 체크할 수 있다. 필터로 숨은 후보는 선택 연결에 포함되지 않는다.
-  const checkableCandidates = pendingGroupCandidates.filter(candidate => candidate.id && !selectionBlockedReason(candidate));
+  // 개수는 저장 확인 중에도 흔들리지 않게 상태로만 센다.
+  const checkableCandidates = pendingGroupCandidates.filter(candidate => candidate.id && !selectionStateReason(candidate));
   const checkedIds = checkedSelection.groupKey === (selectedGroup?.groupKey ?? null) ? checkedSelection.ids : [];
   const checkedCandidates = pendingGroupCandidates.filter(candidate => candidate.id && checkedIds.includes(candidate.id));
   const checkedCandidateIds = checkedCandidates.map(candidate => candidate.id!);
@@ -1716,7 +1719,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const toggleAllSelection = (checked: boolean) => {
     setSelectionRejection(null);
     setCheckedSelection({ groupKey: selectedGroup?.groupKey ?? null,
-      ids: checked ? checkableCandidates.map(candidate => candidate.id!) : [] });
+      ids: checked ? checkableCandidates.filter(candidate => !saveTracker.busy(candidate.id)).map(candidate => candidate.id!) : [] });
   };
   const openSelectionMatch = () => {
     if (!checkedCandidates.length || actionPending) return;
@@ -2140,7 +2143,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               <label className="review-select-all">
                                 <input type="checkbox" checked={checkedCandidates.length > 0 && checkableCandidates.every(candidate => checkedIds.includes(candidate.id!))}
                                   ref={element => { if (element) element.indeterminate = checkedCandidates.length > 0 && checkedCandidates.length < checkableCandidates.length; }}
-                                  disabled={actionPending} onChange={event => toggleAllSelection(event.target.checked)} />
+                                  disabled={actionPending || checkableCandidates.every(candidate => saveTracker.busy(candidate.id))}
+                                  onChange={event => toggleAllSelection(event.target.checked)} />
                                 모두 선택({checkableCandidates.length})
                               </label>
                               <span id="character-link-scope-help" className="review-selection-header__help">
