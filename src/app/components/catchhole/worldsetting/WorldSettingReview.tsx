@@ -221,7 +221,9 @@ function errorMessage(error: unknown, fallback: string): string {
  */
 type WorldRecoveryContext =
   | { kind: 'decision'; drafts: WorldSettingCandidateDecisionUpdateItem[]; acknowledged: boolean; lost: boolean;
-    groupKey?: string; error?: unknown; stay?: WorldTargetLinkStay }
+    groupKey?: string; error?: unknown; stay?: WorldTargetLinkStay;
+    /** 저장을 보낸 시점의 묶음·필터·페이지(`reviewLocationKey`). 작가가 그 사이 옮겼으면 URL을 되돌리지 않는다. */
+    origin?: string | null }
   | { kind: 'confirm'; groupKey: string | null; candidateIds: string[];
     previousGroups: WorldSettingCandidateGroupResponse[]; error: unknown }
   | { kind: 'read' };
@@ -247,6 +249,9 @@ interface WorldTargetLinkNotice {
   pendingIds: string[];
   targetName: string;
   linkedGroupKey: string | null;
+  /** 연결을 보낸 묶음. 이 묶음(또는 묶음이 비어 대신 연 다음 묶음)을 보고 있을 때만 안내한다. */
+  sourceGroupKey: string;
+  advancedGroupKey?: string | null;
 }
 
 /** 확정으로 사라진 그룹 다음에 볼 그룹을 고르기 위한 직전 목록. 재조회가 끝난 뒤(armed)에만 판단한다. */
@@ -257,6 +262,16 @@ interface WorldGroupAdvance {
   armed: boolean;
   /** 다음 그룹으로 URL을 바꾼 뒤 반영되기를 기다리는 대상. */
   target?: string | null;
+}
+
+/** 검토 위치(묶음·필터·페이지) 비교 키. 늦게 끝난 저장 후속 처리가 작가가 옮긴 위치를 되돌리지 않게 비교한다. */
+function reviewLocationKey(): string {
+  const params = new URLSearchParams(window.location.search);
+  return JSON.stringify(['candidateType', 'group', 'reviewStatus', 'worldCategory', 'operation', 'page'].map(key => params.get(key)));
+}
+
+function currentGroupParam(): string | null {
+  return new URLSearchParams(window.location.search).get('group');
 }
 
 function isWorldReviewLocation(workId: string, batchId: string, sourceAnalysisJobId?: string): boolean {
@@ -1940,6 +1955,8 @@ export function WorldSettingReview() {
           )));
           advance.target = nextKey;
           focusGroupKeyRef.current = nextKey;
+          // 연결 안내는 원래 묶음이 비어 대신 연 다음 묶음에서도 이어서 보여 준다.
+          setTargetLinkNotice(notice => notice && notice.sourceGroupKey === advance.groupKey ? { ...notice, advancedGroupKey: nextKey } : notice);
           preserveViewport();
           setSearchParams(previous => {
             if (previous.get('group') !== advance.groupKey) return previous;
@@ -2229,9 +2246,11 @@ export function WorldSettingReview() {
     }
   };
   const finishDecisionSave = async (drafts: WorldSettingCandidateDecisionUpdateItem[], nextGroupKey?: string,
-    stay?: WorldTargetLinkStay) => {
+    stay?: WorldTargetLinkStay, origin?: string | null) => {
     if (!isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
     const updatedIds = new Set(drafts.map(candidate => candidate.candidateId));
+    // 응답·재확인을 기다리는 동안 작가가 다른 묶음·필터·페이지로 옮겼으면 그 위치와 화면 상태를 건드리지 않는다.
+    const stayedAtOrigin = origin == null || reviewLocationKey() === origin;
     clearCurrentChoices([...updatedIds]);
     setPresetTargets(previous => ({ ...Object.fromEntries(Object.entries(previous)
       .filter(([candidateId]) => !updatedIds.has(candidateId))), ...stay?.presets }));
@@ -2239,20 +2258,27 @@ export function WorldSettingReview() {
     setDecisionOverrides(previous => Object.fromEntries(
       Object.entries(previous).filter(([candidateId]) => !updatedIds.has(candidateId)),
     ));
-    setEditCandidate(null);
-    setEditIdentityOnly(false);
-    setScopeMergeCandidateIds([]);
-    selectionGroupRef.current = null;
-    preserveViewport();
+    if (stayedAtOrigin) {
+      setEditCandidate(null);
+      setEditIdentityOnly(false);
+      setScopeMergeCandidateIds([]);
+      selectionGroupRef.current = null;
+      preserveViewport();
+    } else {
+      setEditCandidate(current => current?.id && updatedIds.has(current.id) ? null : current);
+    }
     if (stay) {
       // 선택 대상 연결은 읽던 묶음에 남는다. 행이 모두 옮겨 가 묶음이 비면 직전 목록 순서의 다음 묶음을 연다.
-      setLinkSelection({ groupKey: null, ids: [] });
-      setTargetLinkOpen(false);
+      // 그 사이 다른 묶음에서 새로 한 체크·연결 창은 비우지 않는다.
+      setLinkSelection(current => current.groupKey === stay.sourceGroupKey ? { groupKey: null, ids: [] } : current);
+      if (currentGroupParam() === stay.sourceGroupKey) setTargetLinkOpen(false);
       setTargetLinkNotice({ savedIds: [...updatedIds], pendingIds: Object.keys(stay.presets), targetName: stay.targetName,
-        linkedGroupKey: nextGroupKey ?? null });
-      const advance: WorldGroupAdvance = { groupKey: stay.sourceGroupKey, previous: stay.previousGroups, force: false, armed: false };
-      advanceRef.current = advance;
-      armAdvance(advance);
+        linkedGroupKey: nextGroupKey ?? null, sourceGroupKey: stay.sourceGroupKey });
+      if (currentGroupParam() === stay.sourceGroupKey) {
+        const advance: WorldGroupAdvance = { groupKey: stay.sourceGroupKey, previous: stay.previousGroups, force: false, armed: false };
+        advanceRef.current = advance;
+        armAdvance(advance);
+      }
       await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
       return;
     }
@@ -2262,7 +2288,7 @@ export function WorldSettingReview() {
     const categoryChanged = Boolean(firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category);
     const operationChanged = Boolean(firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation);
     const groupOnPage = !nextGroupKey || refreshedGroups.some(group => group.groupKey === nextGroupKey);
-    if (isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
+    if (stayedAtOrigin && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
       setSearchParams(previous => {
         const next = new URLSearchParams(previous);
         if (nextGroupKey) next.set('group', nextGroupKey);
@@ -2318,17 +2344,36 @@ export function WorldSettingReview() {
       recoveryContextRef.current = null;
       // 응답을 잃었지만 서버에 같은 초안이 저장됐으면 저장 성공과 같이 접는다.
       if (context.lost) setVerifiedLostError(context.error);
-      await finishDecisionSave(context.drafts, context.groupKey, context.stay);
+      await finishDecisionSave(context.drafts, context.groupKey, context.stay, context.origin);
       return;
     }
-    recoveryContextRef.current = null;
-    if (context.kind !== 'confirm') return;
-    const advance = advanceRef.current?.groupKey === context.groupKey ? advanceRef.current : null;
+    if (context.kind !== 'confirm') {
+      recoveryContextRef.current = null;
+      return;
+    }
     const group = result.data?.data?.groups?.content?.find(item => item.groupKey === context.groupKey);
     const submitted = new Set(context.candidateIds);
-    const confirmed = group
-      ? !group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id) && candidate.reviewStatus === 'PENDING_REVIEW')
-      : reviewFilter === 'PENDING_REVIEW';
+    let confirmed: boolean;
+    if (group) {
+      confirmed = !group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id) && candidate.reviewStatus === 'PENDING_REVIEW');
+    } else {
+      // 다른 페이지·필터로 옮겨 가 지금 목록에 묶음이 없으면 "확정됨"으로 단정하지 않고 확정한 후보를 하나씩 다시 읽는다.
+      try {
+        const details = await Promise.all(context.candidateIds.map(async candidateId => (await getWorldSettingCandidate({
+          path: { workId, candidateId }, query: { batchId, sourceAnalysisJobId }, throwOnError: true,
+        })).data?.data));
+        if (recoveryContextRef.current !== context) return;
+        if (details.some(candidate => !candidate)) throw new Error('missing candidate');
+        confirmed = details.every(candidate => candidate!.reviewStatus !== 'PENDING_REVIEW');
+      } catch {
+        if (recoveryContextRef.current !== context) return;
+        setDecisionRecoveryRequired(true);
+        scheduleRecoveryRetry();
+        return;
+      }
+    }
+    recoveryContextRef.current = null;
+    const advance = advanceRef.current?.groupKey === context.groupKey ? advanceRef.current : null;
     if (!confirmed) {
       if (advance) advanceRef.current = null;
       return;
@@ -2349,6 +2394,8 @@ export function WorldSettingReview() {
     return runRecovery();
   };
 
+  // 결정 저장을 보낸 시점의 위치. 한 번에 하나의 결정 저장만 보낸다(요청 중에는 다른 쓰기를 잠근다).
+  const decisionOriginRef = useRef<string | null>(null);
   /** 이 저장이 선택 대상 연결이었는지 꺼낸다. 요청한 후보가 같을 때만 쓰고 한 번 쓰면 비운다. */
   const takeTargetLinkStay = (drafts: WorldSettingCandidateDecisionUpdateItem[]) => {
     const stay = targetLinkRequestRef.current;
@@ -2366,7 +2413,7 @@ export function WorldSettingReview() {
       const stay = takeTargetLinkStay(variables.body.candidates);
       setDecisionRecoveryRequired(true);
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: false,
-        lost: isResponseLost(error), error, stay });
+        lost: isResponseLost(error), error, stay, origin: decisionOriginRef.current });
     },
     onSuccess: async (response, variables) => {
       await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
@@ -2377,9 +2424,14 @@ export function WorldSettingReview() {
       await queryClient.cancelQueries({ queryKey });
       await queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: true, lost: false,
-        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates) });
+        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates), origin: decisionOriginRef.current });
     },
   });
+  /** 결정 저장을 보낸다. 늦게 끝난 후속 처리가 위치를 되돌리지 않도록 보낸 시점의 위치를 함께 기억한다. */
+  const mutateDecisions: typeof updateDecisionMutation.mutate = (variables, options) => {
+    decisionOriginRef.current = reviewLocationKey();
+    updateDecisionMutation.mutate(variables, options);
+  };
 
   const retryDecisionRecovery = async () => {
     await runRecovery();
@@ -2625,7 +2677,7 @@ export function WorldSettingReview() {
         return candidate?.consolidationStatus === 'CONFLICT' ? [decision.candidateId] : [];
       })
       : [];
-    updateDecisionMutation.mutate({
+    mutateDecisions({
       query: { sourceAnalysisJobId }, path: { workId },
       body: { batchId, candidates },
     }, {
@@ -2658,7 +2710,8 @@ export function WorldSettingReview() {
     if (!plan.saves.length) {
       setPresetTargets(previous => ({ ...previous, ...presets }));
       clearLinkSelection();
-      setTargetLinkNotice({ savedIds: [], pendingIds: Object.keys(presets), targetName: target.subjectName, linkedGroupKey: null });
+      setTargetLinkNotice({ savedIds: [], pendingIds: Object.keys(presets), targetName: target.subjectName, linkedGroupKey: null,
+        sourceGroupKey: selectedGroup.groupKey });
       return;
     }
     const sources = plan.saves.flatMap(save => pendingCandidates.filter(candidate => candidate.id === save.candidateId));
@@ -2671,7 +2724,7 @@ export function WorldSettingReview() {
     dismissMutation.reset();
     updateDecisionMutation.reset();
     targetLinkRequestRef.current = { sourceGroupKey: selectedGroup.groupKey, previousGroups: groups, targetName: target.subjectName, presets };
-    updateDecisionMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates: plan.saves } });
+    mutateDecisions({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates: plan.saves } });
   };
   /** 결정이 남은 첫 행으로 초점과 스크롤을 옮긴다. */
   const focusFirstPendingLink = () => {
@@ -2697,7 +2750,9 @@ export function WorldSettingReview() {
   };
   const visiblePendingLinkIds = targetLinkNotice?.pendingIds.filter(candidateId => (selectedGroup?.candidates ?? [])
     .some(candidate => candidate.id === candidateId && candidate.reviewStatus === 'PENDING_REVIEW')) ?? [];
-  const targetLinkNoticeView = targetLinkNotice && <ReviewNotice tone="info"
+  const targetLinkNoticeVisible = Boolean(targetLinkNotice && selectedGroup?.groupKey
+    && (selectedGroup.groupKey === targetLinkNotice.sourceGroupKey || selectedGroup.groupKey === targetLinkNotice.advancedGroupKey));
+  const targetLinkNoticeView = targetLinkNotice && targetLinkNoticeVisible && <ReviewNotice tone="info"
     title={[targetLinkNotice.savedIds.length ? `${targetLinkNotice.savedIds.length}개 저장(추가)` : null,
       targetLinkNotice.pendingIds.length ? `${targetLinkNotice.pendingIds.length}개는 내용 결정이 남았어요` : null].filter(Boolean).join(' · ')}
     action={<span className="review-cb-notice__buttons">
@@ -3131,7 +3186,7 @@ export function WorldSettingReview() {
                           setOriginalHoldReasons(previous => ({ ...previous, ...Object.fromEntries(sources
                             .filter(source => source.id && source.automaticReviewHoldReason)
                             .map(source => [source.id!, source.automaticReviewHoldReason])) }));
-                          updateDecisionMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId,
+                          mutateDecisions({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId,
                             candidates: sources.map(source => ({ candidateId: source.id!, ...draft,
                               conflictResolved: source.consolidationStatus === 'CONFLICT' ? true : undefined })),
                           } }, { onSuccess: () => {

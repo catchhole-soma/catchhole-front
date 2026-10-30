@@ -79,7 +79,7 @@ import { PageNavigation } from '../PageNavigation';
 import { REVIEW_TEXT, reviewToneInk } from '../review-v2-colors';
 import { UserMenu } from '../UserMenu';
 import { CharacterReviewComparison, CharacterTargetChoices } from './CharacterReviewPresentation';
-import { candidateEpisodesLabel, errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
+import { candidateEpisodesLabel, candidateHasSavedUpdate, errorMessage, mentionSearchText, toSettingDisplay, validateCandidateDisplayValue } from './characterReviewFormat';
 import { ActionButton } from './ReviewModalControls';
 import {
   computeGroupConfirmBlock,
@@ -194,6 +194,11 @@ function matchesReviewFilter(status: ReviewStatus, filter: ReviewFilter): boolea
   return filter === 'ALL' || status === filter;
 }
 
+/** 지금 URL의 묶음. 늦게 끝난 요청의 후속 처리는 렌더 시점이 아니라 이 값으로 작가가 옮겼는지 판단한다. */
+function currentGroupParam(): string | null {
+  return new URLSearchParams(window.location.search).get('group');
+}
+
 function isCharacterReviewLocation(workId: string, batchId: string, sourceAnalysisJobId?: string): boolean {
   const currentParams = new URLSearchParams(window.location.search);
   return isSameReviewScope(workId, batchId, sourceAnalysisJobId)
@@ -220,7 +225,7 @@ type CharacterSaveIntent =
   /** 체크한 후보만 한 대상에 연결(selected-character-match). 전부 성공하거나 전부 거절된다. */
   | { kind: 'selectedMatch'; candidateIds: string[]; context: MatchContext; variables: SelectedMatchVariables }
   /** 이름 있는 묶음의 대기 후보 전체를 한 대상에 연결(group-character-match). */
-  | { kind: 'groupMatch'; candidateIds: string[]; variables: GroupMatchVariables };
+  | { kind: 'groupMatch'; candidateIds: string[]; sourceGroupKey: string | null; variables: GroupMatchVariables };
 
 function saveKey(intent: CharacterSaveIntent): string {
   if (intent.kind === 'confirm') return `confirm:${intent.groupKey}`;
@@ -250,20 +255,12 @@ function linkedGroupKey(body: MatchBody): string {
     ? `existing:${body.matchedCharacterId}` : normalizeCharacterGroupName(body.entityName);
 }
 
-function sameText(first?: string | null, second?: string | null): boolean {
-  return (first ?? '').trim() === (second ?? '').trim();
-}
-
 /** 다시 읽은 후보가 작가가 보낸 변경을 이미 담고 있는지 판단한다. */
 function candidateMatchesIntent(candidate: SettingCandidateResponse, intent: CharacterSaveIntent): boolean {
   if (intent.kind === 'match' || intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') {
     return candidateLinkedAsRequested(candidate, intent.variables.body);
   }
-  if (intent.kind === 'update') {
-    const body = intent.variables.body;
-    return sameText(candidate.attributeValue, body.attributeValue)
-      && (!body.reviewedApplicationMode || candidate.reviewedApplicationMode === body.reviewedApplicationMode);
-  }
+  if (intent.kind === 'update') return candidateHasSavedUpdate(candidate, intent.variables.body);
   if (intent.kind === 'dismiss') return candidate.reviewStatus === 'DISMISSED';
   if (intent.kind === 'retry') {
     const status = candidate.comparisonStatus;
@@ -836,6 +833,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const chooseCurrentRef = useRef(new Map<string, Pick<SettingCandidateResponse, 'currentSnapshotVersion' | 'matchedCharacterId'>>());
   const confirmRequestRef = useRef<{ groupKey: string; previousGroups: SettingCandidateGroupResponse[] } | null>(null);
   const selectionIntentRef = useRef<Extract<CharacterSaveIntent, { kind: 'selectedMatch' }> | null>(null);
+  const groupMatchIntentRef = useRef<Extract<CharacterSaveIntent, { kind: 'groupMatch' }> | null>(null);
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
   const detailRef = useRef<HTMLElement>(null);
@@ -1253,7 +1251,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     if (!advance) return;
     if (queryClient.getQueryState(listOptions.queryKey)?.status === 'error') {
       // 확정 뒤 목록을 다시 받지 못하면 이전 목록으로 확정한 묶음이나 다음 묶음을 고르지 않는다.
+      // 기다리는 동안 작가가 다른 묶음을 골랐으면(이동 의도가 지워졌거나 URL이 바뀌었으면) 그 선택을 유지한다.
+      const stillWaiting = advanceRef.current === advance && currentGroupParam() === groupKey;
       if (advanceRef.current === advance) advanceRef.current = null;
+      if (!stillWaiting) return;
       setSearchParams(previous => {
         if (previous.get('group') !== groupKey) return previous;
         const next = new URLSearchParams(previous);
@@ -1410,16 +1411,25 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   /** 선택 연결이 저장됐을 때(응답 또는 재조회로 확인) 선택을 비우고 단건과 같은 위치 유지·안내를 적용한다. */
   const afterSelectionLinked = async (candidateIds: string[], savedCandidates: SettingCandidateResponse[],
     context: MatchContext | undefined, targetWorkId = workId) => {
-    setSelectionMatchOpen(false);
-    setCheckedSelection({ groupKey: null, ids: [] });
-    setSelectionRejection(null);
-    setSelectionRequestKey(null);
+    // 결과 확인이 늦게 끝나는 동안 작가가 다른 묶음에서 새로 체크하거나 연결 창을 열었으면 그대로 둔다.
+    const sourceGroupKey = context?.sourceGroupKey ?? null;
+    if (currentGroupParam() === sourceGroupKey) setSelectionMatchOpen(false);
+    setCheckedSelection(current => current.groupKey === sourceGroupKey ? { groupKey: null, ids: [] } : current);
+    setSelectionRejection(current => current && current.candidateIds.some(id => candidateIds.includes(id)) ? null : current);
+    const requestKey = `selected-match:${candidateIds.join(',')}`;
+    setSelectionRequestKey(current => current === requestKey ? null : current);
     await afterLinksSaved(candidateIds, savedCandidates, context, targetWorkId);
   };
 
   /** 이름 있는 묶음 전체 연결은 연결한 묶음으로 화면을 옮긴다(묶음 전체가 함께 이동하므로). */
-  const afterGroupLinked = async (candidateIds: string[], groupKey: string | null | undefined, targetWorkId = workId) => {
+  const afterGroupLinked = async (candidateIds: string[], groupKey: string | null | undefined,
+    sourceGroupKey: string | null, targetWorkId = workId) => {
     onClearApplicationModes(candidateIds);
+    // 응답을 기다리는 동안 작가가 다른 묶음으로 옮겼으면 그 묶음과 열린 창을 유지한다.
+    if (currentGroupParam() !== sourceGroupKey) {
+      await invalidateCandidateData(targetWorkId);
+      return;
+    }
     setGroupMatchOpen(false);
     selectionGroupRef.current = null;
     if (isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) {
@@ -1444,7 +1454,12 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         const response = await queryClient.fetchQuery({ ...listOptions, staleTime: 0 });
         const group = response.data?.groups?.content?.find(item => item.groupKey === intent.groupKey);
         const submitted = new Set(intent.variables.body.candidates.map(candidate => candidate.candidateId));
-        if (!group) return reviewFilter === 'PENDING_REVIEW' ? 'matched' : 'unknown';
+        if (!group) {
+          // 작가가 다른 페이지·필터로 옮겨 지금 목록에 묶음이 없을 수 있다. "확정됨"으로 단정하지 않고 후보를 하나씩 다시 읽는다.
+          const confirmed = await Promise.all([...submitted].map(fetchCandidate));
+          if (confirmed.some(candidate => !candidate)) return 'unknown';
+          return confirmed.every(candidate => candidate!.reviewStatus !== 'PENDING_REVIEW') ? 'matched' : 'different';
+        }
         return group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id)
           && candidate.reviewStatus === 'PENDING_REVIEW') ? 'different' : 'matched';
       }
@@ -1470,7 +1485,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           path: { workId, candidateId }, query: { sourceAnalysisJobId, batchId },
         }).queryKey)?.data ?? []);
         if (intent.kind === 'selectedMatch') void afterSelectionLinked(intent.candidateIds, verifiedCandidates, intent.context);
-        else void afterGroupLinked(intent.candidateIds, linkedGroupKey(intent.variables.body));
+        else void afterGroupLinked(intent.candidateIds, linkedGroupKey(intent.variables.body), intent.sourceGroupKey);
         return;
       }
       const verified = queryClient.getQueryData(getSettingCandidateOptions({
@@ -1524,7 +1539,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     else if (intent.kind === 'selectedMatch') {
       selectionIntentRef.current = intent;
       selectedMatchMutation.mutate(intent.variables, callbacks);
-    } else if (intent.kind === 'groupMatch') groupMatchMutation.mutate(intent.variables, callbacks);
+    } else if (intent.kind === 'groupMatch') {
+      groupMatchIntentRef.current = intent;
+      groupMatchMutation.mutate(intent.variables, callbacks);
+    }
     else if (intent.kind === 'update') updateMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'dismiss') dismissMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'retry') retryComparisonMutation.mutate(intent.variables, callbacks);
@@ -1540,7 +1558,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       await refreshAutomaticApplicationState(error);
     },
     onSuccess: async (response, variables) => {
-      await afterGroupLinked(variables.body.candidateIds, response.data?.groupKey, variables.path.workId);
+      const intent = groupMatchIntentRef.current;
+      groupMatchIntentRef.current = null;
+      await afterGroupLinked(variables.body.candidateIds, response.data?.groupKey, intent?.sourceGroupKey ?? null, variables.path.workId);
     },
   });
 
@@ -1730,7 +1750,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       setGroupMatchOpen(false);
       return;
     }
-    submitIntent({ kind: 'groupMatch', candidateIds, variables: {
+    submitIntent({ kind: 'groupMatch', candidateIds, sourceGroupKey: selectedGroup.groupKey ?? null, variables: {
       query: { sourceAnalysisJobId }, path: { workId },
       body: resolution === 'MATCH_EXISTING'
         ? { batchId, candidateIds, resolutionType: resolution, matchedCharacterId: value }

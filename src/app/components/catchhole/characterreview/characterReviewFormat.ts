@@ -165,3 +165,19 @@ export function candidateEpisodesLabel(candidates: SettingCandidateResponse[]): 
   const books = candidates.some(candidate => candidate.source?.sourceKind === 'SETTING_BOOK');
   return [episodes.length ? `회차 ${episodes.join(', ')}` : null, books ? '설정집' : null].filter(Boolean).join(' · ');
 }
+
+function sameText(first?: string | null, second?: string | null): boolean {
+  return (first ?? '').trim() === (second ?? '').trim();
+}
+
+/**
+ * 응답을 잃은 수정·반영 방식 저장이 서버에 반영됐는지 다시 읽은 후보로 판단한다. 설정명·설정값과(보냈다면) 반영 방식이
+ * 모두 같아야 저장된 것으로 본다. 설정명만 바꾼 수정도 값이 그대로라는 이유로 저장됐다고 보지 않는다.
+ */
+export function candidateHasSavedUpdate(
+  candidate: Pick<SettingCandidateResponse, 'attributeName' | 'attributeValue' | 'reviewedApplicationMode'>,
+  body: { attributeName?: string | null; attributeValue?: string | null; reviewedApplicationMode?: SettingCandidateResponse['reviewedApplicationMode'] },
+): boolean {
+  return sameText(candidate.attributeName, body.attributeName) && sameText(candidate.attributeValue, body.attributeValue)
+    && (!body.reviewedApplicationMode || candidate.reviewedApplicationMode === body.reviewedApplicationMode);
+}
