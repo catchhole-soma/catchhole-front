@@ -714,7 +714,10 @@ function EpisodeUpload() {
     ]),
   });
   const retryAnalysisJobMutation = useMutation(retryAnalysisJobMutationOptions());
-  const submitting = uploadEpisodesMutation.isPending
+  // 전송 직전 자격 확인부터 저장·분석 요청까지를 한 번의 제출로 보고 입력을 잠근다. 화면에 보이는 값이 그대로 전송된다.
+  const [submissionPending, setSubmissionPending] = useState(false);
+  const submitting = submissionPending
+    || uploadEpisodesMutation.isPending
     || createAnalysisJobMutation.isPending;
 
   const progressQuery = useAnalysisJobProgress({ workId, trackedAnalysisJobIds, currentAnalysisJobIds,
@@ -1117,10 +1120,12 @@ function EpisodeUpload() {
   const submitEpisodeUpload = async () => {
     if (!uploadType || characterLimitError || admissionBlock || submitInFlight.current) return;
     submitInFlight.current = true;
+    setSubmissionPending(true);
     try {
       await submitEpisodeUploadOnce(uploadType);
     } finally {
       submitInFlight.current = false;
+      setSubmissionPending(false);
     }
   };
 
@@ -1513,6 +1518,7 @@ function EpisodeUpload() {
                   <FileDropArea
                     file={singleFile}
                     error={singleFileError}
+                    disabled={submitting}
                     onFileChange={(file, error) => void handleSingleFile(file, error)}
                     fileLabel="회차 파일 · TXT, DOCX, HWP, HWPX"
                   />
@@ -1530,6 +1536,7 @@ function EpisodeUpload() {
                   <FileDropArea
                     file={bulkFile}
                     error={bulkFileError}
+                    disabled={submitting}
                     onFileChange={(file, error) => void handleBulkFile(file, error)}
                     fileLabel="회차 제목 행(제 N화, EP N 등)이 있는 TXT, DOCX, HWP, HWPX"
                   />
@@ -1693,6 +1700,7 @@ function EpisodeUpload() {
                           <TextInput
                             type="number"
                             value={String(selectedConfirmation.episodeNo)}
+                            disabled={submitting}
                             onChange={value => setEpisodeConfirmations(items => items.map(item =>
                               item.detectionOrder === selectedConfirmation.detectionOrder
                               ? { ...item, episodeNo: Number.parseInt(value, 10) || 0 }
@@ -1704,6 +1712,7 @@ function EpisodeUpload() {
                           <TextInput
                             value={selectedConfirmation.title}
                             placeholder="제목을 찾지 못했어요"
+                            disabled={submitting}
                             onChange={value => setEpisodeConfirmations(items => items.map(item =>
                               item.detectionOrder === selectedConfirmation.detectionOrder
                               ? { ...item, title: value }

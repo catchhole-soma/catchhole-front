@@ -198,6 +198,30 @@ test('단일 신규 회차 검수는 설정 추출 Job 없이 현재 원고 버�
   await expect(page).not.toHaveURL(/validationEpisodeId=/);
 });
 
+test('전송 직전 자격 확인 중에는 입력을 잠그고 확인 뒤 화면에 보이던 값으로 저장한다', async ({ page }) => {
+  const held = gate();
+  const calls = await setup(page, { eligibility: call => call === 1 ? ok(ALLOWED) : { ...ok(ALLOWED), wait: held.wait } });
+  await prepareSingleValidation(page);
+  await page.getByPlaceholder('비우면 원문 제목 행에서 감지').fill('보이는 제목');
+  await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
+  await expect.poll(() => calls.eligibility).toBe(2);
+  // 확인을 기다리는 동안 파일·번호·제목·목적·업로드 방식과 제출을 바꿀 수 없다.
+  await expect(page.locator('input[type=file]').first()).toBeDisabled();
+  await expect(page.getByPlaceholder('비우면 파일에서 감지')).toBeDisabled();
+  await expect(page.getByPlaceholder('비우면 원문 제목 행에서 감지')).toBeDisabled();
+  await expect(validationPurpose(page)).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^기존 설정 구축/ })).toBeDisabled();
+  await expect(modeButton(page, 'MULTI_EPISODE_MULTI_FILE')).toBeDisabled();
+  await expect(page.getByRole('button', { name: '저장 중...' })).toBeDisabled();
+  expect(calls.uploads).toEqual([]);
+  held.open();
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  expect(calls.uploads).toHaveLength(1);
+  expect(calls.uploads[0]).toContain('"singleEpisodeNo":101');
+  expect(calls.uploads[0]).toContain('"singleEpisodeTitle":"보이는 제목"');
+  expect(calls.starts).toHaveLength(1);
+});
+
 test('접수 응답이 유실되면 현재 검수로 복구하고 두 번째 접수를 보내지 않는다', async ({ page }) => {
   const calls = await setup(page, { start: () => ({ abort: true }) });
   await prepareSingleValidation(page);
