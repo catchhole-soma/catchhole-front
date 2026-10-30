@@ -130,6 +130,10 @@ npm run doctor
 - 실제 연결 후보 API가 없는 경우 실제 등록된 대상을 조회·탐색하여 선택한다. 시안의 예시 이름이나 AI 추천을 만들어 넣지 않는다. 원문 줄바꿈을 독립적인 충돌 선택지로 추측하지 않는다.
 - 세계관의 대상 연결·새 등록은 카드 선택으로 로컬 초안을 준비하고 기존 인라인 폼의 ‘이 내용으로 검토 완료’에서 서버 초안을 저장한다. 단순 추가·범위·병합·교체 카드는 기존 즉시 저장 흐름을 유지하며 `CONFLICT`의 명시 확인도 유지한다. 서버가 저장한 초안을 확인한 뒤 완료 요약으로 접는다. 고급 수정은 유지한다. 개별 확정은 추가하지 않는다. 분석 진행·중단은 짧은 잠금/복구 안내와 기존 분석 화면 이동으로 처리하며 별도의 분석 진행 페이지를 만들지 않는다.
 
+## GH314 신규 회차 오류 리포트
+
+- `/episode-validation-report`와 업로드·분석 목록·원고 목록의 검수 표시는 서버 `reviewStage` 하나로 단계 문구를 고르고 `ERROR_REVIEW_*`·판단 개수로 단계를 추측하지 않는다. 판단·검토 완료·명시 반영·재시도·재검수 버튼은 서버의 `allowedActions`·`canCompleteReview`·`judgmentLocked`·`allowedJudgments`로만 연다. 모든 호출은 생성 SDK/Query options를 사용하고 `src/app/api/generated`를 고치지 않으며 URL·저장소에 원문·인용을 넣지 않는다. 업로드는 전송 전에 `getEpisodeValidationEligibility`로 다음 회차 차단을 먼저 보여 주되 권위는 업로드 409 `VALIDATION_NEXT_EPISODE_BLOCKED`다. 실제 연결 `e2e/episode-validation-live.spec.ts`는 live fixture 변수에 더해 같은 API에 붙은 추출·검수 Worker(`CATCHHOLE_E2E_VALIDATION_WORKER=1`)가 있어야 실행되며 실제 모델을 호출한다(`docs/local-image-live-tests.md`).
+
 ## 캐릭터 snapshot과 이력
 
 - 캐릭터 상세의 현재값은 `WorkCharacter` snapshot을 기준으로 표시하고, `CharacterFact`는 이력과 snapshot 출처로 취급한다. 단일 `characterFactId` 존재 여부로 snapshot 설정의 저장 여부를 추측하지 않는다.

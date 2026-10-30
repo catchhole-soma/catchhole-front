@@ -45,6 +45,22 @@
 - 데스크톱과 모바일에서 기존 검토 화면의 조작 방식을 따르되, 오류 리포트의 `수정 필요 / 충돌 아님` 판단과 `비교 기준 / 이번 원고`의 의미를 유지한다. 판단 저장을 설정 확정으로 표현하거나 단순 비교를 수정 전후 diff로 바꾸지 않는다.
 - 최종 시안 검토 때 캐릭터 확정·세계관 확정·오류 리포트 화면을 나란히 비교한다. 이번 피드백은 초안 방향에 대한 동의이며 기능 구현 완료나 최종 디자인 확정을 뜻하지 않는다.
 
+## 실제 화면 2026-10-30
+
+#314 V1에서 로컬 Java·일회용 PostgreSQL·실제 AI Worker에 연결한 실제 화면을 [`docs/screens/gh314/`](../screens/gh314/)에 1440×900·390×844로 캡처했다. 위 초안 PNG(`docs/screens/gh300/`)는 정책 변경 전 기록으로 보존하고, 상태 문구·배치의 최신 기준은 이 캡처다. 리포트는 `/setting-review`와 같은 Theme V2·Clear Blue 카드·선택 카드·근거 펼침을 사용한다.
+
+| 상태 | 캡처 |
+| --- | --- |
+| 업로드 `신규 회차 검수`·다음 회차 차단·확정 뒤 허용 | `upload-validation-intake-desktop`, `upload-next-episode-blocked-{desktop,mobile}`, `upload-after-applied-desktop` |
+| 검사 중(읽기 전용)·일부 중단·재시도 중 | `report-validating-desktop`, `report-partial-no-findings-desktop`, `report-retry-running-readonly-desktop` |
+| 항목 있음 목록·상세(모바일 목록→상세→판단) | `report-findings-desktop`, `report-finding-detail-desktop`, `report-findings-{status,list}-mobile`, `report-finding-{detail,judgment}-mobile` |
+| 판단 저장 뒤(수정 필요·충돌 아님), 모두 판단했지만 검사 미완료라 추출 잠금 | `report-judgment-saved-desktop`, `report-judgment-not-conflict-desktop`, `report-all-judged-execution-incomplete-desktop` |
+| 원고 파일 변경 → 복귀 → 무효 → 재검수 확인 → 새 report | `report-replace-file-modal-desktop`, `manuscripts-replaced-return-desktop`, `report-invalidated-{desktop,mobile}`, `report-recheck-confirm-desktop`, `report-recheck-started-desktop` |
+| 0건 자동 추출 → 확정 완료, 확정 뒤 진단 재검수 | `report-auto-applied-{desktop,mobile}`, `report-diagnostic-recheck-{desktop,mobile}` |
+| 분석 목록 카드·원고 목록 배지 | `analysis-list-{applied,awaiting-review}-desktop`, `analysis-list-awaiting-review-mobile`, `manuscripts-stage-badges-desktop`, `manuscripts-awaiting-review-{desktop,mobile}` |
+
+확정 보류(APPLICATION_HELD) 화면은 이번 실제 실행에서 보류가 발생하지 않아 캡처하지 못했다(목 API Playwright로만 확인). Pencil 반영은 `design/PENCIL_MIGRATION.md`의 GH314 항목대로 대기다.
+
 ## 확인 범위와 남은 작업
 
 ### 오류 검사 우선 정책 반영 목록
