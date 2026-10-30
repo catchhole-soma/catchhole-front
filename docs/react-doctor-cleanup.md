@@ -340,3 +340,7 @@ Doctor 전체는 직전과 같은 186건(기존 오류 2·경고 184)이며 새 
 
 
 2026-10-20 관계도 종류·탭 표현 변경 후에도 전체 검사는 228개 파일/217개 진단(기존 WorldSettingDatabase 오류 2개)으로 같다. 새 탭은 준비 중 모드를 비활성으로 표시하고 기존 relationView·근거·저장 흐름은 유지한다. 진단을 억제하지 않았으며 이번 범위의 추가 기능/접근성 문제는 독립 코드 리뷰와 실제 320px 확인에서 발견되지 않았다.
+
+### 2026-10-30 GH314 오류 리포트 화면 (F1)
+
+SDK 재생성 직후 기준은 241개 파일/245개 진단(기존 WorldSettingDatabase 상태 updater 오류 2개)이고, 리포트 화면 추가 뒤 전체 검사는 251개 파일/249개 진단(같은 기존 오류 2개)이다. 새 진단 4개는 모두 `no-high-complexity-react-function` 유지보수 권고로 `ValidationReport`, `FindingDetailView`, `ReportStatusCard`, `ReportBasisCard`의 서버 상태별 분기에서 나온다. 판단·검토 완료·재시도 요청은 `useValidationReportActions`, 0건 안내는 `FindingEmptyState`로 분리해 큰 컴포넌트·배열 탐색·Intl 생성·JSON 복제 권고는 해소했다. 남은 분기는 `reviewStage`·`allowedActions`별 문구 선택이며 권한을 화면에서 계산하지 않기 위해 하나의 표로 합치지 않았다. 진단을 억제하거나 전체 무경고로 해석하지 않는다.
