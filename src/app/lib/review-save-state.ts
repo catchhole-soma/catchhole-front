@@ -1,4 +1,4 @@
-import { NetworkError, toApiError } from './api-errors';
+import { toApiError } from './api-errors';
 
 /**
  * 검토 화면의 저장 상태. 서버에는 "저장 중/결과 미확인" 개념이 없으므로 재조회 결과로 판정한다.
@@ -28,14 +28,27 @@ export const REVIEW_SAVE_TEXT = {
   retry: '다시 시도',
 } as const;
 
+/** 요청을 보내기 전에 화면이 거절한 쓰기(읽기 전용 검토·잘못된 입력 등). 서버에 닿지 않았으므로 확실한 실패다. */
+export class ClientRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ClientRejectedError';
+  }
+}
+
 /**
- * 요청 결과를 알 수 없는 오류인지 판단한다. 네트워크 단절과 서버 응답 형식이 아닌 오류(빈 본문·프록시 오류 페이지 등)는
- * 서버가 이미 처리했을 수 있다. 클라이언트에서 막은 오류(`Error`)와 서버가 만든 오류 응답(`message`·`error`)은 실패로 본다.
+ * 요청 결과를 알 수 없는 오류인지 판단한다. 확실한 실패는 두 가지뿐이다.
+ * - 서버가 돌려준 오류 응답(`ApiError`로 해석되는 본문, 또는 메시지가 있는 JSON 오류 본문)
+ * - 요청을 보내기 전에 화면이 거절한 쓰기(`ClientRejectedError`)
+ *
+ * 그 밖의 오류는 서버가 이미 처리했을 수 있으므로 "결과 미확인"으로 보고 재조회로 판정한다. 네트워크 단절(`NetworkError`),
+ * 응답 헤더를 받은 뒤 본문을 읽다 끊긴 경우(`TypeError`), 깨진 본문의 해석 실패(`SyntaxError`), 요청 중단(`AbortError`),
+ * 프록시 오류 페이지처럼 해석할 수 없는 본문이 여기에 든다.
  */
 export function isResponseLost(error: unknown): boolean {
-  if (error instanceof NetworkError) return true;
-  if (error instanceof Error) return false;
+  if (error instanceof ClientRejectedError) return false;
   if (toApiError(error)) return false;
+  if (error instanceof Error) return true;
   return !(typeof error === 'object' && error !== null && typeof (error as { message?: unknown }).message === 'string');
 }
 

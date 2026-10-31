@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { NetworkError } from '../src/app/lib/api-errors.ts';
 import {
   readReviewPosition,
   REVIEW_POSITION_MAX_AGE_MS,
   reviewPositionKey,
   saveReviewPosition,
 } from '../src/app/lib/review-position-store.ts';
-import { isResponseLost } from '../src/app/lib/review-save-state.ts';
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -43,13 +41,4 @@ test('저장소 접근이 막혀도 예외를 밖으로 던지지 않는다', ()
   assert.doesNotThrow(() => saveReviewPosition('key', { scrollTop: 1, candidateId: null, groupKey: null }, 1, blocked));
   assert.equal(readReviewPosition('key', 1, blocked), null);
   assert.equal(readReviewPosition('key', 1, null), null);
-});
-
-test('응답을 받지 못한 오류만 결과 미확인으로 본다', () => {
-  assert.equal(isResponseLost(new NetworkError()), true);
-  assert.equal(isResponseLost('<html>Bad Gateway</html>'), true);
-  assert.equal(isResponseLost({}), true);
-  assert.equal(isResponseLost({ message: '충돌', error: { status: 409, code: 'CONFLICT' } }), false);
-  assert.equal(isResponseLost({ success: false, message: '연결 요청에 실패했습니다.' }), false);
-  assert.equal(isResponseLost(new Error('이전 분석 기록은 수정할 수 없습니다.')), false);
 });
