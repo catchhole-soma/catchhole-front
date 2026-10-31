@@ -199,6 +199,29 @@
 }
 @media (prefers-reduced-motion: reduce) { .review-cb-choice { transition: none; } }
 
+/* #211 후속: 미연결 묶음을 모두 정리한 자리의 완료 상태. 버튼은 항상 44px, 650px 이하에서는 세로로 쌓는다. */
+.review-unlinked-done { padding: 22px 20px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-surface); color: var(--ch-text); }
+.review-unlinked-done__title { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ch-ink); font-size: 17px; font-weight: 750; line-height: 1.5; letter-spacing: -.02em; }
+.review-unlinked-done__title > svg { flex-shrink: 0; color: var(--ch-success-ink); }
+.review-unlinked-done__title > svg.is-warning, .review-unlinked-done__text.is-warning { color: var(--ch-warning-ink); }
+.review-unlinked-done__title > svg.spin { color: var(--ch-primary-ink); }
+.review-unlinked-done__title:focus { outline: none; }
+.review-unlinked-done__title:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 3px; border-radius: 4px; }
+.review-unlinked-done__text { margin: 8px 0 0; color: var(--ch-text-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.review-unlinked-done__list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.review-unlinked-done__item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; border: 1px solid var(--ch-border); border-radius: 9px; background: var(--ch-surface-soft); }
+.review-unlinked-done__person { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; font-size: 13px; }
+.review-unlinked-done__person > strong { color: var(--ch-ink); overflow-wrap: anywhere; }
+.review-unlinked-done__person > span { color: var(--ch-text-muted); font-size: 12px; }
+.review-unlinked-done__item > button { flex-shrink: 0; min-width: 72px; min-height: 44px; }
+.review-unlinked-done__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.review-unlinked-done__actions > button { min-height: 44px; }
+@media (max-width: 650px) {
+  .review-unlinked-done { padding: 18px 14px; }
+  .review-unlinked-done__item { flex-direction: column; align-items: stretch; padding: 12px; }
+  .review-unlinked-done__item > button, .review-unlinked-done__actions > button { width: 100%; }
+}
+
 .review-type-complete-mobile-action { display: none; margin-top: 12px; }
 @media (max-width: 768px) {
   .review-type-complete-mobile-action { display: block; }

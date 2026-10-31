@@ -181,3 +181,11 @@ export function candidateHasSavedUpdate(
   return sameText(candidate.attributeName, body.attributeName) && sameText(candidate.attributeValue, body.attributeValue)
     && (!body.reviewedApplicationMode || candidate.reviewedApplicationMode === body.reviewedApplicationMode);
 }
+
+/** 미연결 묶음에서 연결할 때마다 보이는 안내 본문. 화면이 이 묶음에 머물고 옮긴 설정은 나중에 모아 볼 수 있다고 알린다. */
+export const UNLINKED_STAY_TEXT = '이 묶음에서 계속 연결할 수 있어요. 옮긴 설정은 미연결 후보를 모두 정리한 뒤 인물별로 모아 볼 수 있어요.';
+
+/** 미연결 묶음에서 이번에 연결한 누적 수. 대상을 모르는 연결은 설정 수에만 넣는다. */
+export function unlinkedLinkCountText(summary: { settingCount: number; people: unknown[] }): string {
+  return `(이번에 연결 ${summary.settingCount}개 · ${summary.people.length}명)`;
+}

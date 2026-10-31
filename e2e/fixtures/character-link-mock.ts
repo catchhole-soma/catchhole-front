@@ -78,9 +78,10 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
     body: JSON.stringify({ success: false, message, data: null, error: { code, status, details: [], context } }),
   });
   const characterName = (id: string | null) => state.characters.find(character => character.id === id)?.name ?? '';
-  const groups = () => {
+  /** `reviewStatus`가 없으면(`전체` 상태 필터) 처리된 후보도 묶음에 남긴다. */
+  const groups = (reviewStatus: string | null = 'PENDING_REVIEW') => {
     const grouped = new Map<string, MockCandidate[]>();
-    state.candidates.filter(candidate => candidate.reviewStatus === 'PENDING_REVIEW').forEach(candidate => {
+    state.candidates.filter(candidate => !reviewStatus || candidate.reviewStatus === reviewStatus).forEach(candidate => {
       const key = candidate.matchedCharacterId ? `existing:${candidate.matchedCharacterId}` : normalize(candidate.entityName);
       grouped.set(key, [...(grouped.get(key) ?? []), candidate]);
     });
@@ -173,6 +174,11 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
           entityName: first.entityName, candidates: selected,
         });
       }
+      const dismissed = state.candidates.find(candidate => path === `${listPath}/${candidate.id}/dismiss`);
+      if (dismissed) {
+        dismissed.reviewStatus = 'DISMISSED';
+        return success(route, dismissed);
+      }
       const single = state.candidates.find(candidate => path === `${listPath}/${candidate.id}/character-match`);
       if (single) {
         link(single, body);
@@ -181,7 +187,7 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
       return success(route, {});
     }
     if (path === listPath) {
-      const all = groups();
+      const all = groups(url.searchParams.get('reviewStatus'));
       const size = options.groupPageSize ?? 20;
       const index = Number(url.searchParams.get('page') ?? 0);
       const statuses = url.searchParams.getAll('matchStatuses').flatMap(value => value.split(',')).filter(Boolean);
