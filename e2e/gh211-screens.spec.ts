@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { characterId, reviewUrl, routeCharacterLinkMock, settingCandidate, type MockCharacter } from './fixtures/character-link-mock';
+import {
+  characterId, listPath, reviewUrl, routeCharacterLinkMock, settingCandidate, type MockCandidate, type MockCharacter,
+} from './fixtures/character-link-mock';
 import {
   characterCandidate, characterGroupKey, characterListPath, characterReviewUrl, routeCharacterReview,
   routeWorldReview, worldCandidate, worldListPath, worldReviewUrl, type MockWorldTarget,
@@ -7,7 +9,8 @@ import {
 
 // #211 후속 화면의 Pencil 동기화 기준 캡처. 명시적으로 켤 때만 실행한다(일반 e2e에서는 건너뛴다).
 // 목 API와 합성 작품·인물·대상만 쓰며, 기존 e2e(character-search-link·character-selection-link·world-selection-target·
-// review-action-bar·review-summary-cards·review-save-recovery·review-late-response·review-selection-limit·review-link-same-name)의
+// review-action-bar·review-summary-cards·review-save-recovery·review-late-response·review-selection-limit·review-link-same-name·
+// review-unlinked-stay)의
 // 목과 조작을 그대로 따른다.
 test.skip(process.env.CATCHHOLE_CAPTURE_GH211 !== '1', '명시적인 #211 화면 캡처에서만 실행');
 
@@ -47,26 +50,6 @@ function unlinkedCandidates() {
 
 test.describe('캐릭터 데스크톱', () => {
   test.use({ viewport: desktop });
-
-  test('단건 연결 뒤 묶음 유지 안내', async ({ page }) => {
-    await routeCharacterReview(page, [
-      characterCandidate('a-1', 0, '직업', { reviewedApplicationMode: null }),
-      characterCandidate('a-2', 0, '소속', { reviewedApplicationMode: null }),
-      characterCandidate('a-3', 0, '거처', { reviewedApplicationMode: null }),
-      characterCandidate('b-1', 1, '직업'),
-    ]);
-    await page.goto(characterReviewUrl(characterGroupKey(0)));
-    await card(page, 'a-2').getByRole('button', { name: '캐릭터 연결 변경' }).click();
-    const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
-    await dialog.getByRole('button', { name: /^도윤/ }).click();
-    await dialog.getByRole('button', { name: '선택한 캐릭터에 연결', exact: true }).click();
-    await expect(dialog).toHaveCount(0);
-    const notice = page.getByRole('status').filter({ hasText: '‘소속’ 설정을 ‘도윤’에 연결했어요.' });
-    await expect(notice.getByRole('button', { name: '연결한 묶음 보기', exact: true })).toBeVisible();
-    await expect(notice.getByRole('button', { name: '닫기', exact: true })).toBeVisible();
-    await center(notice);
-    await shot(page, 'character-link-notice-desktop');
-  });
 
   test('미연결 후보 묶음의 체크박스 선택과 선택 바, 선택 연결 모달', async ({ page }) => {
     await routeCharacterLinkMock(page, { candidates: unlinkedCandidates(), characters: linkCharacters });
@@ -303,5 +286,107 @@ test.describe('모바일', () => {
     await expect(bar(page).getByRole('region', { name: '선택한 설정' })).toContainText('1개 선택');
     await page.locator('.setting-review-main').evaluate(element => { element.scrollTop = 600; });
     await shot(page, 'mobile-action-bar-selection');
+  });
+});
+
+// 미연결(미상) 묶음: 연결·제외해도 그 묶음에 머물고, 비면 그 자리에 완료 상태를 보인다(review-unlinked-stay와 같은 목·조작).
+const stayCharacters: MockCharacter[] = [
+  { id: characterId(1), name: '아리아', roleLabel: '주인공', firstAppearanceEpisodeNo: 1 },
+  { id: characterId(2), name: '베른', roleLabel: '조력자', firstAppearanceEpisodeNo: 2 },
+];
+
+/** 목록 순서: 아리아(기존 연결) → 레온(이름만) → 미상. 서버처럼 미연결 묶음을 맨 뒤에 둔다. */
+function stayCandidates(unknownCount = 3): MockCandidate[] {
+  const unknown = [
+    settingCandidate('c1', { episodeNo: 1, attributeName: 'profile.occupation', attributeDisplayName: '직업', attributeValue: '견습 기사' }),
+    settingCandidate('c2', { episodeNo: 2, attributeName: 'profile.affiliation', attributeDisplayName: '소속', attributeValue: '은빛 기사단' }),
+    settingCandidate('c3', { episodeNo: 3, attributeName: 'profile.species', attributeDisplayName: '종족', attributeValue: '인간' }),
+  ].slice(0, unknownCount);
+  return [
+    settingCandidate('a1', { entityName: '아리아', rawEntityMention: '아리아', matchedCharacterId: characterId(1), matchStatus: 'MATCHED',
+      attributeName: 'profile.eye_color', attributeDisplayName: '눈 색깔', attributeValue: '회색' }),
+    settingCandidate('n1', { entityName: '레온', rawEntityMention: '레온', attributeName: 'profile.occupation', attributeDisplayName: '직업', attributeValue: '용병' }),
+    ...unknown,
+  ];
+}
+
+async function linkUnknownTo(page: Page, setting: string, name: string) {
+  await page.getByRole('region', { name: `${setting} 설정 후보`, exact: true }).getByRole('button', { name: '캐릭터 연결 변경' }).click();
+  const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
+  await dialog.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await dialog.getByRole('button', { name: '선택한 캐릭터에 연결', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
+async function linkUnknownToNew(page: Page, setting: string, name: string) {
+  await page.getByRole('region', { name: `${setting} 설정 후보`, exact: true }).getByRole('button', { name: '캐릭터 연결 변경' }).click();
+  const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
+  await dialog.getByRole('button', { name: '새 캐릭터로 등록', exact: true }).first().click();
+  await dialog.getByLabel('새 캐릭터 이름').fill(name);
+  await dialog.locator('button[type="submit"]').click();
+  await expect(dialog).toHaveCount(0);
+}
+
+const unlinkedNotice = (page: Page) => page.getByRole('status').filter({ hasText: '연결했어요.' });
+const unlinkedDone = (page: Page) => page.getByTestId('unlinked-group-done');
+
+test.describe('미연결 묶음 데스크톱', () => {
+  test.use({ viewport: desktop });
+
+  test('하나씩 연결할 때의 누적 안내와 묶음이 빈 뒤 완료 상태', async ({ page }) => {
+    await routeCharacterLinkMock(page, { candidates: stayCandidates(3), characters: stayCharacters });
+    await page.goto(reviewUrl({ group: '미상' }));
+    await expect(page.getByRole('heading', { name: /인물 미확인3개 설정/ })).toBeVisible();
+    await linkUnknownTo(page, '직업', '아리아');
+    await expect(unlinkedNotice(page)).toContainText('(이번에 연결 1개 · 1명)');
+    await linkUnknownTo(page, '소속', '베른');
+    await expect(unlinkedNotice(page)).toContainText('‘소속’ 설정을 ‘베른’에 연결했어요. (이번에 연결 2개 · 2명)');
+    await expect(unlinkedNotice(page).getByRole('button', { name: '연결한 묶음 보기', exact: true })).toBeVisible();
+    await expect(unlinkedNotice(page).getByRole('button', { name: '닫기', exact: true })).toBeVisible();
+    await center(page.getByRole('heading', { name: /인물 미확인1개 설정/ }));
+    await shot(page, 'character-unlinked-link-notice-desktop');
+
+    await linkUnknownToNew(page, '종족', '세렌');
+    await expect(page.getByRole('heading', { name: '미연결 후보를 모두 정리했어요.' })).toBeFocused();
+    await expect(unlinkedDone(page).getByRole('listitem')).toHaveText(['아리아옮긴 설정 1개보기', '베른옮긴 설정 1개보기', '세렌옮긴 설정 1개보기']);
+    await center(unlinkedDone(page));
+    await shot(page, 'character-unlinked-done-desktop');
+  });
+
+  test('다음 페이지로 밀린 미연결 묶음의 위치 확인 실패', async ({ page }) => {
+    test.setTimeout(60_000);
+    // 한 페이지 2묶음 [레온, 미상(직업·소속)]: 직업을 베른에 연결하면 미상 묶음이 2페이지로 밀리고, 그 페이지를 읽지 못한다.
+    await routeCharacterLinkMock(page, {
+      candidates: stayCandidates(2).filter(candidate => candidate.id !== 'a1').sort((first, second) => (first.id === 'n1' ? 1 : 0) - (second.id === 'n1' ? 1 : 0)),
+      characters: stayCharacters, groupPageSize: 2,
+    });
+    await page.goto(reviewUrl({ group: '미상' }));
+    await expect(page.getByRole('heading', { name: /인물 미확인2개 설정/ })).toBeVisible();
+    await page.route(url => url.pathname === listPath && url.searchParams.get('page') === '1' && url.searchParams.get('size') !== '1', route => route.fulfill({
+      status: 500, contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '잠시 후 다시 시도해 주세요.', data: null, error: { code: 'INTERNAL_SERVER_ERROR', status: 500 } }),
+    }));
+    await linkUnknownTo(page, '직업', '베른');
+    const failed = page.getByRole('heading', { name: '남은 미연결 후보 위치를 확인하지 못했어요.' });
+    await expect(failed).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('button', { name: '다시 시도', exact: true })).toBeVisible();
+    await center(failed);
+    await shot(page, 'character-unlinked-lookup-failed-desktop');
+  });
+});
+
+test.describe('미연결 묶음 모바일', () => {
+  test.use({ viewport: mobile });
+
+  test('묶음이 빈 뒤 완료 상태(버튼 세로 배치)', async ({ page }) => {
+    await routeCharacterLinkMock(page, { candidates: stayCandidates(2), characters: stayCharacters });
+    await page.goto(reviewUrl({ group: '미상' }));
+    await expect(page.getByRole('heading', { name: /인물 미확인2개 설정/ })).toBeVisible();
+    await linkUnknownTo(page, '직업', '아리아');
+    await expect(unlinkedNotice(page)).toContainText('(이번에 연결 1개 · 1명)');
+    await linkUnknownTo(page, '소속', '베른');
+    await expect(page.getByRole('heading', { name: '미연결 후보를 모두 정리했어요.' })).toBeFocused();
+    await center(unlinkedDone(page));
+    await shot(page, 'mobile-unlinked-done');
   });
 });
