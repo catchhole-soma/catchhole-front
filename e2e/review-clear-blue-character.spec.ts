@@ -76,7 +76,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
 }
 
 const card = (page: Page) => page.getByRole('region', { name: '소속 설정 후보', exact: true });
-const confirm = (page: Page) => page.getByRole('button', { name: /1개 설정 모두 확정/ });
+const confirm = (page: Page) => page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
 
 for (const width of [1020, 1217, 320]) test(`원문 카드의 제목과 모든 근거는 ${width}px에서 테두리 안쪽에 여백을 둔다`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 1100 });
@@ -119,9 +119,9 @@ for (const sourceKind of ['EPISODE', 'SETTING_BOOK'] as const) test(`${sourceKin
   await expect(occupation.getByText(reason, { exact: true })).toBeVisible();
   await expect(occupation.locator('.review-cb-comparison__column.is-before')).toHaveCount(0);
   await expect(confirm(page)).toBeDisabled();
-  await occupation.getByRole('button', { name: /이력에만 저장/ }).click();
+  await occupation.getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(confirm(page)).toBeEnabled();
-  await expect(occupation.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(occupation.getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
   expect(requests.find(request => request.method === 'PATCH')?.body).toMatchObject({
     attributeName: 'profile.occupation', attributeValue: '장거리 운송선 항해사',
     reviewedApplicationMode: 'HISTORY_ONLY', expectedUpdatedAt: initialCandidate.updatedAt,
@@ -155,10 +155,10 @@ test('320px에서도 연결·수정·제외를 누를 수 있고 이력 선택�
   if (await openDetail.isVisible()) await openDetail.click();
   const actions = card(page).locator('.review-cb-heading__actions');
   await expect(actions.getByRole('button', { name: '캐릭터 연결 변경' })).toBeVisible();
-  await card(page).getByRole('button', { name: /이력에만 저장/ }).click();
-  await expect(card(page).getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
-  await card(page).getByRole('button', { name: /현재 설정에 반영/ }).click();
-  await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
+  await card(page).getByRole('radio', { name: /이력에만 저장/ }).click();
+  await expect(card(page).getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
+  await card(page).getByRole('radio', { name: /현재 설정에 반영/ }).click();
+  await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-checked', 'true');
   await expect(card(page).locator('.review-cb-choice__effect')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(requests).toHaveLength(0);
@@ -183,7 +183,7 @@ test('변경 diff는 최종 제안 문장을 표시하며 이력 선택은 삭�
     proposedFactValue: '왕실 기사단 소속이며 정찰 임무도 맡는다.', snapshotChanges: [{ action: 'UPSERT', factKey: 'profile.affiliation', beforeFactValue: '왕실 기사단 소속이다.', proposedFactValue: '왕실 기사단 소속이며 정찰 임무도 맡는다.' }] });
   await expect(card(page).locator('.review-cb-comparison.is-change')).toBeVisible();
   await expect(card(page).locator('.review-cb-comparison__column.is-after')).toContainText('왕실 기사단 소속이며 정찰 임무도 맡는다.');
-  await card(page).getByRole('button', { name: /이력에만 저장/ }).click();
+  await card(page).getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(card(page).locator('.review-cb-comparison.is-neutral')).toBeVisible();
   await confirm(page).click();
   await expect.poll(() => requests.some(request => request.path.endsWith('/group-confirm'))).toBe(true);
@@ -197,7 +197,7 @@ test('이력으로 저장하거나 확정한 종료 후보는 실제로 적용�
       { action: 'REMOVE', factKey: 'profile.rank', beforeFactValue: '왕실 기사단장' },
     ] });
   await expect(card(page).getByText('함께 바뀌는 설정 1개')).toBeVisible();
-  await card(page).getByRole('button', { name: /이력에만 저장/ }).click();
+  await card(page).getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(card(page).locator('.review-additional-changes')).toHaveCount(0);
   await expect(card(page).locator('.review-cb-comparison.is-neutral')).toBeVisible();
   await expect(card(page).locator('.review-cb-comparison__column.is-after')).toContainText('지난해 왕실 기사단에서 물러났다.');
@@ -213,11 +213,11 @@ test('이력으로 저장하거나 확정한 종료 후보는 실제로 적용�
 test('미상 인물을 카드로 연결해도 내용 판단 보류는 자동 해소하지 않는다', async ({ page }) => {
   const { requests } = await fixture(page, { matchStatus: 'AMBIGUOUS', matchedCharacterId: null, rawEntityMention: '그',
     suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL' });
-  await card(page).getByRole('button', { name: /루안 베른/ }).click();
+  await card(page).getByRole('radio', { name: /루안 베른/ }).click();
   await expect.poll(() => requests.filter(request => request.path.endsWith('/character-match')).length).toBe(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(confirm(page)).toBeDisabled();
-  await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toBeVisible();
+  await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toBeVisible();
   expect(requests.some(request => request.path.endsWith('/group-confirm'))).toBe(false);
 });
 
@@ -225,7 +225,7 @@ test('서버가 인물 연결만 남았다고 확인한 후보는 추가 확인 
   const { requests, setMatchResponse } = await fixture(page, { matchStatus: 'AMBIGUOUS', matchedCharacterId: null,
     suggestedOperation: 'ADD', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL' });
   setMatchResponse({ reviewedApplicationMode: 'APPLY_PROPOSAL' });
-  await card(page).getByRole('button', { name: /루안 베른/ }).click();
+  await card(page).getByRole('radio', { name: /루안 베른/ }).click();
   await expect(confirm(page)).toBeEnabled();
   expect(requests.filter(request => request.method === 'PATCH' && !request.path.endsWith('/character-match'))).toHaveLength(0);
   await confirm(page).click();
@@ -238,12 +238,16 @@ test('서버가 인물 연결만 남았다고 확인한 후보는 추가 확인 
 test('명시한 현재·이력 선택은 서버 초안으로 저장되고 새로고침 후에도 유지된다', async ({ page }) => {
   const { requests } = await fixture(page, { suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL' });
   await expect(confirm(page)).toBeDisabled();
-  await card(page).getByRole('button', { name: /이력에만 저장/ }).click();
+  await card(page).getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect.poll(() => requests.some(request => request.method === 'PATCH')).toBe(true);
   expect(requests.find(request => request.method === 'PATCH')?.body).toMatchObject({ attributeName: 'profile.affiliation', attributeValue: '왕실 기사단', reviewedApplicationMode: 'HISTORY_ONLY', expectedUpdatedAt: '2026-10-02T01:00:00Z' });
   await expect(confirm(page)).toBeEnabled();
   await page.reload();
-  await expect(card(page).getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  // 저장된 결정은 처음 열 때 한 줄 요약으로 접힌다.
+  await expect(card(page)).toContainText('저장했어요');
+  await expect(card(page)).toContainText('이력에만 저장 · 왕실 기사단');
+  await card(page).getByRole('button', { name: '펼치기', exact: true }).click();
+  await expect(card(page).getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
   await expect(confirm(page)).toBeEnabled();
   await confirm(page).click();
   await expect.poll(() => requests.some(request => request.path.endsWith('/group-confirm'))).toBe(true);
@@ -253,7 +257,8 @@ test('명시한 현재·이력 선택은 서버 초안으로 저장되고 새로
 test('저장된 직접 검토는 AI 비교가 더 필요 없는 상태에서도 재비교 없이 확정한다', async ({ page }) => {
   const { requests } = await fixture(page, { comparisonStatus: 'NOT_REQUIRED', suggestedOperation: null,
     manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL', userModified: true, reviewedApplicationMode: 'APPLY_PROPOSAL' });
-  await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
+  await card(page).getByRole('button', { name: '펼치기', exact: true }).click();
+  await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-checked', 'true');
   await expect(card(page).getByText('반영할 최종 내용', { exact: true })).toBeVisible();
   await expect(card(page).getByText('설정을 비교하고 있어요', { exact: true })).toHaveCount(0);
   await expect(confirm(page)).toBeEnabled();
@@ -268,18 +273,18 @@ test('저장한 선택이 있어도 서버가 원문 기준을 무효화하면 �
     manualReviewAvailable: false, analysisMode: 'ORDERED_PROVISIONAL', userModified: true, reviewedApplicationMode: 'APPLY_PROPOSAL' });
   await expect(confirm(page)).toBeDisabled();
   await expect(page.getByText('이 후보의 기준 상태가 바뀌었습니다. 최신 검토 상태를 확인해 주세요.', { exact: true })).toBeVisible();
-  await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
+  await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveCount(0);
   expect(requests).toHaveLength(0);
 });
 
 test('초안 저장 충돌은 선택 완료로 간주하지 않고 재요청할 수 있다', async ({ page }) => {
   const { requests, rejectReview } = await fixture(page, { suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL' });
   rejectReview(true);
-  await card(page).getByRole('button', { name: /현재 설정에 반영/ }).click();
+  await card(page).getByRole('radio', { name: /현재 설정에 반영/ }).click();
   await expect(card(page).getByRole('alert')).toContainText('최신 내용을 확인');
   await expect(confirm(page)).toBeDisabled();
   rejectReview(false);
-  await card(page).getByRole('button', { name: /현재 설정에 반영/ }).click();
+  await card(page).getByRole('radio', { name: /현재 설정에 반영/ }).click();
   await expect(confirm(page)).toBeEnabled();
   expect(requests.filter(request => request.method === 'PATCH')).toHaveLength(2);
 });
@@ -303,8 +308,8 @@ for (const width of [1280, 320]) {
     const { setCandidate } = await fixture(page, { matchStatus: 'AMBIGUOUS', matchedCharacterId: null,
       suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true, analysisMode: 'ORDERED_PROVISIONAL',
       attributeValue: '왕실 기사단에 소속되어 있지만 북부 원정대의 정찰 임무도 함께 수행한다.' });
-    await expect(card(page).getByRole('button', { name: /루안 베른/ })).toBeVisible();
-    await expect(card(page).getByRole('button', { name: /새로운 인물/ })).toBeVisible();
+    await expect(card(page).getByRole('radio', { name: /루안 베른/ })).toBeVisible();
+    await expect(card(page).getByRole('radio', { name: /새로운 인물/ })).toBeVisible();
     await expect(card(page).getByText('이번 원고에서', { exact: true })).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await card(page).screenshot({ path: testInfo.outputPath(`character-targets-${width}.png`) });
@@ -324,7 +329,7 @@ for (const width of [1280, 320]) {
     await expect(card(page).getByRole('button', { name: '수정', exact: true })).toBeDisabled();
     await expect(card(page).getByRole('button', { name: '제외', exact: true })).toBeDisabled();
     await expect(confirm(page)).toBeDisabled();
-    await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
+    await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveCount(0);
     await card(page).locator('.review-cb-evidence summary').click();
     await expect(card(page).getByText('그날 루안은 왕실 기사단에 들어갔다.', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -337,6 +342,9 @@ test('기존 인물에 연결된 등장 후보는 신규 등록으로 안내하�
     attributeName: null, attributeValue: null, comparisonStatus: 'NOT_REQUIRED', suggestedOperation: null,
     proposedFactValue: null, comparisonRevision: null, matchedCharacterId: characterId, matchStatus: 'MATCHED' });
   const region = page.getByRole('region', { name: '인물 연결 설정 후보', exact: true });
+  // 연결만 확인하면 되는 등장 후보는 처음 열 때 `연결됨` 요약으로 접힌다.
+  await expect(region).toContainText('연결됨');
+  await region.getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(region.getByText('인물 연결', { exact: true })).toBeVisible();
   await expect(region.getByText('연결된 인물', { exact: true })).toBeVisible();
   await expect(region.getByText('새로 등록할 인물', { exact: true })).toHaveCount(0);
@@ -362,10 +370,14 @@ test('연결되지 않은 새 인물 등장 후보에는 신규 등록 안내를
 test('완료된 제외 제안은 묶음 확정에 포함하고 현재값이나 이력 저장으로 안내하지 않는다', async ({ page }) => {
   const { requests } = await fixture(page, { suggestedOperation: 'EXCLUDE', proposedFactValue: null,
     snapshotChanges: [{ action: 'NONE', factKey: 'profile.affiliation', beforeFactValue: '왕실 기사단' }] });
+  // 완료된 제외 제안은 처음 열 때 `제외 예정` 요약으로 접히고, 수정·제외는 요약에서도 쓸 수 있다.
+  await expect(card(page)).toContainText('제외 예정');
+  await expect(card(page).getByRole('button', { name: '수정', exact: true })).toBeEnabled();
+  await card(page).getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(card(page).getByText('제외 제안', { exact: true })).toBeVisible();
-  await expect(card(page).getByText('모두 확정하면 이 후보는 제외돼요', { exact: true })).toBeVisible();
+  await expect(card(page).getByText('확정하면 이 후보는 제외돼요', { exact: true })).toBeVisible();
   await expect(card(page).getByText(/이 내용은 현재 설정이나 이력에 추가하지 않고/)).toBeVisible();
-  await expect(page.getByText('반영 0개 · 제외 1개', { exact: true })).toBeVisible();
+  await expect(page.locator('.review-action-bar__counts')).toHaveText('제외 1');
   await expect(page.getByText('모든 설정의 현재값 비교가 끝난 뒤 함께 확정할 수 있습니다.', { exact: true })).toHaveCount(0);
   await expect(confirm(page)).toBeEnabled();
   await expect(card(page).getByRole('button', { name: '제외', exact: true })).toBeEnabled();
@@ -408,8 +420,8 @@ test('등장·반영·제외가 섞인 인물 묶음은 한 요청으로 확정�
   await page.goto('/login');
   await page.evaluate(() => localStorage.setItem('accessToken', 'mixed-exclusion-test'));
   await page.goto(url);
-  await expect(page.getByText('반영 2개 · 제외 1개', { exact: true })).toBeVisible();
-  const groupConfirm = page.getByRole('button', { name: '3개 설정 모두 확정', exact: true });
+  await expect(page.locator('.review-action-bar__counts')).toHaveText('확정 가능 2 · 제외 1');
+  const groupConfirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(groupConfirm).toBeEnabled();
   await groupConfirm.click();
   await expect.poll(() => writes.length).toBe(1);
@@ -443,14 +455,17 @@ for (const [name, override] of [
 test('일반 검토의 이력 선택은 세계관 탭 왕복 후에도 실제 그룹 확정 요청에 유지된다', async ({ page }) => {
   const { requests } = await fixture(page, { suggestedOperation: 'UPDATE',
     snapshotChanges: [{ action: 'UPSERT', factKey: 'profile.affiliation', beforeFactValue: '북부 원정대', proposedFactValue: '왕실 기사단' }] });
-  const historyChoice = () => card(page).getByRole('button', { name: /이력에만 저장/ });
+  const historyChoice = () => card(page).getByRole('radio', { name: /이력에만 저장/ });
   await historyChoice().click();
-  await expect(historyChoice()).toHaveAttribute('aria-pressed', 'true');
+  await expect(historyChoice()).toHaveAttribute('aria-checked', 'true');
   const tabs = page.getByRole('navigation', { name: '설정 후보 종류' });
   await tabs.getByRole('button', { name: /세계관 후보/ }).click();
   await expect(tabs.getByRole('button', { name: /세계관 후보/ })).toHaveAttribute('aria-current', 'page');
   await tabs.getByRole('button', { name: /캐릭터 후보/ }).click();
-  await expect(historyChoice()).toHaveAttribute('aria-pressed', 'true');
+  // 다시 열면 확정 때 적용할 선택은 요약으로 접힌다.
+  await expect(card(page)).toContainText('선택됨 · 확정할 때 적용');
+  await card(page).getByRole('button', { name: '펼치기', exact: true }).click();
+  await expect(historyChoice()).toHaveAttribute('aria-checked', 'true');
   await expect(card(page).locator('.review-cb-comparison.is-neutral')).toBeVisible();
   expect(requests).toHaveLength(0);
   await confirm(page).click();
@@ -460,9 +475,9 @@ test('일반 검토의 이력 선택은 세계관 탭 왕복 후에도 실제 �
 
 test('일반 검토 선택은 업로드 묶음이 바뀌면 초기화되고 돌아와도 이전 선택을 적용하지 않는다', async ({ page }) => {
   await fixture(page, { suggestedOperation: 'UPDATE' });
-  const historyChoice = () => card(page).getByRole('button', { name: /이력에만 저장/ });
+  const historyChoice = () => card(page).getByRole('radio', { name: /이력에만 저장/ });
   await historyChoice().click();
-  await expect(historyChoice()).toHaveAttribute('aria-pressed', 'true');
+  await expect(historyChoice()).toHaveAttribute('aria-checked', 'true');
   for (const nextBatchId of ['88888888-8888-4888-8888-888888888888', batchId]) {
     await page.evaluate(id => {
       const next = new URL(location.href);
@@ -470,8 +485,8 @@ test('일반 검토 선택은 업로드 묶음이 바뀌면 초기화되고 돌�
       history.pushState({}, '', next);
       dispatchEvent(new PopStateEvent('popstate'));
     }, nextBatchId);
-    await expect(historyChoice()).toHaveAttribute('aria-pressed', 'false');
-    await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(historyChoice()).toHaveAttribute('aria-checked', 'false');
+    await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-checked', 'true');
   }
 });
 
@@ -490,16 +505,16 @@ test('일반 검토 선택은 작품이 바뀌면 초기화된다', async ({ pag
     });
     return success(route, []);
   });
-  await card(page).getByRole('button', { name: /이력에만 저장/ }).click();
-  await expect(card(page).getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  await card(page).getByRole('radio', { name: /이력에만 저장/ }).click();
+  await expect(card(page).getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
   await page.evaluate(id => {
     const next = new URL(location.href);
     next.searchParams.set('workId', id);
     history.pushState({}, '', next);
     dispatchEvent(new PopStateEvent('popstate'));
   }, otherWork);
-  await expect(card(page).getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'false');
-  await expect(card(page).getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(card(page).getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'false');
+  await expect(card(page).getByRole('radio', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-checked', 'true');
 });
 
 for (const state of ['CONFIRMED', 'DISMISSED'] as const) {
@@ -524,11 +539,11 @@ for (const width of [1280, 320]) {
     const openDetail = page.getByRole('button', { name: /루안.*1개 설정/ });
     if (width < 768 && await openDetail.isVisible()) await openDetail.click();
     state.rejectMatch(true);
-    const target = card(page).getByRole('button', { name: /루안 게르/ });
+    const target = card(page).getByRole('radio', { name: /루안 게르/ });
     await target.click();
     const retry = card(page).getByRole('button', { name: '선택한 인물로 다시 연결' });
     await expect(retry).toBeVisible();
-    await expect(target).toHaveAttribute('aria-pressed', 'true');
+    await expect(target).toHaveAttribute('aria-checked', 'true');
     await expect(confirm(page)).toBeDisabled();
     expect(state.requests.filter(request => request.path.endsWith('/character-match'))).toHaveLength(1);
     state.rejectMatch(false);
@@ -544,7 +559,7 @@ for (const width of [1280, 320]) {
 
 test('이력 선택에 과거 직업 예시를 별도 줄로 보여 준다', async ({ page }) => {
   await fixture(page);
-  const choice = card(page).getByRole('button', { name: /이력에만 저장/ });
+  const choice = card(page).getByRole('radio', { name: /이력에만 저장/ });
   await expect(choice).toContainText('과거에는 용병이었다');
   await expect(choice).toContainText('현재 직업은 바꾸지 않습니다.');
   await expect(choice.locator('.review-cb-choice__identity br')).toHaveCount(1);
@@ -587,10 +602,10 @@ test('같은 항목에 두 현재 반영을 선택하면 하나를 이력으로 
       groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
   });
   await page.reload();
-  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  const button = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(button).toBeDisabled();
   await expect(page.getByText(/‘소속’에 현재 반영을 여러 번 선택했어요/)).toBeVisible();
-  await card(page).last().getByRole('button', { name: /이력에만 저장/ }).click();
+  await card(page).last().getByRole('radio', { name: /이력에만 저장/ }).click();
   await expect(button).toBeEnabled();
 });
 
@@ -608,7 +623,7 @@ test('기존 다회차 직접 검토는 동일 항목의 순차 반영을 막지
       groups: pageOf([{ groupKey: `existing:${characterId}`, entityName: '루안', candidateCount: 2, pendingCandidateCount: 2, candidates }]) });
   });
   await page.reload();
-  const button = page.getByRole('button', { name: '2개 설정 모두 확정' });
+  const button = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(button).toBeEnabled();
   await expect(page.getByText(/현재 반영을 여러 번 선택했어요/)).toHaveCount(0);
   await button.click();

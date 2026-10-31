@@ -202,7 +202,8 @@
 .setting-review-screen .world-candidate-group-card > div:nth-child(2) { color: var(--ch-text-muted) !important; }
 
 .setting-review-screen .setting-review-detail > div > article {
-  overflow: hidden;
+  /* clip은 스크롤 컨테이너를 만들지 않아 하단 확정 영역(sticky)이 상세 스크롤 영역 기준으로 고정된다. */
+  overflow: clip;
   border: 1px solid var(--ch-border) !important;
   border-radius: var(--ch-radius-md) !important;
   background: var(--ch-surface) !important;
@@ -244,7 +245,7 @@
 .setting-review-screen .review-action:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 16px rgb(31 55 88 / 8%); }
 .setting-review-screen .review-action:disabled { border-color: var(--ch-border) !important; background: var(--ch-canvas) !important; color: var(--ch-text-subtle) !important; opacity: .65 !important; cursor: not-allowed; }
 .setting-review-screen .setting-review-detail article > footer { border-color: var(--ch-border) !important; background: rgb(255 255 255 / 95%) !important; box-shadow: 0 -12px 28px rgb(31 55 88 / 8%) !important; }
-.setting-review-screen .world-candidate-detail-card { overflow: hidden; border-color: var(--ch-border) !important; border-radius: var(--ch-radius-md) !important; background: var(--ch-surface) !important; box-shadow: var(--ch-shadow-card); }
+.setting-review-screen .world-candidate-detail-card { overflow: clip; border-color: var(--ch-border) !important; border-radius: var(--ch-radius-md) !important; background: var(--ch-surface) !important; box-shadow: var(--ch-shadow-card); }
 .setting-review-screen .world-candidate-detail-card > header { padding: 22px 24px 18px !important; background: var(--ch-surface); }
 .setting-review-screen .world-candidate-detail-card > header strong { color: var(--ch-ink) !important; font-size: 20px !important; }
 .setting-review-screen .world-candidate-detail-card > header p { color: var(--ch-text-muted) !important; }

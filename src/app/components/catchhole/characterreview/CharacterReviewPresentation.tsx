@@ -7,7 +7,7 @@ import { getCharacterFactComparisonPolicy, type CharacterFactApplicationMode } f
 import { isReviewableComparisonFailure, orderedComparisonRecoveryMessage } from '../../../lib/setting-review-progress';
 import { ReviewChoiceCards, ReviewInlineValue, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
 import { bookReviewValueKey } from '../../../lib/book-current-review';
-import { PageNavigation } from '../PageNavigation';
+import { REVIEW_SAVE_TEXT, type ReviewSaveState } from '../../../lib/review-save-state';
 
 function displayValue(text: string | null | undefined, structured: unknown): string | null {
   if (text != null) return text;
@@ -32,7 +32,13 @@ function characterReviewValues(candidate: SettingCandidateResponse) {
   };
 }
 
-/** Registered characters are a paginated directory, not an invented AI recommendation list. */
+/** 인라인으로 보여 줄 등록 인물 수. 나머지는 작품 전체 검색(연결 모달)으로 찾는다. */
+const INLINE_TARGET_COUNT = 3;
+
+/**
+ * 연결 확인이 필요한 후보의 인라인 인물 선택. 등록된 인물 목록의 첫 몇 명(AI 추천이 아님)과 새 인물 카드만 두고,
+ * 그 밖의 인물은 원문 표현을 검색어로 넣은 작품 전체 검색으로 찾는다. 카드마다 긴 목록·페이지를 반복하지 않는다.
+ */
 export function CharacterTargetChoices({ workId, previewCharacters, candidate, disabled, resolutionError, onResolve, onBrowse }: {
   workId?: string;
   previewCharacters?: CharacterSummaryResponse[];
@@ -44,9 +50,8 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
 }) {
   const [createNew, setCreateNew] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
   const [name, setName] = useState(candidate.entityName === '미상' ? '' : candidate.entityName ?? '');
-  const query = useQuery({ ...getCharactersOptions({ path: { workId: workId ?? '' }, query: { page, size: 6 } }),
+  const query = useQuery({ ...getCharactersOptions({ path: { workId: workId ?? '' }, query: { page: 0, size: INLINE_TARGET_COUNT } }),
     enabled: !previewCharacters && Boolean(workId) });
   const characters = previewCharacters ?? query.data?.data?.content ?? [];
   return <div className="review-character-targets">
@@ -65,14 +70,12 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
     {resolutionError && !createNew && selectedCharacterId && <button type="button" className="review-cb-secondary" disabled={disabled}
       onClick={() => onResolve('MATCH_EXISTING', selectedCharacterId)}>선택한 인물로 다시 연결</button>}
     <div className="review-inline-actions">
-      <span>{!previewCharacters && query.isPending ? '등록된 인물을 불러오고 있어요.' : '등록된 인물 중에서 선택해 주세요.'}</span>
-      <button type="button" className="review-action" disabled={disabled} onClick={onBrowse}>다른 인물 찾기</button>
+      <span>{!previewCharacters && query.isPending ? '등록된 인물을 불러오고 있어요.' : '목록에 없으면 작품 전체에서 검색해 주세요.'}</span>
+      <button type="button" className="review-action" disabled={disabled} onClick={onBrowse}>검색으로 찾기</button>
     </div>
-    <PageNavigation page={page} totalPages={query.data?.data?.totalPages ?? 0} disabled={disabled || query.isFetching}
-      onPageChange={nextPage => { setPage(nextPage); setCreateNew(false); }} />
     {query.isError && <ReviewNotice tone="warning" title="인물 목록을 불러오지 못했어요"
       action={<button type="button" className="review-action" disabled={query.isFetching} onClick={() => void query.refetch()}>다시 불러오기</button>}>
-      선택한 내용은 유지됩니다. 목록을 다시 불러오거나 다른 인물 찾기를 사용해 주세요.
+      선택한 내용은 유지됩니다. 목록을 다시 불러오거나 검색으로 찾기를 사용해 주세요.
     </ReviewNotice>}
     {createNew && <form className="review-inline-editor" onSubmit={event => { event.preventDefault(); if (!disabled && name.trim()) onResolve('CREATE_NEW', name.trim()); }}>
       <label>새 캐릭터 이름<input value={name} disabled={disabled} onChange={event => setName(event.target.value)} placeholder="인물의 이름" /></label>
@@ -81,7 +84,8 @@ export function CharacterTargetChoices({ workId, previewCharacters, candidate, d
   </div>;
 }
 
-export function CharacterReviewComparison({ candidate, applicationMode, reviewed, decisionChosen, disabled, onModeChange, onReview, onEdit, onRetry, retrying, retryError }: {
+export function CharacterReviewComparison({ candidate, applicationMode, reviewed, decisionChosen, disabled, onModeChange, onReview, onEdit, onRetry, retrying, retryError,
+  saveState, localChoiceMarked = false, showChoiceExample = true }: {
   candidate: SettingCandidateResponse;
   applicationMode: CharacterFactApplicationMode;
   reviewed: boolean;
@@ -93,6 +97,10 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
   onRetry?: () => void;
   retrying: boolean;
   retryError: string | null;
+  saveState?: ReviewSaveState;
+  localChoiceMarked?: boolean;
+  /** `이력에만 저장` 설명의 예문. 묶음 안에서는 첫 미결정 카드에만 보여 반복을 줄인다. */
+  showChoiceExample?: boolean;
 }) {
   const originalLabel = candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서' : '이번 원고에서';
   const status = candidate.comparisonStatus ?? 'NOT_REQUIRED';
@@ -183,13 +191,20 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
         ...(policy.canSaveHistory || canReviewCurrent ? [{ id: 'HISTORY_ONLY', title: '이력에만 저장',
           description: bookRemoval ? '이번 설정집의 내용과 원문 근거를 이력에 남기고 현재 설정은 유지합니다.'
             : temporalLabel ? `${temporalLabel}과 원문 근거를 이력에 남기고 현재 설정은 유지합니다.`
-            : <>회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.<br />예: ‘과거에는 용병이었다’는 이력에 남기되 현재 직업은 바꾸지 않습니다.</>,
+            : showChoiceExample
+              ? <>회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.<br />예: ‘과거에는 용병이었다’는 이력에 남기되 현재 직업은 바꾸지 않습니다.</>
+              : '회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.',
           preview: !ordered && values.before ? `현재 설정 유지 · ${values.before}` : '현재 설정을 바꾸지 않습니다.' }] : []),
         ...(!bookRemoval && !policy.canApplyProposal && !canReviewCurrent && onEdit ? [{ id: 'edit', title: '현재 반영할 내용 수정',
           description: '현재 설정을 바꿔야 한다면 값을 수정해 주세요.', footnote: '수정 창 열기' }] : []),
       ]}
       onChange={id => { if (id === 'edit') onEdit?.(); else if (manual && onReview) onReview(id as CharacterFactApplicationMode); else onModeChange(id as CharacterFactApplicationMode); }} />}
-    {reviewed && pending && <div className="review-draft-saved" role="status">선택한 내용을 저장했어요. 아래에서 이 인물의 설정을 모두 확정해 주세요.</div>}
-    {exclude && pending && <ReviewNotice title="모두 확정하면 이 후보는 제외돼요">이 내용은 현재 설정이나 이력에 추가하지 않고, 기존 설정은 그대로 유지합니다. 반영하려면 확정 전에 내용을 수정해 주세요.</ReviewNotice>}
+    {/* 서버가 저장한 선택, 저장 중, 확정 때 적용할 로컬 선택을 문장으로 구분한다. 결과 미확인은 카드 안내가 대신한다. */}
+    {pending && (saveState?.kind === 'saving' ? <div className="review-draft-saved is-pending" role="status">{REVIEW_SAVE_TEXT.saving}</div>
+      : saveState?.kind === 'unverified' || saveState?.kind === 'failed' ? null
+      : reviewed ? <div className="review-draft-saved" role="status">{REVIEW_SAVE_TEXT.saved}</div>
+      : localChoiceMarked && !manual ? <div className="review-draft-saved is-local" role="status">{REVIEW_SAVE_TEXT.localChoice}</div>
+      : null)}
+    {exclude && pending && <ReviewNotice title="확정하면 이 후보는 제외돼요">이 내용은 현재 설정이나 이력에 추가하지 않고, 기존 설정은 그대로 유지합니다. 반영하려면 확정 전에 내용을 수정해 주세요.</ReviewNotice>}
   </section>;
 }

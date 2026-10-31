@@ -288,7 +288,7 @@ export function FindingDetailView({
 
         <section className="vr-judgment" aria-label="작가 판단">
           {choices.length > 0 && (
-            <ReviewChoiceCards label={branch === 'SETTING' ? '이 항목을 어떻게 판단할까요?' : '이 제안을 어떻게 처리할까요?'}
+            <ReviewChoiceCards semantics="toggle" label={branch === 'SETTING' ? '이 항목을 어떻게 판단할까요?' : '이 제안을 어떻게 처리할까요?'}
               choices={choices} value={current === 'PENDING' ? null : current} disabled={!canJudge || saving}
               onChange={value => onSaveJudgment(value as Judgment)} />
           )}

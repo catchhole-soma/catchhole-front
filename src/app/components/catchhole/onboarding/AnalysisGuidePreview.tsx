@@ -41,7 +41,7 @@ function ReviewExample({ manual }: { manual: boolean }) {
       <footer>
         <div><strong>{name}의 {visible.length}개 설정을 함께 확정합니다.</strong>
           <p>{manual ? '레온을 확정한 뒤에는 인물 미상의 설정 1개를 확인해요.' : '누구에 관한 내용인지 선택하면 확정할 수 있어요.'}</p></div>
-        <ActionButton disabled={!manual} tone={C.success}>{visible.length}개 설정 모두 확정</ActionButton>
+        <ActionButton disabled={!manual} tone={C.success}>{manual ? '확정하고 다음' : '모두 확정'}</ActionButton>
       </footer>
     </article></div></section>
   </div>;

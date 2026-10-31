@@ -265,8 +265,11 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
       const reviewStatus = requestUrl.searchParams.get('reviewStatus');
-      requestedReviewStatuses.push(reviewStatus);
-      requestedLegacyCandidates.push(requestUrl.searchParams.get('includeLegacyCandidates'));
+      // `전체` 상태 필터의 미처리 묶음 수 조회(size=1)는 목록 요청이 아니므로 기록하지 않는다.
+      if (requestUrl.searchParams.get('size') !== '1') {
+        requestedReviewStatuses.push(reviewStatus);
+        requestedLegacyCandidates.push(requestUrl.searchParams.get('includeLegacyCandidates'));
+      }
       const content = reviewStatus === 'PENDING_REVIEW' ? [candidates[0]] : [...candidates];
       return fulfill(route, {
         batchId,
@@ -482,7 +485,7 @@ test('브라우저 뒤로가기 직후 이전 검토 화면이 클릭을 가로�
     `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
   );
 
-  await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last().click();
   await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
   await page.goBack();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
@@ -665,7 +668,7 @@ test('마지막 검토 대기 후보를 확정하면 완료 상태를 표시한�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ });
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
 
@@ -733,11 +736,11 @@ test('묶음 확정 응답 후 최신 후보 목록을 받을 때까지 중복 �
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  await page.getByRole('button', { name: /설정 모두 확정/ }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => confirmRequestCount).toBe(1);
 
   await page.getByRole('button', { name: /수아 1개 설정/ }).click();
-  const pendingButton = page.getByRole('button', { name: '전체 확정 중…' });
+  const pendingButton = page.getByRole('button', { name: '확정 중…', exact: true });
   await expect(pendingButton).toBeDisabled();
   await page.waitForTimeout(100);
   expect(confirmRequestCount).toBe(1);
@@ -800,7 +803,7 @@ test('확정 후 목록 재조회가 실패하면 이전 후보를 다시 자동
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ });
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
 
@@ -878,7 +881,7 @@ test('업로드 묶음 후보를 조회하고 페이지·필터를 URL과 서버
   await page.locator('.review-cb-evidence:not([open]) summary').click();
   await expect(page.getByText('수아의 눈동자는 햇살 아래 짙은 갈색으로 빛났다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '수정', exact: true })).toBeEnabled();
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ }).last()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last()).toBeDisabled();
 
   await page.getByRole('button', { name: '다음 페이지' }).click();
   await expect(page).toHaveURL(/page=2/);
@@ -1023,7 +1026,7 @@ test('후보 확정 실패 상태를 유지하고 재시도 성공 후 목록과
     + `&reviewStatus=ALL&candidate=${firstCandidateId}`,
   );
 
-  const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
   await expect(page.locator('.setting-candidate-detail .review-cb-heading__subtitle')).toHaveText('캐릭터 · 수아');
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
@@ -1229,7 +1232,7 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
   );
 
   const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
-  await expect(comparisonPanel.getByRole('button', { name: /기존 내용과 합치기/ })).toBeVisible();
+  await expect(comparisonPanel.getByRole('radio', { name: /기존 내용과 합치기/ })).toBeVisible();
   const beforeValue = comparisonPanel.locator('.review-cb-comparison__column.is-before');
   const proposedValue = comparisonPanel.locator('.review-cb-comparison__column.is-after');
   await expect(beforeValue).toContainText('갈색');
@@ -1238,8 +1241,8 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
   await page.locator('.review-cb-evidence summary').click();
   await expect(page.getByText('기존 눈 색상 설명을 보존하면서 더 구체적인 표현으로 합칩니다.')).toBeVisible();
   await expect(comparisonPanel.getByText('화면에 직접 노출하지 않을 구조화 값')).toHaveCount(0);
-  const applyButton = comparisonPanel.getByRole('button', { name: /기존 내용과 합치기/ });
-  const historyButton = comparisonPanel.getByRole('button', { name: /이력에만 저장/ });
+  const applyButton = comparisonPanel.getByRole('radio', { name: /기존 내용과 합치기/ });
+  const historyButton = comparisonPanel.getByRole('radio', { name: /이력에만 저장/ });
   await expect(historyButton).toContainText('회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다.');
   await expect(historyButton).toContainText('현재 설정 유지 · 갈색');
   const [applyBox, historyBox] = await Promise.all([applyButton.boundingBox(), historyButton.boundingBox()]);
@@ -1270,7 +1273,7 @@ test('캐릭터 설정 비교 제안을 현재값 또는 이력으로 확정하�
     attributeName: 'profile.eye_color',
     attributeValue: '진한 갈색',
   });
-  await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last().click();
 
   await expect.poll(() => confirmBody).toEqual({
     batchId,
@@ -1344,11 +1347,11 @@ test('동일 상태 종료 제안을 현재 설정에서 제거하는 방식으�
   );
 
   const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
-  await expect(comparisonPanel.getByRole('button', { name: /현재 설정에서 종료/ })).toBeVisible();
+  await expect(comparisonPanel.getByRole('radio', { name: /현재 설정에서 종료/ })).toBeVisible();
   await expect(comparisonPanel.locator('.review-cb-comparison__column.is-before')).toContainText('경상');
   await expect(comparisonPanel.locator('.review-cb-comparison__column.is-after')).toContainText('현재 설정에서 종료');
 
-  await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
     comparisonRevision: 'default-comparison-revision-1',
@@ -1438,8 +1441,8 @@ for (const historyOnly of [false, true]) test(`개별 직접 검토의 완료 �
     await expect(comparisonPanel.locator('.review-cb-comparison__column.is-before')).toHaveCount(0);
   }
   await expect(comparisonPanel.getByText('확정 방식', { exact: true })).toHaveCount(0);
-  await expect(comparisonPanel.getByRole('button', { name: /현재 설정에 반영/ })).toHaveCount(0);
-  await expect(comparisonPanel.getByRole('button', { name: /이력에만 저장/ })).toHaveCount(0);
+  await expect(comparisonPanel.getByRole('radio', { name: /현재 설정에 반영/ })).toHaveCount(0);
+  await expect(comparisonPanel.getByRole('radio', { name: /이력에만 저장/ })).toHaveCount(0);
 });
 
 test('재비교 결과가 바뀌면 저장된 현재값 반영 선택을 허용 가능한 이력 저장으로 보정한다', async ({ page }) => {
@@ -1510,11 +1513,11 @@ test('재비교 결과가 바뀌면 저장된 현재값 반영 선택을 허용 
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
   const comparisonPanel = page.getByRole('region', { name: '캐릭터 설정 AI 비교 결과' });
-  await comparisonPanel.getByRole('button', { name: /현재 설정에 반영/ }).click();
+  await comparisonPanel.getByRole('radio', { name: /현재 설정에 반영/ }).click();
   await page.getByRole('button', { name: '전체', exact: true }).first().click();
   await expect(comparisonPanel.getByText('이력에만 저장', { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: /설정 모두 확정/ }).last().click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last().click();
   await expect.poll(() => confirmBody).toEqual({
     batchId,
     comparisonRevision: 'default-comparison-revision-1',
@@ -1585,7 +1588,7 @@ test('실패한 캐릭터 설정 비교를 재요청하고 완료 전까지 확�
     `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
   );
 
-  const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
   await expect(page.getByText(
     '최신 설정과 비교한 결과를 받은 뒤 확정할 수 있어요. 원문과 입력한 내용은 유지됩니다.',
   )).toBeVisible();
@@ -1597,7 +1600,7 @@ test('실패한 캐릭터 설정 비교를 재요청하고 완료 전까지 확�
   await expect(page.getByText('설정을 비교하고 있어요')).toBeVisible();
   await expect(confirmButton).toBeDisabled();
 
-  await expect(page.getByRole('button', { name: /현재 설정에 반영/ })).toBeVisible({ timeout: 7_000 });
+  await expect(page.getByRole('radio', { name: /현재 설정에 반영/ })).toBeVisible({ timeout: 7_000 });
   await expect(confirmButton).toBeEnabled();
 });
 
@@ -1669,12 +1672,12 @@ test('연결 대기 중인 신규 캐릭터도 비교 완료 후 최신 revision
   await expect(page.getByText(
     '현재 설정과 비교가 필요해요',
   )).toBeVisible();
-  const confirmButton = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
   await expect(confirmButton).toBeDisabled();
   await page.getByRole('button', { name: '현재 설정 비교 시작', exact: true }).click();
   await expect.poll(() => retryRequestCount).toBe(1);
   await expect(page.getByText('설정을 비교하고 있어요')).toBeVisible();
-  await expect(page.getByRole('button', { name: /현재 설정에 반영/ })).toBeVisible({ timeout: 7_000 });
+  await expect(page.getByRole('radio', { name: /현재 설정에 반영/ })).toBeVisible({ timeout: 7_000 });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
   await expect.poll(() => confirmBody).toEqual({
@@ -1736,7 +1739,7 @@ test('비교 정보가 없는 기존 연결 후보는 확정 대신 현재 설�
     `/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`,
   );
 
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ }).last()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last()).toBeDisabled();
   const startButton = page.getByRole('button', { name: '현재 설정 비교 시작', exact: true });
   await expect(startButton).toBeEnabled();
   await startButton.click();
@@ -1816,7 +1819,7 @@ test('검토 대기 후보를 무시하는 동안 저장 동작만 잠그고 후
   await page.getByRole('button', { name: '제외', exact: true }).click();
   await expect.poll(() => Boolean(releaseDismiss)).toBe(true);
   await expect(page.getByRole('button', { name: /강민준/ })).toBeEnabled();
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ }).first()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).first()).toBeDisabled();
   await page.getByRole('button', { name: /강민준/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('강민준');
   await expect.poll(() => new URL(page.url()).searchParams.get('candidate')).toBeNull();
@@ -1939,7 +1942,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
   await expect(candidateDetail.getByLabel('올바른 설정값')).toBeVisible();
   await expect(page.getByText('값 형식이 잘못된 설정을 수정하거나 제외한 뒤 확정해 주세요.'))
     .toBeVisible();
-  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(candidateDetail.getByRole('button', { name: '수정', exact: true })).toBeEnabled();
   await expect(candidateDetail.getByRole('button', { name: '제외', exact: true })).toBeEnabled();
   await expect(candidateDetail.getByRole('button', { name: '캐릭터 연결 변경', exact: true }))
@@ -1962,7 +1965,7 @@ test('잘못된 NUMBER 후보를 경고하고 묶음 확정을 잠긴 뒤 유효
     attributeValue: '36',
   });
   await expect(candidateDetail.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(candidateDetail.getByRole('button', { name: '캐릭터 연결 변경', exact: true }))
     .toBeEnabled();
   await expect(candidateDetail.getByRole('button', { name: '새 캐릭터 이름 변경', exact: true })).toHaveCount(0);
@@ -2036,7 +2039,7 @@ test('schema 오류 후보는 수정과 재비교를 잠그고 제외만 허용�
     .toBeDisabled();
   await expect(candidateDetail.getByRole('button', { name: '새 캐릭터로 등록', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: /1개 설정 모두 확정/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(retryRequestCount).toBe(0);
 });
 
@@ -2416,14 +2419,17 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
     const pathname = requestUrl.pathname;
     if (pathname.endsWith('/auth/me')) return fulfill(route, member);
     if (pathname === `/api/v1/works/${workId}/characters`) {
+      // 서버 이름 검색(query)을 흉내 낸다.
+      const keyword = requestUrl.searchParams.get('query') ?? '';
+      const content = [
+        { id: characterId, name: '윤지우', firstAppearanceEpisodeNo: 1 },
+        { id: '88888888-8888-4888-8888-888888888888', name: '서하린' },
+      ].filter(character => character.name.includes(keyword));
       return fulfill(route, {
-        content: [
-          { id: characterId, name: '윤지우', firstAppearanceEpisodeNo: 1 },
-          { id: '88888888-8888-4888-8888-888888888888', name: '서하린' },
-        ],
+        content,
         page: 0,
         size: 8,
-        totalElements: 2,
+        totalElements: content.length,
         totalPages: 1,
         hasNext: false,
       });
@@ -2485,22 +2491,22 @@ test('기존 캐릭터 연결 실패 시 선택을 유지하고 재시도 성공
     + `&matchStatus=AMBIGUOUS&candidate=${firstCandidateId}`,
   );
 
-  await page.getByRole('button', { name: '다른 인물 찾기', exact: true }).click();
+  await page.getByRole('button', { name: '검색으로 찾기', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '캐릭터 연결 확인' });
-  await dialog.getByLabel('현재 페이지에서 검색').fill('지우');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('지우');
   const characterButton = dialog.getByRole('button', { name: /윤지우/ });
   await characterButton.click();
-  await dialog.getByLabel('현재 페이지에서 검색').fill('하린');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('하린');
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
   await expect(dialog.getByRole('alert')).toHaveText('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
   await expect.poll(() => matchRequestCount).toBe(0);
 
-  await dialog.getByLabel('현재 페이지에서 검색').fill('지우');
+  await dialog.getByLabel('작품 전체에서 인물 검색').fill('지우');
   await dialog.getByRole('button', { name: /윤지우/ }).click();
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
 
   await expect(dialog.getByRole('alert')).toHaveText('선택한 캐릭터에 연결하지 못했습니다.');
-  await expect(dialog.getByLabel('현재 페이지에서 검색')).toHaveValue('지우');
+  await expect(dialog.getByLabel('작품 전체에서 인물 검색')).toHaveValue('지우');
   await expect(characterButton).toHaveAttribute('aria-pressed', 'true');
 
   await dialog.getByRole('button', { name: '선택한 캐릭터에 연결' }).click();
@@ -2562,7 +2568,7 @@ test('연결 확인 후보를 입력한 이름의 새 캐릭터로 등록한다'
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidate=${firstCandidateId}`);
 
-  await page.getByRole('button', { name: /새로운 인물/ }).click();
+  await page.getByRole('radio', { name: /새로운 인물/ }).click();
   await page.getByLabel('새 캐릭터 이름').fill('윤수아');
   await page.getByRole('button', { name: '이 이름으로 연결', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -2571,7 +2577,7 @@ test('연결 확인 후보를 입력한 이름의 새 캐릭터로 등록한다'
     entityName: '윤수아',
   });
   await expect(page.locator('.setting-candidate-detail .review-cb-heading__subtitle')).toHaveText('캐릭터 · 윤수아');
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ }).last()).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last()).toBeEnabled();
 });
 
 test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 확정한다', async ({ page }) => {
@@ -2690,7 +2696,7 @@ test('같은 이름의 캐릭터 후보를 일괄 연결하고 그룹 전체만 
   });
   await expect(page.getByRole('button', { name: /나은 2개 설정/ })).toBeVisible();
 
-  const confirmButton = page.getByRole('button', { name: /2개 설정 모두 확정/ });
+  const confirmButton = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
   await expect(confirmButton).toBeDisabled();
   await expect(page.getByText('모든 설정의 비교 결과가 준비된 뒤 함께 확정할 수 있습니다.'))
     .toBeVisible();
@@ -2779,7 +2785,7 @@ test('그룹 확정 중 다른 후보 묶음을 선택하면 새 선택을 유�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=수아`);
 
-  await page.getByRole('button', { name: /1개 설정 모두 확정/ }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
   await page.getByRole('button', { name: /민준 1개 설정/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('민준');
@@ -2848,7 +2854,7 @@ test('그룹 확정 중 세계관 탭으로 이동하면 늦은 성공 응답이
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=수아`);
 
-  await page.getByRole('button', { name: /1개 설정 모두 확정/ }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => Boolean(releaseConfirm)).toBe(true);
   await page.getByRole('button', { name: /세계관 후보/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
@@ -2891,7 +2897,7 @@ test('구버전 다중 페이지 후보 응답에서는 불완전한 묶음 일�
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
   await expect(page.getByRole('button', { name: '캐릭터 일괄 연결' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: /설정 모두 확정/ }).last()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last()).toBeDisabled();
   await expect(page.getByText('이 캐릭터의 설정이 일부만 표시되어 한꺼번에 확정할 수 없습니다.'))
     .toBeVisible();
 });
@@ -2969,7 +2975,7 @@ test('큰 캐릭터 후보 묶음도 세계관 후보처럼 한 목록으로 렌
   const details = page.locator('.setting-candidate-detail');
   await expect(details).toHaveCount(25);
 
-  await page.getByRole('button', { name: /25개 설정 모두 확정/ }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => groupConfirmBody?.comparisonRevision).toBe('large-group-revision-1');
   await expect.poll(() => groupConfirmBody?.candidates?.length).toBe(25);
   expect(groupConfirmBody?.candidates?.map(candidate => candidate.candidateId))
@@ -3159,7 +3165,7 @@ test('후보 polling 중에도 수정 모달의 입력 포커스를 유지한다
   await expect(valueInput).toHaveValue('입력 중인 설정값');
 });
 
-test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토한다', async ({ page }) => {
+test('이름 없는 캐릭터 그룹도 미연결 후보로 마지막 목록에서 선택해 검토한다', async ({ page }) => {
   const unnamed = { ...candidates[0], entityName: '', rawEntityMention: '' };
   await page.route('**/api/v1/**', route => {
     const requestUrl = new URL(route.request().url());
@@ -3197,8 +3203,10 @@ test('이름 없는 캐릭터 그룹도 마지막 목록에서 선택해 검토�
   await authenticate(page);
   await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
 
-  await expect(page.getByRole('button', { name: /이름 없는 캐릭터 1개 설정/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '이름 없는 캐릭터' })).toBeVisible();
+  // 이름이 비어 있으면 서버도 인물을 확인하지 못한 묶음이므로 같은 캐릭터로 표현하지 않는다.
+  await expect(page.getByRole('button', { name: /미연결 후보 1개 1개 설정/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '인물 미확인1개 설정' })).toBeVisible();
+  await expect(page.getByText('같은 캐릭터 후보', { exact: true })).toHaveCount(0);
   await expect.poll(() => new URL(page.url()).searchParams.get('group')).toContain('__unnamed__:');
 });
 

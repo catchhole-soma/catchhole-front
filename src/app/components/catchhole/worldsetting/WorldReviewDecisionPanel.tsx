@@ -1,19 +1,53 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getWorldSettingOptions, getWorldSettingsOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { getWorldSettingOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import { shouldRetryQuery } from '../../../lib/query-client';
-import { WorldSubjectImage } from './WorldSubjectImage';
 import type { WorldSettingCandidateResponse } from '../../../api/generated/types.gen';
+import { useWorldTargetSearch } from './useWorldTargetSearch';
+import { NEW_WORLD_TARGET_ID, WorldTargetPicker } from './WorldTargetPicker';
+import { WorldSubjectImage } from './WorldSubjectImage';
 import { ReviewChoiceCards, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
-import { combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft, type WorldReviewDraft } from './worldReviewDecisions';
+import {
+  combineWorldReviewValues, sameWorldReviewDraft, worldLinkSourceDraft, worldReviewSourceDraft,
+  type WorldLinkTarget, type WorldReviewDraft, type WorldTargetLinkOutcome,
+} from './worldReviewDecisions';
 
-export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraft, disabled, sharedChoiceAvailable, sourceValue, onSave, onDirtyChange }: {
+/** 묶음의 선택 대상 연결에서 저장하지 않고 이 행에 남긴 대상. 행에서 병합·교체·최종 내용을 정한다. */
+export interface WorldPresetTarget {
+  target: WorldLinkTarget;
+  reason: Exclude<WorldTargetLinkOutcome, 'add'>;
+}
+
+const PRESET_TITLES: Record<WorldPresetTarget['reason'], string> = {
+  existing: '대상은 골랐어요. 기존값과 어떻게 합칠지 정해 주세요.',
+  conflict: '대상은 골랐어요. 원문마다 다른 내용을 하나로 정해 주세요.',
+  duplicate: '대상은 골랐어요. 함께 고른 다른 설정과 위치가 같아 내용을 정해 주세요.',
+};
+
+/** 대상 미정 행이 검색 없이 바로 보여 줄 최근 대상 수. */
+const RECENT_TARGET_COUNT = 3;
+
+export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraft, disabled, sharedChoiceAvailable, sourceValue, presetTarget,
+  compactTargetPicker = false, recentTargets = [], onTargetChosen, onPresetDismiss, onSave, onDirtyChange }: {
   candidate: WorldSettingCandidateResponse;
   categoryLabel: string;
   initialDraft: WorldReviewDraft;
   disabled: boolean;
   sharedChoiceAvailable: boolean;
   sourceValue?: string;
+  /** 처음 열 때 이미 골라 둔 대상. 대상의 현재 설정을 읽어 행에서 이어서 결정하게 한다. */
+  presetTarget?: WorldPresetTarget;
+  /**
+   * 묶음에 대상 미정 행이 여럿이라 검색 목록이 반복될 때. 행마다 6개 카드·페이지를 펼치는 대신 최근 고른 대상과 새 등록,
+   * `대상 검색`만 먼저 보여 준다. 대상 미정 행이 하나뿐이면 기존 검색 목록을 그대로 둔다.
+   */
+  compactTargetPicker?: boolean;
+  /** 이번 검토에서 고른 기존 대상(최근 순). 축소형 대상 선택에서 검색 없이 바로 고를 수 있다. */
+  recentTargets?: WorldLinkTarget[];
+  /** 기존 대상을 골라 현재 설정을 읽었을 때 알린다(최근 대상으로 기억). */
+  onTargetChosen?: (target: WorldLinkTarget) => void;
+  /** 묶음에서 골라 둔 대상을 버린다(변경 취소). 패널이 다시 그려지며 원래 비교 선택지가 돌아온다. */
+  onPresetDismiss?: () => void;
   onSave: (draft: WorldReviewDraft) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -23,8 +57,6 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     disabledRef.current = disabled;
     return () => { disabledRef.current = true; };
   }, [disabled]);
-  const [targetQuery, setTargetQuery] = useState('');
-  const [targetPage, setTargetPage] = useState(0);
   const [targetLoading, setTargetLoading] = useState(false);
   const [targetLoadFailed, setTargetLoadFailed] = useState(false);
   const [targetBefore, setTargetBefore] = useState<string | null>(null);
@@ -34,13 +66,13 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const subjectUnresolved = targetChanged || candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
     || candidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
     || candidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED';
-  const targetsQuery = useQuery({
-    ...getWorldSettingsOptions({ path: { workId: candidate.workId ?? '' }, query: {
-      category: candidate.category, q: targetQuery || undefined, page: targetPage, size: 6, sort: 'CATEGORY_SUBJECT_ASC',
-    } }),
-    enabled: subjectUnresolved && Boolean(candidate.workId), retry: shouldRetryQuery,
-  });
-  const targets = targetsQuery.data?.data?.worldSettings;
+  // 축소형에서는 작가가 `대상 검색`을 눌렀을 때만 목록을 연다. 행마다 목록을 미리 불러오지 않는다.
+  const [searchOpen, setSearchOpen] = useState(!compactTargetPicker);
+  const targetSearch = useWorldTargetSearch({ workId: candidate.workId, category: candidate.category,
+    enabled: subjectUnresolved && (searchOpen || saved) });
+  const recentChoices = recentTargets.filter(target => target.worldSettingId && target.category === candidate.category)
+    .slice(0, RECENT_TARGET_COUNT);
+  const targets = targetSearch.targets;
   const [draft, setDraft] = useState(initialDraft);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
@@ -54,6 +86,11 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     return () => onDirtyChange?.(false);
   }, [dirty, onDirtyChange]);
   const cancelDraft = () => {
+    // 묶음에서 골라 둔 대상이 있으면 그 대상을 버린다. 원래 비교 선택지는 부모가 대상 초안을 지운 뒤 다시 보인다.
+    if (presetTarget) {
+      onPresetDismiss?.();
+      return;
+    }
     setDraft(initialDraft);
     setEditing(false);
     setError(null);
@@ -68,12 +105,15 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const matched = Boolean(candidate.matchedPropertyName && candidate.beforeValue?.trim());
   // Consolidation combines extracted sources; proposedValue may also contain the old DB value.
   const incoming = sourceValue ?? candidate.extractedValue ?? sourceDraft.value;
+  // 묶음의 선택 연결과 같은 원문 경로 초안. 골라 둔 대상이 있는 동안 행의 결정은 이 경로와 그 대상으로만 저장한다.
+  const presetBase = presetTarget ? worldLinkSourceDraft(candidate, sourceDraft, incoming) : null;
   const combined = candidate.suggestedOperation === 'MERGE' && candidate.proposedValue
     ? candidate.proposedValue : combineWorldReviewValues(candidate.beforeValue, incoming);
   const matchedDraft = { ...sourceDraft, scopeName: candidate.matchedScopeName,
     settingName: candidate.matchedPropertyName ?? sourceDraft.settingName };
-  const canChooseScope = (unresolved || mismatch) && matched && sharedChoiceAvailable && !subjectUnresolved;
-  const canChooseChange = !unresolved && !mismatch && matched && sharedChoiceAvailable
+  // 원래 비교의 범위·변경 선택지는 원래 대상·경로를 다시 만들어 저장하므로, 묶음에서 다른 대상을 골라 둔 동안에는 숨긴다.
+  const canChooseScope = !presetTarget && (unresolved || mismatch) && matched && sharedChoiceAvailable && !subjectUnresolved;
+  const canChooseChange = !presetTarget && !unresolved && !mismatch && matched && sharedChoiceAvailable
     && !subjectUnresolved;
   const separateDraft = { ...sourceDraft, operation: 'ADD' as const, scopeName: candidate.scopeName,
     settingName: candidate.settingName ?? sourceDraft.settingName, value: incoming };
@@ -99,8 +139,17 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const chooseTarget = async (id: string) => {
     const target = targets?.content?.find(item => item.id === id);
     if (disabled || targetLoading || !candidate.workId) return;
-    // 검색·페이지가 바뀌어도 실패한 선택은 동일 ID로 다시 조회한다.
-    if (id !== selectedTargetId && (!target?.id || !target.subjectName || !target.category)) return;
+    // 검색·페이지가 바뀌어도 실패한 선택은 동일 ID로 다시 조회한다. 최근 대상 카드는 검색 결과 밖이어도 고를 수 있다.
+    if (id !== selectedTargetId && !recentChoices.some(item => item.worldSettingId === id)
+      && (!target?.id || !target.subjectName || !target.category)) return;
+    await loadTarget(id);
+  };
+  /**
+   * 고른 대상의 현재 설정을 읽어 같은 경로가 있으면 병합·교체 선택을, 없으면 추가 초안을 연다.
+   * 저장 요청·복구 확인 중에 도착한 결과는 버리고 `false`를 돌려준다(묶음에서 골라 둔 대상은 다시 불러온다).
+   */
+  const loadTarget = async (id: string, base: WorldReviewDraft = sourceDraft): Promise<boolean> => {
+    if (!candidate.workId) return true;
     setSelectedTargetId(id);
     setTargetBefore(null);
     setTargetLoadFailed(false);
@@ -108,10 +157,11 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     setError(null);
     try {
       const response = await queryClient.fetchQuery(getWorldSettingOptions({ path: { workId: candidate.workId!, worldSettingId: id } }));
-      if (disabledRef.current) return;
+      if (disabledRef.current) return false;
       const detail = response.data;
       if (detail?.id !== id || !detail.category || !detail.subjectName) throw new Error('missing target');
-      const next = { ...sourceDraft, category: detail.category, subjectName: detail.subjectName, operation: 'ADD' as const, value: incoming };
+      onTargetChosen?.({ worldSettingId: id, category: detail.category, subjectName: detail.subjectName });
+      const next = { ...base, category: detail.category, subjectName: detail.subjectName, operation: 'ADD' as const, value: incoming };
       setTargetBefore(null);
       const normalized = (value?: string | null) => (value ?? '').trim().normalize('NFC').toLocaleLowerCase('ko-KR');
       const existing = detail.properties?.find(property => normalized(property.scopeName) === normalized(next.scopeName)
@@ -121,11 +171,32 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
         setTargetBefore(existing.value);
         setEditing(false);
       } else setEditing(true);
+      return true;
     } catch {
       setTargetLoadFailed(true);
       setError('대상의 현재 설정을 불러오지 못했습니다. 선택한 대상을 다시 불러와 주세요.');
+      return true;
     } finally { setTargetLoading(false); }
   };
+  // 묶음에서 골라 둔 대상은 처음 열 때 한 번 불러온다(패널 key가 대상마다 바뀐다).
+  const presetAppliedRef = useRef(false);
+  useEffect(() => {
+    // 저장 요청·복구 확인 중에는 늦은 응답을 버리므로, 행을 다시 쓸 수 있게 된 뒤 한 번 적용한다.
+    if (!presetTarget || presetAppliedRef.current || disabled) return;
+    presetAppliedRef.current = true;
+    const { target } = presetTarget;
+    const base = presetBase ?? sourceDraft;
+    if (target.worldSettingId) {
+      // 불러오는 사이 행이 잠겨 결과를 버렸으면 잠금이 풀린 뒤(disabled 변화로 이 effect가 다시 돈다) 다시 불러온다.
+      void loadTarget(target.worldSettingId, base).then(applied => { if (!applied) presetAppliedRef.current = false; });
+      return;
+    }
+    setSelectedTargetId(NEW_WORLD_TARGET_ID);
+    setEditing(true);
+    setDraft({ ...base, category: target.category, subjectName: target.subjectName, operation: 'ADD', value: incoming });
+  // 한 번만 적용한다. 이후 작가의 선택을 덮지 않는다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabled]);
   const choose = (id: string, value: WorldReviewDraft) => {
     setSelected(id);
     setDraft(value);
@@ -144,7 +215,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     { id: 'replace', title: '이번 내용으로 바꾸기', preview: incoming, footnote: '이 항목의 기존 내용을 교체' },
   ] : [];
 
-  const simpleReview = !subjectUnresolved && !choices.length && !conflict;
+  const simpleReview = !presetTarget && !subjectUnresolved && !choices.length && !conflict;
   const selectedTargets = (targets?.content ?? []).filter(target => target.subjectName === initialDraft.subjectName
     && target.category === initialDraft.category);
   const selectedTarget = selectedTargetId ?? (saved && selectedTargets.length === 1 ? selectedTargets[0].id ?? null : null);
@@ -152,7 +223,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
   const savedTargetQuery = useQuery({
     ...getWorldSettingOptions({ path: { workId: candidate.workId ?? '', worldSettingId: selectedTarget ?? '' } }),
     enabled: subjectUnresolved && saved && Boolean(candidate.workId) && Boolean(selectedTarget)
-      && selectedTarget !== 'new-target' && !selectedTargetId,
+      && selectedTarget !== NEW_WORLD_TARGET_ID && !selectedTargetId,
     retry: shouldRetryQuery,
   });
   const savedTarget = savedTargetQuery.data?.data;
@@ -161,40 +232,57 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     ? savedTarget.properties?.find(property => (property.scopeName?.trim() || null) === (initialDraft.scopeName?.trim() || null)
       && property.settingName?.trim() === initialDraft.settingName.trim())?.value ?? null : null;
   const currentTargetBefore = targetBlocked ? null : targetBefore ?? savedTargetBefore;
-  const editorBefore = currentTargetBefore ?? (!subjectUnresolved ? candidate.beforeValue : null);
+  // 골라 둔 대상이 있으면 원래 비교의 기존값이 아니라 그 대상에 저장된 값만 비교한다.
+  const editorBefore = presetTarget ? currentTargetBefore : currentTargetBefore ?? (!subjectUnresolved ? candidate.beforeValue : null);
   const extractedName = candidate.subjectName ?? sourceDraft.subjectName;
+  const pickerLabel = `‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`;
+  const newTargetCard = { title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 확정할 때 등록' };
+  const chooseTargetCard = (id: string) => {
+    if (id !== NEW_WORLD_TARGET_ID) {
+      void chooseTarget(id);
+      return;
+    }
+    setSelectedTargetId(id);
+    setTargetBefore(null);
+    setTargetLoadFailed(false);
+    setError(null);
+    setEditing(true);
+    setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming });
+  };
 
   return <div className="review-cb-decision-panel">
-    {subjectUnresolved && <div className="review-cb-target-search">
-      <ReviewChoiceCards label={`‘${extractedName}’ — 기존 ${categoryLabel}에 연결할까요, 새로 등록할까요?`} value={selectedTarget} disabled={disabled || targetLoading}
+    {presetTarget && <ReviewNotice tone="warning" title={PRESET_TITLES[presetTarget.reason]}>
+      연결할 대상 ‘{presetTarget.target.subjectName}’에 저장하기 전에 이 설정의 내용을 확인해 주세요.
+    </ReviewNotice>}
+    {presetTarget && targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary"
+      disabled={disabled || targetLoading} onClick={() => void loadTarget(selectedTargetId, presetBase ?? undefined)}>선택한 대상 다시 불러오기</button>}
+    {presetTarget && targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}
+    {!presetTarget && subjectUnresolved && !searchOpen && !saved && <div className="review-cb-target-search is-compact">
+      <ReviewChoiceCards label={pickerLabel} value={selectedTarget} disabled={disabled || targetLoading}
         choices={[
-          ...(targets?.content ?? []).flatMap(target => target.id && target.subjectName ? [{ id: target.id,
-            title: target.subjectName, description: `설정 ${target.propertyCount ?? 0}개`,
-            image: <WorldSubjectImage category={target.category} path={target.image?.thumbnailUrl} vaultId={target.image?.vaultId} />,
-            footnote: '이 대상에 연결' }] : []),
-          { id: 'new-target', title: `‘${extractedName}’ 새로 등록`, description: `기존 ${categoryLabel} 항목과 별개인 경우 선택해 주세요.`, footnote: '이름·설정을 검토한 뒤 모두 확정할 때 등록' },
+          ...recentChoices.map(target => ({ id: target.worldSettingId!, title: target.subjectName, description: '이번 검토에서 고른 대상',
+            image: <WorldSubjectImage category={target.category} />, footnote: '이 대상에 연결' })),
+          { id: NEW_WORLD_TARGET_ID, ...newTargetCard },
         ]}
-        onChange={id => { if (id === 'new-target') { setSelectedTargetId(id); setTargetBefore(null); setTargetLoadFailed(false); setError(null); setEditing(true); setDraft({ ...sourceDraft, subjectName: candidate.subjectName ?? sourceDraft.subjectName, operation: 'ADD', value: incoming }); } else void chooseTarget(id); }}>
-        <div className="review-cb-target-search__controls">
-          <p className="review-cb-help">추출된 이름과 작품에 저장된 대상이 같은지 확인하는 단계예요. 같은 대상이면 연결하고, 별개라면 새로 등록해 주세요.</p>
-          <label>기존 {categoryLabel} 검색<input aria-label="기존 세계관 대상 검색" placeholder="기존 대상 이름으로 검색" value={targetQuery}
-            onChange={event => { setTargetQuery(event.target.value); setTargetPage(0); }} /></label>
-          {targetsQuery.isPending && <p className="review-cb-help" role="status">기존 {categoryLabel} 목록을 불러오고 있어요.</p>}
-          {targetsQuery.isError && <ReviewNotice tone="warning" action={<button type="button" className="review-cb-secondary" onClick={() => void targetsQuery.refetch()}>다시 불러오기</button>}>기존 {categoryLabel} 목록을 불러오지 못했어요. 등록된 대상이 없는지 아직 확인할 수 없어요.</ReviewNotice>}
-          {targetsQuery.isSuccess && targets?.content?.length === 0 && <p className="review-cb-help" role="status">{targetQuery
-            ? `‘${targetQuery}’ 검색 결과가 없어요. 다른 이름으로 검색하거나 새로 등록할지 선택해 주세요.`
-            : targetPage > 0 ? `이 페이지에 표시할 ${categoryLabel} 항목이 없어요. 이전 페이지를 확인해 주세요.`
-              : `등록된 ${categoryLabel} 항목이 없어요. 새로 등록할지 직접 선택해 주세요.`}</p>}
-        </div>
-      </ReviewChoiceCards>
+        onChange={chooseTargetCard} />
+      <div className="review-inline-actions">
+        <span>{recentChoices.length ? '다른 대상은 검색해서 고를 수 있어요.' : `기존 ${categoryLabel}에 연결하려면 검색해 주세요.`}</span>
+        <button type="button" className="review-action" disabled={disabled || targetLoading} onClick={() => setSearchOpen(true)}>대상 검색</button>
+      </div>
+      {targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}
       {targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
         onClick={() => void chooseTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
-      {(targetPage > 0 || targets?.hasNext) && <div className="review-cb-actions">
-        <button type="button" className="review-cb-secondary" disabled={targetPage === 0 || targetLoading} onClick={() => setTargetPage(page => page - 1)}>이전 대상</button>
-        <button type="button" className="review-cb-secondary" disabled={!targets?.hasNext || targetLoading} onClick={() => setTargetPage(page => page + 1)}>다음 대상</button>
-      </div>}
-      {targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}
     </div>}
+    {!presetTarget && subjectUnresolved && (searchOpen || saved) && <WorldTargetPicker search={targetSearch}
+      label={pickerLabel} categoryLabel={categoryLabel}
+      value={selectedTarget} disabled={disabled || targetLoading} pagerDisabled={targetLoading}
+      help="추출된 이름과 작품에 저장된 대상이 같은지 확인하는 단계예요. 같은 대상이면 연결하고, 별개라면 새로 등록해 주세요."
+      newTarget={newTargetCard}
+      onChange={chooseTargetCard}
+      footer={targetLoading && <p role="status">이 대상의 현재 설정을 확인하고 있어요.</p>}>
+      {targetLoadFailed && selectedTargetId && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
+        onClick={() => void chooseTarget(selectedTargetId)}>선택한 대상 다시 불러오기</button>}
+    </WorldTargetPicker>}
     {currentTargetBefore && <ReviewChoiceCards label="이 대상에 같은 설정이 있어요. 어떻게 반영할까요?" value={draft.operation === 'ADD' ? null : draft.operation}
       choices={[
         { id: 'MERGE', title: '기존 내용과 합치기', preview: combineWorldReviewValues(currentTargetBefore, incoming) },
@@ -244,17 +332,17 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
         afterLabel="저장할 최종 내용" />}
       {error && <ReviewNotice tone="danger">{error}</ReviewNotice>}
       <footer className="review-cb-inline-editor__footer">
-        <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래의 모두 확정으로 작품에 반영됩니다.'}</p>
+        <p className="review-cb-help">{dirty ? '아직 저장하지 않은 수정이 있어요. 이 내용으로 검토 완료를 누르거나 수정을 닫아 주세요.' : '선택한 내용은 아래 확정 버튼으로 작품에 반영됩니다.'}</p>
         <div className="review-cb-actions">
-          <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading || (conflict && !saved)}
-            onClick={cancelDraft}>수정 닫기</button>
+          <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading || (conflict && !saved && !presetTarget)}
+            onClick={cancelDraft}>{presetTarget ? '변경 취소' : '수정 닫기'}</button>
           <button type="submit" className="review-cb-primary" disabled={disabled || targetBlocked}>이 내용으로 검토 완료</button>
         </div>
       </footer>
     </form>}
     {error && !editorVisible && <ReviewNotice tone="danger">{error}</ReviewNotice>}
     {!editorVisible && <div className="review-cb-actions">
-    {!editorVisible && (choices.length > 0 || conflict) && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
+    {!editorVisible && (choices.length > 0 || conflict || Boolean(presetTarget)) && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
       onClick={() => setEditing(true)}>최종 내용 직접 다듬기</button>}
     {!editorVisible && dirty && <button type="button" className="review-cb-secondary" disabled={disabled || targetLoading}
       onClick={cancelDraft}>변경 취소</button>}

@@ -63,7 +63,7 @@ for (const width of [1280, 320]) {
       }
       await expect(page.getByText('같은 대상에서 추출된 설정을 항목별로 검토합니다.', { exact: true })).toHaveCount(0);
       await expect(page.getByText('비교 실패', { exact: true })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+      await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
       await expect(page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true })).toBeEnabled();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
       expect(mutationCount).toBe(0);

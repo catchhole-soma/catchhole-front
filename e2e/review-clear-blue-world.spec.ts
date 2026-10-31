@@ -140,33 +140,33 @@ for (const operation of ['ADD', 'MERGE', 'UPDATE'] as const) {
       targetSubjectName: null, beforeValue: null, matchedScopeName: null, matchedPropertyName: null },
     { searchTargets: true, targetSubjectName: '수로관리청', targetValue: operation === 'ADD' ? undefined : before, pauseReadback: true });
     const row = page.locator('.world-setting-diff-row');
-    const target = row.getByRole('button', { name: /수로관리청.*이 대상에 연결/ });
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const target = row.getByRole('radio', { name: /수로관리청.*이 대상에 연결/ });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await target.click();
     if (operation !== 'ADD') {
-      const choice = row.getByRole('button', { name: operation === 'MERGE' ? /기존 내용과 합치기/ : /이번 내용으로 바꾸기/ });
+      const choice = row.getByRole('radio', { name: operation === 'MERGE' ? /기존 내용과 합치기/ : /이번 내용으로 바꾸기/ });
       await expect(choice).toBeVisible();
       expect(state.saved).toHaveLength(0);
       await choice.click();
-      await expect(choice).toHaveAttribute('aria-pressed', 'true');
+      await expect(choice).toHaveAttribute('aria-checked', 'true');
     }
     const value = operation === 'MERGE' ? before + '\n' + incoming : incoming;
     await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue(value);
-    await expect(target).toHaveAttribute('aria-pressed', 'true');
+    await expect(target).toHaveAttribute('aria-checked', 'true');
     await expect(confirm).toBeDisabled();
     expect(state.saved).toHaveLength(0);
     expect(state.confirmed).toHaveLength(0);
     if (operation === 'ADD') {
-      const newTarget = row.getByRole('button', { name: /수로관리청.*새로 등록/ });
+      const newTarget = row.getByRole('radio', { name: /수로관리청.*새로 등록/ });
       await newTarget.click();
-      await expect(newTarget).toHaveAttribute('aria-pressed', 'true');
-      await expect(target).toHaveAttribute('aria-pressed', 'false');
+      await expect(newTarget).toHaveAttribute('aria-checked', 'true');
+      await expect(target).toHaveAttribute('aria-checked', 'false');
       await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue(incoming);
       await expect(confirm).toBeDisabled();
       expect(state.saved).toHaveLength(0);
       await row.getByRole('button', { name: '수정 닫기', exact: true }).click();
       await expect(row.getByLabel('최종 내용', { exact: true })).toHaveCount(0);
-      await expect(newTarget).toHaveAttribute('aria-pressed', 'false');
+      await expect(newTarget).toHaveAttribute('aria-checked', 'false');
       expect(state.saved).toHaveLength(0);
       await target.click();
       await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue(incoming);
@@ -194,12 +194,12 @@ test('대상 연결이 아닌 같은 값 추가 카드는 기존처럼 즉시 �
   const state = await setup(page, { suggestedOperation: 'ADD', comparisonReviewReason: undefined,
     beforeValue: null, matchedScopeName: null, matchedPropertyName: null }, { pauseReadback: true });
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /이 내용 그대로 추가/ }).click();
+  await row.getByRole('radio', { name: /이 내용 그대로 추가/ }).click();
   await expect.poll(() => state.saved.length).toBe(1);
   expect(state.saved[0].candidates[0]).toMatchObject({ operation: 'ADD', value: base.extractedValue });
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveCount(0);
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 완료');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   state.allowReadback();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
@@ -208,28 +208,28 @@ test('대상 연결이 아닌 같은 값 추가 카드는 기존처럼 즉시 �
 
 test('범위 미정은 예 한 번으로 기존 내용과 이번 내용을 함께 저장하고 마지막에 그룹 확정한다', async ({ page }) => {
   const { saved, confirmed } = await setup(page);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'MERGE', scopeName: '탐사 규칙', settingName: '귀환 조건', value: '해가 지면 돌아온다.\n생명력이 낮으면 돌아온다.' });
   expect(confirmed).toHaveLength(0);
   await expect(page.locator('.review-modal')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(page.locator('.world-setting-diff-row')).not.toContainText('범위 확인 필요');
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => confirmed.length).toBe(1);
 });
 
 test('별도 설정은 원문 이름과 빈 범위를 유지하고 ADD로 저장한다', async ({ page }) => {
   const { saved } = await setup(page);
-  await page.getByRole('button', { name: /아니요, 별도 설정이에요/ }).click();
+  await page.getByRole('radio', { name: /아니요, 별도 설정이에요/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', scopeName: null, settingName: '위험 기준', value: base.extractedValue });
 });
 
 test('같은 비교 결정의 여러 source를 빠른 선택 한 요청에서 저장한다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonDecisionId: 'shared-decision' }, { second: true });
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).first().click();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).first().click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates).toHaveLength(2);
   expect(saved[0].candidates.every(candidate => candidate.operation === 'MERGE' && String(candidate.value).includes('해가 지면'))).toBe(true);
@@ -242,8 +242,8 @@ test('여러 원문을 통합한 설정도 교체는 이번 추출값만 쓰고 
   const { saved } = await setup(page, { settingName: '신체 능력', scopeName: '전투 특성',
     comparisonReviewReason: undefined, suggestedOperation: 'MERGE', consolidationStatus: 'MERGED',
     matchedScopeName: '전투 특성', matchedPropertyName: '신체 능력', beforeValue, proposedValue, extractedValue });
-  const merge = page.getByRole('button', { name: /기존 내용과 합치기/ });
-  const replace = page.getByRole('button', { name: /이번 내용으로 바꾸기/ });
+  const merge = page.getByRole('radio', { name: /기존 내용과 합치기/ });
+  const replace = page.getByRole('radio', { name: /이번 내용으로 바꾸기/ });
   await expect(merge).toContainText(beforeValue);
   await expect(replace).not.toContainText(beforeValue);
   await expect(replace).toContainText('생명력이 가장 높다.');
@@ -266,7 +266,7 @@ test('공유 통합 결정의 교체는 모든 source 추출값을 함께 보존
   const { saved } = await setup(page, { comparisonDecisionId: 'shared-consolidation', comparisonReviewReason: undefined,
     consolidationStatus: 'MERGED', suggestedOperation: 'MERGE', proposedValue },
   { second: { extractedValue: '식량이 부족하면 돌아온다.' } });
-  const replace = page.getByRole('button', { name: /이번 내용으로 바꾸기/ }).first();
+  const replace = page.getByRole('radio', { name: /이번 내용으로 바꾸기/ }).first();
   await expect(replace).toContainText('생명력이 낮으면 돌아온다.');
   await expect(replace).toContainText('식량이 부족하면 돌아온다.');
   await expect(replace).not.toContainText('해가 지');
@@ -283,8 +283,8 @@ test('공유 통합 결정의 교체는 모든 source 추출값을 함께 보존
 
 test('명시된 서로 다른 범위는 기존에 합치기와 원문 범위 유지 결과를 제시한다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonReviewReason: 'SCOPE_MISMATCH', scopeName: '응급 조치' });
-  await expect(page.getByRole('button', { name: /기존 범위에 합치기/ })).toBeVisible();
-  await page.getByRole('button', { name: /이번 범위에 따로 저장/ }).click();
+  await expect(page.getByRole('radio', { name: /기존 범위에 합치기/ })).toBeVisible();
+  await page.getByRole('radio', { name: /이번 범위에 따로 저장/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', scopeName: '응급 조치' });
 });
@@ -305,18 +305,18 @@ test('직접 검토 가능한 비교 실패는 없는 기존값을 단정하지 
   const row = page.locator('.world-setting-diff-row');
   await expect(row).not.toContainText('기존 설정 없음');
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveCount(0);
-  await row.getByRole('button', { name: /내용·저장 위치 수정/ }).click();
+  await row.getByRole('radio', { name: /내용·저장 위치 수정/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('안전 기준에 따라 귀환한다.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   expect(requests.some(request => request.includes('/retry'))).toBe(false);
 });
 
 test('세계관 대상 선택은 실제 저장된 대상을 검색하고 선택한 이름으로만 저장한다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonReviewReason: 'SUBJECT_UNRESOLVED', targetWorldSettingId: null,
     targetSubjectName: null, beforeValue: null, matchedScopeName: null, matchedPropertyName: null }, { searchTargets: true });
-  await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await page.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ subjectName: '북부 미궁', operation: 'ADD' });
@@ -325,7 +325,7 @@ test('세계관 대상 선택은 실제 저장된 대상을 검색하고 선택�
 test('충돌은 여러 줄 원문 전체를 보존하고 최종 내용을 직접 저장해야 확정할 수 있다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonReviewReason: 'GENERAL_UNCERTAINTY', consolidationStatus: 'CONFLICT',
     beforeValue: null, matchedPropertyName: null, matchedScopeName: null, extractedValue: '매일 열린다.\n한 달에 한 번 열린다.', proposedValue: '매일 열린다.\n한 달에 한 번 열린다.' });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(page.getByRole('button', { name: /추출 내용 [12]/ })).toHaveCount(0);
   await expect(page.getByLabel('최종 내용', { exact: true })).toHaveValue('매일 열린다.\n한 달에 한 번 열린다.');
   await page.getByLabel('최종 내용', { exact: true }).fill('한 달에 한 번 열린다.');
@@ -333,24 +333,24 @@ test('충돌은 여러 줄 원문 전체를 보존하고 최종 내용을 직접
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ value: '한 달에 한 번 열린다.', conflictResolved: true });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
 });
 
 test('저장 충돌 시 인라인 작성값을 보존한다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonReviewReason: 'GENERAL_UNCERTAINTY', beforeValue: null, matchedScopeName: null, matchedPropertyName: null }, { failSave: true });
-  await page.getByRole('button', { name: /내용·저장 위치 수정/ }).click();
+  await page.getByRole('radio', { name: /내용·저장 위치 수정/ }).click();
   await page.getByLabel('최종 내용', { exact: true }).fill('입력을 보존해야 한다.');
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   await expect(page.getByLabel('최종 내용', { exact: true })).toHaveValue('입력을 보존해야 한다.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('분석 중에는 간단한 안내와 기존 분석 화면 이동만 제공한다', async ({ page }) => {
   const { saved } = await setup(page, { analysisMode: 'ORDERED_PROVISIONAL', automaticApplicationPending: true });
   await expect(page.getByRole('button', { name: '분석 진행 보기' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /예, 포함된 내용이에요/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('radio', { name: /예, 포함된 내용이에요/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await expect(page.locator('.world-setting-diff-row').getByRole('button', { name: /제외/ })).toBeDisabled();
   expect(saved).toHaveLength(0);
 });
@@ -359,7 +359,7 @@ test('분석 중에는 간단한 안내와 기존 분석 화면 이동만 제공
 test('저장 실패 뒤 최신 상태도 확인할 수 없으면 재저장을 잠그고 입력을 보존한다', async ({ page }) => {
   const { saved, allowReadback } = await setup(page, { comparisonReviewReason: 'GENERAL_UNCERTAINTY', beforeValue: null,
     matchedScopeName: null, matchedPropertyName: null }, { failSave: true, failReadback: true });
-  await page.getByRole('button', { name: /내용·저장 위치 수정/ }).click();
+  await page.getByRole('radio', { name: /내용·저장 위치 수정/ }).click();
   await page.getByLabel('최종 내용', { exact: true }).fill('확인 전까지 보존할 내용');
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect(page.getByRole('button', { name: '최신 상태 다시 확인' })).toBeVisible();
@@ -375,11 +375,11 @@ test('저장 실패 뒤 최신 상태도 확인할 수 없으면 재저장을 �
 test('세계관 선택 카드와 diff는 320px에서 잘리지 않고 조작할 수 있다', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await setup(page);
-  const yes = page.getByRole('button', { name: /예, 포함된 내용이에요/ });
+  const yes = page.getByRole('radio', { name: /예, 포함된 내용이에요/ });
   await expect(yes).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await yes.click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -391,17 +391,17 @@ test('대상 동일성 보류는 ADD 제안이어도 새 설정으로 단정하�
   const row = page.locator('.world-setting-diff-row');
   await expect(row.locator('.review-cb-heading')).toContainText('같은 대상인지 확인');
   await expect(row.locator('.review-cb-heading')).not.toContainText('새 설정');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
+  await page.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
 });
 
 
 test('저장 후에는 완료 요약으로 접고 새로고침 뒤 수정에서 별도 저장과 병합을 다시 정한다', async ({ page }, testInfo) => {
   const { saved, confirmed } = await setup(page);
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   await expect(page.locator('.world-setting-diff-row .review-cb-heading')).toContainText('검토 완료');
   await expect(page.locator('.review-cb-decision-panel')).toHaveCount(0);
   await page.reload();
@@ -427,7 +427,7 @@ test('저장 후에는 완료 요약으로 접고 새로고침 뒤 수정에서 
 
 test('여러 원문을 함께 저장한 선택을 바꿀 때도 전체 source를 원자적으로 다시 저장한다', async ({ page }) => {
   const { saved } = await setup(page, { comparisonDecisionId: 'shared-decision' }, { second: true });
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).first().click();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).first().click();
   await expect(page.locator('.review-cb-decision-panel')).toHaveCount(0);
   await resaveDraft(page, { operation: 'ADD', scopeName: '', settingName: '위험 기준', value: base.extractedValue! });
   await expect.poll(() => saved.length).toBe(2);
@@ -438,7 +438,7 @@ test('여러 원문을 함께 저장한 선택을 바꿀 때도 전체 source를
 test('자동 보류 사유가 초안 저장 후 지워져도 다른 실제 대상에 다시 연결할 수 있다', async ({ page }) => {
   const { saved } = await setup(page, { suggestedOperation: 'ADD', comparisonReviewReason: undefined,
     automaticReviewHoldReason: 'SUBJECT_CONFIRMATION_REQUIRED', beforeValue: null, matchedPropertyName: null, matchedScopeName: null }, { searchTargets: true });
-  await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await page.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect(page.locator('.review-cb-decision-panel')).toHaveCount(0);
   await resaveDraft(page, { subjectName: '왕도 미궁' });
@@ -461,12 +461,12 @@ test('상위종 비교 실패는 수동 확인 선택으로만 초안을 준비�
   await expect(row).toContainText('자동 비교를 마치지 못했어요');
   await expect(row.getByLabel('반영할 대상', { exact: true })).toHaveCount(0);
   await expect(row).not.toContainText('기존 설정 없음');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await row.screenshot({ path: testInfo.outputPath('world-comparison-failure-choices.png') });
-  await row.getByRole('button', { name: /이 내용 그대로 추가/ }).click();
+  await row.getByRole('radio', { name: /이 내용 그대로 추가/ }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', subjectName: '상위종', settingName: '분류 기준', value: '상위종은 높은 지능을 가진다.' });
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   const editor = await reopenSavedDraft(page);
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('상위종');
   expect(confirmed).toHaveLength(0);
@@ -478,8 +478,8 @@ test('연결한 대상의 병합·교체 선택은 저장 뒤에도 실제 대�
     beforeValue: '다른 장소의 오래된 내용.', matchedScopeName: null, matchedPropertyName: '위험 기준' }, { searchTargets: true, targetValue: '북부 미궁은 일몰에 문을 닫는다.' });
   const row = page.locator('.world-setting-diff-row');
   await expect(row).not.toContainText('다른 장소의 오래된 내용.');
-  await row.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
-  await row.getByRole('button', { name: /기존 내용과 합치기/ }).click();
+  await row.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await row.getByRole('radio', { name: /기존 내용과 합치기/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ subjectName: '북부 미궁', operation: 'MERGE', value: '북부 미궁은 일몰에 문을 닫는다.\n생명력이 낮으면 돌아온다.' });
@@ -502,7 +502,7 @@ test('연결한 대상의 병합·교체 선택은 저장 뒤에도 실제 대�
 
 test('일반 범위 초안은 원래 범위의 선택만 유지하고 불필요한 대상 연결을 추가하지 않는다', async ({ page }) => {
   await setup(page);
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   await expect(page.locator('.review-cb-decision-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '다른 대상에 연결', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('기존 세계관 대상 검색', { exact: true })).toHaveCount(0);
@@ -514,8 +514,8 @@ test('일반 범위 초안은 원래 범위의 선택만 유지하고 불필요�
 test('수동 복구 초안이 준비되면 실패 그룹의 상단과 목록도 확정 대기로 안내한다', async ({ page }) => {
   await setup(page, { comparisonStatus: 'FAILED', comparisonFailureCode: 'LLM_NETWORK_ERROR', comparisonReviewReason: undefined,
     beforeValue: null, matchedScopeName: null, matchedPropertyName: null });
-  await page.getByRole('button', { name: /이 내용 그대로 추가/ }).click();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await page.getByRole('radio', { name: /이 내용 그대로 추가/ }).click();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 준비됨');
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 대기 1개');
   await expect(page.locator('.world-candidate-detail-card')).toContainText('확정할 내용이 준비됐어요');
@@ -525,8 +525,8 @@ test('수동 복구 초안이 준비되면 실패 그룹의 상단과 목록도 
 
 test('저장한 초안을 다시 편집하면 모두 확정을 잠그고 취소 또는 재저장 뒤에만 연다', async ({ page }) => {
   const { saved, confirmed } = await setup(page);
-  const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   await expect(confirm).toBeEnabled();
   let editor = await reopenSavedDraft(page);
   await editor.getByRole('textbox', { name: '최종 설정값', exact: true }).fill('아직 저장하지 않은 문장');
@@ -550,8 +550,8 @@ test('저장한 초안을 다시 편집하면 모두 확정을 잠그고 취소 
 
 test('기존 저장안이 있어도 재저장 실패 후 미저장 입력을 확정하지 못한다', async ({ page }) => {
   const { saved, confirmed } = await setup(page, {}, { failSaveAfter: 1 });
-  const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
-  await page.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+  const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
+  await page.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
   await expect(confirm).toBeEnabled();
   const editor = await reopenSavedDraft(page);
   await editor.getByRole('textbox', { name: '최종 설정값', exact: true }).fill('저장에 실패한 수정');
@@ -568,12 +568,12 @@ for (const failure of ['http', 'incomplete'] as const) {
   test(`대상 상세 ${failure} 실패에도 선택을 보존하고 조회 재시도 후에만 저장한다`, async ({ page }) => {
     const state = await setup(page, { comparisonReviewReason: 'SUBJECT_UNRESOLVED', beforeValue: null }, { searchTargets: true });
     state.setTargetFailure(failure);
-    const target = page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ });
+    const target = page.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ });
     await target.click();
     const retry = page.getByRole('button', { name: '선택한 대상 다시 불러오기' });
     await expect(retry).toBeVisible();
-    await expect(target).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+    await expect(target).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
     expect(state.saved).toHaveLength(0);
     if (failure === 'http') {
       await page.getByLabel('기존 세계관 대상 검색', { exact: true }).fill('왕도');
@@ -590,10 +590,10 @@ for (const failure of ['http', 'incomplete'] as const) {
 
 test('저장된 대상을 수정하다 재저장이 실패하면 이전 초안을 잘못 확정하지 않는다', async ({ page }) => {
   const state = await setup(page, unresolvedTarget, { searchTargets: true, failSaveAfter: 1 });
-  await page.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ }).click();
+  await page.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ }).click();
   await page.getByRole('button', { name: '이 내용으로 검토 완료', exact: true }).click();
   await expect.poll(() => state.saved.length).toBe(1);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   const editor = await reopenSavedDraft(page);
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('북부 미궁');
   await editor.getByRole('textbox', { name: '대상', exact: true }).fill('왕도 미궁');
@@ -601,7 +601,7 @@ test('저장된 대상을 수정하다 재저장이 실패하면 이전 초안�
   await expect.poll(() => state.saved.length).toBe(2);
   expect(state.saved[1].candidates[0]).toMatchObject({ subjectName: '왕도 미궁', value: base.extractedValue });
   await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('왕도 미궁');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.confirmed).toHaveLength(0);
 });
 
@@ -648,7 +648,7 @@ for (const { width, zoom } of [{ width: 1217, zoom: 1 }, { width: 390, zoom: 1 }
     expect(geometry.pageOverflow).toBe(false);
     await expect(panel.getByRole('heading', { name: '‘등대관리소’ — 기존 세력에 연결할까요, 새로 등록할까요?' })).toBeVisible();
     await expect(panel).toContainText('추출된 이름');
-    await expect(panel.getByRole('button', { name: /등대관리소.*새로 등록/ })).toBeVisible();
+    await expect(panel.getByRole('radio', { name: /등대관리소.*새로 등록/ })).toBeVisible();
   });
 }
 
@@ -660,7 +660,7 @@ test('대상 연결 조회 중·빈 검색·실패를 구분하고 재시도해�
   await expect(panel).not.toContainText('검색 결과가 없어요.');
   await expect(panel).not.toContainText('등록된 장소 항목이 없어요.');
   state.setTargetListState('ready');
-  await expect(panel.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ })).toBeVisible();
+  await expect(panel.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ })).toBeVisible();
   await panel.getByLabel('기존 세계관 대상 검색', { exact: true }).fill('없는 이름');
   await expect(panel).toContainText('‘없는 이름’ 검색 결과가 없어요.');
   state.setTargetListState('failed');
@@ -675,7 +675,7 @@ test('대상 연결 조회 중·빈 검색·실패를 구분하고 재시도해�
   await expect(panel).toContainText('‘실패 검색’ 검색 결과가 없어요.');
   expect(state.saved).toHaveLength(0);
   expect(state.confirmed).toHaveLength(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('새 대상 선택은 편집·초안 저장 후에만 별도로 모두 확정한다', async ({ page }) => {
@@ -683,26 +683,27 @@ test('새 대상 선택은 편집·초안 저장 후에만 별도로 모두 확�
   const panel = page.locator('.review-cb-target-search');
   await expect(panel.getByRole('heading', { name: '‘별빛 미궁’ — 기존 장소에 연결할까요, 새로 등록할까요?' })).toBeVisible();
   await expect(panel).toContainText('등록된 장소 항목이 없어요.');
-  const newTarget = panel.getByRole('button', { name: /별빛 미궁.*새로 등록/ });
+  const newTarget = panel.getByRole('radio', { name: /별빛 미궁.*새로 등록/ });
+  await expect(newTarget).toContainText('이름·설정을 검토한 뒤 확정할 때 등록');
   await newTarget.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByLabel('반영할 대상', { exact: true })).toHaveValue('별빛 미궁');
   expect(saved).toHaveLength(0);
   await page.getByLabel('반영할 대상', { exact: true }).fill('새 별빛 미궁');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await page.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => saved.length).toBe(1);
   expect(saved[0].candidates[0]).toMatchObject({ operation: 'ADD', subjectName: '새 별빛 미궁', value: base.extractedValue });
   expect(confirmed).toHaveLength(0);
-  await page.getByRole('button', { name: '모두 확정', exact: true }).click();
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => confirmed.length).toBe(1);
 });
 
 test('대상 연결 목록은 페이지와 검색어를 바꿔도 선택 전에는 저장하지 않는다', async ({ page }) => {
   const { saved } = await setup(page, unresolvedTarget, { searchTargets: true, paginateTargets: true });
   const panel = page.locator('.review-cb-target-search');
-  const north = panel.getByRole('button', { name: /북부 미궁.*이 대상에 연결/ });
-  const royal = panel.getByRole('button', { name: /왕도 미궁.*이 대상에 연결/ });
+  const north = panel.getByRole('radio', { name: /북부 미궁.*이 대상에 연결/ });
+  const royal = panel.getByRole('radio', { name: /왕도 미궁.*이 대상에 연결/ });
   await expect(north).toBeVisible();
   await panel.getByRole('button', { name: '다음 대상', exact: true }).click();
   await expect(royal).toBeVisible();
@@ -725,7 +726,7 @@ for (const sourceKind of ['EPISODE', 'SETTING_BOOK'] as const) {
     await expect(panel.getByRole('heading', { name: '‘별빛 마법’ — 기존 마법·능력 체계에 연결할까요, 새로 등록할까요?' })).toBeVisible();
     await expect(panel.locator('label')).toHaveText('기존 마법·능력 체계 검색');
     await expect(panel).not.toContainText('기존 기관');
-    await expect(panel.getByRole('button', { name: /별빛 마법.*새로 등록/ })).toHaveAttribute('aria-pressed', 'false');
+    await expect(panel.getByRole('radio', { name: /별빛 마법.*새로 등록/ })).toHaveAttribute('aria-checked', 'false');
   });
 }
 
@@ -733,7 +734,7 @@ test('초안 저장은 서버 확인 뒤 새로고침 없이 완료 요약으로
   await page.setViewportSize({ width: 1217, height: 1000 });
   const state = await setup(page, unresolvedTarget, { pauseReadback: true });
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('작가가 확인한 최종 내용.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => state.saved.length).toBe(1);
@@ -786,7 +787,7 @@ test('저장 응답만 있고 목록 확인이 실패하면 기존 초안 편집
   await editor.getByRole('button', { name: '수정안 적용', exact: true }).click();
   await expect.poll(() => state.saved.length).toBe(1);
   await expect(editor.getByRole('textbox', { name: '최종 설정값', exact: true })).toHaveValue('목록 확인 전에는 보존할 수정.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.confirmed).toHaveLength(0);
   await expect(editor.getByRole('button', { name: '최신 상태 다시 확인', exact: true })).toBeEnabled();
   state.allowReadback();
@@ -803,7 +804,7 @@ test('제안과 같은 내용을 수동 저장해 userModified가 false여도 �
     automaticReviewHoldReason: 'SUBJECT_CONFIRMATION_REQUIRED' }, { userModifiedOnSave: false });
   const row = page.locator('.world-setting-diff-row');
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 완료');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => state.saved.length).toBe(1);
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
@@ -811,6 +812,10 @@ test('제안과 같은 내용을 수동 저장해 userModified가 false여도 �
   await expect(page.locator('.world-candidate-group-card')).toContainText('확정 준비됨');
   expect(state.confirmed).toHaveLength(0);
   await page.reload();
+  // 저장된 결정은 다시 열면 한 줄 요약으로 접히고, 펼치면 검토 완료 상태를 그대로 본다.
+  await expect(row).toContainText('저장했어요');
+  await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
+  await row.getByRole('button', { name: '펼치기', exact: true }).click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
 });
@@ -819,14 +824,14 @@ test('제안과 같은 내용을 수동 저장해 userModified가 false여도 �
 test('저장 뒤 다른 최종값을 조회하면 인라인 입력을 유지하고 일치하는 상태를 확인한 후에만 접는다', async ({ page }) => {
   const state = await setup(page, unresolvedTarget, { differentReadback: true });
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('이번 요청에서 작성한 내용.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => state.saved.length).toBe(1);
   await expect(page.getByRole('button', { name: '최신 상태 다시 확인', exact: true })).toBeVisible();
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue('이번 요청에서 작성한 내용.');
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 완료');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   state.allowReadback();
   await page.getByRole('button', { name: '최신 상태 다시 확인', exact: true }).click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
@@ -837,7 +842,7 @@ test('저장 뒤 다른 최종값을 조회하면 인라인 입력을 유지하�
 test('저장 거절 뒤 다른 최종값을 조회해도 입력을 교체하지 않고 저장 재시도를 허용한다', async ({ page }) => {
   const state = await setup(page, unresolvedTarget, { failSave: true, differentReadback: true });
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('실패해도 보존할 내용.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   await expect.poll(() => state.saved.length).toBe(1);
@@ -850,7 +855,7 @@ test('저장 거절 뒤 다른 최종값을 조회해도 입력을 교체하지 
 test('최신 상태 재확인 중에는 중복 조회를 막고 불일치 뒤에도 입력과 재시도를 보존한다', async ({ page }) => {
   const state = await setup(page, unresolvedTarget, { differentReadback: true });
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('재확인 중에도 보존할 내용.');
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
   const recover = page.getByRole('button', { name: '최신 상태 다시 확인', exact: true });
@@ -868,11 +873,11 @@ test('최신 상태 재확인 중에는 중복 조회를 막고 불일치 뒤에
   await expect.poll(state.delayedListFinished).toBe(true);
   await expect(recover).toBeEnabled();
   await expect(row.getByLabel('최종 내용', { exact: true })).toHaveValue('재확인 중에도 보존할 내용.');
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   await recover.click();
   await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeEnabled();
   expect(state.saved).toHaveLength(1);
   expect(state.confirmed).toHaveLength(0);
 });
@@ -881,7 +886,7 @@ test('최신 상태 재확인 중에는 중복 조회를 막고 불일치 뒤에
 test('이전 목록 요청이 늦게 돌아와도 확인한 저장 초안과 완료 요약을 되돌리지 않는다', async ({ page }) => {
   const state = await setup(page, unresolvedTarget, { second: { comparisonStatus: 'PROCESSING', automaticApplicationPending: false, manualReviewAvailable: false } });
   const row = page.locator('.world-setting-diff-row').first();
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByLabel('최종 내용', { exact: true }).fill('늦은 목록보다 최신인 저장 내용.');
   state.delayNextList();
   await expect.poll(state.delayedListStarted).toBe(true);
@@ -900,9 +905,10 @@ test('저장으로 기존 반영방식 필터에서 빠진 초안도 같은 출�
   const state = await setup(page, unresolvedTarget, { hideMovedFromOldFilter: true });
   await page.getByRole('button', { name: 'AI 판단 보류', exact: true }).click();
   const row = page.locator('.world-setting-diff-row');
-  await row.getByRole('button', { name: /별빛 미궁.*새로 등록/ }).click();
+  await row.getByRole('radio', { name: /별빛 미궁.*새로 등록/ }).click();
   await row.getByRole('button', { name: '이 내용으로 검토 완료' }).click();
-  await expect(row.locator('.review-cb-heading')).toContainText('검토 완료');
+  // 필터가 바뀌어 묶음을 다시 열면 저장된 결정은 요약으로 접힌다.
+  await expect(row).toContainText('저장했어요');
   expect(state.requests).toContain(`GET /api/v1/works/${workId}/world-setting-candidates/${candidateId}`);
   await expect.poll(() => new URL(page.url()).searchParams.get('operation')).toBe('ADD');
   await expect(row.locator('.review-cb-decision-panel')).toHaveCount(0);

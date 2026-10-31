@@ -93,13 +93,13 @@ for (const width of [1280, 320]) {
       if (scenario.reason === 'SUBJECT_UNRESOLVED') {
         await expect(row.locator('.review-cb-comparison')).toHaveCount(0);
         await expect(row.getByRole('textbox', { name: '기존 세계관 대상 검색' })).toBeVisible();
-        await expect(row.getByRole('button', { name: /‘정령술’ 새로 등록/ })).toBeVisible();
+        await expect(row.getByRole('radio', { name: /‘정령술’ 새로 등록/ })).toBeVisible();
         await expect(row.getByText('없음', { exact: true })).toHaveCount(0);
       }
       const comparisonBox = row.locator('.review-cb-inline-value').first();
       expect(await computedContrastRatio(comparisonBox.locator('strong'), comparisonBox)).toBeGreaterThanOrEqual(4.5);
       expect(await computedContrastRatio(comparisonBox.locator('div'), comparisonBox)).toBeGreaterThanOrEqual(4.5);
-      await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+      await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
       if (process.env.GH180_REVIEW_SCREENSHOTS === '1' && scenario.reason === 'SUBJECT_UNRESOLVED') {
         await row.scrollIntoViewIfNeeded();
@@ -125,13 +125,13 @@ for (const width of [1280, 320]) {
     await expect(compared).toContainText('범위: 불의 정령 · 소환 유지 시간');
     await row.locator('.review-cb-evidence summary').click();
     await expect(row.locator('.world-setting-comparison-reason')).toContainText('확인이 필요한 이유');
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await expect(confirm).toBeDisabled();
     if (process.env.GH180_REVIEW_SCREENSHOTS === '1') {
       await row.scrollIntoViewIfNeeded();
       await page.screenshot({ path: `docs/screens/gh180-world-unresolved-scope-${width}.png` });
     }
-    await row.getByRole('button', { name: /예, 포함된 내용이에요/ }).click();
+    await row.getByRole('radio', { name: /예, 포함된 내용이에요/ }).click();
     await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(state.savedBody).toEqual({ batchId, candidates: [{ candidateId,
       category: 'POWER_SYSTEM', subjectName: '정령술', scopeName: '불의 정령', settingName: '소환 유지 시간',
@@ -176,7 +176,7 @@ for (const width of [1280, 320]) {
     await expect(row).not.toContainText('c-private');
     await expect(row).not.toContainText('private-world-id');
     expect(await computedContrastRatio(selection.locator('strong'), selection)).toBeGreaterThanOrEqual(4.5);
-    await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     expect(state.candidate().comparisonStatus).toBe('FAILED');
     expect(state.unintendedRequests()).toBe(0);
@@ -191,7 +191,7 @@ test('일반 분석의 직접 해결할 수 없는 비교 실패는 재시도 �
   await expect(row.locator('.review-cb-heading')).toContainText('비교 실패');
   await expect(row.locator('.world-setting-comparison-reason')).toContainText('설정 비교를 완료하지 못했습니다.');
   await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toBeEnabled();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.unintendedRequests()).toBe(0);
 });
 
@@ -237,7 +237,7 @@ test('사용량 부족 후보는 수동 확인 가능 표시가 함께 있어도
   await expect(page.locator('.world-candidate-group-card')).toContainText('사용량 부족으로 중단');
   await expect(row.locator('.review-cb-heading')).not.toContainText('검토 필요');
   await expect(row.getByRole('button', { name: '수정', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
 });
 
 test('실패 후보에 검토 제안이 남아 있어도 그룹 검토 수를 중복으로 더하지 않는다', async ({ page }) => {
@@ -290,6 +290,6 @@ test('사용량 중단 후보에 이전 수동 결정이 남아 있어도 확정
     userModified: true, finalOperation: 'ADD', finalCategory: 'POWER_SYSTEM',
     finalSubjectName: '정령술', finalSettingName: '소환 지속 시간', finalValue: '30분' });
   await expect(page.locator('.world-setting-diff-row').getByRole('button', { name: '수정', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '모두 확정', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ })).toBeDisabled();
   expect(state.unintendedRequests()).toBe(0);
 });

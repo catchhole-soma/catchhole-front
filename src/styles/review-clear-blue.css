@@ -84,6 +84,14 @@
 .review-additional-changes { margin: 14px 0; }
 .review-additional-changes > summary { min-height: 44px; padding: 10px 0; color: var(--ch-primary-ink); cursor: pointer; font-size: 12px; }
 .review-draft-saved { color: var(--ch-success-ink); font-size: 12px; line-height: 1.7; }
+/* 저장 중·확정 때 적용할 선택은 저장 완료와 다른 문장과 중립색으로 구분한다. */
+.review-draft-saved.is-pending, .review-draft-saved.is-local { color: var(--ch-text-muted); }
+.review-cb-notice__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.review-group-save-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; color: var(--ch-warning-ink); font-size: 12px; line-height: 1.6; }
+.setting-review-group-title:focus, .setting-candidate-detail[data-candidate-id]:focus,
+.world-candidate-detail-title:focus, .world-setting-diff-row[data-candidate-id]:focus { outline: none; }
+.setting-review-group-title:focus-visible, .world-candidate-detail-title:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 3px; border-radius: 4px; }
+.setting-candidate-detail[data-candidate-id]:focus-visible, .world-setting-diff-row[data-candidate-id]:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
 
 .review-cb-decisions { margin: 20px 0; }
 .review-cb-decisions__question { margin-bottom: 13px; }
@@ -92,19 +100,19 @@
 .review-cb-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .review-cb-choices.has-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .review-cb-choice { display: flex; flex-direction: column; gap: 13px; min-width: 0; min-height: 92px; padding: 15px; text-align: left; border: 1px solid var(--ch-border-strong); border-radius: 12px; background: var(--ch-surface); color: var(--ch-text); font-family: inherit; cursor: pointer; box-shadow: 0 2px 6px rgb(31 55 88 / 3%); transition: border-color 120ms, background-color 120ms; }
-.review-cb-choice:hover:not(:disabled) { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
-.review-cb-choice[aria-pressed=true] { border-color: var(--ch-primary); background: var(--ch-surface-soft); box-shadow: inset 0 0 0 1px var(--ch-primary); }
-.review-cb-choice:disabled { cursor: not-allowed; opacity: .6; }
+.review-cb-choice:hover:not(:disabled):not([aria-disabled=true]) { border-color: var(--ch-primary); background: var(--ch-surface-soft); }
+.review-cb-choice[aria-pressed=true], .review-cb-choice[aria-checked=true] { border-color: var(--ch-primary); background: var(--ch-surface-soft); box-shadow: inset 0 0 0 1px var(--ch-primary); }
+.review-cb-choice:disabled, .review-cb-choice[aria-disabled=true] { cursor: not-allowed; opacity: .6; }
 .review-cb-choice__top { display: flex; align-items: center; gap: 11px; width: 100%; }
 .review-cb-choice__image { width: 48px; height: 50px; flex-shrink: 0; border-radius: 9px; overflow: hidden; background: var(--ch-canvas); }
 .review-cb-choice__identity { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .review-cb-choice__identity strong { color: var(--ch-ink); font-size: 14px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
 .review-cb-choice__identity > span { color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 .review-cb-choice__radio { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex-shrink: 0; border: 1px solid var(--ch-border-strong); border-radius: 50%; color: white; background: var(--ch-surface); }
-.review-cb-choice[aria-pressed=true] .review-cb-choice__radio { background: var(--ch-primary); border-color: var(--ch-primary); }
+.review-cb-choice[aria-pressed=true] .review-cb-choice__radio, .review-cb-choice[aria-checked=true] .review-cb-choice__radio { background: var(--ch-primary); border-color: var(--ch-primary); }
 .review-cb-choice__preview { display: block; color: var(--ch-text); font-size: 12px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .review-cb-choice__effect { display: block; width: 100%; margin-top: auto; padding: 8px 9px; text-align: center; background: var(--ch-canvas); color: var(--ch-text-muted); border-radius: 7px; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
-.review-cb-choice[aria-pressed=true] .review-cb-choice__effect { background: var(--ch-primary-hover); color: var(--ch-primary-contrast); }
+.review-cb-choice[aria-pressed=true] .review-cb-choice__effect, .review-cb-choice[aria-checked=true] .review-cb-choice__effect { background: var(--ch-primary-hover); color: var(--ch-primary-contrast); }
 
 .review-cb-inline-value { display: flex; align-items: baseline; gap: 14px; margin: 15px 0; padding: 14px 16px; border-left: 3px solid var(--ch-primary); border-radius: 0 10px 10px 0; background: var(--ch-surface-soft); color: var(--ch-text); }
 .review-cb-inline-value > strong { flex-shrink: 0; color: var(--ch-primary-ink); font-size: 11px; }
@@ -183,6 +191,8 @@
   .review-cb-notice { flex-wrap: wrap; }
   .review-cb-notice > div:not(.review-cb-notice__action) { flex: 1; }
   .review-cb-notice__action { width: 100%; margin-left: 26px; }
+  .review-cb-notice__action:has(> .review-cb-notice__buttons) { width: calc(100% - 26px); }
+  .review-cb-notice__buttons > button, .review-group-save-state button { flex: 1 1 100%; min-height: 44px; }
   .review-cb-evidence__button { min-height: 44px; }
   .setting-review-screen .setting-candidate-detail, .setting-review-screen .world-setting-diff-row { margin: 10px; padding: 16px 12px !important; border-radius: 13px; }
   .setting-review-screen .setting-review-detail article > footer, .setting-review-screen .world-candidate-detail-card > footer { margin: 10px; }
@@ -194,3 +204,159 @@
   .review-type-complete-mobile-action { display: block; }
   .review-type-complete-mobile-action > button { min-height: 44px; }
 }
+
+/* #211 후속 2차: 작품 전체 인물 검색. 결과 없음·검색 실패·정보 없음은 문장과 role로 구분하고 색은 보조로만 쓴다. */
+.review-match-search { margin-top: 18px; min-width: 0; }
+.review-match-search__help { margin: 6px 0 0; color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; }
+.review-match-results { display: flex; flex-direction: column; gap: 7px; min-height: 180px; max-height: 300px; margin-top: 10px; overflow-y: auto; }
+.review-match-results[aria-busy=true] > .review-match-result { opacity: .62; }
+.review-match-result { display: flex; flex-direction: column; gap: 3px; min-height: 52px; padding: 9px 12px; border: 1px solid var(--ch-border); border-radius: 9px; text-align: left; font-family: inherit; cursor: pointer; }
+.review-match-result:disabled { cursor: default; }
+.review-match-result:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-match-result__name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.review-match-result__name strong { color: var(--ch-ink); font-size: 13px; overflow-wrap: anywhere; }
+.review-match-result mark { padding: 0 1px; border-radius: 3px; background: var(--ch-surface-accent); color: inherit; }
+.review-modal__choice .review-match-result__badge { padding: 1px 7px; border: 1px solid #eed8ac; border-radius: 999px; background: #fff9ef; color: var(--ch-warning-ink) !important; font-size: 10px; font-weight: 650; line-height: 1.6; }
+.review-match-result__facts { font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-match-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 16px; border: 1px dashed var(--ch-border-strong); border-radius: 10px; color: var(--ch-text); font-size: 12px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
+.review-match-state > strong { color: var(--ch-ink); }
+.review-match-state.is-error { border-style: solid; border-color: #edc4ca; background: var(--review-remove-bg); color: var(--ch-danger-ink); }
+.review-match-state.is-error > strong { color: var(--ch-danger-ink); }
+.review-match-skeleton { height: 52px; margin-bottom: 7px; border-radius: 9px; background: var(--ch-canvas); animation: review-match-pulse 1.2s ease-in-out infinite; }
+@keyframes review-match-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .review-match-skeleton { animation: none; } }
+@media (max-width: 650px) {
+  .review-match-result { min-height: 56px; }
+  .review-match-state .review-action { width: 100%; min-height: 44px !important; }
+}
+
+/* #211 후속 2차: 연결 미리보기. 서버 비교 결과가 아니므로 중립 톤으로만 표시하고, 읽기 실패는 기존값 없음과 다른 경고로 둔다. */
+.review-match-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 16px; padding: 11px 14px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-canvas); color: var(--ch-text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-match-summary > strong { color: var(--ch-ink); font-size: 13px; }
+.review-match-summary > * + *::before { content: '· '; color: var(--ch-text-muted); font-weight: 400; }
+.review-match-summary__value { color: var(--ch-ink); white-space: pre-wrap; }
+.review-match-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 16px; align-items: start; margin-top: 18px; }
+.review-match-layout > .review-match-search { margin-top: 0; }
+.review-link-preview { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 14px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-canvas); color: var(--ch-text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-link-preview p { margin: 0; }
+.review-link-preview.is-empty { color: var(--ch-text-muted); border-style: dashed; }
+.review-link-preview.is-error { border-color: #edc4ca; background: var(--review-remove-bg); color: var(--ch-danger-ink); }
+.review-link-preview.is-error strong { display: block; margin-bottom: 4px; }
+.review-link-preview__identity { display: flex; flex-direction: column; gap: 2px; }
+.review-link-preview__identity small, .review-link-preview__muted { color: var(--ch-text-muted); font-size: 11px; }
+.review-link-preview__identity strong { color: var(--ch-ink); font-size: 15px; }
+.review-link-preview__section h3 { margin: 0 0 6px; color: var(--ch-ink); font-size: 12px; font-weight: 700; }
+.review-link-preview__section dl { display: grid; gap: 6px; margin: 0; }
+.review-link-preview__section dl > div { display: grid; grid-template-columns: minmax(64px, auto) minmax(0, 1fr); gap: 8px; padding: 6px 8px; border-radius: 7px; background: var(--ch-surface); }
+.review-link-preview__section dt { color: var(--ch-text-muted); }
+.review-link-preview__section dd { margin: 0; color: var(--ch-ink); white-space: pre-wrap; }
+.review-link-preview__section dl > div.is-missing dd { color: var(--ch-text-muted); }
+.review-link-preview__section > .review-link-preview__muted { margin-top: 6px; }
+@media (max-width: 760px) {
+  .review-match-layout { grid-template-columns: minmax(0, 1fr); }
+  .review-match-results { min-height: 120px; }
+  .review-link-preview__section dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
+/* #211 후속 2차: 체크한 후보만 연결. 체크박스는 44px 터치 영역을 갖고, 선택 바는 확정 영역 위에 함께 고정된다. */
+.review-cb-selectable-heading { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.review-cb-selectable-heading > .review-cb-heading { flex: 1; min-width: 0; }
+.review-select-check { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; margin: 8px 0 0 -10px; border-radius: 10px; cursor: pointer; }
+.review-select-check:has(input:disabled) { cursor: not-allowed; }
+.review-select-check input, .review-select-all input { width: 18px; height: 18px; margin: 0; accent-color: var(--ch-primary); cursor: inherit; }
+.review-select-check:has(input:focus-visible), .review-select-all:has(input:focus-visible) { outline: 3px solid var(--ch-primary); outline-offset: 1px; }
+.review-selection-header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 10px; }
+.review-select-all { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 4px; border-radius: 9px; color: var(--ch-text); font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-selection-header__help { flex: 1 1 220px; color: var(--ch-text-muted); font-size: 11px; line-height: 1.6; }
+.review-selection-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--ch-primary); border-radius: 10px; background: var(--ch-surface-soft); }
+.review-selection-bar__summary { display: flex; flex: 1 1 200px; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; line-height: 1.6; }
+.review-selection-bar__summary strong { color: var(--ch-ink); font-size: 13px; }
+.review-selection-bar__summary span { color: var(--ch-warning-ink); }
+.review-selection-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.setting-review-screen .setting-candidate-detail.is-selection-invalid { border-color: var(--ch-danger) !important; box-shadow: inset 0 0 0 1px var(--ch-danger), 0 7px 24px rgb(31 55 88 / 5%); }
+@media (max-width: 650px) {
+  .review-select-check { margin: 4px 0 0 -6px; }
+  .review-selection-bar__actions { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .review-selection-bar__actions .review-action { min-height: 44px !important; }
+}
+
+/* #211 후속 2차: 세계관 선택 대상 연결. 결정이 남는 행은 경고 잉크로 문장과 함께 구분한다. */
+.world-identity-hint { margin: 6px 0 0; }
+.review-target-link__name { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; color: var(--ch-text); font-size: 12px; font-weight: 650; }
+.review-target-link__name input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-ink); font: inherit; font-size: 13px; }
+.review-target-link__plan { margin: 14px 0 0; color: var(--ch-text); font-size: 12px; line-height: 1.7; }
+.review-link-preview__section dl > div.is-decision dd { color: var(--ch-warning-ink); font-weight: 650; }
+.review-cb-target-search__controls select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-ink); font: inherit; font-size: 13px; }
+
+/* #211 후속 3차: 묶음 확정 영역. 상세 스크롤 영역 하단에 붙고, 선택 바를 같은 영역 맨 위에 쌓는다. */
+.setting-review-screen .setting-review-detail article > footer.review-action-bar,
+.setting-review-screen .world-candidate-detail-card > footer.review-action-bar {
+  position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 10px;
+  margin: 16px 0 0; padding: 12px 20px; border: 0 !important; border-top: 1px solid var(--ch-border) !important; border-radius: 0;
+  background: var(--ch-surface) !important; box-shadow: 0 -10px 24px rgb(31 55 88 / 8%) !important;
+}
+.review-action-bar__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.review-action-bar__summary { flex: 1 1 240px; min-width: 0; }
+.review-action-bar__counts { margin: 0; color: var(--ch-ink); font-size: 13px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
+.review-action-bar__counts .is-blocking { color: var(--ch-warning-ink); }
+.review-action-bar__reason { margin: 2px 0 0; color: var(--ch-warning-ink); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.review-action-bar__error { width: 100%; color: var(--ch-danger-ink); font-size: 12px; line-height: 1.6; }
+.review-action-bar__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.review-action-bar__primary { min-height: 44px; padding: 0 20px; border: 1px solid var(--ch-primary-hover); border-radius: 10px; background: var(--ch-primary-hover); color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.review-action-bar__primary:hover:not([aria-disabled=true]) { background: var(--ch-primary-pressed); }
+.review-action-bar__primary[aria-disabled=true] { border-color: var(--ch-border-strong); background: var(--ch-canvas); color: var(--ch-text-muted); cursor: not-allowed; }
+.review-action-bar__jump { min-height: 44px; }
+.review-action-bar__primary:focus-visible, .review-action-bar__jump:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-group-confirm-notes { margin: 16px 22px 0; display: grid; gap: 10px; }
+.review-group-confirm-notes > * { margin: 0; }
+[data-candidate-id] { scroll-margin-top: 12px; }
+@media (max-width: 650px) {
+  .setting-review-screen .setting-review-detail article > footer.review-action-bar,
+  .setting-review-screen .world-candidate-detail-card > footer.review-action-bar { gap: 8px; margin-top: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .review-action-bar__summary { flex-basis: 100%; }
+  .review-action-bar__actions { width: 100%; flex-wrap: nowrap; }
+  .review-action-bar__actions > button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px; }
+  /* 선택 바와 확정 버튼 줄이 함께 고정되므로 320px에서도 선택 바 버튼을 두 칸으로 놓아 영역 높이를 줄인다. */
+  .review-selection-bar { padding: 8px 10px; }
+  .review-selection-bar__actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setting-review-screen .review-selection-bar__actions .review-action { min-height: 44px !important; padding: 0 8px !important; }
+  /* 선택 중에는 막는 이유 문장을 접는다. 수치·이동 버튼은 남고, 문장은 주 버튼의 설명(aria-describedby)으로 계속 읽힌다. */
+  footer.review-action-bar:has(.review-selection-bar) .review-action-bar__reason { display: none; }
+  .review-group-confirm-notes { margin: 10px 10px 0; }
+}
+
+/* #211 후속 3차: 결정이 끝난 카드의 한 줄 요약. 수정·제외·연결 변경은 남기고 펼치면 원문·근거를 그대로 본다. */
+.setting-review-screen .setting-candidate-detail.is-summary,
+.setting-review-screen .world-setting-diff-row.is-summary { padding: 12px 16px !important; box-shadow: none; }
+.review-cb-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.review-cb-summary > .review-select-check { margin: 0 0 0 -10px; }
+.review-cb-summary__identity { flex: 1 1 240px; min-width: 0; }
+.review-cb-summary__title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.review-cb-summary__title h3 { margin: 0; color: var(--ch-ink); font-size: 15px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
+.review-cb-summary__value { margin: 2px 0 0; color: var(--ch-text); font-size: 12px; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.review-cb-summary__actions { flex: 0 1 auto; }
+.review-cb-fold { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 12px; border: 1px solid var(--ch-border-strong); border-radius: 9px; background: var(--ch-surface); color: var(--ch-primary-ink); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-cb-fold:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.setting-review-screen .review-cb-fold { font-size: 12px; font-weight: 750; }
+.review-cb-target-search.is-compact .review-cb-choices { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+@media (max-width: 650px) {
+  .setting-review-screen .setting-candidate-detail.is-summary,
+  .setting-review-screen .world-setting-diff-row.is-summary { padding: 10px 12px !important; }
+  .review-cb-summary__identity { flex-basis: 160px; }
+  .review-cb-summary__actions { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .review-cb-summary__actions button, .review-cb-fold { min-height: 44px; }
+}
+
+/* #211 후속 3차: 검토 단축키 안내. 확정 영역 끝의 버튼으로 열고 Esc·바깥 클릭으로 닫는다. */
+.review-shortcut { position: relative; }
+.review-shortcut__toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 12px; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-surface); color: var(--ch-text-muted); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.review-shortcut__toggle[aria-expanded=true] { border-color: var(--ch-primary); color: var(--ch-primary-ink); }
+.review-shortcut__toggle:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: 2px; }
+.review-shortcut__panel { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 4; width: min(340px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-surface); box-shadow: 0 12px 32px rgb(31 55 88 / 14%); color: var(--ch-text); font-size: 12px; line-height: 1.6; }
+.review-shortcut__panel dl { display: grid; gap: 6px; margin: 0; }
+.review-shortcut__panel dl > div { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.review-shortcut__panel dd { margin: 0; }
+.review-shortcut__panel kbd { font: inherit; font-weight: 700; color: var(--ch-ink); white-space: nowrap; }
+.review-shortcut__panel p { margin: 10px 0 0; color: var(--ch-text-muted); font-size: 11px; }
+/* 단축키는 물리 키보드용이므로 좁은 화면에서는 안내 버튼을 숨겨 확정 영역을 줄인다. */
+@media (max-width: 768px) { .review-shortcut { display: none; } }

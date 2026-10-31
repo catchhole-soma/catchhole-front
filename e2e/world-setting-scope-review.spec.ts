@@ -93,10 +93,14 @@ for (const width of [1280, 320]) {
     await expect(source).not.toContainText('AI가 합친 비교값');
     await row.locator('.review-cb-evidence summary').click();
     await expect(row.locator('.world-setting-comparison-reason')).toContainText('같은 장소인지 확실하지 않아');
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await expect(confirm).toBeDisabled();
     const pendingNotice = page.locator('.world-setting-diff-row').last().locator('.review-cb-notice.is-warning');
     const savedNotice = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"] .review-cb-notice.is-success`);
+    // 저장된 결정은 처음 열 때 한 줄 요약으로 접혀 있다. 펼쳐서 저장 완료 안내를 확인한다.
+    const savedRow = page.locator(`.world-setting-diff-row[data-candidate-id="${savedId}"]`);
+    await expect(savedRow).toContainText('저장했어요');
+    await savedRow.getByRole('button', { name: '펼치기', exact: true }).click();
     for (const notice of [pendingNotice, savedNotice]) {
       await expect(notice).toBeVisible();
       expect(await computedContrastRatio(notice.locator('strong'), notice)).toBeGreaterThanOrEqual(4.5);
@@ -112,7 +116,7 @@ for (const width of [1280, 320]) {
       await savedNotice.screenshot({ path: `docs/screens/gh180-world-saved-notice-${width}.png` });
       await pendingNotice.screenshot({ path: `docs/screens/gh180-world-review-notice-${width}.png` });
     }
-    await scopeChoice.getByRole('button', { name: /기존 범위에 합치기/ }).click();
+    await scopeChoice.getByRole('radio', { name: /기존 범위에 합치기/ }).click();
     await expect(page.locator('.review-modal')).toHaveCount(0);
     await expect.poll(() => savedBody).toEqual({ batchId, candidates: [{ candidateId, category: 'LOCATION',
       subjectName: '미궁', scopeName: '1층', settingName: '광원', value: '벽의 수정들이 주변을 밝힌다.\n수정들이 적어지며 어둠이 드리운다.', operation: 'MERGE' }] });

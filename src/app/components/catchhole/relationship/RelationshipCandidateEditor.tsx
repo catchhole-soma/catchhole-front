@@ -305,7 +305,7 @@ export function RelationshipCandidateEditor({ workId, candidate, onClose, onChan
     </div>
     {editable && <section className="family-judgment" aria-label="가족 관계 판단" ref={judgment}>
       {judgmentOpen ? <>
-        <ReviewChoiceCards label="두 사람은 실제 가족인가요?" disabled={locked} value={decision} onChange={choose}
+        <ReviewChoiceCards label="두 사람은 실제 가족인가요?" semantics="toggle" disabled={locked} value={decision} onChange={choose}
           choices={[
             { id: 'family', title: '실제 가족이에요', description: '가족 관계로 판단해요. 프로필 연결은 따로 반영해요.' },
             { id: 'exclude', title: '가족이 아니에요', description: '이 관계 후보를 제외해요. 프로필과 원문은 유지해요.' },

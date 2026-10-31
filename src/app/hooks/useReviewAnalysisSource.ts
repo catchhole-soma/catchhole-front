@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { useQuery, type UseMutationOptions } from '@tanstack/react-query';
 import { getAnalysisJobOptions, getSettingBookOptions } from '../api/generated/@tanstack/react-query.gen';
 import { isSameReviewScope } from '../lib/analysis-source';
+import { ClientRejectedError } from '../lib/review-save-state';
 
 /** Public book writes belong to the origin Job and its still-current frozen revision. */
 export function useReviewAnalysisSource(workId: string, batchId: string, sourceAnalysisJobId?: string) {
@@ -39,8 +40,9 @@ export function guardReviewSourceMutation<TData, TError, TVariables>(
   options: UseMutationOptions<TData, TError, TVariables>, canWrite: () => boolean,
 ): UseMutationOptions<TData, TError, TVariables> {
   return { ...options, mutationFn: (variables, context) => {
-    if (!canWrite()) throw new Error('이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.');
-    if (!options.mutationFn) throw new Error('저장 요청을 확인하지 못했습니다.');
+    // 보내기 전에 막은 쓰기는 확실한 실패로 분류되도록 `ClientRejectedError`를 쓴다(결과 미확인 재조회로 보내지 않는다).
+    if (!canWrite()) throw new ClientRejectedError('이전 분석 기록은 수정할 수 없습니다. 입력한 내용은 유지됩니다.');
+    if (!options.mutationFn) throw new ClientRejectedError('저장 요청을 확인하지 못했습니다.');
     return options.mutationFn(variables, context);
   } };
 }

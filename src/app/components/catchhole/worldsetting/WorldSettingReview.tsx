@@ -1,7 +1,7 @@
 import { guardReviewSourceMutation, useReviewAnalysisSource } from '../../../hooks/useReviewAnalysisSource';
 import { analysisSourceLabel, analysisSourceReaderUrl, analysisSourcesLabel, bookWorkspaceUrl, isSameReviewScope } from '../../../lib/analysis-source';
 import { bookReviewValueKey, isBookProtectionHold } from '../../../lib/book-current-review';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -37,6 +37,7 @@ import {
 } from '../../../api/generated/@tanstack/react-query.gen';
 import type {
   Decision,
+  GetWorldSettingCandidatesResponse,
   WorldSettingCandidateGroupResponse,
   WorldSettingCandidateResponse,
   WorldSettingCandidateDecisionUpdateItem,
@@ -50,6 +51,13 @@ import {
   type ReviewReturnState,
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
+import {
+  findPendingGroupOnPages, hasPendingCandidate, nextGroupKeyAfter, otherPageOrder, REVIEW_SELECTION_LINK_LIMIT,
+  REVIEW_SELECTION_LINK_LIMIT_TEXT,
+} from '../../../lib/setting-review-groups';
+import { isResponseLost, REVIEW_RECHECK_DELAYS_MS, REVIEW_RECHECK_LIMIT } from '../../../lib/review-save-state';
+import { reviewPositionKey } from '../../../lib/review-position-store';
+import { useReviewPositionMemory } from '../review-ui/useReviewPositionMemory';
 import {
   notifyAiTokenQuotaExhausted,
   observeAnalysisInterruption,
@@ -78,9 +86,19 @@ import { UserMenu } from '../UserMenu';
 import { OtherSettingReviewAction, SettingReviewTabs } from './SettingReviewTabs';
 import { ReviewSettingHeading, ReviewValueComparison, ReviewEvidence, ReviewNotice, ReviewInlineValue, ReviewChoiceCards } from '../review-ui/ReviewPrimitives';
 import { ReviewSubjectThumbnail } from '../review-ui/ReviewSubjectThumbnail';
+import { ReviewGroupActionBar } from '../review-ui/ReviewGroupActionBar';
+import { useReviewCardNavigation } from '../review-ui/useReviewCardNavigation';
+import { useReviewKeyboardNavigation } from '../review-ui/useReviewKeyboardNavigation';
+import { ReviewShortcutHelp } from '../review-ui/ReviewShortcutHelp';
+import { useModalFocusTrap } from '../review-ui/useModalFocusTrap';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
-import { WorldReviewDecisionPanel } from './WorldReviewDecisionPanel';
-import { compatibleWorldReviewSources, combineWorldReviewValues } from './worldReviewDecisions';
+import { WorldReviewDecisionPanel, type WorldPresetTarget } from './WorldReviewDecisionPanel';
+import {
+  compatibleWorldReviewSources, combineWorldReviewValues, worldLinkSourceDraft,
+  type planWorldTargetLink, type WorldLinkTarget, type WorldTargetLinkUnit,
+} from './worldReviewDecisions';
+import { WorldTargetLinkModal } from './WorldTargetLinkModal';
+import { computeWorldGroupConfirmBlock, worldDuplicatePaths, type WorldGroupBlockRow } from './worldGroupConfirmBlock';
 
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 type WorldSuggestedOperation = NonNullable<WorldSettingCandidateResponse['suggestedOperation']>;
@@ -198,6 +216,69 @@ function shouldRetryCandidateQuery(failureCount: number, error: unknown): boolea
 
 function errorMessage(error: unknown, fallback: string): string {
   return toApiError(error)?.message ?? (error instanceof Error ? error.message : fallback);
+}
+
+/**
+ * 저장 결과를 다시 확인하는 이유. 결정 저장은 응답을 받았거나(acknowledged) 잃었을 때(lost) 서버 초안과 비교하고,
+ * 확정은 응답을 잃었을 때만 그룹이 처리됐는지 확인한다. read는 목록 상태만 다시 읽는다.
+ */
+type WorldRecoveryContext =
+  | { kind: 'decision'; drafts: WorldSettingCandidateDecisionUpdateItem[]; acknowledged: boolean; lost: boolean;
+    groupKey?: string; error?: unknown; stay?: WorldTargetLinkStay;
+    /** 저장을 보낸 시점의 묶음·필터·페이지(`reviewLocationKey`). 작가가 그 사이 옮겼으면 URL을 되돌리지 않는다. */
+    origin?: string | null;
+    /** 저장이 확인되면(정상 응답·응답 유실 복구 모두) 실행할 호출부의 후속 처리. */
+    afterSaved?: () => void }
+  | { kind: 'confirm'; groupKey: string | null; candidateIds: string[];
+    /** 제외(EXCLUDE)로 확정한 후보. 서버가 DISMISSED로 바꾼다. 나머지는 CONFIRMED여야 요청한 결과다. */
+    dismissedIds: string[];
+    previousGroups: WorldSettingCandidateGroupResponse[]; error: unknown }
+  | { kind: 'read' };
+
+type DecisionRecoveryResult =
+  | { status: 'busy' }
+  | { status: 'failed' }
+  | { status: 'read'; matches: boolean; data?: GetWorldSettingCandidatesResponse };
+
+/**
+ * 선택 대상 연결의 저장 문맥. 저장 뒤에도 읽던 묶음에 남고(비면 다음 묶음), 저장하지 않은 행은 고른 대상과 함께 결정으로 남긴다.
+ */
+interface WorldTargetLinkStay {
+  sourceGroupKey: string;
+  previousGroups: WorldSettingCandidateGroupResponse[];
+  targetName: string;
+  presets: Record<string, WorldPresetTarget>;
+}
+
+/** 선택 대상 연결 결과 안내. 저장한 행·결정이 남은 행과 연결한 묶음으로 가는 길을 함께 준다. */
+interface WorldTargetLinkNotice {
+  savedIds: string[];
+  pendingIds: string[];
+  targetName: string;
+  linkedGroupKey: string | null;
+  /** 연결을 보낸 묶음. 이 묶음(또는 묶음이 비어 대신 연 다음 묶음)을 보고 있을 때만 안내한다. */
+  sourceGroupKey: string;
+  advancedGroupKey?: string | null;
+}
+
+/** 확정으로 사라진 그룹 다음에 볼 그룹을 고르기 위한 직전 목록. 재조회가 끝난 뒤(armed)에만 판단한다. */
+interface WorldGroupAdvance {
+  groupKey: string;
+  previous: WorldSettingCandidateGroupResponse[];
+  force: boolean;
+  armed: boolean;
+  /** 다음 그룹으로 URL을 바꾼 뒤 반영되기를 기다리는 대상. */
+  target?: string | null;
+}
+
+/** 검토 위치(묶음·필터·페이지) 비교 키. 늦게 끝난 저장 후속 처리가 작가가 옮긴 위치를 되돌리지 않게 비교한다. */
+function reviewLocationKey(): string {
+  const params = new URLSearchParams(window.location.search);
+  return JSON.stringify(['candidateType', 'group', 'reviewStatus', 'worldCategory', 'operation', 'page'].map(key => params.get(key)));
+}
+
+function currentGroupParam(): string | null {
+  return new URLSearchParams(window.location.search).get('group');
 }
 
 function isWorldReviewLocation(workId: string, batchId: string, sourceAnalysisJobId?: string): boolean {
@@ -363,6 +444,50 @@ function candidateEditDecision(candidate: WorldSettingCandidateResponse): Decisi
     settingName,
     value,
   };
+}
+
+/** 대상 연결을 위해 체크할 수 없는 이유. 같은 결정의 원문이 필터로 숨으면 한 결정을 나눠 저장하지 않도록 막는다. */
+function worldLinkBlockedReason(candidate: WorldSettingCandidateResponse, filtered: boolean): string | null {
+  if (isAutomaticApplicationPending(candidate)) return automaticApplicationPendingMessage(candidate.source);
+  if (isQuotaInterruptedCandidate(candidate)) return '사용량 부족으로 비교가 중단된 설정은 비교를 이어서 마친 뒤 연결할 수 있어요.';
+  if ((candidate.comparisonStatus !== 'COMPLETED' && candidate.manualReviewAvailable !== true) || !candidateEditDecision(candidate)) {
+    return '비교가 끝난 뒤 연결할 수 있어요.';
+  }
+  if (candidate.comparisonDecisionId && filtered) return '같은 결정의 다른 원문이 필터로 숨어 있어요.';
+  return null;
+}
+
+/** 이 행을 체크하면 함께 체크되는 후보. 공유 결정의 원문은 한 결정이므로 같이 연결한다. */
+function worldLinkedIds(candidate: WorldSettingCandidateResponse, candidates: WorldSettingCandidateResponse[], filtered: boolean): string[] {
+  if (!candidate.id) return [];
+  if (!candidate.comparisonDecisionId) return [candidate.id];
+  const linked = compatibleWorldReviewSources(candidate, candidates, filtered);
+  return linked.length ? linked : [candidate.id];
+}
+
+/**
+ * 체크한 행을 대상 연결 단위로 묶는다. 초안은 행 패널의 대상 연결과 같이 원문 기준 경로와 추출값(공유 결정이면 원문들의 추출값)을 쓴다.
+ * 원문마다 내용이 다른데 아직 정리하지 않은 행은 자동 저장하지 않도록 표시한다.
+ */
+function worldTargetLinkUnits(candidates: WorldSettingCandidateResponse[], checkedIds: string[], filtered: boolean,
+  resolvedConflictIds: Set<string>): WorldTargetLinkUnit[] {
+  const used = new Set<string>();
+  return candidates.flatMap(candidate => {
+    if (!candidate.id || candidate.reviewStatus !== 'PENDING_REVIEW' || !checkedIds.includes(candidate.id) || used.has(candidate.id)) return [];
+    const fallback = candidateEditDecision(candidate);
+    if (!fallback) return [];
+    const candidateIds = worldLinkedIds(candidate, candidates, filtered).filter(id => checkedIds.includes(id));
+    candidateIds.forEach(id => used.add(id));
+    const sourceValue = candidateIds.length > 1 ? [...new Set(candidates
+      .filter(source => source.id && candidateIds.includes(source.id))
+      .map(source => source.extractedValue?.trim()).filter((value): value is string => Boolean(value)))].join('\n') || undefined : undefined;
+    // 공유 결정의 원문은 같은 원문 경로일 때만 함께 묶이므로(경로가 다르면 따로 체크된다) 대표 원문의 경로를 쓴다.
+    return [{
+      candidate, candidateIds,
+      draft: worldLinkSourceDraft(candidate, fallback, sourceValue),
+      conflict: candidate.consolidationStatus === 'CONFLICT' && !candidate.userModified && !resolvedConflictIds.has(candidate.id),
+    }];
+  });
 }
 
 function groupDecisionIdentity(
@@ -686,7 +811,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
 }) {
   if (group.status === 'READY' || group.candidates?.some(isAutomaticApplicationPending)) return null;
   if (allPendingDraftsPrepared(group)) return <div style={{ margin: '0 22px 16px' }}><ReviewNotice tone="success" title="확정할 내용이 준비됐어요">
-    검토한 내용을 아래의 모두 확정으로 작품에 반영해 주세요.
+    검토한 내용을 아래 확정 버튼으로 작품에 반영해 주세요.
   </ReviewNotice></div>;
   const status = groupStatusMeta(group);
   const failureKind = groupFailureKind(group);
@@ -716,7 +841,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
         ? '1차 추출 결과는 보존되어 있습니다. 상단의 남은 비교 재개로 이 항목을 이어서 처리할 수 있습니다.'
         : quotaInstruction
       : failureKind === 'MANUAL_REVIEW'
-        ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.`
+        ? `${REVIEWABLE_COMPARISON_FAILURE_MESSAGE} 직접 반영할 내용을 저장한 뒤 확정해 주세요.`
       : failureKind === 'MIXED_REVIEW'
         ? `${quotaInstruction} 검토가 필요한 항목은 원문을 확인하고 직접 반영할 내용을 저장해 주세요.`
       : failureKind === 'MIXED'
@@ -727,7 +852,7 @@ function RecomparisonNotice({ group, activeComparisonJobCount, canResumeTokenInt
           ? '다시 비교해야 하는 항목이 남아 있습니다. 직접 확인해서 반영할 수 있는 항목은 원문과 내용을 확인해 주세요.'
           : '기존 세계관과 비교 결과를 만들지 못했습니다. 아래의 다시 비교로 이어서 처리해 주세요.'
     : manualReviewAvailable
-      ? '자동으로 확정하지 못한 설정이 남았습니다. 원문을 확인하고 직접 반영할 내용을 저장한 뒤 모두 확정해 주세요.'
+      ? '자동으로 확정하지 못한 설정이 남았습니다. 원문을 확인하고 직접 반영할 내용을 저장한 뒤 확정해 주세요.'
       : group.status === 'RECOMPARISON_REQUIRED'
       ? (group.recomparisonScope === 'GROUP'
         ? '대상의 생성·이름·분류가 바뀌어 이 대상의 모든 설정 항목을 다시 비교합니다.'
@@ -754,7 +879,8 @@ function WorldKeyDiffRow({
   candidate, decision, conflictResolved, recompared, rootMoveApplication,
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
-  currentChoice = null, onCurrentChoice,
+  currentChoice = null, onCurrentChoice, saveCheckPending = false, presetTarget, selection, blocked = false,
+  compactTargetPicker = false, recentTargets, onTargetChosen, onPresetDismiss,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -775,6 +901,20 @@ function WorldKeyDiffRow({
   inlineDirty?: boolean;
   currentChoice?: 'CURRENT' | 'DEFAULT' | null;
   onCurrentChoice?: (mode: 'CURRENT' | 'DEFAULT') => void;
+  saveCheckPending?: boolean;
+  /** 묶음의 선택 대상 연결에서 저장하지 않고 이 행의 결정으로 남긴 대상. */
+  presetTarget?: WorldPresetTarget;
+  /** 대상 연결을 위해 체크할 수 있는 대기 행에만 넘긴다. */
+  selection?: { checked: boolean; disabled: boolean; disabledReason?: string; onChange: (checked: boolean) => void };
+  /** 이 행 때문에 묶음 확정이 막혀 있다(중복 경로 등). 결정이 저장돼 있어도 요약으로 접지 않는다. */
+  blocked?: boolean;
+  /** 묶음에 대상 미정 행이 여럿이면 행의 대상 선택을 최근 대상과 `대상 검색`으로 줄인다. */
+  compactTargetPicker?: boolean;
+  /** 이번 검토에서 고른 기존 대상(최근 순). 대상 미정 행의 축소형 선택지로 쓴다. */
+  recentTargets?: WorldLinkTarget[];
+  onTargetChosen?: (target: WorldLinkTarget) => void;
+  /** 묶음에서 골라 둔 대상을 버린다(행의 `변경 취소`). */
+  onPresetDismiss?: () => void;
 }) {
   const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
   const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
@@ -834,16 +974,51 @@ function WorldKeyDiffRow({
     && candidate.comparisonStatus === 'COMPLETED' && (operation === 'MERGE' || operation === 'UPDATE')
     && Boolean(before && proposedValue && before !== proposedValue);
   const noticeTitle = reviewableFailure ? '자동 비교를 마치지 못했어요' : undefined;
-  return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id}>
-    <ReviewSettingHeading title={keyName}
-      subtitle={[category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ')}
+  // 서버가 저장한 결정이 있고 더 정할 것이 없는 행은 처음 열 때 한 줄 요약으로 접는다(D6). 방금 저장한 행은 펼친 채 두고,
+  // 다시 미결정·미저장·결과 확인 중이 되면 펼친다.
+  const summarizable = pending && saved && !inlineDirty && !saveCheckPending && !presetTarget && !automaticPending && !blocked
+    && !(bookChoiceRequired && !currentChoice);
+  const [collapsed, setCollapsed] = useState(summarizable);
+  if (collapsed && !summarizable) setCollapsed(false);
+  const subtitle = [category ? CATEGORY_META[category].label : '세계관', subjectName, scopeName ? `범위: ${scopeName}` : null].filter(Boolean).join(' · ');
+  const rowActions = <>
+    <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
+    {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
+  </>;
+  const checkbox = selection && <label className="review-select-check" title={selection.disabled ? selection.disabledReason : undefined}>
+    <input type="checkbox" aria-label={`선택: ${propertyPath}`} checked={selection.checked} disabled={selection.disabled}
+      onChange={event => selection.onChange(event.target.checked)} />
+  </label>;
+  if (collapsed && summarizable) {
+    return <section className="world-setting-diff-row review-cb-setting-card is-summary" data-candidate-id={candidate.id} tabIndex={-1}>
+      <div className="review-cb-summary">
+        {checkbox}
+        <div className="review-cb-summary__identity">
+          <div className="review-cb-summary__title"><h3>{keyName}</h3>
+            <Badge label={operation === 'EXCLUDE' ? '제외 예정' : '저장했어요'} color={operation === 'EXCLUDE' ? C.t3 : C.success} neutral={operation === 'EXCLUDE'} /></div>
+          <p className="review-cb-summary__value">{[subtitle, proposedValue || candidate.extractedValue || '설정값이 없습니다.'].join(' · ')}</p>
+        </div>
+        <div className="review-cb-summary__actions review-cb-heading__actions">
+          {rowActions}
+          <button type="button" className="review-cb-fold" aria-expanded={false} onClick={() => setCollapsed(false)}>펼치기</button>
+        </div>
+      </div>
+    </section>;
+  }
+  const heading = <ReviewSettingHeading title={keyName}
+      subtitle={subtitle}
       image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
       badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
       episode={analysisSourceLabel(candidate.source, candidate.sourceEpisodeNo)}
       actions={<>
-        <button type="button" className="review-cb-secondary" disabled={disabled || !canEdit} onClick={onEdit}><Pencil size={13} /> 수정</button>
-        {pending && <button type="button" className="review-cb-exclude" disabled={disabled || automaticPending} onClick={onExclude} aria-label={`${propertyPath} 제외`}>제외</button>}
-      </>} />
+        {rowActions}
+        {summarizable && <button type="button" className="review-cb-fold" aria-expanded onClick={() => setCollapsed(true)}>접기</button>}
+      </>} />;
+  return <section className="world-setting-diff-row review-cb-setting-card" data-candidate-id={candidate.id} tabIndex={-1}>
+    {checkbox ? <div className="review-cb-selectable-heading">
+      {checkbox}
+      {heading}
+    </div> : heading}
 
     {automaticPending && <ReviewNotice tone="info" title="분석이 진행 중이에요"
       action={<button type="button" className="review-cb-secondary" onClick={onAnalysis}>분석 진행 보기</button>}>
@@ -851,7 +1026,8 @@ function WorldKeyDiffRow({
     </ReviewNotice>}
     {candidate.historyOnly && <ReviewNotice tone="info">{candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고, 이 설정집의 이력에 저장했습니다.' : '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.'}</ReviewNotice>}
     {pending && !automaticPending && holdMessage && <ReviewNotice tone="warning" title={holdMessage.title}>{holdMessage.description}</ReviewNotice>}
-    {saved && pending && !inlineDirty && <ReviewNotice tone="success" title="선택한 내용이 준비됐어요">모두 확정 전까지 위의 ‘수정’에서 내용을 다시 검토할 수 있어요.</ReviewNotice>}
+    {saveCheckPending && pending && <ReviewNotice tone="warning" title="저장 결과를 확인하고 있어요">입력한 내용은 그대로예요. 확인이 끝나면 이어서 검토할 수 있어요.</ReviewNotice>}
+    {saved && pending && !inlineDirty && !saveCheckPending && <ReviewNotice tone="success" title="선택한 내용이 준비됐어요">모두 확정 전까지 위의 ‘수정’에서 내용을 다시 검토할 수 있어요.</ReviewNotice>}
 
     {before ? <ReviewValueComparison before={before} after={proposedValue}
       mode={needsReview ? 'ambiguous' : actualChange ? 'change' : 'neutral'}
@@ -867,11 +1043,14 @@ function WorldKeyDiffRow({
     {operation === 'EXCLUDE' && pending && <ReviewNotice tone="info" title={before ? "기존 내용은 그대로 유지해요" : "이 설정은 추가하지 않아요"}>이 항목은 모두 확정 시 추가하지 않고 제외됩니다. 내용이 다르면 수정에서 반영할 내용을 정할 수 있어요.</ReviewNotice>}
     {candidate.consolidationStatus === 'MERGED' && <p className="review-cb-help">여러 원문에서 추출된 내용을 하나로 정리했습니다.</p>}
 
-    {!saved && (needsReview || operation === 'MERGE' || operation === 'UPDATE') && canEdit && initialDraft
+    {(!saved || presetTarget) && (needsReview || operation === 'MERGE' || operation === 'UPDATE' || presetTarget) && canEdit && initialDraft
       && <WorldReviewDecisionPanel candidate={choiceCandidate}
         categoryLabel={candidate.category ? CATEGORY_META[candidate.category].label : '대상'}
         key={JSON.stringify([candidate.finalOperation, candidate.finalCategory, candidate.finalSubjectName,
-          candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue])}
+          candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue, presetTarget ?? null])}
+        presetTarget={presetTarget}
+        compactTargetPicker={compactTargetPicker} recentTargets={recentTargets} onTargetChosen={onTargetChosen}
+        onPresetDismiss={onPresetDismiss}
         initialDraft={initialDraft} disabled={disabled || automaticPending} sharedChoiceAvailable={linkedCandidateIds.length > 0}
         sourceValue={sourceValue}
         onDirtyChange={reportDirty}
@@ -958,6 +1137,8 @@ function WorldCandidateGroupDetail({
   actionError,
   decisionRecoveryRequired,
   decisionRecoveryPending,
+  decisionRecoveryStatus,
+  recoveringCandidateIds,
   onRecoverDecision,
   onExclude,
   onEdit,
@@ -971,6 +1152,16 @@ function WorldCandidateGroupDetail({
   canResumeTokenInterrupted,
   currentChoices,
   onCurrentChoice,
+  selection,
+  presetTargets,
+  linkNotice,
+  hasNextGroup,
+  completionNotice,
+  confirmPending,
+  onJumpToBlocking,
+  recentTargets,
+  onTargetChosen,
+  onPresetDismiss,
 }: {
   group: WorldSettingCandidateGroupResponse;
   originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
@@ -981,6 +1172,8 @@ function WorldCandidateGroupDetail({
   actionError?: string | null;
   decisionRecoveryRequired: boolean;
   decisionRecoveryPending: boolean;
+  decisionRecoveryStatus?: string | null;
+  recoveringCandidateIds?: Set<string>;
   onRecoverDecision: () => void;
   onExclude: (candidateId: string) => void;
   onEdit: (candidate: WorldSettingCandidateResponse) => void;
@@ -994,6 +1187,26 @@ function WorldCandidateGroupDetail({
   canResumeTokenInterrupted: boolean;
   currentChoices: BookCurrentChoices;
   onCurrentChoice: (candidate: WorldSettingCandidateResponse, mode: 'CURRENT' | 'DEFAULT') => void;
+  /** 대상 연결을 위해 체크한 후보. 확정·제외에는 쓰지 않는다. */
+  selection: {
+    checkedIds: string[];
+    onChange: (candidateIds: string[], checked: boolean) => void;
+    onSelectAll: (candidateIds: string[]) => void;
+    onClear: () => void;
+    onOpen: () => void;
+  };
+  presetTargets: Record<string, WorldPresetTarget>;
+  linkNotice?: ReactNode;
+  /** 확정 뒤 같은 탭에 열 묶음이 남는지. 주 버튼 이름(`확정하고 다음`/`모두 확정`)을 고른다. */
+  hasNextGroup: boolean;
+  /** 미처리 후보가 없는 묶음(`전체` 상태 필터)에서 탭의 검토가 끝났을 때 보여 줄 완료 안내. */
+  completionNotice?: ReactNode;
+  /** 확정 요청 중. */
+  confirmPending: boolean;
+  onJumpToBlocking: (candidateIds: string[]) => void;
+  recentTargets: WorldLinkTarget[];
+  onTargetChosen: (target: WorldLinkTarget) => void;
+  onPresetDismiss: (candidateIds: string[]) => void;
 }) {
   const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
   const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
@@ -1018,84 +1231,75 @@ function WorldCandidateGroupDetail({
   )));
   const identityEditable = pendingCandidates.length > 0 && !groupAutomaticPending
     && pendingCandidates.every(candidate => candidateDecision(candidate) !== null);
-  const duplicatePropertyPaths = (() => {
-    const orderedGroup = pendingCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
-    const seen = new Map<string, {
-      displayPath: string;
-      comparisonDecisionId?: string | null;
-      decisionSignature: string | null;
-    }>();
-    const duplicates = new Set<string>();
-    for (const candidate of pendingCandidates) {
-      if (!candidate.id) continue;
-      if ((decisions[candidate.id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE') continue;
-      const settingName = decisions[candidate.id]?.settingName
-        ?? candidate.proposedSettingName
-        ?? candidate.settingName;
-      if (!settingName) continue;
-      const selectedDecision = decisions[candidate.id] ?? candidateDecision(candidate);
-      const scopeName = selectedDecision
-        ? selectedDecision.scopeName ?? null
-        : candidate.proposedScopeName ?? candidate.scopeName ?? null;
-      const category = selectedDecision?.category ?? candidate.category;
-      const subjectName = selectedDecision?.subjectName ?? resolvedTargetSubjectName(candidate);
-      const normalizedScope = scopeName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') || null;
-      const normalizedSetting = settingName.trim().normalize('NFC').toLocaleLowerCase('ko-KR');
-      const normalizedSubject = subjectName?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') ?? null;
-      // 누적 분석의 서로 다른 회차는 동일 경로를 순서대로 갱신한다.
-      // 같은 회차의 중복과 구응답/기본 모드의 중복 검사는 그대로 유지한다.
-      const normalized = JSON.stringify([category, normalizedSubject, normalizedScope, normalizedSetting,
-        orderedGroup ? candidate.source?.sourceKind === 'SETTING_BOOK' ? [candidate.source.settingBookId, candidate.source.revisionId] : candidate.sourceEpisodeNo ?? null : null]);
-      const displayPath = scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim();
-      const decisionSignature = selectedDecision
-        ? JSON.stringify([
-          selectedDecision.operation,
-          selectedDecision.category,
-          selectedDecision.subjectName,
-          selectedDecision.scopeName ?? null,
-          selectedDecision.settingName,
-          selectedDecision.value,
-        ])
-        : null;
-      const existing = seen.get(normalized);
-      if (existing) {
-        const sameSharedDecision = Boolean(
-          candidate.comparisonDecisionId
-          && existing.comparisonDecisionId === candidate.comparisonDecisionId
-          && existing.decisionSignature === decisionSignature,
-        );
-        if (!sameSharedDecision) duplicates.add(existing.displayPath);
-      } else {
-        seen.set(normalized, {
-          displayPath,
-          comparisonDecisionId: candidate.comparisonDecisionId,
-          decisionSignature,
-        });
-      }
-    }
-    return [...duplicates];
-  })();
-  const unresolvedConflicts = pendingCandidates.filter(candidate => candidate.id
-    && candidate.consolidationStatus === 'CONFLICT'
-    && !resolvedConflictIds.has(candidate.id)
-    && !candidate.userModified
-    && (decisions[candidate.id]?.operation ?? candidate.suggestedOperation) !== 'EXCLUDE');
+  const orderedGroup = pendingCandidates.every(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
+  const blockRows: WorldGroupBlockRow[] = pendingCandidates.map(candidate => {
+    const id = candidate.id!;
+    const selectedDecision = decisions[id] ?? candidateDecision(candidate);
+    const excluded = (decisions[id]?.operation ?? candidate.suggestedOperation) === 'EXCLUDE';
+    const settingName = decisions[id]?.settingName ?? candidate.proposedSettingName ?? candidate.settingName;
+    const scopeName = selectedDecision
+      ? selectedDecision.scopeName ?? null
+      : candidate.proposedScopeName ?? candidate.scopeName ?? null;
+    const normalize = (value?: string | null) => value?.trim().normalize('NFC').toLocaleLowerCase('ko-KR') ?? null;
+    // 누적 분석의 서로 다른 회차는 동일 경로를 순서대로 갱신한다.
+    // 같은 회차의 중복과 구응답/기본 모드의 중복 검사는 그대로 유지한다.
+    const pathKey = excluded || !settingName ? null : JSON.stringify([
+      selectedDecision?.category ?? candidate.category,
+      normalize(selectedDecision?.subjectName ?? resolvedTargetSubjectName(candidate)),
+      normalize(scopeName) || null, normalize(settingName),
+      orderedGroup ? candidate.source?.sourceKind === 'SETTING_BOOK' ? [candidate.source.settingBookId, candidate.source.revisionId] : candidate.sourceEpisodeNo ?? null : null,
+    ]);
+    const decisionSignature = selectedDecision ? JSON.stringify([selectedDecision.operation, selectedDecision.category,
+      selectedDecision.subjectName, selectedDecision.scopeName ?? null, selectedDecision.settingName, selectedDecision.value]) : null;
+    const bookChoiceNeeded = needsBookCurrentChoice(candidate, originalHoldReasons[id]);
+    const bookChoice = bookCurrentChoice(candidate, currentChoices);
+    return {
+      id,
+      pathKey,
+      displayPath: settingName ? scopeName ? `${scopeName.trim()} › ${settingName.trim()}` : settingName.trim() : '',
+      sharedDecisionKey: candidate.comparisonDecisionId ? JSON.stringify([candidate.comparisonDecisionId, decisionSignature]) : null,
+      unsaved: dirtyCandidateIds.has(id),
+      quotaInterrupted: isQuotaInterruptedCandidate(candidate),
+      needsDecision: Boolean(presetTargets[id])
+        || !(!automaticReviewHoldLabel(candidate) || hasSavedDecision(candidate) || bookChoiceNeeded && Boolean(bookChoice))
+        || !(candidate.comparisonStatus === 'COMPLETED' || candidate.manualReviewAvailable === true && hasSavedDecision(candidate))
+        || !selectedDecision,
+      conflict: candidate.consolidationStatus === 'CONFLICT' && !resolvedConflictIds.has(id) && !candidate.userModified && !excluded,
+      bookChoicePending: bookChoiceNeeded && !bookChoice,
+    };
+  });
+  const duplicatePropertyPaths = worldDuplicatePaths(blockRows).paths;
+  const unresolvedConflicts = blockRows.filter(row => row.conflict);
+  const confirmBlock = computeWorldGroupConfirmBlock({
+    rows: blockRows,
+    automaticPendingMessage: groupAutomaticPending ? automaticApplicationPendingMessage(pendingCandidates.find(isAutomaticApplicationPending)?.source) : null,
+    filtered: confirmationFiltered,
+  });
   const retryAvailable = candidates.some(candidate => candidate.analysisMode !== 'ORDERED_PROVISIONAL'
     && !isAutomaticApplicationPending(candidate) && !candidate.manualReviewAvailable && ((
     candidate.comparisonStatus === 'FAILED'
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
-  const confirmable = !hasUnsavedChanges && !groupAutomaticPending && pendingCandidates.length > 0 && pendingCandidates
-    .every(candidate => candidate.reviewStatus === 'PENDING_REVIEW' && !isQuotaInterruptedCandidate(candidate)
-      && (!automaticReviewHoldLabel(candidate) || hasSavedDecision(candidate)
-        || needsBookCurrentChoice(candidate, originalHoldReasons[candidate.id!]) && Boolean(bookCurrentChoice(candidate, currentChoices)))
-      && (candidate.comparisonStatus === 'COMPLETED'
-        || (candidate.manualReviewAvailable === true && hasSavedDecision(candidate)))
-      && Boolean(candidate.id && (decisions[candidate.id] ?? candidateDecision(candidate))))
-    && duplicatePropertyPaths.length === 0
-    && unresolvedConflicts.length === 0
-    && !bookChoicesPending
-    && !confirmationFiltered;
+  const confirmable = confirmBlock === null;
+  // 분류·대상 일괄 수정은 저장 결과를 확인하는 동안에도 잠근다(제출 핸들러의 가드와 같다).
+  const identityLocked = actionPending || decisionRecoveryRequired || !identityEditable;
+  const blockNoticeIds = {
+    duplicate: `world-block-duplicate-${group.groupKey ?? 'group'}`,
+    conflict: `world-block-conflict-${group.groupKey ?? 'group'}`,
+    filtered: `world-block-filtered-${group.groupKey ?? 'group'}`,
+    unsaved: `world-block-unsaved-${group.groupKey ?? 'group'}`,
+    book: `world-block-book-${group.groupKey ?? 'group'}`,
+    recovery: `world-block-recovery-${group.groupKey ?? 'group'}`,
+  };
+  const blockNoticeVisible = (kind: string) => !groupAutomaticPending && (kind === 'duplicate' || kind === 'conflict'
+    || kind === 'filtered' && pendingCandidates.length > 0 || kind === 'unsaved' || kind === 'book');
+  // 확정 영역의 수치. 막힌 행은 결정 필요로만 세고 나머지는 반영과 제외로 나눈다.
+  const decisionCounts = (() => {
+    const blocked = new Set(confirmBlock?.candidateIds ?? []);
+    const unblocked = pendingCandidates.filter(candidate => !blocked.has(candidate.id!));
+    const exclude = unblocked.filter(candidate => (decisions[candidate.id!] ?? candidateDecision(candidate))?.operation === 'EXCLUDE').length;
+    return { ready: unblocked.length - exclude, exclude };
+  })();
   const includeRootMoveNotice = (candidate: WorldSettingCandidateResponse) =>
     canShowRootMoveProposal(candidate, candidates, decisions, confirmationFiltered);
   // 완료된 순차 검토는 선택한 속성만 확정하며 과거 비교의 부수 이동은 재실행하지 않는다.
@@ -1108,20 +1312,38 @@ function WorldCandidateGroupDetail({
     includeRootMoveNotice(candidate) && candidate.proposedScopeName
     && (candidate.existingRootPropertyNamesToMove?.length ?? 0) > 0
   )) : [];
+  // 대상을 아직 고르지 않은 행 수. 둘 이상이면 행마다 같은 검색 목록이 반복되므로 축소형 대상 선택을 쓴다.
+  const subjectUnresolvedCount = pendingCandidates.filter(candidate => !hasSavedDecision(candidate)
+    && (candidate.comparisonReviewReason === 'SUBJECT_UNRESOLVED'
+      || candidate.automaticReviewHoldReason === 'SUBJECT_CONFIRMATION_REQUIRED'
+      || candidate.automaticReviewHoldReason === 'SUBJECT_RESOLUTION_FAILED')).length;
+  const orderedImpactVisible = !groupAutomaticPending && preservedMoveCandidates.length === 0
+    && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL');
+  // 대상 연결은 화면에 그려진 대기 행만 체크한다. 공유 결정의 원문은 함께 체크된다.
+  const linkableCandidates = pendingCandidates.filter(candidate => !worldLinkBlockedReason(candidate, confirmationFiltered));
+  const checkedCandidates = pendingCandidates.filter(candidate => selection.checkedIds.includes(candidate.id!));
+  // 저장 요청(`PATCH /decisions`)은 한 번에 100건(공유 결정은 원문 수)까지다. 체크한 원문 수로 미리 막는다.
+  const selectionOverLimit = checkedCandidates.length > REVIEW_SELECTION_LINK_LIMIT;
+  const allLinkableIds = [...new Set(linkableCandidates.flatMap(candidate => worldLinkedIds(candidate, candidates, confirmationFiltered)))];
+  const identityHintId = `world-identity-hint-${group.groupKey ?? 'group'}`;
+  const identityHintVisible = !identityEditable && pendingCandidates.length > 0 && !groupAutomaticPending;
   return (
-    <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden' }}>
+    // clip은 스크롤 컨테이너를 만들지 않아 하단 확정 영역이 상세 스크롤 영역 기준으로 고정된다.
+    <article className="world-candidate-detail-card" style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface, overflow: 'clip' }}>
       <header style={{ padding: '21px 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 18 }}>
+          <strong className="world-candidate-detail-title" data-review-group-title tabIndex={-1} style={{ color: REVIEW_TEXT.ink, fontSize: 18 }}>
             {category?.label ?? '세계관'} · {identity.subjectName || '대상명 없음'}
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
-          <button type="button" disabled={actionPending || !identityEditable} onClick={onEditIdentity} style={{
+          <button type="button" disabled={identityLocked} onClick={onEditIdentity}
+            aria-describedby={identityHintVisible ? identityHintId : undefined}
+            title={identityHintVisible ? '결정이 없는 설정이 있어요. 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.' : undefined} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: 'transparent', color: actionPending || !identityEditable ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
+            background: 'transparent', color: identityLocked ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
-            cursor: actionPending || !identityEditable ? 'not-allowed' : 'pointer',
+            cursor: identityLocked ? 'not-allowed' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
           }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
         </div>
@@ -1130,6 +1352,20 @@ function WorldCandidateGroupDetail({
             ? '같은 분류·이름으로 묶였지만 서로 다른 기존 대상에 연결된 후보가 있습니다. 각 항목의 연결 대상을 확인해 주세요.'
             : '같은 분류·이름으로 묶인 후보를 항목별로 검토합니다.'}
         </p>
+        {identityHintVisible && <p id={identityHintId} className="review-cb-help world-identity-hint">
+          결정이 없는 설정이 있어요 — 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.
+        </p>}
+        {linkableCandidates.length > 0 && <div className="review-selection-header">
+          <label className="review-select-all">
+            <input type="checkbox" checked={checkedCandidates.length > 0 && allLinkableIds.every(id => selection.checkedIds.includes(id))}
+              ref={element => { if (element) element.indeterminate = checkedCandidates.length > 0 && !allLinkableIds.every(id => selection.checkedIds.includes(id)); }}
+              disabled={actionPending || decisionRecoveryRequired}
+              onChange={event => { if (event.target.checked) selection.onSelectAll(allLinkableIds); else selection.onClear(); }} />
+            모두 선택({allLinkableIds.length})
+          </label>
+          <span className="review-selection-header__help">체크한 설정을 한 대상에 연결해요. 확정과 제외는 기존처럼 따로 해요.</span>
+        </div>}
+        {linkNotice}
       </header>
 
       <RecomparisonNotice group={group} activeComparisonJobCount={activeComparisonJobCount}
@@ -1154,6 +1390,7 @@ function WorldCandidateGroupDetail({
             activeComparisonJobCount={activeComparisonJobCount}
             canResumeTokenInterrupted={canResumeTokenInterrupted}
             disabled={actionPending || decisionRecoveryRequired}
+            saveCheckPending={Boolean(recoveringCandidateIds?.has(candidate.id))}
             onExclude={() => onExclude(candidate.id!)}
             onEdit={() => onEdit(candidate)}
             linkedCandidateIds={linkedScopeCandidateIds}
@@ -1162,12 +1399,24 @@ function WorldCandidateGroupDetail({
             onAnalysis={onAnalysis}
             currentChoice={bookCurrentChoice(candidate, currentChoices)}
             onCurrentChoice={mode => onCurrentChoice(candidate, mode)}
+            presetTarget={presetTargets[candidate.id]}
+            blocked={Boolean(confirmBlock?.candidateIds.includes(candidate.id))}
+            compactTargetPicker={subjectUnresolvedCount > 1}
+            onPresetDismiss={() => onPresetDismiss(linkedScopeCandidateIds.length ? linkedScopeCandidateIds : [candidate.id!])}
+            recentTargets={recentTargets}
+            onTargetChosen={onTargetChosen}
+            selection={candidate.reviewStatus === 'PENDING_REVIEW' ? {
+              checked: selection.checkedIds.includes(candidate.id),
+              disabled: actionPending || decisionRecoveryRequired || Boolean(worldLinkBlockedReason(candidate, confirmationFiltered)),
+              disabledReason: worldLinkBlockedReason(candidate, confirmationFiltered) ?? undefined,
+              onChange: checked => selection.onChange(worldLinkedIds(candidate, candidates, confirmationFiltered), checked),
+            } : undefined}
           />
         );
       })}
 
       {!groupAutomaticPending && duplicatePropertyPaths.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.duplicate} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1178,7 +1427,7 @@ function WorldCandidateGroupDetail({
       )}
 
       {!groupAutomaticPending && unresolvedConflicts.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.conflict} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1188,18 +1437,20 @@ function WorldCandidateGroupDetail({
       )}
 
       {(actionError || decisionRecoveryRequired) && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.recovery} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.danger}55`, background: `${C.danger}12`,
           color: REVIEW_TEXT.danger, fontSize: 12, lineHeight: 1.55,
         }}>
           {actionError}
-          {decisionRecoveryRequired && <div><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지됩니다. 최신 상태를 확인한 뒤 계속해 주세요.</p><button type="button" className="review-cb-secondary" disabled={actionPending || decisionRecoveryPending} onClick={onRecoverDecision}>최신 상태 다시 확인</button></div>}
+          {decisionRecoveryRequired && <div><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지됩니다. 최신 상태를 확인한 뒤 계속해 주세요.</p>
+            {decisionRecoveryStatus && <p className="world-decision-recovery-status" role="status">{decisionRecoveryStatus}</p>}
+            <button type="button" className="review-cb-secondary" disabled={actionPending || decisionRecoveryPending} onClick={onRecoverDecision}>최신 상태 다시 확인</button></div>}
         </div>
       )}
 
       {!groupAutomaticPending && confirmationFiltered && pendingCandidates.length > 0 && (
-        <div role="alert" style={{
+        <div role="alert" id={blockNoticeIds.filtered} style={{
           margin: '16px 22px 0', padding: '11px 13px', borderRadius: 7,
           border: `1px solid ${C.warning}55`, background: `${C.warning}12`,
           color: REVIEW_TEXT.warning, fontSize: 12, lineHeight: 1.55,
@@ -1208,38 +1459,48 @@ function WorldCandidateGroupDetail({
         </div>
       )}
 
-      {hasUnsavedChanges && <div style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
-        수정한 내용을 저장하거나 취소한 뒤 모두 확정해 주세요.
+      {hasUnsavedChanges && <div id={blockNoticeIds.unsaved} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning" title="저장하지 않은 수정이 있어요">
+        수정한 내용을 저장하거나 취소한 뒤 확정해 주세요.
       </ReviewNotice></div>}
-      {bookChoicesPending && !groupAutomaticPending && <div style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
+      {bookChoicesPending && !groupAutomaticPending && <div id={blockNoticeIds.book} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
         각 항목에서 내용을 확인하고 확정할 방법을 선택해 주세요.
       </ReviewNotice></div>}
-      <footer style={{
-        position: 'sticky', bottom: 0, zIndex: 2, marginTop: 18, padding: '16px 22px',
-        borderTop: `1px solid ${C.border}`, background: `${C.surface}F5`,
-        display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9, flexWrap: 'wrap',
-      }}>
+      {pendingCandidates.length === 0 && completionNotice}
+      {(preservedMoveCandidates.length > 0 || orderedImpactVisible) && <div className="review-group-confirm-notes">
         {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
-        {!groupAutomaticPending && preservedMoveCandidates.length === 0
-          && pendingCandidates.some(candidate => candidate.analysisMode === 'ORDERED_PROVISIONAL') && (
-          <div style={{ flexBasis: '100%' }}><OrderedReviewImpactNotice /></div>
-        )}
-        {retryAvailable && (
-          <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
-            <RefreshCw size={12} /> 다시 비교
-          </ActionButton>
-        )}
-        <button type="button" disabled={actionPending || decisionRecoveryRequired || !confirmable} onClick={() => { if (!hasUnsavedChanges) onConfirm(); }} style={{
-          minHeight: 40, padding: '0 17px', borderRadius: 7, border: 'none',
-          background: actionPending || !confirmable ? C.border : C.primary,
-          color: actionPending || !confirmable ? REVIEW_TEXT.muted : '#fff', fontFamily: 'inherit',
-          fontSize: 12, fontWeight: 800, cursor: actionPending || !confirmable ? 'not-allowed' : 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-        }}>
-          {actionPending ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-          모두 확정
-        </button>
-      </footer>
+        {orderedImpactVisible && <OrderedReviewImpactNotice />}
+      </div>}
+      <ReviewGroupActionBar
+        readyCount={decisionCounts.ready}
+        excludeCount={decisionCounts.exclude}
+        blockingCount={confirmBlock?.candidateIds.length ?? 0}
+        // 같은 문장의 경고가 이미 위에 있으면 버튼 설명을 그 경고에 잇고 문장을 되풀이하지 않는다.
+        reason={!decisionRecoveryRequired && confirmBlock && !blockNoticeVisible(confirmBlock.kind) ? confirmBlock.reason : null}
+        describedBy={decisionRecoveryRequired ? [blockNoticeIds.recovery]
+          : confirmBlock && blockNoticeVisible(confirmBlock.kind) ? [blockNoticeIds[confirmBlock.kind as keyof typeof blockNoticeIds]] : undefined}
+        hasNextGroup={hasNextGroup}
+        pending={confirmPending}
+        disabled={actionPending || decisionRecoveryRequired || !confirmable}
+        onConfirm={() => { if (!hasUnsavedChanges) onConfirm(); }}
+        onJumpToBlocking={() => onJumpToBlocking(confirmBlock?.candidateIds ?? [])}
+        shortcuts={<ReviewShortcutHelp />}
+        secondaryActions={retryAvailable && <ActionButton disabled={actionPending || decisionRecoveryRequired} tone={C.warning} onClick={onRetry}>
+          <RefreshCw size={12} /> 다시 비교
+        </ActionButton>}
+      >
+        {checkedCandidates.length > 0 && <div className="review-selection-bar" role="region" aria-label="선택한 설정">
+          <div className="review-selection-bar__summary">
+            <strong>{checkedCandidates.length}개 선택</strong>
+            {confirmationFiltered && <span>필터로 숨은 설정은 포함되지 않아요.</span>}
+            {selectionOverLimit && <span role="alert">{REVIEW_SELECTION_LINK_LIMIT_TEXT}</span>}
+          </div>
+          <div className="review-selection-bar__actions">
+            <ActionButton tone={C.primary} disabled={actionPending || decisionRecoveryRequired || selectionOverLimit}
+              onClick={selection.onOpen}>선택 항목 대상 연결</ActionButton>
+            <ActionButton disabled={actionPending} onClick={selection.onClear}>선택 해제</ActionButton>
+          </div>
+        </div>}
+      </ReviewGroupActionBar>
     </article>
   );
 }
@@ -1263,6 +1524,7 @@ function CandidateEditModal({
   onRecover,
   onClose,
   onSubmit,
+  returnFocusTo,
 }: {
   initialDecision: DecisionDraft;
   identityOnly?: boolean;
@@ -1282,6 +1544,8 @@ function CandidateEditModal({
   onRecover?: () => void;
   onClose: () => void;
   onSubmit: (draft: DecisionDraft) => void;
+  /** 닫히면 초점을 돌려줄 요소(수정 버튼). 열린 동안 그 버튼은 잠긴다. */
+  returnFocusTo?: HTMLElement | null;
 }) {
   const initialCategory = initialDecision.category;
   const initialSubject = initialDecision.subjectName;
@@ -1294,9 +1558,15 @@ function CandidateEditModal({
   const [operation, setOperation] = useState<WorldOperation>(initialDecision.operation);
   const [value, setValue] = useState(initialDecision.value);
   const [validationError, setValidationError] = useState<string | null>(null);
+  // 캐릭터 검토 모달과 같은 키보드 계약(Esc 닫기·Tab 가두기·닫으면 연 버튼으로 초점 복귀)을 쓴다.
+  const titleId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalFocusTrap(formRef, pending, onClose, returnFocusTo);
+  // 저장 결과를 확인하는 동안에는 입력도 잠근다. 확인되면 창이 닫히므로 그사이 고친 내용이 버려지지 않게 한다.
+  const inputsLocked = pending || recoveryRequired;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending || readOnly) return;
+    if (inputsLocked || automaticPending || readOnly) return;
     const normalizedSubject = subjectName.trim();
     const normalizedScope = scopeName.trim() || undefined;
     const normalizedSetting = settingName.trim();
@@ -1335,13 +1605,13 @@ function CandidateEditModal({
       position: 'fixed', inset: 0, zIndex: 200, padding: 20, display: 'flex',
       alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.68)',
     }}>
-      <form className="review-modal" onSubmit={submit} style={{
+      <form className="review-modal" ref={formRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onSubmit={submit} style={{
         width: 'min(720px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
         borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface,
         boxShadow: '0 24px 72px rgba(0,0,0,0.55)',
       }}>
         <div style={{ padding: '19px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
-          <strong style={{ color: REVIEW_TEXT.ink, fontSize: 16 }}>
+          <strong id={titleId} style={{ color: REVIEW_TEXT.ink, fontSize: 16 }}>
             {identityOnly
               ? '분류·대상 일괄 수정'
               : `${initialDecision.scopeName ? `${initialDecision.scopeName} › ` : ''}${initialDecision.settingName || '설정 항목'} 반영 내용 수정`}
@@ -1376,12 +1646,12 @@ function CandidateEditModal({
             display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10,
           }}>
             <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>분류
-              <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
+              <select value={category} disabled={inputsLocked} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
                 {CATEGORY_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>대상
-              <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
+              <input value={subjectName} disabled={inputsLocked} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
           </div>
           {!identityOnly && (
@@ -1390,23 +1660,24 @@ function CandidateEditModal({
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>범위 (선택)
                   <input
                     value={scopeName}
+                    disabled={inputsLocked}
                     onChange={event => setScopeName(event.target.value)}
                     placeholder="예: 1층"
                     style={{ ...inputStyle, marginTop: 7 }}
                   />
                 </label>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>설정명
-                  <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
+                  <input value={settingName} disabled={inputsLocked} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
                 </label>
               </div>
               <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>반영 방식
-                  <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
+                  <select value={operation} disabled={inputsLocked} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
                     {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>최종 설정값
-                  <textarea value={value} onChange={event => setValue(event.target.value)} style={{
+                  <textarea value={value} disabled={inputsLocked} onChange={event => setValue(event.target.value)} style={{
                     ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
                   }} />
                 </label>
@@ -1414,7 +1685,7 @@ function CandidateEditModal({
             </>
           )}
           {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: REVIEW_TEXT.danger, fontSize: 12 }}>{validationError ?? error}</div>}
-          {recoveryRequired && <div role="alert"><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지됩니다. 최신 상태를 확인한 뒤 계속해 주세요.</p>
+          {recoveryRequired && <div role="alert"><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지되고, 확인이 끝날 때까지 수정과 저장을 잠가요. 최신 상태를 확인한 뒤 계속해 주세요.</p>
             <button type="button" className="review-cb-secondary" disabled={pending || recoveryPending} onClick={onRecover}>최신 상태 다시 확인</button></div>}
         </div>
         <div style={{ padding: '15px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -1457,6 +1728,23 @@ export function WorldSettingReview() {
   const [decisionRecoveryRequired, setDecisionRecoveryRequired] = useState(false);
   const [decisionRecoveryPending, setDecisionRecoveryPending] = useState(false);
   const decisionRecoveryRequestRef = useRef<symbol | null>(null);
+  // 응답 유실·확인 실패 뒤의 자동 재확인. 몇 번째 자동 확인인지 배너에 보여 준다.
+  const [decisionRecoveryAttempt, setDecisionRecoveryAttempt] = useState(0);
+  const [decisionRecoveryScheduled, setDecisionRecoveryScheduled] = useState(false);
+  const recoveryAttemptRef = useRef(0);
+  const recoveryTimerRef = useRef<number | null>(null);
+  const recoveryContextRef = useRef<WorldRecoveryContext | null>(null);
+  const runRecoveryRef = useRef<() => Promise<void>>(async () => undefined);
+  const [verifiedLostError, setVerifiedLostError] = useState<unknown>(null);
+  // 응답을 잃은 결정 저장을 1·3·8초 확인한 뒤에도 서버에 없으면 저장되지 않았다고 알린다.
+  const [lostWriteNotSaved, setLostWriteNotSaved] = useState<'decision' | 'confirm' | null>(null);
+  const [recoveringDraftIds, setRecoveringDraftIds] = useState<Set<string>>(new Set());
+  const [advanceSignal, setAdvanceSignal] = useState(0);
+  const advanceRef = useRef<WorldGroupAdvance | null>(null);
+  /** 결정 저장을 확인하는 동안 옛 묶음 선택을 붙잡는 표식. 다른 묶음으로 URL을 바꾸면 비워 선택 effect가 풀게 둔다. */
+  const selectionHoldRef = useRef<WorldGroupAdvance | null>(null);
+  const focusGroupKeyRef = useRef<string | null>(null);
+  const confirmRequestRef = useRef<{ groupKey: string; previousGroups: WorldSettingCandidateGroupResponse[] } | null>(null);
   const [originalHoldReasons, setOriginalHoldReasons] = useState<Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>>({});
   const [resolvedConflictIds, setResolvedConflictIds] = useState<Set<string>>(new Set());
   const [recomparedIds, setRecomparedIds] = useState<Set<string>>(new Set());
@@ -1466,7 +1754,36 @@ export function WorldSettingReview() {
     Object.entries(previous).filter(([candidateId]) => !candidateIds.includes(candidateId)),
   ));
   const [editCandidate, setEditCandidate] = useState<WorldSettingCandidateResponse | null>(null);
+  // 수정 창을 연 버튼. 창이 열린 동안 잠기므로 열 때 기억해 닫으면 초점을 돌려준다.
+  const editTriggerRef = useRef<HTMLElement | null>(null);
+  const rememberEditTrigger = () => {
+    editTriggerRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement : null;
+  };
   const [editIdentityOnly, setEditIdentityOnly] = useState(false);
+  // 대상 연결을 위해 체크한 후보. 체크한 묶음 안에서만 유효하고 묶음·필터·페이지를 바꾸면 비운다.
+  const [linkSelection, setLinkSelection] = useState<{ groupKey: string | null; ids: string[] }>({ groupKey: null, ids: [] });
+  const [targetLinkOpen, setTargetLinkOpen] = useState(false);
+  // 선택 대상 연결에서 저장하지 않고 결정으로 남긴 행의 대상. 새로고침하면 사라지는 화면 안 초안이다.
+  const [presetTargets, setPresetTargets] = useState<Record<string, WorldPresetTarget>>({});
+  const [targetLinkNotice, setTargetLinkNotice] = useState<WorldTargetLinkNotice | null>(null);
+  // 이번 검토에서 고른 기존 대상(최근 순, 3개). 대상 미정 행은 긴 검색 목록 대신 이 대상과 `대상 검색`을 먼저 보여 준다.
+  const [recentTargets, setRecentTargets] = useState<WorldLinkTarget[]>([]);
+  const rememberTarget = useCallback((target: WorldLinkTarget) => {
+    if (!target.worldSettingId) return;
+    setRecentTargets(previous => [target, ...previous.filter(item => item.worldSettingId !== target.worldSettingId)].slice(0, 3));
+  }, []);
+  const targetLinkRequestRef = useRef<WorldTargetLinkStay | null>(null);
+  const clearLinkSelection = () => {
+    setLinkSelection({ groupKey: null, ids: [] });
+    setTargetLinkOpen(false);
+  };
+  /** 작가가 직접 다른 묶음·필터·페이지로 옮기면 선택·안내·화면 안 대상 초안을 거둔다. */
+  const clearTargetLinkState = () => {
+    clearLinkSelection();
+    setTargetLinkNotice(null);
+    setPresetTargets({});
+  };
   const [scopeMergeCandidateIds, setScopeMergeCandidateIds] = useState<string[]>([]);
   const [confirmedTarget, setConfirmedTarget] = useState<{
     id?: string;
@@ -1483,6 +1800,9 @@ export function WorldSettingReview() {
   const automaticRetryIds = useRef(new Set<string>());
   const leavingReviewRef = useRef(false);
   const reviewNavigationState = location.state as ReviewReturnState | null;
+  const detailRef = useRef<HTMLElement>(null);
+  const cardNavigation = useReviewCardNavigation(detailRef);
+  const edgeGroupRef = useRef<'first' | 'last' | null>(null);
 
   const listRequest = {
     path: { workId },
@@ -1515,6 +1835,14 @@ export function WorldSettingReview() {
       return hasActiveComparison ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
+  // `전체` 상태 필터에는 확정·제외만 남은 묶음도 보인다. 다른 페이지에 미처리 묶음이 남았는지(`확정하고 다음`)를
+  // 알 수 있도록 같은 분류·반영 방식 필터의 미처리 묶음 수만 가볍게 읽는다. 기본(미처리) 필터에서는 읽지 않는다.
+  const pendingGroupsQuery = useQuery({
+    ...getWorldSettingCandidatesOptions({ ...listRequest, query: { ...listRequest.query, reviewStatus: 'PENDING_REVIEW', page: 0, size: 1 } }),
+    enabled: hasContext && reviewFilter === 'ALL',
+    retry: shouldRetryCandidateQuery,
+  });
+  const pendingGroupTotal = reviewFilter === 'ALL' ? pendingGroupsQuery.data?.data?.groups?.totalElements : undefined;
   const listData = listQuery.data?.data;
   const activeComparisonJobCount = listData?.activeComparisonJobCount ?? 0;
   const legacyCandidateQuery = useQuery({
@@ -1639,13 +1967,98 @@ export function WorldSettingReview() {
     workId,
   ]);
 
+  /**
+   * `전체` 상태 필터에서 지금 페이지에 열 미처리 묶음이 없을 때, 다른 페이지를 직전 목록 순서로 읽어 첫 미처리 묶음으로
+   * 옮긴다(페이지 포함). 끝까지 없으면 확정한 묶음에 머물러 탭 완료 상태를 보여 준다(첫 묶음으로 떨어지거나 탭을 바꾸지 않는다).
+   */
+  const advanceAcrossPagesRef = useRef<(advance: WorldGroupAdvance, page: number, totalPages: number) => void>(() => undefined);
+  useEffect(() => {
+    advanceAcrossPagesRef.current = (advance, page, totalPages) => {
+      void (async () => {
+        let found: { groupKey: string; page: number } | null = null;
+        try {
+          found = await findPendingGroupOnPages(otherPageOrder(page, totalPages), async nextPage => (await queryClient.fetchQuery({
+            ...getWorldSettingCandidatesOptions({ ...listRequest, query: { ...listRequest.query, page: nextPage } }),
+            staleTime: 0,
+          })).data?.groups?.content, advance.groupKey);
+        } catch {
+          found = null;
+        }
+        // 찾는 동안 작가가 다른 묶음·페이지로 옮겼으면 그 위치를 유지한다.
+        if (advanceRef.current !== advance || currentGroupParam() !== advance.groupKey
+          || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+        if (!found) {
+          advanceRef.current = null;
+          return;
+        }
+        const target = found;
+        advance.target = target.groupKey;
+        focusGroupKeyRef.current = target.groupKey;
+        preserveViewport();
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          next.set('group', target.groupKey);
+          next.set('page', String(target.page + 1));
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      })();
+    };
+  });
+
   useEffect(() => {
     if (legacyCandidateId) return;
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
     // 수정 응답으로 대상 그룹이 바뀐 동안에는 이전 목록의 첫 그룹으로 되돌리지 않는다.
     if (!listQuery.isSuccess || listQuery.fetchStatus === 'fetching') return;
-    const nextGroup = selectedGroup ?? groups[0];
+    const advance = advanceRef.current;
+    if (advance?.target !== undefined) {
+      // 다음 그룹으로 바꾼 URL이 반영될 때까지 첫 그룹 보정을 하지 않는다.
+      if (selectedGroupKey === advance.groupKey) return;
+      advanceRef.current = null;
+    } else if (advance && advance.groupKey !== selectedGroupKey) {
+      // 요청 중 작가가 다른 그룹을 골랐다면 그 선택을 유지한다.
+      advanceRef.current = null;
+    } else if (advance) {
+      const listed = groups.some(group => group.groupKey === advance.groupKey);
+      // 확정 결과를 다시 읽기 전에는 사라진 그룹을 첫 그룹으로 바꾸지 않고 기다린다.
+      if (!advance.armed && !listed) return;
+      if (advance.armed) {
+        if (!advance.force && listed) {
+          advanceRef.current = null;
+        } else {
+          const nextKey = nextGroupKeyAfter(advance.previous, advance.groupKey, groups.filter(hasPendingCandidate));
+          if (!nextKey && reviewFilter === 'ALL') {
+            // `전체` 필터에는 확정한 묶음이 남는다. 찾는 동안 그 묶음 선택을 붙잡아 둔다.
+            advance.target = null;
+            advanceAcrossPagesRef.current(advance, groupPage?.page ?? apiPage, groupPage?.totalPages ?? 0);
+            return;
+          }
+          advance.target = nextKey;
+          focusGroupKeyRef.current = nextKey;
+          // 연결 안내는 원래 묶음이 비어 대신 연 다음 묶음에서도 이어서 보여 준다.
+          setTargetLinkNotice(notice => notice && notice.sourceGroupKey === advance.groupKey ? { ...notice, advancedGroupKey: nextKey } : notice);
+          preserveViewport();
+          setSearchParams(previous => {
+            if (previous.get('group') !== advance.groupKey) return previous;
+            const next = new URLSearchParams(previous);
+            if (nextKey) next.set('group', nextKey);
+            else next.delete('group');
+            next.delete('candidate');
+            return next;
+          }, { replace: true, state: location.state });
+          return;
+        }
+      }
+    }
+    // 키보드로 페이지 경계를 넘으면 다음 페이지는 첫 묶음, 이전 페이지는 마지막 묶음을 열고 제목에 초점을 둔다.
+    const edge = selectedGroup ? null : edgeGroupRef.current;
+    const nextGroup = selectedGroup ?? (edge === 'last' ? groups[groups.length - 1] : groups[0]);
     if (!nextGroup?.groupKey) return;
+    if (edge) {
+      edgeGroupRef.current = null;
+      focusGroupKeyRef.current = nextGroup.groupKey;
+    }
     if (selectedGroupKey === nextGroup.groupKey && !legacyCandidateId) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -1653,11 +2066,45 @@ export function WorldSettingReview() {
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, selectedGroup, selectedGroupKey, setSearchParams]);
+  }, [advanceSignal, apiPage, groupPage?.page, groupPage?.totalPages, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, preserveViewport, reviewFilter, selectedGroup, selectedGroupKey, setSearchParams]);
+
+  useEffect(() => {
+    const groupKey = selectedGroup?.groupKey;
+    if (!groupKey || focusGroupKeyRef.current !== groupKey) return;
+    focusGroupKeyRef.current = null;
+    // 확정 뒤 다음 대상으로 넘어가면 제목에서 다시 읽기 시작한다.
+    const main = mainRef.current;
+    main?.querySelector<HTMLElement>('[data-review-group-title]')?.focus({ preventScroll: true });
+    if (main) main.scrollTop = 0;
+  }, [mainRef, selectedGroup?.groupKey]);
+
+  useReviewPositionMemory({
+    mainRef,
+    storageKey: hasContext ? reviewPositionKey({ workId, batchId, sourceAnalysisJobId, candidateType: 'world' }) : null,
+    groupKey: selectedGroupKey,
+    ready: listQuery.isSuccess && Boolean(selectedGroup) && selectedGroup?.groupKey === selectedGroupKey,
+  });
+
+  const clearRecoveryTimer = () => {
+    if (recoveryTimerRef.current != null) window.clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current = null;
+    setDecisionRecoveryScheduled(false);
+  };
+  useEffect(() => () => {
+    if (recoveryTimerRef.current != null) window.clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current = null;
+  }, []);
 
   useEffect(() => {
     selectionGroupRef.current = null;
     decisionRecoveryRequestRef.current = null;
+    recoveryContextRef.current = null;
+    recoveryAttemptRef.current = 0;
+    if (recoveryTimerRef.current != null) window.clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current = null;
+    setDecisionRecoveryScheduled(false);
+    setDecisionRecoveryAttempt(0);
+    advanceRef.current = null;
     setDecisionRecoveryPending(false);
     setDecisionRecoveryRequired(false);
     setResolvedConflictIds(new Set());
@@ -1667,6 +2114,11 @@ export function WorldSettingReview() {
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
+    setLinkSelection({ groupKey: null, ids: [] });
+    setTargetLinkOpen(false);
+    setPresetTargets({});
+    setTargetLinkNotice(null);
+    setRecentTargets([]);
   }, [batchId, sourceAnalysisJobId, workId]);
 
   const invalidateReviewSummary = (scope = { workId, batchId, sourceAnalysisJobId }) => queryClient.invalidateQueries({
@@ -1697,58 +2149,112 @@ export function WorldSettingReview() {
     if (toApiError(error)?.code === 'ANALYSIS_AUTOMATIC_APPLICATION_PENDING') await invalidateReviewState();
   };
 
+  /** 확정된 후보의 로컬 선택·초안을 정리한다. 응답을 잃었지만 재조회로 확정을 확인한 경우에도 같은 정리를 한다. */
+  const clearConfirmedLocalState = (candidateIds: string[]) => {
+    clearCurrentChoices(candidateIds);
+    const confirmedIds = new Set(candidateIds);
+    setDecisionOverrides(previous => Object.fromEntries(
+      Object.entries(previous).filter(([candidateId]) => !confirmedIds.has(candidateId)),
+    ));
+    setResolvedConflictIds(previous => new Set(
+      [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
+    ));
+    setRecomparedIds(previous => new Set(
+      [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
+    ));
+  };
+  const armAdvance = (advance: WorldGroupAdvance) => {
+    if (advanceRef.current !== advance) return;
+    advance.armed = true;
+    setAdvanceSignal(signal => signal + 1);
+  };
+
+  /**
+   * 그룹 확정이 저장됐을 때의 후속 처리. 정상 응답과 응답 유실 뒤 재조회로 확인한 경우가 같은 함수를 써서
+   * 로컬 선택 정리·확정 안내·다음 미처리 묶음 이동(force: 확정한 묶음이 `전체` 필터 목록에 남아도 이동)을 똑같이 한다.
+   */
+  const afterGroupConfirmed = async ({ candidateIds, groupKey, previousGroups, result }: {
+    candidateIds: string[];
+    groupKey: string | null;
+    previousGroups: WorldSettingCandidateGroupResponse[];
+    result?: { worldSettingId?: string | null; candidates?: WorldSettingCandidateResponse[] };
+  }) => {
+    clearConfirmedLocalState(candidateIds);
+    const resultCandidates = result?.candidates ?? [];
+    if (resultCandidates.length) {
+      const excluded = (candidate: WorldSettingCandidateResponse) => candidate.finalOperation === 'EXCLUDE'
+        || candidate.reviewStatus === 'DISMISSED';
+      const excludedCount = resultCandidates.filter(excluded).length;
+      const appliedCandidates = resultCandidates.filter(candidate => !excluded(candidate));
+      const finalTargetKeys = new Set(appliedCandidates.flatMap(candidate => {
+        const category = candidate.finalCategory ?? candidate.category;
+        const subjectName = candidate.finalSubjectName ?? candidate.subjectName;
+        return category && subjectName
+          ? [`${category}|${subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')}`]
+          : [];
+      }));
+      setConfirmedTarget({
+        id: result?.worldSettingId ?? undefined,
+        subjectName: appliedCandidates[0]?.finalSubjectName
+          ?? appliedCandidates[0]?.subjectName
+          ?? resultCandidates[0]?.finalSubjectName
+          ?? resultCandidates[0]?.subjectName
+          ?? selectedGroup?.subjectName
+          ?? '확정한 세계관 대상',
+        targetCount: finalTargetKeys.size,
+        appliedCount: resultCandidates.length - excludedCount,
+        excludedCount,
+      });
+    }
+    // 확정한 그룹 다음의 미처리 그룹으로 이동한다. 탭의 마지막 그룹이면 완료 상태와 이동 버튼을 보여 준다.
+    const advance: WorldGroupAdvance | null = groupKey && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)
+      ? { groupKey, previous: previousGroups, force: true, armed: false } : null;
+    if (advance) advanceRef.current = advance;
+    // mutation pending 상태를 목록·상세 캐시 갱신까지 유지해 이전 응답으로 중복 액션하지 못하게 한다.
+    await invalidateReviewState();
+    if (!advance) return;
+    if (queryClient.getQueryState(listOptions.queryKey)?.status === 'error') {
+      if (advanceRef.current === advance) advanceRef.current = null;
+      return;
+    }
+    armAdvance(advance);
+  };
+
   const confirmMutation = useMutation({
     ...guardReviewSourceMutation(confirmWorldSettingCandidateGroupMutation(), sourceScope.canWrite),
     onSuccess: async (response, variables) => {
-      clearCurrentChoices(variables.body.candidates.map(candidate => candidate.candidateId));
-      const confirmedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
-      const result = response.data;
-      const resultCandidates = result?.candidates ?? [];
-      if (result && resultCandidates.length) {
-        const excludedCount = resultCandidates.filter(candidate => candidate.finalOperation === 'EXCLUDE').length;
-        const appliedCandidates = resultCandidates.filter(candidate => candidate.finalOperation !== 'EXCLUDE');
-        const finalTargetKeys = new Set(appliedCandidates.flatMap(candidate => {
-          const category = candidate.finalCategory ?? candidate.category;
-          const subjectName = candidate.finalSubjectName ?? candidate.subjectName;
-          return category && subjectName
-            ? [`${category}|${subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')}`]
-            : [];
-        }));
-        setConfirmedTarget({
-          id: result.worldSettingId ?? undefined,
-          subjectName: appliedCandidates[0]?.finalSubjectName
-            ?? appliedCandidates[0]?.subjectName
-            ?? resultCandidates[0]?.finalSubjectName
-            ?? resultCandidates[0]?.subjectName
-            ?? selectedGroup?.subjectName
-            ?? '확정한 세계관 대상',
-          targetCount: finalTargetKeys.size,
-          appliedCount: resultCandidates.length - excludedCount,
-          excludedCount,
-        });
-      }
-      setDecisionOverrides(previous => Object.fromEntries(
-        Object.entries(previous).filter(([candidateId]) => !confirmedIds.has(candidateId)),
-      ));
-      setResolvedConflictIds(previous => new Set(
-        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
-      ));
-      setRecomparedIds(previous => new Set(
-        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
-      ));
-      // mutation pending 상태를 목록·상세 캐시 갱신까지 유지해 이전 응답으로 중복 액션하지 못하게 한다.
-      await invalidateReviewState();
+      const request = confirmRequestRef.current;
+      confirmRequestRef.current = null;
+      await afterGroupConfirmed({
+        candidateIds: variables.body.candidates.map(candidate => candidate.candidateId),
+        groupKey: request?.groupKey ?? null,
+        previousGroups: request?.previousGroups ?? [],
+        result: response.data,
+      });
     },
-    onError: async error => {
-      setCurrentChoices({});
+    onError: async (error, variables) => {
+      const request = confirmRequestRef.current;
+      confirmRequestRef.current = null;
+      const lost = isResponseLost(error);
+      // 응답을 잃은 확정은 이미 반영됐을 수 있으므로 선택을 지우지 않고 재조회 결과로 판단한다.
+      if (!lost) setCurrentChoices({});
       await refreshAutomaticApplicationState(error);
       setDecisionRecoveryRequired(true);
-      await recoverDecision();
+      await startRecovery(lost ? {
+        kind: 'confirm', groupKey: request?.groupKey ?? null, error,
+        candidateIds: variables.body.candidates.map(candidate => candidate.candidateId),
+        dismissedIds: variables.body.candidates.flatMap(candidate => candidate.operation === 'EXCLUDE' ? [candidate.candidateId] : []),
+        previousGroups: request?.previousGroups ?? [],
+      } : { kind: 'read' });
     },
   });
   const dismissMutation = useMutation({
     ...guardReviewSourceMutation(dismissWorldSettingCandidateGroupMutation(), sourceScope.canWrite),
-    onError: refreshAutomaticApplicationState,
+    onError: async error => {
+      await refreshAutomaticApplicationState(error);
+      // 응답을 잃은 제외는 이미 반영됐을 수 있으므로 목록을 다시 읽어 서버 상태로 보여 준다(제외됐으면 행이 빠진다).
+      if (isResponseLost(error)) await invalidateReviewState();
+    },
     onSuccess: async (_response, variables) => {
       const dismissedIds = new Set(variables.body.candidateIds);
       setDecisionOverrides(previous => Object.fromEntries(
@@ -1765,7 +2271,11 @@ export function WorldSettingReview() {
   });
   const retryMutation = useMutation({
     ...guardReviewSourceMutation(retryWorldSettingCandidateComparisonMutation(), sourceScope.canWrite),
-    onError: refreshAutomaticApplicationState,
+    onError: async error => {
+      await refreshAutomaticApplicationState(error);
+      // 응답을 잃은 다시 비교는 이미 시작됐을 수 있으므로 정상 응답처럼 목록을 다시 읽어 비교 상태를 보여 준다.
+      if (isResponseLost(error)) await invalidateReviewState();
+    },
     onSuccess: async () => {
       await invalidateReviewState();
     },
@@ -1784,8 +2294,10 @@ export function WorldSettingReview() {
     exact: true,
   });
   const resumeRequestPending = resumeInterruptedMutation.isPending || activeResumeRequestCount > 0;
-  const recoverDecision = async (expected?: WorldSettingCandidateDecisionUpdateItem[], requireMatch = true) => {
-    if (decisionRecoveryRequestRef.current || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return false;
+  const recoverDecision = async (expected?: WorldSettingCandidateDecisionUpdateItem[], requireMatch = true,
+    /** 읽기만 성공해도 잠금을 풀지 여부. 그룹 확정 확인처럼 읽은 뒤 따로 판정하면 false로 두고 판정 쪽에서 푼다. */
+    unlockOnRead = true): Promise<DecisionRecoveryResult> => {
+    if (decisionRecoveryRequestRef.current || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return { status: 'busy' };
     const request = Symbol();
     decisionRecoveryRequestRef.current = request;
     setDecisionRecoveryPending(true);
@@ -1794,7 +2306,7 @@ export function WorldSettingReview() {
     try {
       // Read before updating the cache so stale or different final fields cannot replace an open editor.
       const { data: refreshed } = await getWorldSettingCandidates({ ...listRequest, throwOnError: true });
-      if (!isCurrentRecovery()) return false;
+      if (!isCurrentRecovery()) return { status: 'busy' };
       let matches = Boolean(refreshed?.data);
       if (matches && expected) {
         const candidates = refreshed?.data?.groups?.content?.flatMap(group => group.candidates ?? []) ?? [];
@@ -1813,19 +2325,19 @@ export function WorldSettingReview() {
           && candidate.finalSubjectName === draft.subjectName && (candidate.finalScopeName ?? null) === (draft.scopeName ?? null)
           && candidate.finalSettingName === draft.settingName && candidate.finalValue === draft.value));
       }
-      if (!isCurrentRecovery()) return false;
+      if (!isCurrentRecovery()) return { status: 'busy' };
       if (matches) {
         await queryClient.cancelQueries({ queryKey: listOptions.queryKey, exact: true });
-        if (!isCurrentRecovery()) return false;
+        if (!isCurrentRecovery()) return { status: 'busy' };
         queryClient.setQueryData(listOptions.queryKey, refreshed);
       }
       // A rejected write may be retried after a successful read, without replacing the author's input.
       const verified = Boolean(refreshed?.data) && (!requireMatch || matches);
-      setDecisionRecoveryRequired(!verified);
-      return verified;
+      if (!verified || unlockOnRead) setDecisionRecoveryRequired(!verified);
+      return { status: 'read', matches, data: refreshed };
     } catch {
       if (isCurrentRecovery()) setDecisionRecoveryRequired(true);
-      return false;
+      return { status: 'failed' };
     } finally {
       await invalidateReviewSummary();
       if (decisionRecoveryRequestRef.current === request) {
@@ -1834,34 +2346,268 @@ export function WorldSettingReview() {
       }
     }
   };
-  const finishDecisionSave = async (drafts: WorldSettingCandidateDecisionUpdateItem[], nextGroupKey?: string) => {
+  const finishDecisionSave = async (drafts: WorldSettingCandidateDecisionUpdateItem[], nextGroupKey?: string,
+    stay?: WorldTargetLinkStay, origin?: string | null) => {
     if (!isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
     const updatedIds = new Set(drafts.map(candidate => candidate.candidateId));
+    // 응답·재확인을 기다리는 동안 작가가 다른 묶음·필터·페이지로 옮겼으면 그 위치와 화면 상태를 건드리지 않는다.
+    const stayedAtOrigin = origin == null || reviewLocationKey() === origin;
     clearCurrentChoices([...updatedIds]);
+    setPresetTargets(previous => ({ ...Object.fromEntries(Object.entries(previous)
+      .filter(([candidateId]) => !updatedIds.has(candidateId))), ...stay?.presets }));
     const firstDecision = drafts[0];
     setDecisionOverrides(previous => Object.fromEntries(
       Object.entries(previous).filter(([candidateId]) => !updatedIds.has(candidateId)),
     ));
-    setEditCandidate(null);
-    setEditIdentityOnly(false);
-    setScopeMergeCandidateIds([]);
-    selectionGroupRef.current = null;
-    if (isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        if (nextGroupKey) next.set('group', nextGroupKey);
-        if (firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category) {
-          next.set('worldCategory', firstDecision.category);
+    if (stayedAtOrigin) {
+      setEditCandidate(null);
+      setEditIdentityOnly(false);
+      setScopeMergeCandidateIds([]);
+      selectionGroupRef.current = null;
+      preserveViewport();
+    } else {
+      setEditCandidate(current => current?.id && updatedIds.has(current.id) ? null : current);
+    }
+    if (stay) {
+      // 선택 대상 연결은 읽던 묶음에 남는다. 행이 모두 옮겨 가 묶음이 비면 직전 목록 순서의 다음 묶음을 연다.
+      // 그 사이 다른 묶음에서 새로 한 체크·연결 창은 비우지 않는다.
+      setLinkSelection(current => current.groupKey === stay.sourceGroupKey ? { groupKey: null, ids: [] } : current);
+      if (currentGroupParam() === stay.sourceGroupKey) setTargetLinkOpen(false);
+      setTargetLinkNotice({ savedIds: [...updatedIds], pendingIds: Object.keys(stay.presets), targetName: stay.targetName,
+        linkedGroupKey: nextGroupKey ?? null, sourceGroupKey: stay.sourceGroupKey });
+      if (currentGroupParam() === stay.sourceGroupKey) {
+        const advance: WorldGroupAdvance = { groupKey: stay.sourceGroupKey, previous: stay.previousGroups, force: false, armed: false };
+        advanceRef.current = advance;
+        armAdvance(advance);
+      }
+      await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
+      return;
+    }
+    // 저장한 후보가 지금 속한 묶음과 페이지로 옮긴다. 정상 응답(묶음 키가 있음)과 응답 유실 복구(묶음 키가 없음)가
+    // 같은 결과가 되도록 서버 목록에서 후보로 찾고, 응답의 묶음 키는 찾지 못했을 때만 쓴다.
+    // 지금 페이지에 그대로 있으면 읽던 페이지를 유지하고, 분류·반영 방식 필터가 맞지 않으면 저장한 값으로 바꾼다.
+    const categoryChanged = Boolean(firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category);
+    const operationChanged = Boolean(firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation);
+    if (stayedAtOrigin && firstDecision) {
+      const found = await locateSavedGroup(firstDecision.candidateId, {
+        category: categoryChanged ? firstDecision.category : categoryFilter,
+        operation: operationChanged ? firstDecision.operation : operationFilter,
+        searchCurrentPage: !categoryChanged && !operationChanged,
+      });
+      const groupKey = found?.groupKey ?? nextGroupKey;
+      // 묶음을 찾는 동안 작가가 다른 위치로 옮겼으면 그 위치를 덮지 않는다.
+      if ((origin == null || reviewLocationKey() === origin) && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
+        const hold = selectionHoldRef.current;
+        if (hold && groupKey && groupKey !== hold.groupKey) {
+          hold.target = groupKey;
+          selectionHoldRef.current = null;
         }
-        if (firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation) {
-          next.set('operation', firstDecision.operation);
-        }
-        next.set('page', '1');
-        next.delete('candidate');
-        return next;
-      }, { replace: true, state: location.state });
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          if (groupKey) next.set('group', groupKey);
+          if (categoryChanged && firstDecision) next.set('worldCategory', firstDecision.category);
+          if (operationChanged && firstDecision) next.set('operation', firstDecision.operation);
+          if (found?.page != null) next.set('page', String(found.page + 1));
+          else if (!found && (categoryChanged || operationChanged || nextGroupKey)) next.set('page', '1');
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      }
     }
     await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
+  };
+
+  /**
+   * 저장한 후보가 속한 묶음과 그 페이지(0부터, 지금 페이지면 null)를 서버 목록에서 찾는다. 찾지 못하면 null.
+   * 결정 저장 확인(`runRecovery`) 안에서만 불리며, 그동안 옛 묶음 선택은 붙잡혀 있다.
+   */
+  const locateSavedGroup = async (candidateId: string, target: {
+    category: CategoryFilter; operation: OperationFilter; searchCurrentPage: boolean;
+  }): Promise<{ groupKey: string; page: number | null } | null> => {
+    const owning = (response?: GetWorldSettingCandidatesResponse) => response?.data?.groups?.content?.find(group => (
+      group.candidates?.some(candidate => candidate.id === candidateId)))?.groupKey;
+    if (target.searchCurrentPage) {
+      const onPage = owning(queryClient.getQueryData(listOptions.queryKey));
+      if (onPage) return { groupKey: onPage, page: null };
+    }
+    try {
+      for (let page = 0; ; page += 1) {
+        const response = await queryClient.fetchQuery({ ...getWorldSettingCandidatesOptions({ ...listRequest, query: {
+          ...listRequest.query,
+          category: target.category === 'ALL' ? undefined : target.category,
+          operation: target.operation === 'ALL' ? undefined : target.operation,
+          page,
+        } }), staleTime: 0 });
+        const groupKey = owning(response);
+        if (groupKey) return { groupKey, page };
+        if (page + 1 >= (response.data?.groups?.totalPages ?? 0)) return null;
+      }
+    } catch {
+      return null;
+    }
+  };
+
+  /** 결과 확인을 다시 읽지 못하면 1→3→8초 뒤 최대 3회 자동으로 다시 확인한다. 이후에는 수동 확인 버튼만 남긴다. */
+  const scheduleRecoveryRetry = () => {
+    if (recoveryAttemptRef.current >= REVIEW_RECHECK_LIMIT || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+    const delay = REVIEW_RECHECK_DELAYS_MS[recoveryAttemptRef.current];
+    setDecisionRecoveryScheduled(true);
+    recoveryTimerRef.current = window.setTimeout(() => {
+      recoveryTimerRef.current = null;
+      setDecisionRecoveryScheduled(false);
+      recoveryAttemptRef.current += 1;
+      setDecisionRecoveryAttempt(recoveryAttemptRef.current);
+      void runRecoveryRef.current();
+    }, delay);
+  };
+  const runRecovery = async () => {
+    clearRecoveryTimer();
+    const context = recoveryContextRef.current ?? { kind: 'read' as const };
+    if (context.kind === 'confirm' && context.groupKey && advanceRef.current?.groupKey !== context.groupKey) {
+      // 재조회에서 그룹이 사라져도 확정 여부를 판단하기 전에는 첫 그룹으로 되돌리지 않는다.
+      advanceRef.current = { groupKey: context.groupKey, previous: context.previousGroups, force: false, armed: false };
+    }
+    // 결정 저장을 확인하는 동안(읽은 목록으로 캐시를 바꾼 뒤 옮길 묶음·페이지를 정할 때까지) 옛 묶음이 목록에서
+    // 사라져도 첫 묶음으로 바꾸지 않게 선택을 붙잡아 둔다. 정상 응답과 응답 유실 복구가 같은 경로를 쓴다.
+    const hold: WorldGroupAdvance | null = context.kind === 'decision'
+      ? { groupKey: currentGroupParam() ?? '', previous: [], force: false, armed: false, target: null } : null;
+    if (hold) {
+      advanceRef.current = hold;
+      selectionHoldRef.current = hold;
+    }
+    try {
+      await runRecoveryStep(context);
+    } finally {
+      // 다른 묶음으로 URL을 바꿨으면 그 URL이 반영될 때 선택 effect가 붙잡기를 푼다(먼저 풀면 이전 URL로
+      // 렌더된 effect가 첫 묶음으로 덮어쓸 수 있다). 옮기지 않았으면 여기서 풀고 선택을 다시 판단하게 한다.
+      if (hold && selectionHoldRef.current === hold) {
+        selectionHoldRef.current = null;
+        if (advanceRef.current === hold) {
+          advanceRef.current = null;
+          setAdvanceSignal(signal => signal + 1);
+        }
+      }
+    }
+  };
+  const runRecoveryStep = async (context: WorldRecoveryContext) => {
+    // 응답을 잃은 저장은 서버가 늦게 반영할 수 있으므로 일치를 확인할 때까지 잠금을 유지한다(requireMatch).
+    const result = context.kind === 'decision'
+      ? await recoverDecision(context.drafts, context.acknowledged || context.lost)
+      : await recoverDecision(undefined, false, context.kind !== 'confirm');
+    if (result.status === 'busy') return;
+    if (result.status === 'failed') {
+      scheduleRecoveryRetry();
+      return;
+    }
+    if (recoveryContextRef.current !== context && context.kind !== 'read') return;
+    if (context.kind === 'decision') {
+      if (!result.matches) {
+        if (context.lost) {
+          // 아직 이전 값이면 1·3·8초 뒤 다시 확인한다. 그동안 잠금을 유지해 같은 결정을 다시 보내지 않게 한다.
+          if (recoveryAttemptRef.current < REVIEW_RECHECK_LIMIT) {
+            setDecisionRecoveryRequired(true);
+            scheduleRecoveryRetry();
+            return;
+          }
+          // 끝까지 다르면 저장되지 않은 것으로 확정하고 잠금을 푼다. 작가의 입력은 그대로 둔다.
+          recoveryContextRef.current = null;
+          setDecisionRecoveryRequired(false);
+          setLostWriteNotSaved('decision');
+          return;
+        }
+        // 응답을 받은 저장의 불일치는 같은 확인을 수동으로 반복할 수 있게 남긴다.
+        if (!context.acknowledged) recoveryContextRef.current = null;
+        return;
+      }
+      if (!context.acknowledged && !context.lost) {
+        recoveryContextRef.current = null;
+        return;
+      }
+      recoveryContextRef.current = null;
+      // 응답을 잃었지만 서버에 같은 초안이 저장됐으면 저장 성공과 같이 접는다(호출부 후속 처리·이동도 같다).
+      if (context.lost) setVerifiedLostError(context.error);
+      context.afterSaved?.();
+      await finishDecisionSave(context.drafts, context.groupKey, context.stay, context.origin);
+      return;
+    }
+    if (context.kind !== 'confirm') {
+      recoveryContextRef.current = null;
+      return;
+    }
+    const group = result.data?.data?.groups?.content?.find(item => item.groupKey === context.groupKey);
+    const listed = new Map((group?.candidates ?? []).flatMap(candidate => candidate.id ? [[candidate.id, candidate] as const] : []));
+    let confirmed: boolean;
+    let verifiedCandidates: WorldSettingCandidateResponse[] = [];
+    if (context.candidateIds.some(candidateId => listed.get(candidateId)?.reviewStatus === 'PENDING_REVIEW')) {
+      // 목록에 아직 대기로 보이면 확정되지 않은 것이다.
+      confirmed = false;
+    } else {
+      // 목록에서 빠진 후보(미처리 필터·다른 페이지)는 하나씩 다시 읽어, 요청한 결과(확정 또는 EXCLUDE의 제외)인지 확인한다.
+      // 다른 곳에서 제외된 후보를 "대기가 아님"만으로 확정 성공으로 보지 않는다.
+      try {
+        const details = await Promise.all(context.candidateIds.map(async candidateId => listed.get(candidateId)
+          ?? (await getWorldSettingCandidate({
+            path: { workId, candidateId }, query: { batchId, sourceAnalysisJobId }, throwOnError: true,
+          })).data?.data));
+        if (recoveryContextRef.current !== context) return;
+        if (details.some(candidate => !candidate)) throw new Error('missing candidate');
+        verifiedCandidates = details as WorldSettingCandidateResponse[];
+        confirmed = details.every(candidate => candidate!.reviewStatus
+          === (candidate!.id && context.dismissedIds.includes(candidate!.id) ? 'DISMISSED' : 'CONFIRMED'));
+      } catch {
+        if (recoveryContextRef.current !== context) return;
+        setDecisionRecoveryRequired(true);
+        scheduleRecoveryRetry();
+        return;
+      }
+    }
+    const advance = advanceRef.current?.groupKey === context.groupKey ? advanceRef.current : null;
+    if (!confirmed) {
+      // 확정이 늦게 반영될 수 있으므로 1·3·8초 뒤 다시 확인한다. 그동안 잠금을 유지해 결과를 모르는 채 쓰지 않게 한다.
+      if (recoveryAttemptRef.current < REVIEW_RECHECK_LIMIT) {
+        setDecisionRecoveryRequired(true);
+        scheduleRecoveryRetry();
+        return;
+      }
+      // 끝까지 대기 상태면 확정되지 않은 것으로 보고 잠금을 푼다.
+      recoveryContextRef.current = null;
+      if (advance) advanceRef.current = null;
+      setDecisionRecoveryRequired(false);
+      setLostWriteNotSaved('confirm');
+      return;
+    }
+    recoveryContextRef.current = null;
+    setDecisionRecoveryRequired(false);
+    setVerifiedLostError(context.error);
+    // 정상 확정 응답과 같은 후속 처리(확정 안내·force 이동 포함). 다시 읽은 후보로 응답의 결과를 대신한다.
+    const appliedTargets = new Set(verifiedCandidates.flatMap(candidate => candidate.reviewStatus === 'CONFIRMED'
+      && candidate.targetWorldSettingId ? [candidate.targetWorldSettingId] : []));
+    await afterGroupConfirmed({
+      candidateIds: context.candidateIds,
+      groupKey: context.groupKey,
+      previousGroups: context.previousGroups,
+      result: { candidates: verifiedCandidates, worldSettingId: appliedTargets.size === 1 ? [...appliedTargets][0] : null },
+    });
+  };
+  useEffect(() => {
+    runRecoveryRef.current = runRecovery;
+  });
+  const startRecovery = (context: WorldRecoveryContext) => {
+    recoveryContextRef.current = context;
+    setRecoveringDraftIds(new Set(context.kind === 'decision' ? context.drafts.map(draft => draft.candidateId) : []));
+    recoveryAttemptRef.current = 0;
+    setDecisionRecoveryAttempt(0);
+    return runRecovery();
+  };
+
+  // 결정 저장을 보낸 시점의 위치. 한 번에 하나의 결정 저장만 보낸다(요청 중에는 다른 쓰기를 잠근다).
+  const decisionOriginRef = useRef<string | null>(null);
+  const decisionAfterSavedRef = useRef<(() => void) | undefined>(undefined);
+  /** 이 저장이 선택 대상 연결이었는지 꺼낸다. 요청한 후보가 같을 때만 쓰고 한 번 쓰면 비운다. */
+  const takeTargetLinkStay = (drafts: WorldSettingCandidateDecisionUpdateItem[]) => {
+    const stay = targetLinkRequestRef.current;
+    targetLinkRequestRef.current = null;
+    return stay && drafts.every(draft => draft.operation === 'ADD') ? stay : undefined;
   };
   const updateDecisionMutation = useMutation({
     ...guardReviewSourceMutation(updateWorldSettingCandidateDecisionsMutation(), sourceScope.canWrite),
@@ -1871,8 +2617,10 @@ export function WorldSettingReview() {
           || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
       await refreshAutomaticApplicationState(error);
       if (!isWorldReviewLocation(variables.path.workId, variables.body.batchId, variables.query?.sourceAnalysisJobId)) return;
+      const stay = takeTargetLinkStay(variables.body.candidates);
       setDecisionRecoveryRequired(true);
-      await recoverDecision(variables.body.candidates, false);
+      await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: false,
+        lost: isResponseLost(error), error, stay, origin: decisionOriginRef.current, afterSaved: decisionAfterSavedRef.current });
     },
     onSuccess: async (response, variables) => {
       await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
@@ -1882,17 +2630,24 @@ export function WorldSettingReview() {
       const queryKey = getWorldSettingCandidatesQueryKey({ path: { workId }, query: { sourceAnalysisJobId, batchId } });
       await queryClient.cancelQueries({ queryKey });
       await queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
-      if (!await recoverDecision(variables.body.candidates)) return;
-      await finishDecisionSave(variables.body.candidates, response.data?.groupKey);
+      await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: true, lost: false,
+        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates), origin: decisionOriginRef.current,
+        afterSaved: decisionAfterSavedRef.current });
     },
   });
+  /**
+   * 결정 저장을 보낸다. 늦게 끝난 후속 처리가 위치를 되돌리지 않도록 보낸 시점의 위치를 함께 기억한다.
+   * `afterSaved`는 저장이 확인되면 실행한다. mutate의 onSuccess는 응답을 잃으면 불리지 않으므로 쓰지 않는다.
+   */
+  const mutateDecisions = (variables: Parameters<typeof updateDecisionMutation.mutate>[0], afterSaved?: () => void) => {
+    decisionOriginRef.current = reviewLocationKey();
+    decisionAfterSavedRef.current = afterSaved;
+    setLostWriteNotSaved(null);
+    updateDecisionMutation.mutate(variables);
+  };
 
   const retryDecisionRecovery = async () => {
-    const drafts = updateDecisionMutation.variables?.body.candidates;
-    const acknowledged = updateDecisionMutation.isSuccess;
-    if (await recoverDecision(drafts, acknowledged) && acknowledged && drafts) {
-      await finishDecisionSave(drafts, updateDecisionMutation.data?.data?.groupKey);
-    }
+    await runRecovery();
   };
 
   useEffect(() => {
@@ -1903,6 +2658,7 @@ export function WorldSettingReview() {
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
+    setTargetLinkOpen(false);
   }, [selectedGroup, updateDecisionMutation.isPending, decisionRecoveryRequired]);
 
   useEffect(() => {
@@ -1946,15 +2702,24 @@ export function WorldSettingReview() {
     dismissMutation.reset();
     retryMutation.reset();
     updateDecisionMutation.reset();
+    setLostWriteNotSaved(null);
   };
-  const selectedActionError = updateDecisionMutation.error
-    ?? confirmMutation.error
-    ?? dismissMutation.error
-    ?? retryMutation.error;
+  // 응답을 잃었지만 재조회로 반영을 확인한 요청의 연결 오류는 다시 보여 주지 않는다.
+  const selectedActionError = [updateDecisionMutation.error, confirmMutation.error, dismissMutation.error, retryMutation.error]
+    .find(error => error != null && error !== verifiedLostError) ?? null;
+  const decisionRecoveryStatus = !decisionRecoveryRequired ? null
+    : decisionRecoveryPending ? `최신 상태를 확인하는 중이에요${decisionRecoveryAttempt > 0 ? `(${decisionRecoveryAttempt}/${REVIEW_RECHECK_LIMIT})` : ''}`
+    : decisionRecoveryScheduled ? `잠시 후 자동으로 다시 확인해요(${decisionRecoveryAttempt + 1}/${REVIEW_RECHECK_LIMIT})`
+    : decisionRecoveryAttempt >= REVIEW_RECHECK_LIMIT ? '자동으로 확인하지 못했어요. 아래 버튼으로 다시 확인해 주세요.' : null;
+  const recoveringCandidateIds = decisionRecoveryRequired ? recoveringDraftIds : undefined;
   const apiActionError = toApiError(selectedActionError);
   const conflictScope = apiActionError?.context?.scope;
   const conflictReason = apiActionError?.context?.reasonMessage;
-  const actionError = selectedActionError
+  const actionError = lostWriteNotSaved === 'decision' && selectedActionError != null && selectedActionError === updateDecisionMutation.error
+    ? '저장되지 않았어요. 입력한 내용은 그대로예요. 다시 저장해 주세요.'
+    : lostWriteNotSaved === 'confirm' && selectedActionError != null && selectedActionError === confirmMutation.error
+    ? '확정되지 않았어요. 내용을 확인한 뒤 다시 확정해 주세요.'
+    : selectedActionError
     ? `${typeof conflictScope === 'string' ? `${conflictScope} 재비교 · ` : ''}${typeof conflictReason === 'string'
       ? conflictReason
       : errorMessage(selectedActionError, '대상 그룹을 처리하지 못했습니다. 최신 상태를 확인해 주세요.')}`
@@ -1962,6 +2727,7 @@ export function WorldSettingReview() {
 
   const updateFilters = (nextReview: ReviewFilter, nextCategory: CategoryFilter, nextOperation: OperationFilter) => {
     setMobileDetailOpen(false);
+    clearTargetLinkState();
     setEditCandidate(null);
     setEditIdentityOnly(false);
     setScopeMergeCandidateIds([]);
@@ -1984,6 +2750,7 @@ export function WorldSettingReview() {
 
   const selectGroup = (groupKey: string) => {
     preserveViewport();
+    if (groupKey !== selectedGroup?.groupKey) clearTargetLinkState();
     setMobileDetailOpen(true);
     setEditCandidate(null);
     setEditIdentityOnly(false);
@@ -1999,6 +2766,7 @@ export function WorldSettingReview() {
 
   const changePage = (page: number) => {
     setMobileDetailOpen(false);
+    clearTargetLinkState();
     selectionGroupRef.current = null;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
@@ -2007,6 +2775,30 @@ export function WorldSettingReview() {
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
+  };
+
+  /** Alt+Shift+↓/↑: 목록의 다음·이전 묶음을 열고 제목에 초점을 둔다. 페이지 끝이면 옆 페이지의 첫·마지막 묶음으로 간다. */
+  const stepGroup = (direction: 1 | -1) => {
+    const index = groups.findIndex(group => group.groupKey === selectedGroup?.groupKey);
+    const target = index >= 0 ? groups[index + direction] : undefined;
+    if (target?.groupKey) {
+      selectGroup(target.groupKey);
+      focusGroupKeyRef.current = target.groupKey;
+      return true;
+    }
+    const page = (groupPage?.page ?? apiPage) + direction;
+    if (page < 0 || page >= (groupPage?.totalPages ?? 0)) return false;
+    clearTargetLinkState();
+    selectionGroupRef.current = null;
+    edgeGroupRef.current = direction > 0 ? 'first' : 'last';
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set('page', String(page + 1));
+      next.delete('group');
+      next.delete('candidate');
+      return next;
+    }, { replace: true, state: location.state });
+    return true;
   };
 
   const pendingCandidates = (selectedGroup?.candidates ?? []).filter(candidate => (
@@ -2041,12 +2833,15 @@ export function WorldSettingReview() {
         } : {}),
       }] : [];
     });
-    if (!candidates.length || candidates.length !== pendingCandidates.length) return;
+    if (!candidates.length || candidates.length !== pendingCandidates.length || !selectedGroup.groupKey) return;
+    confirmRequestRef.current = { groupKey: selectedGroup.groupKey, previousGroups: groups };
+    setLostWriteNotSaved(null);
     confirmMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates } });
   };
 
+  // 행 제외·다시 비교도 저장 결과를 확인하는 동안(decisionRecoveryRequired) 잠근다. 버튼의 비활성 조건과 같다.
   const dismissCandidate = (candidateId: string) => {
-    if (!candidateId || actionPending || candidateAutomaticPending(candidateId)) return;
+    if (!candidateId || actionPending || decisionRecoveryRequired || candidateAutomaticPending(candidateId)) return;
     dismissMutation.mutate({
       query: { sourceAnalysisJobId }, path: { workId },
       body: { batchId, candidateIds: [candidateId] },
@@ -2054,7 +2849,7 @@ export function WorldSettingReview() {
   };
 
   const retryGroup = () => {
-    if (!selectedGroup || actionPending) return;
+    if (!selectedGroup || actionPending || decisionRecoveryRequired) return;
     const candidate = selectedGroup.candidates?.find(item => item.id
       && item.analysisMode !== 'ORDERED_PROVISIONAL'
       && !isAutomaticApplicationPending(item)
@@ -2102,16 +2897,93 @@ export function WorldSettingReview() {
         return candidate?.consolidationStatus === 'CONFLICT' ? [decision.candidateId] : [];
       })
       : [];
-    updateDecisionMutation.mutate({
+    mutateDecisions({
       query: { sourceAnalysisJobId }, path: { workId },
       body: { batchId, candidates },
-    }, {
-      onSuccess: () => {
-        if (!resolvedConflictCandidateIds.length || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
-        setResolvedConflictIds(previous => new Set([...previous, ...resolvedConflictCandidateIds]));
-      },
+    }, () => {
+      if (!resolvedConflictCandidateIds.length || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+      setResolvedConflictIds(previous => new Set([...previous, ...resolvedConflictCandidateIds]));
     });
   };
+
+  const checkedLinkIds = linkSelection.groupKey === (selectedGroup?.groupKey ?? null) ? linkSelection.ids : [];
+  const linkUnits = worldTargetLinkUnits(selectedGroup?.candidates ?? [], checkedLinkIds, confirmationFiltered, resolvedConflictIds);
+  const changeLinkSelection = (candidateIds: string[], checked: boolean) => {
+    const groupKey = selectedGroup?.groupKey ?? null;
+    setLinkSelection(current => {
+      const ids = current.groupKey === groupKey ? current.ids : [];
+      return { groupKey, ids: checked ? [...new Set([...ids, ...candidateIds])] : ids.filter(id => !candidateIds.includes(id)) };
+    });
+  };
+  /**
+   * 체크한 행을 고른 대상에 연결한다. 대상에 같은 경로가 없는 행만 ADD 초안으로 한 번에 저장하고(같은 현재 묶음의 일부 PATCH),
+   * 같은 경로가 있거나 원문 충돌이 있는 행은 저장하지 않고 고른 대상과 함께 행의 결정으로 남긴다.
+   */
+  const applyTargetLink = (target: WorldLinkTarget, plan: ReturnType<typeof planWorldTargetLink>) => {
+    if (!selectedGroup?.groupKey || actionPending || decisionRecoveryRequired) return;
+    rememberTarget(target);
+    const presets: Record<string, WorldPresetTarget> = Object.fromEntries(plan.pending.flatMap(row => (
+      row.unit.candidateIds.map(candidateId => [candidateId, { target, reason: row.outcome as WorldPresetTarget['reason'] }])
+    )));
+    if (!plan.saves.length) {
+      setPresetTargets(previous => ({ ...previous, ...presets }));
+      clearLinkSelection();
+      setTargetLinkNotice({ savedIds: [], pendingIds: Object.keys(presets), targetName: target.subjectName, linkedGroupKey: null,
+        sourceGroupKey: selectedGroup.groupKey });
+      return;
+    }
+    if (plan.saves.length > REVIEW_SELECTION_LINK_LIMIT) return;
+    const sources = plan.saves.flatMap(save => pendingCandidates.filter(candidate => candidate.id === save.candidateId));
+    if (sources.length !== plan.saves.length || sources.some(candidate => isAutomaticApplicationPending(candidate)
+      || isQuotaInterruptedCandidate(candidate))) return;
+    setOriginalHoldReasons(previous => ({ ...previous, ...Object.fromEntries(sources
+      .filter(source => source.id && source.automaticReviewHoldReason)
+      .map(source => [source.id!, source.automaticReviewHoldReason])) }));
+    confirmMutation.reset();
+    dismissMutation.reset();
+    updateDecisionMutation.reset();
+    targetLinkRequestRef.current = { sourceGroupKey: selectedGroup.groupKey, previousGroups: groups, targetName: target.subjectName, presets };
+    mutateDecisions({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates: plan.saves } });
+  };
+  /** 결정이 남은 첫 행으로 초점과 스크롤을 옮긴다. */
+  const focusFirstPendingLink = () => {
+    const firstId = (selectedGroup?.candidates ?? []).find(candidate => candidate.id && targetLinkNotice?.pendingIds.includes(candidate.id))?.id;
+    const row = firstId ? Array.from(mainRef.current?.querySelectorAll<HTMLElement>('[data-candidate-id]') ?? [])
+      .find(element => element.dataset.candidateId === firstId) : undefined;
+    row?.scrollIntoView({ block: 'start' });
+    row?.focus({ preventScroll: true });
+  };
+  /** 연결한 묶음은 후보 ID로 실제 묶음과 페이지를 찾아 연다(공유 링크와 같은 경로). */
+  const openLinkedTargetGroup = (notice: WorldTargetLinkNotice) => {
+    const candidateId = notice.savedIds[0];
+    if (!candidateId) return;
+    preserveViewport();
+    clearTargetLinkState();
+    setMobileDetailOpen(true);
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.delete('group');
+      next.set('candidate', candidateId);
+      return next;
+    }, { replace: true, state: location.state });
+  };
+  const visiblePendingLinkIds = targetLinkNotice?.pendingIds.filter(candidateId => (selectedGroup?.candidates ?? [])
+    .some(candidate => candidate.id === candidateId && candidate.reviewStatus === 'PENDING_REVIEW')) ?? [];
+  const targetLinkNoticeVisible = Boolean(targetLinkNotice && selectedGroup?.groupKey
+    && (selectedGroup.groupKey === targetLinkNotice.sourceGroupKey || selectedGroup.groupKey === targetLinkNotice.advancedGroupKey));
+  const targetLinkNoticeView = targetLinkNotice && targetLinkNoticeVisible && <ReviewNotice tone="info"
+    title={[targetLinkNotice.savedIds.length ? `${targetLinkNotice.savedIds.length}개 저장(추가)` : null,
+      targetLinkNotice.pendingIds.length ? `${targetLinkNotice.pendingIds.length}개는 내용 결정이 남았어요` : null].filter(Boolean).join(' · ')}
+    action={<span className="review-cb-notice__buttons">
+      {visiblePendingLinkIds.length > 0 && <button type="button" className="review-cb-secondary" onClick={focusFirstPendingLink}>첫 항목으로</button>}
+      {targetLinkNotice.savedIds.length > 0 && <button type="button" className="review-cb-secondary" onClick={() => openLinkedTargetGroup(targetLinkNotice)}>연결한 묶음 보기</button>}
+      <button type="button" className="review-cb-secondary" onClick={() => setTargetLinkNotice(null)}>닫기</button>
+    </span>}>
+    {targetLinkNotice.savedIds.length
+      ? `‘${targetLinkNotice.targetName}’에 같은 설정이 없는 항목을 추가로 저장했어요. 저장한 설정은 연결한 묶음에서 확정해요.`
+      : `‘${targetLinkNotice.targetName}’에 바로 추가할 수 있는 설정이 없었어요.`}
+    {targetLinkNotice.pendingIds.length > 0 && ' 남은 설정은 고른 대상과 함께 열어 두었어요. 기존값과 합칠지·바꿀지 정해 주세요.'}
+  </ReviewNotice>;
 
   const backToAnalysisList = () => {
     // 화면 전환 애니메이션 동안 남아 있는 effect가 검토 URL을 다시 쓰지 못하게 한다.
@@ -2181,9 +3053,15 @@ export function WorldSettingReview() {
     && (reviewProgress.directReview ?? 0) === 0
     && (reviewProgress.processing ?? 0) === 0
     && Boolean(workId);
-  const baseEditDecision = editCandidate?.id
+  const editPreset = editCandidate?.id && !editIdentityOnly ? presetTargets[editCandidate.id] : undefined;
+  const originalEditDecision = editCandidate?.id
     ? decisionOverrides[editCandidate.id] ?? candidateEditDecision(editCandidate)
     : null;
+  // 묶음에서 다른 대상을 골라 둔 행의 수정 창은 원래 대상이 아니라 그 대상과 원문 경로로 채운다(저장하면 대상 초안을 지운다).
+  const baseEditDecision = originalEditDecision && editPreset && editCandidate
+    ? { ...worldLinkSourceDraft(editCandidate, originalEditDecision), category: editPreset.target.category,
+      subjectName: editPreset.target.subjectName }
+    : originalEditDecision;
   const editDecision = baseEditDecision
     && editCandidate && !hasSavedDecision(editCandidate)
     && scopeMergeCandidateIds.length
@@ -2205,6 +3083,27 @@ export function WorldSettingReview() {
     : undefined;
   const totalPages = groupPage?.totalPages ?? 0;
   const currentPage = groupPage?.page ?? apiPage;
+  const onReviewKeyDown = useReviewKeyboardNavigation({
+    containerRef: detailRef,
+    disabled: Boolean(editCandidate || targetLinkOpen),
+    stepCard: cardNavigation.stepCard,
+    stepGroup,
+    // 막는 행 목록은 상세 카드가 계산하므로 화면에 표시된 `다음 미결정 항목` 버튼과 같은 동작을 쓴다.
+    jumpToBlocking: () => {
+      const jump = detailRef.current?.querySelector<HTMLButtonElement>('.review-action-bar__jump');
+      jump?.click();
+      return Boolean(jump);
+    },
+  });
+  // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
+  // `전체` 상태 필터는 다른 페이지에 확정한 묶음만 있을 수 있으므로 미처리 묶음 수로 판단한다(이동과 같은 기준).
+  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey && hasPendingCandidate(group))
+    || (pendingGroupTotal != null
+      ? pendingGroupTotal - (selectedGroup && hasPendingCandidate(selectedGroup) ? 1 : 0) > 0
+      : groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0);
+  // `전체` 상태 필터에서 마지막 미처리 묶음을 확정하면 그 묶음에 머물러 탭 완료 상태를 보여 준다.
+  const worldTabDoneInAll = reviewFilter === 'ALL' && listQuery.isSuccess && !listQuery.isPlaceholderData
+    && listData?.pendingCandidateCount === 0 && (listData.processingCandidateCount ?? 0) === 0 && worldTotal > 0;
 
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
@@ -2454,7 +3353,7 @@ export function WorldSettingReview() {
                       disabled={listQuery.isPending} onPageChange={changePage} />
                   </aside>
 
-                  <section className="world-setting-review-detail">
+                  <section className="world-setting-review-detail" ref={detailRef} onKeyDown={onReviewKeyDown}>
                     <button type="button" className="world-setting-review-mobile-back" onClick={() => setMobileDetailOpen(false)} style={{
                       display: 'none', marginBottom: 10, border: 'none', background: 'none',
                       color: REVIEW_TEXT.primary, fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
@@ -2465,7 +3364,7 @@ export function WorldSettingReview() {
                         title={worldReviewComplete ? '세계관 검토를 마쳤어요'
                           : groups.length === 0 ? '조건에 맞는 세계관 대상이 없습니다.' : '세계관 대상을 선택해 주세요.'}
                         description={worldReviewComplete
-                          ? characterPending > 0 ? '남은 캐릭터 후보를 확인해 주세요. 반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.' : '반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
+                          ? characterPending > 0 ? `캐릭터 후보 ${characterPending}개가 남았어요. 반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.` : '반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.'
                           : groups.length === 0 ? '검토 상태·분류·반영 방식 필터를 바꾸면 다른 대상을 확인할 수 있어요.'
                           : '목록에서 대상을 선택하면 같은 대상의 설정 항목과 1차 원문 근거를 함께 확인할 수 있습니다.'}
                         action={worldReviewComplete && characterPending > 0 ? <OtherSettingReviewAction current="world" /> : undefined}
@@ -2481,10 +3380,13 @@ export function WorldSettingReview() {
                         actionError={actionError}
                         decisionRecoveryRequired={decisionRecoveryRequired}
                         decisionRecoveryPending={decisionRecoveryPending}
+                        decisionRecoveryStatus={decisionRecoveryStatus}
+                        recoveringCandidateIds={recoveringCandidateIds}
                         onRecoverDecision={() => void retryDecisionRecovery()}
                         onExclude={dismissCandidate}
                         onEditIdentity={() => {
-                          if (groupAutomaticPending) return;
+                          if (actionPending || decisionRecoveryRequired || groupAutomaticPending) return;
+                          rememberEditTrigger();
                           const candidate = pendingCandidates.find(item => item.id && candidateDecision(item));
                           if (!candidate) return;
                           confirmMutation.reset();
@@ -2495,7 +3397,8 @@ export function WorldSettingReview() {
                           setEditCandidate(candidate);
                         }}
                         onEdit={candidate => {
-                          if (isAutomaticApplicationPending(candidate)) return;
+                          if (actionPending || decisionRecoveryRequired || isAutomaticApplicationPending(candidate)) return;
+                          rememberEditTrigger();
                           confirmMutation.reset();
                           dismissMutation.reset();
                           updateDecisionMutation.reset();
@@ -2513,15 +3416,15 @@ export function WorldSettingReview() {
                           setOriginalHoldReasons(previous => ({ ...previous, ...Object.fromEntries(sources
                             .filter(source => source.id && source.automaticReviewHoldReason)
                             .map(source => [source.id!, source.automaticReviewHoldReason])) }));
-                          updateDecisionMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId,
+                          mutateDecisions({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId,
                             candidates: sources.map(source => ({ candidateId: source.id!, ...draft,
                               conflictResolved: source.consolidationStatus === 'CONFLICT' ? true : undefined })),
-                          } }, { onSuccess: () => {
+                          } }, () => {
                             if (!isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
                             setResolvedConflictIds(previous => new Set([
                               ...previous, ...sources.filter(source => source.consolidationStatus === 'CONFLICT').map(source => source.id!),
                             ]));
-                          } });
+                          });
                         }}
                         onAnalysis={backToAnalysisList}
                         onConfirm={confirmAll}
@@ -2537,6 +3440,33 @@ export function WorldSettingReview() {
                           confirmMutation.reset();
                           setCurrentChoices(previous => ({ ...previous, [candidate.id!]: { valueKey, mode } }));
                         }}
+                        selection={{
+                          checkedIds: checkedLinkIds,
+                          onChange: changeLinkSelection,
+                          onSelectAll: candidateIds => setLinkSelection({ groupKey: selectedGroup.groupKey ?? null, ids: candidateIds }),
+                          onClear: clearLinkSelection,
+                          onOpen: () => {
+                            if (!linkUnits.length || actionPending || decisionRecoveryRequired
+                              || checkedLinkIds.length > REVIEW_SELECTION_LINK_LIMIT) return;
+                            updateDecisionMutation.reset();
+                            setTargetLinkOpen(true);
+                          },
+                        }}
+                        presetTargets={presetTargets}
+                        linkNotice={targetLinkNoticeView}
+                        hasNextGroup={hasNextGroup}
+                        completionNotice={worldTabDoneInAll && <div style={{ padding: '0 20px 18px' }}>
+                          <ReviewNotice tone="success" title="세계관 검토를 마쳤어요"
+                            action={characterPending > 0 ? <OtherSettingReviewAction current="world" /> : undefined}>
+                            {characterPending > 0 ? `캐릭터 후보 ${characterPending}개가 남았어요. ` : ''}반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.
+                          </ReviewNotice>
+                        </div>}
+                        confirmPending={confirmMutation.isPending}
+                        onJumpToBlocking={cardNavigation.jumpToBlocking}
+                        recentTargets={recentTargets}
+                        onTargetChosen={rememberTarget}
+                        onPresetDismiss={candidateIds => setPresetTargets(previous => Object.fromEntries(
+                          Object.entries(previous).filter(([candidateId]) => !candidateIds.includes(candidateId))))}
                       />
                     )}
                   </section>
@@ -2559,6 +3489,24 @@ export function WorldSettingReview() {
         </div>
       </main>
 
+      {selectedGroup && targetLinkOpen && linkUnits.length > 0 && (
+        <WorldTargetLinkModal
+          key={`target-link-${selectedGroup.groupKey}`}
+          workId={workId}
+          units={linkUnits}
+          groupCategory={selectedGroup.category ?? undefined}
+          groupSubjectName={selectedGroup.subjectName ?? undefined}
+          categoryLabels={Object.fromEntries(Object.entries(CATEGORY_META).map(([value, meta]) => [value, meta.label])) as Record<WorldCategory, string>}
+          pending={updateDecisionMutation.isPending}
+          checking={decisionRecoveryRequired || decisionRecoveryPending}
+          error={actionError}
+          onClose={() => {
+            if (updateDecisionMutation.isPending) return;
+            setTargetLinkOpen(false);
+          }}
+          onApply={applyTargetLink}
+        />
+      )}
       {editCandidate?.id && editDecision && (
         <CandidateEditModal
           key={`${editCandidate.id}-${editIdentityOnly ? 'identity' : scopeMergeCandidateIds.length ? 'scope-merge' : isBatchLimitExceededCandidate(editCandidate) ? 'batch-limit' : 'candidate'}`}
@@ -2588,6 +3536,7 @@ export function WorldSettingReview() {
             setScopeMergeCandidateIds([]);
           }}
           onSubmit={submitEditedCandidate}
+          returnFocusTo={editTriggerRef.current}
         />
       )}
       <style>{`

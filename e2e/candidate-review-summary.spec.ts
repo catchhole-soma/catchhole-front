@@ -104,7 +104,7 @@ test(`세계관 ${action} 뒤 캐릭터 탭의 아직 신선한 요약 캐시도
   }, reviewUrl());
   await expect(summary(page).locator('.is-direct strong')).toHaveText('2개');
   await page.getByRole('button', { name: /세계관 후보/ }).click();
-  await page.getByRole('button', { name: action === 'dismiss' ? '기후 제외' : '모두 확정' }).click();
+  await page.getByRole('button', { name: action === 'dismiss' ? '기후 제외' : /^(모두 확정|확정하고 다음)$/ }).click();
   await expect(summary(page).locator(action === 'dismiss' ? '.is-dismissed strong' : '.is-confirmed strong')).toHaveText('1개');
   await page.getByRole('button', { name: /캐릭터 후보/ }).click();
   await expect(summary(page).locator('.is-direct strong')).toHaveText('1개');

@@ -519,7 +519,7 @@ function CharacterReviewScreen({ onApprove }: { onApprove: () => void }) {
     <footer className="interactive-demo-group-confirm">
       <p><strong>에단 렌의 1개 설정을 함께 확정합니다.</strong><small>{mode === 'HISTORY_ONLY' ? '이 예시는 직업이 실제로 바뀐 장면입니다. 현재 설정에 반영을 선택해 주세요.' : '선택한 직업 변경을 작품 설정에 반영합니다.'}</small></p>
       <ActionButton className="interactive-demo-guided-target" data-demo-focus="true" icon={<CheckCircle2 size={16} />}
-        disabled={mode !== 'APPLY_PROPOSAL'} onClick={onApprove}>1개 설정 모두 확정</ActionButton>
+        disabled={mode !== 'APPLY_PROPOSAL'} onClick={onApprove}>모두 확정</ActionButton>
     </footer>
   </ReviewShell>;
 }
@@ -1033,7 +1033,7 @@ export default function SInteractiveDemo() {
       ? { current: 2, title: '후보가 준비되었습니다', description: '실제 분석 화면과 같은 ‘설정 후보 검토’ 버튼을 눌러 세 후보를 직접 판단해 보세요.' }
       : { current: 2, title: '회차별 처리 상태를 확인하세요', description: '실제 분석 화면처럼 원문 저장부터 설정 후보 생성까지 상태가 순서대로 바뀝니다.', waiting: true };
   } else if (state.screen === 'character-review') {
-    coachmark = { current: 3, title: '명확한 캐릭터 설정을 확정하세요', description: '실제 캐릭터 후보 화면과 같은 ‘1개 설정 모두 확정’을 눌러 직업 변경을 반영해 보세요.' };
+    coachmark = { current: 3, title: '명확한 캐릭터 설정을 확정하세요', description: '실제 캐릭터 후보 화면과 같은 ‘모두 확정’을 눌러 직업 변경을 반영해 보세요.' };
   } else if (state.screen === 'world-review') {
     coachmark = state.worldEditing
       ? { current: 4, title: '최종 설정값을 직접 다듬으세요', description: '원문에 맞게 내용을 다듬거나 그대로 확인한 뒤 ‘이 내용으로 검토 완료’를 눌러 주세요.' }

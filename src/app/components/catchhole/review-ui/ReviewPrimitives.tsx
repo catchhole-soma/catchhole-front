@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, BookOpen, Check, ChevronDown, Info } from 'lucide-react';
 import { reviewTextDiff, type ReviewTextPart } from './review-text-diff';
 import '../../../../styles/review-clear-blue.css';
@@ -59,16 +59,51 @@ export function ReviewValueComparison({ before, after, mode, beforeLabel = '기�
 }
 
 export type ReviewChoice = { id: string; title: string; description?: ReactNode; preview?: ReactNode; image?: ReactNode; footnote?: ReactNode; disabled?: boolean };
-export function ReviewChoiceCards({ label, choices, value, onChange, disabled = false, children }: {
+const ARROW_STEPS: Record<string, 1 | -1> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+
+/**
+ * 하나만 고르는 선택 카드. 기본은 radiogroup/radio(`aria-checked`)이며 roving tabindex로 묶음당 Tab 한 번에 들어온다.
+ * 방향키는 초점만 옮기고(고르면 서버에 저장되는 카드가 많아 이동만으로 저장하지 않는다) Space·Enter로 고른다.
+ * Alt 조합 방향키는 검토 화면의 카드·묶음 이동 단축키에 넘긴다. 다른 기능의 토글형 카드는 `semantics="toggle"`로 기존
+ * `aria-pressed` 버튼 묶음을 유지한다.
+ */
+export function ReviewChoiceCards({ label, choices, value, onChange, disabled = false, children, semantics = 'radio' }: {
   label?: ReactNode; choices: ReviewChoice[]; value: string | null; onChange: (id: string) => void; disabled?: boolean; children?: ReactNode;
+  semantics?: 'radio' | 'toggle';
 }) {
   const labelId = useId();
+  const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const radio = semantics === 'radio';
+  const enabled = choices.map(choice => !(disabled || choice.disabled));
+  const selectedIndex = choices.findIndex(choice => choice.id === value);
+  // 저장 중처럼 잠시 모두 잠겨도 초점이 사라지지 않게 radio는 `aria-disabled`로 잠그고 Tab 자리는 유지한다.
+  const tabStop = selectedIndex >= 0 && (enabled[selectedIndex] || !enabled.includes(true)) ? selectedIndex
+    : enabled.includes(true) ? enabled.indexOf(true) : 0;
+  const moveFocus = (from: number, step: 1 | -1) => {
+    for (let offset = 1; offset <= choices.length; offset += 1) {
+      const index = (from + step * offset + choices.length) % choices.length;
+      if (enabled[index]) {
+        buttonsRef.current[index]?.focus();
+        return;
+      }
+    }
+  };
   return <section className="review-cb-decisions" aria-labelledby={label ? labelId : undefined}>
     {label && <div className="review-cb-decisions__question"><small>선택해 주세요</small><h4 id={labelId}>{label}</h4></div>}
     {children}
-    <div className={`review-cb-choices${choices.length === 2 ? ' has-two' : ''}`} role="group" aria-labelledby={label ? labelId : undefined}>
-      {choices.map(choice => <button key={choice.id} type="button" className="review-cb-choice" aria-pressed={choice.id === value}
-        disabled={disabled || choice.disabled} onClick={() => onChange(choice.id)}>
+    <div className={`review-cb-choices${choices.length === 2 ? ' has-two' : ''}`} role={radio ? 'radiogroup' : 'group'} aria-labelledby={label ? labelId : undefined}>
+      {choices.map((choice, index) => <button key={choice.id} type="button" className="review-cb-choice"
+        ref={element => { buttonsRef.current[index] = element; }}
+        {...(radio
+          ? { role: 'radio', 'aria-checked': choice.id === value, 'aria-disabled': !enabled[index] || undefined, tabIndex: index === tabStop ? 0 : -1 }
+          : { 'aria-pressed': choice.id === value, disabled: !enabled[index] })}
+        onClick={() => { if (enabled[index]) onChange(choice.id); }}
+        onKeyDown={radio ? event => {
+          const step = ARROW_STEPS[event.key];
+          if (!step || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+          event.preventDefault();
+          moveFocus(index, step);
+        } : undefined}>
         <span className="review-cb-choice__top">
           {choice.image && <span className="review-cb-choice__image">{choice.image}</span>}
           <span className="review-cb-choice__identity"><strong>{choice.title}</strong>{choice.description && <span>{choice.description}</span>}</span>

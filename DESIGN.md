@@ -167,6 +167,28 @@ Required.
 | error | not-applicable | A summary-query failure keeps the action disabled instead of becoming a button error state. |
 | success | not-applicable | Completion replaces the review route with the selected work's manuscript list. |
 
+### Component: setting-review-group-action-bar
+
+**Semantics:** Confirms the selected character or world-setting group from a bar that stays at the bottom of the review detail scroll area, states what the confirmation will do, and moves focus to the candidates that still need a decision.
+
+- Anatomy: count line (`확정 가능 N · 이력 저장 H · 제외 E`, zero items omitted, `결정 필요 M` in warning ink), blocking reason line, optional secondary action (`다시 비교`), `다음 미결정 항목`, primary action, keyboard-shortcut toggle, status rows (confirmation error, unverified result); the selection bar stacks on top inside the same bar
+- Variants: character tab, world-setting tab; primary label `확정하고 다음` when another unprocessed group remains in the tab, `모두 확정` for the last group, `확정 중…` while confirming
+- States: default, hover, focus-visible, disabled, loading, error
+
+- Interaction kind: interactive
+
+#### State applicability
+
+| State | Applicability | Reason |
+|---|---|---|
+| default | applicable |  |
+| hover | applicable |  |
+| focus-visible | applicable |  |
+| disabled | applicable | Blocking candidates, hidden-candidate filters, automatic application or an unverified save keep the primary action `aria-disabled`; it stays focusable and its reason is linked with `aria-describedby`. |
+| loading | applicable | The primary action reads `확정 중…` while the group confirmation request or its result check is in flight. |
+| error | applicable | A responded confirmation error shows the server message below the buttons; a lost response shows the unverified-save row with check and retry. |
+| success | not-applicable | Success moves to the next unprocessed group (focus on its title) or to the tab completion state instead of changing the bar. |
+
 ### Rules
 
 - Keep the verified NHN Cloud CTA geometry as landing evidence rather than a universal application button system.
@@ -180,6 +202,8 @@ Required.
 - On completion, replace the current route with `/dashboard?workId={workId}&nav=manuscripts` from either review tab, including direct URL entry.
 
 - Automatically dismiss character-setting candidates whose comparison result is EXCLUDE, omit them from the default review queue, and preserve the confirmed current setting and history; do not apply this rule to world-setting candidates.
+
+- Keep the setting-review group action bar sticky at the bottom of `.setting-review-main`; group cards clip with `overflow: clip` rather than `hidden` so they never become the sticky scroll container. At 650px and below, lay the action buttons and the selection-bar buttons out in two 44px columns and keep the stacked bar within roughly a third of a 320×568 viewport.
 
 <!-- design-md:section layout-platforms -->
 ## 5. Layout & Platforms
@@ -217,7 +241,7 @@ Required.
 
 - Keep CTA labels short and action-oriented.
 - Mark unshipped capabilities with `업데이트 예정` and do not present them as currently available.
-- Label the non-current comparison choice `이력에만 저장` and explain it as `회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다. 예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.`
+- Label the non-current comparison choice `이력에만 저장` and explain it as `회상이나 과거 상태처럼 현재 시점의 설정이 아닐 때 선택합니다. 예: ‘과거에는 용병이었다’는 타임라인에 남기되 현재 직업은 바꾸지 않습니다.` Within a review group, show the example sentence only on the first card that still needs a decision; other cards keep the first sentence.
 
 <!-- design-md:section governance -->
 ## 7. Governance
@@ -292,7 +316,7 @@ Record, review, and validate changes before adoption.
 - 범위는 제목의 `범위 › 설정명` 문장 대신 별도 메타 정보로 표시한다. 새 설정에 불필요한 빈 기존값 패널을 만들지 않는다. 미비교·대상 미정·비교 실패를 기존 설정 없음으로 해석하지 않는다.
 - 실제 반영 전후 변경은 빨강/초록과 −/+로, 미결정인 두 내용은 노랑과 A/B로 표시한다. 제외·이력·이동을 값 삭제로 표현하지 않는다. diff는 표현용이며 저장 문자열을 재구성하는 근거가 아니다.
 - 각 선택 카드는 선택할 대상/반영 방식과 그 결과를 함께 보여 준다. 범위 포함 여부가 명확한 경우 예/아니오를 사용하고, 실제 계약에 없는 AI 추천 목록이나 시점 판정을 만들어내지 않는다.
-- 캐릭터의 현재 반영·이력 선택 카드에는 `모두 확정할 때 적용`처럼 확정 시점을 반복하는 하단 띠를 두지 않는다. 제목·설명·결과와 선택 표시를 유지하고 확정은 그룹 하단에서 수행한다. `캐릭터 연결 변경`은 설정 제목의 `수정` 왼쪽에 배치하며, 새 인물 등록은 연결 모달에서 제공한다. 별도의 연결 작업 행은 만들지 않는다. 미상 인물의 직접 선택 카드는 유지한다.
+- 캐릭터의 현재 반영·이력 선택 카드에는 `확정할 때 적용`처럼 확정 시점을 반복하는 하단 띠를 두지 않는다. 제목·설명·결과와 선택 표시를 유지하고 확정은 상세 하단의 고정 확정 영역에서 수행하며, 그 영역이 확정 가능/결정 필요 수와 막는 항목으로의 이동을 함께 제공한다. `캐릭터 연결 변경`은 설정 제목의 `수정` 왼쪽에 배치하며, 새 인물 등록은 연결 모달에서 제공한다. 별도의 연결 작업 행은 만들지 않는다. 미상 인물의 직접 선택 카드는 유지한다.
 - 일반적인 반영 선택은 카드 안에서 저장한다. 고급 수정은 유지하지만 별도의 형식적인 확인 클릭을 요구하지 않는다. 대상 연결과 내용·시점 판단을 구분하고 서버가 인정한 결정만 완료로 표시한다.
 - 개별 행은 수정·제외를 제공하고 확정은 기존 그룹 단위를 유지한다. 미처리 기본 필터, 일부 후보가 숨겨진 그룹의 확정 제한, 최신 설정 보호, 이력 저장, 버전 검증을 보존한다.
 - 원문·자세한 판단 근거는 펼치기 버튼을 갖춘 한 영역에 보존한다. 완료된 후보에는 과거의 확인 요청을 다시 행동 지시로 표시하지 않는다.
@@ -300,6 +324,18 @@ Record, review, and validate changes before adoption.
 - 최소 320px에서 선택 카드는 세로로 배치하고 값 비교는 기존→새 내용 순서로 쌓는다. 키보드 포커스와 모바일 주요 조작 44px 높이를 유지한다.
 - 랜딩의 검토 예시, 공개 체험, 최초 업로드 안내도 같은 사진 제목·diff·선택 카드 컴포넌트를 재사용한다. 안내용 캡처나 이전 검토 UI를 별도로 유지하지 않는다. 랜딩·최초 안내는 읽기 전용이고 공개 체험은 메모리 상태로만 동작한다.
 - 최초 안내는 한 줄 5단계와 계정당 최초 노출 정책을 유지한다. 직접 검토 예시는 인물별 그룹 확정, 자동 반영 예시는 명확한 내용의 저장과 미상 대상의 남은 확인을 구분한다. 미상 인물을 기존 인물의 그룹에 합쳐 표시하지 않는다.
+- (#211 후속 1차, 2026-10-30) 단건 연결 뒤에도 작가가 보던 묶음·페이지·스크롤을 유지한다. 후보가 묶음을 떠나면 그룹 헤더 아래 중립 안내 `‘설정명’ 설정을 ‘인물’에 연결했어요.`와 `연결한 묶음 보기`·`닫기`를 보여 주고, 이동은 작가가 버튼으로 고른다. 묶음이 비면 직전 목록의 다음 미처리 묶음을 열고 같은 안내를 유지한다. 320px에서는 안내 버튼을 44px 높이로 세로 배치한다.
+- 기존 연결이 아닌 `미상`·빈 이름 묶음은 `미연결 후보`, 제목 `인물 미확인`, 설명 `인물이 확인되지 않은 설정이에요. 같은 인물로 가정하지 않으니 설정마다 대상을 확인해 연결해 주세요.`, 사이드바 `미연결 후보 N개`, 카드 부제 `캐릭터 · 미연결`로 표현한다. `같은 캐릭터 후보`는 이름이 있는 묶음에만 쓴다.
+- 저장 상태는 색만으로 전달하지 않고 문장으로 구분한다: 서버 저장 `저장했어요 · 확정 전까지 바꿀 수 있어요`, 요청 중 `저장 중…`, 응답을 잃은 선택 `저장 결과를 확인하지 못했어요` 경고와 자동 확인 진행(n/3), 끝내 확인하지 못하면 `최신 상태 확인`·`다시 시도`. 서버에 저장하지 않는 캐릭터 로컬 선택은 선택 카드 아래 한 줄 상태 `선택됨 · 확정할 때 적용`으로 표시한다(#211 후속 3차부터 확정 버튼 이름이 `확정하고 다음`/`모두 확정`으로 바뀌므로 문구에서 `모두`를 뺐다). 이는 선택 카드마다 반복하던 하단 띠(제거 유지)와 다르며, 작가가 고른 경우에만 한 번 나타난다.
+- 그룹 확정 뒤에는 직전 목록 순서의 다음 미처리 그룹으로 이동하고 그룹 제목에 초점을 두며 상세를 맨 위에서 읽게 한다. 탭의 마지막 그룹이면 자동 탭 전환 없이 완료 상태와 다른 후보 검토 버튼을 보여 준다. 스크롤·초점 후보는 탭 왕복·새로고침·분석 목록 왕복 뒤 복원한다.
+- (#211 후속 2차, 2026-10-31) 캐릭터 연결 모달의 검색은 `작품 전체에서 인물 검색`이다. 결과 행은 이름(검색어 일치 부분 강조) · `첫 등장 N화`(없으면 `첫 등장 정보 없음`) · 역할 · 대표 정보 순으로 쓰고, 같은 페이지의 동명은 `같은 이름 N명 — 첫 등장·역할로 구분` 배지로 구분한다. 결과 없음(status, `새 인물로 등록`), 검색 실패(alert, `다시 시도`, 입력 유지), 정보 없음(행 안 문장)을 서로 다른 문장과 role로 나누고 색만으로 구분하지 않는다.
+- 연결 미리보기는 데스크톱에서 검색 목록 오른쪽, 760px 이하에서 목록 아래에 둔다. 모달 맨 위에 무엇을 연결하는지(`설정명 · 이번 값 · N화`, 선택이면 `선택 N개 · 회차 · 적용: 연결만`) 요약한다. 미리보기는 서버 비교가 아니므로 `대상에 저장된 현재 설정`·`이 설정의 기존값`이라고 부르고 `기존값 없음`(중립)과 `비교 정보를 불러오지 못했어요`(경고·다시 시도)를 구분한다.
+- 대기 후보 카드 머리 왼쪽에 44px 체크박스(`선택: 설정명`), 묶음 머리에 `모두 선택(N)`을 둔다. 하나 이상 체크하면 확정 영역 맨 위에 파란 테두리 선택 바(`N개 선택 · 회차`, `선택 항목 연결`/세계관 `선택 항목 대상 연결`, `선택 해제`)를 함께 고정하고, 필터로 숨을 수 있으면 그 사실을 한 줄로 알린다. 320px에서는 선택 바 버튼을 44px 높이로 세로 배치한다. 한 번에 100개(세계관은 원문 수)를 넘게 체크하면 선택 바에 `한 번에 100개까지 연결할 수 있어요. 선택을 줄여 주세요.`(alert)를 띄우고 연결 버튼을 잠근다. 선택 연결이 거절된 카드는 danger 테두리·`aria-invalid`·서버 문장으로 표시한다. 미연결 묶음에는 묶음 전체 `캐릭터 일괄 연결`을 두지 않는다.
+- 세계관 선택 대상 연결의 미리보기는 대상의 분류·이름·설정 수·저장된 설정 상위 5개와 체크한 행마다 `기존값 없음 → 추가로 저장` 또는 `기존값 있음 → 병합/교체 결정 필요`(경고 잉크)를 보여 준다. 결정으로 남긴 행에는 `대상은 골랐어요. 기존값과 어떻게 합칠지 정해 주세요.`와 기존 병합/교체 카드를 연다.
+- (#211 후속 3차, 2026-10-31) 묶음 확정은 상세 스크롤 영역 하단에 붙는 고정 확정 영역(`setting-review-group-action-bar`)에서 한다. 왼쪽에 `확정 가능 N · 이력 저장 H · 제외 E`(0 생략)와 경고 잉크의 `결정 필요 M`, 막는 이유 한 줄을, 오른쪽에 `다음 미결정 항목`과 주 버튼을 둔다. 주 버튼은 같은 탭에 열 묶음이 남으면 `확정하고 다음`, 마지막 묶음이면 `모두 확정`이며 요청은 기존 그룹 확정 그대로다. 확정 뒤에는 직전 목록 순서의 다음 미처리 묶음 제목으로 가고, 마지막 묶음 뒤에는 자동 탭 전환 없이 완료 상태에 `세계관(캐릭터) 후보 N개가 남았어요`와 기존 이동 버튼을 둔다. 막힌 주 버튼은 `aria-disabled`로 초점을 받고 이유를 `aria-describedby`로 잇는다. 같은 문장의 경고가 위에 이미 있으면(세계관 중복·충돌·필터·미저장·설정집 선택·결과 확인) 문장을 되풀이하지 않고 그 경고에 잇는다. 선택 바는 같은 영역 맨 위에 쌓고, 650px 이하에서는 버튼을 두 칸(44px)으로 놓으며 선택 중에는 이유 문장을 접는다. 세계관의 이동 안내·순차 분석 영향 안내는 고정 영역 위 일반 흐름에 둔다.
+- 결정이 끝난 대기 카드는 처음 열 때 한 줄 요약(설정명, 반영 방식 · 최종값 한 줄, 배지 `저장했어요`/`제외 예정`/`선택됨 · 확정할 때 적용`/`연결됨`, `펼치기`)으로 접는다. 요약에서도 체크박스와 `캐릭터 연결 변경`·`수정`·`제외`를 유지하고 펼치면 원문·근거를 그대로 보며 `접기`로 되돌린다. 막는 후보·저장 중·결과 미확인·오류·값 오류·자동 반영 대기·묶음에서 대상만 고른 행은 항상 펼친다. 이 화면에서 방금 고른 카드는 펼친 채 둔다.
+- 반복을 줄인다: `이력에만 저장` 예문은 묶음의 첫 미결정 카드에만, 근거 끝의 연결 상태 줄은 제목 줄에 연결 상태가 드러나지 않을 때만 둔다. 연결이 모호한 캐릭터 후보의 인라인 인물 선택은 등록 인물 3명 + `새로운 인물` + `검색으로 찾기`(원문 표현을 검색어로 넣은 작품 전체 검색)다. 세계관 묶음에 대상 미정 행이 둘 이상이면 행마다 검색 목록을 펼치지 않고 이번 검토에서 고른 대상(최대 3) + 새 등록 + `대상 검색`을 먼저 보여 준다.
+- 키보드: 상세 패널에서 `Alt+↓/↑` 다음·이전 설정 카드, `Alt+Shift+↓/↑` 다음·이전 묶음(페이지 경계는 옆 페이지의 첫·마지막 묶음), `Alt+Enter` 주 버튼으로 초점(실행하지 않음), `Alt+.` 다음 미결정 항목. 글자 입력 컨트롤·선택 메뉴·한글 조합 중·모달이 열린 동안에는 동작하지 않는다. 선택 카드는 radiogroup이며 Tab 한 번으로 들어와 방향키로 초점만 옮기고 Space·Enter로 고른다. 확정 영역 끝 `단축키` 버튼이 네 줄 안내를 열고 Esc로 닫는다(768px 이하에서는 숨김). 세계관 수정 창도 Esc로 닫히고 연 버튼으로 초점이 돌아온다.
 
 상태별 대응과 검증은 `docs/review-clear-blue.md`에 기록한다.
 

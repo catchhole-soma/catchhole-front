@@ -57,18 +57,18 @@ test('같은 회차에서 수정·제외 후 다른 선택을 유지하고 최�
   const regions = page.getByRole('region').filter({ has: page.locator('.review-cb-heading') });
   const firstCard = regions.filter({ hasText: '소속' }).first();
   const secondCard = regions.filter({ hasText: '정찰 임무' }).last();
-  await secondCard.getByRole('button', { name: /이력에만 저장/ }).click();
+  await secondCard.getByRole('radio', { name: /이력에만 저장/ }).click();
   await firstCard.getByRole('button', { name: '수정', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('설정값', { exact: true }).fill('작가가 정한 소속');
   await dialog.getByRole('button', { name: /수정 저장|저장/ }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(secondCard.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(secondCard.getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
   await regions.filter({ hasText: '신참' }).last().getByRole('button', { name: '제외', exact: true }).click();
   await expect(page.getByText('설정을 비교하고 있어요', { exact: true })).toHaveCount(0);
-  await expect(firstCard.getByRole('button', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(secondCard.getByRole('button', { name: /이력에만 저장/ })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: '2개 설정 모두 확정', exact: true }).click();
+  await expect(firstCard.getByRole('radio', { name: /현재 설정에 반영/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(secondCard.getByRole('radio', { name: /이력에만 저장/ })).toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).click();
   await expect.poll(() => requests.some(r => r.path.endsWith('/group-confirm'))).toBe(true);
   const submitted = requests.find(r => r.path.endsWith('/group-confirm'))!.body;
   expect(submitted).toMatchObject({ acceptDisplayedResults: true, candidates: [

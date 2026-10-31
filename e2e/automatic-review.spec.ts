@@ -109,9 +109,9 @@ for (const grouped of [false, true]) {
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}`);
-    const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
     const saveManualReview = async () => {
-      await page.getByRole('button', { name: /현재 설정에 반영/ }).click();
+      await page.getByRole('radio', { name: /현재 설정에 반영/ }).click();
       await expect(confirm).toBeEnabled();
     };
     await saveManualReview();
@@ -130,9 +130,9 @@ for (const grouped of [false, true]) {
     const matchedDialog = await openMatch();
     await expect(matchedDialog).toHaveCount(0);
     await expect(confirm).toBeDisabled();
-    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toHaveCount(0);
+    await expect(page.getByText('저장했어요 · 확정 전까지 바꿀 수 있어요', { exact: true })).toHaveCount(0);
     candidate = { ...candidate, comparisonStatus: 'FAILED' };
-    await expect(page.getByRole('button', { name: /현재 설정에 반영/ })).toBeEnabled();
+    await expect(page.getByRole('radio', { name: /현재 설정에 반영/ })).toBeEnabled();
     await expect(confirm).toBeDisabled();
     expect(confirmRequests).toBe(0);
     await saveManualReview();
@@ -229,7 +229,7 @@ for (const scenario of [
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&group=${encodeURIComponent('수아')}`);
-    const confirm = page.getByRole('button', { name: /설정 모두 확정/ }).last();
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ }).last();
     const detail = page.locator('.setting-candidate-detail');
     await detail.locator('.review-cb-evidence summary').click();
     await expect(detail).toContainText(scenario.status === 'FAILED' ? '연결할 대상 확인' : '비교할 내용 확인');
@@ -263,10 +263,10 @@ for (const scenario of [
     const dialog = page.getByRole('dialog', { name: '설정 직접 확인' });
     await expect(dialog.getByRole('note')).toContainText('이미 완료된 다른 회차의 분석 결과를 바꾸지 않습니다.');
     await dialog.getByLabel('설정값', { exact: true }).fill(scenario.value);
-    await dialog.getByRole('button', { name: /현재 설정에 반영/ }).click();
+    await dialog.getByRole('radio', { name: /현재 설정에 반영/ }).click();
     await dialog.getByRole('button', { name: '확인한 값 저장' }).click();
     await expect.poll(() => updateBody).toEqual({ attributeName: 'profile.eye_color', attributeValue: scenario.value, reviewedApplicationMode: 'APPLY_PROPOSAL', expectedUpdatedAt: '2026-10-02T01:00:00' });
-    await expect(page.getByText('선택한 내용을 저장했어요.', { exact: false })).toBeVisible();
+    await expect(page.getByText('저장했어요 · 확정 전까지 바꿀 수 있어요', { exact: true })).toBeVisible();
     await expect(confirm).toBeEnabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
@@ -326,7 +326,7 @@ for (const { status, width } of [
     });
     await authenticate(page);
     await page.goto(`/setting-review?workId=${workId}&batchId=${batchId}&candidateType=world&group=${encodeURIComponent('RACE|설인')}`);
-    const confirm = page.getByRole('button', { name: '모두 확정', exact: true });
+    const confirm = page.getByRole('button', { name: /^(모두 확정|확정하고 다음)$/ });
     await expect(confirm).toBeDisabled();
     await expect(page.getByRole('button', { name: '다시 비교', exact: true })).toHaveCount(0);
     await page.locator('.world-setting-diff-row').getByRole('button', { name: '수정', exact: true }).click();
