@@ -223,7 +223,9 @@ type CharacterSaveIntent =
   | { kind: 'dismiss'; candidateId: string; variables: Options<DismissSettingCandidateData> }
   | { kind: 'retry'; candidateId: string; previousStatus?: SettingCandidateResponse['comparisonStatus'];
     variables: Options<RetrySettingCandidateComparisonData> }
-  | { kind: 'confirm'; groupKey: string; previousGroups: SettingCandidateGroupResponse[]; variables: ConfirmVariables }
+  | { kind: 'confirm'; groupKey: string; previousGroups: SettingCandidateGroupResponse[]; variables: ConfirmVariables;
+    /** 확정하면 서버가 제외하는 제외 제안(EXCLUDE). 나머지는 확정(CONFIRMED)돼야 요청한 결과다. */
+    dismissedIds: string[] }
   /** 체크한 후보만 한 대상에 연결(selected-character-match). 전부 성공하거나 전부 거절된다. */
   | { kind: 'selectedMatch'; candidateIds: string[]; context: MatchContext; variables: SelectedMatchVariables }
   /** 이름 있는 묶음의 대기 후보 전체를 한 대상에 연결(group-character-match). */
@@ -239,6 +241,16 @@ function saveKey(intent: CharacterSaveIntent): string {
 /** 여러 후보를 한 요청으로 바꾸는 의도가 함께 잠그는 후보. 응답을 확인할 때까지 이 후보들의 다른 쓰기와 확정을 막는다. */
 function coveredCandidateIds(intent: CharacterSaveIntent): string[] {
   return intent.kind === 'selectedMatch' || intent.kind === 'groupMatch' ? intent.candidateIds : [];
+}
+
+/** 그룹 확정에 제출한 후보. 확정 요청·자동 확인 동안 이 후보들의 수정·제외·연결을 잠근다. */
+function confirmLockedCandidateIds(intent: CharacterSaveIntent): string[] {
+  return intent.kind === 'confirm' ? intent.variables.body.candidates.map(candidate => candidate.candidateId) : [];
+}
+
+/** 다시 읽은 후보가 그룹 확정이 요청한 결과(제외 제안은 DISMISSED, 나머지는 CONFIRMED)인지. 대기가 아니라는 것만으로 성공으로 보지 않는다. */
+function candidateConfirmedAsRequested(candidate: Pick<SettingCandidateResponse, 'id' | 'reviewStatus'>, dismissedIds: string[]): boolean {
+  return candidate.reviewStatus === (candidate.id && dismissedIds.includes(candidate.id) ? 'DISMISSED' : 'CONFIRMED');
 }
 
 type MatchBody = { resolutionType: 'MATCH_EXISTING' | 'CREATE_NEW'; matchedCharacterId?: string | null; entityName?: string | null };
@@ -1456,6 +1468,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
 
   const saveTracker = useCandidateSaveTracker<CharacterSaveIntent>({
     covers: coveredCandidateIds,
+    locks: confirmLockedCandidateIds,
     // 선택·묶음 연결이 끝까지 요청한 대상과 다르면 "연결되지 않음"으로 정리해 후보마다 확정을 막지 않게 한다.
     settleWhenDifferent: intent => intent.kind === 'selectedMatch' || intent.kind === 'groupMatch',
     onDifferent: (_key, intent) => {
@@ -1469,15 +1482,15 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         }
         const response = await queryClient.fetchQuery({ ...listOptions, staleTime: 0 });
         const group = response.data?.groups?.content?.find(item => item.groupKey === intent.groupKey);
-        const submitted = new Set(intent.variables.body.candidates.map(candidate => candidate.candidateId));
-        if (!group) {
-          // 작가가 다른 페이지·필터로 옮겨 지금 목록에 묶음이 없을 수 있다. "확정됨"으로 단정하지 않고 후보를 하나씩 다시 읽는다.
-          const confirmed = await Promise.all([...submitted].map(fetchCandidate));
-          if (confirmed.some(candidate => !candidate)) return 'unknown';
-          return confirmed.every(candidate => candidate!.reviewStatus !== 'PENDING_REVIEW') ? 'matched' : 'different';
-        }
-        return group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id)
-          && candidate.reviewStatus === 'PENDING_REVIEW') ? 'different' : 'matched';
+        const submitted = intent.variables.body.candidates.map(candidate => candidate.candidateId);
+        const listed = new Map((group?.candidates ?? []).flatMap(candidate => candidate.id ? [[candidate.id, candidate] as const] : []));
+        // 목록에 아직 대기로 보이면 확정되지 않은 것이다(빠르게 판정).
+        if (submitted.some(id => listed.get(id)?.reviewStatus === 'PENDING_REVIEW')) return 'different';
+        // 목록에서 빠졌거나(미처리 필터·다른 페이지) 상태가 보이는 후보는 요청한 결과(확정 또는 제외 제안의 제외)인지 확인한다.
+        // 다른 곳에서 제외된 후보를 "대기가 아님"만으로 확정 성공으로 보지 않는다.
+        const candidates = await Promise.all(submitted.map(async id => listed.get(id) ?? fetchCandidate(id)));
+        if (candidates.some(candidate => !candidate)) return 'unknown';
+        return candidates.every(candidate => candidateConfirmedAsRequested(candidate!, intent.dismissedIds)) ? 'matched' : 'different';
       }
       if (intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') {
         // 한 요청으로 바뀐 후보를 모두 다시 읽어 요청한 대상에 연결됐는지 본다. 전부 같아야 저장된 것으로 본다.
@@ -1947,7 +1960,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     && candidate.matchStatus !== 'AMBIGUOUS' && !isCandidateValueInvalid(candidate) && !candidateSummaryFor(candidate))?.id ?? null;
   const confirmSelectedGroup = () => {
     if (!selectedGroup?.groupKey || actionPending || groupConfirmBlockedReason || saveTracker.busy(confirmSaveKey)) return;
-    submitIntent({ kind: 'confirm', groupKey: selectedGroup.groupKey, previousGroups: groups, variables: {
+    submitIntent({ kind: 'confirm', groupKey: selectedGroup.groupKey, previousGroups: groups,
+      // 서버는 제외 제안(EXCLUDE)을 확정 대신 제외한다.
+      dismissedIds: pendingGroupCandidates.flatMap(candidate => candidate.id && candidate.suggestedOperation === 'EXCLUDE' ? [candidate.id] : []), variables: {
       query: { sourceAnalysisJobId }, path: { workId },
       body: {
         batchId,

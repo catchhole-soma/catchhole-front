@@ -60,7 +60,8 @@ export async function routeCharacterReview(page: Page, candidates: MockCandidate
     }
     if (method === 'POST' && path === `${characterListPath}/group-confirm`) {
       const ids = new Set((body?.candidates as Array<{ candidateId: string }>).map(item => item.candidateId));
-      candidates.forEach(item => { if (ids.has(item.id)) item.reviewStatus = 'CONFIRMED'; });
+      // 서버처럼 제외 제안(EXCLUDE)은 확정 대신 제외한다.
+      candidates.forEach(item => { if (ids.has(item.id)) item.reviewStatus = item.suggestedOperation === 'EXCLUDE' ? 'DISMISSED' : 'CONFIRMED'; });
       return ok(route, { candidates: candidates.filter(item => ids.has(item.id)) });
     }
     const candidateMatch = path.match(new RegExp(`^${characterListPath}/([^/]+)(/character-match|/dismiss)?$`));

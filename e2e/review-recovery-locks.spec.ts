@@ -16,6 +16,50 @@ const openCandidate = (id: string, owner: number, setting: string) => characterC
   suggestedOperation: 'ADD', manualReviewAvailable: false, reviewedApplicationMode: null,
 });
 
+test('캐릭터: 응답을 잃은 그룹 확정을 자동 확인하는 동안 제출한 후보의 수정·제외·연결과 체크를 잠근다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [openCandidate('a-1', 0, '직업'), openCandidate('a-2', 0, '소속'), openCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  let confirms = 0;
+  await page.route(`**${characterListPath}/group-confirm`, async route => {
+    confirms += 1;
+    await route.abort('connectionreset');
+  });
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await primary(page).click();
+  await expect(confirmRegion(page)).toContainText('최신 상태를 확인하는 중이에요');
+  // 확정 요청은 끝났지만(결과 미확인) 자동 확인 동안 제출한 후보는 다른 쓰기로 바꿀 수 없다.
+  for (const id of ['a-1', 'a-2']) {
+    await expect(card(page, id).getByRole('button', { name: '제외', exact: true })).toBeDisabled();
+    await expect(card(page, id).getByRole('button', { name: '수정', exact: true })).toBeDisabled();
+    await expect(card(page, id).getByRole('button', { name: '캐릭터 연결 변경', exact: true })).toBeDisabled();
+    await expect(card(page, id).getByRole('checkbox')).toBeDisabled();
+  }
+  await expect(page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true })).toBeDisabled();
+  // 자동 확인을 마치면 확인·다시 시도를 열고 후보 쓰기도 다시 연다(확정 요청은 한 번만 보냈다).
+  await expect(confirmRegion(page).getByRole('button', { name: '최신 상태 확인', exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(card(page, 'a-1').getByRole('button', { name: '제외', exact: true })).toBeEnabled();
+  expect(confirms).toBe(1);
+});
+
+test('캐릭터: 응답을 잃은 그룹 확정은 제출한 후보가 다른 곳에서 제외됐으면 확정 성공으로 보지 않는다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [openCandidate('a-1', 0, '직업'), openCandidate('a-2', 0, '소속'), openCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  await page.route(`**${characterListPath}/group-confirm`, async route => {
+    // 확정은 반영되지 않았고, 그 사이 다른 곳에서 두 후보를 제외했으며 같은 인물의 새 후보가 들어왔다.
+    candidates.filter(item => item.id === 'a-1' || item.id === 'a-2').forEach(item => { item.reviewStatus = 'DISMISSED'; });
+    candidates.push(openCandidate('a-3', 0, '나이'));
+    await route.abort('connectionreset');
+  });
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await primary(page).click();
+  // "대기가 아님"만으로 확정됐다고 보지 않는다: 끝까지 결과를 확인하지 못한 것으로 남기고 묶음을 옮기지 않는다.
+  await expect(confirmRegion(page).getByRole('button', { name: '최신 상태 확인', exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(confirmRegion(page)).toContainText('저장 결과를 확인하지 못했어요');
+  expect(groupParam(page)).toBe(characterGroupKey(0));
+});
+
 test('캐릭터: 저장 응답 본문이 깨져 읽지 못하면 실패로 단정하지 않고 다시 읽어 저장을 확인한다', async ({ page }) => {
   const candidates = [characterCandidate('a-1', 0, '직업', { reviewedApplicationMode: null }), openCandidate('b-1', 1, '직업')];
   await routeCharacterReview(page, candidates);
