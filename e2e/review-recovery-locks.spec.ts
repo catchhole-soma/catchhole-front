@@ -15,6 +15,7 @@ const primary = (page: Page) => confirmRegion(page).locator('[data-review-primar
 const openCandidate = (id: string, owner: number, setting: string) => characterCandidate(id, owner, setting, {
   suggestedOperation: 'ADD', manualReviewAvailable: false, reviewedApplicationMode: null,
 });
+const VERIFYING = '저장 결과를 확인하는 설정이 있어요';
 
 test('캐릭터: 응답을 잃은 그룹 확정을 자동 확인하는 동안 제출한 후보의 수정·제외·연결과 체크를 잠근다', async ({ page }) => {
   test.setTimeout(45_000);
@@ -58,6 +59,29 @@ test('캐릭터: 응답을 잃은 그룹 확정은 제출한 후보가 다른 �
   await expect(confirmRegion(page).getByRole('button', { name: '최신 상태 확인', exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(confirmRegion(page)).toContainText('저장 결과를 확인하지 못했어요');
   expect(groupParam(page)).toBe(characterGroupKey(0));
+});
+
+test('캐릭터: 한 설정의 저장 결과를 확인하는 동안 묶음 전체 연결과 그 설정을 포함한 선택 연결을 잠근다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [characterCandidate('a-1', 0, '직업', { reviewedApplicationMode: null }), openCandidate('a-2', 0, '소속'),
+    openCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  await page.route(`**${characterListPath}/a-1`, route => route.request().method() === 'PATCH'
+    ? route.abort('connectionreset') : route.fallback());
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await card(page, 'a-1').getByRole('checkbox').check();
+  await card(page, 'a-1').getByRole('radio', { name: /이력에만 저장/ }).click();
+  await expect(card(page, 'a-1')).toContainText('최신 상태를 확인하는 중이에요');
+  const groupLink = page.getByRole('button', { name: '캐릭터 일괄 연결', exact: true });
+  await expect(groupLink).toBeDisabled();
+  await expect(groupLink).toHaveAttribute('title', new RegExp(VERIFYING));
+  const selectionLink = page.getByRole('region', { name: '선택한 설정' }).getByRole('button', { name: '선택 항목 연결', exact: true });
+  await expect(selectionLink).toBeDisabled();
+  await expect(selectionLink).toHaveAttribute('title', new RegExp(VERIFYING));
+  // 자동 확인을 마치면(결과 미확인) 다시 연다.
+  await expect(card(page, 'a-1').getByRole('button', { name: '최신 상태 확인', exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(groupLink).toBeEnabled();
+  await expect(selectionLink).toBeEnabled();
 });
 
 test('캐릭터: 저장 응답 본문이 깨져 읽지 못하면 실패로 단정하지 않고 다시 읽어 저장을 확인한다', async ({ page }) => {

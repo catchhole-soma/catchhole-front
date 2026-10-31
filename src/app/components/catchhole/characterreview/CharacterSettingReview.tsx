@@ -1637,6 +1637,16 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     // 필터·페이지가 바뀐 직후 placeholder 목록은 새 URL 조건과 일치하지 않는다.
     // 조회용 탐색은 유지하되 이전 행에 대한 쓰기만 잠근다.
     || listQuery.isPlaceholderData;
+  // 묶음 단위 쓰기(일괄 연결)는 묶음의 대기 후보 중 하나라도 요청 중이거나 저장 결과를 자동 확인하는 동안 잠근다.
+  // 버튼의 비활성 조건과 핸들러 가드가 같은 판정을 쓴다.
+  const groupWriteVerifying = saveTracker.busy(groupMatchSaveKey)
+    || pendingGroupCandidates.some(candidate => saveTracker.busy(candidate.id));
+  const groupMatchBlockedReason = groupAutomaticPending ? automaticApplicationPendingMessage(sourceScope.source)
+    : groupHasInvalidCandidate ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 일괄 연결해 주세요.'
+    : legacyGroupedActionsUnsafe ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 연결할 수 없습니다.'
+    : matchFilter !== 'ALL' ? '연결 상태 필터를 전체로 바꾼 뒤 그룹 전체 연결을 변경해 주세요.'
+    : groupWriteVerifying ? '저장 결과를 확인하는 설정이 있어요. 확인이 끝난 뒤 일괄 연결해 주세요.'
+    : null;
 
   const resetActionsIfSettled = () => {
     if (actionPending) return;
@@ -1778,9 +1788,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   const matchSelectedGroup = (resolution: MatchResolution, value: string) => {
     const candidateIds = pendingGroupCandidates.flatMap(candidate => candidate.id ? [candidate.id] : []);
-    if (!selectedGroup || candidateIds.length === 0 || actionPending || legacyGroupedActionsUnsafe
-      || saveTracker.busy(groupMatchSaveKey)) return;
-    if (groupHasInvalidCandidate || groupAutomaticPending || selectedGroupUnlinked) {
+    if (!selectedGroup || candidateIds.length === 0 || actionPending) return;
+    // 모달을 연 뒤 다른 저장의 확인이 시작됐을 수 있다. 막힌 이유는 `캐릭터 일괄 연결` 버튼에 보인다.
+    if (groupMatchBlockedReason || selectedGroupUnlinked) {
       setGroupMatchOpen(false);
       return;
     }
@@ -1849,16 +1859,19 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
   // 선택 연결은 한 번에 100개까지 보낼 수 있다. 넘으면 연결을 잠그고 선택을 줄이라고 안내한다.
   const selectionOverLimit = checkedCandidates.length > REVIEW_SELECTION_LINK_LIMIT;
+  // 체크한 뒤 그 후보의 다른 저장이 결과 확인에 들어갈 수 있다. 버튼과 핸들러가 같은 판정으로 잠근다.
+  const selectionLinkBlockedReason = selectionOverLimit ? REVIEW_SELECTION_LINK_LIMIT_TEXT
+    : saveTracker.busy(selectionRequestKey) || checkedCandidateIds.some(candidateId => saveTracker.busy(candidateId))
+      ? '저장 결과를 확인하는 설정이 있어요. 확인이 끝난 뒤 연결해 주세요.' : null;
   const openSelectionMatch = () => {
-    if (!checkedCandidates.length || actionPending || selectionOverLimit) return;
+    if (!checkedCandidates.length || actionPending || selectionLinkBlockedReason) return;
     selectedMatchMutation.reset();
     setSelectionMatchOpen(true);
   };
   /** 체크한 후보만 고른 인물(또는 같은 이름의 새 인물)에 연결한다. 응답을 잃으면 재조회로 결과를 확인한다. */
   const matchCheckedCandidates = (resolution: MatchResolution, value: string) => {
     const candidateIds = checkedCandidateIds;
-    if (!selectedGroup || candidateIds.length === 0 || candidateIds.length > REVIEW_SELECTION_LINK_LIMIT || actionPending
-      || candidateIds.some(candidateId => saveTracker.busy(candidateId))) return;
+    if (!selectedGroup || candidateIds.length === 0 || actionPending || selectionLinkBlockedReason) return;
     if (checkedCandidates.some(candidate => isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate))) {
       setSelectionMatchOpen(false);
       return;
@@ -1958,8 +1971,11 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   // `이력에만 저장` 예문은 묶음에서 요약으로 접히지 않는 첫 비교 카드(첫 미결정 카드)에만 둔다.
   const firstChoiceExampleId = pendingGroupCandidates.find(candidate => candidate.id && hasCharacterFactComparison(candidate)
     && candidate.matchStatus !== 'AMBIGUOUS' && !isCandidateValueInvalid(candidate) && !candidateSummaryFor(candidate))?.id ?? null;
+  // 확정 버튼의 비활성 조건과 핸들러 가드가 같은 판정을 쓴다.
+  const groupConfirmDisabled = Boolean(groupConfirmBlockedReason) || matchFilter !== 'ALL' || actionPending
+    || saveTracker.busy(confirmSaveKey);
   const confirmSelectedGroup = () => {
-    if (!selectedGroup?.groupKey || actionPending || groupConfirmBlockedReason || saveTracker.busy(confirmSaveKey)) return;
+    if (!selectedGroup?.groupKey || groupConfirmDisabled) return;
     submitIntent({ kind: 'confirm', groupKey: selectedGroup.groupKey, previousGroups: groups,
       // 서버는 제외 제안(EXCLUDE)을 확정 대신 제외한다.
       dismissedIds: pendingGroupCandidates.flatMap(candidate => candidate.id && candidate.suggestedOperation === 'EXCLUDE' ? [candidate.id] : []), variables: {
@@ -2255,18 +2271,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               <ActionButton
                                 title="같은 이름 묶음의 대기 설정 전체를 한 인물에 연결해요."
                                 ariaDescribedBy="character-link-scope-help"
-                                disabled={actionPending
-                                  || groupAutomaticPending
-                                  || groupHasInvalidCandidate
-                                  || matchFilter !== 'ALL'
-                                  || legacyGroupedActionsUnsafe}
-                                disabledTitle={groupAutomaticPending ? automaticApplicationPendingMessage(sourceScope.source) : groupHasInvalidCandidate
-                                  ? '값 형식이 잘못된 설정을 수정하거나 제외한 뒤 일괄 연결해 주세요.'
-                                  : legacyGroupedActionsUnsafe
-                                  ? '이 캐릭터의 설정이 일부만 표시되어 한꺼번에 연결할 수 없습니다.'
-                                  : matchFilter !== 'ALL'
-                                  ? '연결 상태 필터를 전체로 바꾼 뒤 그룹 전체 연결을 변경해 주세요.'
-                                  : undefined}
+                                disabled={actionPending || Boolean(groupMatchBlockedReason)}
+                                disabledTitle={groupMatchBlockedReason ?? undefined}
                                 tone={C.primary}
                                 onClick={() => {
                                   groupMatchMutation.reset();
@@ -2359,6 +2365,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                   }
                                 : undefined}
                               onApplicationModeChange={mode => {
+                                if (actionPending || saveTracker.busy(candidate.id)) return;
                                 setCurrentApplication(candidate.id!, mode === 'APPLY_PROPOSAL' && candidate.applyToCurrentAvailable
                                   ? currentApplicationKey(candidate) : null);
                                 onApplicationModeChange(candidate.id!, mode);
@@ -2385,8 +2392,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 : groupConfirmBlockedReason}
                               hasNextGroup={hasNextGroup}
                               pending={confirmMutation.isPending || confirmSaveState.kind !== 'idle'}
-                              disabled={Boolean(groupConfirmBlockedReason) || matchFilter !== 'ALL' || actionPending
-                                || saveTracker.busy(confirmSaveKey)}
+                              disabled={groupConfirmDisabled}
                               onConfirm={confirmSelectedGroup}
                               onJumpToBlocking={() => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? [])}
                               shortcuts={<ReviewShortcutHelp />}
@@ -2429,8 +2435,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                   {selectionOverLimit && <span role="alert">{REVIEW_SELECTION_LINK_LIMIT_TEXT}</span>}
                                 </div>
                                 <div className="review-selection-bar__actions">
-                                  <ActionButton tone={C.primary} disabled={actionPending || saveTracker.busy(selectionRequestKey) || selectionOverLimit}
-                                    disabledTitle={selectionOverLimit ? REVIEW_SELECTION_LINK_LIMIT_TEXT : undefined}
+                                  <ActionButton tone={C.primary} disabled={actionPending || Boolean(selectionLinkBlockedReason)}
+                                    disabledTitle={selectionLinkBlockedReason ?? undefined}
                                     onClick={openSelectionMatch}>선택 항목 연결</ActionButton>
                                   <ActionButton disabled={selectedMatchMutation.isPending || selectionSaveState.kind !== 'idle'} onClick={clearCheckedSelection}>선택 해제</ActionButton>
                                 </div>
