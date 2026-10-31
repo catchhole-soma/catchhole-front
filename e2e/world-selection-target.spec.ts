@@ -35,8 +35,8 @@ function rows(): Row[] {
   ];
 }
 
-async function routeWorldMock(page: Page) {
-  const candidates = rows();
+async function routeWorldMock(page: Page, extraRows: Row[] = []) {
+  const candidates = [...rows(), ...extraRows];
   const state = { writes: [] as Array<{ path: string; body: Record<string, unknown> }>, searches: [] as URL[] };
   const ok = (route: Route, data: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) });
   const counts = () => {
@@ -179,6 +179,29 @@ test('공유 결정의 원문은 함께 체크되고 새 대상 이름으로 모
   expect(drafts.find(draft => draft.candidateId === 'w5')?.value).toBe('북쪽 항로\n동쪽 항로');
   await expect(page.getByRole('status').filter({ hasText: '3개 저장(추가)' })).toBeVisible();
   expect(new URL(page.url()).searchParams.get('group')).toBe('LOCATION|항구');
+});
+
+test('선택 연결은 비교의 제안 경로가 아니라 원문 경로로 같은 설정을 찾고 원문 경로로 저장한다', async ({ page }) => {
+  // 날씨: 제안 경로(기후)는 대상에 있지만 원문 경로(날씨)는 없다 → 원문 경로로 추가 저장.
+  // 기후(원문): 원문 경로가 대상에 있다 → 제안 경로(해양 기후)가 비어 있어도 저장하지 않고 결정으로 남긴다.
+  const { state } = await routeWorldMock(page, [
+    worldRow('w6', '날씨', '바람이 세다', 4, { proposedSettingName: '기후', proposedScopeName: null }),
+    worldRow('w7', '기후', '겨울에 눈이 온다', 4, { proposedSettingName: '해양 기후', proposedScopeName: '부두' }),
+  ]);
+  await page.goto(groupUrl());
+  // 행 제목은 비교의 제안 경로로 보이므로 행 ID로 체크한다.
+  await page.locator('[data-candidate-id="w6"]').getByRole('checkbox').check();
+  await page.locator('[data-candidate-id="w7"]').getByRole('checkbox').check();
+  const dialog = await openTargetLink(page);
+  await dialog.getByRole('radio', { name: /^은빛 항구/ }).click();
+  const plan = dialog.getByRole('region', { name: '체크한 설정의 저장 방법' });
+  await expect(plan).toContainText('날씨기존값 없음 → 추가로 저장');
+  await expect(plan).toContainText('기후기존값 있음 → 병합/교체 결정 필요');
+  await dialog.getByRole('button', { name: '고른 대상에 연결', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const drafts = state.writes[0].body.candidates as Array<Record<string, unknown>>;
+  expect(drafts).toEqual([{ candidateId: 'w6', operation: 'ADD', category: 'LOCATION', subjectName: '은빛 항구',
+    scopeName: null, settingName: '날씨', value: '바람이 세다' }]);
 });
 
 test('새 대상 이름이 같은 분류의 기존 대상과 같으면 새로 등록하지 않고 기존 대상을 고르게 한다', async ({ page }) => {

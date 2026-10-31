@@ -8,6 +8,7 @@ import {
 } from '../src/app/components/catchhole/characterreview/characterReviewFormat.ts';
 import {
   planWorldTargetLink,
+  worldLinkSourceDraft,
   worldPropertyPathKey,
   type WorldTargetLinkUnit,
 } from '../src/app/components/catchhole/worldsetting/worldReviewDecisions.ts';
@@ -71,4 +72,24 @@ test('대상에 같은 경로가 없는 행만 원문 값 그대로 ADD로 저�
 test('경로 비교는 범위 없음과 빈 범위를 같게, 대소문자·앞뒤 공백을 무시한다', () => {
   assert.equal(worldPropertyPathKey('', 'Climate'), worldPropertyPathKey(null, ' climate'));
   assert.notEqual(worldPropertyPathKey('부두', '규모'), worldPropertyPathKey(null, '규모'));
+});
+
+test('선택 연결 초안은 비교의 제안 경로가 아니라 원문 경로와 추출값을 쓰고, 범위가 없으면 null로 둔다', () => {
+  const fallback = { operation: 'ADD' as const, category: 'LOCATION' as const, subjectName: '항구', scopeName: '1층', settingName: '광원', value: '제안 값' };
+  const source = { id: 'w1', category: 'LOCATION', subjectName: '항구', scopeName: null, settingName: '조명',
+    proposedScopeName: '1층', proposedSettingName: '광원', extractedValue: '원문 값', proposedValue: '제안 값',
+    suggestedOperation: 'UPDATE', comparisonStatus: 'COMPLETED' } as WorldSettingCandidateResponse;
+  assert.deepEqual(worldLinkSourceDraft(source, fallback), {
+    operation: 'ADD', category: 'LOCATION', subjectName: '항구', scopeName: null, settingName: '조명', value: '원문 값' });
+  assert.equal(worldLinkSourceDraft({ ...source, scopeName: '외곽' } as WorldSettingCandidateResponse, fallback, '여러 원문\n값').scopeName, '외곽');
+  assert.equal(worldLinkSourceDraft(source, fallback, '여러 원문\n값').value, '여러 원문\n값');
+
+  // 대상에 원문 경로가 있으면 제안 경로가 비어 있어도 저장하지 않고, 원문 경로가 없으면 원문 경로로 저장한다.
+  const linkUnit = (candidate: WorldSettingCandidateResponse): WorldTargetLinkUnit => ({
+    candidate, candidateIds: [candidate.id!], draft: worldLinkSourceDraft(candidate, fallback), conflict: false });
+  const originalExists = planWorldTargetLink([linkUnit(source)], target, new Set([worldPropertyPathKey(null, '조명')]));
+  assert.deepEqual(originalExists.saves, []);
+  assert.equal(originalExists.rows[0].outcome, 'existing');
+  const proposedExists = planWorldTargetLink([linkUnit(source)], target, new Set([worldPropertyPathKey('1층', '광원')]));
+  assert.deepEqual(proposedExists.saves.map(save => [save.scopeName, save.settingName, save.value]), [[null, '조명', '원문 값']]);
 });

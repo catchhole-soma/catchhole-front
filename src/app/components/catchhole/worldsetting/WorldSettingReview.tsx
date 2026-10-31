@@ -91,7 +91,7 @@ import { useModalFocusTrap } from '../review-ui/useModalFocusTrap';
 import { useReviewScrollStability } from '../review-ui/useReviewScrollStability';
 import { WorldReviewDecisionPanel, type WorldPresetTarget } from './WorldReviewDecisionPanel';
 import {
-  compatibleWorldReviewSources, combineWorldReviewValues, worldReviewSourceDraft,
+  compatibleWorldReviewSources, combineWorldReviewValues, worldLinkSourceDraft,
   type planWorldTargetLink, type WorldLinkTarget, type WorldTargetLinkUnit,
 } from './worldReviewDecisions';
 import { WorldTargetLinkModal } from './WorldTargetLinkModal';
@@ -474,10 +474,10 @@ function worldTargetLinkUnits(candidates: WorldSettingCandidateResponse[], check
     const sourceValue = candidateIds.length > 1 ? [...new Set(candidates
       .filter(source => source.id && candidateIds.includes(source.id))
       .map(source => source.extractedValue?.trim()).filter((value): value is string => Boolean(value)))].join('\n') || undefined : undefined;
-    const draft = worldReviewSourceDraft(candidate, fallback);
+    // 공유 결정의 원문은 같은 원문 경로일 때만 함께 묶이므로(경로가 다르면 따로 체크된다) 대표 원문의 경로를 쓴다.
     return [{
       candidate, candidateIds,
-      draft: { ...draft, value: sourceValue ?? candidate.extractedValue ?? draft.value },
+      draft: worldLinkSourceDraft(candidate, fallback, sourceValue),
       conflict: candidate.consolidationStatus === 'CONFLICT' && !candidate.userModified && !resolvedConflictIds.has(candidate.id),
     }];
   });

@@ -8,7 +8,7 @@ import { NEW_WORLD_TARGET_ID, WorldTargetPicker } from './WorldTargetPicker';
 import { WorldSubjectImage } from './WorldSubjectImage';
 import { ReviewChoiceCards, ReviewNotice, ReviewValueComparison } from '../review-ui/ReviewPrimitives';
 import {
-  combineWorldReviewValues, sameWorldReviewDraft, worldReviewSourceDraft,
+  combineWorldReviewValues, sameWorldReviewDraft, worldLinkSourceDraft, worldReviewSourceDraft,
   type WorldLinkTarget, type WorldReviewDraft, type WorldTargetLinkOutcome,
 } from './worldReviewDecisions';
 
@@ -138,7 +138,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
    * 고른 대상의 현재 설정을 읽어 같은 경로가 있으면 병합·교체 선택을, 없으면 추가 초안을 연다.
    * 저장 요청·복구 확인 중에 도착한 결과는 버리고 `false`를 돌려준다(묶음에서 골라 둔 대상은 다시 불러온다).
    */
-  const loadTarget = async (id: string): Promise<boolean> => {
+  const loadTarget = async (id: string, base: WorldReviewDraft = sourceDraft): Promise<boolean> => {
     if (!candidate.workId) return true;
     setSelectedTargetId(id);
     setTargetBefore(null);
@@ -151,7 +151,7 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
       const detail = response.data;
       if (detail?.id !== id || !detail.category || !detail.subjectName) throw new Error('missing target');
       onTargetChosen?.({ worldSettingId: id, category: detail.category, subjectName: detail.subjectName });
-      const next = { ...sourceDraft, category: detail.category, subjectName: detail.subjectName, operation: 'ADD' as const, value: incoming };
+      const next = { ...base, category: detail.category, subjectName: detail.subjectName, operation: 'ADD' as const, value: incoming };
       setTargetBefore(null);
       const normalized = (value?: string | null) => (value ?? '').trim().normalize('NFC').toLocaleLowerCase('ko-KR');
       const existing = detail.properties?.find(property => normalized(property.scopeName) === normalized(next.scopeName)
@@ -175,14 +175,16 @@ export function WorldReviewDecisionPanel({ candidate, categoryLabel, initialDraf
     if (!presetTarget || presetAppliedRef.current || disabled) return;
     presetAppliedRef.current = true;
     const { target } = presetTarget;
+    // 묶음의 선택 연결과 같이 원문 경로로 대상의 같은 설정을 찾고 초안을 만든다.
+    const presetBase = worldLinkSourceDraft(candidate, sourceDraft, incoming);
     if (target.worldSettingId) {
       // 불러오는 사이 행이 잠겨 결과를 버렸으면 잠금이 풀린 뒤(disabled 변화로 이 effect가 다시 돈다) 다시 불러온다.
-      void loadTarget(target.worldSettingId).then(applied => { if (!applied) presetAppliedRef.current = false; });
+      void loadTarget(target.worldSettingId, presetBase).then(applied => { if (!applied) presetAppliedRef.current = false; });
       return;
     }
     setSelectedTargetId(NEW_WORLD_TARGET_ID);
     setEditing(true);
-    setDraft({ ...sourceDraft, category: target.category, subjectName: target.subjectName, operation: 'ADD', value: incoming });
+    setDraft({ ...presetBase, category: target.category, subjectName: target.subjectName, operation: 'ADD', value: incoming });
   // 한 번만 적용한다. 이후 작가의 선택을 덮지 않는다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled]);

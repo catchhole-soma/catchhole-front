@@ -23,6 +23,21 @@ export function worldReviewSourceDraft(candidate: WorldSettingCandidateResponse,
   };
 }
 
+/**
+ * 묶음의 `선택 항목 대상 연결` 초안. 비교의 제안 경로(`proposed*`)가 아니라 원문 경로(범위·설정명, 범위가 없으면 null)와
+ * 추출값을 그대로 쓴다. 다른 대상에 연결할 때 옛 비교의 제안 경로로 저장하거나 원문 경로의 기존 설정 검사를 건너뛰지 않기 위해서다.
+ */
+export function worldLinkSourceDraft(candidate: WorldSettingCandidateResponse, fallback: WorldReviewDraft, value?: string): WorldReviewDraft {
+  const base = worldReviewSourceDraft(candidate, fallback);
+  return {
+    ...base,
+    operation: 'ADD',
+    scopeName: candidate.scopeName ?? null,
+    settingName: candidate.settingName ?? fallback.settingName,
+    value: value ?? candidate.extractedValue ?? base.value,
+  };
+}
+
 export function sameWorldReviewDraft(left: WorldReviewDraft, right: WorldReviewDraft): boolean {
   return left.operation === right.operation && left.category === right.category
     && left.subjectName.trim() === right.subjectName.trim()
