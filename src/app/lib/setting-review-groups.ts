@@ -104,6 +104,39 @@ export interface UnlinkedLinkRecord {
   } | null;
 }
 
+/**
+ * 연결된 후보가 지금 어느 인물 묶음에 있는지. 서버 묶음 규칙(기존 인물은 `existing:<id>`, 새 인물 등록 예정은 정규화한 이름)을
+ * 따른다. 다시 미연결(`미상`·빈 이름)로 돌아갔으면 `unlinked`다.
+ */
+export function unlinkedLinkTarget(candidate: { matchedCharacterId?: string | null; entityName?: string | null }):
+  NonNullable<UnlinkedLinkRecord['target']> | 'unlinked' {
+  if (candidate.matchedCharacterId) {
+    const groupKey = `existing:${candidate.matchedCharacterId}`;
+    return { key: groupKey, name: candidate.entityName || '이름 없는 인물', groupKey };
+  }
+  if (isUnidentifiedCharacterName(candidate.entityName)) return 'unlinked';
+  return { key: normalizeCharacterGroupName(candidate.entityName), name: candidate.entityName || '새 인물', groupKey: null };
+}
+
+/**
+ * 이미 기록한 후보의 연결이 어디서든(이름 있는 묶음·묶음 일괄 연결·응답 유실 복구 포함) 바뀌면 기록을 새 대상으로 맞춘다.
+ * 대상을 모르면 `null`(왼쪽 목록 안내), 다시 미연결로 돌아갔으면 기록에서 뺀다. 기록에 없는 후보는 무시한다.
+ */
+export function retargetUnlinkedLinks(
+  links: Readonly<Record<string, ReadonlyArray<UnlinkedLinkRecord>>>,
+  changes: ReadonlyArray<{ candidateId: string; target: UnlinkedLinkRecord['target'] | 'unlinked' }>,
+): Record<string, UnlinkedLinkRecord[]> {
+  const byId = new Map(changes.map(change => [change.candidateId, change.target] as const));
+  if (!Object.values(links).some(records => records.some(record => byId.has(record.candidateId)))) {
+    return links as Record<string, UnlinkedLinkRecord[]>;
+  }
+  return Object.fromEntries(Object.entries(links).map(([sourceKey, records]) => [sourceKey, records.flatMap(record => {
+    if (!byId.has(record.candidateId)) return [record];
+    const target = byId.get(record.candidateId)!;
+    return target === 'unlinked' ? [] : [{ candidateId: record.candidateId, target }];
+  })]));
+}
+
 /** 같은 후보를 다시 기록하면 마지막 연결로 바꾸고, 처음 연결한 순서는 유지한다. */
 export function mergeUnlinkedLinks(
   existing: ReadonlyArray<UnlinkedLinkRecord>,
@@ -121,8 +154,8 @@ export function mergeUnlinkedLinks(
 export interface UnlinkedLinkSummary {
   /** 옮긴 설정 수(대상을 알 수 없는 연결 포함). */
   settingCount: number;
-  /** 옮겨 간 인물 묶음. 처음 연결한 순서다. */
-  people: Array<{ key: string; name: string; groupKey: string | null; count: number; firstCandidateId: string }>;
+  /** 옮겨 간 인물 묶음. 처음 연결한 순서이며 `candidateIds`는 지금 그 묶음에 있다고 기록된 후보다(`보기`가 찾을 때 쓴다). */
+  people: Array<{ key: string; name: string; groupKey: string | null; count: number; candidateIds: string[] }>;
   /** 대상을 알 수 없는 연결 수. */
   untracked: number;
 }
@@ -136,8 +169,14 @@ export function summarizeUnlinkedLinks(records: ReadonlyArray<UnlinkedLinkRecord
       return;
     }
     const person = people.find(item => item.key === record.target!.key);
-    if (person) person.count += 1;
-    else people.push({ ...record.target, count: 1, firstCandidateId: record.candidateId });
+    if (person) {
+      person.count += 1;
+      person.candidateIds.push(record.candidateId);
+      // 같은 인물로 기록된 후보 중 마지막에 연결된 이름을 쓴다(예: 이름 변경 뒤 다시 연결).
+      person.name = record.target.name;
+    } else {
+      people.push({ ...record.target, count: 1, candidateIds: [record.candidateId] });
+    }
   });
   return { settingCount: records.length, people, untracked };
 }

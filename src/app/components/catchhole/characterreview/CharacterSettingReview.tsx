@@ -58,11 +58,14 @@ import {
   normalizeCharacterGroupName,
   REVIEW_SELECTION_LINK_LIMIT,
   REVIEW_SELECTION_LINK_LIMIT_TEXT,
+  retargetUnlinkedLinks,
   summarizeUnlinkedLinks,
   unlinkedGroupAfterChange,
+  unlinkedLinkTarget,
   UNNAMED_GROUP_KEY,
   UNNAMED_GROUP_KEY_PREFIX,
   type UnlinkedLinkRecord,
+  type UnlinkedLinkSummary,
 } from '../../../lib/setting-review-groups';
 import { isResponseLost, REVIEW_SAVE_TEXT, unverifiedSaveMessage, type ReviewSaveState } from '../../../lib/review-save-state';
 import { reviewPositionKey } from '../../../lib/review-position-store';
@@ -229,6 +232,11 @@ function isCharacterReviewLocation(workId: string, batchId: string, sourceAnalys
  * 페이지는 넣지 않는다. 작가가 페이지를 바꾸면 묶음 선택도 바뀌고, 다음 페이지로 밀린 미연결 묶음을 따라갈 때는
  * 화면이 묶음을 유지한 채 페이지만 바꾸기 때문이다.
  */
+function currentReviewScopeKey(): string {
+  const params = new URLSearchParams(window.location.search);
+  return ['workId', 'batchId', 'sourceAnalysisJobId'].map(key => params.get(key) ?? '').join('\n');
+}
+
 function currentReviewLocationKey(): string {
   const params = new URLSearchParams(window.location.search);
   return ['workId', 'batchId', 'sourceAnalysisJobId', 'candidateType', 'group', 'reviewStatus', 'matchStatus', 'size']
@@ -360,14 +368,22 @@ interface MatchContext {
   sourceUnlinked: boolean;
   /** 보낸 시점의 `currentReviewLocationKey()`. */
   locationKey: string;
+  /** 보낸 시점의 검토 범위. 범위가 바뀐 뒤 늦게 끝난 연결은 새 범위의 옮긴 기록에 넣지 않는다. */
+  scopeKey: string;
   previousGroups: SettingCandidateGroupResponse[];
   label: string;
   discovery: boolean;
 }
 
-/** 미연결 묶음을 모두 정리해 그 자리에 보이는 완료 상태. */
-interface UnlinkedGroupDoneState {
+/**
+ * 미연결 묶음 자리를 붙잡아 두는 상태. 목록에 그 묶음이 없어도 URL `group`을 지우거나 첫 묶음으로 바꾸지 않는다.
+ * - `done`: 모두 정리해 완료 상태를 보인다.
+ * - `checking`: 다른 페이지로 밀렸는지 찾는 중이다.
+ * - `lookupFailed`: 다른 페이지를 읽지 못해 남은 후보 위치를 모른다. `다시 시도`로 같은 탐색을 다시 한다.
+ */
+interface UnlinkedGroupHoldState {
   groupKey: string;
+  status: 'done' | 'checking' | 'lookupFailed';
   /** 묶음이 비기 직전 목록. `다음 미처리 묶음`의 순서 기준이다. */
   previousGroups: SettingCandidateGroupResponse[];
   /** 새로고침·탭 왕복 뒤 URL만으로 복원했는지. 이번 화면에서 옮긴 기록이 없다. */
@@ -896,15 +912,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const [recentLink, setRecentLink] = useState<RecentCandidateLink | null>(null);
   // 미연결 묶음에서 옮긴 설정(묶음 key별, 이 화면이 떠 있는 동안만). 완료 상태와 누적 안내가 인물별로 모아 보여 준다.
   const [unlinkedLinks, setUnlinkedLinks] = useState<Record<string, UnlinkedLinkRecord[]>>({});
-  const [unlinkedDone, setUnlinkedDoneState] = useState<UnlinkedGroupDoneState | null>(null);
+  const [unlinkedHold, setUnlinkedHoldState] = useState<UnlinkedGroupHoldState | null>(null);
   // 선택 보정 effect는 렌더를 기다리지 않고 완료 상태를 붙잡아야 하므로 같은 값을 ref로도 둔다.
-  const unlinkedDoneRef = useRef<UnlinkedGroupDoneState | null>(null);
-  const setUnlinkedDone = useCallback((value: UnlinkedGroupDoneState | null) => {
-    unlinkedDoneRef.current = value;
-    setUnlinkedDoneState(value);
+  const unlinkedHoldRef = useRef<UnlinkedGroupHoldState | null>(null);
+  const setUnlinkedHold = useCallback((value: UnlinkedGroupHoldState | null) => {
+    unlinkedHoldRef.current = value;
+    setUnlinkedHoldState(value);
   }, []);
   const focusUnlinkedDoneRef = useRef(false);
   const [findingNextPending, setFindingNextPending] = useState(false);
+  // 완료 상태의 `다음 미처리 묶음`이 다른 페이지를 읽지 못했거나 열 묶음을 찾지 못했는지.
+  const [nextPendingMissed, setNextPendingMissed] = useState(false);
   /** 새로고침·탭 왕복 뒤 URL의 미연결 묶음이 비었는지 한 번만 판단하기 위한 검토 범위. */
   const restoreScopeRef = useRef<string | null>(null);
   const [advanceSignal, setAdvanceSignal] = useState(0);
@@ -1225,22 +1243,27 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   })).data?.groups?.content?.map(withSelectableGroupKey);
 
   /** 미연결 묶음을 모두 정리한 자리에 완료 상태를 붙잡는다. 이미 보이는 완료 상태면 초점을 다시 옮기지 않는다. */
-  const showUnlinkedDone = useCallback((hold: PendingGroupAdvance, restored: boolean) => {
-    if (unlinkedDoneRef.current?.groupKey === hold.groupKey) return;
+  const showUnlinkedDone = useCallback((groupKey: string, previousGroups: SettingCandidateGroupResponse[], restored: boolean) => {
+    const current = unlinkedHoldRef.current;
+    if (current?.groupKey === groupKey && current.status === 'done') return;
     // 묶음이 빈 직후에만 완료 제목으로 초점을 옮긴다. 새로고침 뒤 복원은 읽던 초점을 빼앗지 않는다.
     focusUnlinkedDoneRef.current = !restored;
     setRecentLink(null);
-    setUnlinkedDone({ groupKey: hold.groupKey, previousGroups: hold.previous, restored });
-  }, [setUnlinkedDone]);
+    setUnlinkedHold({ groupKey, status: 'done', previousGroups, restored });
+  }, [setUnlinkedHold]);
 
   /**
    * 미연결 묶음이 지금 페이지에 없을 때 다른 페이지에서 같은 묶음을 찾는다. 연결로 생긴 인물 묶음이 앞에 끼어들어 다음 페이지로
    * 밀렸으면 선택 묶음을 유지한 채 그 페이지로 따라가고(상세·스크롤은 그대로), 어디에도 없으면 그 자리에 완료 상태를 보인다.
-   * 페이지를 읽지 못하면 비었다고 단정하지 않고 기존 선택 보정에 맡긴다.
+   * 페이지를 읽지 못하면 비었다고 단정하지 않는다. 묶음 자리를 붙잡은 채 확인하지 못했다고 알리고 `다시 시도`를 둔다.
+   * 찾는 동안·실패 뒤에도 작가가 직접 다른 묶음을 고르면(`clearNavigationIntent`) 그 선택을 따른다.
    */
   const followUnlinkedGroupRef = useRef<(hold: PendingGroupAdvance, page: number, totalPages: number, restored: boolean) => void>(() => undefined);
   useEffect(() => {
     followUnlinkedGroupRef.current = (hold, page, totalPages, restored) => {
+      const lookup = (status: UnlinkedGroupHoldState['status']) => (
+        { groupKey: hold.groupKey, status, previousGroups: hold.previous, restored });
+      setUnlinkedHold(lookup('checking'));
       void (async () => {
         let found: { groupKey: string; page: number } | null = null;
         let failed = false;
@@ -1255,14 +1278,15 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           || !isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
         advanceRef.current = null;
         if (failed) {
-          setAdvanceSignal(signal => signal + 1);
+          setUnlinkedHold(lookup('lookupFailed'));
           return;
         }
         if (!found) {
-          showUnlinkedDone(hold, restored);
+          showUnlinkedDone(hold.groupKey, hold.previous, restored);
           return;
         }
         const targetPage = found.page;
+        setUnlinkedHold(null);
         preserveViewport();
         setSearchParams(previous => {
           if (previous.get('group') !== hold.groupKey) return previous;
@@ -1307,7 +1331,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           }
           advanceRef.current = null;
           if (outcome === 'done') {
-            showUnlinkedDone(advance, false);
+            showUnlinkedDone(advance.groupKey, advance.previous, false);
             return;
           }
         } else if (!advance.force && listed) {
@@ -1338,19 +1362,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         }
       }
     }
-    // 미연결 묶음을 모두 정리한 자리(완료 상태)는 작가가 직접 옮기기 전까지 첫 묶음으로 바꾸지 않는다.
-    if (!selectedGroup && selectedGroupKey && unlinkedDoneRef.current?.groupKey === selectedGroupKey) return;
-    // 새로고침·탭 왕복으로 다시 연 화면에서 URL의 미연결 묶음이 지금 페이지에 없으면, 다른 페이지로 밀렸는지 찾아 보고
-    // 어디에도 없으면 그 자리에 완료 상태를 보인다(이번 화면에서 옮긴 기록은 없다). 검토 범위마다 처음 한 번만 판단한다.
+    // 붙잡아 둔 미연결 묶음 자리(완료·찾는 중·찾기 실패)는 작가가 직접 옮기기 전까지 첫 묶음으로 바꾸지 않는다.
+    if (!selectedGroup && selectedGroupKey && unlinkedHoldRef.current?.groupKey === selectedGroupKey) return;
+    // 새로고침·탭 왕복으로 다시 연 화면에서 URL의 미연결 묶음에 대기 후보가 없으면 연결·제외 직후와 같은 기준
+    // (`unlinkedGroupAfterChange`)으로 다룬다: 지금 페이지에 없으면 다른 페이지로 밀렸는지 찾아 보고 어디에도 없으면,
+    // `전체` 필터처럼 처리된 후보만 남아 목록에 있으면 바로 그 자리에 완료 상태를 보인다(이번 화면에서 옮긴 기록은 없다).
+    // 검토 범위마다 처음 한 번만 판단한다.
     const restoreScope = [workId, batchId, sourceAnalysisJobId ?? ''].join('\n');
     if (restoreScopeRef.current !== restoreScope) {
       restoreScopeRef.current = restoreScope;
-      if (!selectedGroup && selectedGroupKey && isUnlinkedGroupKey(selectedGroupKey)) {
-        const hold: PendingGroupAdvance = { groupKey: selectedGroupKey, previous: [], force: false, armed: true, target: null,
-          unlinked: { removedIds: [] } };
-        advanceRef.current = hold;
-        followUnlinkedGroupRef.current(hold, groupPage?.page ?? apiPage, groupPage?.totalPages ?? 0, true);
-        return;
+      if (selectedGroupKey && isUnlinkedGroupKey(selectedGroupKey)) {
+        if (!selectedGroup) {
+          const hold: PendingGroupAdvance = { groupKey: selectedGroupKey, previous: [], force: false, armed: true, target: null,
+            unlinked: { removedIds: [] } };
+          advanceRef.current = hold;
+          followUnlinkedGroupRef.current(hold, groupPage?.page ?? apiPage, groupPage?.totalPages ?? 0, true);
+          return;
+        }
+        if (!hasPendingCandidate(selectedGroup)) showUnlinkedDone(selectedGroupKey, [], true);
       }
     }
     // 키보드로 페이지 경계를 넘으면 다음 페이지는 첫 묶음, 이전 페이지는 마지막 묶음을 열고 제목에 초점을 둔다.
@@ -1390,16 +1419,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   }, [mainRef, selectedGroup?.groupKey]);
 
   // 미연결 묶음을 모두 정리한 자리. `전체` 필터에서는 처리된 후보만 남은 묶음이 목록에 남을 수 있다.
-  const unlinkedDoneVisible = Boolean(unlinkedDone && unlinkedDone.groupKey === selectedGroupKey
+  const unlinkedHoldVisible = Boolean(unlinkedHold && unlinkedHold.groupKey === selectedGroupKey
     && !(selectedGroup && pendingGroupCandidates.length > 0));
+  const unlinkedHoldStatus = unlinkedHoldVisible ? unlinkedHold?.status ?? null : null;
   useEffect(() => {
-    if (!unlinkedDoneVisible || !focusUnlinkedDoneRef.current) return;
+    if (unlinkedHoldStatus !== 'done' || !focusUnlinkedDoneRef.current) return;
     focusUnlinkedDoneRef.current = false;
     // 묶음이 빈 직후 완료 제목에서 다시 읽게 한다. 읽던 위치는 옮기지 않고 제목이 보이도록만 맞춘다.
     const title = mainRef.current?.querySelector<HTMLElement>('[data-review-done-title]');
     title?.focus({ preventScroll: true });
     title?.scrollIntoView({ block: 'nearest' });
-  }, [mainRef, unlinkedDoneVisible]);
+  }, [mainRef, unlinkedHoldStatus]);
 
   useReviewPositionMemory({
     mainRef,
@@ -1431,8 +1461,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     setSelectionRejection(null);
     // 미연결 묶음에서 옮긴 기록과 완료 상태는 이 검토 범위에만 의미가 있다.
     setUnlinkedLinks({});
-    setUnlinkedDone(null);
-  }, [batchId, setUnlinkedDone, sourceAnalysisJobId, workId]);
+    setUnlinkedHold(null);
+  }, [batchId, setUnlinkedHold, sourceAnalysisJobId, workId]);
 
   const currentApplicationKey = (candidate: SettingCandidateResponse) => hasCharacterFactComparison(candidate) ? bookReviewValueKey(
     candidate, candidate.matchedCharacterId, candidate.currentSnapshotVersion,
@@ -1530,6 +1560,24 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   };
 
   /**
+   * 연결 뒤 미연결 묶음의 옮긴 기록을 서버 연결과 맞춘다. 기록한 후보가 어디서든(이름 있는 묶음·묶음 일괄 연결·응답 유실 복구)
+   * 다시 연결되면 새 대상으로 옮기고, `recordSource`가 있으면 그 미연결 묶음에서 옮긴 설정으로 새로 기록한다.
+   */
+  const syncUnlinkedLinks = (candidateIds: string[], savedCandidates: SettingCandidateResponse[], recordSource: string | null) => {
+    const changes = candidateIds.map(candidateId => {
+      const linked = savedCandidates.find(candidate => candidate.id === candidateId);
+      return { candidateId, target: linked ? unlinkedLinkTarget(linked) : null };
+    });
+    setUnlinkedLinks(current => {
+      const retargeted = retargetUnlinkedLinks(current, changes);
+      if (!recordSource) return retargeted;
+      const added = changes.flatMap((change): UnlinkedLinkRecord[] => (
+        change.target === 'unlinked' ? [] : [{ candidateId: change.candidateId, target: change.target }]));
+      return added.length ? { ...retargeted, [recordSource]: mergeUnlinkedLinks(retargeted[recordSource] ?? [], added) } : retargeted;
+    });
+  };
+
+  /**
    * 단건 연결 뒤에도 작가가 보던 묶음·페이지·스크롤을 유지한다. 후보가 다른 묶음으로 옮겨 가면 안내로 알리고,
    * 이동은 안내의 버튼으로 작가가 고른다. 이름 있는 묶음이 비면 직전 목록의 다음 묶음을, 미연결 묶음이 비면 그 자리에
    * 완료 상태를 연다.
@@ -1554,20 +1602,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     });
     const saved = savedCandidates[0];
     const sourceGroupKey = context?.sourceGroupKey;
-    if (context?.sourceUnlinked && sourceGroupKey) {
-      // 응답 없이 확인해 대상을 모르는 후보도 옮긴 수에는 넣는다(완료 상태는 왼쪽 목록을 안내한다).
-      const records = candidateIds.flatMap((candidateId): UnlinkedLinkRecord[] => {
-        const linked = savedCandidates.find(candidate => candidate.id === candidateId);
-        if (!linked) return [{ candidateId, target: null }];
-        const target = linked.matchedCharacterId
-          ? { key: `existing:${linked.matchedCharacterId}`, name: linked.entityName || '이름 없는 인물', groupKey: `existing:${linked.matchedCharacterId}` }
-          : { key: normalizeCharacterGroupName(linked.entityName), name: linked.entityName || '새 인물', groupKey: null };
-        return target.key === sourceGroupKey ? [] : [{ candidateId, target }];
-      });
-      if (records.length) {
-        setUnlinkedLinks(current => ({ ...current, [sourceGroupKey]: mergeUnlinkedLinks(current[sourceGroupKey] ?? [], records) }));
-      }
-    }
+    // 미연결 묶음에서 옮긴 설정을 기록하고, 이미 기록한 후보를 다른 묶음에서 다시 연결했으면 기록을 새 대상으로 맞춘다.
+    // 응답 없이 확인해 대상을 모르는 후보도 옮긴 수에는 넣는다(완료 상태는 왼쪽 목록을 안내한다).
+    const recordSource = context?.sourceUnlinked && sourceGroupKey && currentReviewScopeKey() === context.scopeKey ? sourceGroupKey : null;
+    syncUnlinkedLinks(candidateIds, savedCandidates, recordSource);
     // 미연결 묶음 유지·완료 상태는 보낸 위치에 작가가 그대로 있을 때만 적용한다. 그사이 다른 묶음·필터·페이지로 옮겼으면
     // 늦게 끝난 저장(응답 유실 복구 포함)이 그 화면에 안내나 완료 상태를 띄우지 않는다.
     const stayed = !context?.sourceUnlinked || currentReviewLocationKey() === context.locationKey;
@@ -1704,8 +1742,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
 
   /** 이름 있는 묶음 전체 연결은 연결한 묶음으로 화면을 옮긴다(묶음 전체가 함께 이동하므로). */
   const afterGroupLinked = async (candidateIds: string[], groupKey: string | null | undefined,
-    sourceGroupKey: string | null, targetWorkId = workId) => {
+    sourceGroupKey: string | null, savedCandidates: SettingCandidateResponse[], targetWorkId = workId) => {
     onClearApplicationModes(candidateIds);
+    syncUnlinkedLinks(candidateIds, savedCandidates, null);
     // 응답을 기다리는 동안 작가가 다른 묶음으로 옮겼으면 그 묶음과 열린 창을 유지한다.
     if (currentGroupParam() !== sourceGroupKey) {
       await invalidateCandidateData(targetWorkId);
@@ -1772,7 +1811,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           path: { workId, candidateId }, query: { sourceAnalysisJobId, batchId },
         }).queryKey)?.data ?? []);
         if (intent.kind === 'selectedMatch') void afterSelectionLinked(intent.candidateIds, verifiedCandidates, intent.context);
-        else void afterGroupLinked(intent.candidateIds, linkedGroupKey(intent.variables.body), intent.sourceGroupKey);
+        else void afterGroupLinked(intent.candidateIds, linkedGroupKey(intent.variables.body), intent.sourceGroupKey, verifiedCandidates);
         return;
       }
       const verified = queryClient.getQueryData(getSettingCandidateOptions({
@@ -1855,7 +1894,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     onSuccess: async (response, variables) => {
       const intent = groupMatchIntentRef.current;
       groupMatchIntentRef.current = null;
-      await afterGroupLinked(variables.body.candidateIds, response.data?.groupKey, intent?.sourceGroupKey ?? null, variables.path.workId);
+      await afterGroupLinked(variables.body.candidateIds, response.data?.groupKey, intent?.sourceGroupKey ?? null,
+        response.data?.candidates ?? [], variables.path.workId);
     },
   });
 
@@ -1924,7 +1964,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     advanceRef.current = null;
     focusGroupKeyRef.current = null;
     setRecentLink(null);
-    setUnlinkedDone(null);
+    setUnlinkedHold(null);
+    setNextPendingMissed(false);
   };
   const updateFilters = (nextReview: ReviewFilter, nextMatch: MatchFilter) => {
     setMobileDetailOpen(false);
@@ -2080,6 +2121,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       sourceGroupKey: selectedGroup?.groupKey ?? null,
       sourceUnlinked: selectedGroupUnlinked,
       locationKey: currentReviewLocationKey(),
+      scopeKey: currentReviewScopeKey(),
       previousGroups: groups,
       label: hasCharacterFactComparison(candidate)
         ? toSettingDisplay(candidate.attributeName, candidate.attributeDisplayName, labels).nameLabel
@@ -2153,6 +2195,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       sourceGroupKey: selectedGroup.groupKey ?? null,
       sourceUnlinked: selectedGroupUnlinked,
       locationKey: currentReviewLocationKey(),
+      scopeKey: currentReviewScopeKey(),
       previousGroups: groups,
       label: candidateIds.length > 1 ? `${candidateIds.length}개 설정`
         : hasCharacterFactComparison(first)
@@ -2318,10 +2361,10 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   // 미연결 묶음에서 이번 화면에 옮긴 설정(누적 안내·완료 상태).
   const recentUnlinkedSummary = visibleRecentLink?.sourceUnlinked
     ? summarizeUnlinkedLinks(unlinkedLinks[visibleRecentLink.sourceGroupKey] ?? []) : null;
-  const unlinkedDoneSummary = summarizeUnlinkedLinks(unlinkedDone ? unlinkedLinks[unlinkedDone.groupKey] ?? [] : []);
+  const unlinkedDoneSummary = summarizeUnlinkedLinks(unlinkedHold ? unlinkedLinks[unlinkedHold.groupKey] ?? [] : []);
   // 완료 상태의 `다음 미처리 묶음`: 직전 목록 순서로 이 페이지에서 고르고, 없으면 다른 페이지에 미처리 묶음이 남았는지 본다.
-  const unlinkedNextKey = unlinkedDoneVisible && unlinkedDone
-    ? nextGroupKeyWrapping(unlinkedDone.previousGroups, unlinkedDone.groupKey, groups.filter(hasPendingCandidate)) : null;
+  const unlinkedNextKey = unlinkedHoldVisible && unlinkedHold
+    ? nextGroupKeyWrapping(unlinkedHold.previousGroups, unlinkedHold.groupKey, groups.filter(hasPendingCandidate)) : null;
   const pendingGroupsOnPage = groups.filter(group => group.groupKey !== selectedGroupKey && hasPendingCandidate(group)).length;
   const pendingGroupsElsewhere = reviewFilter === 'ALL' ? (pendingGroupTotal ?? 0) > pendingGroupsOnPage
     : reviewFilter === 'PENDING_REVIEW' && (groupPage?.totalElements ?? 0) > groups.length;
@@ -2334,6 +2377,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     if (findingNextPending || !pendingGroupsElsewhere) return;
     const locationKey = currentReviewLocationKey();
     setFindingNextPending(true);
+    setNextPendingMissed(false);
     void (async () => {
       let found: { groupKey: string; page: number } | null = null;
       try {
@@ -2343,7 +2387,12 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       }
       setFindingNextPending(false);
       // 찾는 동안 작가가 다른 묶음·필터·페이지로 옮겼으면 그 위치를 유지한다.
-      if (!found || currentReviewLocationKey() !== locationKey) return;
+      if (currentReviewLocationKey() !== locationKey) return;
+      // 읽지 못했거나 그사이 다른 곳에서 처리돼 찾지 못하면 자리를 지키고 알린다(다시 누르면 다시 찾는다).
+      if (!found) {
+        setNextPendingMissed(true);
+        return;
+      }
       const target = found;
       clearCheckedSelection();
       resetActionsIfSettled();
@@ -2359,14 +2408,38 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       }, { replace: true, state: location.state });
     })();
   };
-  const unlinkedDoneView = unlinkedDoneVisible && unlinkedDone ? (
+  /**
+   * 완료 상태의 `보기`. 그 인물 묶음이 지금 목록에 있으면 바로 열고, 없으면 지금 그 묶음에 있다고 기록된 후보 ID로
+   * 실제 묶음·페이지를 찾는다(다른 묶음에서 다시 연결한 후보는 기록이 새 대상으로 옮겨 가 있다).
+   */
+  const openMovedGroup = (person: UnlinkedLinkSummary['people'][number]) => {
+    if (groups.some(group => group.groupKey === person.key)) {
+      selectGroup(person.key);
+      focusGroupKeyRef.current = person.key;
+      return;
+    }
+    openLinkedGroup({ candidateIds: person.candidateIds, targetGroupKey: person.groupKey });
+  };
+  /** 다른 페이지를 읽지 못해 붙잡아 둔 미연결 묶음을 같은 방법으로 다시 찾는다. */
+  const retryUnlinkedLookup = () => {
+    const hold = unlinkedHoldRef.current;
+    if (!hold || hold.status !== 'lookupFailed' || hold.groupKey !== currentGroupParam()) return;
+    const advance: PendingGroupAdvance = { groupKey: hold.groupKey, previous: hold.previousGroups, force: false, armed: true,
+      target: null, unlinked: { removedIds: [] } };
+    advanceRef.current = advance;
+    followUnlinkedGroupRef.current(advance, currentPage, totalPages, hold.restored);
+  };
+  const unlinkedHoldView = unlinkedHoldVisible && unlinkedHold ? (
     <UnlinkedGroupDone
+      status={unlinkedHold.status}
       summary={unlinkedDoneSummary}
-      restored={unlinkedDone.restored}
+      restored={unlinkedHold.restored}
       canOpenNext={Boolean(unlinkedNextKey) || pendingGroupsElsewhere}
       findingNext={findingNextPending}
-      onOpenPerson={person => openLinkedGroup({ candidateIds: [person.firstCandidateId], targetGroupKey: person.groupKey })}
+      nextMissed={nextPendingMissed}
+      onOpenPerson={openMovedGroup}
       onOpenNext={openNextPendingGroup}
+      onRetryLookup={retryUnlinkedLookup}
     />
   ) : null;
 
@@ -2381,7 +2454,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       next.set('page', String(Math.max(serverTotalPages, 1)));
       // 미연결 묶음이 비어 마지막 페이지가 사라져도 그 묶음 자리(완료 상태·판단 대기)는 유지하고 왼쪽 목록 페이지만 맞춘다.
       const group = previous.get('group');
-      const holdsUnlinkedGroup = group != null && (unlinkedDoneRef.current?.groupKey === group
+      const holdsUnlinkedGroup = group != null && (unlinkedHoldRef.current?.groupKey === group
         || (advanceRef.current?.unlinked != null && advanceRef.current.groupKey === group));
       if (!holdsUnlinkedGroup) next.delete('group');
       next.delete('candidate');
@@ -2571,7 +2644,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                     >
                       <ChevronLeft size={15} /> 후보 목록으로
                     </button>
-                    {!selectedGroup && unlinkedDoneView && !characterReviewComplete ? unlinkedDoneView : !selectedGroup ? (
+                    {!selectedGroup && unlinkedHoldView && !characterReviewComplete ? unlinkedHoldView : !selectedGroup ? (
                       <QueryState
                         icon={<Sparkles size={26} color={C.primary} />}
                         title={characterReviewComplete ? '캐릭터 검토를 마쳤어요'
@@ -2638,7 +2711,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                             </div>}
                             {pendingGroupCandidates.some(candidate => candidate.manualReviewAvailable
                               && !isAutomaticApplicationPending(candidate)) && <OrderedReviewImpactNotice />}
-                            {visibleRecentLink && !unlinkedDoneVisible && <ReviewNotice tone="info"
+                            {visibleRecentLink && !unlinkedHoldVisible && <ReviewNotice tone="info"
                               title={`${visibleRecentLink.candidateIds.length > 1
                                 ? `${visibleRecentLink.candidateIds.length}개를 ‘${visibleRecentLink.characterName}’에 연결했어요.`
                                 : `‘${visibleRecentLink.label}’ ${visibleRecentLink.discovery ? '인물 후보를' : '설정을'} ‘${visibleRecentLink.characterName}’에 연결했어요.`}${
@@ -2718,8 +2791,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                             />
                           ))}
 
-                          {pendingGroupCandidates.length === 0 && unlinkedDoneView && (
-                            <div style={{ padding: '0 20px 18px' }}>{unlinkedDoneView}</div>
+                          {pendingGroupCandidates.length === 0 && unlinkedHoldView && (
+                            <div style={{ padding: '0 20px 18px' }}>{unlinkedHoldView}</div>
                           )}
                           {pendingGroupCandidates.length === 0 && characterTabDoneInAll && (
                             <div style={{ padding: '0 20px 18px' }}>

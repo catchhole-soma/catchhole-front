@@ -6,6 +6,8 @@ import {
   isUnlinkedCandidateGroup,
   isUnlinkedGroupKey,
   mergeUnlinkedLinks,
+  retargetUnlinkedLinks,
+  unlinkedLinkTarget,
   nextGroupKeyAfter,
   nextGroupKeyWrapping,
   otherPageOrder,
@@ -145,8 +147,8 @@ test('미연결 묶음에서 옮긴 기록은 후보마다 마지막 연결로 �
   assert.deepEqual(summarizeUnlinkedLinks(records), {
     settingCount: 4,
     people: [
-      { key: 'existing:b', name: '인물B', groupKey: 'existing:b', count: 2, firstCandidateId: 'c1' },
-      { key: '인물j', name: '인물J', groupKey: null, count: 1, firstCandidateId: 'c2' },
+      { key: 'existing:b', name: '인물B', groupKey: 'existing:b', count: 2, candidateIds: ['c1', 'c3'] },
+      { key: '인물j', name: '인물J', groupKey: null, count: 1, candidateIds: ['c2'] },
     ],
     untracked: 1,
   });
@@ -160,4 +162,29 @@ test('조건에 맞는 묶음을 페이지 순서대로 찾는다', async () => 
   assert.deepEqual(await findGroupOnPages([1, 2, 0], fetchPage, group => group.groupKey === '미상'), { groupKey: '미상', page: 2 });
   assert.deepEqual(read, [1, 2]);
   assert.equal(await findGroupOnPages([0, 1], fetchPage, group => group.groupKey === '미상'), null);
+});
+
+test('연결된 후보가 있는 인물 묶음을 서버 묶음 규칙으로 정하고, 다시 미연결이면 따로 알린다', () => {
+  assert.deepEqual(unlinkedLinkTarget({ matchedCharacterId: 'b', entityName: '인물B' }), { key: 'existing:b', name: '인물B', groupKey: 'existing:b' });
+  assert.deepEqual(unlinkedLinkTarget({ matchedCharacterId: null, entityName: ' Leon  Hart ' }), { key: 'leon hart', name: ' Leon  Hart ', groupKey: null });
+  assert.equal(unlinkedLinkTarget({ matchedCharacterId: null, entityName: '미상' }), 'unlinked');
+  assert.equal(unlinkedLinkTarget({ matchedCharacterId: null, entityName: '' }), 'unlinked');
+});
+
+test('기록한 후보를 다른 묶음에서 다시 연결하면 기록과 보기 대상 후보를 새 대상으로 옮긴다', () => {
+  const a = { key: 'existing:a', name: '인물A', groupKey: 'existing:a' };
+  const b = { key: 'existing:b', name: '인물B', groupKey: 'existing:b' };
+  const links = { 미상: [{ candidateId: 'c1', target: a }, { candidateId: 'c2', target: a }], 다른: [{ candidateId: 'x', target: a }] };
+  const moved = retargetUnlinkedLinks(links, [{ candidateId: 'c1', target: b }, { candidateId: 'zz', target: b }]);
+  assert.deepEqual(moved.미상, [{ candidateId: 'c1', target: b }, { candidateId: 'c2', target: a }]);
+  assert.deepEqual(moved.다른, links.다른);
+  // A의 보기는 아직 A에 있는 c2로 찾고, B 행이 새로 생긴다.
+  assert.deepEqual(summarizeUnlinkedLinks(moved.미상).people.map(person => [person.key, person.candidateIds]),
+    [['existing:b', ['c1']], ['existing:a', ['c2']]]);
+  // 둘 다 B로 옮기면 A 행은 사라지고 B 한 행으로 합쳐진다.
+  const merged = retargetUnlinkedLinks(moved, [{ candidateId: 'c2', target: b }]);
+  assert.deepEqual(summarizeUnlinkedLinks(merged.미상).people.map(person => [person.key, person.count]), [['existing:b', 2]]);
+  // 대상을 모르면 설정 수에만 남기고, 다시 미연결이면 기록에서 뺀다.
+  const unknown = retargetUnlinkedLinks(merged, [{ candidateId: 'c1', target: null }, { candidateId: 'c2', target: 'unlinked' }]);
+  assert.deepEqual(unknown.미상, [{ candidateId: 'c1', target: null }]);
 });

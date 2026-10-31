@@ -247,3 +247,116 @@ test('320px에서 완료 상태의 버튼을 44px 높이로 세로로 놓고 가
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await done.screenshot({ path: testInfo.outputPath('unlinked-done-320.png') });
 });
+
+// PR #113 리뷰 반영: 전체 필터 복원, 다른 묶음에서 다시 연결한 기록, 다른 페이지 찾기 실패.
+
+test('전체 상태 필터에서 마지막 대기 후보를 제외한 미연결 묶음은 새로고침 뒤에도 완료 상태로 복원한다', async ({ page }) => {
+  // 이미 확정된 후보(c0)가 있어 `전체` 필터에서는 대기 후보가 없어도 미상 묶음이 목록에 남는다.
+  const rows = [
+    settingCandidate('n1', { entityName: '레온', rawEntityMention: '레온' }),
+    settingCandidate('c0', { attributeName: 'profile.gender', attributeDisplayName: '성별', attributeValue: '여성', reviewStatus: 'CONFIRMED' }),
+    settingCandidate('c1', { attributeDisplayName: '직업' }),
+  ];
+  await routeCharacterLinkMock(page, { candidates: rows, characters });
+  await page.goto(reviewUrl({ group: '미상', reviewStatus: 'ALL' }));
+  await page.getByRole('region', { name: '직업 설정 후보', exact: true }).getByRole('button', { name: '제외', exact: true }).click();
+  await expect(doneTitle(page)).toBeFocused();
+  for (const reopen of [() => page.reload(), async () => {
+    const tabs = page.getByRole('navigation', { name: '설정 후보 종류' });
+    await tabs.getByRole('button', { name: /세계관 후보/ }).click();
+    await expect(page).toHaveURL(/candidateType=world/);
+    await tabs.getByRole('button', { name: /캐릭터 후보/ }).click();
+  }]) {
+    await reopen();
+    await expect(doneTitle(page)).toBeVisible();
+    await expect(page.getByTestId('unlinked-group-done')).toContainText('옮겨 간 설정은 왼쪽 목록의 인물 묶음에서 확인할 수 있어요.');
+    expect(groupParam(page)).toBe('미상');
+    expect(new URL(page.url()).searchParams.get('reviewStatus')).toBe('ALL');
+  }
+});
+
+test('미상에서 옮긴 설정을 인물 묶음에서 다시 연결하면 완료 목록과 보기가 새 대상을 따른다', async ({ page }) => {
+  await openUnknownGroup(page);
+  await linkTo(page, '직업', '아리아');
+  await expect(linkNotice(page)).toContainText('(이번에 연결 1개 · 1명)');
+  await linkTo(page, '소속', '아리아');
+  await expect(linkNotice(page)).toContainText('(이번에 연결 2개 · 1명)');
+  // 아리아 묶음으로 가서 옮긴 직업 설정을 베른에 다시 연결한다(이름 있는 묶음의 단건 연결).
+  await linkNotice(page).getByRole('button', { name: '연결한 묶음 보기', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /^아리아3개 설정/ })).toBeVisible();
+  await linkTo(page, '직업', '베른');
+  await expect(page.getByRole('heading', { name: /^아리아2개 설정/ })).toBeVisible();
+  // 미상 묶음으로 돌아와 남은 설정을 마친다.
+  await page.locator('.candidate-group-card', { hasText: '미연결 후보' }).click();
+  await expect(page.getByRole('heading', { name: /인물 미확인1개 설정/ })).toBeVisible();
+  await linkTo(page, '종족', '아리아');
+  const done = page.getByTestId('unlinked-group-done');
+  await expect(doneTitle(page)).toBeFocused();
+  await expect(done.getByRole('listitem')).toHaveText(['베른옮긴 설정 1개보기', '아리아옮긴 설정 2개보기']);
+  await expect(done).toContainText('이번에 옮긴 설정 3개 · 2명이에요.');
+  // 아리아의 보기는 다시 연결해 베른으로 간 후보가 아니라 아리아에 남은 묶음을 연다.
+  await done.getByRole('button', { name: '아리아 묶음 보기', exact: true }).click();
+  await expect.poll(() => groupParam(page)).toBe(`existing:${characterId(1)}`);
+  await expect(page.getByRole('heading', { name: /^아리아3개 설정/ })).toBeVisible();
+});
+
+/** 지정한 페이지(0부터)의 목록 요청을 실패시킨다. `fail`을 false로 바꾸면 다시 통과시킨다. */
+async function failListPage(page: Page, pageIndex: number) {
+  const control = { fail: true, failures: 0 };
+  await page.route(url => url.pathname === listPath && url.searchParams.get('page') === String(pageIndex)
+    && url.searchParams.get('size') !== '1', async route => {
+    if (!control.fail) return route.fallback();
+    control.failures += 1;
+    return route.fulfill({ status: 500, contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '잠시 후 다시 시도해 주세요.', data: null, error: { code: 'INTERNAL_SERVER_ERROR', status: 500 } }) });
+  });
+  return control;
+}
+
+/** 한 페이지 2묶음 [레온, 미상(직업·소속)]. 직업을 베른에 연결하면 [베른, 레온 | 미상]으로 미상 묶음이 2페이지로 밀린다. */
+async function routePushedUnknownGroup(page: Page) {
+  return routeCharacterLinkMock(page, {
+    candidates: candidates(2).filter(candidate => candidate.id !== 'a1').sort((first, second) => (first.id === 'n1' ? 1 : 0) - (second.id === 'n1' ? 1 : 0)),
+    characters, groupPageSize: 2,
+  });
+}
+
+const lookupFailed = (page: Page) => page.getByRole('heading', { name: '남은 미연결 후보 위치를 확인하지 못했어요.' });
+
+test('다음 페이지로 밀린 미상 묶음을 찾지 못하면 선택을 붙잡고 다시 시도로 같은 묶음을 찾는다', async ({ page }) => {
+  test.setTimeout(60_000);
+  await routePushedUnknownGroup(page);
+  await page.goto(reviewUrl({ group: '미상' }));
+  await expect(page.getByRole('heading', { name: /인물 미확인2개 설정/ })).toBeVisible();
+  const control = await failListPage(page, 1);
+  await linkTo(page, '직업', '베른');
+  await expect(lookupFailed(page)).toBeVisible({ timeout: 20_000 });
+  expect(groupParam(page)).toBe('미상');
+  expect(new URL(page.url()).searchParams.get('page')).toBeNull();
+  await page.waitForTimeout(300);
+  expect(groupParam(page)).toBe('미상');
+  control.fail = false;
+  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  expect(groupParam(page)).toBe('미상');
+  await expect(page.getByRole('heading', { name: /인물 미확인1개 설정/ })).toBeVisible();
+  await expect(lookupFailed(page)).toHaveCount(0);
+});
+
+test('새로고침 뒤 미상 묶음을 다른 페이지에서 찾지 못해도 첫 묶음으로 바꾸지 않고, 작가가 고른 묶음은 따른다', async ({ page }) => {
+  test.setTimeout(60_000);
+  await routePushedUnknownGroup(page);
+  await page.goto(reviewUrl({ group: '미상' }));
+  await linkTo(page, '직업', '베른');
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  // 1페이지 URL로 다시 열면(공유·탭 기록) 미상 묶음은 2페이지에 있다. 그 페이지를 읽지 못하는 경우다.
+  const control = await failListPage(page, 1);
+  await page.goto(reviewUrl({ group: '미상', page: '1' }));
+  await expect(lookupFailed(page)).toBeVisible({ timeout: 20_000 });
+  expect(groupParam(page)).toBe('미상');
+  expect(control.failures).toBeGreaterThan(0);
+  await page.locator('.candidate-group-card', { hasText: '레온' }).click();
+  await expect.poll(() => groupParam(page)).toBe('레온');
+  await expect(lookupFailed(page)).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /레온1개 설정/ })).toBeVisible();
+});
