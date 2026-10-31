@@ -225,6 +225,8 @@ type WorldRecoveryContext =
     /** 저장을 보낸 시점의 묶음·필터·페이지(`reviewLocationKey`). 작가가 그 사이 옮겼으면 URL을 되돌리지 않는다. */
     origin?: string | null }
   | { kind: 'confirm'; groupKey: string | null; candidateIds: string[];
+    /** 제외(EXCLUDE)로 확정한 후보. 서버가 DISMISSED로 바꾼다. 나머지는 CONFIRMED여야 요청한 결과다. */
+    dismissedIds: string[];
     previousGroups: WorldSettingCandidateGroupResponse[]; error: unknown }
   | { kind: 'read' };
 
@@ -1271,6 +1273,8 @@ function WorldCandidateGroupDetail({
       && candidate.comparisonFailureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED'
   ) || candidate.comparisonStatus === 'RECOMPARISON_REQUIRED'));
   const confirmable = confirmBlock === null;
+  // 분류·대상 일괄 수정은 저장 결과를 확인하는 동안에도 잠근다(제출 핸들러의 가드와 같다).
+  const identityLocked = actionPending || decisionRecoveryRequired || !identityEditable;
   const blockNoticeIds = {
     duplicate: `world-block-duplicate-${group.groupKey ?? 'group'}`,
     conflict: `world-block-conflict-${group.groupKey ?? 'group'}`,
@@ -1325,13 +1329,13 @@ function WorldCandidateGroupDetail({
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
-          <button type="button" disabled={actionPending || !identityEditable} onClick={onEditIdentity}
+          <button type="button" disabled={identityLocked} onClick={onEditIdentity}
             aria-describedby={identityHintVisible ? identityHintId : undefined}
             title={identityHintVisible ? '결정이 없는 설정이 있어요. 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.' : undefined} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
-            background: 'transparent', color: actionPending || !identityEditable ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
+            background: 'transparent', color: identityLocked ? REVIEW_TEXT.muted : REVIEW_TEXT.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
-            cursor: actionPending || !identityEditable ? 'not-allowed' : 'pointer',
+            cursor: identityLocked ? 'not-allowed' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
           }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
         </div>
@@ -1471,7 +1475,7 @@ function WorldCandidateGroupDetail({
         onConfirm={() => { if (!hasUnsavedChanges) onConfirm(); }}
         onJumpToBlocking={() => onJumpToBlocking(confirmBlock?.candidateIds ?? [])}
         shortcuts={<ReviewShortcutHelp />}
-        secondaryActions={retryAvailable && <ActionButton disabled={actionPending} tone={C.warning} onClick={onRetry}>
+        secondaryActions={retryAvailable && <ActionButton disabled={actionPending || decisionRecoveryRequired} tone={C.warning} onClick={onRetry}>
           <RefreshCw size={12} /> 다시 비교
         </ActionButton>}
       >
@@ -2165,6 +2169,7 @@ export function WorldSettingReview() {
       await startRecovery(lost ? {
         kind: 'confirm', groupKey: request?.groupKey ?? null, error,
         candidateIds: variables.body.candidates.map(candidate => candidate.candidateId),
+        dismissedIds: variables.body.candidates.flatMap(candidate => candidate.operation === 'EXCLUDE' ? [candidate.candidateId] : []),
         previousGroups: request?.previousGroups ?? [],
       } : { kind: 'read' });
     },
@@ -2384,19 +2389,23 @@ export function WorldSettingReview() {
       return;
     }
     const group = result.data?.data?.groups?.content?.find(item => item.groupKey === context.groupKey);
-    const submitted = new Set(context.candidateIds);
+    const listed = new Map((group?.candidates ?? []).flatMap(candidate => candidate.id ? [[candidate.id, candidate] as const] : []));
     let confirmed: boolean;
-    if (group) {
-      confirmed = !group.candidates?.some(candidate => candidate.id && submitted.has(candidate.id) && candidate.reviewStatus === 'PENDING_REVIEW');
+    if (context.candidateIds.some(candidateId => listed.get(candidateId)?.reviewStatus === 'PENDING_REVIEW')) {
+      // 목록에 아직 대기로 보이면 확정되지 않은 것이다.
+      confirmed = false;
     } else {
-      // 다른 페이지·필터로 옮겨 가 지금 목록에 묶음이 없으면 "확정됨"으로 단정하지 않고 확정한 후보를 하나씩 다시 읽는다.
+      // 목록에서 빠진 후보(미처리 필터·다른 페이지)는 하나씩 다시 읽어, 요청한 결과(확정 또는 EXCLUDE의 제외)인지 확인한다.
+      // 다른 곳에서 제외된 후보를 "대기가 아님"만으로 확정 성공으로 보지 않는다.
       try {
-        const details = await Promise.all(context.candidateIds.map(async candidateId => (await getWorldSettingCandidate({
-          path: { workId, candidateId }, query: { batchId, sourceAnalysisJobId }, throwOnError: true,
-        })).data?.data));
+        const details = await Promise.all(context.candidateIds.map(async candidateId => listed.get(candidateId)
+          ?? (await getWorldSettingCandidate({
+            path: { workId, candidateId }, query: { batchId, sourceAnalysisJobId }, throwOnError: true,
+          })).data?.data));
         if (recoveryContextRef.current !== context) return;
         if (details.some(candidate => !candidate)) throw new Error('missing candidate');
-        confirmed = details.every(candidate => candidate!.reviewStatus !== 'PENDING_REVIEW');
+        confirmed = details.every(candidate => candidate!.reviewStatus
+          === (candidate!.id && context.dismissedIds.includes(candidate!.id) ? 'DISMISSED' : 'CONFIRMED'));
       } catch {
         if (recoveryContextRef.current !== context) return;
         setDecisionRecoveryRequired(true);
@@ -2670,8 +2679,9 @@ export function WorldSettingReview() {
     confirmMutation.mutate({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId, candidates } });
   };
 
+  // 행 제외·다시 비교도 저장 결과를 확인하는 동안(decisionRecoveryRequired) 잠근다. 버튼의 비활성 조건과 같다.
   const dismissCandidate = (candidateId: string) => {
-    if (!candidateId || actionPending || candidateAutomaticPending(candidateId)) return;
+    if (!candidateId || actionPending || decisionRecoveryRequired || candidateAutomaticPending(candidateId)) return;
     dismissMutation.mutate({
       query: { sourceAnalysisJobId }, path: { workId },
       body: { batchId, candidateIds: [candidateId] },
@@ -2679,7 +2689,7 @@ export function WorldSettingReview() {
   };
 
   const retryGroup = () => {
-    if (!selectedGroup || actionPending) return;
+    if (!selectedGroup || actionPending || decisionRecoveryRequired) return;
     const candidate = selectedGroup.candidates?.find(item => item.id
       && item.analysisMode !== 'ORDERED_PROVISIONAL'
       && !isAutomaticApplicationPending(item)
@@ -3212,7 +3222,7 @@ export function WorldSettingReview() {
                         onRecoverDecision={() => void retryDecisionRecovery()}
                         onExclude={dismissCandidate}
                         onEditIdentity={() => {
-                          if (groupAutomaticPending) return;
+                          if (actionPending || decisionRecoveryRequired || groupAutomaticPending) return;
                           rememberEditTrigger();
                           const candidate = pendingCandidates.find(item => item.id && candidateDecision(item));
                           if (!candidate) return;
@@ -3224,7 +3234,7 @@ export function WorldSettingReview() {
                           setEditCandidate(candidate);
                         }}
                         onEdit={candidate => {
-                          if (isAutomaticApplicationPending(candidate)) return;
+                          if (actionPending || decisionRecoveryRequired || isAutomaticApplicationPending(candidate)) return;
                           rememberEditTrigger();
                           confirmMutation.reset();
                           dismissMutation.reset();

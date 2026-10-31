@@ -121,3 +121,36 @@ test('세계관: 그룹 확정 응답 본문이 깨져 읽지 못하면 실패�
   await expect(page.getByText(/JSON/)).toHaveCount(0);
   expect(confirms).toBe(1);
 });
+
+test('세계관: 응답을 잃은 그룹 확정은 제출한 후보가 다른 곳에서 제외됐으면 확정 성공으로 보지 않는다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [worldCandidate('a-1', '은빛 항구', '기후'), worldCandidate('b-1', '잿빛 요새', '규모')];
+  await routeWorldReview(page, candidates);
+  await page.route(`**${worldListPath}/group-confirm`, async route => {
+    candidates[0].reviewStatus = 'DISMISSED';
+    candidates.push(worldCandidate('a-3', '은빛 항구', '인구'));
+    await route.abort('connectionreset');
+  });
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await primary(page).click();
+  await expect(page.getByText('확정되지 않았어요. 내용을 확인한 뒤 다시 확정해 주세요.')).toBeVisible({ timeout: 20_000 });
+  expect(groupParam(page)).toBe('LOCATION|은빛 항구');
+});
+
+test('세계관: 결정 저장 결과를 확인하는 동안 분류·대상 일괄 수정과 행 제외를 잠근다', async ({ page }) => {
+  const candidates = [worldCandidate('a-1', '은빛 항구', '인구'), worldCandidate('a-2', '은빛 항구', '기후')];
+  await routeWorldReview(page, candidates);
+  await page.route(`**${worldListPath}/decisions`, route => route.abort('connectionreset'));
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  const identity = page.getByRole('button', { name: '분류·대상 일괄 수정', exact: true });
+  await identity.click();
+  await page.getByRole('textbox', { name: '대상', exact: true }).fill('은빛 항구 도시');
+  await page.getByRole('button', { name: '일괄 수정 적용', exact: true }).click();
+  await expect(page.getByText(/잠시 후 자동으로 다시 확인해요|최신 상태를 확인하는 중이에요/).first()).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: '분류·대상 일괄 수정' });
+  await dialog.getByRole('button', { name: '닫기', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  // 저장 요청은 끝났지만(결과 미확인) 결과를 확인하는 동안 다시 일괄 수정하거나 행을 제외할 수 없다.
+  await expect(identity).toBeDisabled();
+  await expect(card(page, 'a-2').getByRole('button', { name: '기후 제외', exact: true })).toBeDisabled();
+});

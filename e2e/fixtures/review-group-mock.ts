@@ -156,8 +156,11 @@ export async function routeWorldReview(page: Page, candidates: MockCandidate[], 
       return ok(route, { ...counts(), groups: pageOf(groups, Number(url.searchParams.get('page') ?? 0), Number(url.searchParams.get('size') ?? 20)) });
     }
     if (path === `${worldListPath}/group-confirm` && method === 'POST') {
-      const ids = new Set((body?.candidates as Array<{ candidateId: string }>).map(item => item.candidateId));
-      candidates.forEach(row => { if (ids.has(row.id)) Object.assign(row, { reviewStatus: 'CONFIRMED', finalOperation: 'ADD' }); });
+      const decisions = new Map((body?.candidates as Array<{ candidateId: string; operation?: string }>).map(item => [item.candidateId, item]));
+      const ids = new Set(decisions.keys());
+      // 서버처럼 EXCLUDE 결정은 제외(DISMISSED)로, 나머지는 확정으로 바꾼다.
+      candidates.forEach(row => { if (ids.has(row.id)) Object.assign(row, decisions.get(row.id)?.operation === 'EXCLUDE'
+        ? { reviewStatus: 'DISMISSED' } : { reviewStatus: 'CONFIRMED', finalOperation: 'ADD' }); });
       const confirmed = candidates.filter(row => ids.has(row.id));
       return ok(route, { groupKey: worldGroupKeyOf(confirmed[0]), worldSettingId: null, candidates: confirmed });
     }
