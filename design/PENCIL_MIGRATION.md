@@ -39,6 +39,41 @@
 
 2026-10-27 초안 7프레임(`sDtUe`, `ebnfV`, `GJa1U`, `QT3AS`, `PEh6v`, `FmAlB`, `QhduF`)은 정책 변경 전 기록으로 남기고 이름 끝에 `(2026-10-27 초안, 정책 변경 전)`을 붙였다. 화면 기준으로 쓰지 않는다. 보존된 Post-MVP `i8TgH`와 다른 Active 프레임은 바꾸지 않았다.
 
+### 2026-10-31 GH211 설정 후보 검토 — Pencil 반영 완료
+
+2026-10-31에 #211 후속(검토 위치 유지·저장 상태 구분, 작품 전체 검색·연결 미리보기·선택 연결, 고정 확정 영역·요약 카드·`확정하고 다음`, 결과 미확인 복구)으로 바뀐 `/setting-review`를 `Active / Setting Review / Character|World / Desktop|Mobile / …` 루트 프레임 19개로 동기화했다. 캔버스 위치는 오류 리포트 구역(`B2Ck2`) 아래, 기존 세계관 후보 구역 오른쪽의 섹션바 `PtEhl`(`22-1 ACTIVE /SETTING-REVIEW · #211 후속`)이다. 1행은 캐릭터 데스크톱 9개, 2행은 세계관 데스크톱 8개, 3행은 모바일 2개다.
+
+- 동기화 기준: [실제 화면 캡처](../docs/screens/gh211/) 21장(`CATCHHOLE_CAPTURE_GH211=1`로 `e2e/gh211-screens.spec.ts` 실행). 문구는 React 렌더 결과와 캡처를 그대로 옮겼다. 프레임마다 캡처와 같은 스크롤 위치의 뷰포트(1440×900, 390×844)를 재현하고, 상단 바·고정 확정 영역·모달은 뷰포트 기준 위치에 둔다. 모바일 연결 모달만 검색·미리보기·하단 버튼이 모두 보이도록 높이를 1057로 늘렸다. 하단 `취소`·`선택한 캐릭터에 연결`은 캡처 화면 밖이라 `CharacterMatchModal` 문구를 옮겼다.
+- 데이터: 목 API 합성 데이터만 쓴다(캐릭터 아린·도윤·세라·베른·같은 이름의 아리아 2명, 세계관 항구·은빛 항구·잿빛 요새).
+- 토큰·컴포넌트: 새 변수는 추가하지 않았다. GH314에서 추가한 경고·위험·성공 soft/border와 `ch-primary-border`를 포함한 `ch-*` 변수, `CH/V2 Workspace Topbar / Desktop`(`V3TEEV`) 인스턴스(제목 영역만 교체)를 재사용했다. 체크박스·선택 카드·배지·버튼·고정 확정 영역은 `src/styles/review-clear-blue.css` 값(선택 카드 radius 12, 버튼 높이 40/44, 선택 바 파란 테두리 등)에 맞춘 프레임이다. 인물·장소 사진은 제품 기본 그림 `src/assets/characters/character-neutral-v1.webp`, `src/assets/world-defaults/location.webp`를 이미지 채움으로 참조한다. 모달 뒤 흐림은 background blur 효과로 표현했다. 글꼴은 `Noto Sans KR`이며 650/750 굵기는 600/700·800으로 맞췄다.
+- 기존 `Active / Setting Review / Character|World / …` 40개(이름에 Desktop/Mobile 구분이 없는 `GEwV9`, `la0t2`, 모바일 `tWOIq` 등)는 GH215 Clear Blue 이전 화면이다. 지우거나 이름을 바꾸지 않고 보존하며, #211 이후 검토 화면의 기준은 아래 19개다. 기존 프레임과 `/demo`(`PRgXY`의 `모두 확정 ✓`)·최초 분석 안내(`gh194AnalysisGuide*`) Active 프레임에는 #211에서 바뀐 옛 문구(`N개 설정 모두 확정`, `현재 페이지에서 검색`, `선택됨 · 모두 확정할 때 적용`, `확정할 때 등록` 이전 문구 등)가 없어 문구를 고친 기존 프레임은 없다. 보관 보드 `Archive / WF-06 인터랙티브 데모 / 이전 완료 안내`(`BE15b`)의 `“1개 설정 모두 확정” 클릭` 설명은 보관 기록이라 그대로 둔다.
+
+| 화면(기준 캡처) | 프레임 이름 | ID | 상태 |
+| --- | --- | --- | --- |
+| 미연결 후보 묶음의 체크박스 선택과 선택 바(`인물 미확인`, 카드 부제 `캐릭터 · 미연결`, 사이드바 `미연결 후보 4개`) — `character-unlinked-selection-desktop` | Active / Setting Review / Character / Desktop / Unlinked Selection | `N4x3X` | ✅ 렌더·레이아웃 확인 |
+| `선택 항목 연결` 모달(작품 전체 검색 결과·`같은 이름 2명 — 첫 등장·역할로 구분` 배지·연결 미리보기·선택 요약) — `character-link-modal-desktop` | Active / Setting Review / Character / Desktop / Selection Link Modal | `Z9Gu4P` | ✅ 렌더·레이아웃 확인 |
+| 고정 확정 영역(`확정 가능 2 · 이력 저장 1 · 제외 1 · 결정 필요 2`, `다음 미결정 항목`, `확정하고 다음`) + 결정 완료 요약 카드 — `character-action-bar-desktop` | Active / Setting Review / Character / Desktop / Action Bar · Summary Cards | `WVNSG` | ✅ 렌더·레이아웃 확인 |
+| 결과 미확인 자동 확인 중(`최신 상태를 확인하는 중이에요(1/3)`) — `character-unverified-checking-desktop` | Active / Setting Review / Character / Desktop / Unverified Save · Checking | `KogkS` | ✅ 렌더·레이아웃 확인 |
+| 결과 미확인 최종(`최신 상태 확인`·`다시 시도`) — `character-unverified-final-desktop` | Active / Setting Review / Character / Desktop / Unverified Save · Check Or Retry | `ajUIb` | ✅ 렌더·레이아웃 확인 |
+| `확인하지 못한 연결 요청(설정 1개)` 확정 영역 상태 줄 — `character-unverified-link-request-desktop` | Active / Setting Review / Character / Desktop / Unverified Link Request | `mtmlv` | ✅ 렌더·레이아웃 확인 |
+| 선택 100개 초과 안내와 연결 잠금 — `character-selection-limit-desktop` | Active / Setting Review / Character / Desktop / Selection Limit | `b8Ci7q` | ✅ 렌더·레이아웃 확인 |
+| 탭 마지막 묶음의 `모두 확정` — `character-last-group-desktop` | Active / Setting Review / Character / Desktop / Last Group · 모두 확정 | `qBvaE` | ✅ 렌더·레이아웃 확인 |
+| 탭 마지막 묶음 뒤 완료(`세계관 후보 3개가 남았어요`) — `character-tab-complete-desktop` | Active / Setting Review / Character / Desktop / Tab Complete | `m1X1V` | ✅ 렌더·레이아웃 확인 |
+| 세계관 체크박스 선택과 선택 바(`선택 항목 대상 연결`) — `world-selection-desktop` | Active / Setting Review / World / Desktop / Selection | `SwRjl` | ✅ 렌더·레이아웃 확인 |
+| `선택 항목 대상 연결` 모달(분류·대상 검색·새 대상·저장 방법 미리보기) — `world-target-link-modal-desktop` | Active / Setting Review / World / Desktop / Selected Target Link Modal | `tHWJQ` | ✅ 렌더·레이아웃 확인 |
+| 같은 이름 대상 차단(`기존 ‘은빛 항구’ 고르기`) — `world-same-name-desktop` | Active / Setting Review / World / Desktop / New Target Same Name Blocked | `LwBGA` | ✅ 렌더·레이아웃 확인 |
+| 연결 결과 안내와 결정으로 남긴 행(`대상은 골랐어요…`) — `world-decision-left-desktop` | Active / Setting Review / World / Desktop / Target Chosen · Decision Left | `FnNkZ` | ✅ 렌더·레이아웃 확인 |
+| 대상 미정 행이 여럿일 때 축소형 대상 선택(새 등록 + `대상 검색`) — `world-compact-target-desktop` | Active / Setting Review / World / Desktop / Compact Target Picker | `bdzo3` | ✅ 렌더·레이아웃 확인 |
+| 축소형 대상 선택의 `이번 검토에서 고른 대상` — `world-compact-target-recent-desktop` | Active / Setting Review / World / Desktop / Compact Target Picker · Recent Target | `N6hBuc` | ✅ 렌더·레이아웃 확인 |
+| 결정 저장 응답 유실 복구 배너와 행 `저장 결과를 확인하고 있어요` — `world-recovery-checking-desktop` | Active / Setting Review / World / Desktop / Lost Save · Checking | `L7vz5v` | ✅ 렌더·레이아웃 확인 |
+| 끝내 확인하지 못한 저장(`저장되지 않았어요`) — `world-recovery-unsaved-desktop` | Active / Setting Review / World / Desktop / Lost Save · Not Saved | `rBXaj` | ✅ 렌더·레이아웃 확인 |
+| 모바일 캐릭터 연결 모달(검색·미리보기 세로 배치, 390×1057) — `mobile-character-link-modal`, `mobile-character-link-modal-preview` | Active / Setting Review / Character / Mobile / Link Modal · Search And Preview | `tQe3d` | ✅ 렌더·레이아웃 확인 |
+| 모바일 확정 영역 + 선택 바(두 칸 44px 버튼) — `mobile-action-bar-selection` | Active / Setting Review / Character / Mobile / Action Bar · Selection | `ggsgt` | ✅ 렌더·레이아웃 확인 |
+
+프레임 PNG는 [`docs/screens/pencil/gh211/`](../docs/screens/pencil/gh211/)(`<ID>.png`, 1배)에 있다. 프레임마다 잘림 검사(뷰포트로 자른 페이지 본문 제외)에서 문제 0건이고, 내보낸 PNG를 캡처와 나란히 대조했다.
+
+아직 프레임이 없는 상태: 미연결 묶음 연결 안내·완료 상태(동작 변경 진행 중 — 단건 연결 뒤 묶음 유지 안내 `연결한 묶음 보기`·`닫기`는 캡처 `character-link-notice-desktop.png`만 있고, 미연결 묶음이 빈 뒤 상태는 캡처도 없다), 선택 연결이 거절된 카드(danger 테두리·서버 문장), 인물 검색 결과 없음·검색 실패·인물 상세 읽기 실패, 연결이 모호한 후보의 인물 3명 + `검색으로 찾기`, 이름 있는 묶음의 `캐릭터 일괄 연결`과 선택 연결 안내 문구, 펼친 요약 카드(`접기`), `단축키` 안내 팝오버, `확정 중…`, 세계관 대상 정보 읽기 실패·같은 이름 확인 실패, 그룹 확정 응답 유실(`확정되지 않았어요`), 320px 모바일 변형과 세계관 모바일, Workflow 보드(WF-05) 갱신.
+
 ### 2026-10-17 GH260 가족 관계 — Pencil 반영 대기
 
 작품 설정의 `가족 관계` 탭에 처리 상태·자동 반영 목록·확인 필요 후보·현재 설정/원문 근거·수정/확정/제외·철회를 추가했다. 작은 화면은 native 보기 select와 한 열 폼을 사용한다. 그림 가계도는 포함하지 않는다. 동기화 기준은 [가족 관계 계약](../docs/family-relationships.md)과 실제 브라우저 캡처다.
@@ -398,30 +433,3 @@ GH244: `demoWorkflow244`에 결과 자유 탐색 → 사용자 완료 → 회원
 ### 2026-10-30 GH323 재조회·부분 분석 상태 — 동기화 대기
 
 복구 후 같은 범위의 일시적 갱신 실패에서 그림·수정 초안을 유지한 오류/재시도 상태와, 빈 결과에도 적용되는 한 줄 부분 분석 안내를 반영한다. 권한/이용불가와 범위 전환에서는 이전 내용을 숨긴다. 기존 transport 연결 실패에 따른 `.pen` 동기화 대기를 유지하며 이번 변경에서 Pencil 편집·렌더 완료를 주장하지 않는다.
-
-
-### 2026-10-30 GH211 검토 위치 유지·저장 상태 구분 — 동기화 대기
-
-복구 후 `/setting-review` 캐릭터 묶음 헤더 아래의 단건 연결 안내(`‘설정명’ 설정을 ‘인물’에 연결했어요.`, `연결한 묶음 보기`·`닫기`, 320px 세로 버튼), 미연결 묶음의 `미연결 후보`·`인물 미확인`·설명·사이드바 `미연결 후보 N개`·카드 부제 `캐릭터 · 미연결`을 반영한다. 선택 카드 아래 상태 줄은 `저장했어요 · 모두 확정 전까지 바꿀 수 있어요`, `저장 중…`, `선택됨 · 모두 확정할 때 적용` 세 문장으로 구분하고, 응답을 잃은 선택의 경고(자동 확인 n/3, 이후 `최신 상태 확인`·`다시 시도`)와 그룹 확정 하단의 같은 상태, 세계관 복구 배너의 자동 재확인 진행과 행별 `저장 결과를 확인하고 있어요`를 함께 동기화한다. 확정 뒤 다음 미처리 묶음 제목의 초점 표시도 포함한다.
-
-이번 세션에서는 Pencil 연결이 불안정해 `.pen`을 열거나 수정하지 않았다. React 구현과 `DESIGN.md` GH215 절, `docs/review-clear-blue.md`의 2026-10-30 절이 기준이며, 이 기록은 Pencil 동기화나 렌더 검증 완료를 뜻하지 않는다.
-
-### 2026-10-31 GH211 전체 검색·미리보기·선택 연결 — 동기화 대기
-
-`/setting-review` 캐릭터 연결 모달의 `작품 전체에서 인물 검색`(결과 행 구분 정보·동명 배지·결과 없음/검색 실패/정보 없음 상태)과 오른쪽(모바일 아래) 연결 미리보기, 모달 상단 연결 요약을 반영한다. 캐릭터·세계관 카드 머리의 체크박스, 묶음 `모두 선택(N)`, 확정 영역 위 선택 바, 선택 연결이 거절된 카드 표시, 미연결 묶음에서 `캐릭터 일괄 연결`이 없는 상태, 세계관 `선택 항목 대상 연결` 모달(분류·대상 검색·새 대상 이름·저장 방법 미리보기)과 결과 안내, 결정으로 남긴 행의 `대상은 골랐어요…` 안내를 함께 동기화한다.
-
-이번 작업도 `.pen`을 수정하지 않았다. React 구현과 `DESIGN.md` GH215 절, `docs/review-clear-blue.md`의 2026-10-31 절이 기준이며 Pencil 동기화나 렌더 검증 완료를 뜻하지 않는다.
-
-### 2026-10-31 GH211 확정 영역·요약 카드·키보드 — 동기화 대기
-
-`/setting-review` 캐릭터·세계관 상세 하단의 고정 확정 영역(`확정 가능 N · 이력 저장 H · 제외 E`, 경고 잉크 `결정 필요 M`, 막는 이유, `다음 미결정 항목`, 주 버튼 `확정하고 다음`/`모두 확정`/`확정 중…`, `단축키` 안내 팝오버)과 선택 바를 같은 영역에 쌓은 배치(650px 이하 두 칸 44px 버튼), 결정이 끝난 카드의 한 줄 요약(배지 `저장했어요`/`제외 예정`/`선택됨 · 확정할 때 적용`/`연결됨`, `펼치기`·`접기`), 연결이 모호한 후보의 인물 3명 + `검색으로 찾기`, 세계관 대상 미정 행이 여럿일 때의 축소형 대상 선택(최근 고른 대상 + 새 등록 + `대상 검색`), 탭 마지막 묶음 뒤 완료 상태의 `세계관(캐릭터) 후보 N개가 남았어요`를 반영한다. 선택 카드 상태 줄 문구는 `저장했어요 · 확정 전까지 바꿀 수 있어요`, `선택됨 · 확정할 때 적용`으로 바뀌었다.
-
-이번 작업도 `.pen`을 수정하지 않았다. React 구현과 `DESIGN.md`의 `setting-review-group-action-bar` 컴포넌트 절·GH215 절, `docs/review-clear-blue.md`의 2026-10-31 3차 절이 기준이며 Pencil 동기화나 렌더 검증 완료를 뜻하지 않는다.
-
-### 2026-10-31 GH211 체험·최초 안내 확정 버튼 이름 — 동기화 대기
-
-실제 검토 화면의 확정 버튼이 `확정하고 다음`/`모두 확정`으로 바뀐 데 맞춰 `/demo` 캐릭터 후보의 `1개 설정 모두 확정`을 `모두 확정`(체험은 묶음이 하나뿐)으로, 코치마크를 `실제 캐릭터 후보 화면과 같은 ‘모두 확정’을 눌러…`로 바꿨다. 최초 분석 방식 안내의 직접 검토 예시는 다음 묶음(인물 미상)이 남아 `확정하고 다음`, 자동 반영 후 예시는 `모두 확정`이다. 세계관 새 대상 카드의 안내는 `확정할 때 등록`, `이름·설정을 검토한 뒤 확정할 때 등록`이다. 이번 작업도 `.pen`과 랜딩 정적 이미지(`src/assets/landing/*`)를 수정하지 않았다.
-
-### 2026-10-31 GH211 동기화 기준 캡처 — Pencil 반영 대기 유지
-
-위 GH211 네 절의 동기화 기준으로 목 API·합성 데이터 캡처 21장을 [`docs/screens/gh211/`](../docs/screens/gh211/)에 두었다(`CATCHHOLE_CAPTURE_GH211=1`로 `e2e/gh211-screens.spec.ts` 실행, 데스크톱 1440×900·모바일 390×844). `.pen`은 이번에도 수정하지 않았다. Pencil MCP `execute`가 `filePath`와 관계없이 VS Code에서 활성인 편집기 문서(다른 체크아웃의 `design/catchhole.pen`)를 읽고 쓰는 것을 확인했기 때문이다(존재하지 않는 경로·다른 내용의 `.pen`을 줘도 같은 문서가 열렸다). 동기화할 체크아웃의 `.pen`을 활성 편집기로 연 뒤 이 캡처를 기준으로 프레임을 만들고 위 네 절을 반영 완료 기록으로 바꾼다. 기존 `Active / Setting Review / …` 프레임은 GH215 이전 화면이라 #211의 바뀐 문구(`N개 설정 모두 확정`·`현재 페이지에서 검색`·선택 카드 상태 줄 등)가 들어 있지 않고, `/demo` 체험 프레임(`PRgXY`)의 `모두 확정 ✓`는 현재 문구와 같다.
