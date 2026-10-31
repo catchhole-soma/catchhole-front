@@ -404,3 +404,93 @@ test('세계관: 묶음에서 다른 대상을 골라 둔 행은 원래 비교 �
   expect(saved).toMatchObject({ candidateId: 'a-1', operation: 'UPDATE', category: 'LOCATION', subjectName: '은빛 항구',
     scopeName: null, settingName: '기후', value: '눈이 자주 온다' });
 });
+
+/** 선택 연결 응답을 잃게 한다. `apply`면 서버는 연결을 처리한 것이고, `readsFail` 동안 후보 단건 조회가 실패한다. */
+async function loseSelectionLink(page: Page, candidates: Array<Record<string, unknown> & { id: string }>, options: { apply: boolean }) {
+  const control = { readsFail: true };
+  await page.route(`**${characterListPath}/selected-character-match*`, async route => {
+    const body = route.request().postDataJSON() as { candidateIds: string[]; matchedCharacterId: string };
+    if (options.apply) {
+      candidates.filter(item => body.candidateIds.includes(item.id)).forEach(item => Object.assign(item, {
+        matchedCharacterId: body.matchedCharacterId, entityName: '세라', matchStatus: 'MATCHED' }));
+    }
+    await route.abort('connectionreset');
+  });
+  await page.route(`**${characterListPath}/a-1*`, async route => {
+    if (control.readsFail && route.request().method() === 'GET') {
+      return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ success: false, data: null, message: '일시적인 오류' }) });
+    }
+    return route.fallback();
+  });
+  return control;
+}
+
+async function linkCheckedToSera(page: Page) {
+  await page.getByRole('checkbox', { name: '선택: 직업' }).check();
+  await page.getByRole('region', { name: '선택한 설정' }).getByRole('button', { name: '선택 항목 연결', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '선택 항목 연결' });
+  await dialog.getByRole('button', { name: /^세라/ }).click();
+  await dialog.getByRole('button', { name: '선택한 캐릭터에 연결', exact: true }).click();
+  await expect(dialog).toContainText('저장 결과를 확인하지 못했어요');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+}
+
+const linkRequestControl = (page: Page) => page.getByRole('region', { name: '묶음 확정', exact: true })
+  .getByRole('status').filter({ hasText: '확인하지 못한 연결 요청(설정 1개)' });
+
+test('캐릭터: 응답을 잃은 선택 연결은 묶음을 옮겨 체크가 비어도 돌아오면 확인·다시 시도 컨트롤과 카드 안내가 보인다', async ({ page }) => {
+  test.setTimeout(60_000);
+  const candidates = [characterCandidate('a-1', 0, '직업', { reviewedApplicationMode: null }), characterCandidate('a-2', 0, '소속'),
+    characterCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  const control = await loseSelectionLink(page, candidates, { apply: true });
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await linkCheckedToSera(page);
+  await page.locator('.candidate-group-card', { hasText: '도윤' }).click();
+  await expect.poll(() => groupParam(page)).toBe(characterGroupKey(1));
+  await page.locator('.candidate-group-card', { hasText: '아린' }).click();
+  await expect.poll(() => groupParam(page)).toBe(characterGroupKey(0));
+  // 체크는 비었지만 요청의 결과 확인은 묶음 확정 영역과 카드에 남는다.
+  await expect(page.getByRole('region', { name: '선택한 설정' })).toHaveCount(0);
+  await expect(linkRequestControl(page)).toBeVisible();
+  await expect(card(page, 'a-1').getByText('함께 보낸 연결 요청의 결과를', { exact: false })).toBeVisible();
+  await expect(primary(page)).toBeDisabled();
+  // 자동 확인이 끝나면 확인·다시 시도를 연다. 서버가 읽히면 연결을 확인하고 컨트롤을 거둔다.
+  const check = linkRequestControl(page).getByRole('button', { name: '최신 상태 확인', exact: true });
+  await expect(check).toBeVisible({ timeout: 30_000 });
+  control.readsFail = false;
+  await check.click();
+  await expect(linkRequestControl(page)).toHaveCount(0);
+  await expect(card(page, 'a-1')).toHaveCount(0);
+});
+
+test('캐릭터: 응답을 잃은 선택 연결이 끝까지 요청한 대상과 다르면 연결되지 않음으로 정리하고 확정을 막지 않는다', async ({ page }) => {
+  test.setTimeout(60_000);
+  const candidates = [characterCandidate('a-1', 0, '직업'), characterCandidate('a-2', 0, '소속'), characterCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  const control = await loseSelectionLink(page, candidates, { apply: false });
+  control.readsFail = false;
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await linkCheckedToSera(page);
+  await expect(page.getByRole('region', { name: '묶음 확정', exact: true })
+    .getByText('확인하지 못했던 연결 요청(설정 1개)은 요청한 대로 연결되지 않았어요.', { exact: false })).toBeVisible({ timeout: 30_000 });
+  await expect(linkRequestControl(page)).toHaveCount(0);
+  await expect(primary(page)).toBeEnabled();
+});
+
+test('캐릭터: 확인하지 못한 연결 요청에 덮인 후보를 따로 저장하면 그 요청을 다시 읽어 정리한다', async ({ page }) => {
+  test.setTimeout(60_000);
+  const candidates = [characterCandidate('a-1', 0, '직업', { reviewedApplicationMode: null }), characterCandidate('a-2', 0, '소속'),
+    characterCandidate('b-1', 1, '직업')];
+  await routeCharacterReview(page, candidates);
+  const control = await loseSelectionLink(page, candidates, { apply: false });
+  await page.goto(characterReviewUrl(characterGroupKey(0)));
+  await linkCheckedToSera(page);
+  await expect(linkRequestControl(page).getByRole('button', { name: '최신 상태 확인', exact: true })).toBeVisible({ timeout: 30_000 });
+  control.readsFail = false;
+  await card(page, 'a-1').getByRole('radio', { name: /이력에만 저장/ }).click();
+  await expect(linkRequestControl(page)).toHaveCount(0, { timeout: 10_000 });
+  await expect(page.getByRole('region', { name: '묶음 확정', exact: true })
+    .getByText('요청한 대로 연결되지 않았어요', { exact: false })).toBeVisible();
+});

@@ -14,7 +14,14 @@ type TrackerEntry<TIntent> =
  * 읽지 못하면 1→3→8초 뒤 최대 3회 다시 확인한다. 서버 쓰기는 같은 요청을 다시 보내도 같은 최종 상태가 되는
  * 계약이지만, 버전 검증 때문에 재전송 전에 반드시 다시 읽어 이미 저장된 경우를 먼저 걸러 낸다.
  */
-export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, covers }: {
+/** 여러 후보를 한 요청으로 바꾼 미해결 요청. 체크·모달 같은 일시적 화면 상태와 관계없이 그 후보가 보이는 곳에서 복구한다. */
+export interface CoveringRequest {
+  key: string;
+  candidateIds: string[];
+  state: ReviewSaveState;
+}
+
+export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, covers, settleWhenDifferent, onDifferent }: {
   /** 서버 값을 다시 읽어 의도대로 저장됐는지 판단한다. 읽지 못하면 'unknown'. */
   check: (key: string, intent: TIntent) => Promise<SaveCheckResult>;
   /** 응답 없이 저장이 확인됐을 때 정상 응답과 같은 후속 처리를 한다. */
@@ -23,17 +30,23 @@ export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, c
   resend: (key: string, intent: TIntent) => void;
   /** 여러 후보를 한 요청으로 바꾸는 의도(선택·묶음 연결)가 함께 잠그는 후보 키. */
   covers?: (intent: TIntent) => string[];
+  /**
+   * 마지막 확인에서도 서버 값이 의도와 다르면 결과가 정해진 것으로 보고 추적을 끝낼 의도. 여러 후보를 덮는 요청은
+   * 남겨 두면 후보마다 확정을 막으므로 "의도대로 저장되지 않음"으로 정리한다(단건은 카드의 다시 시도를 남긴다).
+   */
+  settleWhenDifferent?: (intent: TIntent) => boolean;
+  onDifferent?: (key: string, intent: TIntent) => void;
 }) {
   const [entries, setEntries] = useState<Record<string, TrackerEntry<TIntent>>>({});
   const entriesRef = useRef(entries);
-  const handlersRef = useRef({ check, onConfirmed, resend });
+  const handlersRef = useRef({ check, onConfirmed, resend, settleWhenDifferent, onDifferent });
   const generationsRef = useRef(new Map<string, number>());
   const timersRef = useRef(new Map<string, number>());
   const mountedRef = useRef(false);
 
   useEffect(() => {
     entriesRef.current = entries;
-    handlersRef.current = { check, onConfirmed, resend };
+    handlersRef.current = { check, onConfirmed, resend, settleWhenDifferent, onDifferent };
   });
 
   useEffect(() => {
@@ -83,6 +96,12 @@ export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, c
       return;
     }
     if (attempt >= REVIEW_RECHECK_LIMIT) {
+      if (result === 'different' && handlersRef.current.settleWhenDifferent?.(intent)) {
+        restart(key);
+        write(key, null);
+        handlersRef.current.onDifferent?.(key, intent);
+        return;
+      }
       write(key, { kind: 'unverified', intent, attempt, final: true });
       return;
     }
@@ -134,10 +153,25 @@ export function useCandidateSaveTracker<TIntent>({ check, onConfirmed, resend, c
   const entriesFor = (key: string) => Object.entries(entries).flatMap(([entryKey, entry]) => (
     entryKey === key || covers?.(entry.intent).includes(key) ? [entry] : []
   ));
+  /** 이 후보들을 함께 덮는 미해결 요청(자기 키가 아닌 선택·묶음 연결). 후보가 보이는 화면에서 확인·다시 시도를 연다. */
+  const coveringRequests = (candidateIds: Array<string | undefined>): CoveringRequest[] => Object.entries(entries).flatMap(([entryKey, entry]) => {
+    const covered = covers?.(entry.intent) ?? [];
+    return covered.length && candidateIds.some(id => id && covered.includes(id))
+      ? [{ key: entryKey, candidateIds: covered, state: stateFor(entryKey) }] : [];
+  });
+  /**
+   * 후보 하나의 새 저장이 서버에서 확인되면, 그 후보를 함께 덮던 미해결 요청(자동 확인을 마친 것)을 다시 읽어 정리한다.
+   * 일치하면 저장 확인으로, 다르면 `settleWhenDifferent` 규칙으로 끝난다.
+   */
+  const recheckCovering = (candidateId: string) => {
+    Object.entries(entriesRef.current).forEach(([entryKey, entry]) => {
+      if (entryKey !== candidateId && entry.kind === 'unverified' && entry.final && covers?.(entry.intent).includes(candidateId)) recheck(entryKey);
+    });
+  };
   /** 저장 결과가 확정되지 않은 대상. 그룹 확정은 확인이 끝날 때까지 막는다. */
   const unresolved = (key?: string | null) => Boolean(key && entriesFor(key).length);
   /** 요청 중이거나 자동 확인 중인 대상. 같은 대상의 다른 쓰기를 막는다. */
   const busy = (key?: string | null) => Boolean(key && entriesFor(key).some(entry => entry.kind === 'saving' || !entry.final));
 
-  return { begin, settle, lose, stateFor, unresolved, busy };
+  return { begin, settle, lose, stateFor, unresolved, busy, coveringRequests, recheckCovering };
 }

@@ -580,6 +580,7 @@ export function CandidateDetail({
   selectionError = null,
   summary = null,
   showChoiceExample = true,
+  coveringRequest = null,
 }: {
   candidate: SettingCandidateResponse;
   workId?: string;
@@ -613,6 +614,8 @@ export function CandidateDetail({
   summary?: CandidateSummary | null;
   /** `이력에만 저장` 예문을 이 카드에 보여 줄지. 묶음의 첫 미결정 카드에만 둔다. */
   showChoiceExample?: boolean;
+  /** 이 후보를 함께 바꾼 선택·묶음 연결 요청의 결과를 아직 확인하지 못한 상태. 확인·다시 시도는 확정 영역에 있다. */
+  coveringRequest?: ReviewSaveState | null;
 }) {
   const labels = useCharacterSettingLabels();
   // 처음 열 때 결정이 끝나 있던 카드만 접는다. 이 화면에서 방금 고른 카드는 펼친 채 두고,
@@ -720,6 +723,10 @@ export function CandidateDetail({
         label={existingCharacterConnected ? '연결된 인물' : reviewStatus === 'CONFIRMED' ? '등록된 인물' : readOnly ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '설정집에서 찾은 인물' : '원고에서 찾은 인물' : '새로 등록할 인물'}
         tone={existingCharacterConnected ? 'neutral' : 'new'}>{candidate.entityName || '이름을 확인해 주세요'}</ReviewInlineValue>}
     </>}
+    {saveState?.kind !== 'unverified' && coveringRequest?.kind === 'unverified'
+      && <ReviewNotice tone="warning" title={coveringRequest.final
+        ? '함께 보낸 연결 요청의 결과를 확인하지 못했어요. 확정 영역에서 최신 상태를 확인하거나 다시 시도해 주세요.'
+        : '함께 보낸 연결 요청의 결과를 확인하고 있어요.'} />}
     {saveState?.kind === 'unverified' && <ReviewNotice tone="warning" title={unverifiedSaveMessage(saveState.attempt, saveState.final)}
       action={saveState.final ? <span className="review-cb-notice__buttons">
         <button type="button" className="review-cb-secondary" disabled={saveActionsDisabled} onClick={saveState.check}>{REVIEW_SAVE_TEXT.check}</button>
@@ -809,6 +816,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const [selectionRequestKey, setSelectionRequestKey] = useState<string | null>(null);
   // 선택 연결이 특정 후보 때문에 거절되면 그 후보만 표시한다. 선택은 유지한다.
   const [selectionRejection, setSelectionRejection] = useState<{ candidateIds: string[]; message: string } | null>(null);
+  // 응답을 잃은 선택·묶음 연결이 끝까지 요청한 대상과 달라 정리된 요청. 그 후보가 있는 묶음에서 한 번 알린다.
+  const [unlinkedRequest, setUnlinkedRequest] = useState<{ candidateIds: string[] } | null>(null);
   const clearCheckedSelection = () => {
     setCheckedSelection({ groupKey: null, ids: [] });
     setSelectionMatchOpen(false);
@@ -1447,6 +1456,11 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
 
   const saveTracker = useCandidateSaveTracker<CharacterSaveIntent>({
     covers: coveredCandidateIds,
+    // 선택·묶음 연결이 끝까지 요청한 대상과 다르면 "연결되지 않음"으로 정리해 후보마다 확정을 막지 않게 한다.
+    settleWhenDifferent: intent => intent.kind === 'selectedMatch' || intent.kind === 'groupMatch',
+    onDifferent: (_key, intent) => {
+      if (intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') setUnlinkedRequest({ candidateIds: intent.candidateIds });
+    },
     check: async (_key, intent): Promise<SaveCheckResult> => {
       if (intent.kind === 'confirm') {
         // 응답을 잃은 확정도 재조회에서 그룹이 사라지면 성공으로 본다. 그 전에 첫 그룹으로 되돌리지 않게 붙잡아 둔다.
@@ -1530,12 +1544,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const submitIntent = (intent: CharacterSaveIntent) => {
     const key = saveKey(intent);
     const callbacks = {
-      onSuccess: () => saveTracker.settle(key),
+      onSuccess: () => {
+        saveTracker.settle(key);
+        // 후보 하나의 새 저장이 확인되면 그 후보를 함께 덮던 확인하지 못한 연결 요청을 다시 읽어 정리한다.
+        if ('candidateId' in intent) saveTracker.recheckCovering(intent.candidateId);
+      },
       onError: (error: unknown) => {
         if (isResponseLost(error)) saveTracker.lose(key, intent);
         else saveTracker.settle(key);
       },
     };
+    if (intent.kind === 'selectedMatch' || intent.kind === 'groupMatch') setUnlinkedRequest(null);
     saveTracker.begin(key, intent);
     if (intent.kind === 'match') matchMutation.mutate(intent.variables, callbacks);
     else if (intent.kind === 'selectedMatch') {
@@ -1799,6 +1818,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   const checkedCandidates = pendingGroupCandidates.filter(candidate => candidate.id && checkedIds.includes(candidate.id));
   const checkedCandidateIds = checkedCandidates.map(candidate => candidate.id!);
   const selectionSaveState = saveTracker.stateFor(selectionRequestKey);
+  const groupLinkRequests = saveTracker.coveringRequests(selectedGroupCandidates.map(candidate => candidate.id));
+  const visibleUnlinkedRequest = unlinkedRequest && selectedGroupCandidates.some(candidate => candidate.id
+    && unlinkedRequest.candidateIds.includes(candidate.id)) ? unlinkedRequest : null;
   const toggleCandidateSelection = (candidateId: string, checked: boolean) => {
     const groupKey = selectedGroup?.groupKey ?? null;
     setSelectionRejection(null);
@@ -2281,6 +2303,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               candidate={candidate}
                               workId={workId}
                               summary={candidateSummaryFor(candidate)}
+                              coveringRequest={groupLinkRequests.find(request => request.candidateIds.includes(candidate.id!))?.state ?? null}
                               showChoiceExample={candidate.id === firstChoiceExampleId}
                               onSaveValue={value => updateSelectedCandidate(candidate.id!, candidate.attributeName!, value)}
                               onReviewDecision={candidate.manualReviewAvailable
@@ -2353,6 +2376,22 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                               onJumpToBlocking={() => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? [])}
                               shortcuts={<ReviewShortcutHelp />}
                               status={<>
+                                {/* 확인하지 못한 선택·묶음 연결 요청은 체크·모달과 관계없이 그 후보가 있는 묶음에서 항상 복구할 수 있다. */}
+                                {groupLinkRequests.map(request => request.state.kind === 'unverified' && (
+                                  <div key={request.key} className="review-group-save-state" role="status">
+                                    <span>{`확인하지 못한 연결 요청(설정 ${request.candidateIds.length}개) — ${unverifiedSaveMessage(request.state.attempt, request.state.final)}`}</span>
+                                    {request.state.final && <span className="review-cb-notice__buttons">
+                                      <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={request.state.check}>{REVIEW_SAVE_TEXT.check}</button>
+                                      <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={request.state.retry}>{REVIEW_SAVE_TEXT.retry}</button>
+                                    </span>}
+                                  </div>
+                                ))}
+                                {visibleUnlinkedRequest && <div className="review-group-save-state" role="status">
+                                  <span>{`확인하지 못했던 연결 요청(설정 ${visibleUnlinkedRequest.candidateIds.length}개)은 요청한 대로 연결되지 않았어요. 각 설정의 현재 연결을 확인해 주세요.`}</span>
+                                  <span className="review-cb-notice__buttons">
+                                    <button type="button" className="review-cb-secondary" onClick={() => setUnlinkedRequest(null)}>닫기</button>
+                                  </span>
+                                </div>}
                                 {groupConfirmError && (
                                   <div role="alert" className="review-action-bar__error">{groupConfirmError}</div>
                                 )}
@@ -2380,13 +2419,6 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                     onClick={openSelectionMatch}>선택 항목 연결</ActionButton>
                                   <ActionButton disabled={selectedMatchMutation.isPending || selectionSaveState.kind !== 'idle'} onClick={clearCheckedSelection}>선택 해제</ActionButton>
                                 </div>
-                                {selectionSaveState.kind === 'unverified' && <div className="review-group-save-state" role="status">
-                                  <span>{unverifiedSaveMessage(selectionSaveState.attempt, selectionSaveState.final)}</span>
-                                  {selectionSaveState.final && <span className="review-cb-notice__buttons">
-                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={selectionSaveState.check}>{REVIEW_SAVE_TEXT.check}</button>
-                                    <button type="button" className="review-cb-secondary" disabled={actionPending} onClick={selectionSaveState.retry}>{REVIEW_SAVE_TEXT.retry}</button>
-                                  </span>}
-                                </div>}
                               </div>}
                             </ReviewGroupActionBar>
                           )}
