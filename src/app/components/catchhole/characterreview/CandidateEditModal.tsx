@@ -15,6 +15,7 @@ import { ActionButton, ModalLayer } from './ReviewModalControls';
 export function CandidateEditModal({
   candidate,
   pending,
+  checking = false,
   automaticPending = false,
   readOnly = false,
   error,
@@ -23,6 +24,8 @@ export function CandidateEditModal({
 }: {
   candidate: SettingCandidateResponse;
   pending: boolean;
+  /** 응답을 잃은 저장의 결과를 확인하는 중. 입력·저장을 잠그되 닫기는 허용한다(확인되면 입력이 버려지지 않게). */
+  checking?: boolean;
   automaticPending?: boolean;
   readOnly?: boolean;
   error: string | null;
@@ -43,10 +46,11 @@ export function CandidateEditModal({
     bookRemoval && candidate.reviewedApplicationMode !== 'HISTORY_ONLY' ? null : candidate.reviewedApplicationMode ?? null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const valueFormatError = validateCandidateDisplayValue(candidate.valueType, attributeValue);
+  const locked = pending || checking;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending || readOnly || supportsManualDecision && !reviewMode) return;
+    if (locked || automaticPending || readOnly || supportsManualDecision && !reviewMode) return;
     const nextName = editableName ? `${dynamicName.prefix}${attributeSuffix.trim()}` : originalName;
     if (!nextName) {
       setValidationError('설정명 정보가 없어 수정할 수 없습니다.');
@@ -108,7 +112,7 @@ export function CandidateEditModal({
                 id="candidate-attribute-name"
                 aria-label="설정명 뒷부분"
                 value={attributeSuffix}
-                disabled={pending}
+                disabled={locked}
                 onChange={event => setAttributeSuffix(event.target.value)}
                 style={{
                   ...modalInputStyle,
@@ -128,7 +132,7 @@ export function CandidateEditModal({
           <input
             id="candidate-attribute-value"
             value={attributeValue}
-            disabled={pending}
+            disabled={locked}
             aria-invalid={Boolean(valueFormatError)}
             aria-describedby={valueFormatError ? 'candidate-attribute-value-error' : undefined}
             onChange={event => {
@@ -139,7 +143,7 @@ export function CandidateEditModal({
           />
         </div>
         {supportsManualDecision && <ReviewChoiceCards label="수정한 내용을 어디에 반영할까요?" value={reviewMode}
-          disabled={pending || automaticPending} onChange={mode => setReviewMode(mode as CharacterFactApplicationMode)}
+          disabled={locked || automaticPending} onChange={mode => setReviewMode(mode as CharacterFactApplicationMode)}
           choices={[
             ...(!bookRemoval ? [{ id: 'APPLY_PROPOSAL', title: '현재 설정에 반영', description: '위의 값으로 현재 설정을 바꿉니다.' }] : []),
             { id: 'HISTORY_ONLY', title: '이력에만 저장', description: candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고 이 설정집의 기록으로 남깁니다.' : '현재 설정은 유지하고 이 회차의 기록으로 남깁니다.' },
@@ -153,11 +157,14 @@ export function CandidateEditModal({
             {validationError ?? valueFormatError ?? error}
           </div>
         )}
+        {checking && !error && <p role="status" className="review-cb-help" style={{ marginTop: 14 }}>
+          저장 결과를 확인하는 중이에요. 확인이 끝날 때까지 입력과 저장을 잠가요.
+        </p>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending || readOnly || Boolean(valueFormatError) || Boolean(supportsManualDecision && !reviewMode)}
+          <ActionButton type="submit" disabled={locked || automaticPending || readOnly || Boolean(valueFormatError) || Boolean(supportsManualDecision && !reviewMode)}
             disabledTitle={automaticPending ? automaticApplicationPendingMessage(candidate.source) : valueFormatError ?? (supportsManualDecision && !reviewMode ? '반영 방식을 먼저 선택해 주세요.' : undefined)} tone={C.primary}>
-            {pending ? '저장 중…' : candidate.manualReviewAvailable ? '확인한 값 저장' : '저장'}
+            {pending ? '저장 중…' : checking ? '확인 중…' : candidate.manualReviewAvailable ? '확인한 값 저장' : '저장'}
           </ActionButton>
         </div>
       </form>

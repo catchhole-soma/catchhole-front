@@ -144,13 +144,15 @@ function useWorldTargetDetail(workId: string, selectedId: string | null) {
  * 묶음에서 체크한 세계관 설정을 하나의 대상에 연결한다. 대상은 실제 등록된 대상 검색 또는 새 대상 이름으로만 고른다.
  * 저장할 행(대상에 같은 위치가 없는 행)과 결정으로 남길 행을 미리 보여 주고, 적용은 부모가 한 번의 결정 저장으로 처리한다.
  */
-export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjectName, categoryLabels, pending, error, onClose, onApply }: {
+export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjectName, categoryLabels, pending, checking = false, error, onClose, onApply }: {
   workId: string;
   units: WorldTargetLinkUnit[];
   groupCategory?: WorldCategory;
   groupSubjectName?: string;
   categoryLabels: Record<WorldCategory, string>;
   pending: boolean;
+  /** 응답을 잃은 결정 저장의 결과를 확인하는 중. 입력·연결을 잠그되 닫기는 허용한다. */
+  checking?: boolean;
   error: string | null;
   onClose: () => void;
   onApply: (target: WorldLinkTarget, plan: ReturnType<typeof planWorldTargetLink>) => void;
@@ -175,6 +177,7 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
   const categoryLabel = search.category ? categoryLabels[search.category] : '세계관';
   const saveCount = plan?.rows.filter(row => row.outcome === 'add').reduce((count, row) => count + row.unit.candidateIds.length, 0) ?? 0;
   const decisionCount = plan?.pending.length ?? 0;
+  const locked = pending || checking;
 
   return <ModalLayer title="선택 항목 대상 연결" width={900} pending={pending} onClose={onClose}
     description={`체크한 설정 ${units.reduce((count, unit) => count + unit.candidateIds.length, 0)}개를 하나의 세계관 대상에 연결합니다. 대상에 같은 설정이 있는 항목은 저장하지 않고 각 설정에서 결정하도록 남겨요.`}>
@@ -185,18 +188,18 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
     <div className="review-match-layout">
       <div className="review-match-search">
         <WorldTargetPicker search={search} label="어느 대상에 연결할까요?" categoryLabel={categoryLabel}
-          value={selectedId} disabled={pending} searchLabel="연결할 세계관 대상 검색"
-          controls={<label>분류<select aria-label="연결할 대상의 분류" value={search.category ?? ''} disabled={pending}
+          value={selectedId} disabled={locked} searchLabel="연결할 세계관 대상 검색"
+          controls={<label>분류<select aria-label="연결할 대상의 분류" value={search.category ?? ''} disabled={locked}
             onChange={event => { search.setCategory((event.target.value || undefined) as WorldCategory | undefined); setSelectedId(null); }}>
             {Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select></label>}
           newTarget={{ title: '새 대상으로 등록', description: `기존 ${categoryLabel} 항목과 별개라면 이름을 정해 새로 등록해요.`, footnote: '확정할 때 등록' }}
           onChange={setSelectedId}>
-          {isNew && <label className="review-target-link__name">새 대상 이름<input aria-label="새 대상 이름" value={newName} disabled={pending}
+          {isNew && <label className="review-target-link__name">새 대상 이름<input aria-label="새 대상 이름" value={newName} disabled={locked}
             onChange={event => setNewName(event.target.value)} /></label>}
           {isNew && sameName.match && <div role="alert" className="review-cb-notice is-warning">
             <div>같은 이름의 대상 ‘{sameName.match.subjectName}’이 이미 있어요 — 기존 대상을 골라 주세요. 새로 등록하면 같은 설정이 있어도 추가로 저장될 수 있어요.</div>
-            <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={pending}
+            <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={locked}
               onClick={() => setSelectedId(sameName.match!.id!)}>기존 ‘{sameName.match.subjectName}’ 고르기</button></div>
           </div>}
           {isNew && typedNewTarget && sameName.unknown && <div role="alert" className="review-cb-notice is-warning">
@@ -217,15 +220,18 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
       {decisionCount > 0 ? ` ${decisionCount}개는 저장하지 않고 각 설정에서 병합·교체·최종 내용을 정하도록 남겨요.` : ''}
     </p>}
     {error && <div role="alert" className="review-match-state is-error" style={{ marginTop: 14 }}>{error}</div>}
+    {checking && <p role="status" className="review-cb-help" style={{ marginTop: 14 }}>
+      저장 결과를 확인하는 중이에요. 확인이 끝날 때까지 연결을 잠가요.
+    </p>}
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22, flexWrap: 'wrap' }}>
       <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-      <ActionButton tone={C.primary} disabled={pending || !plan || !target}
+      <ActionButton tone={C.primary} disabled={locked || !plan || !target}
         disabledTitle={!target ? isNew ? !typedNewTarget ? '새 대상 이름을 입력해 주세요.'
           : sameName.match ? '같은 이름의 기존 대상을 골라 주세요.'
           : sameName.unknown ? '같은 이름의 기존 대상이 있는지 확인하지 못했어요.' : '같은 이름의 기존 대상이 있는지 확인하고 있어요.'
           : '연결할 대상을 고르고 정보를 불러온 뒤 적용할 수 있어요.' : undefined}
         onClick={() => { if (target && plan) onApply(target, plan); }}>
-        {pending ? '저장 중…' : '고른 대상에 연결'}
+        {pending ? '저장 중…' : checking ? '확인 중…' : '고른 대상에 연결'}
       </ActionButton>
     </div>
   </ModalLayer>;

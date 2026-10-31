@@ -1562,9 +1562,11 @@ function CandidateEditModal({
   const titleId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   useModalFocusTrap(formRef, pending, onClose, returnFocusTo);
+  // 저장 결과를 확인하는 동안에는 입력도 잠근다. 확인되면 창이 닫히므로 그사이 고친 내용이 버려지지 않게 한다.
+  const inputsLocked = pending || recoveryRequired;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending || readOnly) return;
+    if (inputsLocked || automaticPending || readOnly) return;
     const normalizedSubject = subjectName.trim();
     const normalizedScope = scopeName.trim() || undefined;
     const normalizedSetting = settingName.trim();
@@ -1644,12 +1646,12 @@ function CandidateEditModal({
             display: 'grid', gridTemplateColumns: '0.9fr 1.4fr', gap: 10,
           }}>
             <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>분류
-              <select value={category} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
+              <select value={category} disabled={inputsLocked} onChange={event => setCategory(event.target.value as WorldCategory)} style={{ ...inputStyle, marginTop: 7 }}>
                 {CATEGORY_FILTERS.slice(1).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>대상
-              <input value={subjectName} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
+              <input value={subjectName} disabled={inputsLocked} onChange={event => setSubjectName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
             </label>
           </div>
           {!identityOnly && (
@@ -1658,23 +1660,24 @@ function CandidateEditModal({
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>범위 (선택)
                   <input
                     value={scopeName}
+                    disabled={inputsLocked}
                     onChange={event => setScopeName(event.target.value)}
                     placeholder="예: 1층"
                     style={{ ...inputStyle, marginTop: 7 }}
                   />
                 </label>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>설정명
-                  <input value={settingName} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
+                  <input value={settingName} disabled={inputsLocked} onChange={event => setSettingName(event.target.value)} style={{ ...inputStyle, marginTop: 7 }} />
                 </label>
               </div>
               <div className="world-setting-edit-value" style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 10, marginTop: 16 }}>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>반영 방식
-                  <select value={operation} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
+                  <select value={operation} disabled={inputsLocked} onChange={event => setOperation(event.target.value as WorldOperation)} style={{ ...inputStyle, marginTop: 7 }}>
                     {OPERATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
                 <label style={{ color: REVIEW_TEXT.muted, fontSize: 11 }}>최종 설정값
-                  <textarea value={value} onChange={event => setValue(event.target.value)} style={{
+                  <textarea value={value} disabled={inputsLocked} onChange={event => setValue(event.target.value)} style={{
                     ...inputStyle, height: 92, padding: '10px 11px', marginTop: 7, resize: 'vertical',
                   }} />
                 </label>
@@ -1682,7 +1685,7 @@ function CandidateEditModal({
             </>
           )}
           {(validationError || error) && <div role="alert" style={{ marginTop: 12, color: REVIEW_TEXT.danger, fontSize: 12 }}>{validationError ?? error}</div>}
-          {recoveryRequired && <div role="alert"><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지됩니다. 최신 상태를 확인한 뒤 계속해 주세요.</p>
+          {recoveryRequired && <div role="alert"><p>저장 결과를 아직 확인하지 못했어요. 입력은 유지되고, 확인이 끝날 때까지 수정과 저장을 잠가요. 최신 상태를 확인한 뒤 계속해 주세요.</p>
             <button type="button" className="review-cb-secondary" disabled={pending || recoveryPending} onClick={onRecover}>최신 상태 다시 확인</button></div>}
         </div>
         <div style={{ padding: '15px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -3494,7 +3497,8 @@ export function WorldSettingReview() {
           groupCategory={selectedGroup.category ?? undefined}
           groupSubjectName={selectedGroup.subjectName ?? undefined}
           categoryLabels={Object.fromEntries(Object.entries(CATEGORY_META).map(([value, meta]) => [value, meta.label])) as Record<WorldCategory, string>}
-          pending={updateDecisionMutation.isPending || decisionRecoveryPending}
+          pending={updateDecisionMutation.isPending}
+          checking={decisionRecoveryRequired || decisionRecoveryPending}
           error={actionError}
           onClose={() => {
             if (updateDecisionMutation.isPending) return;

@@ -73,6 +73,7 @@ export function CharacterMatchModal({
   initialResolution,
   initialSearch = '',
   pending,
+  checking = false,
   automaticPending = false,
   readOnly = false,
   error,
@@ -89,6 +90,8 @@ export function CharacterMatchModal({
   /** 처음 열 때 넣어 둘 검색어. 디바운스 없이 바로 검색한다. */
   initialSearch?: string;
   pending: boolean;
+  /** 응답을 잃은 연결(또는 함께 바뀌는 후보의 저장) 결과를 확인하는 중. 입력·연결을 잠그되 닫기는 허용한다. */
+  checking?: boolean;
   automaticPending?: boolean;
   readOnly?: boolean;
   error: string | null;
@@ -143,9 +146,10 @@ export function CharacterMatchModal({
   // 화면에 보이는 행에서 고른 인물만 보낸다. 다음 검색 결과에 그 인물이 없으면 다시 고르게 한다.
   const selectedCharacterVisible = characters.some(character => character.id === selectedCharacterId);
 
+  const locked = pending || checking;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (pending || automaticPending || readOnly) return;
+    if (locked || automaticPending || readOnly) return;
     if (resolution === 'MATCH_EXISTING' && !selectedCharacterVisible) {
       setValidationError('현재 목록에서 연결할 캐릭터를 선택해 주세요.');
       return;
@@ -194,7 +198,7 @@ export function CharacterMatchModal({
           ] as const).map(([value, label]) => (
             <ActionButton
               key={value}
-              disabled={pending}
+              disabled={locked}
               tone={resolution === value ? C.primary : C.t3}
               ariaPressed={resolution === value}
               onClick={() => {
@@ -226,7 +230,7 @@ export function CharacterMatchModal({
                   value={search}
                   maxLength={SEARCH_MAX_LENGTH}
                   placeholder="인물 이름으로 찾기"
-                  disabled={pending}
+                  disabled={locked}
                   aria-describedby="character-search-help"
                   onChange={event => {
                     setSearch(event.target.value);
@@ -262,7 +266,7 @@ export function CharacterMatchModal({
                     <div role="status" className="review-match-state">
                       <strong>‘{request.keyword}’와 맞는 인물이 없어요.</strong>
                       <span>새 인물로 등록하거나 다른 이름으로 찾아보세요.</span>
-                      <ActionButton disabled={pending} tone={C.primary} onClick={switchToNewCharacter}>새 인물로 등록</ActionButton>
+                      <ActionButton disabled={locked} tone={C.primary} onClick={switchToNewCharacter}>새 인물로 등록</ActionButton>
                     </div>
                   ) : (
                     <div role="status" className="review-match-state">
@@ -278,7 +282,7 @@ export function CharacterMatchModal({
                       key={character.id}
                       type="button"
                       className={`review-modal__choice review-match-result${selected ? ' is-selected' : ''}`}
-                      disabled={pending || !character.id}
+                      disabled={locked || !character.id}
                       aria-pressed={selected}
                       onClick={() => setSelectedCharacterId(character.id ?? '')}
                     >
@@ -294,7 +298,7 @@ export function CharacterMatchModal({
               <PageNavigation
                 page={characterPage?.page ?? request.page}
                 totalPages={characterPage?.totalPages ?? 0}
-                disabled={pending || charactersQuery.isFetching || searching}
+                disabled={locked || charactersQuery.isFetching || searching}
                 onPageChange={nextPage => {
                   // 페이지를 넘겨도 검색어는 유지하고, 다른 페이지의 선택만 해제한다.
                   setRequest(current => ({ ...current, page: nextPage }));
@@ -313,7 +317,7 @@ export function CharacterMatchModal({
             <input
               id="new-character-name"
               value={newCharacterName}
-              disabled={pending}
+              disabled={locked}
               onChange={event => setNewCharacterName(event.target.value)}
               style={{ ...modalInputStyle, marginTop: 7 }}
             />
@@ -329,10 +333,13 @@ export function CharacterMatchModal({
             {validationError ?? error}
           </div>
         )}
+        {checking && !error && <p role="status" className="review-cb-help" style={{ marginTop: 14 }}>
+          저장 결과를 확인하는 중이에요. 확인이 끝날 때까지 연결을 잠가요.
+        </p>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
-          <ActionButton type="submit" disabled={pending || automaticPending || readOnly} tone={C.primary}>
-            {pending ? '연결 중…' : resolution === 'MATCH_EXISTING' ? '선택한 캐릭터에 연결' : '새 캐릭터로 등록'}
+          <ActionButton type="submit" disabled={locked || automaticPending || readOnly} tone={C.primary}>
+            {pending ? '연결 중…' : checking ? '확인 중…' : resolution === 'MATCH_EXISTING' ? '선택한 캐릭터에 연결' : '새 캐릭터로 등록'}
           </ActionButton>
         </div>
       </form>

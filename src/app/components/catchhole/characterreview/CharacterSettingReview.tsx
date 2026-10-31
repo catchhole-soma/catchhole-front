@@ -1925,9 +1925,9 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
   // 선택 연결은 한 번에 100개까지 보낼 수 있다. 넘으면 연결을 잠그고 선택을 줄이라고 안내한다.
   const selectionOverLimit = checkedCandidates.length > REVIEW_SELECTION_LINK_LIMIT;
   // 체크한 뒤 그 후보의 다른 저장이 결과 확인에 들어갈 수 있다. 버튼과 핸들러가 같은 판정으로 잠근다.
+  const selectionVerifying = saveTracker.busy(selectionRequestKey) || checkedCandidateIds.some(candidateId => saveTracker.busy(candidateId));
   const selectionLinkBlockedReason = selectionOverLimit ? REVIEW_SELECTION_LINK_LIMIT_TEXT
-    : saveTracker.busy(selectionRequestKey) || checkedCandidateIds.some(candidateId => saveTracker.busy(candidateId))
-      ? '저장 결과를 확인하는 설정이 있어요. 확인이 끝난 뒤 연결해 주세요.' : null;
+    : selectionVerifying ? '저장 결과를 확인하는 설정이 있어요. 확인이 끝난 뒤 연결해 주세요.' : null;
   const openSelectionMatch = () => {
     if (!checkedCandidates.length || actionPending || selectionLinkBlockedReason) return;
     selectedMatchMutation.reset();
@@ -2548,6 +2548,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           key={editCandidate.id}
           candidate={editCandidate}
           pending={updateMutation.isPending}
+          checking={saveTracker.busy(editCandidate.id)}
           automaticPending={candidateAutomaticPending(editCandidate.id)}
           readOnly={sourceScope.blocked}
           error={selectedCandidateUpdateError}
@@ -2570,6 +2571,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           initialResolution="MATCH_EXISTING"
           groupCandidateCount={pendingGroupCandidates.length}
           pending={groupMatchMutation.isPending}
+          checking={groupWriteVerifying}
           automaticPending={groupAutomaticPending}
           readOnly={sourceScope.blocked}
           error={groupMatchError}
@@ -2590,6 +2592,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           selection
           initialResolution="MATCH_EXISTING"
           pending={selectedMatchMutation.isPending}
+          checking={selectionVerifying}
           automaticPending={checkedCandidates.some(isAutomaticApplicationPending)}
           readOnly={sourceScope.blocked}
           error={selectionMatchError}
@@ -2608,6 +2611,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
           initialResolution={matchTarget.resolution}
           initialSearch={matchTarget.initialSearch}
           pending={matchMutation.isPending}
+          checking={saveTracker.busy(matchTarget.candidate.id)}
           automaticPending={candidateAutomaticPending(matchTarget.candidate.id)}
           readOnly={sourceScope.blocked}
           error={selectedCandidateMatchError}
