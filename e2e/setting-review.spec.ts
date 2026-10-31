@@ -265,8 +265,11 @@ test('검토 대기를 기본으로 조회하고 전체 필터는 URL에 명시�
     const listPath = `/api/v1/works/${workId}/setting-candidates`;
     if (pathname === listPath) {
       const reviewStatus = requestUrl.searchParams.get('reviewStatus');
-      requestedReviewStatuses.push(reviewStatus);
-      requestedLegacyCandidates.push(requestUrl.searchParams.get('includeLegacyCandidates'));
+      // `전체` 상태 필터의 미처리 묶음 수 조회(size=1)는 목록 요청이 아니므로 기록하지 않는다.
+      if (requestUrl.searchParams.get('size') !== '1') {
+        requestedReviewStatuses.push(reviewStatus);
+        requestedLegacyCandidates.push(requestUrl.searchParams.get('includeLegacyCandidates'));
+      }
       const content = reviewStatus === 'PENDING_REVIEW' ? [candidates[0]] : [...candidates];
       return fulfill(route, {
         batchId,

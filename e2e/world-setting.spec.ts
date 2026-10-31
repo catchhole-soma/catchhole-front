@@ -2158,7 +2158,8 @@ test('확정본 충돌은 비교 회복을 polling하고 같은 후보의 다음
       });
     }
     if (pathname === worldListPath && request.method() === 'GET') {
-      if (candidate.comparisonStatus === 'PENDING') {
+      // `전체` 상태 필터의 미처리 묶음 수 조회(size=1)는 목록 갱신이 아니므로 비교 회복 횟수에 세지 않는다.
+      if (candidate.comparisonStatus === 'PENDING' && new URL(request.url()).searchParams.get('size') !== '1') {
         pendingListReads += 1;
         if (pendingListReads >= 2) candidate = worldCandidate();
       }
