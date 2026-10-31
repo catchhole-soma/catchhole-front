@@ -2108,59 +2108,68 @@ export function WorldSettingReview() {
     setAdvanceSignal(signal => signal + 1);
   };
 
+  /**
+   * 그룹 확정이 저장됐을 때의 후속 처리. 정상 응답과 응답 유실 뒤 재조회로 확인한 경우가 같은 함수를 써서
+   * 로컬 선택 정리·확정 안내·다음 미처리 묶음 이동(force: 확정한 묶음이 `전체` 필터 목록에 남아도 이동)을 똑같이 한다.
+   */
+  const afterGroupConfirmed = async ({ candidateIds, groupKey, previousGroups, result }: {
+    candidateIds: string[];
+    groupKey: string | null;
+    previousGroups: WorldSettingCandidateGroupResponse[];
+    result?: { worldSettingId?: string | null; candidates?: WorldSettingCandidateResponse[] };
+  }) => {
+    clearConfirmedLocalState(candidateIds);
+    const resultCandidates = result?.candidates ?? [];
+    if (resultCandidates.length) {
+      const excluded = (candidate: WorldSettingCandidateResponse) => candidate.finalOperation === 'EXCLUDE'
+        || candidate.reviewStatus === 'DISMISSED';
+      const excludedCount = resultCandidates.filter(excluded).length;
+      const appliedCandidates = resultCandidates.filter(candidate => !excluded(candidate));
+      const finalTargetKeys = new Set(appliedCandidates.flatMap(candidate => {
+        const category = candidate.finalCategory ?? candidate.category;
+        const subjectName = candidate.finalSubjectName ?? candidate.subjectName;
+        return category && subjectName
+          ? [`${category}|${subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')}`]
+          : [];
+      }));
+      setConfirmedTarget({
+        id: result?.worldSettingId ?? undefined,
+        subjectName: appliedCandidates[0]?.finalSubjectName
+          ?? appliedCandidates[0]?.subjectName
+          ?? resultCandidates[0]?.finalSubjectName
+          ?? resultCandidates[0]?.subjectName
+          ?? selectedGroup?.subjectName
+          ?? '확정한 세계관 대상',
+        targetCount: finalTargetKeys.size,
+        appliedCount: resultCandidates.length - excludedCount,
+        excludedCount,
+      });
+    }
+    // 확정한 그룹 다음의 미처리 그룹으로 이동한다. 탭의 마지막 그룹이면 완료 상태와 이동 버튼을 보여 준다.
+    const advance: WorldGroupAdvance | null = groupKey && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)
+      ? { groupKey, previous: previousGroups, force: true, armed: false } : null;
+    if (advance) advanceRef.current = advance;
+    // mutation pending 상태를 목록·상세 캐시 갱신까지 유지해 이전 응답으로 중복 액션하지 못하게 한다.
+    await invalidateReviewState();
+    if (!advance) return;
+    if (queryClient.getQueryState(listOptions.queryKey)?.status === 'error') {
+      if (advanceRef.current === advance) advanceRef.current = null;
+      return;
+    }
+    armAdvance(advance);
+  };
+
   const confirmMutation = useMutation({
     ...guardReviewSourceMutation(confirmWorldSettingCandidateGroupMutation(), sourceScope.canWrite),
     onSuccess: async (response, variables) => {
       const request = confirmRequestRef.current;
       confirmRequestRef.current = null;
-      clearCurrentChoices(variables.body.candidates.map(candidate => candidate.candidateId));
-      const confirmedIds = new Set(variables.body.candidates.map(candidate => candidate.candidateId));
-      const result = response.data;
-      const resultCandidates = result?.candidates ?? [];
-      if (result && resultCandidates.length) {
-        const excludedCount = resultCandidates.filter(candidate => candidate.finalOperation === 'EXCLUDE').length;
-        const appliedCandidates = resultCandidates.filter(candidate => candidate.finalOperation !== 'EXCLUDE');
-        const finalTargetKeys = new Set(appliedCandidates.flatMap(candidate => {
-          const category = candidate.finalCategory ?? candidate.category;
-          const subjectName = candidate.finalSubjectName ?? candidate.subjectName;
-          return category && subjectName
-            ? [`${category}|${subjectName.trim().normalize('NFC').toLocaleLowerCase('ko-KR')}`]
-            : [];
-        }));
-        setConfirmedTarget({
-          id: result.worldSettingId ?? undefined,
-          subjectName: appliedCandidates[0]?.finalSubjectName
-            ?? appliedCandidates[0]?.subjectName
-            ?? resultCandidates[0]?.finalSubjectName
-            ?? resultCandidates[0]?.subjectName
-            ?? selectedGroup?.subjectName
-            ?? '확정한 세계관 대상',
-          targetCount: finalTargetKeys.size,
-          appliedCount: resultCandidates.length - excludedCount,
-          excludedCount,
-        });
-      }
-      setDecisionOverrides(previous => Object.fromEntries(
-        Object.entries(previous).filter(([candidateId]) => !confirmedIds.has(candidateId)),
-      ));
-      setResolvedConflictIds(previous => new Set(
-        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
-      ));
-      setRecomparedIds(previous => new Set(
-        [...previous].filter(candidateId => !confirmedIds.has(candidateId)),
-      ));
-      // 확정한 그룹 다음의 미처리 그룹으로 이동한다. 탭의 마지막 그룹이면 완료 상태와 이동 버튼을 보여 준다.
-      const advance: WorldGroupAdvance | null = request && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)
-        ? { groupKey: request.groupKey, previous: request.previousGroups, force: true, armed: false } : null;
-      if (advance) advanceRef.current = advance;
-      // mutation pending 상태를 목록·상세 캐시 갱신까지 유지해 이전 응답으로 중복 액션하지 못하게 한다.
-      await invalidateReviewState();
-      if (!advance) return;
-      if (queryClient.getQueryState(listOptions.queryKey)?.status === 'error') {
-        if (advanceRef.current === advance) advanceRef.current = null;
-        return;
-      }
-      armAdvance(advance);
+      await afterGroupConfirmed({
+        candidateIds: variables.body.candidates.map(candidate => candidate.candidateId),
+        groupKey: request?.groupKey ?? null,
+        previousGroups: request?.previousGroups ?? [],
+        result: response.data,
+      });
     },
     onError: async (error, variables) => {
       const request = confirmRequestRef.current;
@@ -2463,6 +2472,7 @@ export function WorldSettingReview() {
     const group = result.data?.data?.groups?.content?.find(item => item.groupKey === context.groupKey);
     const listed = new Map((group?.candidates ?? []).flatMap(candidate => candidate.id ? [[candidate.id, candidate] as const] : []));
     let confirmed: boolean;
+    let verifiedCandidates: WorldSettingCandidateResponse[] = [];
     if (context.candidateIds.some(candidateId => listed.get(candidateId)?.reviewStatus === 'PENDING_REVIEW')) {
       // 목록에 아직 대기로 보이면 확정되지 않은 것이다.
       confirmed = false;
@@ -2476,6 +2486,7 @@ export function WorldSettingReview() {
           })).data?.data));
         if (recoveryContextRef.current !== context) return;
         if (details.some(candidate => !candidate)) throw new Error('missing candidate');
+        verifiedCandidates = details as WorldSettingCandidateResponse[];
         confirmed = details.every(candidate => candidate!.reviewStatus
           === (candidate!.id && context.dismissedIds.includes(candidate!.id) ? 'DISMISSED' : 'CONFIRMED'));
       } catch {
@@ -2503,9 +2514,15 @@ export function WorldSettingReview() {
     recoveryContextRef.current = null;
     setDecisionRecoveryRequired(false);
     setVerifiedLostError(context.error);
-    clearConfirmedLocalState(context.candidateIds);
-    await invalidateReviewState();
-    if (advance) armAdvance(advance);
+    // 정상 확정 응답과 같은 후속 처리(확정 안내·force 이동 포함). 다시 읽은 후보로 응답의 결과를 대신한다.
+    const appliedTargets = new Set(verifiedCandidates.flatMap(candidate => candidate.reviewStatus === 'CONFIRMED'
+      && candidate.targetWorldSettingId ? [candidate.targetWorldSettingId] : []));
+    await afterGroupConfirmed({
+      candidateIds: context.candidateIds,
+      groupKey: context.groupKey,
+      previousGroups: context.previousGroups,
+      result: { candidates: verifiedCandidates, worldSettingId: appliedTargets.size === 1 ? [...appliedTargets][0] : null },
+    });
   };
   useEffect(() => {
     runRecoveryRef.current = runRecovery;

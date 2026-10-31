@@ -5,6 +5,7 @@ import { routeWorldReview, worldCandidate, worldListPath, worldReviewUrl } from 
 // (이동할 묶음·페이지, 필터, 다음 묶음 이동, 안내, 함께 덮인 요청 재확인)를 한다. 목 API와 합성 데이터만 쓴다.
 const param = (page: Page, key: string) => new URL(page.url()).searchParams.get(key);
 const card = (page: Page, id: string) => page.locator(`[data-candidate-id="${id}"]`);
+const primary = (page: Page) => page.getByRole('region', { name: '묶음 확정', exact: true }).locator('[data-review-primary-action]');
 type Candidate = Record<string, unknown> & { id: string };
 
 /** 결정 저장 요청을 서버에 반영한 뒤 응답만 잃게(lose) 하거나 정상 응답을 돌려준다. */
@@ -78,4 +79,23 @@ test('세계관: 반영 방식 필터에서 반영 방식을 바꾼 결정 저�
   await expect.poll(() => param(page, 'group')).toBe('LOCATION|은빛 항구');
   await expect(card(page, 'a-1')).toBeVisible();
   await expect(page.getByText('저장 결과를 아직 확인하지 못했어요', { exact: false })).toHaveCount(0);
+});
+
+test('세계관: 전체 상태 필터에서 응답을 잃은 그룹 확정을 재조회로 확인하면 정상 확정처럼 다음 미처리 묶음을 열고 안내한다', async ({ page }) => {
+  const candidates = [worldCandidate('a-1', '은빛 항구', '기후'), worldCandidate('b-1', '잿빛 요새', '규모')];
+  await routeWorldReview(page, candidates);
+  let confirms = 0;
+  await page.route(`**${worldListPath}/group-confirm`, async route => {
+    confirms += 1;
+    const ids = (route.request().postDataJSON() as { candidates: Array<{ candidateId: string }> }).candidates.map(item => item.candidateId);
+    candidates.filter(item => ids.includes(item.id)).forEach(item => Object.assign(item, { reviewStatus: 'CONFIRMED', finalOperation: 'ADD' }));
+    await route.abort('connectionreset');
+  });
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구', { reviewStatus: 'ALL' }));
+  await primary(page).click();
+  // 확정한 묶음은 `전체` 목록에 남지만 다음 미처리 묶음으로 간다.
+  await expect.poll(() => param(page, 'group'), { timeout: 10_000 }).toBe('LOCATION|잿빛 요새');
+  await expect(page.getByRole('status').filter({ hasText: '은빛 항구 설정 1개를 세계관 설정에 저장했습니다.' })).toBeVisible();
+  await expect(page.getByText('저장 결과를 아직 확인하지 못했어요', { exact: false })).toHaveCount(0);
+  expect(confirms).toBe(1);
 });
