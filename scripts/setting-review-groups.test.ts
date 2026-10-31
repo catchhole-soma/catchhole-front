@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  findPendingGroupOnPages,
   isUnlinkedCandidateGroup,
   nextGroupKeyAfter,
+  otherPageOrder,
   normalizeCharacterGroupName,
 } from '../src/app/lib/setting-review-groups.ts';
 
@@ -55,4 +57,26 @@ test('기존 연결이 아닌 빈 이름·미상 묶음만 미연결 후보로 �
   assert.equal(isUnlinkedCandidateGroup({ groupKey: '레온', entityName: '레온' }), false);
   assert.equal(isUnlinkedCandidateGroup({ groupKey: '인물 미상', entityName: '인물 미상' }), false);
   assert.equal(isUnlinkedCandidateGroup({ groupKey: 'existing:1', entityName: '미상' }), false);
+});
+
+test('지금 페이지에 열 묶음이 없으면 다음 페이지부터 끝까지, 이어서 첫 페이지부터 지금 페이지 앞까지 찾는다', () => {
+  assert.deepEqual(otherPageOrder(1, 4), [2, 3, 0]);
+  assert.deepEqual(otherPageOrder(0, 3), [1, 2]);
+  assert.deepEqual(otherPageOrder(2, 3), [0, 1]);
+  assert.deepEqual(otherPageOrder(0, 1), []);
+  assert.deepEqual(otherPageOrder(0, 0), []);
+});
+
+test('페이지를 순서대로 읽어 미처리 후보가 남은 첫 묶음과 페이지를 찾고, 끝까지 없으면 null이다', async () => {
+  const pages: Record<number, Array<{ groupKey: string; candidates: Array<{ reviewStatus: string }> }>> = {
+    0: [{ groupKey: 'a', candidates: [{ reviewStatus: 'CONFIRMED' }] }],
+    1: [{ groupKey: 'b', candidates: [{ reviewStatus: 'DISMISSED' }] }, { groupKey: 'c', candidates: [{ reviewStatus: 'PENDING_REVIEW' }] }],
+    2: [{ groupKey: 'd', candidates: [{ reviewStatus: 'PENDING_REVIEW' }] }],
+  };
+  const read: number[] = [];
+  const fetchPage = async (page: number) => { read.push(page); return pages[page]; };
+  assert.deepEqual(await findPendingGroupOnPages([1, 2, 0], fetchPage), { groupKey: 'c', page: 1 });
+  assert.deepEqual(read, [1]);
+  assert.deepEqual(await findPendingGroupOnPages([1, 2], fetchPage, 'c'), { groupKey: 'd', page: 2 });
+  assert.equal(await findPendingGroupOnPages([0], fetchPage), null);
 });

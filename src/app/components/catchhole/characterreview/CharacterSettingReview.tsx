@@ -47,7 +47,10 @@ import type {
 import {
   isUnidentifiedCharacterName,
   isUnlinkedCandidateGroup,
+  findPendingGroupOnPages,
+  hasPendingCandidate,
   nextGroupKeyAfter,
+  otherPageOrder,
   normalizeCharacterGroupName,
   REVIEW_SELECTION_LINK_LIMIT,
   REVIEW_SELECTION_LINK_LIMIT_TEXT,
@@ -896,6 +899,20 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       return hasActiveComparison ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
+  // `전체` 상태 필터에는 확정·제외만 남은 묶음도 보인다. 다른 페이지에 미처리 묶음이 남았는지(`확정하고 다음`)를
+  // 알 수 있도록 같은 연결 상태 필터의 미처리 묶음 수만 가볍게 읽는다. 기본(미처리) 필터에서는 읽지 않는다.
+  const pendingGroupsQuery = useQuery({
+    ...getSettingCandidatesOptions({
+      path: { workId },
+      query: {
+        sourceAnalysisJobId, batchId, reviewStatus: 'PENDING_REVIEW',
+        matchStatuses: matchStatusesForFilter(matchFilter), page: 0, size: 1, includeLegacyCandidates: false,
+      },
+    }),
+    enabled: hasContext && reviewFilter === 'ALL',
+    retry: shouldRetryCandidateQuery,
+  });
+  const pendingGroupTotal = reviewFilter === 'ALL' ? pendingGroupsQuery.data?.data?.groups?.totalElements : undefined;
   const listData = listQuery.data?.data;
   const legacyCandidateQuery = useQuery({
     ...getSettingCandidateOptions({
@@ -1099,6 +1116,48 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     workId,
   ]);
 
+  /**
+   * `전체` 상태 필터에서 지금 페이지에 열 미처리 묶음이 없을 때, 다른 페이지를 직전 목록 순서로 읽어 첫 미처리 묶음으로
+   * 옮긴다(페이지 포함). 끝까지 없으면 확정한 묶음에 머물러 탭 완료 상태를 보여 준다(첫 묶음으로 떨어지거나 탭을 바꾸지 않는다).
+   */
+  const advanceAcrossPagesRef = useRef<(advance: PendingGroupAdvance, page: number, totalPages: number) => void>(() => undefined);
+  useEffect(() => {
+    advanceAcrossPagesRef.current = (advance, page, totalPages) => {
+      void (async () => {
+        let found: { groupKey: string; page: number } | null = null;
+        try {
+          found = await findPendingGroupOnPages(otherPageOrder(page, totalPages), async nextPage => (await queryClient.fetchQuery({
+            ...getSettingCandidatesOptions({ path: { workId }, query: {
+              sourceAnalysisJobId, batchId, matchStatuses: matchStatusesForFilter(matchFilter), page: nextPage, size,
+              includeLegacyCandidates: false,
+            } }),
+            staleTime: 0,
+          })).data?.groups?.content, advance.groupKey);
+        } catch {
+          found = null;
+        }
+        // 찾는 동안 작가가 다른 묶음·페이지로 옮겼으면 그 위치를 유지한다.
+        if (advanceRef.current !== advance || currentGroupParam() !== advance.groupKey
+          || !isCharacterReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+        if (!found) {
+          advanceRef.current = null;
+          return;
+        }
+        const target = found;
+        advance.target = target.groupKey;
+        focusGroupKeyRef.current = target.groupKey;
+        preserveViewport();
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          next.set('group', target.groupKey);
+          next.set('page', String(target.page + 1));
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      })();
+    };
+  });
+
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
     // 단건 공유 URL은 대상 후보의 실제 필터·페이지·그룹을 먼저 찾은 뒤 canonical group URL로 바꾼다.
@@ -1123,9 +1182,13 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
         if (!advance.force && listed) {
           advanceRef.current = null;
         } else {
-          const nextKey = nextGroupKeyAfter(advance.previous, advance.groupKey, groups.filter(group => (
-            group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW')
-          )));
+          const nextKey = nextGroupKeyAfter(advance.previous, advance.groupKey, groups.filter(hasPendingCandidate));
+          if (!nextKey && reviewFilter === 'ALL') {
+            // `전체` 필터에는 확정한 묶음이 남는다. 찾는 동안 그 묶음 선택을 붙잡아 둔다.
+            advance.target = null;
+            advanceAcrossPagesRef.current(advance, groupPage?.page ?? apiPage, groupPage?.totalPages ?? 0);
+            return;
+          }
           advance.target = nextKey;
           focusGroupKeyRef.current = nextKey;
           if (advance.linkedCandidateId) {
@@ -1168,7 +1231,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [advanceSignal, apiPage, groupPage?.page, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, preserveViewport, selectedGroup, selectedGroupKey, setSearchParams]);
+  }, [advanceSignal, apiPage, groupPage?.page, groupPage?.totalPages, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, preserveViewport, reviewFilter, selectedGroup, selectedGroupKey, setSearchParams]);
 
   useEffect(() => {
     const groupKey = selectedGroup?.groupKey;
@@ -2030,9 +2093,14 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     jumpToBlocking: () => cardNavigation.jumpToBlocking(groupConfirmBlock?.candidateIds ?? []),
   });
   // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
-  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
-    && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
-    || groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0;
+  // `전체` 상태 필터는 다른 페이지에 확정한 묶음만 있을 수 있으므로 미처리 묶음 수로 판단한다(이동과 같은 기준).
+  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey && hasPendingCandidate(group))
+    || (pendingGroupTotal != null
+      ? pendingGroupTotal - (selectedGroup && hasPendingCandidate(selectedGroup) ? 1 : 0) > 0
+      : groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0);
+  // `전체` 상태 필터에서 마지막 미처리 묶음을 확정하면 그 묶음에 머물러 탭 완료 상태를 보여 준다.
+  const characterTabDoneInAll = reviewFilter === 'ALL' && listQuery.isSuccess && !listQuery.isPlaceholderData
+    && listData?.pendingCandidateCount === 0 && (listData.processingCandidateCount ?? 0) === 0 && total > 0;
   const reviewComplete = listQuery.isSuccess
     && listData?.batchId === batchId
     && worldSummaryQuery.isSuccess
@@ -2383,6 +2451,14 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                             />
                           ))}
 
+                          {pendingGroupCandidates.length === 0 && characterTabDoneInAll && (
+                            <div style={{ padding: '0 20px 18px' }}>
+                              <ReviewNotice tone="success" title="캐릭터 검토를 마쳤어요"
+                                action={worldPending > 0 ? <OtherSettingReviewAction current="character" /> : undefined}>
+                                {worldPending > 0 ? `세계관 후보 ${worldPending}개가 남았어요. ` : ''}반영·제외한 캐릭터 설정은 검토 상태 필터에서 다시 볼 수 있어요.
+                              </ReviewNotice>
+                            </div>
+                          )}
                           {pendingGroupCandidates.length > 0 && (
                             <ReviewGroupActionBar
                               readyCount={groupDecisionCounts.ready}

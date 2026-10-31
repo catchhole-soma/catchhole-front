@@ -51,7 +51,10 @@ import {
   type ReviewReturnState,
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
-import { nextGroupKeyAfter, REVIEW_SELECTION_LINK_LIMIT, REVIEW_SELECTION_LINK_LIMIT_TEXT } from '../../../lib/setting-review-groups';
+import {
+  findPendingGroupOnPages, hasPendingCandidate, nextGroupKeyAfter, otherPageOrder, REVIEW_SELECTION_LINK_LIMIT,
+  REVIEW_SELECTION_LINK_LIMIT_TEXT,
+} from '../../../lib/setting-review-groups';
 import { isResponseLost, REVIEW_RECHECK_DELAYS_MS, REVIEW_RECHECK_LIMIT } from '../../../lib/review-save-state';
 import { reviewPositionKey } from '../../../lib/review-position-store';
 import { useReviewPositionMemory } from '../review-ui/useReviewPositionMemory';
@@ -1153,6 +1156,7 @@ function WorldCandidateGroupDetail({
   presetTargets,
   linkNotice,
   hasNextGroup,
+  completionNotice,
   confirmPending,
   onJumpToBlocking,
   recentTargets,
@@ -1195,6 +1199,8 @@ function WorldCandidateGroupDetail({
   linkNotice?: ReactNode;
   /** 확정 뒤 같은 탭에 열 묶음이 남는지. 주 버튼 이름(`확정하고 다음`/`모두 확정`)을 고른다. */
   hasNextGroup: boolean;
+  /** 미처리 후보가 없는 묶음(`전체` 상태 필터)에서 탭의 검토가 끝났을 때 보여 줄 완료 안내. */
+  completionNotice?: ReactNode;
   /** 확정 요청 중. */
   confirmPending: boolean;
   onJumpToBlocking: (candidateIds: string[]) => void;
@@ -1459,6 +1465,7 @@ function WorldCandidateGroupDetail({
       {bookChoicesPending && !groupAutomaticPending && <div id={blockNoticeIds.book} style={{ margin: '16px 22px 0' }}><ReviewNotice tone="warning">
         각 항목에서 내용을 확인하고 확정할 방법을 선택해 주세요.
       </ReviewNotice></div>}
+      {pendingCandidates.length === 0 && completionNotice}
       {(preservedMoveCandidates.length > 0 || orderedImpactVisible) && <div className="review-group-confirm-notes">
         {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
         {orderedImpactVisible && <OrderedReviewImpactNotice />}
@@ -1825,6 +1832,14 @@ export function WorldSettingReview() {
       return hasActiveComparison ? ACTIVE_COMPARISON_POLL_INTERVAL : false;
     },
   });
+  // `전체` 상태 필터에는 확정·제외만 남은 묶음도 보인다. 다른 페이지에 미처리 묶음이 남았는지(`확정하고 다음`)를
+  // 알 수 있도록 같은 분류·반영 방식 필터의 미처리 묶음 수만 가볍게 읽는다. 기본(미처리) 필터에서는 읽지 않는다.
+  const pendingGroupsQuery = useQuery({
+    ...getWorldSettingCandidatesOptions({ ...listRequest, query: { ...listRequest.query, reviewStatus: 'PENDING_REVIEW', page: 0, size: 1 } }),
+    enabled: hasContext && reviewFilter === 'ALL',
+    retry: shouldRetryCandidateQuery,
+  });
+  const pendingGroupTotal = reviewFilter === 'ALL' ? pendingGroupsQuery.data?.data?.groups?.totalElements : undefined;
   const listData = listQuery.data?.data;
   const activeComparisonJobCount = listData?.activeComparisonJobCount ?? 0;
   const legacyCandidateQuery = useQuery({
@@ -1949,6 +1964,45 @@ export function WorldSettingReview() {
     workId,
   ]);
 
+  /**
+   * `전체` 상태 필터에서 지금 페이지에 열 미처리 묶음이 없을 때, 다른 페이지를 직전 목록 순서로 읽어 첫 미처리 묶음으로
+   * 옮긴다(페이지 포함). 끝까지 없으면 확정한 묶음에 머물러 탭 완료 상태를 보여 준다(첫 묶음으로 떨어지거나 탭을 바꾸지 않는다).
+   */
+  const advanceAcrossPagesRef = useRef<(advance: WorldGroupAdvance, page: number, totalPages: number) => void>(() => undefined);
+  useEffect(() => {
+    advanceAcrossPagesRef.current = (advance, page, totalPages) => {
+      void (async () => {
+        let found: { groupKey: string; page: number } | null = null;
+        try {
+          found = await findPendingGroupOnPages(otherPageOrder(page, totalPages), async nextPage => (await queryClient.fetchQuery({
+            ...getWorldSettingCandidatesOptions({ ...listRequest, query: { ...listRequest.query, page: nextPage } }),
+            staleTime: 0,
+          })).data?.groups?.content, advance.groupKey);
+        } catch {
+          found = null;
+        }
+        // 찾는 동안 작가가 다른 묶음·페이지로 옮겼으면 그 위치를 유지한다.
+        if (advanceRef.current !== advance || currentGroupParam() !== advance.groupKey
+          || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+        if (!found) {
+          advanceRef.current = null;
+          return;
+        }
+        const target = found;
+        advance.target = target.groupKey;
+        focusGroupKeyRef.current = target.groupKey;
+        preserveViewport();
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          next.set('group', target.groupKey);
+          next.set('page', String(target.page + 1));
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      })();
+    };
+  });
+
   useEffect(() => {
     if (legacyCandidateId) return;
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
@@ -1970,9 +2024,13 @@ export function WorldSettingReview() {
         if (!advance.force && listed) {
           advanceRef.current = null;
         } else {
-          const nextKey = nextGroupKeyAfter(advance.previous, advance.groupKey, groups.filter(group => (
-            group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW')
-          )));
+          const nextKey = nextGroupKeyAfter(advance.previous, advance.groupKey, groups.filter(hasPendingCandidate));
+          if (!nextKey && reviewFilter === 'ALL') {
+            // `전체` 필터에는 확정한 묶음이 남는다. 찾는 동안 그 묶음 선택을 붙잡아 둔다.
+            advance.target = null;
+            advanceAcrossPagesRef.current(advance, groupPage?.page ?? apiPage, groupPage?.totalPages ?? 0);
+            return;
+          }
           advance.target = nextKey;
           focusGroupKeyRef.current = nextKey;
           // 연결 안내는 원래 묶음이 비어 대신 연 다음 묶음에서도 이어서 보여 준다.
@@ -2005,7 +2063,7 @@ export function WorldSettingReview() {
       next.delete('candidate');
       return next;
     }, { replace: true, state: location.state });
-  }, [advanceSignal, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, preserveViewport, selectedGroup, selectedGroupKey, setSearchParams]);
+  }, [advanceSignal, apiPage, groupPage?.page, groupPage?.totalPages, groups, legacyCandidateId, listQuery.fetchStatus, listQuery.isSuccess, location.state, preserveViewport, reviewFilter, selectedGroup, selectedGroupKey, setSearchParams]);
 
   useEffect(() => {
     const groupKey = selectedGroup?.groupKey;
@@ -3035,9 +3093,14 @@ export function WorldSettingReview() {
     },
   });
   // 확정 뒤 열 묶음이 남았는지. 다음 묶음은 직전 목록 순서로 고르되 앞쪽 묶음·다른 페이지로도 이어진다.
-  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey
-    && group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'))
-    || groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0;
+  // `전체` 상태 필터는 다른 페이지에 확정한 묶음만 있을 수 있으므로 미처리 묶음 수로 판단한다(이동과 같은 기준).
+  const hasNextGroup = groups.some(group => group.groupKey !== selectedGroup?.groupKey && hasPendingCandidate(group))
+    || (pendingGroupTotal != null
+      ? pendingGroupTotal - (selectedGroup && hasPendingCandidate(selectedGroup) ? 1 : 0) > 0
+      : groupPage?.hasNext === true || currentPage + 1 < totalPages || currentPage > 0);
+  // `전체` 상태 필터에서 마지막 미처리 묶음을 확정하면 그 묶음에 머물러 탭 완료 상태를 보여 준다.
+  const worldTabDoneInAll = reviewFilter === 'ALL' && listQuery.isSuccess && !listQuery.isPlaceholderData
+    && listData?.pendingCandidateCount === 0 && (listData.processingCandidateCount ?? 0) === 0 && worldTotal > 0;
 
   useEffect(() => {
     if (leavingReviewRef.current || window.location.pathname !== '/setting-review') return;
@@ -3389,6 +3452,12 @@ export function WorldSettingReview() {
                         presetTargets={presetTargets}
                         linkNotice={targetLinkNoticeView}
                         hasNextGroup={hasNextGroup}
+                        completionNotice={worldTabDoneInAll && <div style={{ padding: '0 20px 18px' }}>
+                          <ReviewNotice tone="success" title="세계관 검토를 마쳤어요"
+                            action={characterPending > 0 ? <OtherSettingReviewAction current="world" /> : undefined}>
+                            {characterPending > 0 ? `캐릭터 후보 ${characterPending}개가 남았어요. ` : ''}반영·제외한 세계관 설정은 검토 상태 필터에서 다시 볼 수 있어요.
+                          </ReviewNotice>
+                        </div>}
                         confirmPending={confirmMutation.isPending}
                         onJumpToBlocking={cardNavigation.jumpToBlocking}
                         recentTargets={recentTargets}

@@ -56,6 +56,39 @@ export function nextGroupKeyAfter(
   return remaining[0]?.groupKey ?? null;
 }
 
+type PendingGroupLike = GroupLike & { candidates?: ReadonlyArray<{ reviewStatus?: string | null }> | null };
+
+/** 대기(`PENDING_REVIEW`) 후보가 남은 묶음인지. `전체` 상태 필터 목록에는 확정·제외만 남은 묶음도 있다. */
+export function hasPendingCandidate(group: PendingGroupLike): boolean {
+  return Boolean(group.candidates?.some(candidate => candidate.reviewStatus === 'PENDING_REVIEW'));
+}
+
+/**
+ * 지금 페이지에 열 미처리 묶음이 없을 때 이어서 찾을 페이지 순서(0부터). 직전 목록 순서를 잇도록 다음 페이지부터
+ * 끝까지 본 뒤 첫 페이지부터 지금 페이지 앞까지 본다.
+ */
+export function otherPageOrder(currentPage: number, totalPages: number): number[] {
+  const after = Array.from({ length: Math.max(totalPages - currentPage - 1, 0) }, (_, index) => currentPage + 1 + index);
+  const before = Array.from({ length: Math.min(Math.max(currentPage, 0), totalPages) }, (_, index) => index);
+  return [...after, ...before];
+}
+
+/**
+ * 페이지를 순서대로 읽어 미처리 후보가 남은 첫 묶음과 그 페이지를 찾는다(`excludeKey`는 방금 확정한 묶음).
+ * 끝까지 없으면 `null`(탭의 검토가 끝났다는 뜻). 페이지를 읽지 못하면 예외를 그대로 던진다.
+ */
+export async function findPendingGroupOnPages<G extends PendingGroupLike>(
+  pages: ReadonlyArray<number>,
+  fetchPage: (page: number) => Promise<ReadonlyArray<G> | undefined>,
+  excludeKey?: string | null,
+): Promise<{ groupKey: string; page: number } | null> {
+  for (const page of pages) {
+    const group = (await fetchPage(page))?.find(item => item.groupKey && item.groupKey !== excludeKey && hasPendingCandidate(item));
+    if (group?.groupKey) return { groupKey: group.groupKey, page };
+  }
+  return null;
+}
+
 /**
  * 체크한 후보를 한 번에 연결하는 요청의 상한. 캐릭터 `selected-character-match`의 `candidateIds`와 세계관
  * `PATCH /world-setting-candidates/decisions`의 `candidates`가 모두 1~100건이다(공유 결정은 원문 수로 센다).
