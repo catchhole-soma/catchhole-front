@@ -873,7 +873,7 @@ function WorldKeyDiffRow({
   activeComparisonJobCount, canResumeTokenInterrupted, disabled, onExclude, onEdit, onDecide,
   linkedCandidateIds, sourceValue, onAnalysis, originalHoldReason, onDirtyChange, inlineDirty = false,
   currentChoice = null, onCurrentChoice, saveCheckPending = false, presetTarget, selection, blocked = false,
-  compactTargetPicker = false, recentTargets, onTargetChosen,
+  compactTargetPicker = false, recentTargets, onTargetChosen, onPresetDismiss,
 }: {
   candidate: WorldSettingCandidateResponse;
   decision: DecisionDraft | null;
@@ -906,6 +906,8 @@ function WorldKeyDiffRow({
   /** 이번 검토에서 고른 기존 대상(최근 순). 대상 미정 행의 축소형 선택지로 쓴다. */
   recentTargets?: WorldLinkTarget[];
   onTargetChosen?: (target: WorldLinkTarget) => void;
+  /** 묶음에서 골라 둔 대상을 버린다(행의 `변경 취소`). */
+  onPresetDismiss?: () => void;
 }) {
   const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
   const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
@@ -1041,6 +1043,7 @@ function WorldKeyDiffRow({
           candidate.finalScopeName, candidate.finalSettingName, candidate.finalValue, presetTarget ?? null])}
         presetTarget={presetTarget}
         compactTargetPicker={compactTargetPicker} recentTargets={recentTargets} onTargetChosen={onTargetChosen}
+        onPresetDismiss={onPresetDismiss}
         initialDraft={initialDraft} disabled={disabled || automaticPending} sharedChoiceAvailable={linkedCandidateIds.length > 0}
         sourceValue={sourceValue}
         onDirtyChange={reportDirty}
@@ -1150,6 +1153,7 @@ function WorldCandidateGroupDetail({
   onJumpToBlocking,
   recentTargets,
   onTargetChosen,
+  onPresetDismiss,
 }: {
   group: WorldSettingCandidateGroupResponse;
   originalHoldReasons: Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>;
@@ -1192,6 +1196,7 @@ function WorldCandidateGroupDetail({
   onJumpToBlocking: (candidateIds: string[]) => void;
   recentTargets: WorldLinkTarget[];
   onTargetChosen: (target: WorldLinkTarget) => void;
+  onPresetDismiss: (candidateIds: string[]) => void;
 }) {
   const [dirtyCandidateIds, setDirtyCandidateIds] = useState<Set<string>>(new Set());
   const onInlineDirtyChange = useCallback((candidateId: string, dirty: boolean) => {
@@ -1385,6 +1390,7 @@ function WorldCandidateGroupDetail({
             presetTarget={presetTargets[candidate.id]}
             blocked={Boolean(confirmBlock?.candidateIds.includes(candidate.id))}
             compactTargetPicker={subjectUnresolvedCount > 1}
+            onPresetDismiss={() => onPresetDismiss(linkedScopeCandidateIds.length ? linkedScopeCandidateIds : [candidate.id!])}
             recentTargets={recentTargets}
             onTargetChosen={onTargetChosen}
             selection={candidate.reviewStatus === 'PENDING_REVIEW' ? {
@@ -2879,9 +2885,15 @@ export function WorldSettingReview() {
     && (reviewProgress.directReview ?? 0) === 0
     && (reviewProgress.processing ?? 0) === 0
     && Boolean(workId);
-  const baseEditDecision = editCandidate?.id
+  const editPreset = editCandidate?.id && !editIdentityOnly ? presetTargets[editCandidate.id] : undefined;
+  const originalEditDecision = editCandidate?.id
     ? decisionOverrides[editCandidate.id] ?? candidateEditDecision(editCandidate)
     : null;
+  // 묶음에서 다른 대상을 골라 둔 행의 수정 창은 원래 대상이 아니라 그 대상과 원문 경로로 채운다(저장하면 대상 초안을 지운다).
+  const baseEditDecision = originalEditDecision && editPreset && editCandidate
+    ? { ...worldLinkSourceDraft(editCandidate, originalEditDecision), category: editPreset.target.category,
+      subjectName: editPreset.target.subjectName }
+    : originalEditDecision;
   const editDecision = baseEditDecision
     && editCandidate && !hasSavedDecision(editCandidate)
     && scopeMergeCandidateIds.length
@@ -3274,6 +3286,8 @@ export function WorldSettingReview() {
                         onJumpToBlocking={cardNavigation.jumpToBlocking}
                         recentTargets={recentTargets}
                         onTargetChosen={rememberTarget}
+                        onPresetDismiss={candidateIds => setPresetTargets(previous => Object.fromEntries(
+                          Object.entries(previous).filter(([candidateId]) => !candidateIds.includes(candidateId))))}
                       />
                     )}
                   </section>

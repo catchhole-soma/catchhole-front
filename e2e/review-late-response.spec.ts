@@ -356,3 +356,51 @@ test('세계관: 응답을 잃은 제외는 목록을 다시 읽어 서버에서
   await expect(card(page, 'a-1')).toHaveCount(0);
   await expect(card(page, 'a-2')).toBeVisible();
 });
+
+test('세계관: 묶음에서 다른 대상을 골라 둔 행은 원래 비교 선택지를 숨기고 그 대상으로만 저장하며, 변경 취소로 원래 선택지가 돌아온다', async ({ page }) => {
+  const target = { id: '88888888-8888-4888-8888-888888888888', category: 'LOCATION', subjectName: '은빛 항구',
+    properties: [{ scopeName: null, settingName: '기후', value: '바닷바람이 분다' }] };
+  const candidates = [worldCandidate('a-1', '항구', '기후', { suggestedOperation: 'UPDATE', matchedScopeName: null,
+    matchedPropertyName: '기후', beforeValue: '온화하다', extractedValue: '눈이 자주 온다', proposedValue: '눈이 자주 온다' })];
+  const { writes } = await routeWorldReview(page, candidates, { targets: [target] });
+  await page.goto(worldReviewUrl('LOCATION|항구'));
+  const row = card(page, 'a-1');
+  await expect(row.getByRole('radiogroup', { name: '이 설정을 어떻게 반영할까요?' })).toBeVisible();
+  await row.getByRole('checkbox').check();
+  await page.getByRole('region', { name: '선택한 설정' }).getByRole('button', { name: '선택 항목 대상 연결', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '선택 항목 대상 연결' });
+  await dialog.getByRole('radio', { name: /^은빛 항구/ }).click();
+  await expect(dialog).toContainText('기존값 있음 → 병합/교체 결정 필요');
+  await dialog.getByRole('button', { name: '고른 대상에 연결', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+
+  // 골라 둔 대상이 있는 동안 원래 비교(원래 대상 기준) 선택지는 보이지 않고, 그 대상의 기존값 기준 선택지만 보인다.
+  const targetChoices = row.getByRole('radiogroup', { name: '이 대상에 같은 설정이 있어요. 어떻게 반영할까요?' });
+  await expect(targetChoices).toBeVisible();
+  await expect(row.getByRole('radiogroup', { name: '이 설정을 어떻게 반영할까요?' })).toHaveCount(0);
+
+  // 변경 취소로 골라 둔 대상을 버리면 원래 선택지가 돌아온다.
+  await row.getByRole('button', { name: '변경 취소', exact: true }).click();
+  await expect(row.getByRole('radiogroup', { name: '이 설정을 어떻게 반영할까요?' })).toBeVisible();
+  await expect(targetChoices).toHaveCount(0);
+  await expect(row.getByText('대상은 골랐어요', { exact: false })).toHaveCount(0);
+
+  // 다시 골라 두고 대상 기준 선택지로 저장하면 그 대상과 원문 경로로만 저장한다.
+  await row.getByRole('checkbox').check();
+  await page.getByRole('region', { name: '선택한 설정' }).getByRole('button', { name: '선택 항목 대상 연결', exact: true }).click();
+  await dialog.getByRole('radio', { name: /^은빛 항구/ }).click();
+  await dialog.getByRole('button', { name: '고른 대상에 연결', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  // 수정 창도 원래 대상이 아니라 골라 둔 대상과 원문 경로로 채운다.
+  await row.getByRole('button', { name: '수정', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: /반영 내용 수정/ });
+  await expect(editor.getByRole('textbox', { name: '대상', exact: true })).toHaveValue('은빛 항구');
+  await expect(editor.getByRole('textbox', { name: '설정명', exact: true })).toHaveValue('기후');
+  await editor.getByRole('button', { name: '취소', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await targetChoices.getByRole('radio', { name: /이번 내용으로 바꾸기/ }).click();
+  await expect.poll(() => writes.filter(write => write.path.endsWith('/decisions')).length).toBe(1);
+  const saved = (writes.find(write => write.path.endsWith('/decisions'))!.body!.candidates as Array<Record<string, unknown>>)[0];
+  expect(saved).toMatchObject({ candidateId: 'a-1', operation: 'UPDATE', category: 'LOCATION', subjectName: '은빛 항구',
+    scopeName: null, settingName: '기후', value: '눈이 자주 온다' });
+});
