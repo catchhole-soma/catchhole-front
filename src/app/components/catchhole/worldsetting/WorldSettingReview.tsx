@@ -1710,6 +1710,8 @@ export function WorldSettingReview() {
   const recoveryContextRef = useRef<WorldRecoveryContext | null>(null);
   const runRecoveryRef = useRef<() => Promise<void>>(async () => undefined);
   const [verifiedLostError, setVerifiedLostError] = useState<unknown>(null);
+  // 응답을 잃은 결정 저장을 1·3·8초 확인한 뒤에도 서버에 없으면 저장되지 않았다고 알린다.
+  const [lostDecisionNotSaved, setLostDecisionNotSaved] = useState(false);
   const [recoveringDraftIds, setRecoveringDraftIds] = useState<Set<string>>(new Set());
   const [advanceSignal, setAdvanceSignal] = useState(0);
   const advanceRef = useRef<WorldGroupAdvance | null>(null);
@@ -2322,8 +2324,9 @@ export function WorldSettingReview() {
       // 재조회에서 그룹이 사라져도 확정 여부를 판단하기 전에는 첫 그룹으로 되돌리지 않는다.
       advanceRef.current = { groupKey: context.groupKey, previous: context.previousGroups, force: false, armed: false };
     }
+    // 응답을 잃은 저장은 서버가 늦게 반영할 수 있으므로 일치를 확인할 때까지 잠금을 유지한다(requireMatch).
     const result = context.kind === 'decision'
-      ? await recoverDecision(context.drafts, context.acknowledged)
+      ? await recoverDecision(context.drafts, context.acknowledged || context.lost)
       : await recoverDecision(undefined, false);
     if (result.status === 'busy') return;
     if (result.status === 'failed') {
@@ -2333,6 +2336,19 @@ export function WorldSettingReview() {
     if (recoveryContextRef.current !== context && context.kind !== 'read') return;
     if (context.kind === 'decision') {
       if (!result.matches) {
+        if (context.lost) {
+          // 아직 이전 값이면 1·3·8초 뒤 다시 확인한다. 그동안 잠금을 유지해 같은 결정을 다시 보내지 않게 한다.
+          if (recoveryAttemptRef.current < REVIEW_RECHECK_LIMIT) {
+            setDecisionRecoveryRequired(true);
+            scheduleRecoveryRetry();
+            return;
+          }
+          // 끝까지 다르면 저장되지 않은 것으로 확정하고 잠금을 푼다. 작가의 입력은 그대로 둔다.
+          recoveryContextRef.current = null;
+          setDecisionRecoveryRequired(false);
+          setLostDecisionNotSaved(true);
+          return;
+        }
         // 응답을 받은 저장의 불일치는 같은 확인을 수동으로 반복할 수 있게 남긴다.
         if (!context.acknowledged) recoveryContextRef.current = null;
         return;
@@ -2430,6 +2446,7 @@ export function WorldSettingReview() {
   /** 결정 저장을 보낸다. 늦게 끝난 후속 처리가 위치를 되돌리지 않도록 보낸 시점의 위치를 함께 기억한다. */
   const mutateDecisions: typeof updateDecisionMutation.mutate = (variables, options) => {
     decisionOriginRef.current = reviewLocationKey();
+    setLostDecisionNotSaved(false);
     updateDecisionMutation.mutate(variables, options);
   };
 
@@ -2489,6 +2506,7 @@ export function WorldSettingReview() {
     dismissMutation.reset();
     retryMutation.reset();
     updateDecisionMutation.reset();
+    setLostDecisionNotSaved(false);
   };
   // 응답을 잃었지만 재조회로 반영을 확인한 요청의 연결 오류는 다시 보여 주지 않는다.
   const selectedActionError = [updateDecisionMutation.error, confirmMutation.error, dismissMutation.error, retryMutation.error]
@@ -2501,7 +2519,9 @@ export function WorldSettingReview() {
   const apiActionError = toApiError(selectedActionError);
   const conflictScope = apiActionError?.context?.scope;
   const conflictReason = apiActionError?.context?.reasonMessage;
-  const actionError = selectedActionError
+  const actionError = lostDecisionNotSaved && selectedActionError != null && selectedActionError === updateDecisionMutation.error
+    ? '저장되지 않았어요. 입력한 내용은 그대로예요. 다시 저장해 주세요.'
+    : selectedActionError
     ? `${typeof conflictScope === 'string' ? `${conflictScope} 재비교 · ` : ''}${typeof conflictReason === 'string'
       ? conflictReason
       : errorMessage(selectedActionError, '대상 그룹을 처리하지 못했습니다. 최신 상태를 확인해 주세요.')}`

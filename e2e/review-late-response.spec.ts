@@ -240,3 +240,55 @@ test('세계관: 묶음에서 고른 대상의 상세를 행이 잠긴 동안 �
   await expect(editor).toHaveCount(0);
   await expect(card(page, 'a-1').getByRole('radiogroup', { name: '이 대상에 같은 설정이 있어요. 어떻게 반영할까요?' })).toBeVisible();
 });
+
+/** 결정 저장 응답을 잃게 하고, 목록 조회 `applyAfterReads`번째 뒤에야 서버에 저장된 것처럼 바꾼다(null이면 끝까지 저장 안 됨). */
+async function loseDecisionResponse(page: Page, candidates: Array<Record<string, unknown> & { id: string }>, applyAfterReads: number | null) {
+  const state = { patches: 0, readsAfterLoss: 0 };
+  let pending: Array<Record<string, unknown>> | null = null;
+  await page.route(`**${worldListPath}/decisions`, async route => {
+    state.patches += 1;
+    pending = (route.request().postDataJSON() as { candidates: Array<Record<string, unknown>> }).candidates;
+    await route.abort('connectionreset');
+  });
+  await page.route(`**${worldListPath}?*`, async route => {
+    if (pending && route.request().method() === 'GET') {
+      state.readsAfterLoss += 1;
+      if (applyAfterReads != null && state.readsAfterLoss > applyAfterReads) {
+        pending.forEach(draft => Object.assign(candidates.find(item => item.id === draft.candidateId)!, {
+          finalOperation: draft.operation, finalCategory: draft.category, finalSubjectName: draft.subjectName,
+          finalScopeName: draft.scopeName ?? null, finalSettingName: draft.settingName, finalValue: draft.value, userModified: true }));
+      }
+    }
+    return route.fallback();
+  });
+  return state;
+}
+
+test('세계관: 응답을 잃은 결정 저장은 첫 확인이 이전 값이어도 잠금을 유지하고 다시 확인해 늦게 반영된 저장을 받아들인다', async ({ page }) => {
+  const candidates = [worldCandidate('a-1', '은빛 항구', '인구', { suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true })];
+  await routeWorldReview(page, candidates);
+  const state = await loseDecisionResponse(page, candidates, 1);
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await card(page, 'a-1').getByRole('radio', { name: /이 내용 그대로 추가/ }).click();
+  // 첫 확인은 이전 값이다: 잠금과 결과 확인 안내를 유지한 채 자동으로 다시 확인한다.
+  await expect.poll(() => state.readsAfterLoss).toBeGreaterThanOrEqual(1);
+  await expect(page.getByText(/잠시 후 자동으로 다시 확인해요|최신 상태를 확인하는 중이에요/).first()).toBeVisible();
+  await expect(card(page, 'a-1').getByRole('radio', { name: /이 내용 그대로 추가/ })).toBeDisabled();
+  // 다음 확인에서 서버 값이 저장과 같아지면 저장 완료로 접는다. 같은 결정을 다시 보내지 않는다.
+  await expect(card(page, 'a-1').getByText('선택한 내용이 준비됐어요', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('저장 결과를 아직 확인하지 못했어요', { exact: false })).toHaveCount(0);
+  expect(state.patches).toBe(1);
+});
+
+test('세계관: 응답을 잃은 결정 저장이 1·3·8초 확인 뒤에도 서버에 없으면 저장되지 않음으로 알리고 잠금을 푼다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [worldCandidate('a-1', '은빛 항구', '인구', { suggestedOperation: 'REVIEW_REQUIRED', manualReviewAvailable: true })];
+  await routeWorldReview(page, candidates);
+  const state = await loseDecisionResponse(page, candidates, null);
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await card(page, 'a-1').getByRole('radio', { name: /이 내용 그대로 추가/ }).click();
+  await expect(page.getByText('저장되지 않았어요. 입력한 내용은 그대로예요. 다시 저장해 주세요.')).toBeVisible({ timeout: 20_000 });
+  expect(state.readsAfterLoss).toBe(4);
+  expect(state.patches).toBe(1);
+  await expect(card(page, 'a-1').getByRole('radio', { name: /이 내용 그대로 추가/ })).toBeEnabled();
+});
