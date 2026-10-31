@@ -1520,6 +1520,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
       const verified = queryClient.getQueryData(getSettingCandidateOptions({
         path: { workId, candidateId: intent.candidateId }, query: { sourceAnalysisJobId, batchId },
       }).queryKey)?.data;
+      // 정상 응답과 같이, 후보 하나의 저장이 확인되면 그 후보를 함께 덮던 확인하지 못한 연결 요청을 다시 읽는다.
+      saveTracker.recheckCovering(intent.candidateId);
       if (intent.kind === 'match') void afterMatchSaved(intent.candidateId, verified);
       else if (intent.kind === 'update') void afterUpdateSaved(intent.candidateId, verified);
       else void invalidateCandidateData();

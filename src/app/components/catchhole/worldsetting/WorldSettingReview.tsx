@@ -2210,7 +2210,11 @@ export function WorldSettingReview() {
   });
   const retryMutation = useMutation({
     ...guardReviewSourceMutation(retryWorldSettingCandidateComparisonMutation(), sourceScope.canWrite),
-    onError: refreshAutomaticApplicationState,
+    onError: async error => {
+      await refreshAutomaticApplicationState(error);
+      // 응답을 잃은 다시 비교는 이미 시작됐을 수 있으므로 정상 응답처럼 목록을 다시 읽어 비교 상태를 보여 준다.
+      if (isResponseLost(error)) await invalidateReviewState();
+    },
     onSuccess: async () => {
       await invalidateReviewState();
     },
