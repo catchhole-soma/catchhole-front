@@ -41,12 +41,12 @@
 
 ### 2026-10-31 GH211 설정 후보 검토 — Pencil 반영 완료
 
-2026-10-31에 #211 후속(검토 위치 유지·저장 상태 구분, 작품 전체 검색·연결 미리보기·선택 연결, 고정 확정 영역·요약 카드·`확정하고 다음`, 결과 미확인 복구)으로 바뀐 `/setting-review`를 `Active / Setting Review / Character|World / Desktop|Mobile / …` 루트 프레임 19개로 동기화했다. 캔버스 위치는 오류 리포트 구역(`B2Ck2`) 아래, 기존 세계관 후보 구역 오른쪽의 섹션바 `PtEhl`(`22-1 ACTIVE /SETTING-REVIEW · #211 후속`)이다. 1행은 캐릭터 데스크톱 9개, 2행은 세계관 데스크톱 8개, 3행은 모바일 2개다.
+2026-10-31에 #211 후속(검토 위치 유지·저장 상태 구분, 작품 전체 검색·연결 미리보기·선택 연결, 고정 확정 영역·요약 카드·`확정하고 다음`, 결과 미확인 복구, 미연결 묶음 유지·완료 상태)으로 바뀐 `/setting-review`를 `Active / Setting Review / Character|World / Desktop|Mobile / …` 루트 프레임 23개로 동기화했다. 캔버스 위치는 오류 리포트 구역(`B2Ck2`) 아래, 기존 세계관 후보 구역 오른쪽의 섹션바 `PtEhl`(`22-1 ACTIVE /SETTING-REVIEW · #211 후속`)이다. 1행은 캐릭터 데스크톱 12개, 2행은 세계관 데스크톱 8개, 3행은 모바일 3개다. 미연결 묶음 4개(`gT7nx`·`Dr09V`·`YswsG`·`bcpKV`)는 Front #113(미연결 묶음 유지·완료 상태)이 main에 들어온 뒤 같은 날 추가했다.
 
-- 동기화 기준: [실제 화면 캡처](../docs/screens/gh211/) 21장(`CATCHHOLE_CAPTURE_GH211=1`로 `e2e/gh211-screens.spec.ts` 실행). 문구는 React 렌더 결과와 캡처를 그대로 옮겼다. 프레임마다 캡처와 같은 스크롤 위치의 뷰포트(1440×900, 390×844)를 재현하고, 상단 바·고정 확정 영역·모달은 뷰포트 기준 위치에 둔다. 모바일 연결 모달만 검색·미리보기·하단 버튼이 모두 보이도록 높이를 1057로 늘렸다. 하단 `취소`·`선택한 캐릭터에 연결`은 캡처 화면 밖이라 `CharacterMatchModal` 문구를 옮겼다.
-- 데이터: 목 API 합성 데이터만 쓴다(캐릭터 아린·도윤·세라·베른·같은 이름의 아리아 2명, 세계관 항구·은빛 항구·잿빛 요새).
+- 동기화 기준: [실제 화면 캡처](../docs/screens/gh211/) 24장(`CATCHHOLE_CAPTURE_GH211=1`로 `e2e/gh211-screens.spec.ts` 실행). 문구는 React 렌더 결과와 캡처를 그대로 옮겼다. 프레임마다 캡처와 같은 스크롤 위치의 뷰포트(1440×900, 390×844)를 재현하고, 상단 바·고정 확정 영역·모달은 뷰포트 기준 위치에 둔다. 모바일 연결 모달만 검색·미리보기·하단 버튼이 모두 보이도록 높이를 1057로 늘렸다. 하단 `취소`·`선택한 캐릭터에 연결`은 캡처 화면 밖이라 `CharacterMatchModal` 문구를 옮겼다.
+- 데이터: 목 API 합성 데이터만 쓴다(캐릭터 아린·도윤·세라·베른·레온·세렌·같은 이름의 아리아 2명, 세계관 항구·은빛 항구·잿빛 요새).
 - 토큰·컴포넌트: 새 변수는 추가하지 않았다. GH314에서 추가한 경고·위험·성공 soft/border와 `ch-primary-border`를 포함한 `ch-*` 변수, `CH/V2 Workspace Topbar / Desktop`(`V3TEEV`) 인스턴스(제목 영역만 교체)를 재사용했다. 체크박스·선택 카드·배지·버튼·고정 확정 영역은 `src/styles/review-clear-blue.css` 값(선택 카드 radius 12, 버튼 높이 40/44, 선택 바 파란 테두리 등)에 맞춘 프레임이다. 인물·장소 사진은 제품 기본 그림 `src/assets/characters/character-neutral-v1.webp`, `src/assets/world-defaults/location.webp`를 이미지 채움으로 참조한다. 모달 뒤 흐림은 background blur 효과로 표현했다. 글꼴은 `Noto Sans KR`이며 650/750 굵기는 600/700·800으로 맞췄다.
-- 기존 `Active / Setting Review / Character|World / …` 40개(이름에 Desktop/Mobile 구분이 없는 `GEwV9`, `la0t2`, 모바일 `tWOIq` 등)는 GH215 Clear Blue 이전 화면이다. 지우거나 이름을 바꾸지 않고 보존하며, #211 이후 검토 화면의 기준은 아래 19개다. 기존 프레임과 `/demo`(`PRgXY`의 `모두 확정 ✓`)·최초 분석 안내(`gh194AnalysisGuide*`) Active 프레임에는 #211에서 바뀐 옛 문구(`N개 설정 모두 확정`, `현재 페이지에서 검색`, `선택됨 · 모두 확정할 때 적용`, `확정할 때 등록` 이전 문구 등)가 없어 문구를 고친 기존 프레임은 없다. 보관 보드 `Archive / WF-06 인터랙티브 데모 / 이전 완료 안내`(`BE15b`)의 `“1개 설정 모두 확정” 클릭` 설명은 보관 기록이라 그대로 둔다.
+- 기존 `Active / Setting Review / Character|World / …` 40개(이름에 Desktop/Mobile 구분이 없는 `GEwV9`, `la0t2`, 모바일 `tWOIq` 등)는 GH215 Clear Blue 이전 화면이다. 지우거나 이름을 바꾸지 않고 보존하며, #211 이후 검토 화면의 기준은 아래 23개다. 기존 프레임과 `/demo`(`PRgXY`의 `모두 확정 ✓`)·최초 분석 안내(`gh194AnalysisGuide*`) Active 프레임에는 #211에서 바뀐 옛 문구(`N개 설정 모두 확정`, `현재 페이지에서 검색`, `선택됨 · 모두 확정할 때 적용`, `확정할 때 등록` 이전 문구 등)가 없어 문구를 고친 기존 프레임은 없다. 보관 보드 `Archive / WF-06 인터랙티브 데모 / 이전 완료 안내`(`BE15b`)의 `“1개 설정 모두 확정” 클릭` 설명은 보관 기록이라 그대로 둔다.
 
 | 화면(기준 캡처) | 프레임 이름 | ID | 상태 |
 | --- | --- | --- | --- |
@@ -69,10 +69,14 @@
 | 끝내 확인하지 못한 저장(`저장되지 않았어요`) — `world-recovery-unsaved-desktop` | Active / Setting Review / World / Desktop / Lost Save · Not Saved | `rBXaj` | ✅ 렌더·레이아웃 확인 |
 | 모바일 캐릭터 연결 모달(검색·미리보기 세로 배치, 390×1057) — `mobile-character-link-modal`, `mobile-character-link-modal-preview` | Active / Setting Review / Character / Mobile / Link Modal · Search And Preview | `tQe3d` | ✅ 렌더·레이아웃 확인 |
 | 모바일 확정 영역 + 선택 바(두 칸 44px 버튼) — `mobile-action-bar-selection` | Active / Setting Review / Character / Mobile / Action Bar · Selection | `ggsgt` | ✅ 렌더·레이아웃 확인 |
+| 미연결 묶음에서 하나씩 연결할 때의 누적 안내(`‘소속’ 설정을 ‘베른’에 연결했어요. (이번에 연결 2개 · 2명)`, 머문다는 본문, `연결한 묶음 보기`·`닫기`) — `character-unlinked-link-notice-desktop` | Active / Setting Review / Character / Desktop / Unlinked Link Notice | `gT7nx` | ✅ 렌더·레이아웃 확인 |
+| 미연결 묶음이 빈 뒤 그 자리의 완료 상태(`미연결 후보를 모두 정리했어요.`, 옮긴 인물별 `옮긴 설정 N개`·`보기`, `다음 미처리 묶음`) — `character-unlinked-done-desktop` | Active / Setting Review / Character / Desktop / Unlinked Group Done | `Dr09V` | ✅ 렌더·레이아웃 확인 |
+| 다음 페이지로 밀린 미연결 묶음의 위치 확인 실패(`남은 미연결 후보 위치를 확인하지 못했어요.`, `다시 시도`) — `character-unlinked-lookup-failed-desktop` | Active / Setting Review / Character / Desktop / Unlinked Lookup Failed | `YswsG` | ✅ 렌더·레이아웃 확인 |
+| 모바일 미연결 묶음 완료 상태(`후보 목록으로`, 옮긴 인물별 `보기`·`다음 미처리 묶음` 세로 배치 44px) — `mobile-unlinked-done` | Active / Setting Review / Character / Mobile / Unlinked Group Done | `bcpKV` | ✅ 렌더·레이아웃 확인 |
 
-프레임 PNG는 [`docs/screens/pencil/gh211/`](../docs/screens/pencil/gh211/)(`<ID>.png`, 1배)에 있다. 프레임마다 잘림 검사(뷰포트로 자른 페이지 본문 제외)에서 문제 0건이고, 내보낸 PNG를 캡처와 나란히 대조했다.
+프레임 PNG는 [`docs/screens/pencil/gh211/`](../docs/screens/pencil/gh211/)(`<ID>.png`, 1배)에 있다. `YswsG`는 왼쪽 목록 아래 끝에 일부만 보이는 페이지 이동 버튼을 그리지 않았다. 프레임마다 잘림 검사(뷰포트로 자른 페이지 본문 제외)에서 문제 0건이고, 내보낸 PNG를 캡처와 나란히 대조했다.
 
-아직 프레임이 없는 상태: 미연결 묶음 연결 안내·완료 상태(동작 변경 진행 중 — 단건 연결 뒤 묶음 유지 안내 `연결한 묶음 보기`·`닫기`는 캡처 `character-link-notice-desktop.png`만 있고, 미연결 묶음이 빈 뒤 상태는 캡처도 없다), 선택 연결이 거절된 카드(danger 테두리·서버 문장), 인물 검색 결과 없음·검색 실패·인물 상세 읽기 실패, 연결이 모호한 후보의 인물 3명 + `검색으로 찾기`, 이름 있는 묶음의 `캐릭터 일괄 연결`과 선택 연결 안내 문구, 펼친 요약 카드(`접기`), `단축키` 안내 팝오버, `확정 중…`, 세계관 대상 정보 읽기 실패·같은 이름 확인 실패, 그룹 확정 응답 유실(`확정되지 않았어요`), 320px 모바일 변형과 세계관 모바일, Workflow 보드(WF-05) 갱신.
+아직 프레임이 없는 상태: 이름 있는 묶음의 단건 연결 안내(`이 묶음에서는 더 이상 보이지 않아요`), 미연결 묶음 위치를 찾는 중(`남은 미연결 후보 위치를 확인하고 있어요.`)과 새로고침 뒤 복원된 완료 상태(`옮겨 간 설정은 왼쪽 목록의 인물 묶음에서 확인할 수 있어요.`), 선택 연결이 거절된 카드(danger 테두리·서버 문장), 인물 검색 결과 없음·검색 실패·인물 상세 읽기 실패, 연결이 모호한 후보의 인물 3명 + `검색으로 찾기`, 이름 있는 묶음의 `캐릭터 일괄 연결`과 선택 연결 안내 문구, 펼친 요약 카드(`접기`), `단축키` 안내 팝오버, `확정 중…`, 세계관 대상 정보 읽기 실패·같은 이름 확인 실패, 그룹 확정 응답 유실(`확정되지 않았어요`), 320px 모바일 변형과 세계관 모바일, Workflow 보드(WF-05) 갱신.
 
 ### 2026-10-17 GH260 가족 관계 — Pencil 반영 대기
 
