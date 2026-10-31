@@ -51,7 +51,7 @@ import {
   type ReviewReturnState,
 } from '../../../lib/review-navigation';
 import { toApiError } from '../../../lib/api-errors';
-import { nextGroupKeyAfter } from '../../../lib/setting-review-groups';
+import { nextGroupKeyAfter, REVIEW_SELECTION_LINK_LIMIT, REVIEW_SELECTION_LINK_LIMIT_TEXT } from '../../../lib/setting-review-groups';
 import { isResponseLost, REVIEW_RECHECK_DELAYS_MS, REVIEW_RECHECK_LIMIT } from '../../../lib/review-save-state';
 import { reviewPositionKey } from '../../../lib/review-position-store';
 import { useReviewPositionMemory } from '../review-ui/useReviewPositionMemory';
@@ -1305,6 +1305,8 @@ function WorldCandidateGroupDetail({
   // 대상 연결은 화면에 그려진 대기 행만 체크한다. 공유 결정의 원문은 함께 체크된다.
   const linkableCandidates = pendingCandidates.filter(candidate => !worldLinkBlockedReason(candidate, confirmationFiltered));
   const checkedCandidates = pendingCandidates.filter(candidate => selection.checkedIds.includes(candidate.id!));
+  // 저장 요청(`PATCH /decisions`)은 한 번에 100건(공유 결정은 원문 수)까지다. 체크한 원문 수로 미리 막는다.
+  const selectionOverLimit = checkedCandidates.length > REVIEW_SELECTION_LINK_LIMIT;
   const allLinkableIds = [...new Set(linkableCandidates.flatMap(candidate => worldLinkedIds(candidate, candidates, confirmationFiltered)))];
   const identityHintId = `world-identity-hint-${group.groupKey ?? 'group'}`;
   const identityHintVisible = !identityEditable && pendingCandidates.length > 0 && !groupAutomaticPending;
@@ -1471,9 +1473,11 @@ function WorldCandidateGroupDetail({
           <div className="review-selection-bar__summary">
             <strong>{checkedCandidates.length}개 선택</strong>
             {confirmationFiltered && <span>필터로 숨은 설정은 포함되지 않아요.</span>}
+            {selectionOverLimit && <span role="alert">{REVIEW_SELECTION_LINK_LIMIT_TEXT}</span>}
           </div>
           <div className="review-selection-bar__actions">
-            <ActionButton tone={C.primary} disabled={actionPending || decisionRecoveryRequired} onClick={selection.onOpen}>선택 항목 대상 연결</ActionButton>
+            <ActionButton tone={C.primary} disabled={actionPending || decisionRecoveryRequired || selectionOverLimit}
+              onClick={selection.onOpen}>선택 항목 대상 연결</ActionButton>
             <ActionButton disabled={actionPending} onClick={selection.onClear}>선택 해제</ActionButton>
           </div>
         </div>}
@@ -2734,6 +2738,7 @@ export function WorldSettingReview() {
         sourceGroupKey: selectedGroup.groupKey });
       return;
     }
+    if (plan.saves.length > REVIEW_SELECTION_LINK_LIMIT) return;
     const sources = plan.saves.flatMap(save => pendingCandidates.filter(candidate => candidate.id === save.candidateId));
     if (sources.length !== plan.saves.length || sources.some(candidate => isAutomaticApplicationPending(candidate)
       || isQuotaInterruptedCandidate(candidate))) return;
@@ -3236,7 +3241,8 @@ export function WorldSettingReview() {
                           onSelectAll: candidateIds => setLinkSelection({ groupKey: selectedGroup.groupKey ?? null, ids: candidateIds }),
                           onClear: clearLinkSelection,
                           onOpen: () => {
-                            if (!linkUnits.length || actionPending || decisionRecoveryRequired) return;
+                            if (!linkUnits.length || actionPending || decisionRecoveryRequired
+                              || checkedLinkIds.length > REVIEW_SELECTION_LINK_LIMIT) return;
                             updateDecisionMutation.reset();
                             setTargetLinkOpen(true);
                           },

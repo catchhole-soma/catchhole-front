@@ -55,3 +55,10 @@ export function nextGroupKeyAfter(
   if (arrived) return arrived.groupKey;
   return remaining[0]?.groupKey ?? null;
 }
+
+/**
+ * 체크한 후보를 한 번에 연결하는 요청의 상한. 캐릭터 `selected-character-match`의 `candidateIds`와 세계관
+ * `PATCH /world-setting-candidates/decisions`의 `candidates`가 모두 1~100건이다(공유 결정은 원문 수로 센다).
+ */
+export const REVIEW_SELECTION_LINK_LIMIT = 100;
+export const REVIEW_SELECTION_LINK_LIMIT_TEXT = `한 번에 ${REVIEW_SELECTION_LINK_LIMIT}개까지 연결할 수 있어요. 선택을 줄여 주세요.`;

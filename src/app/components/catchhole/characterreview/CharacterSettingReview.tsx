@@ -49,6 +49,8 @@ import {
   isUnlinkedCandidateGroup,
   nextGroupKeyAfter,
   normalizeCharacterGroupName,
+  REVIEW_SELECTION_LINK_LIMIT,
+  REVIEW_SELECTION_LINK_LIMIT_TEXT,
 } from '../../../lib/setting-review-groups';
 import { isResponseLost, REVIEW_SAVE_TEXT, unverifiedSaveMessage, type ReviewSaveState } from '../../../lib/review-save-state';
 import { reviewPositionKey } from '../../../lib/review-position-store';
@@ -1810,15 +1812,17 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     setCheckedSelection({ groupKey: selectedGroup?.groupKey ?? null,
       ids: checked ? checkableCandidates.filter(candidate => !saveTracker.busy(candidate.id)).map(candidate => candidate.id!) : [] });
   };
+  // 선택 연결은 한 번에 100개까지 보낼 수 있다. 넘으면 연결을 잠그고 선택을 줄이라고 안내한다.
+  const selectionOverLimit = checkedCandidates.length > REVIEW_SELECTION_LINK_LIMIT;
   const openSelectionMatch = () => {
-    if (!checkedCandidates.length || actionPending) return;
+    if (!checkedCandidates.length || actionPending || selectionOverLimit) return;
     selectedMatchMutation.reset();
     setSelectionMatchOpen(true);
   };
   /** 체크한 후보만 고른 인물(또는 같은 이름의 새 인물)에 연결한다. 응답을 잃으면 재조회로 결과를 확인한다. */
   const matchCheckedCandidates = (resolution: MatchResolution, value: string) => {
     const candidateIds = checkedCandidateIds;
-    if (!selectedGroup || candidateIds.length === 0 || actionPending
+    if (!selectedGroup || candidateIds.length === 0 || candidateIds.length > REVIEW_SELECTION_LINK_LIMIT || actionPending
       || candidateIds.some(candidateId => saveTracker.busy(candidateId))) return;
     if (checkedCandidates.some(candidate => isCandidateValueInvalid(candidate) || isAutomaticApplicationPending(candidate))) {
       setSelectionMatchOpen(false);
@@ -2368,9 +2372,11 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                                 <div className="review-selection-bar__summary">
                                   <strong>{[`${checkedCandidates.length}개 선택`, candidateEpisodesLabel(checkedCandidates)].filter(Boolean).join(' · ')}</strong>
                                   {(matchFilter !== 'ALL' || legacyGroupedActionsUnsafe) && <span>필터로 숨은 후보는 포함되지 않아요.</span>}
+                                  {selectionOverLimit && <span role="alert">{REVIEW_SELECTION_LINK_LIMIT_TEXT}</span>}
                                 </div>
                                 <div className="review-selection-bar__actions">
-                                  <ActionButton tone={C.primary} disabled={actionPending || saveTracker.busy(selectionRequestKey)}
+                                  <ActionButton tone={C.primary} disabled={actionPending || saveTracker.busy(selectionRequestKey) || selectionOverLimit}
+                                    disabledTitle={selectionOverLimit ? REVIEW_SELECTION_LINK_LIMIT_TEXT : undefined}
                                     onClick={openSelectionMatch}>선택 항목 연결</ActionButton>
                                   <ActionButton disabled={selectedMatchMutation.isPending || selectionSaveState.kind !== 'idle'} onClick={clearCheckedSelection}>선택 해제</ActionButton>
                                 </div>
