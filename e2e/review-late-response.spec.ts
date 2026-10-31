@@ -292,3 +292,67 @@ test('세계관: 응답을 잃은 결정 저장이 1·3·8초 확인 뒤에도 �
   expect(state.patches).toBe(1);
   await expect(card(page, 'a-1').getByRole('radio', { name: /이 내용 그대로 추가/ })).toBeEnabled();
 });
+
+/** 그룹 확정 응답을 잃게 하고, 목록 조회 `applyAfterReads`번째 뒤에야 확정된 것처럼 바꾼다(null이면 끝까지 대기). */
+async function loseConfirmResponse(page: Page, candidates: Array<Record<string, unknown> & { id: string }>, applyAfterReads: number | null) {
+  const state = { confirms: 0, readsAfterLoss: 0 };
+  let pending: string[] | null = null;
+  await page.route(`**${worldListPath}/group-confirm`, async route => {
+    state.confirms += 1;
+    pending = (route.request().postDataJSON() as { candidates: Array<{ candidateId: string }> }).candidates.map(item => item.candidateId);
+    await route.abort('connectionreset');
+  });
+  await page.route(`**${worldListPath}?*`, async route => {
+    if (pending && route.request().method() === 'GET') {
+      state.readsAfterLoss += 1;
+      if (applyAfterReads != null && state.readsAfterLoss > applyAfterReads) {
+        candidates.filter(item => pending!.includes(item.id)).forEach(item => Object.assign(item, { reviewStatus: 'CONFIRMED', finalOperation: 'ADD' }));
+      }
+    }
+    return route.fallback();
+  });
+  return state;
+}
+
+test('세계관: 응답을 잃은 그룹 확정은 첫 확인이 아직 대기여도 잠금을 유지하고 다시 확인해 늦게 끝난 확정을 받아들인다', async ({ page }) => {
+  const candidates = [worldCandidate('a-1', '은빛 항구', '기후'), worldCandidate('b-1', '잿빛 요새', '규모')];
+  await routeWorldReview(page, candidates);
+  const state = await loseConfirmResponse(page, candidates, 1);
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await primary(page).click();
+  await expect.poll(() => state.readsAfterLoss).toBeGreaterThanOrEqual(1);
+  await expect(page.getByText(/잠시 후 자동으로 다시 확인해요|최신 상태를 확인하는 중이에요/).first()).toBeVisible();
+  await expect(primary(page)).toBeDisabled();
+  // 다음 확인에서 확정이 보이면 확정 성공과 같이 다음 묶음으로 간다. 다시 보내지 않는다.
+  await expect.poll(() => groupParam(page), { timeout: 10_000 }).toBe('LOCATION|잿빛 요새');
+  await expect(page.getByText('저장 결과를 아직 확인하지 못했어요', { exact: false })).toHaveCount(0);
+  expect(state.confirms).toBe(1);
+});
+
+test('세계관: 응답을 잃은 그룹 확정이 1·3·8초 확인 뒤에도 대기면 확정되지 않음으로 알리고 잠금을 푼다', async ({ page }) => {
+  test.setTimeout(45_000);
+  const candidates = [worldCandidate('a-1', '은빛 항구', '기후'), worldCandidate('b-1', '잿빛 요새', '규모')];
+  await routeWorldReview(page, candidates);
+  const state = await loseConfirmResponse(page, candidates, null);
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await primary(page).click();
+  await expect(page.getByText('확정되지 않았어요. 내용을 확인한 뒤 다시 확정해 주세요.')).toBeVisible({ timeout: 20_000 });
+  expect(state.readsAfterLoss).toBe(4);
+  expect(state.confirms).toBe(1);
+  expect(groupParam(page)).toBe('LOCATION|은빛 항구');
+  await expect(primary(page)).toBeEnabled();
+});
+
+test('세계관: 응답을 잃은 제외는 목록을 다시 읽어 서버에서 제외됐으면 행을 뺀다', async ({ page }) => {
+  const candidates = [worldCandidate('a-1', '은빛 항구', '기후'), worldCandidate('a-2', '은빛 항구', '인구')];
+  await routeWorldReview(page, candidates);
+  await page.route(`**${worldListPath}/group-dismiss`, async route => {
+    const ids = (route.request().postDataJSON() as { candidateIds: string[] }).candidateIds;
+    candidates.filter(item => ids.includes(item.id)).forEach(item => { item.reviewStatus = 'DISMISSED'; });
+    await route.abort('connectionreset');
+  });
+  await page.goto(worldReviewUrl('LOCATION|은빛 항구'));
+  await card(page, 'a-1').getByRole('button', { name: '기후 제외', exact: true }).click();
+  await expect(card(page, 'a-1')).toHaveCount(0);
+  await expect(card(page, 'a-2')).toBeVisible();
+});
