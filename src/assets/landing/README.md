@@ -28,6 +28,8 @@
 
 갱신: `CATCHHOLE_CAPTURE_LANDING=1 CATCHHOLE_E2E_PORT=3102 npm run test:e2e -- e2e/landing-assets.spec.ts --workers=1`. 이 opt-in 시나리오는 기존 `/demo`의 버튼을 순서대로 누르고 현재 컴포넌트를 캡처한다. 캡처 동안 안내 코치마크·가이드 윤곽선·고정 헤더만 숨기며 제품 데이터나 화면 레이아웃을 합성하지 않는다. 기능 화면이 변경되면 이 캡처를 다시 생성하고 랜딩의 데스크톱·모바일 구도를 검증한다.
 
+2026-10-31 #211 후속 반영 뒤 같은 파일명으로 다시 캡처했다. `product-review`·`product-review-mobile`은 근거 끝의 연결 상태 줄 생략(#211 3차), 제목 아래 회차 표기 `6화`, 원문 근거 상자 여백이, `product-world`는 이력 안내 `설정 후보 확정과 직접 입력으로 갱신됨`(설정집 출처 반영)이 바뀌었다. `product-manuscript`·`product-character`·`product-timeline`은 그대로다. 확정 버튼(`모두 확정`)은 캡처 범위 밖이다. 1440·390px 랜딩에서 구도와 가로 넘침 없음을 확인했다.
+
 참고: [Craft](https://www.craft.do/ko) 작성 섹션, [Linear](https://linear.app/) Planning and monitoring 섹션. 해당 사이트의 자산을 복제하지 않았다.
 
 ## Public demo completion — 2026-10-12
