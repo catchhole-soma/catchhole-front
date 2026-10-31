@@ -9,12 +9,15 @@ type MovedPerson = UnlinkedLinkSummary['people'][number];
  * - `done`: 모두 정리했다. 이번 화면에서 옮긴 설정을 인물 묶음별로 모아 `보기`로 이동하게 한다. 새로고침 뒤에는 옮긴 기록이
  *   없으므로 왼쪽 목록을 안내한다.
  * - `checking`: 다른 페이지로 밀렸는지 찾는 중이다.
- * - `lookupFailed`: 다른 페이지를 읽지 못해 남은 후보 위치를 모른다. `다시 시도`로 같은 탐색을 다시 한다.
+ * - `lookupFailed`: 다른 페이지를 읽지 못했거나 설정이 여러 페이지에 나뉘어 표시되어 남은 후보 위치를 모른다.
+ *   `다시 시도`로 같은 탐색을 다시 한다.
  */
 export function UnlinkedGroupDone({
-  status, summary, restored, canOpenNext, findingNext, nextMissed, onOpenPerson, onOpenNext, onRetryLookup,
+  status, lookupReason, summary, restored, canOpenNext, findingNext, nextMissed, onOpenPerson, onOpenNext, onRetryLookup,
 }: {
   status: 'done' | 'checking' | 'lookupFailed';
+  /** 찾지 못한 이유. `partialList`는 설정이 여러 페이지에 나뉘어 표시되어(구버전 목록) 모두 확인했다고 볼 수 없는 경우다. */
+  lookupReason?: 'readFailed' | 'partialList';
   summary: UnlinkedLinkSummary;
   restored: boolean;
   canOpenNext: boolean;
@@ -35,8 +38,10 @@ export function UnlinkedGroupDone({
           {failed ? '남은 미연결 후보 위치를 확인하지 못했어요.' : '남은 미연결 후보 위치를 확인하고 있어요.'}
         </h2>
         <p className="review-unlinked-done__text">
-          {failed ? '다른 페이지의 목록을 읽지 못했어요. 다시 시도하거나 왼쪽 목록에서 볼 묶음을 골라 주세요.'
-            : '새로 생긴 인물 묶음 때문에 다음 페이지로 밀렸는지 찾고 있어요.'}
+          {!failed ? '새로 생긴 인물 묶음 때문에 다음 페이지로 밀렸는지 찾고 있어요.'
+            : lookupReason === 'partialList'
+              ? '설정이 여러 페이지에 나뉘어 표시되어 남은 미연결 후보가 있는지 모두 확인하지 못했어요. 다시 시도하거나 왼쪽 목록에서 볼 묶음을 골라 주세요.'
+              : '다른 페이지의 목록을 읽지 못했어요. 다시 시도하거나 왼쪽 목록에서 볼 묶음을 골라 주세요.'}
         </p>
         {failed && (
           <div className="review-unlinked-done__actions">

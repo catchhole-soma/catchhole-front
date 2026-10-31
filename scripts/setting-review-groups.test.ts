@@ -124,6 +124,13 @@ test('미처리 후보가 남았는데 지금 목록에 없으면 다른 페이�
   assert.equal(unlinkedGroupAfterChange([], '미상', [], []), 'done');
 });
 
+test('구버전 후보 단위 페이지가 여러 쪽이면 지금 목록만으로 완료로 단정하지 않고 다른 페이지를 확인한다', () => {
+  const partialList = { partialList: true };
+  assert.equal(unlinkedGroupAfterChange([unknown('c1')], '미상', ['c1'], [{ groupKey: '레온' }], partialList), 'find');
+  assert.equal(unlinkedGroupAfterChange([], '미상', [], [{ groupKey: '미상', candidates: [{ id: 'c0', reviewStatus: 'DISMISSED' }] }], partialList), 'find');
+  assert.equal(unlinkedGroupAfterChange([unknown('c1', 'c2')], '미상', ['c1'], [unknown('c2')], partialList), 'stay');
+});
+
 test('미연결 묶음을 정리한 뒤 다음 미처리 묶음은 뒤에 있던 묶음, 앞쪽 묶음, 새로 생긴 묶음 순으로 고른다', () => {
   // 미상은 맨 뒤라 뒤에 있던 묶음이 없다. 연결로 생긴 existing:x보다 직전 목록의 첫 묶음으로 돌아간다.
   assert.equal(nextGroupKeyWrapping(groups('a', 'b', '미상'), '미상', groups('existing:x', 'a', 'b')), 'a');

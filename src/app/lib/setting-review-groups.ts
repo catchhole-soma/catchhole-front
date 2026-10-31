@@ -51,15 +51,21 @@ type CandidateGroupLike = GroupLike & { candidates?: ReadonlyArray<{ id?: string
  * - `done`: 미처리 후보가 남지 않았다(목록에서 사라졌거나 `전체` 필터에서 처리된 후보만 남았다). 그 자리에 완료 상태를 보인다.
  * - `find`: 지금 목록에는 없지만 직전 목록 기준으로 남은 후보가 있다. 연결로 생긴 인물 묶음이 앞에 끼어들어 다음
  *   페이지로 밀렸을 수 있으므로 다른 페이지에서 같은 key를 찾는다.
+ *
+ * `partialList`는 구버전 Backend의 후보 단위 페이지가 여러 쪽이라 지금 목록의 묶음이 일부만 담겼다는 뜻이다. 다른
+ * 페이지에 같은 묶음의 대기 후보가 있을 수 있으므로 `done` 대신 `find`로 다른 페이지를 확인하게 한다.
  */
 export function unlinkedGroupAfterChange(
   previous: ReadonlyArray<CandidateGroupLike>,
   groupKey: string,
   removedIds: ReadonlyArray<string>,
   current: ReadonlyArray<CandidateGroupLike>,
+  { partialList = false }: { partialList?: boolean } = {},
 ): 'stay' | 'done' | 'find' {
   const listed = current.find(group => group.groupKey === groupKey);
-  if (listed) return hasPendingCandidate(listed) ? 'stay' : 'done';
+  if (listed && hasPendingCandidate(listed)) return 'stay';
+  if (partialList) return 'find';
+  if (listed) return 'done';
   const removed = new Set(removedIds);
   const remaining = previous.find(group => group.groupKey === groupKey)?.candidates?.some(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW' && candidate.id != null && !removed.has(candidate.id)

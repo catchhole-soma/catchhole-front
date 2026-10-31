@@ -360,3 +360,52 @@ test('새로고침 뒤 미상 묶음을 다른 페이지에서 찾지 못해도 
   await expect(lookupFailed(page)).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /레온1개 설정/ })).toBeVisible();
 });
+
+// PR #113 2차 리뷰: 구버전 Backend가 `groups` 없이 단건 `candidates` 페이지만 주는 배포 구간에도 다른 페이지 읽기가
+// 메인 목록과 같은 이름별 묶음으로 해석한다.
+
+/** 목록 GET을 구버전 응답(`groups` 없음, 후보 단위 페이지)으로 바꾼다. 쓰기·상세는 원래 목 API가 처리한다. */
+async function routeLegacyList(page: Page, rows: MockCandidate[]) {
+  await page.route(url => url.pathname === listPath, async route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const url = new URL(route.request().url());
+    const size = Number(url.searchParams.get('size') ?? 20);
+    const index = Number(url.searchParams.get('page') ?? 0);
+    const reviewStatus = url.searchParams.get('reviewStatus');
+    const visible = rows.filter(row => !reviewStatus || row.reviewStatus === reviewStatus);
+    const pending = rows.filter(row => row.reviewStatus === 'PENDING_REVIEW').length;
+    const totalPages = Math.max(1, Math.ceil(visible.length / size));
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: {
+      batchId: '52222222-2222-4222-8222-222222222222', episodeStartNo: 1, episodeEndNo: 3, episodeCount: 3,
+      totalCandidateCount: rows.length, pendingCandidateCount: pending, directReviewCandidateCount: pending,
+      confirmedCandidateCount: 0, dismissedCandidateCount: 0, processingCandidateCount: 0,
+      candidates: { content: visible.slice(index * size, index * size + size), page: index, size,
+        totalElements: visible.length, totalPages, hasNext: index + 1 < totalPages },
+    } }) });
+  });
+}
+
+test('구버전 목록 응답에서도 다른 페이지에 남은 미상 후보를 찾아 그 페이지의 미상 묶음을 연다', async ({ page }) => {
+  const rows = [settingCandidate('n1', { entityName: '레온', rawEntityMention: '레온' }), settingCandidate('c1', { attributeDisplayName: '직업' })];
+  await routeCharacterLinkMock(page, { candidates: rows, characters });
+  await routeLegacyList(page, rows);
+  // 후보 단위 1개씩: 1페이지 [레온], 2페이지 [미상]. 1페이지 URL로 미상 묶음을 다시 연 경우다.
+  await page.goto(reviewUrl({ group: '미상', page: '1', size: '1' }));
+  await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+  expect(groupParam(page)).toBe('미상');
+  await expect(page.getByRole('heading', { name: /인물 미확인1개 설정/ })).toBeVisible();
+  await expect(doneTitle(page)).toHaveCount(0);
+});
+
+test('구버전 목록이 여러 페이지면 미상 후보를 찾지 못해도 완료로 단정하지 않고 확인하지 못했다고 알린다', async ({ page }) => {
+  const rows = [settingCandidate('n1', { entityName: '레온', rawEntityMention: '레온' }),
+    settingCandidate('a1', { entityName: '아리아', rawEntityMention: '아리아', attributeDisplayName: '눈 색깔' })];
+  await routeCharacterLinkMock(page, { candidates: rows, characters });
+  await routeLegacyList(page, rows);
+  await page.goto(reviewUrl({ group: '미상', page: '1', size: '1' }));
+  await expect(lookupFailed(page)).toBeVisible();
+  await expect(page.getByTestId('unlinked-group-lookup')).toContainText('설정이 여러 페이지에 나뉘어 표시되어');
+  await expect(page.getByRole('button', { name: '다시 시도', exact: true })).toBeVisible();
+  await expect(doneTitle(page)).toHaveCount(0);
+  expect(groupParam(page)).toBe('미상');
+});
