@@ -5,7 +5,8 @@ import { CHARACTER_CASES, UNKNOWN_GROUP_KEY, WORLD_CASES, WORLD_TARGET, type Flo
  * 개선 어댑터: #211 후속 F1~F3 화면에서 작가가 정답을 알고 있을 때 밟는 최소 절차.
  * - 캐릭터: 미연결 묶음에서 같은 인물(인물B)의 설정 2개를 체크해 `선택 항목 연결`로 한 번에 서버 검색·연결하고,
  *   나머지는 후보별 `캐릭터 연결 변경`에서 서버 검색(인물H)·새 인물 등록(인물J)으로 연결한다. 연결해도 읽던 묶음에 남고,
- *   묶음이 비면 다음 미처리 묶음이 열린다. 인물 묶음마다 현재 반영을 고른 뒤 고정 확정 영역의 `확정하고 다음`을 누른다.
+ *   묶음이 비어도 그 자리에 완료 상태(옮긴 인물 묶음 목록)가 보인다. 목록에서 사이드바 맨 위의 인물 묶음을 `보기`로 열고,
+ *   인물 묶음마다 현재 반영을 고른 뒤 고정 확정 영역의 `확정하고 다음`을 누른다.
  *   자동으로 열린 묶음이 이번 사례와 무관하면(인물A) 사이드바에서 남은 묶음을 고른다.
  * - 세계관: `모두 선택` → `선택 항목 대상 연결` → 대상 검색 1회 → 장소X 선택 → `고른 대상에 연결` → `모두 확정`.
  * - 복구: 연결한 묶음으로 이동해 현재 반영을 고르면 응답이 유실된다. 화면이 스스로 다시 읽어 저장 완료로 바뀌는지만 확인한다.
@@ -133,9 +134,17 @@ export const improvedFlow: FlowAdapter = {
       await linkOne(context, caseOf('직업'));
       await expect(page.getByRole('heading', { level: 2 })).toContainText('인물 미확인');
       expect(currentGroup(page)).toBe(UNKNOWN_GROUP_KEY);
-      // 마지막 후보를 연결하면 미연결 묶음이 비고 화면이 다음 미처리 묶음을 연다.
+      // 마지막 후보를 연결해 미연결 묶음이 비어도 화면은 그 자리에 남고, 옮긴 인물 묶음을 모은 완료 상태를 보여 준다.
       await linkOne(context, caseOf('나이'));
-      await expect.poll(() => currentGroup(page)).not.toBe(UNKNOWN_GROUP_KEY);
+      const done = page.getByTestId('unlinked-group-done');
+      await expect(done.getByRole('heading', { name: '미연결 후보를 모두 정리했어요.' })).toBeFocused();
+      await expect(done.getByRole('listitem')).toHaveCount(PERSON_GROUPS.length);
+      expect(currentGroup(page)).toBe(UNKNOWN_GROUP_KEY);
+      // 옮긴 인물 묶음 가운데 사이드바에서 가장 위에 있는 묶음을 `보기`로 연다. 이후는 `확정하고 다음`으로 이어 간다.
+      const order = await page.locator('.candidate-group-card strong').allTextContents();
+      const first = PERSON_GROUPS.slice().sort((left, right) => order.indexOf(left.name) - order.indexOf(right.name))[0];
+      await meter.selectGroup(done.getByRole('button', { name: `${first.name} 묶음 보기`, exact: true }),
+        personGroupKey(context, first.name), `완료 상태: ${first.name} 묶음 보기`);
 
       const remaining = [...PERSON_GROUPS];
       while (remaining.length) {

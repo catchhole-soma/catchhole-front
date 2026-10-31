@@ -128,13 +128,18 @@ test('이름 있는 묶음은 묶음 전체 연결과 체크한 설정 연결을
   await expect(page.getByText('‘캐릭터 일괄 연결’은 이 이름 묶음 전체를, ‘선택 항목 연결’은 체크한 설정만 연결해요.')).toBeVisible();
 });
 
-test('묶음의 마지막 설정까지 연결하면 다음 미처리 묶음을 연다', async ({ page }) => {
+test('미연결 묶음의 남은 설정을 모두 선택 연결해도 다른 묶음을 열지 않고 그 자리에 완료 상태를 보인다', async ({ page }) => {
   const state = await openUnlinkedGroup(page);
   await page.getByRole('checkbox', { name: '모두 선택(4)' }).check();
   await linkSelectionTo(page, '아리아');
-  await expect.poll(() => new URL(page.url()).searchParams.get('group')).not.toBe('미상');
-  await expect(page.getByRole('heading', { name: /인물 미확인/ })).toHaveCount(0);
+  const done = page.getByTestId('unlinked-group-done');
+  await expect(done.getByRole('heading', { name: '미연결 후보를 모두 정리했어요.' })).toBeFocused();
+  await expect(done.getByRole('listitem')).toHaveText(['아리아옮긴 설정 4개보기']);
+  expect(new URL(page.url()).searchParams.get('group')).toBe('미상');
   expect(state.writes[0].body.candidateIds).toEqual(['c1', 'c2', 'c3', 'c4']);
+  // 이름 있는 묶음(레온)이 남아 있으므로 다음 미처리 묶음으로 이어 갈 수 있다.
+  await done.getByRole('button', { name: '다음 미처리 묶음', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('group')).toBe('레온');
 });
 
 test('선택 연결 응답을 잃어도 다시 읽어 저장을 확인하고 같은 요청을 다시 보내지 않는다', async ({ page }) => {
