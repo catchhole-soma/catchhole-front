@@ -223,7 +223,9 @@ type WorldRecoveryContext =
   | { kind: 'decision'; drafts: WorldSettingCandidateDecisionUpdateItem[]; acknowledged: boolean; lost: boolean;
     groupKey?: string; error?: unknown; stay?: WorldTargetLinkStay;
     /** 저장을 보낸 시점의 묶음·필터·페이지(`reviewLocationKey`). 작가가 그 사이 옮겼으면 URL을 되돌리지 않는다. */
-    origin?: string | null }
+    origin?: string | null;
+    /** 저장이 확인되면(정상 응답·응답 유실 복구 모두) 실행할 호출부의 후속 처리. */
+    afterSaved?: () => void }
   | { kind: 'confirm'; groupKey: string | null; candidateIds: string[];
     /** 제외(EXCLUDE)로 확정한 후보. 서버가 DISMISSED로 바꾼다. 나머지는 CONFIRMED여야 요청한 결과다. */
     dismissedIds: string[];
@@ -1729,6 +1731,8 @@ export function WorldSettingReview() {
   const [recoveringDraftIds, setRecoveringDraftIds] = useState<Set<string>>(new Set());
   const [advanceSignal, setAdvanceSignal] = useState(0);
   const advanceRef = useRef<WorldGroupAdvance | null>(null);
+  /** 결정 저장을 확인하는 동안 옛 묶음 선택을 붙잡는 표식. 다른 묶음으로 URL을 바꾸면 비워 선택 effect가 풀게 둔다. */
+  const selectionHoldRef = useRef<WorldGroupAdvance | null>(null);
   const focusGroupKeyRef = useRef<string | null>(null);
   const confirmRequestRef = useRef<{ groupKey: string; previousGroups: WorldSettingCandidateGroupResponse[] } | null>(null);
   const [originalHoldReasons, setOriginalHoldReasons] = useState<Record<string, WorldSettingCandidateResponse['automaticReviewHoldReason']>>({});
@@ -2305,24 +2309,68 @@ export function WorldSettingReview() {
       await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
       return;
     }
-    // 저장한 후보의 그룹이 지금 페이지에 그대로 있으면 읽던 페이지를 유지한다. 분류·대상이 바뀌어 그룹이
-    // 다른 페이지로 옮겨 갔거나 필터를 바꿔야 할 때만 첫 페이지에서 다시 찾는다.
-    const refreshedGroups = queryClient.getQueryData(listOptions.queryKey)?.data?.groups?.content ?? groups;
+    // 저장한 후보가 지금 속한 묶음과 페이지로 옮긴다. 정상 응답(묶음 키가 있음)과 응답 유실 복구(묶음 키가 없음)가
+    // 같은 결과가 되도록 서버 목록에서 후보로 찾고, 응답의 묶음 키는 찾지 못했을 때만 쓴다.
+    // 지금 페이지에 그대로 있으면 읽던 페이지를 유지하고, 분류·반영 방식 필터가 맞지 않으면 저장한 값으로 바꾼다.
     const categoryChanged = Boolean(firstDecision && categoryFilter !== 'ALL' && categoryFilter !== firstDecision.category);
     const operationChanged = Boolean(firstDecision && operationFilter !== 'ALL' && operationFilter !== firstDecision.operation);
-    const groupOnPage = !nextGroupKey || refreshedGroups.some(group => group.groupKey === nextGroupKey);
-    if (stayedAtOrigin && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous);
-        if (nextGroupKey) next.set('group', nextGroupKey);
-        if (categoryChanged && firstDecision) next.set('worldCategory', firstDecision.category);
-        if (operationChanged && firstDecision) next.set('operation', firstDecision.operation);
-        if (categoryChanged || operationChanged || !groupOnPage) next.set('page', '1');
-        next.delete('candidate');
-        return next;
-      }, { replace: true, state: location.state });
+    if (stayedAtOrigin && firstDecision) {
+      const found = await locateSavedGroup(firstDecision.candidateId, {
+        category: categoryChanged ? firstDecision.category : categoryFilter,
+        operation: operationChanged ? firstDecision.operation : operationFilter,
+        searchCurrentPage: !categoryChanged && !operationChanged,
+      });
+      const groupKey = found?.groupKey ?? nextGroupKey;
+      // 묶음을 찾는 동안 작가가 다른 위치로 옮겼으면 그 위치를 덮지 않는다.
+      if ((origin == null || reviewLocationKey() === origin) && isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) {
+        const hold = selectionHoldRef.current;
+        if (hold && groupKey && groupKey !== hold.groupKey) {
+          hold.target = groupKey;
+          selectionHoldRef.current = null;
+        }
+        setSearchParams(previous => {
+          const next = new URLSearchParams(previous);
+          if (groupKey) next.set('group', groupKey);
+          if (categoryChanged && firstDecision) next.set('worldCategory', firstDecision.category);
+          if (operationChanged && firstDecision) next.set('operation', firstDecision.operation);
+          if (found?.page != null) next.set('page', String(found.page + 1));
+          else if (!found && (categoryChanged || operationChanged || nextGroupKey)) next.set('page', '1');
+          next.delete('candidate');
+          return next;
+        }, { replace: true, state: location.state });
+      }
     }
     await queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId } }) });
+  };
+
+  /**
+   * 저장한 후보가 속한 묶음과 그 페이지(0부터, 지금 페이지면 null)를 서버 목록에서 찾는다. 찾지 못하면 null.
+   * 결정 저장 확인(`runRecovery`) 안에서만 불리며, 그동안 옛 묶음 선택은 붙잡혀 있다.
+   */
+  const locateSavedGroup = async (candidateId: string, target: {
+    category: CategoryFilter; operation: OperationFilter; searchCurrentPage: boolean;
+  }): Promise<{ groupKey: string; page: number | null } | null> => {
+    const owning = (response?: GetWorldSettingCandidatesResponse) => response?.data?.groups?.content?.find(group => (
+      group.candidates?.some(candidate => candidate.id === candidateId)))?.groupKey;
+    if (target.searchCurrentPage) {
+      const onPage = owning(queryClient.getQueryData(listOptions.queryKey));
+      if (onPage) return { groupKey: onPage, page: null };
+    }
+    try {
+      for (let page = 0; ; page += 1) {
+        const response = await queryClient.fetchQuery({ ...getWorldSettingCandidatesOptions({ ...listRequest, query: {
+          ...listRequest.query,
+          category: target.category === 'ALL' ? undefined : target.category,
+          operation: target.operation === 'ALL' ? undefined : target.operation,
+          page,
+        } }), staleTime: 0 });
+        const groupKey = owning(response);
+        if (groupKey) return { groupKey, page };
+        if (page + 1 >= (response.data?.groups?.totalPages ?? 0)) return null;
+      }
+    } catch {
+      return null;
+    }
   };
 
   /** 결과 확인을 다시 읽지 못하면 1→3→8초 뒤 최대 3회 자동으로 다시 확인한다. 이후에는 수동 확인 버튼만 남긴다. */
@@ -2345,6 +2393,29 @@ export function WorldSettingReview() {
       // 재조회에서 그룹이 사라져도 확정 여부를 판단하기 전에는 첫 그룹으로 되돌리지 않는다.
       advanceRef.current = { groupKey: context.groupKey, previous: context.previousGroups, force: false, armed: false };
     }
+    // 결정 저장을 확인하는 동안(읽은 목록으로 캐시를 바꾼 뒤 옮길 묶음·페이지를 정할 때까지) 옛 묶음이 목록에서
+    // 사라져도 첫 묶음으로 바꾸지 않게 선택을 붙잡아 둔다. 정상 응답과 응답 유실 복구가 같은 경로를 쓴다.
+    const hold: WorldGroupAdvance | null = context.kind === 'decision'
+      ? { groupKey: currentGroupParam() ?? '', previous: [], force: false, armed: false, target: null } : null;
+    if (hold) {
+      advanceRef.current = hold;
+      selectionHoldRef.current = hold;
+    }
+    try {
+      await runRecoveryStep(context);
+    } finally {
+      // 다른 묶음으로 URL을 바꿨으면 그 URL이 반영될 때 선택 effect가 붙잡기를 푼다(먼저 풀면 이전 URL로
+      // 렌더된 effect가 첫 묶음으로 덮어쓸 수 있다). 옮기지 않았으면 여기서 풀고 선택을 다시 판단하게 한다.
+      if (hold && selectionHoldRef.current === hold) {
+        selectionHoldRef.current = null;
+        if (advanceRef.current === hold) {
+          advanceRef.current = null;
+          setAdvanceSignal(signal => signal + 1);
+        }
+      }
+    }
+  };
+  const runRecoveryStep = async (context: WorldRecoveryContext) => {
     // 응답을 잃은 저장은 서버가 늦게 반영할 수 있으므로 일치를 확인할 때까지 잠금을 유지한다(requireMatch).
     const result = context.kind === 'decision'
       ? await recoverDecision(context.drafts, context.acknowledged || context.lost)
@@ -2379,8 +2450,9 @@ export function WorldSettingReview() {
         return;
       }
       recoveryContextRef.current = null;
-      // 응답을 잃었지만 서버에 같은 초안이 저장됐으면 저장 성공과 같이 접는다.
+      // 응답을 잃었지만 서버에 같은 초안이 저장됐으면 저장 성공과 같이 접는다(호출부 후속 처리·이동도 같다).
       if (context.lost) setVerifiedLostError(context.error);
+      context.afterSaved?.();
       await finishDecisionSave(context.drafts, context.groupKey, context.stay, context.origin);
       return;
     }
@@ -2448,6 +2520,7 @@ export function WorldSettingReview() {
 
   // 결정 저장을 보낸 시점의 위치. 한 번에 하나의 결정 저장만 보낸다(요청 중에는 다른 쓰기를 잠근다).
   const decisionOriginRef = useRef<string | null>(null);
+  const decisionAfterSavedRef = useRef<(() => void) | undefined>(undefined);
   /** 이 저장이 선택 대상 연결이었는지 꺼낸다. 요청한 후보가 같을 때만 쓰고 한 번 쓰면 비운다. */
   const takeTargetLinkStay = (drafts: WorldSettingCandidateDecisionUpdateItem[]) => {
     const stay = targetLinkRequestRef.current;
@@ -2465,7 +2538,7 @@ export function WorldSettingReview() {
       const stay = takeTargetLinkStay(variables.body.candidates);
       setDecisionRecoveryRequired(true);
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: false,
-        lost: isResponseLost(error), error, stay, origin: decisionOriginRef.current });
+        lost: isResponseLost(error), error, stay, origin: decisionOriginRef.current, afterSaved: decisionAfterSavedRef.current });
     },
     onSuccess: async (response, variables) => {
       await invalidateReviewSummary({ workId: variables.path.workId, batchId: variables.body.batchId, sourceAnalysisJobId: variables.query?.sourceAnalysisJobId });
@@ -2476,14 +2549,19 @@ export function WorldSettingReview() {
       await queryClient.cancelQueries({ queryKey });
       await queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
       await startRecovery({ kind: 'decision', drafts: variables.body.candidates, acknowledged: true, lost: false,
-        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates), origin: decisionOriginRef.current });
+        groupKey: response.data?.groupKey, stay: takeTargetLinkStay(variables.body.candidates), origin: decisionOriginRef.current,
+        afterSaved: decisionAfterSavedRef.current });
     },
   });
-  /** 결정 저장을 보낸다. 늦게 끝난 후속 처리가 위치를 되돌리지 않도록 보낸 시점의 위치를 함께 기억한다. */
-  const mutateDecisions: typeof updateDecisionMutation.mutate = (variables, options) => {
+  /**
+   * 결정 저장을 보낸다. 늦게 끝난 후속 처리가 위치를 되돌리지 않도록 보낸 시점의 위치를 함께 기억한다.
+   * `afterSaved`는 저장이 확인되면 실행한다. mutate의 onSuccess는 응답을 잃으면 불리지 않으므로 쓰지 않는다.
+   */
+  const mutateDecisions = (variables: Parameters<typeof updateDecisionMutation.mutate>[0], afterSaved?: () => void) => {
     decisionOriginRef.current = reviewLocationKey();
+    decisionAfterSavedRef.current = afterSaved;
     setLostWriteNotSaved(null);
-    updateDecisionMutation.mutate(variables, options);
+    updateDecisionMutation.mutate(variables);
   };
 
   const retryDecisionRecovery = async () => {
@@ -2740,11 +2818,9 @@ export function WorldSettingReview() {
     mutateDecisions({
       query: { sourceAnalysisJobId }, path: { workId },
       body: { batchId, candidates },
-    }, {
-      onSuccess: () => {
-        if (!resolvedConflictCandidateIds.length || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
-        setResolvedConflictIds(previous => new Set([...previous, ...resolvedConflictCandidateIds]));
-      },
+    }, () => {
+      if (!resolvedConflictCandidateIds.length || !isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
+      setResolvedConflictIds(previous => new Set([...previous, ...resolvedConflictCandidateIds]));
     });
   };
 
@@ -3256,12 +3332,12 @@ export function WorldSettingReview() {
                           mutateDecisions({ query: { sourceAnalysisJobId }, path: { workId }, body: { batchId,
                             candidates: sources.map(source => ({ candidateId: source.id!, ...draft,
                               conflictResolved: source.consolidationStatus === 'CONFLICT' ? true : undefined })),
-                          } }, { onSuccess: () => {
+                          } }, () => {
                             if (!isWorldReviewLocation(workId, batchId, sourceAnalysisJobId)) return;
                             setResolvedConflictIds(previous => new Set([
                               ...previous, ...sources.filter(source => source.consolidationStatus === 'CONFLICT').map(source => source.id!),
                             ]));
-                          } });
+                          });
                         }}
                         onAnalysis={backToAnalysisList}
                         onConfirm={confirmAll}
