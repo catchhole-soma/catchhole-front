@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getWorldSettingOptions, getWorldSettingsOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { getWorldSettingOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { getWorldSettings } from '../../../api/generated/sdk.gen';
 import type { WorldSettingCandidateResponse } from '../../../api/generated/types.gen';
 import { shouldRetryQuery } from '../../../lib/query-client';
 import { C } from '../constants';
@@ -15,8 +16,9 @@ import {
 type WorldCategory = NonNullable<WorldSettingCandidateResponse['category']>;
 
 const PREVIEW_PROPERTY_LIMIT = 5;
-/** 새 대상 이름을 기존 대상과 대조할 때 받는 검색 결과 수. */
-const SAME_NAME_LOOKUP_SIZE = 20;
+/** 새 대상 이름을 기존 대상과 대조할 때 한 번에 받는 검색 결과 수(API 상한)와 끝까지 넘겨 볼 최대 페이지 수. */
+const SAME_NAME_LOOKUP_SIZE = 100;
+const SAME_NAME_LOOKUP_MAX_PAGES = 5;
 
 const normalizeTargetName = (value?: string | null) => (value ?? '').trim().normalize('NFC').toLocaleLowerCase('ko-KR');
 
@@ -30,15 +32,27 @@ function useSameNameTarget(workId: string, category: WorldCategory | undefined, 
     const timer = window.setTimeout(() => setCheckedName(name.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [name]);
+  // `q`는 대상명·설정명·값의 부분 일치라 첫 페이지만으로는 "같은 이름 없음"을 단정할 수 없다. 정확히 같은 이름을 찾거나
+  // 마지막 페이지까지 볼 때까지 이어서 읽고, 상한에 닿으면 확인하지 못한 것으로 둔다(새 대상 등록을 열지 않는다).
   const query = useQuery({
-    ...getWorldSettingsOptions({ path: { workId }, query: { category, q: checkedName || undefined, page: 0,
-      size: SAME_NAME_LOOKUP_SIZE, sort: 'CATEGORY_SUBJECT_ASC' } }),
+    queryKey: ['world-target-same-name', workId, category, normalizeTargetName(checkedName)],
+    queryFn: async () => {
+      for (let page = 0; page < SAME_NAME_LOOKUP_MAX_PAGES; page += 1) {
+        const { data } = await getWorldSettings({ path: { workId }, query: { category, q: checkedName, page,
+          size: SAME_NAME_LOOKUP_SIZE, sort: 'CATEGORY_SUBJECT_ASC' }, throwOnError: true });
+        const result = data?.data?.worldSettings;
+        const match = result?.content?.find(item => item.id && item.category === category
+          && normalizeTargetName(item.subjectName) === normalizeTargetName(checkedName));
+        if (match) return { status: 'found' as const, match };
+        if (!result?.hasNext) return { status: 'none' as const, match: undefined };
+      }
+      return { status: 'unknown' as const, match: undefined };
+    },
     enabled: enabled && Boolean(checkedName) && Boolean(category), retry: shouldRetryQuery,
   });
-  const settled = checkedName === name.trim() && query.isSuccess;
-  const match = settled ? query.data?.data?.worldSettings?.content?.find(item => item.id && item.category === category
-    && normalizeTargetName(item.subjectName) === normalizeTargetName(name)) : undefined;
-  return { query, settled, match };
+  const current = checkedName === name.trim() && query.isSuccess ? query.data : undefined;
+  return { query, settled: current?.status === 'none' || current?.status === 'found', match: current?.match,
+    unknown: current?.status === 'unknown' };
 }
 
 const OUTCOME_TEXT: Record<WorldTargetLinkOutcome, string> = {
@@ -185,6 +199,9 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
             <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={pending}
               onClick={() => setSelectedId(sameName.match!.id!)}>기존 ‘{sameName.match.subjectName}’ 고르기</button></div>
           </div>}
+          {isNew && typedNewTarget && sameName.unknown && <div role="alert" className="review-cb-notice is-warning">
+            <div>같은 이름의 기존 대상이 있는지 확인하지 못했어요 — 기존 대상을 검색해 고르거나 이름을 바꿔 주세요.</div>
+          </div>}
           {isNew && typedNewTarget && sameName.query.isError && <div role="alert" className="review-cb-notice is-warning">
             <div>같은 이름의 기존 대상이 있는지 확인하지 못했어요. 확인한 뒤 새로 등록할 수 있어요.</div>
             <div className="review-cb-notice__action"><button type="button" className="review-cb-secondary" disabled={pending}
@@ -204,7 +221,8 @@ export function WorldTargetLinkModal({ workId, units, groupCategory, groupSubjec
       <ActionButton disabled={pending} onClick={onClose}>취소</ActionButton>
       <ActionButton tone={C.primary} disabled={pending || !plan || !target}
         disabledTitle={!target ? isNew ? !typedNewTarget ? '새 대상 이름을 입력해 주세요.'
-          : sameName.match ? '같은 이름의 기존 대상을 골라 주세요.' : '같은 이름의 기존 대상이 있는지 확인하고 있어요.'
+          : sameName.match ? '같은 이름의 기존 대상을 골라 주세요.'
+          : sameName.unknown ? '같은 이름의 기존 대상이 있는지 확인하지 못했어요.' : '같은 이름의 기존 대상이 있는지 확인하고 있어요.'
           : '연결할 대상을 고르고 정보를 불러온 뒤 적용할 수 있어요.' : undefined}
         onClick={() => { if (target && plan) onApply(target, plan); }}>
         {pending ? '저장 중…' : '고른 대상에 연결'}
