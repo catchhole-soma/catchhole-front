@@ -173,6 +173,11 @@ export async function routeCharacterLinkMock(page: Page, options: CharacterLinkM
           entityName: first.entityName, candidates: selected,
         });
       }
+      const dismissed = state.candidates.find(candidate => path === `${listPath}/${candidate.id}/dismiss`);
+      if (dismissed) {
+        dismissed.reviewStatus = 'DISMISSED';
+        return success(route, dismissed);
+      }
       const single = state.candidates.find(candidate => path === `${listPath}/${candidate.id}/character-match`);
       if (single) {
         link(single, body);
