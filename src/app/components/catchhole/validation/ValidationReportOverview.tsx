@@ -7,6 +7,7 @@ import type {
 } from '../../../api/generated/types.gen';
 import type { ValidationResultsView } from '../../../hooks/useEpisodeValidationReport';
 import { ReviewNotice } from '../review-ui/ReviewPrimitives';
+import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../../lib/validation-feature';
 import { ActionButton } from '../ui-v2/ActionButton';
 import {
   applicationHoldLines,
@@ -214,7 +215,8 @@ export function ReportBasisCard({ staging, summary, results, resultsUnavailable,
   const fingerprint = staging?.baselineFingerprint?.slice(0, 8);
   const coverage = results?.coverage;
   const incomplete = results != null && results.status !== 'COMPLETED' && results.status !== 'NOT_STARTED' && !checking;
-  const retryAllowed = summary?.allowedActions?.includes('RETRY') === true;
+  const retryOffered = summary?.allowedActions?.includes('RETRY') === true;
+  const retryAllowed = retryOffered && EPISODE_VALIDATION_INTAKE_ENABLED;
 
   const [expanded, setExpanded] = useState(false);
   const settingStatus = resultsUnavailable ? '—' : branchStatusLabel(results?.settingStatus ?? (results?.status === 'NOT_STARTED' ? 'NOT_STARTED' : undefined));
@@ -267,6 +269,7 @@ export function ReportBasisCard({ staging, summary, results, resultsUnavailable,
           </ActionButton>
         </div>
       )}
+      {retryOffered && !EPISODE_VALIDATION_INTAKE_ENABLED && <ReviewNotice tone="info" title={EPISODE_VALIDATION_PAUSED_MESSAGE} />}
       {message}
     </section>
   );

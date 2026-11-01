@@ -1,5 +1,6 @@
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { ReviewNotice } from '../review-ui/ReviewPrimitives';
+import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../../lib/validation-feature';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { AnalysisProgressHero } from '../UploadLayout';
 import { NextEpisodeBlockedNotice } from './ValidationEntryNotices';
@@ -62,10 +63,12 @@ export function ValidationIntakeStatus({ workId, workTitle, intake, onStart, onR
         </ReviewNotice>
       )}
       {failure?.kind === 'blocked' && <NextEpisodeBlockedNotice workId={workId} block={failure.block} />}
+      {!busy && !EPISODE_VALIDATION_INTAKE_ENABLED && <ReviewNotice tone="info" title={EPISODE_VALIDATION_PAUSED_MESSAGE} />}
       {!busy && (
         <div className="validation-intake__actions">
           {failure?.kind === 'unconfirmed' && <ActionButton onClick={onRecover}>접수 결과 다시 확인</ActionButton>}
-          {(failure?.kind === 'not-started' || failure?.kind === 'retryable') && <ActionButton onClick={onStart}>검수 접수 다시 시도</ActionButton>}
+          {(failure?.kind === 'not-started' || failure?.kind === 'retryable') && EPISODE_VALIDATION_INTAKE_ENABLED
+            && <ActionButton onClick={onStart}>검수 접수 다시 시도</ActionButton>}
           {failure?.kind === 'refused' && failure.fallback && (
             <ActionButton onClick={onFallback} disabled={fallbackPending}>
               {fallbackPending ? '분석을 요청하고 있어요…' : '기존 설정 구축으로 분석 시작'}

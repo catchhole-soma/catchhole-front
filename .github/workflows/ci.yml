@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # 오류 리포트 접수 진입점은 운영 기본 OFF다. 기존 E2E는 ON 동작을 검증하므로 CI 기본값을 켠다.
+      VITE_EPISODE_VALIDATION_INTAKE_ENABLED: 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +33,11 @@ jobs:
         env:
           VITE_RELATIONSHIP_WORKSPACE_ENABLED: 'false'
           CATCHHOLE_E2E_PORT: '3107'
+      - name: Verify validation intake disabled (production default)
+        run: npm run test:e2e -- e2e/validation-intake-off.spec.ts --workers=2
+        env:
+          VITE_EPISODE_VALIDATION_INTAKE_ENABLED: 'false'
+          CATCHHOLE_E2E_PORT: '3108'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
