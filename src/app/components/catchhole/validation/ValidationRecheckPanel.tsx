@@ -5,6 +5,7 @@ import type { useEpisodeValidationReport } from '../../../hooks/useEpisodeValida
 import { ReviewNotice } from '../review-ui/ReviewPrimitives';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { useValidationRecheck } from './useValidationRecheck';
+import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../../lib/validation-feature';
 import { formatDateTime, validationReportUrl } from './validation-report-labels';
 
 /** 확인창에 보여 줄 변경 요약. 원고 revision이 검사 당시보다 커졌을 때만 원고 교체로 표시한다. */
@@ -43,6 +44,13 @@ export function ValidationRecheckPanel({ workId, reportId, report, correctionRec
   const episodeLabel = [report.episode?.episodeNo != null ? `${report.episode.episodeNo}화` : '이 회차', report.episode?.title]
     .filter(Boolean).join(' ');
   if (!recheck.listed) return null;
+  if (!EPISODE_VALIDATION_INTAKE_ENABLED) {
+    return (
+      <div className="vr-actions vr-recheck-entry">
+        <span className="vr-muted">{EPISODE_VALIDATION_PAUSED_MESSAGE}</span>
+      </div>
+    );
+  }
   const notice = recheck.notice ? (
     <ReviewNotice tone={recheck.notice.tone} title={recheck.notice.text}
       action={recheck.notice.suggestRetry && retryAllowed

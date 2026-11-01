@@ -45,6 +45,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAnalysisJobProgress } from '../../hooks/useAnalysisJobProgress';
 import { toApiError } from '../../lib/api-errors';
+import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../lib/validation-feature';
 import {
   notifyAiTokenQuotaExhausted,
   observeAnalysisInterruption,
@@ -284,6 +285,8 @@ function UploadPurposeSelector({ value, onChange, disabled, validationAvailable,
   nextEpisodeNo: number | null;
 }) {
   const reasonId = useId();
+  // 운영 규모 검수가 안정될 때까지 접수 진입점을 빌드 플래그로 막는다. 보기 화면은 막지 않는다.
+  const available = validationAvailable && EPISODE_VALIDATION_INTAKE_ENABLED;
   const selected = (purpose: UploadPurpose) => value === purpose;
   const optionStyle = (purpose: UploadPurpose, enabled: boolean): React.CSSProperties => ({
     flex: 1, padding: '10px 12px', textAlign: 'left', borderRadius: 6,
@@ -309,20 +312,24 @@ function UploadPurposeSelector({ value, onChange, disabled, validationAvailable,
           <div style={{ fontSize: 11, color: C.t3 }}>원고에서 설정 후보를 추출합니다</div>
         </button>
         <button
-          className={`episode-analysis-type${selected('VALIDATION') ? ' is-selected' : ''}${validationAvailable ? '' : ' is-disabled'}`}
+          className={`episode-analysis-type${selected('VALIDATION') ? ' is-selected' : ''}${available ? '' : ' is-disabled'}`}
           type="button"
           aria-pressed={selected('VALIDATION')}
-          aria-describedby={validationAvailable ? undefined : reasonId}
-          disabled={disabled || !validationAvailable}
+          aria-describedby={available ? undefined : reasonId}
+          disabled={disabled || !available}
           onClick={() => onChange('VALIDATION')}
-          style={optionStyle('VALIDATION', validationAvailable)}
+          style={optionStyle('VALIDATION', available)}
         >
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>신규 회차 검수</div>
           <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌과 오탈자를 먼저 검사합니다</div>
         </button>
       </div>
-      {!validationAvailable && <p id={reasonId} className="episode-upload-purpose-note">{MULTI_EPISODE_VALIDATION_REASON}</p>}
-      {validationAvailable && value === 'VALIDATION' && (
+      {!available && (
+        <p id={reasonId} className="episode-upload-purpose-note">
+          {EPISODE_VALIDATION_INTAKE_ENABLED ? MULTI_EPISODE_VALIDATION_REASON : EPISODE_VALIDATION_PAUSED_MESSAGE}
+        </p>
+      )}
+      {available && value === 'VALIDATION' && (
         <p className="episode-upload-purpose-note" role="note">
           <strong>오류 검사와 작가 검토를 마친 뒤 이번 회차의 설정을 추출해요.</strong>{' '}
           {nextEpisodeNo ? `마지막 회차 바로 다음 회차(${nextEpisodeNo}화) 한 편만 검수할 수 있어요.` : '마지막 회차 바로 다음 회차 한 편만 검수할 수 있어요.'}
@@ -544,7 +551,7 @@ function EpisodeUpload() {
     : 'SETTING_EXTRACTION';
   const [analysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
   const [uploadPurpose, setUploadPurpose] = useState<UploadPurpose>('SETTING_EXTRACTION');
-  const validationPurpose = uploadType === 'SINGLE_EPISODE' && uploadPurpose === 'VALIDATION';
+  const validationPurpose = uploadType === 'SINGLE_EPISODE' && uploadPurpose === 'VALIDATION' && EPISODE_VALIDATION_INTAKE_ENABLED;
   const [reviewMode, setReviewMode] = useState<ReviewMode>('AUTOMATIC');
   const [uploadCharactersByType, setUploadCharactersByType] = useState<Partial<Record<EpisodeUploadType, number>>>({});
   const [characterLimitErrors, setCharacterLimitErrors] = useState<Partial<Record<EpisodeUploadType, string>>>({});

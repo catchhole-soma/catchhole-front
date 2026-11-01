@@ -260,3 +260,7 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 - 관계 종류는 `인물 관계도 / 가계도` 순서다. 가족 상세 상태가 없는 `nav=graph` 진입은 인물 관계도가 기본이며, `relationMode=people|family`의 명시적 선택과 기존 가족 상세/legacy 링크는 `getRelationshipMode`로 복원한다. 인물 관계도는 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
 - 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.
+
+## GH349 오류 리포트 접수 플래그
+
+- 오류 리포트(신규 회차 검수)의 접수·중단 검사 재시도·재검수 진입점은 기본 OFF다. 빌드 시 `VITE_EPISODE_VALIDATION_INTAKE_ENABLED`가 정확히 문자열 `true`일 때만 켜며 미설정·그 외 값은 OFF다. 2026-10-31 운영 30회차 작품 검수가 질문 65개·판정 130회 규모로 끝까지 돌지 못해(Java #349·#354) 로컬에서 운영 규모 검증을 마칠 때까지 막아 둔다. OFF에서는 업로드의 `신규 회차 검수` 선택과 리포트의 `중단된 검사 다시 시도`·`수정 내용으로 재검수`를 숨기고 점검 안내만 보여 주며, 기존 리포트 보기·분석 목록 카드·설정 정정 화면은 그대로다. UI 플래그는 Backend `VALIDATION_EXECUTION_ENABLED`·내부 API·권한 검증을 대신하지 않는다.
