@@ -311,18 +311,20 @@ function UploadPurposeSelector({ value, onChange, disabled, validationAvailable,
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>기존 설정 구축</div>
           <div style={{ fontSize: 11, color: C.t3 }}>원고에서 설정 후보를 추출합니다</div>
         </button>
-        <button
-          className={`episode-analysis-type${selected('VALIDATION') ? ' is-selected' : ''}${available ? '' : ' is-disabled'}`}
-          type="button"
-          aria-pressed={selected('VALIDATION')}
-          aria-describedby={available ? undefined : reasonId}
-          disabled={disabled || !available}
-          onClick={() => onChange('VALIDATION')}
-          style={optionStyle('VALIDATION', available)}
-        >
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>신규 회차 검수</div>
-          <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌과 오탈자를 먼저 검사합니다</div>
-        </button>
+        {EPISODE_VALIDATION_INTAKE_ENABLED && (
+          <button
+            className={`episode-analysis-type${selected('VALIDATION') ? ' is-selected' : ''}${available ? '' : ' is-disabled'}`}
+            type="button"
+            aria-pressed={selected('VALIDATION')}
+            aria-describedby={available ? undefined : reasonId}
+            disabled={disabled || !available}
+            onClick={() => onChange('VALIDATION')}
+            style={optionStyle('VALIDATION', available)}
+          >
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>신규 회차 검수</div>
+            <div style={{ fontSize: 11, color: C.t3 }}>확정된 설정과의 충돌과 오탈자를 먼저 검사합니다</div>
+          </button>
+        )}
       </div>
       {!available && (
         <p id={reasonId} className="episode-upload-purpose-note">
