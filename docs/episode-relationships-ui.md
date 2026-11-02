@@ -2,6 +2,31 @@
 
 공통 데이터·운영 계약은 [회차별 인물 관계도 계약](episode-relationships.md)을 따른다.
 
+## 2026-11-02 GH359 검증
+
+- 인물·가족 관계 Playwright 106개와 명시적 OFF 4개 통과. 기술 미완료/의미 보류/구응답, 실패한 빈 결과, 기존 연결 보존과 마지막 확인, 확인 회차 0, 100개 미완료 회차 요약, 320px, 과거 cutoff, polling 중 초안 유지가 포함된다.
+- 실제 Java MVC가 내보낸 OpenAPI로 SDK를 재생성했으며 `npm run typecheck`·`npm run build`와 부분 완료 관련 Playwright 12개 재검증 통과. 기존 청크 크기 경고는 유지한다.
+- 배치 테스트는 77개 통과, 별도 외부 합성 fixture가 필요한 1개 건너뜀. `npm run test:layout`의 tsx IPC가 샌드박스에서 거절되어 동일 테스트 파일을 `node --import tsx --test scripts/family-tree-layout.test.ts scripts/episode-relationship-*.test.ts`로 실행했다.
+- lint 오류 0, 기존 Fast Refresh 경고 2개. Knip은 기존 미사용 파일 `e2e/episode-source-list.ts`, `scripts/analysis-list-benchmark.mjs`로 실패한다. React Doctor는 전체 295개 진단(기존 상태 updater 오류 3개)을 보고했으며 이번 작업에서 숨기지 않았다.
+- [데스크톱](screens/gh359/episode-relationships-partial-desktop.png)·[320px 근거](screens/gh359/episode-relationships-partial-mobile-320.png)는 합성 목 응답으로 렌더링하고 직접 확인했다. 이 검증은 실제 Worker 품질·운영 사용자 데이터·생산 배포 검증을 뜻하지 않는다.
+
+SDK의 큰 diff는 Java main 동기화와 타입 선언 순서 변경을 포함한다. TypeScript AST로 기존 type alias를 주석 없이 비교한 결과 실제 변경은 13개 타입이며 타입/API 삭제는 없다. 신규 타입 22개는 `BlockedPair`·`GroupFailure`와 관계 Worker 4개 endpoint의 요청/응답/오류 타입이다. 신규 SDK 함수는 `claimRelationshipJob`, `completeRelationshipJob`, `failRelationshipJob`, `renewRelationshipJobLease`뿐이다. 기존 타입 변경은 main의 `RELATIONSHIP_EXTRACTION`·검수 `SUBJECT_RESOLUTION`, 관계 capability/부분 완료 메타데이터, OpenAPI 서버의 `ClientOptions` literal이다. `http://localhost`는 생성 타입의 허용 literal이고 실제 `client.gen.ts`·`client-config.ts`는 변경하지 않았다. 실행 시 `API_BASE_URL`·`credentials: include`·`fetchWithAuth`를 그대로 사용하며 생성 파일을 수동으로 재정렬하거나 편집하지 않았다.
+
+### 부분 완료의 실제 API 브라우저 검증
+
+`scripts/verify-relationship-partial-live.mjs`는 Java의 `RelationshipBackfillHttpPostgresIntegrationTest.partialPairsContinueThroughRealPythonAndAlertOnce`가 실행되는 동안 선택적으로 호출한다. Java 테스트가 격리 PostgreSQL에 만든 합성 세 회차와 실제 Python Worker 결과를 Spring API로 읽는다. 원문 저장소와 LLM 응답은 합성 provider로 고정하며 외부 모델을 호출하지 않는다. 브라우저의 생성 SDK 요청은 로컬 Vite proxy를 거쳐 같은 Spring 서버로 전달하며 API 응답을 목 데이터로 바꾸지 않는다. 다음은 준비된 AI 테스트 Python 환경과 Docker가 있을 때 Java checkout에서 실행하는 명령이다.
+
+```sh
+GH332_AI_CHECKOUT=/absolute/path/to/catchhole-backend-ai \
+GH332_PYTHON=/absolute/path/to/prepared/python \
+GH359_FRONT_CHECKOUT=/absolute/path/to/catchhole-front \
+./gradlew test --tests '*RelationshipBackfillHttpPostgresIntegrationTest.partialPairsContinueThroughRealPythonAndAlertOnce'
+```
+
+프런트 의존성과 Playwright Chromium이 미리 설치되어 있어야 하며 `127.0.0.1:33959`를 사용한다. Java가 비공개 임시 파일에 로컬 API 주소·테스트 JWT·합성 작품 ID만 전달하고 종료 시 fixture를 삭제한다. 스크립트는 fixture 권한·로컬 주소를 검사하며 외부 요청과 API 쓰기를 차단한다. 토큰·응답 본문·trace/HAR는 기록하지 않는다. `npm run test:relationship-partial-live -- <0600 fixture JSON 경로>`로 직접 실행하려면 같은 합성 Spring 테스트 서버가 살아 있어야 한다.
+
+2026-11-02 실제 bridge 1회 통과했다. 최신 3화의 연결 두 개, 미완료 회차 2·3화, 기존 연결의 마지막 확인 1화, 필수 검토 동선 없음, 320px에서 넘침 없음, 1화 전환 시 뒤 회차 미완료·인용의 비노출을 확인했다. API 쓰기 시도는 0회였고 종료 후 JWT fixture가 삭제되었다. 테스트 JWT 주입 이후 생성 SDK의 Bearer 전달을 확인하며 로그인·refresh 쿠키 발급이나 실제 모델의 판단 품질을 평가하지 않는다. 실행 캡처는 gitignored `test-results/relationship-partial-live/`에 저장한다. 직접 확인한 합성 실제 API 캡처는 [데스크톱 근거](screens/gh359/live-partial-detail-desktop.png), [320px 미완료 근거](screens/gh359/live-partial-detail-mobile-320.png), [1화 근거](screens/gh359/live-historical-detail-mobile-320.png)에 보존했다.
+
 ## 화면과 출처
 
 `/dashboard?workId=<id>&nav=graph`의 일반 진입은 인물 관계도를 열며, `relationMode=people`을 명시한 주소도 같은 화면이다. 탭은 왼쪽 `인물 관계도`, 오른쪽 `가계도` 순서다. 인물 관계도에서 분석한 회차를 선택한다. 기본은 최신 관계 분석이 반영된 회차다. 선택한 회차까지 드러난 이름, 관계 설명과 근거만 표시한다. 이전 회차를 고르면 당시 알 수 없었던 정체나 뒤 회차의 근거를 가져오지 않는다. 회차 선택 목록은 번호만 표시한다.
@@ -23,7 +48,11 @@
 
 서버가 회차 기준으로 제공한 노드 이름·프로필 등록 여부만 사용한다. 현재 캐릭터 목록·상세·이미지 API를 추가로 조회하지 않으며, 인물 카드는 해당 인물의 연결을 강조한다. 프로필 미등록도 근거가 명확하면 표시할 수 있지만 프론트가 동일 인물로 합치거나 프로필을 생성하지 않는다.
 
-`analysisStatus=PARTIAL` 또는 `partial=true`이면 관계 개수가 0이어도 `관계 분석에 반영하지 못한 내용이 있어요.` 한 줄을 표시한다. FAILED/INVALIDATED에는 기존 실패 안내를 우선하며 중복 안내를 붙이지 않는다. 이 상태는 필수 검토나 사용자 판단 요청이 아니다.
+GH359부터 기술적 미완료는 `updateIncomplete`로 구분한다. `true`이면 `일부 관계 업데이트 미완료`와 서버의 `incompleteEpisodeNos`를 같은 중립 안내에 표시한다. `false`이면 의미 판단 보류가 포함된 기존 `analysisStatus=PARTIAL`·`partial=true`만으로 안내나 검토 배지를 만들지 않는다. 필드가 없는 구응답에서만 기존의 `관계 분석에 반영하지 못한 내용이 있어요.`를 유지한다. FAILED/INVALIDATED에는 기존 실패 안내에 미완료 회차를 함께 표시하며 부분 안내를 중복하지 않는다.
+
+미완료 상태의 상단은 `N화까지의 관계`로 표시해 모든 관계가 그 회차까지 검증되었다고 단정하지 않는다. 표시할 연결이 없으면 `표시할 관계를 아직 확인하지 못했어요.`로 구분한다. 기존 연결은 유지하며 선택한 edge의 `updateIncomplete=true`일 때만 `마지막 확인: N화. 이후 관계 업데이트를 마치지 못했어요.`를 근거 위에 표시한다. `lastVerifiedEpisodeNo`는 해당 인물 쌍에 대해 앞선 누락 없이 검증된 마지막 회차이며 마지막 변경 회차·선택 회차·인용 회차로 추측하지 않는다. 열려 있는 상세의 마지막 확인 정보는 주기 갱신되는 Graph의 해당 Edge를 우선하고 구 Graph 응답에서만 Detail로 보완하여 수정 초안을 초기화하지 않는다. 정상 edge에는 이 안내를 반복하지 않는다. 이 상태는 필수 검토나 사용자 판단 요청이 아니다.
+
+미완료 회차는 서버 배열의 앞 3개까지만 직접 표시하고 나머지는 `외 N개 회차`로 줄인다. `lastVerifiedEpisodeNo=0`은 앞선 회차의 누락으로 검증 완료 범위가 없음을 뜻하므로 `앞선 회차부터 관계 업데이트를 마치지 못했어요.`로 표시하며 `0화`라고 안내하지 않는다.
 
 ## 그림과 근거
 
