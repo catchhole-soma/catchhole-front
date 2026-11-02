@@ -10,17 +10,24 @@ function success(route: Route, data: unknown) { return route.fulfill({ contentTy
 async function setup(context: BrowserContext) {
   const calls = { graphs: [] as string[], profiles: 0, family: 0, writes: [] as unknown[] };
   let failureStatus = 0, conflict = false, deleted = false, summary: string | null = null, version = 1;
-  let analysisStatus: 'COMPLETED' | 'PARTIAL' = 'COMPLETED', partial = false;
+  let analysisStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED', partial = false;
+  let updateIncomplete: boolean | undefined = false, incompleteEpisodeNos: number[] = [], incompleteEdgeIds = ['r1'];
+  let lastVerifiedEpisodeNo = 1;
   let hold: { wait: Promise<void>; received: () => void } | null = null;
   const nodes = (episode: number) => [
     { id: 'p1', name: episode === 1 ? '가면을 쓴 사람' : '라온', description: null, profileRegistered: true },
     { id: 'p2', name: '세린', description: null, profileRegistered: true },
     { id: 'p3', name: '산장 주인', description: null, profileRegistered: false },
   ];
-  const edges = (episode: number) => deleted ? [] : [
+  const edges = (episode: number) => (deleted ? [] : [
     { id: 'r1', sourceNodeId: 'p2', targetNodeId: 'p1', axis: 'ATTITUDE', kind: 'TRUST', label: '신뢰', summary: summary ?? (episode === 1 ? '세린은 가면을 쓴 사람의 안내를 믿고 따른다.' : '세린은 라온을 믿지만, 라온은 아직 거리를 둔다.'), direction: 'DIRECTED', status: 'ACTIVE', version, evidenceCount: 1 },
     ...(episode === 2 ? [{ id: 'r2', sourceNodeId: 'p1', targetNodeId: 'p3', axis: 'INTERACTION', kind: 'HELP', label: '도움', summary: '라온은 산장 주인에게 길을 안내받았다.', direction: 'UNDIRECTED', status: 'ACTIVE', version: 1, evidenceCount: 1 }] : []),
-  ];
+  ]).map(edge => {
+    const incomplete = updateIncomplete && incompleteEpisodeNos.some(number => number <= episode) && incompleteEdgeIds.includes(edge.id);
+    return { ...edge, summary: incomplete && edge.id === 'r1' ? summary ?? '세린은 가면을 쓴 사람의 안내를 믿고 따른다.' : edge.summary,
+      updateIncomplete: updateIncomplete === undefined ? undefined : incomplete,
+      lastVerifiedEpisodeNo: incomplete ? lastVerifiedEpisodeNo : episode };
+  });
   await context.addInitScript(() => { localStorage.setItem('accessToken', 'synthetic-episode-graph'); localStorage.removeItem('catchhole_demo_mode'); });
   await context.route('**/api/v1/**', async route => {
     const request = route.request(); const url = new URL(request.url()); const path = url.pathname;
@@ -36,7 +43,9 @@ async function setup(context: BrowserContext) {
       if (failureStatus) return route.fulfill({ status: failureStatus, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'COMMON_ERROR', status: failureStatus } }) });
       const episode = Number(url.searchParams.get('episodeNo') ?? 2);
       return success(route, { selectedEpisode: episodes[episode - 1], availableEpisodes: episodes, revision: String(version),
-        analysisStatus, partial, nodes: nodes(episode), edges: edges(episode), truncated: false, totalEdgeCount: edges(episode).length });
+        analysisStatus, partial, updateIncomplete: updateIncomplete === undefined ? undefined : updateIncomplete && incompleteEpisodeNos.some(number => number <= episode),
+        incompleteEpisodeNos: incompleteEpisodeNos.filter(number => number <= episode),
+        nodes: nodes(episode), edges: edges(episode), truncated: false, totalEdgeCount: edges(episode).length });
     }
     if (path.startsWith(`${prefix}/relationship-graph/edges/`)) {
       if (request.method() !== 'GET') {
@@ -46,14 +55,20 @@ async function setup(context: BrowserContext) {
         else { summary = request.postDataJSON().summary; version++; }
       }
       const episode = Number(url.searchParams.get('episodeNo') ?? 2);
-      return success(route, { edge: edges(episode)[0], sourceNode: nodes(episode)[1], targetNode: nodes(episode)[0], version,
-        evidence: [{ episodeId: `ep${episode}`, episodeNo: episode, episodeTitle: episodes[episode - 1].title,
-          quote: episode === 1 ? '세린은 가면을 쓴 사람을 믿고 그 뒤를 따라갔다.' : '세린은 라온을 믿었다. 라온은 여전히 거리를 두었다.', startOffset: 0, endOffset: 35 }] });
+      const selected = edges(episode).find(edge => path.endsWith(`/${edge.id}`));
+      const evidenceEpisode = selected?.updateIncomplete ? 1 : episode;
+      return success(route, { edge: selected, sourceNode: nodes(episode).find(node => node.id === selected?.sourceNodeId),
+        targetNode: nodes(episode).find(node => node.id === selected?.targetNodeId), version,
+        evidence: [{ episodeId: `ep${evidenceEpisode}`, episodeNo: evidenceEpisode, episodeTitle: episodes[evidenceEpisode - 1].title,
+          quote: evidenceEpisode === 1 ? '세린은 가면을 쓴 사람을 믿고 그 뒤를 따라갔다.' : '세린은 라온을 믿었다. 라온은 여전히 거리를 두었다.', startOffset: 0, endOffset: 35 }] });
     }
     return success(route, []);
   });
   return { calls, fail(value: boolean | number) { failureStatus = typeof value === 'number' ? value : value ? 503 : 0; },
-    analysis(status: 'COMPLETED' | 'PARTIAL', incomplete: boolean) { analysisStatus = status; partial = incomplete; },
+    analysis(status: 'COMPLETED' | 'PARTIAL' | 'FAILED', incomplete: boolean) { analysisStatus = status; partial = incomplete; updateIncomplete = undefined; },
+    coverage(incomplete: boolean, episodeNos = [2], edgeIds = ['r1'], verifiedEpisodeNo = 1) {
+      updateIncomplete = incomplete; incompleteEpisodeNos = incomplete ? episodeNos : []; incompleteEdgeIds = edgeIds; lastVerifiedEpisodeNo = verifiedEpisodeNo;
+    },
     conflict() { conflict = true; }, empty() { deleted = true; },
     hold(wait: Promise<void>, received: () => void) { hold = { wait, received }; } };
 }
@@ -309,7 +324,7 @@ for (const status of ['PARTIAL', 'COMPLETED'] as const) for (const empty of [fal
   await page.goto(workspace);
   await expect(page.getByRole('status').filter({ hasText: '관계 분석에 반영하지 못한 내용이 있어요.' })).toBeVisible();
   if (empty) {
-    await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toBeVisible();
+    await expect(page.getByText('표시할 관계를 아직 확인하지 못했어요.')).toBeVisible();
     await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
   } else {
     await expect(page.getByRole('list', { name: '이 회차의 관계 목록' }).getByRole('button')).toHaveCount(2);
@@ -317,6 +332,108 @@ for (const status of ['PARTIAL', 'COMPLETED'] as const) for (const empty of [fal
   await expect(page.getByText('확인·연결', { exact: true })).toHaveCount(0);
   expect(fixture.calls.family).toBe(0);
   expect(fixture.calls.writes).toEqual([]);
+});
+
+for (const empty of [false, true]) test(`semantic holds with complete updates do not warn or require review in an ${empty ? 'empty' : 'populated'} graph`, async ({ context, page }) => {
+  const fixture = await setup(context);
+  fixture.analysis('PARTIAL', true);
+  fixture.coverage(false);
+  if (empty) fixture.empty();
+  await page.goto(workspace);
+  await expect(page.getByText('2화까지 확인된 관계')).toBeVisible();
+  await expect(page.getByText('일부 관계 업데이트 미완료', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('관계 분석에 반영하지 못한 내용이 있어요.')).toHaveCount(0);
+  await expect(page.getByText('확인·연결', { exact: true })).toHaveCount(0);
+  if (empty) await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toBeVisible();
+  expect(fixture.calls.writes).toEqual([]);
+  expect(fixture.calls.family).toBe(0);
+});
+
+for (const status of ['PARTIAL', 'FAILED'] as const) test(`${status} with no relationships does not claim that none exist`, async ({ context, page }) => {
+  const fixture = await setup(context);
+  fixture.analysis(status, true);
+  fixture.coverage(true);
+  fixture.empty();
+  await page.goto(workspace);
+  await expect(page.getByText('표시할 관계를 아직 확인하지 못했어요.')).toBeVisible();
+  await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toHaveCount(0);
+  await expect(page.getByText('2화까지 확인된 관계')).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: status === 'FAILED' ? '미완료 회차: 2화' : '일부 관계 업데이트 미완료 · 2화' })).toBeVisible();
+  await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
+  expect(fixture.calls.writes).toEqual([]);
+});
+
+test('partial updates retain prior edges, disclose the gap and last verified episode, and isolate the older cutoff', async ({ context, page }) => {
+  const fixture = await setup(context);
+  fixture.analysis('PARTIAL', true);
+  fixture.coverage(true);
+  await page.setViewportSize({ width: 1366, height: 1000 });
+  await page.goto(`${workspace}&relationEdge=r1`);
+  const detail = page.getByRole('article', { name: '선택한 인물 관계' });
+  await expect(page.getByRole('status').filter({ hasText: '일부 관계 업데이트 미완료 · 2화' })).toBeVisible();
+  await expect(page.getByText('2화까지의 관계', { exact: true })).toBeVisible();
+  await expect(page.getByText('2화까지 확인된 관계')).toHaveCount(0);
+  await expect(page.getByRole('list', { name: '이 회차의 관계 목록' }).getByRole('button')).toHaveCount(2);
+  await expect(detail).toContainText('마지막 확인: 1화. 이후 관계 업데이트를 마치지 못했어요.');
+  await expect(detail.getByLabel('원문 근거')).toContainText('1화 · 함께 걷는 길');
+  await expect(detail.getByLabel('원문 근거')).toContainText('세린은 가면을 쓴 사람을 믿고 그 뒤를 따라갔다.');
+  await page.screenshot({ path: 'docs/screens/gh359/episode-relationships-partial-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 320, height: 850 });
+  await expect(detail).toContainText('마지막 확인: 1화.');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await detail.screenshot({ path: 'docs/screens/gh359/episode-relationships-partial-mobile-320.png' });
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('list', { name: '이 회차의 관계 목록' }).getByRole('button').nth(1).click();
+  await expect(detail).toContainText('도움');
+  await expect(detail.getByText('마지막 확인:', { exact: false })).toHaveCount(0);
+  await page.getByLabel('관계도 회차').selectOption('1');
+  await expect(page.getByText('1화까지 확인된 관계')).toBeVisible();
+  await expect(page.getByText('일부 관계 업데이트 미완료', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('라온', { exact: true })).toHaveCount(0);
+  expect(fixture.calls.writes).toEqual([]);
+  expect(fixture.calls.profiles).toBe(0);
+  expect(fixture.calls.family).toBe(0);
+});
+
+test('polling updates verification of the open edge without discarding the correction draft', async ({ context, page }) => {
+  const fixture = await setup(context);
+  await page.clock.install();
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await page.getByRole('button', { name: '설명 수정' }).click();
+  await page.getByLabel('관계 설명').fill('읽던 관계의 수정 초안');
+  fixture.coverage(true);
+  await page.clock.runFor(10001);
+  await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toContainText('마지막 확인: 1화.');
+  await expect(page.getByLabel('관계 설명')).toHaveValue('읽던 관계의 수정 초안');
+  fixture.coverage(false);
+  await page.clock.runFor(10001);
+  await expect(page.getByText('일부 관계 업데이트 미완료', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('마지막 확인:', { exact: false })).toHaveCount(0);
+  await expect(page.getByLabel('관계 설명')).toHaveValue('읽던 관계의 수정 초안');
+  expect(fixture.calls.writes).toEqual([]);
+});
+
+test('a gap before the first verified episode never displays episode zero as confirmed', async ({ context, page }) => {
+  const fixture = await setup(context);
+  fixture.coverage(true, [1, 2], ['r1'], 0);
+  await page.goto(`${workspace}&relationEdge=r1`);
+  await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toContainText('앞선 회차부터 관계 업데이트를 마치지 못했어요.');
+  await expect(page.getByText('마지막 확인:', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('0화', { exact: false })).toHaveCount(0);
+});
+
+test('many incomplete episodes stay concise without horizontal overflow at 320px', async ({ context, page }) => {
+  await setup(context);
+  await context.route(`**${prefix}/relationship-graph`, route => success(route, {
+    selectedEpisode: { id: 'ep101', episodeNo: 101 }, availableEpisodes: [{ id: 'ep101', episodeNo: 101 }],
+    analysisStatus: 'PARTIAL', partial: true, updateIncomplete: true,
+    incompleteEpisodeNos: Array.from({ length: 100 }, (_, index) => index + 1), nodes: [], edges: [],
+  }));
+  await page.setViewportSize({ width: 320, height: 850 });
+  await page.goto(workspace);
+  await expect(page.getByRole('status').filter({ hasText: '일부 관계 업데이트 미완료' }))
+    .toHaveText('일부 관계 업데이트 미완료 · 1화, 2화, 3화 외 97개 회차');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('delete explains cross-episode correction and hides the selected connection after success', async ({ context, page }) => {

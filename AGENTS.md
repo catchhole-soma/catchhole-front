@@ -260,6 +260,7 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 - 관계 종류는 `인물 관계도 / 가계도` 순서다. 가족 상세 상태가 없는 `nav=graph` 진입은 인물 관계도가 기본이며, `relationMode=people|family`의 명시적 선택과 기존 가족 상세/legacy 링크는 `getRelationshipMode`로 복원한다. 인물 관계도는 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
 - 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.
+- GH359 기술 미완료는 Graph의 `updateIncomplete`·`incompleteEpisodeNos`, Edge의 `updateIncomplete`·`lastVerifiedEpisodeNo`만 사용한다. 새 응답의 `updateIncomplete=false`에서는 의미 판단 보류를 포함한 `partial`·`PARTIAL`을 실패 안내로 바꾸지 않는다. 미완료는 짧은 `일부 관계 업데이트 미완료`와 회차만 안내하고 검토 큐·배지를 추가하지 않는다. 빈 결과를 관계 없음으로, 이전 연결을 선택 회차까지 모두 검증된 결과로 단정하지 않는다. 마지막 확인 회차는 미완료 edge에서만 표시하며 변경 회차·근거 회차에서 추측하지 않는다. 필드가 없는 구응답은 기존 부분 안내로 호환한다.
 
 ## GH349 오류 리포트 접수 플래그
 

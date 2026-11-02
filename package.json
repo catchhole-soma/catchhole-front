@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test:e2e": "playwright test",
+    "test:relationship-partial-live": "node scripts/verify-relationship-partial-live.mjs",
     "typecheck": "tsc --noEmit",
     "doctor": "react-doctor --scope full --dead-code --no-supply-chain --no-score --blocking none --yes",
     "check:unused": "knip --no-progress",
