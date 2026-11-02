@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import { ArrowLeftRight, ArrowRight, GitBranch, Pencil, Trash2, X } from 'lucide-react';
 import { getEpisodeRelationshipGraphOptions, getEpisodeRelationshipGraphQueryKey, getEpisodeRelationshipEdgeOptions,
   getEpisodeRelationshipEdgeQueryKey, updateEpisodeRelationshipEdgeMutation, deleteEpisodeRelationshipEdgeMutation } from '../../../api/generated/@tanstack/react-query.gen';
+import type { Edge } from '../../../api/generated/types.gen';
 import { privateImageSessionEpoch, usePrivateImageSession } from '../../../lib/private-image-session';
 import { toApiError } from '../../../lib/api-errors';
 import { ActionButton } from '../ui-v2/ActionButton';
@@ -39,7 +40,13 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   // Keep this query's successful data through temporary refresh failures, never access/removal errors.
   const canShowGraph = !graph.isError || !graphError || graphError.status >= 500;
   const data = canShowGraph ? graph.data?.data : undefined;
-  const partialAnalysis = data?.analysisStatus === 'PARTIAL' || data?.partial === true;
+  const updateIncomplete = data?.updateIncomplete === true;
+  const legacyPartial = data?.updateIncomplete == null && (data?.analysisStatus === 'PARTIAL' || data?.partial === true);
+  const analysisFailed = data?.analysisStatus === 'FAILED' || data?.analysisStatus === 'INVALIDATED';
+  const incomplete = updateIncomplete || legacyPartial || analysisFailed;
+  const incompleteEpisodes = data?.incompleteEpisodeNos ?? [];
+  const incompleteEpisodeLabel = incompleteEpisodes.slice(0, 3).map(number => `${number}화`).join(', ')
+    + (incompleteEpisodes.length > 3 ? ` 외 ${incompleteEpisodes.length - 3}개 회차` : '');
   const selectedEpisode = data?.selectedEpisode;
   const people = useMemo<EpisodePerson[]>(() => (data?.nodes ?? []).flatMap(person => person.id && person.name ? [{
     id: person.id, name: person.name, description: person.description ?? undefined, registered: person.profileRegistered,
@@ -99,18 +106,23 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
       onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
     {data && <>
       {data.analysisStatus === 'PROCESSING' && <p role="status" className="relationship-muted">새 회차의 관계를 정리하고 있어요.</p>}
-      {(data.analysisStatus === 'FAILED' || data.analysisStatus === 'INVALIDATED') && <p role="status" className="relationship-notice">관계 분석을 마치지 못한 회차가 있어요. 분석 목록에서 진행 상황을 확인해 주세요.</p>}
-      <div className="episode-relationship-caption"><p>{selectedEpisode?.episodeNo ? <><strong>{selectedEpisode.episodeNo}화</strong>까지 확인된 관계</> : '분석한 회차의 관계가 여기에 표시돼요.'}</p>
+      {analysisFailed && <p role="status" className="relationship-notice">관계 분석을 마치지 못한 회차가 있어요. 분석 목록에서 진행 상황을 확인해 주세요.
+        {incompleteEpisodeLabel && <> 미완료 회차: {incompleteEpisodeLabel}</>}</p>}
+      <div className="episode-relationship-caption"><p>{selectedEpisode?.episodeNo ? <><strong>{selectedEpisode.episodeNo}화</strong>{incomplete ? '까지의 관계' : '까지 확인된 관계'}</> : '분석한 회차의 관계가 여기에 표시돼요.'}</p>
         <p>인물 {visiblePeople.length}명 · 관계 {visibleConnections.length}개</p></div>
-      {partialAnalysis && data.analysisStatus !== 'FAILED' && data.analysisStatus !== 'INVALIDATED'
+      {updateIncomplete && !analysisFailed && <p className="relationship-muted" role="status">일부 관계 업데이트 미완료
+        {incompleteEpisodeLabel && <> · {incompleteEpisodeLabel}</>}</p>}
+      {legacyPartial && !analysisFailed
         && <p className="relationship-muted" role="status">관계 분석에 반영하지 못한 내용이 있어요.</p>}
       {data.truncated && <p className="relationship-notice" role="status">관계가 많아 일부만 표시하고 있어요.</p>}
-      {!connections.length ? <div className="relationship-empty"><GitBranch size={28} aria-hidden="true" /><h3>아직 표시할 인물 관계가 없어요.</h3>
-        <p>새 회차를 분석하면 근거가 확인된 관계가 자동으로 나타나요.</p></div> : <>
+      {!connections.length ? <div className="relationship-empty"><GitBranch size={28} aria-hidden="true" />
+        <h3>{incomplete ? '표시할 관계를 아직 확인하지 못했어요.' : '아직 표시할 인물 관계가 없어요.'}</h3>
+        <p>{incomplete ? '관계가 없는 것으로 판단한 결과는 아니에요.' : '새 회차를 분석하면 근거가 확인된 관계가 자동으로 나타나요.'}</p></div> : <>
         <EpisodeRelationshipCanvas key={`${session}:${workId}:${selectedEpisode?.episodeNo}:${effectiveFocus}`} people={visiblePeople} connections={visibleConnections}
           focusId={effectiveFocus} selectedId={selectedId} onFocus={focus} onSelect={select} />
         {selectedId && selectedEpisode?.episodeNo && <EpisodeRelationshipDetail key={`${session}:${workId}:${selectedEpisode.episodeNo}:${selectedId}`}
-          workId={workId} edgeId={selectedId} episodeNo={selectedEpisode.episodeNo} onClose={closeDetail} />}
+          workId={workId} edgeId={selectedId} episodeNo={selectedEpisode.episodeNo}
+          graphEdge={data.edges?.find(edge => edge.id === selectedId)} onClose={closeDetail} />}
         <ul className="episode-relationship-list" aria-label="이 회차의 관계 목록">{visibleConnections.map(edge => <li key={edge.id}>
           <button type="button" className="episode-relationship-row" aria-pressed={selectedId === edge.id} onClick={() => select(edge.id)}>
             <div><ConnectionNames source={names.get(edge.source) ?? '인물'} target={names.get(edge.target) ?? '인물'} direction={edge.direction} />
@@ -121,7 +133,9 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   </div>;
 }
 
-function EpisodeRelationshipDetail({ workId, edgeId, episodeNo, onClose }: { workId: string; edgeId: string; episodeNo: number; onClose: () => void }) {
+function EpisodeRelationshipDetail({ workId, edgeId, episodeNo, graphEdge, onClose }: {
+  workId: string; edgeId: string; episodeNo: number; graphEdge: Edge | undefined; onClose: () => void;
+}) {
   const client = useQueryClient();
   const session = usePrivateImageSession();
   const detailOptions = getEpisodeRelationshipEdgeOptions({ path: { workId, edgeId }, query: { episodeNo } });
@@ -143,6 +157,7 @@ function EpisodeRelationshipDetail({ workId, edgeId, episodeNo, onClose }: { wor
     return () => { mounted.current = false; };
   }, []);
   const data = detail.data?.data;
+  const verification = graphEdge?.updateIncomplete == null ? data?.edge : graphEdge;
   const busy = correction.isPending || deletion.isPending;
   const changed = baseVersion != null && data?.version != null && baseVersion !== data.version;
   async function refresh() {
@@ -175,6 +190,11 @@ function EpisodeRelationshipDetail({ workId, edgeId, episodeNo, onClose }: { wor
     {data && !detail.isError && <>
       <ConnectionNames source={data.sourceNode?.name ?? '인물'} target={data.targetNode?.name ?? '인물'} direction={data.edge?.direction ?? 'UNDIRECTED'} />
       <h3>{data.edge?.label}{data.edge?.status === 'ENDED' ? ' · 종료된 관계' : ''}</h3>
+      {verification?.updateIncomplete && <p className="relationship-muted" role="status">
+        {verification.lastVerifiedEpisodeNo != null && verification.lastVerifiedEpisodeNo > 0
+          ? `마지막 확인: ${verification.lastVerifiedEpisodeNo}화. 이후 관계 업데이트를 마치지 못했어요.`
+          : verification.lastVerifiedEpisodeNo === 0 ? '앞선 회차부터 관계 업데이트를 마치지 못했어요.' : '이 관계의 업데이트를 마치지 못했어요.'}
+      </p>}
       {!editing && <p>{data.edge?.summary}</p>}
       {editing && <form className="episode-relationship-edit" onSubmit={event => { event.preventDefault(); void write(false); }}>
         <label>관계 설명<textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength={500} disabled={busy} /></label>
