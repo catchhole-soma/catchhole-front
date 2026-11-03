@@ -10,6 +10,7 @@ import {
   findingId,
   mockValidationReport,
   PAST_REPORT_ID,
+  retarget,
   RECHECK_REPORT_ID,
   REPORT_ID,
   WORK_ID,
@@ -26,6 +27,10 @@ async function open(page: Page, scenario: ReportScenario = {}, query = '') {
 }
 
 const rows = (page: Page) => page.getByRole('list', { name: '검사 항목 목록' }).locator('.vr-row');
+const blocks = (page: Page, name = '이번 원고와 근거 비교') => page.getByRole('region', { name });
+const block = (page: Page, index: number) => page.locator('.vr-blocks .vr-block:not(.is-note)').nth(index);
+const header = (page: Page, index: number) => block(page, index).locator('.vr-block__head button');
+const lines = (page: Page, index: number) => block(page, index).locator('.vr-block__line');
 const row = (page: Page, index: number) => page.locator(`[data-finding-id="${findingId(index)}"]`);
 const detailHeading = (page: Page) => page.locator('#validation-finding-title');
 const choice = (page: Page, name: string) => page.locator('.vr-judgment').getByRole('button', { name: new RegExp(`^${name}`) });
@@ -56,24 +61,68 @@ test('정상 완료·항목 있음: 목록·상세·근거를 읽고 판단을 �
   await expect(counts(page, '오탈자', '검토 필요')).toHaveText('1');
   // 큰 화면은 서버 순서의 첫 항목을 자동으로 연다.
   await expect(page).toHaveURL(new RegExp(`findingId=${findingId(0)}`));
-  await expect(detailHeading(page)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  // 제목과 그 아래 설명은 판정이 쓴 문장(headline, 원인→결과 두 문장 reason)이고 고치는 방법 안내가 한 줄 붙는다(2026-11-03).
+  await expect(detailHeading(page)).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
+  await expect(page.locator('.vr-detail-summary')).toHaveText(
+    '기존 설정은 비요른의 검이 산산이 부서져 손잡이만 남았다고 해요. 그런데 101화에서는 그 검을 다시 뽑아 들어요.');
+  await expect(page.locator('.vr-detail-hint')).toHaveText('101화에서 일부러 바꾼 거라면 설정을, 실수라면 원고를 고쳐 주세요.');
   expect(mock.state.findingQueries[0]).toContain('judgment=PENDING');
   expect(mock.state.findingQueries[0]).toContain('page=0');
   expect(mock.state.findingQueries[0]).toContain('size=20');
 
-  // 비교 기준·이번 원고는 수정 전후가 아닌 중립 비교다.
-  const comparison = page.locator('.review-cb-comparison');
-  await expect(comparison).toHaveClass(/is-neutral/);
-  await expect(page.locator('.review-cb-comparison.is-change')).toHaveCount(0);
-  await expect(comparison.locator('.is-before')).toContainText('그의 검은 손잡이만 남긴 채 산산이 부서졌다.');
-  await expect(comparison.locator('.is-after')).toContainText('비요른은 그 검을 뽑았다.');
-  // 반복된 모든 원고 위치를 첫 인용 하나로 줄이지 않는다.
-  await expect(page.getByRole('heading', { name: '이번 원고 · 2곳' })).toBeVisible();
-  await page.getByText('이번 원고 · 411~431번째 글자').click();
-  await expect(page.getByText('부서졌던 검신이 달빛 아래 날카롭게 빛났다.', { exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/evidence=T1%3A410%3A431/);
-  await page.reload();
-  await expect(page.getByText('부서졌던 검신이 달빛 아래 날카롭게 빛났다.', { exact: true })).toBeVisible();
+  // 문맥 블록: 이번 원고 → 기준(저장 설정값) → 근거(이전 회차, 회차 순). 처음 두 블록만 펼치고 수정 전후처럼 보이는 −/+는 없다.
+  const expected = defaultFindings()[0].blocks;
+  const stack = blocks(page);
+  await expect(stack.locator('.vr-block')).toHaveCount(4);
+  await expect(stack.locator('.vr-block__role')).toHaveText(['이번 원고', '기준', '근거', '근거']);
+  await expect(stack.locator('.vr-block__label')).toHaveText(expected.map(item => item.label));
+  await expect(block(page, 0).locator('.vr-block__label')).toHaveText(/^101화 · \d+~\d+자$/);
+  await expect(block(page, 1).locator('.vr-block__label')).toHaveText('설정 · 비요른 · 검');
+  await expect(block(page, 2).locator('.vr-block__label')).toHaveText(/^20화 · \d+~\d+자$/);
+  await expect(block(page, 3).locator('.vr-block__label')).toHaveText(/^24화 · \d+~\d+자$/);
+  for (const [index, open] of [[0, true], [1, true], [2, false], [3, false]] as const) {
+    await expect(header(page, index)).toHaveAttribute('aria-expanded', String(open));
+  }
+  await expect(stack).not.toContainText('−');
+  // 이번 원고: 인용 줄을 강조하고 위아래 2줄을 함께 보인다(빈 줄은 세지 않는다).
+  await expect(lines(page, 0)).toHaveText(['성문 앞에 모인 사람들이 숨을 죽였다.', '북쪽 하늘이 붉게 물들고 있었다.', '비요른은 그 검을 뽑았다.',
+    '칼날이 떨리는 소리가 성벽에 부딪혔다.', '아무도 그 검이 어디서 왔는지 묻지 않았다.']);
+  await expect(block(page, 0).locator('.vr-block__line.is-quote mark')).toHaveText('비요른은 그 검을 뽑았다.');
+  // 기준: 설정값 전체 안에서 판정이 옮긴 문장을 강조한다. 앞뒤 줄·더 보기는 없다.
+  await expect(block(page, 1).locator('.vr-block__line')).toHaveText('20화 전투 중 산산이 부서져 손잡이만 남음');
+  await expect(block(page, 1).locator('mark')).toHaveText('산산이 부서져 손잡이만 남음');
+  await expect(block(page, 1).getByRole('button', { name: /더 보기/ })).toHaveCount(0);
+  // 위로 더 보기는 서버에서 같은 원고를 5줄 더 읽고 원고 처음에 닿으면 사라진다.
+  const firstWindow = expected[0].context as { start: number; end: number };
+  await block(page, 0).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(lines(page, 0).first()).toHaveText('새벽이 오기 전, 성 밖의 들판은 조용했다.');
+  await expect(lines(page, 0)).toHaveCount(7);
+  await expect(block(page, 0).getByRole('button', { name: '위로 더 보기' })).toHaveCount(0);
+  expect(new URLSearchParams(mock.state.contextRequests[0])).toEqual(new URLSearchParams(
+    `sourceRef=T1&anchorStart=${firstWindow.start}&anchorEnd=${firstWindow.start}&before=5&after=0`));
+  await block(page, 0).getByRole('button', { name: '아래로 더 보기' }).click();
+  await expect(lines(page, 0)).toHaveCount(12);
+  expect(new URLSearchParams(mock.state.contextRequests[1]).get('anchorStart')).toBe(String(firstWindow.end));
+  // 접힌 근거 블록은 머리말만 있고 누르면 펼친다. 근거 블록도 같은 방식으로 더 읽는다.
+  await expect(block(page, 2).locator('.vr-block__line')).toHaveCount(0);
+  await header(page, 2).click();
+  await expect(header(page, 2)).toHaveAttribute('aria-expanded', 'true');
+  await expect(block(page, 2).locator('.vr-block__line.is-quote mark')).toHaveText('그의 검은 손잡이만 남긴 채 산산이 부서졌다.');
+  await expect(lines(page, 2)).toHaveCount(5);
+  await block(page, 2).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(lines(page, 2).first()).toHaveText('전령이 성문을 두드렸다.');
+  expect(new URLSearchParams(mock.state.contextRequests.at(-1)).get('sourceRef')).toBe('R1');
+  // 다시 접었다 펴도 더 읽은 줄은 그대로다.
+  await header(page, 0).click();
+  await expect(block(page, 0).locator('.vr-block__line')).toHaveCount(0);
+  await header(page, 0).click();
+  await expect(lines(page, 0)).toHaveCount(12);
+  // 판정이 쓰지 않은 검색 조각, 근거 원문 목록, 전체 원문 링크는 두지 않는다.
+  await expect(page.getByRole('region', { name: '근거로 쓴 원문' })).toHaveCount(0);
+  await expect(page.getByText(/검색에 쓴 다른 원고 조각/)).toHaveCount(0);
+  await expect(page.getByText('대장간 앞은 늘 시끄러웠다.')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /전체 원문 보기/ })).toHaveCount(0);
+  for (const internal of ['T1', 'R1', 'R3', 'E1', 'B1', '비교 원문', 'limited', '영수증']) await expect(page.locator('.vr-detail-card')).not.toContainText(internal);
 
   await choice(page, '충돌 아님으로 표시').click();
   await expect(page.getByText('충돌 아님으로 표시했어요.').first()).toBeVisible();
@@ -85,7 +134,7 @@ test('정상 완료·항목 있음: 목록·상세·근거를 읽고 판단을 �
   await expect(counts(page, '설정 충돌', '충돌 아님')).toHaveText('1');
   // 저장 뒤에도 같은 상세를 유지하고 검토 필요 필터에서 빠졌음을 알린다.
   await expect(page).toHaveURL(new RegExp(`findingId=${findingId(0)}`));
-  await expect(detailHeading(page)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  await expect(detailHeading(page)).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
   await expect(choice(page, '충돌 아님으로 표시')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('이 항목은 현재 필터에서 제외됐어요.')).toBeVisible();
   await expect(rows(page)).toHaveCount(3);
@@ -99,6 +148,111 @@ test('정상 완료·항목 있음: 목록·상세·근거를 읽고 판단을 �
     expect(decodeURIComponent(page.url())).not.toContain(quote);
     expect(stored).not.toContain(quote);
   }
+});
+
+test('오탈자는 이번 원고 블록 한 줄 안에서 원문을 지운 표시로 두고 제안을 바로 뒤에 보이며 원문은 고치지 않는다고 알린다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const mock = await open(page, {}, `&findingId=${findingId(3)}`);
+  await expect(detailHeading(page)).toHaveText('‘되요’ → ‘돼요’');
+  const stack = blocks(page, '원문과 교정 제안');
+  await expect(stack.locator('.vr-block')).toHaveCount(1);
+  await expect(block(page, 0).locator('.vr-block__role')).toHaveText('이번 원고');
+  await expect(block(page, 0).locator('.vr-block__label')).toHaveText(defaultFindings()[3].blocks[0].label);
+  await expect(lines(page, 0)).toHaveCount(5);
+  const quote = block(page, 0).locator('.vr-block__line.is-quote');
+  await expect(quote.locator('del')).toContainText('되요');
+  await expect(quote.locator('ins')).toContainText('돼요');
+  await expect(quote).toHaveText(/^그러면 (원문 )?되요→(제안 )?돼요 정말 괜찮겠어\?$/);
+  await expect(stack).not.toContainText('−');
+  await expect(stack.getByText('원문은 자동으로 고치지 않아요.')).toBeVisible();
+  // 오탈자 블록도 같은 원고를 더 읽는다.
+  await block(page, 0).getByRole('button', { name: '아래로 더 보기' }).click();
+  await expect(lines(page, 0)).toHaveCount(8);
+  await expect(block(page, 0).getByRole('button', { name: '아래로 더 보기' })).toHaveCount(0);
+  expect(new URLSearchParams(mock.state.contextRequests[0]).get('after')).toBe('5');
+});
+
+test('앞뒤 줄이 겹치는 원고 위치는 한 블록에 함께 강조하고 판정 제목이 없는 이전 결과는 화면이 제목을 만든다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const mock = await open(page, {}, `&findingId=${findingId(2)}`);
+  // 판정 headline이 없으면 대상·확인 항목으로 만든 문장, 설명은 판정 사유다.
+  await expect(detailHeading(page)).toHaveText('에르웬 망토 색이 기존 기록과 다를 수 있어요');
+  await expect(page.locator('.vr-detail-summary')).toHaveText('망토의 색이 이전 회차와 달라요.');
+  await expect(blocks(page).locator('.vr-block__role')).toHaveText(['이번 원고', '근거']);
+  const merged = defaultFindings()[2].blocks[0] as unknown as { label: string; quotes: unknown[] };
+  expect(merged.quotes).toHaveLength(2);
+  await expect(block(page, 0).locator('.vr-block__label')).toHaveText(merged.label);
+  // 같은 줄은 한 번만 보이고 두 인용 줄을 각각 강조한다. 사이 줄은 강조하지 않는다.
+  await expect(lines(page, 0)).toHaveText(['경비병들이 서로를 돌아보았다.', '그러면 되요 정말 괜찮겠어?', '에르웬은 붉은 망토를 여몄다.',
+    '바람이 다시 거세졌다.', '붉은 망토 자락이 바람에 흩날렸다.', '성문이 천천히 열리기 시작했다.', '누군가 낮게 비요른의 이름을 불렀다.']);
+  await expect(block(page, 0).locator('.vr-block__line.is-quote mark')).toHaveText(['에르웬은 붉은 망토를 여몄다.', '붉은 망토 자락이 바람에 흩날렸다.']);
+  await expect(block(page, 0).locator('.vr-block__line:not(.is-quote)')).toHaveCount(5);
+  // 합친 블록도 창의 처음에서 위로 더 읽고, 원고 끝에 닿았으면 아래로 더 보기가 없다.
+  await expect(block(page, 0).getByRole('button', { name: '아래로 더 보기' })).toHaveCount(0);
+  await block(page, 0).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(lines(page, 0)).toHaveCount(12);
+  await expect(lines(page, 0).first()).toHaveText('비요른은 그 검을 뽑았다.');
+  const window = merged as unknown as { context: { start: number } };
+  expect(new URLSearchParams(mock.state.contextRequests[0])).toEqual(new URLSearchParams(
+    `sourceRef=T1&anchorStart=${window.context.start}&anchorEnd=${window.context.start}&before=5&after=0`));
+  expect(decodeURIComponent(page.url())).not.toContain('망토');
+});
+
+test('떨어진 원고 위치는 위치마다 블록을 두고 더 보기 실패는 일시 오류면 다시 시도, 원고가 바뀌었으면 멈춘다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const findings = defaultFindings();
+  findings[2] = retarget(findings[2], ['북쪽 하늘이 붉게 물들고 있었다.', '붉은 망토 자락이 바람에 흩날렸다.']);
+  const mock = await open(page, { findings }, `&findingId=${findingId(2)}`);
+  await expect(blocks(page).locator('.vr-block__role')).toHaveText(['이번 원고', '이번 원고', '근거']);
+  await expect(header(page, 0)).toHaveAttribute('aria-expanded', 'true');
+  await expect(header(page, 1)).toHaveAttribute('aria-expanded', 'true');
+  await expect(header(page, 2)).toHaveAttribute('aria-expanded', 'false');
+  await expect(block(page, 0).locator('.vr-block__line.is-quote mark')).toHaveText('북쪽 하늘이 붉게 물들고 있었다.');
+  await expect(block(page, 1).locator('.vr-block__line.is-quote mark')).toHaveText('붉은 망토 자락이 바람에 흩날렸다.');
+  // 원고 끝에 닿은 블록은 아래로 더 보기가 없다.
+  await expect(block(page, 1).getByRole('button', { name: '아래로 더 보기' })).toHaveCount(0);
+
+  mock.failNextContext({ status: 409, code: 'VALIDATION_SOURCE_CONTEXT_UNAVAILABLE', message: '검사 당시 원문을 지금 읽을 수 없어 앞뒤 문장을 보여 드릴 수 없습니다.', context: { reason: 'SOURCE_UNREADABLE' } });
+  await block(page, 0).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(block(page, 0).locator('.vr-block__note')).toHaveText('앞뒤 문장을 더 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+  await expect(lines(page, 0)).toHaveCount(5);
+  await block(page, 0).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(lines(page, 0)).toHaveCount(6);
+  await expect(block(page, 0).locator('.vr-block__note')).toHaveCount(0);
+
+  mock.failNextContext({ status: 409, code: 'VALIDATION_SOURCE_CONTEXT_UNAVAILABLE', message: '검사 당시 원문을 지금 읽을 수 없어 앞뒤 문장을 보여 드릴 수 없습니다.', context: { reason: 'SOURCE_CHANGED' } });
+  await block(page, 1).getByRole('button', { name: '위로 더 보기' }).click();
+  await expect(block(page, 1).locator('.vr-block__note')).toHaveText('검사 뒤 원고가 바뀌었거나 지워져 더 보여 드릴 수 없어요.');
+  await expect(block(page, 1).getByRole('button', { name: /더 보기/ })).toHaveCount(0);
+  await expect(lines(page, 1)).toHaveCount(5);
+  expect(decodeURIComponent(page.url())).not.toContain('망토');
+});
+
+test('서버가 앞뒤 줄을 읽지 못한 블록은 인용만 보이고 이전 서버 응답(blocks 없음)도 블록으로 보인다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const findings = defaultFindings();
+  const unreadable = findings[0].blocks[0] as unknown as Record<string, unknown>;
+  unreadable.context = null;
+  unreadable.contextStatus = 'SOURCE_UNREADABLE';
+  const changed = findings[0].blocks[1 + 1] as unknown as Record<string, unknown>;
+  changed.context = null;
+  changed.contextStatus = 'SOURCE_CHANGED';
+  delete (findings[2] as unknown as Record<string, unknown>).blocks;
+  const mock = await open(page, { findings }, `&findingId=${findingId(0)}`);
+  await expect(block(page, 0).locator('.vr-block__line')).toHaveText('비요른은 그 검을 뽑았다.');
+  await expect(block(page, 0).locator('.vr-block__note')).toContainText('앞뒤 문장을 불러오지 못했어요.');
+  await block(page, 0).getByRole('button', { name: '다시 불러오기' }).click();
+  await expect(lines(page, 0)).toHaveCount(5);
+  expect(new URLSearchParams(mock.state.contextRequests[0]).get('before')).toBe('2');
+  await header(page, 2).click();
+  await expect(block(page, 2).locator('.vr-block__note')).toHaveText('검사 뒤 원고가 바뀌었거나 지워져 앞뒤 문장은 보여 드릴 수 없어요.');
+  await expect(block(page, 2).getByRole('button', { name: /다시 불러오기|더 보기/ })).toHaveCount(0);
+
+  await row(page, 2).click();
+  await expect(blocks(page).locator('.vr-block__role')).toHaveText(['이번 원고', '이번 원고', '근거']);
+  await expect(block(page, 0).locator('.vr-block__label')).toHaveText(/^101화 · \d+~\d+자$/);
+  await expect(block(page, 2).locator('.vr-block__label')).toHaveText(/^20화 · \d+~\d+자$/);
+  await expect(page.locator('.vr-blocks').getByRole('button', { name: /더 보기/ })).toHaveCount(0);
 });
 
 test('두 검사 0건은 검토 완료 버튼 없이 자동 추출을 안내하고 서버가 확정한 뒤에만 확정 완료를 표시한다', async ({ page }) => {
@@ -157,12 +311,18 @@ test('추가 확인 필요와 심각 등급은 별도 축으로 표시하고 AI 
   await expect(ambiguous.getByText('영향 심각')).toBeVisible();
   await expect(ambiguous.getByText('추가 확인 필요', { exact: true })).toBeVisible();
   await ambiguous.click();
-  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
-  const reasons = page.getByRole('region', { name: '판단 이유' });
-  await expect(reasons.getByText('추가 확인 필요 사유')).toBeVisible();
-  await expect(reasons.getByText('대상·시점·해석이 분명하지 않아 비교 판단이 어려워요.')).toBeVisible();
-  await expect(reasons.getByText('영향 등급 · 심각')).toBeVisible();
-  await expect(reasons.getByText('주문으로 탈출하는 장면의 성립 조건이에요.')).toBeVisible();
+  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
+  await expect(page.locator('.vr-detail-summary')).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  // 근거 문장이 없는 추가 확인 필요는 이번 원고 블록 뒤에 설정에 내용이 없다고 알리고 검색 조각을 블록으로 만들지 않는다.
+  await expect(blocks(page).locator('.vr-block')).toHaveCount(2);
+  await expect(block(page, 0).locator('.vr-block__role')).toHaveText('이번 원고');
+  await expect(block(page, 0).locator('.vr-block__line.is-quote')).toContainText('왕궁 앞뜰에 발을 디딘 에르웬이');
+  await expect(blocks(page).locator('.vr-block.is-note')).toContainText('저장된 설정에 이 내용이 없어요.');
+  await expect(page.getByText('왕궁 안에서는 누구도 마법을 사용할 수 없다.')).toHaveCount(0);
+  await expect(page.locator('.vr-detail-notes')).toContainText('영향 · 심각');
+  await expect(page.locator('.vr-detail-notes')).toContainText('주문으로 탈출하는 장면의 성립 조건이에요.');
+  // 판정의 조회 과정 기록(completion)은 작가 화면에 쓰지 않는다.
+  await expect(page.locator('.vr-detail-card')).not.toContainText('앞뜰이 ‘왕궁 안’에 포함되는지 설정에 적혀 있지 않아요.');
 
   await page.getByRole('group', { name: 'AI 결과 유형' }).getByRole('button', { name: '추가 확인 필요' }).click();
   await expect(page).toHaveURL(/outcome=NEEDS_CONTEXT/);
@@ -171,36 +331,40 @@ test('추가 확인 필요와 심각 등급은 별도 축으로 표시하고 AI 
   expect(mock.state.findingQueries.at(-1)).toContain('outcome=NEEDS_CONTEXT');
 });
 
-test('목록 행은 대상·설정명을 제목으로, 판단 이유를 한 줄로 보여 주고 대상이 없으면 판단 이유만 제목으로 쓴다', async ({ page }) => {
+test('목록 행은 판정이 쓴 제목을, 없으면 대상·확인 항목으로 만든 문장을 쓰고 판단 이유를 한 줄로 보여 준다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const findings = defaultFindings();
-  // 대상이 기준 항목으로 이어지지 않은 설정 항목(subject=null)은 판단 이유가 제목이다.
+  // 대상이 기준 항목으로 이어지지 않은 설정 항목(subject=null)도 판정 제목이 있으면 그것을 쓰고 대상 라벨은 두지 않는다.
   findings.push({ ...structuredClone(findings[1]), findingId: findingId(4), subject: null, settingName: null, settingKey: null, basis: [] });
+  // 판정 제목도 대상도 없는 이전 결과는 확인 항목으로 문장을 만든다.
+  findings.push({ ...structuredClone(findings[1]), findingId: findingId(5), subject: null, settingName: null, settingKey: null, basis: [], headline: null } as typeof findings[number]);
   await open(page, { findings });
   const title = (index: number) => row(page, index).locator('.vr-row__title');
   const reason = (index: number) => row(page, index).locator('.vr-row__reason');
-  await expect(title(0)).toHaveText('비요른 · 검');
-  await expect(reason(0)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  await expect(title(0)).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
+  await expect(reason(0)).toHaveText('기존 설정은 비요른의 검이 산산이 부서져 손잡이만 남았다고 해요. 그런데 101화에서는 그 검을 다시 뽑아 들어요.');
   await expect(row(page, 0).locator('.vr-chip--subject')).toHaveText('캐릭터');
-  await expect(title(1)).toHaveText('왕궁 · 마법 / 사용 제한');
+  await expect(title(1)).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
   await expect(row(page, 1).locator('.vr-chip--subject')).toHaveText('세계관');
-  // 설정명이 없으면 대상 이름과 판단 이유를 함께 보여 준다.
-  await expect(title(2)).toHaveText('에르웬');
+  // 판정 제목이 없으면 대상 이름과 확인 항목(topic)으로 만든 문장이다.
+  await expect(title(2)).toHaveText('에르웬 망토 색이 기존 기록과 다를 수 있어요');
   await expect(reason(2)).toHaveText('망토의 색이 이전 회차와 달라요.');
-  // 오탈자와 대상 없는 설정 항목은 판단 이유만 제목으로 쓰고 대상 라벨을 두지 않는다.
-  for (const index of [3, 4]) {
-    await expect(reason(index)).toHaveCount(0);
-    await expect(row(page, index).locator('.vr-chip--subject')).toHaveCount(0);
-  }
+  await expect(title(4)).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
+  await expect(reason(4)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  await expect(title(5)).toHaveText('앞뜰의 마법 사용을 확인해 주세요');
+  for (const index of [4, 5]) await expect(row(page, index).locator('.vr-chip--subject')).toHaveCount(0);
+  // 오탈자는 판단 이유만 제목으로 쓰고 대상 라벨을 두지 않는다.
+  await expect(reason(3)).toHaveCount(0);
+  await expect(row(page, 3).locator('.vr-chip--subject')).toHaveCount(0);
   await expect(title(3)).toHaveText('‘되어요’의 준말은 ‘돼요’예요.');
-  await expect(title(4)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
 
-  // 상세 첫 줄은 대상 종류·이름·설정명이고 제목은 판단 이유다.
-  await expect(page.locator('.vr-detail-subject')).toHaveText('캐릭터 · 비요른 · 검');
-  await expect(detailHeading(page)).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  // 상세 제목은 목록과 같은 문장이고 사유는 그 아래다.
+  await expect(detailHeading(page)).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
   await row(page, 4).click();
-  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
-  await expect(page.locator('.vr-detail-subject')).toHaveCount(0);
+  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
+  await expect(page.locator('.vr-detail-summary')).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  await row(page, 5).click();
+  await expect(detailHeading(page)).toHaveText('앞뜰의 마법 사용을 확인해 주세요');
 });
 
 test('등급·대상 필터는 서버에 보내고 첫 페이지로 돌아가며 건수는 목록 응답, 집계는 검토 요약을 쓴다', async ({ page }) => {
@@ -392,7 +556,7 @@ test('검사 중 발견한 항목은 읽기 전용이고 완료가 확인되면 
 
 test('원고 교체로 무효가 된 결과는 이전에 읽은 인용을 다시 보여 주지 않는다', async ({ page }) => {
   const mock = await open(page);
-  await expect(page.getByText('그의 검은 손잡이만 남긴 채 산산이 부서졌다.').first()).toBeVisible();
+  await expect(page.getByText('비요른은 그 검을 뽑았다.').first()).toBeVisible();
   const detailReads = mock.state.detailGets;
   mock.patchStaging({ status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED', executionStatus: 'CANCELED',
     holdReason: 'SOURCE_EVIDENCE_PURGED', reportVersion: 20 });
@@ -477,7 +641,7 @@ test('검사 이력은 접힌 상태에서 열고 이전 결과 주소는 요약
   await expect(page.locator('.vr-row')).toHaveCount(0);
   await page.getByRole('button', { name: '최신 결과로 돌아가기' }).click();
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}.*findingId=${findingId(1)}`));
-  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  await expect(detailHeading(page)).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
 
   // 공유된 이전 결과 주소로 바로 들어와도 요약 전용이며 회차의 현재 결과를 서버에서 찾는다.
   await page.goto(`/episode-validation-report?workId=${WORK_ID}&reportId=${PAST_REPORT_ID}`);
@@ -643,7 +807,7 @@ test('키보드로 항목을 열면 상세 제목으로, 목록 복귀는 원래
   await row(page, 2).focus();
   await page.keyboard.press('Enter');
   await expect(detailHeading(page)).toBeFocused();
-  await expect(detailHeading(page)).toHaveText('망토의 색이 이전 회차와 달라요.');
+  await expect(detailHeading(page)).toHaveText('에르웬 망토 색이 기존 기록과 다를 수 있어요');
   await page.keyboard.press('Tab');
   await expect(page.locator(':focus')).not.toHaveAttribute('id', 'validation-finding-title');
 
@@ -684,7 +848,13 @@ test('주요 문구와 상태 배지는 Theme V2 표면에서 4.5:1 이상 대�
     ['대상 설정 안내', page.locator('#validation-target-name'), page.locator('.vr-detail-body')],
     ['대상 라벨', row(page, 0).locator('.vr-chip--subject'), row(page, 0).locator('.vr-chip--subject')],
     ['판단 이유 한 줄', row(page, 1).locator('.vr-row__reason'), row(page, 1)],
-    ['상세 대상', page.locator('.vr-detail-subject'), page.locator('.vr-detail-card > header')],
+    ['상세 사유', page.locator('.vr-detail-summary'), page.locator('.vr-detail-card > header')],
+    ['블록 머리말', block(page, 0).locator('.vr-block__label'), header(page, 0)],
+    ['이번 원고 표지', block(page, 0).locator('.vr-block__role'), block(page, 0).locator('.vr-block__role')],
+    ['기준 표지', block(page, 1).locator('.vr-block__role'), block(page, 1).locator('.vr-block__role')],
+    ['문맥 줄', lines(page, 0).first(), block(page, 0)],
+    ['인용 줄', block(page, 0).locator('.vr-block__line.is-quote mark'), block(page, 0).locator('.vr-block__line.is-quote mark')],
+    ['더 보기', block(page, 0).getByRole('button', { name: '위로 더 보기' }), block(page, 0).getByRole('button', { name: '위로 더 보기' })],
     ['판단 안내', page.locator('.vr-judgment > .vr-muted'), page.locator('.vr-detail-body')],
   ];
   for (const [name, text, background] of checks) {

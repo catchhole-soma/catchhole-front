@@ -32,17 +32,204 @@ type HistoryRow = (typeof review.responses.historyPage.content)[number];
 type Judgment = 'PENDING' | 'NEEDS_FIX' | 'NOT_CONFLICT' | 'KEEP_ORIGINAL';
 
 const clone = <T,>(value: T): T => structuredClone(value);
-const findingIds = ['101', '111', '121', '131', '141'].map(suffix => `00000000-0000-4000-8000-000000000${suffix}`);
+const findingIds = ['101', '111', '121', '131', '141', '151'].map(suffix => `00000000-0000-4000-8000-000000000${suffix}`);
 
 function completion(reason: string, refs: string[]) {
   return { reason, evidence_refs: refs };
 }
 
+type Evidence = (typeof review.responses.findingDetail.evidence)[number];
+type BasisQuote = (typeof review.responses.findingDetail.basisQuotes)[number];
+type Block = (typeof review.responses.findingDetail.blocks)[number];
+type SourceLine = { start: number; end: number; text: string };
+type SourceWindow = { sourceRef: string; start: number; end: number; totalCodePoints: number; hasMoreBefore: boolean; hasMoreAfter: boolean; lines: SourceLine[] };
+const cp = (value: string) => Array.from(value).length;
+
+/**
+ * 합성 원고(실제 원고가 아니다). 웹소설 원고 파일처럼 문단마다 CRLF와 빈 줄을 둔다.
+ * T1=이번 원고 101화, R1=20화, R3=24화, R2=설정집. 문맥 블록의 앞뒤 줄과 더 보기는 이 글을 서버 규칙대로 잘라 준다.
+ */
+const paragraphs = (...lines: string[]) => lines.join('\r\n\r\n');
+const SYNTHETIC_SOURCES: Record<string, string> = {
+  T1: paragraphs(
+    '새벽이 오기 전, 성 밖의 들판은 조용했다.', '말발굽 소리가 멀리서 가까워졌다.', '성문 앞에 모인 사람들이 숨을 죽였다.', '북쪽 하늘이 붉게 물들고 있었다.',
+    '비요른은 그 검을 뽑았다.', '칼날이 떨리는 소리가 성벽에 부딪혔다.', '아무도 그 검이 어디서 왔는지 묻지 않았다.', '부서졌던 검신이 달빛 아래 날카롭게 빛났다.',
+    '왕궁 앞뜰에 발을 디딘 에르웬이 짧은 주문을 읊자, 손끝에서 작은 불꽃이 피어났다.', '경비병들이 서로를 돌아보았다.', '그러면 되요 정말 괜찮겠어?',
+    '에르웬은 붉은 망토를 여몄다.', '바람이 다시 거세졌다.', '붉은 망토 자락이 바람에 흩날렸다.', '성문이 천천히 열리기 시작했다.', '누군가 낮게 비요른의 이름을 불렀다.'),
+  R1: paragraphs(
+    '전령이 성문을 두드렸다.', '병사들이 서둘러 성벽으로 올라갔다.', '격전은 해가 질 때까지 이어졌다.', '비요른은 마지막 힘을 짜내 도끼를 막아 냈다.', '그의 검은 손잡이만 남긴 채 산산이 부서졌다.', '비요른은 남은 손잡이를 허리에 찼다.',
+    '성벽 위에 바람이 거셌다.', '에르웬의 푸른 망토가 바람에 날렸다.', '두 사람은 말없이 북쪽을 바라보았다.', '밤이 깊어 갔다.'),
+  R2: paragraphs('왕궁의 규칙', '왕궁 안에서는 누구도 마법을 사용할 수 없다.', '왕궁 앞뜰의 경계는 따로 정하지 않았다.'),
+  R3: paragraphs(
+    '대장간 앞은 늘 시끄러웠다.', '망치 소리가 골목을 가득 채웠다.', '비요른은 부서진 검을 대장간에 맡기지 않았다.', '그는 손잡이를 다시 허리에 찼다.',
+    '새 검을 사겠냐는 물음에 고개를 저었다.'),
+};
+const EPISODE_OF: Record<string, number | null> = { T1: 101, R1: 20, R2: null, R3: 24 };
+
+/** code point 위치. 합성 글에 없는 문장이면 테스트 작성 오류다. */
+function positionOf(ref: string, quote: string) {
+  const text = SYNTHETIC_SOURCES[ref];
+  const at = text.indexOf(quote);
+  if (at < 0) throw new Error(`synthetic source ${ref} has no "${quote}"`);
+  const start = cp(text.slice(0, at));
+  return { start, end: start + cp(quote) };
+}
+
+/** Backend `ValidationSourceWindow`와 같은 규칙: CRLF·LF·CR 줄 끝, 공백만 있는 줄 제외, 위아래를 번갈아 채우고 3,000자 상한. */
+function sourceLines(text: string): SourceLine[] {
+  const chars = Array.from(text);
+  const lines: SourceLine[] = [];
+  let start = 0;
+  for (let i = 0; i <= chars.length; i++) {
+    if (i < chars.length && chars[i] !== '\n' && chars[i] !== '\r') continue;
+    const value = chars.slice(start, i).join('');
+    if (value.trim()) lines.push({ start, end: i, text: value });
+    if (chars[i] === '\r' && chars[i + 1] === '\n') i++;
+    start = i + 1;
+  }
+  return lines;
+}
+function sourceWindow(ref: string, anchorStart: number, anchorEnd: number, before: number, after: number): SourceWindow {
+  const text = SYNTHETIC_SOURCES[ref];
+  const lines = sourceLines(text);
+  let first = lines.findIndex(line => line.end > anchorStart);
+  if (first < 0) first = lines.length;
+  let last = lines.length - 1;
+  while (last >= 0 && lines[last].start >= anchorEnd) last--;
+  if (anchorStart === anchorEnd) last = Math.min(last, first - 1);
+  let lo = first, hi = last, used = 0, up = before > 0, down = after > 0, addedBefore = 0, addedAfter = 0;
+  for (let k = first; k <= last; k++) used += lines[k].end - lines[k].start;
+  const length = (line: SourceLine) => line.end - line.start;
+  while (up || down) {
+    if (up) {
+      if (lo === 0 || used + length(lines[lo - 1]) > 3000) up = false;
+      else { lo--; used += length(lines[lo]); up = ++addedBefore < before; }
+    }
+    if (down) {
+      if (hi === lines.length - 1 || used + length(lines[hi + 1]) > 3000) down = false;
+      else { hi++; used += length(lines[hi]); down = ++addedAfter < after; }
+    }
+  }
+  const picked = lo <= hi ? lines.slice(lo, hi + 1) : [];
+  return {
+    sourceRef: ref, start: picked[0]?.start ?? anchorStart, end: picked.length ? picked[picked.length - 1].end : anchorStart, totalCodePoints: cp(text),
+    hasMoreBefore: lo > 0, hasMoreAfter: hi < lines.length - 1, lines: picked,
+  };
+}
+
+type TextKind = 'TARGET' | 'EPISODE' | 'SETTING_BOOK';
+type BlockQuote = { quote: string; start: number | null; end: number | null };
+
+function textLabel(ref: string, start: number, end: number) {
+  const episodeNo = EPISODE_OF[ref];
+  const position = `${start + 1}~${end}자`;
+  return episodeNo != null ? `${episodeNo}화 · ${position}` : `설정집 · 합성 설정집 · ${position}`;
+}
+
+/** 원문 블록(서버 `ValidationFindingLabels`와 같은 label·처음 위아래 2줄). `quotes`는 이 블록이 강조하는 인용 전부다. */
+function textBlock(kind: TextKind, ref: string, quote: string, label?: string): Block {
+  const { start, end } = positionOf(ref, quote);
+  return {
+    kind, label: label ?? textLabel(ref, start, end), quote, quotes: [{ quote, start, end }], sourceRef: ref, start, end,
+    episodeNo: EPISODE_OF[ref], settingValue: null, context: sourceWindow(ref, start, end, 2, 2), contextStatus: 'READY',
+  } as unknown as Block;
+}
+
+/**
+ * 서버 블록 합치기(2026-11-03)와 같은 규칙: 같은 출처의 인용을 원문 순서로 보고, 각 인용의 처음 앞뒤 2줄 창이 겹치거나 맞닿으면
+ * (다음 창의 첫 줄이 앞 창의 마지막 줄 바로 다음 줄 이전) 한 블록으로 합친다. 합친 블록은 덮는 범위 label·창을 쓰고 `quotes`에 인용을 모두 담는다.
+ */
+function mergedTextBlocks(kind: TextKind, ref: string, quotes: string[]): Block[] {
+  const lines = sourceLines(SYNTHETIC_SOURCES[ref]);
+  const groups: Array<{ quotes: Array<{ quote: string; start: number; end: number }>; last: number }> = [];
+  const placed = quotes.map(quote => ({ quote, ...positionOf(ref, quote) })).sort((a, b) => a.start - b.start || a.end - b.end);
+  for (const item of placed) {
+    const window = sourceWindow(ref, item.start, item.end, 2, 2);
+    const first = lines.findIndex(line => line.start === window.start);
+    const last = lines.findIndex(line => line.end === window.end);
+    const group = groups[groups.length - 1];
+    if (group && first <= group.last + 1) {
+      group.quotes.push(item);
+      group.last = Math.max(group.last, last);
+    } else groups.push({ quotes: [item], last });
+  }
+  return groups.map(group => {
+    const start = Math.min(...group.quotes.map(item => item.start));
+    const end = Math.max(...group.quotes.map(item => item.end));
+    return {
+      kind, label: textLabel(ref, start, end), quote: group.quotes[0].quote, quotes: group.quotes, sourceRef: ref, start, end,
+      episodeNo: EPISODE_OF[ref], settingValue: null, context: sourceWindow(ref, start, end, 2, 2), contextStatus: 'READY',
+    } as unknown as Block;
+  });
+}
+function settingBlock(quotes: BasisQuote[], settingValue: string | null): Block {
+  const items: BlockQuote[] = quotes.map(quote => ({ quote: quote.quote, start: null, end: null }));
+  return { kind: 'SETTING', label: quotes[0].label, quote: quotes[0].quote, quotes: items, sourceRef: null, start: null, end: null, episodeNo: null,
+    settingValue, context: null, contextStatus: null } as unknown as Block;
+}
+
+/** 계약 evidence 예시 모양으로 원문 조각을 만든다. 근거 문장이 조각 안에 있으면 서버처럼 강조 구간을 채운다. */
+function chunk(sourceRef: string, quote: string, used: boolean, sentences: string[] = []): Evidence {
+  const { start, end } = positionOf(sourceRef, quote);
+  const episodeNo = EPISODE_OF[sourceRef];
+  const highlights = sentences.map(sentence => {
+    const at = cp(quote.slice(0, quote.indexOf(sentence)));
+    return { start: at, end: at + cp(sentence) };
+  });
+  return {
+    sourceRef, start, end, quote, sourceKind: episodeNo == null ? 'SETTING_BOOK' : 'EPISODE', episodeNo: episodeNo as number,
+    label: episodeNo == null ? `설정집 · 합성 설정집 · ${start + 1}~${end}자` : `${episodeNo}화 · ${start + 1}~${end}자`,
+    usedByDecision: used, highlights,
+  } as unknown as Evidence;
+}
+/** 저장 설정값 근거 문장(서버 label `설정 · 대상 · 설정명`). */
+function settingQuote(subjectName: string, settingName: string | null, quote: string): BasisQuote {
+  return { kind: 'SETTING', label: ['설정', subjectName, settingName].filter(Boolean).join(' · '), quote, sourceRef: null, start: null, end: null,
+    episodeNo: null, subjectName, settingName, settingBookTitle: null } as unknown as BasisQuote;
+}
+/** 이전 회차 근거 문장. 위치는 합성 원고 전체 기준 code point다. */
+function episodeQuote(ref: string, sentence: string): BasisQuote {
+  const { start, end } = positionOf(ref, sentence);
+  return { kind: 'EPISODE', label: `${EPISODE_OF[ref]}화`, quote: sentence, sourceRef: ref, start, end,
+    episodeNo: EPISODE_OF[ref], subjectName: null, settingName: null, settingBookTitle: null } as unknown as BasisQuote;
+}
+
+/**
+ * 서버 순서: 이번 원고 위치 → 설정값 → 이전 회차(회차 순) → 설정집. 같은 출처의 앞뒤 줄이 겹치거나 맞닿는 인용은 한 블록이고,
+ * 같은 저장 설정값을 가리키는 설정 인용도 한 블록이다(서버 규칙과 같다).
+ */
+function blocksOf(targets: string[], quotes: BasisQuote[], settingValues: Record<string, string> = {}): Block[] {
+  const episodes = quotes.filter(quote => quote.kind !== 'SETTING')
+    .sort((a, b) => ((a.kind === 'SETTING_BOOK' ? 1 : 0) - (b.kind === 'SETTING_BOOK' ? 1 : 0))
+      || ((a.episodeNo ?? 1e9) - (b.episodeNo ?? 1e9)) || ((a.start ?? 0) - (b.start ?? 0)));
+  const settings: Array<{ quotes: BasisQuote[]; value: string | null }> = [];
+  for (const quote of quotes.filter(item => item.kind === 'SETTING')) {
+    const value = settingValues[quote.quote] ?? null;
+    const same = value == null ? undefined : settings.find(group => group.value === value && group.quotes[0].label === quote.label);
+    if (same) same.quotes.push(quote); else settings.push({ quotes: [quote], value });
+  }
+  const sources: Array<{ kind: TextKind; ref: string; quotes: string[] }> = [];
+  for (const quote of episodes) {
+    const ref = quote.sourceRef as string;
+    const last = sources[sources.length - 1];
+    if (last && last.ref === ref) last.quotes.push(quote.quote);
+    else sources.push({ kind: quote.kind === 'SETTING_BOOK' ? 'SETTING_BOOK' : 'EPISODE', ref, quotes: [quote.quote] });
+  }
+  return [
+    ...mergedTextBlocks('TARGET', 'T1', targets),
+    ...settings.map(group => settingBlock(group.quotes, group.value)),
+    ...sources.flatMap(source => mergedTextBlocks(source.kind, source.ref, source.quotes)),
+  ];
+}
+
 /** 계약의 findingDetail을 복제해 값만 바꾼다. payload는 공개 허용 키만 사용한다. */
 function settingDetail(index: number, values: {
-  outcome: string; basis: string; impact: string; reason: string; impactReason: string; target: Array<[number, number, string]>;
-  basisEvidence: Array<[string, number, number, string]>; context: string; exceptions: string; disagreements?: string[]; changed?: boolean;
+  outcome: string; basis: string; impact: string; reason: string; impactReason: string; target: string[];
+  basisEvidence: Evidence[]; context: string; exceptions: string; disagreements?: string[]; changed?: boolean;
   subject: Subject; settingName?: string | null; settingKey?: string | null; basisEntries?: Basis[];
+  topic?: string | null; basisQuotes?: BasisQuote[]; settingValues?: Record<string, string>;
+  /** 판정이 쓴 제목(2026-11-03). 없으면 이 변경 전 결과처럼 null이다. */
+  headline?: string | null;
 }): Detail {
   const detail = clone(review.responses.findingDetail) as unknown as Detail & { payload: Record<string, unknown> };
   // #314 B2: 대상·설정명·정정 기준 항목은 계약 모양을 따르고 값만 장면에 맞게 바꾼다.
@@ -50,7 +237,11 @@ function settingDetail(index: number, values: {
   detail.settingName = values.settingName ?? null;
   detail.settingKey = values.settingKey ?? null;
   detail.basis = values.basisEntries ?? [];
-  const targetSpans = values.target.map(([start, end, quote]) => ({ source_ref: 'T1', start, end, quote }));
+  detail.topic = values.topic ?? null as unknown as string;
+  (detail as unknown as { headline: string | null }).headline = values.headline ?? null;
+  detail.targetEpisodeNo = 101;
+  detail.basisQuotes = values.basisQuotes ?? [];
+  const targetSpans = values.target.map(quote => ({ source_ref: 'T1', ...positionOf('T1', quote), quote }));
   detail.findingId = findingIds[index];
   detail.checkId = `00000000-0000-4000-8000-00000000020${index}`;
   detail.unitRef = `Q${index + 1}`;
@@ -61,7 +252,7 @@ function settingDetail(index: number, values: {
   detail.changed = values.changed ?? false;
   detail.payload = {
     reason: values.reason, basis: values.basis, impact: values.impact, impact_reason: values.impactReason,
-    target_spans: targetSpans, evidence_refs: values.basisEvidence.map(([ref]) => ref),
+    target_spans: targetSpans, evidence_refs: ['T1', 'E1'],
     disagreements: (values.disagreements ?? []).map(reason => ({ fact_ref: 'B1', evidence_ref: 'E1', reason })),
     completion: {
       comparison_context: completion(values.context, ['T1']),
@@ -70,10 +261,9 @@ function settingDetail(index: number, values: {
       required_reads: completion('필요한 원문을 모두 읽었어요.', []),
     },
   };
-  detail.evidence = [
-    ...values.basisEvidence.map(([sourceRef, start, end, quote]) => ({ sourceRef, start, end, quote })),
-    ...targetSpans.slice(0, 1).map(span => ({ sourceRef: 'T1', start: span.start, end: span.end, quote: span.quote })),
-  ];
+  // 저장 인용(evidence)은 계약 필드로 남기지만 화면은 blocks만 쓴다.
+  detail.evidence = [...values.basisEvidence, ...values.target.map(quote => chunk('T1', quote, false))];
+  detail.blocks = blocksOf(values.target, detail.basisQuotes, values.settingValues);
   detail.judgment = { value: 'PENDING', version: 0, decidedAt: null as unknown as string };
   detail.allowedJudgments = ['PENDING', 'NEEDS_FIX', 'NOT_CONFLICT'];
   detail.judgmentHistory = [];
@@ -81,13 +271,17 @@ function settingDetail(index: number, values: {
   return detail;
 }
 
-function typoDetail(index: number, values: { outcome: string; reason: string; start: number; end: number; quote: string; replacement: string }): Detail {
+function typoDetail(index: number, values: { outcome: string; reason: string; quote: string; replacement: string }): Detail {
   const detail = clone(review.responses.findingDetail) as unknown as Detail & { payload: Record<string, unknown> };
   // 오탈자는 대상·설정명이 없고 basis는 빈 배열이다(계약 findingSummaryTypo).
   detail.subject = null;
   detail.settingName = null;
   detail.settingKey = null;
   detail.basis = [];
+  detail.topic = null as unknown as string;
+  (detail as unknown as { headline: string | null }).headline = null;
+  detail.targetEpisodeNo = 101;
+  detail.basisQuotes = [];
   detail.findingId = findingIds[index];
   detail.branch = 'TYPO';
   detail.unitRef = 'TSEG1';
@@ -99,9 +293,10 @@ function typoDetail(index: number, values: { outcome: string; reason: string; st
   detail.changed = false;
   detail.payload = {
     reason: values.reason, category: values.outcome, replacement: values.replacement,
-    span: { source_ref: 'T1', start: values.start, end: values.end, quote: values.quote },
+    span: { source_ref: 'T1', ...positionOf('T1', values.quote), quote: values.quote },
   };
-  detail.evidence = [{ sourceRef: 'T1', start: values.start - 6, end: values.end + 4, quote: `그러면 ${values.quote} 정말` }];
+  detail.evidence = [chunk('T1', `그러면 ${values.quote} 정말`, false)];
+  detail.blocks = [textBlock('TARGET', 'T1', values.quote)];
   detail.judgment = { value: 'PENDING', version: 0, decidedAt: null as unknown as string };
   detail.allowedJudgments = ['PENDING', 'NEEDS_FIX', 'KEEP_ORIGINAL'];
   detail.judgmentHistory = [];
@@ -123,15 +318,27 @@ export const BJORN_BASIS = basisEntry({ entryRef: 'B1', subjectType: 'CHARACTER'
 export const PALACE_BASIS = basisEntry({ entryRef: 'B2', subjectType: 'WORLD_SETTING', targetId: WORLD_ID, subjectName: '왕궁', scopeName: '마법', settingName: '사용 제한', currentVersion: 4 } as unknown as Partial<Basis> & Pick<Basis, 'entryRef' | 'subjectType' | 'targetId' | 'subjectName'>);
 export const ERWEN_BASIS = basisEntry({ entryRef: 'B3', subjectType: 'CHARACTER', targetId: ERWEN_ID, subjectName: '에르웬', currentVersion: 2 });
 
+/** 합성 이전 회차 조각(실제 원고가 아니다). 판정이 쓴 조각과 검색만 한 조각을 함께 둔다. */
+const SWORD_CHUNK = chunk('R1', '비요른은 마지막 힘을 짜내 도끼를 막아 냈다.\r\n\r\n그의 검은 손잡이만 남긴 채 산산이 부서졌다.', true, ['그의 검은 손잡이만 남긴 채 산산이 부서졌다.']);
+const FORGE_CHUNK = chunk('R3', '비요른은 부서진 검을 대장간에 맡기지 않았다.', true, ['비요른은 부서진 검을 대장간에 맡기지 않았다.']);
+const CLOAK_CHUNK = chunk('R1', '성벽 위에 바람이 거셌다.\r\n\r\n에르웬의 푸른 망토가 바람에 날렸다.', true, ['에르웬의 푸른 망토가 바람에 날렸다.']);
+
 export function defaultFindings(): Detail[] {
   return [
     settingDetail(0, {
       subject: { type: 'CHARACTER', id: CHARACTER_ID, name: '비요른' }, settingName: '검', settingKey: 'ITEM:item.검', basisEntries: [BJORN_BASIS],
       outcome: 'CONFLICT', basis: 'DIRECT_CONTRADICTION', impact: 'SEVERE',
-      reason: '20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.',
+      topic: '검의 상태',
+      // 판정이 쓴 제목과 원인→결과 두 문장(2026-11-03 형식).
+      headline: '비요른의 검 상태가 기존 설정과 달라요',
+      reason: '기존 설정은 비요른의 검이 산산이 부서져 손잡이만 남았다고 해요. 그런데 101화에서는 그 검을 다시 뽑아 들어요.',
       impactReason: '부서진 검으로 성문을 여는 장면의 성립 조건이에요.',
-      target: [[120, 133, '비요른은 그 검을 뽑았다.'], [410, 431, '부서졌던 검신이 달빛 아래 날카롭게 빛났다.']],
-      basisEvidence: [['R1', 88, 112, '그의 검은 손잡이만 남긴 채 산산이 부서졌다.']],
+      target: ['비요른은 그 검을 뽑았다.'],
+      basisEvidence: [SWORD_CHUNK, FORGE_CHUNK, chunk('R3', '대장간 앞은 늘 시끄러웠다.', false)],
+      // 근거 순서는 판정이 낸 순서(24화가 먼저)여도 블록은 회차 순으로 쌓인다.
+      basisQuotes: [settingQuote('비요른', '검', '산산이 부서져 손잡이만 남음'), episodeQuote('R3', '비요른은 부서진 검을 대장간에 맡기지 않았다.'),
+        episodeQuote('R1', '그의 검은 손잡이만 남긴 채 산산이 부서졌다.')],
+      settingValues: { '산산이 부서져 손잡이만 남음': '20화 전투 중 산산이 부서져 손잡이만 남음' },
       context: '20화 이후 검을 다시 얻었다는 기록과 비교했어요.',
       exceptions: '수리하거나 새로 얻었다는 설명을 찾지 못했어요.',
     }),
@@ -139,26 +346,39 @@ export function defaultFindings(): Detail[] {
       subject: { type: 'WORLD_SETTING', id: WORLD_ID, name: '왕궁' }, settingName: '마법 / 사용 제한', settingKey: '["마법","사용 제한"]',
       basisEntries: [PALACE_BASIS, ERWEN_BASIS],
       outcome: 'NEEDS_CONTEXT', basis: 'AMBIGUOUS_MEANING', impact: 'SEVERE',
+      topic: '앞뜰의 마법 사용',
+      headline: '왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요',
       reason: '왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.',
       impactReason: '주문으로 탈출하는 장면의 성립 조건이에요.',
-      target: [[612, 640, '왕궁 앞뜰에 발을 디딘 에르웬이 짧은 주문을 읊자, 손끝에서 작은 불꽃이 피어났다.']],
-      basisEvidence: [['R2', 30, 56, '왕궁 안에서는 누구도 마법을 사용할 수 없다.']],
+      target: ['왕궁 앞뜰에 발을 디딘 에르웬이 짧은 주문을 읊자, 손끝에서 작은 불꽃이 피어났다.'],
+      basisEvidence: [chunk('R2', '왕궁 안에서는 누구도 마법을 사용할 수 없다.', false)],
       context: '앞뜰이 ‘왕궁 안’에 포함되는지 설정에 적혀 있지 않아요.',
       exceptions: '앞뜰에 대한 예외 규칙을 찾지 못했어요.',
     }),
     settingDetail(2, {
-      // 질문 속성이 고정 slot과 정확히 맞지 않아 설정명은 없다(대상만 표시).
+      // 질문 속성이 고정 slot과 정확히 맞지 않아 설정명은 없다(대상만 표시). 같은 내용이 원고 두 곳에 있다.
+      // 두 곳의 앞뒤 줄이 겹쳐 이번 원고 블록 하나로 합친다. 판정 제목이 없는 이전 결과라 화면이 제목을 만든다.
       subject: { type: 'CHARACTER', id: ERWEN_ID, name: '에르웬' }, settingName: null, basisEntries: [ERWEN_BASIS],
       outcome: 'SUSPECTED_CONFLICT', basis: 'CHANGE_NOT_FOUND', impact: 'REFERENCE', changed: true,
+      topic: '망토 색',
       reason: '망토의 색이 이전 회차와 달라요.',
       impactReason: '행동이나 사건에 쓰이지 않는 부수적 묘사예요.',
-      target: [[900, 912, '에르웬은 붉은 망토를 여몄다.']],
-      basisEvidence: [['R1', 40, 52, '에르웬의 푸른 망토가 바람에 날렸다.']],
+      target: ['에르웬은 붉은 망토를 여몄다.', '붉은 망토 자락이 바람에 흩날렸다.'],
+      basisEvidence: [CLOAK_CHUNK],
+      basisQuotes: [episodeQuote('R1', '에르웬의 푸른 망토가 바람에 날렸다.')],
       context: '같은 망토를 계속 입고 있는 장면과 비교했어요.',
       exceptions: '망토를 바꿨다는 설명을 찾지 못했어요.',
     }),
-    typoDetail(3, { outcome: 'SPELLING', reason: '‘되어요’의 준말은 ‘돼요’예요.', start: 52, end: 54, quote: '되요', replacement: '돼요' }),
+    typoDetail(3, { outcome: 'SPELLING', reason: '‘되어요’의 준말은 ‘돼요’예요.', quote: '되요', replacement: '돼요' }),
   ];
+}
+
+/** 설정 항목의 이번 원고 위치를 바꾼다. 블록은 서버 규칙(앞뒤 줄이 겹치거나 맞닿으면 합침)대로 다시 만든다. */
+export function retarget(detail: Detail, targets: string[]): Detail {
+  const next = clone(detail) as Detail & { payload: Record<string, unknown> };
+  next.payload = { ...next.payload, target_spans: targets.map(quote => ({ source_ref: 'T1', ...positionOf('T1', quote), quote })) };
+  next.blocks = blocksOf(targets, next.basisQuotes);
+  return next;
 }
 
 function summaryOf(detail: Detail) {
@@ -168,7 +388,8 @@ function summaryOf(detail: Detail) {
     ...clone(review.responses.findingSummary),
     findingId: detail.findingId, branch: detail.branch, unitRef: detail.unitRef, checkId: detail.checkId,
     checkRevision: detail.checkRevision, outcome: detail.outcome, judgment: detail.judgment, changed: detail.changed,
-    subject: detail.subject, settingName: detail.settingName, settingKey: detail.settingKey,
+    subject: detail.subject, settingName: detail.settingName, settingKey: detail.settingKey, topic: detail.topic,
+    headline: (detail as unknown as { headline?: string | null }).headline ?? null,
     summary: {
       impact: detail.branch === 'SETTING' ? payload.impact as string : null as unknown as string,
       reason: payload.reason as string,
@@ -294,6 +515,9 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     correctionHold: null as Promise<void> | null,
     /** 발급한 정정 receipt. 같은 키 재전송은 같은 receipt를 돌려준다. */
     corrections: new Map<string, { correctionId: string; body: string; reportVersion: number }>(),
+    /** 문맥 블록 더 보기 요청의 query 문자열. */
+    contextRequests: [] as string[],
+    contextFailure: null as Failure | null,
   };
 
   const counts = () => {
@@ -469,6 +693,26 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
       const content = filtered.slice(pageNo * size, pageNo * size + size).map(summaryOf);
       return success(route, { content, page: pageNo, size, totalElements: filtered.length, totalPages: Math.ceil(filtered.length / size), hasNext: (pageNo + 1) * size < filtered.length });
     }
+    // 문맥 블록 더 보기: Backend처럼 그 항목 블록이 인용한 출처만, 줄 수·anchor 상한 안에서 합성 원고를 자른다.
+    const contextMatch = /^\/findings\/([0-9a-f-]{36})\/source-context$/.exec(rest);
+    if (contextMatch) {
+      const finding = state.findings.find(item => item.findingId === contextMatch[1]);
+      if (!finding) return failure(route, 404, 'VALIDATION_FINDING_NOT_FOUND', '발견 항목을 찾을 수 없습니다.');
+      state.contextRequests.push(url.search);
+      if (state.contextFailure) {
+        const { status, code, message, context } = state.contextFailure;
+        state.contextFailure = null;
+        return failure(route, status, code, message, context);
+      }
+      const ref = url.searchParams.get('sourceRef') ?? '';
+      const number = (key: string) => Number(url.searchParams.get(key) ?? 0);
+      const [anchorStart, anchorEnd, before, after] = [number('anchorStart'), number('anchorEnd'), number('before'), number('after')];
+      const cited = ((finding.blocks ?? []) as Array<{ sourceRef?: string | null }>).some(block => block.sourceRef === ref);
+      const text = SYNTHETIC_SOURCES[ref];
+      if (!cited || !text || anchorStart < 0 || anchorEnd < anchorStart || anchorEnd - anchorStart > 1000 || anchorEnd > cp(text)
+        || before < 0 || after < 0 || before > 30 || after > 30) return failure(route, 400, 'REQUEST_VALIDATION_FAILED', '요청 값이 올바르지 않습니다.');
+      return success(route, sourceWindow(ref, anchorStart, anchorEnd, before, after));
+    }
     const findingMatch = /^\/findings\/([0-9a-f-]{36})(\/judgment)?$/.exec(rest);
     if (findingMatch) {
       const finding = state.findings.find(item => item.findingId === findingMatch[1]);
@@ -571,6 +815,7 @@ export async function mockValidationReport(page: Page, scenario: ReportScenario 
     failNextReplace: (failure: Failure) => { state.replaceFailure = failure; },
     failNextRecheck: (failure: Failure) => { state.recheckFailure = failure; },
     failNextCorrection: (failure: Failure) => { state.correctionFailure = failure; },
+    failNextContext: (failure: Failure) => { state.contextFailure = failure; },
     loseNextCorrectionResponse: () => { state.correctionResponseLost = true; },
     loseNextRecheckResponse: () => { state.recheckResponseLost = true; },
     holdNextCorrection: () => { let release!: () => void; state.correctionHold = new Promise<void>(resolve => { release = resolve; }); return () => release(); },

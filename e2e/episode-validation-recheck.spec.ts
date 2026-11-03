@@ -37,11 +37,11 @@ async function chooseReplacement(page: Page) {
 test('A9 원고 파일 변경은 같은 회차를 교체하고 리포트로 돌아와 확인 뒤 재검수를 요청한다', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const mock = await open(page, {}, `&branch=SETTING&findingId=${findingId(0)}`);
-  await expect(page.locator('#validation-finding-title')).toHaveText('20화에서 파괴된 검을 101화에서 설명 없이 다시 사용해요.');
+  await expect(page.locator('#validation-finding-title')).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
   // 서버가 RECHECK를 허용하기 전에는 재검수 버튼을 두지 않는다.
   await expect(recheckButton(page)).toHaveCount(0);
 
-  await page.getByRole('link', { name: '원고 파일 변경', exact: true }).click();
+  await page.getByRole('link', { name: '원고 고치기', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\?/);
   const dashboard = new URL(page.url()).searchParams;
   expect(Object.fromEntries(dashboard)).toMatchObject({
@@ -129,7 +129,7 @@ test('교체 실패와 취소는 모달 입력과 리포트 복귀 문맥을 유
   expect(mock.state.requests.filter(item => /\/(analysis-jobs|rechecks)$/.test(item.path))).toEqual([]);
   await returnNotice(page).getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}.*findingId=${findingId(1)}`));
-  await expect(page.locator('#validation-finding-title')).toHaveText('왕궁 앞뜰이 마법 금지 구역에 들어가는지 알 수 없어요.');
+  await expect(page.locator('#validation-finding-title')).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
 });
 
 test('같은 입력의 재검수 거절은 같은 입력 안내와 중단된 검사 다시 시도를 제안한다', async ({ page }) => {
