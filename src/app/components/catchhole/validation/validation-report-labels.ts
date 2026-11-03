@@ -49,7 +49,7 @@ export function subjectTypeLabel(type?: string | null): string | null {
  * R4 대상 줄. 서버의 고정 기준 대상 이름과 설정명만 쓴다(#314 B2). 둘 다 있으면 `대상 · 설정명`,
  * 설정명이 없으면 대상 이름만, 대상이 없으면 null(호출부가 판단 이유를 제목으로 쓴다).
  */
-export function subjectHeading(subject?: ValidationFindingSubject | null, settingName?: string | null): string | null {
+function subjectHeading(subject?: ValidationFindingSubject | null, settingName?: string | null): string | null {
   const name = subject?.name?.trim();
   if (!name) return null;
   const setting = settingName?.trim();
@@ -67,7 +67,7 @@ function hasFinalConsonant(word: string): boolean {
 }
 
 /** `word`에 받침에 맞는 조사를 붙인다. `pair`는 [받침 있음, 받침 없음] — 예: ['이', '가'] */
-export function withJosa(word: string, pair: [string, string]): string {
+function withJosa(word: string, pair: [string, string]): string {
   return `${word}${hasFinalConsonant(word) ? pair[0] : pair[1]}`;
 }
 
@@ -84,7 +84,7 @@ function findingPhrase(subjectName?: string | null, topic?: string | null): stri
  * 오류 리포트 A안 제목: 무엇이 기존 기록과 어떻게 다른지 한 문장으로 말한다(2026-11-03 소유자 선택).
  * 목록·상세가 같은 문장을 쓰도록 근거 종류에 기대지 않는 `기존 기록`으로 쓴다. 만들 수 없으면 null.
  */
-export function findingHeadline(outcome?: string | null, subjectName?: string | null, topic?: string | null): string | null {
+function findingHeadline(outcome?: string | null, subjectName?: string | null, topic?: string | null): string | null {
   const phrase = findingPhrase(subjectName, topic);
   if (!phrase) return null;
   if (outcome === 'CONFLICT') return `${withJosa(phrase, ['이', '가'])} 기존 기록과 달라요`;
