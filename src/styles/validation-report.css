@@ -159,6 +159,75 @@
 .validation-report-screen .vr-occurrence__links { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin-top: 6px; }
 .validation-report-screen .vr-locked { color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; }
 
+/* 오류 리포트 가독성(2026-11-02): 제목 아래 한 문장, 영향·불일치 메모, 두 갈래 고치기 */
+.validation-report-screen .vr-detail-summary { margin: 6px 0 0; color: var(--ch-text); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.validation-report-screen .vr-detail-hint { margin: 2px 0 0; color: var(--ch-text-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.validation-report-screen .vr-detail-notes { display: grid; gap: 4px; margin: 4px 0 0; padding: 0; list-style: none; }
+.validation-report-screen .vr-detail-notes li { color: var(--ch-text); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.validation-report-screen .vr-detail-notes strong { margin-right: 8px; color: var(--ch-text-muted); font-size: 12px; font-weight: 750; }
+.validation-report-screen .vr-detail-notes li.is-context strong { color: var(--ch-warning-ink); }
+/* 오류 리포트 문맥 블록(2026-11-03): GitHub 파일 머리말 같은 블록. 노랑은 결정 전 비교(DESIGN.md GH215)라 인용 강조에만 쓴다. */
+.validation-report-screen .vr-blocks { display: grid; gap: 10px; margin: 2px 0 8px; min-width: 0; }
+.validation-report-screen .vr-block { min-width: 0; overflow: clip; border: 1px solid var(--ch-border); border-radius: 10px; background: var(--ch-surface); }
+.validation-report-screen .vr-block__head { margin: 0; font-size: 13px; }
+.validation-report-screen .vr-block__head > button {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; background: var(--ch-canvas);
+  color: var(--ch-ink); font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+}
+.validation-report-screen .vr-block.is-open .vr-block__head > button { border-bottom: 1px solid var(--ch-border); }
+.validation-report-screen .vr-block__head > button:hover { background: var(--ch-surface-soft); }
+.validation-report-screen .vr-block__head > button:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: -3px; }
+.validation-report-screen .vr-block__role {
+  flex-shrink: 0; padding: 1px 8px; border: 1px solid var(--ch-border-strong); border-radius: 999px; background: var(--ch-surface);
+  color: var(--ch-text); font-size: 11px; font-weight: 750; line-height: 1.6; white-space: nowrap;
+}
+.validation-report-screen .vr-block.is-target .vr-block__role { border-color: rgb(8 126 242 / 28%); background: var(--ch-surface-accent); color: var(--ch-primary-ink); }
+.validation-report-screen .vr-block.is-setting .vr-block__role { color: var(--ch-ink); }
+.validation-report-screen .vr-block__label { flex: 1; min-width: 0; color: var(--ch-ink); font-weight: 680; line-height: 1.5; overflow-wrap: anywhere; }
+.validation-report-screen .vr-block__chevron { flex-shrink: 0; color: var(--ch-text-muted); transition: transform .15s ease; }
+.validation-report-screen .vr-block.is-open .vr-block__chevron { transform: rotate(180deg); }
+.validation-report-screen .vr-block__body { min-width: 0; }
+.validation-report-screen .vr-block__lines { margin: 0; padding: 6px 0; list-style: none; }
+.validation-report-screen .vr-block__line {
+  padding: 3px 14px 3px 13px; border-left: 3px solid transparent; color: var(--ch-text); font-size: 14px; line-height: 1.75;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: keep-all;
+}
+.validation-report-screen .vr-block__line.is-quote { border-left-color: var(--ch-warning); background: var(--review-compare-bg, #fffcf5); color: var(--ch-ink); }
+.validation-report-screen .vr-block__line mark { padding: 0 1px; border-radius: 3px; background: var(--review-compare-mark, #ffe9aa); color: var(--ch-ink); font-weight: 650; }
+/* 이번 원고(검사 대상)는 파랑, 기준·근거는 노랑으로 구분한다. */
+.validation-report-screen .vr-block.is-target .vr-block__line.is-quote { border-left-color: var(--ch-primary); background: var(--ch-surface-accent); }
+.validation-report-screen .vr-block.is-target .vr-block__line mark { background: rgb(8 126 242 / 18%); }
+.validation-report-screen .vr-inline-change__from { color: var(--ch-text-muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.validation-report-screen .vr-inline-change__arrow { margin: 0 4px; color: var(--ch-text-muted); font-weight: 700; }
+.validation-report-screen .vr-inline-change__to { padding: 0 2px; border-radius: 3px; background: var(--review-compare-mark, #ffe9aa); color: var(--ch-ink); font-weight: 750; text-decoration: none; }
+.validation-report-screen .vr-block__more {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 36px; padding: 4px 13px; border: 0; background: var(--ch-surface-soft);
+  color: var(--ch-primary-ink); font: inherit; font-size: 12px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.validation-report-screen .vr-block__more.is-up { border-bottom: 1px solid var(--ch-border); }
+.validation-report-screen .vr-block__more.is-down { border-top: 1px solid var(--ch-border); }
+.validation-report-screen .vr-block__more:hover:not(:disabled) { text-decoration: underline; }
+.validation-report-screen .vr-block__more:disabled { cursor: progress; opacity: .7; }
+.validation-report-screen .vr-block__more:focus-visible,
+.validation-report-screen .vr-block__retry:focus-visible { outline: 3px solid var(--ch-primary); outline-offset: -3px; }
+.validation-report-screen .vr-block__note { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 0; padding: 8px 13px; border-top: 1px solid var(--ch-border); color: var(--ch-text-muted); font-size: 12px; line-height: 1.6; }
+.validation-report-screen .vr-block__retry {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 2px; border: 0; background: transparent;
+  color: var(--ch-primary-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.validation-report-screen .vr-block.is-note { border-style: dashed; background: var(--ch-canvas); }
+.validation-report-screen .vr-block.is-note .vr-block__head { display: flex; align-items: center; min-height: 40px; padding: 8px 12px 0; }
+.validation-report-screen .vr-block__empty { margin: 0; padding: 4px 12px 12px; color: var(--ch-text); font-size: 13px; line-height: 1.7; }
+.validation-report-screen .vr-blocks__footnote { margin: 0; color: var(--ch-text-muted); font-size: 12px; }
+.validation-report-screen .vr-fix__actions { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.validation-report-screen .vr-fix__actions .ch-action { min-height: 44px; }
+.validation-report-screen .vr-fix__chooser { display: grid; gap: 8px; }
+@media (max-width: 768px) {
+  .validation-report-screen .vr-block__more { min-height: 44px; }
+  .validation-report-screen .vr-block__line { padding-right: 10px; font-size: 13.5px; }
+  .validation-report-screen .vr-fix__actions > * { flex: 1 1 100%; }
+}
+
 .validation-report-screen .vr-judgment { margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--ch-border); }
 .validation-report-screen .vr-judgment .review-cb-decisions { margin: 12px 0 8px; }
 .validation-report-screen .vr-judgment .review-cb-choice { min-height: 44px; }

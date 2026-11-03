@@ -34,7 +34,7 @@ import '../../../../styles/validation-report.css';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MOBILE_QUERY = '(max-width: 768px)';
 const REPORT_PATH = '/episode-validation-report';
-const SELECTION_KEYS = ['findingId', 'evidence'];
+const SELECTION_KEYS = ['findingId'];
 const FILTER_KEYS = ['branch', 'judgment', 'outcome', 'impact', 'subjectType', 'page', ...SELECTION_KEYS];
 // 검사가 시작되지 않았거나 기준을 준비하지 못한 단계에는 집계·목록을 0건처럼 보여 주지 않는다.
 const LIST_HIDDEN_STAGES = new Set(['PREPARING_BASELINE', 'HELD_INCOMPLETE', 'INVALIDATED']);
@@ -75,7 +75,6 @@ function readFilters(params: URLSearchParams) {
   const findingId = UUID.test(params.get('findingId') ?? '') ? params.get('findingId') : null;
   return {
     branch, judgment, outcome, impact, subjectType, page, findingId,
-    evidence: findingId ? params.get('evidence') : null,
     historyOpen: params.get('history') === '1',
   };
 }
@@ -91,7 +90,8 @@ function normalizedParams(params: URLSearchParams): URLSearchParams | null {
     subjectType: filters.subjectType === 'ALL' ? null : filters.subjectType,
     page: filters.page === 1 ? null : String(filters.page),
     findingId: filters.findingId,
-    evidence: filters.evidence,
+    // 문맥 블록(2026-11-03) 전의 근거 펼침 주소 값은 더 쓰지 않으므로 지운다.
+    evidence: null,
     history: filters.historyOpen ? '1' : null,
   };
   let changed = false;
@@ -295,7 +295,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     focusTarget.current = 'detail';
     setMobileDetailOpen(true);
     actions.clearJudgmentNotice();
-    updateParams(next => { next.set('findingId', findingId); next.delete('evidence'); });
+    updateParams(next => { next.set('findingId', findingId); });
   };
   const backToList = () => {
     focusTarget.current = { row: filters.findingId };
@@ -354,8 +354,6 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     : undefined;
   // A11: 설정 정정 화면이 돌려준 정정 receipt. 재검수 요청에 그대로 보낸다.
   const correctionReceiptId = UUID.test(searchParams.get(CORRECTION_RECEIPT_KEY) ?? '') ? searchParams.get(CORRECTION_RECEIPT_KEY) : null;
-  const sourceLink = !report.invalidated && !pastReport && staging?.episodeId
-    ? `/editor?workId=${encodeURIComponent(workId)}&episodeId=${encodeURIComponent(staging.episodeId)}` : undefined;
   // 리포트끼리 이동하면 history가 늘어나므로 분석 목록 복귀의 상대 이동(returnHistoryDelta)은 버리고 저장한 목록 주소만 넘긴다.
   const linkState = { ...(location.state as ReportLinkState | null), returnHistoryDelta: undefined };
   // 보던 주소도 그 사이 재검수로 퇴역했을 수 있어 회차의 현재 report를 새로 확인한다. 같으면 보던 필터·선택을 복원한다.
@@ -495,9 +493,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
                     ? <ReviewNotice tone="info" title="판단을 저장하고 있어요." />
                     : actions.judgmentNotice ? <ReviewNotice tone={actions.judgmentNotice.tone} title={actions.judgmentNotice.text} /> : null}
                   onSaveJudgment={judgment => { if (canJudge) actions.saveJudgment(detail, judgment); }}
-                  selectedEvidence={filters.evidence}
-                  onSelectEvidence={key => updateParams(next => { if (key) next.set('evidence', key); else next.delete('evidence'); })}
-                  sourceLink={sourceLink} topNotice={outsideNotice}
+                  contextPath={!report.invalidated && !pastReport ? { workId, reportId } : undefined} topNotice={outsideNotice}
                   fix={replaceUrl ? { replace: replaceUrl, corrections: correctionLinks(workId, reportId, staging, detail, searchParams) } : undefined}
                   subject={subjectLink(workId, reportId, detail, searchParams)}
                 />

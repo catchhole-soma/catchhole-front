@@ -46,9 +46,9 @@ test('캐릭터 기준 항목이 하나면 바로 편집을 열고, 저장은 �
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&branch=SETTING&findingId=${findingId(0)}`);
   const staging = structuredClone(mock.state.staging);
-  const fix = page.getByRole('region', { name: '원고·설정 수정' });
-  await expect(fix.locator('#validation-correction-target')).toHaveText('캐릭터 · 비요른 · 검 설정을 고쳐요.');
-  await fix.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  const fix = page.getByRole('region', { name: '고치기' });
+  await expect(fix.locator('#validation-correction-target')).toHaveText('비요른 · 검');
+  await fix.getByRole('link', { name: '설정 고치기', exact: true }).click();
 
   await expect(page).toHaveURL(/\/dashboard\?/);
   const params = Object.fromEntries(new URL(page.url()).searchParams);
@@ -134,10 +134,12 @@ test('세계관 기준 항목이 여러 개면 작가가 고르고, 경로가 �
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(1)}`);
   const staging = structuredClone(mock.state.staging);
-  const fix = page.getByRole('region', { name: '원고·설정 수정' });
-  await expect(fix.getByText('이 항목이 비교한 저장 설정이 여러 개예요. 고칠 설정을 골라 주세요.')).toBeVisible();
-  await expect(fix.getByRole('link', { name: '캐릭터 · 에르웬 정정', exact: true })).toBeVisible();
-  await fix.getByRole('link', { name: '세계관 · 왕궁 · 마법 / 사용 제한 정정', exact: true }).click();
+  const fix = page.getByRole('region', { name: '고치기' });
+  // 저장 설정이 여럿이면 `설정 고치기`가 작은 선택 목록을 연다(작가용 이름만 쓴다).
+  await fix.getByRole('button', { name: '설정 고치기', exact: true }).click();
+  const choices = fix.getByRole('list', { name: '고칠 설정' });
+  await expect(choices.getByRole('link', { name: '에르웬', exact: true })).toBeVisible();
+  await choices.getByRole('link', { name: '왕궁 · 마법 / 사용 제한', exact: true }).click();
 
   const params = new URL(page.url()).searchParams;
   expect(params.get('tab')).toBe('worldsettings');
@@ -179,7 +181,7 @@ test('세계관 기준 항목이 여러 개면 작가가 고르고, 경로가 �
 test('정정 409는 아무것도 저장하지 않았다고 알리고 다시 저장할 때만 기준 연결 없이 일반 저장한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(0)}`);
-  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  await page.getByRole('link', { name: '설정 고치기', exact: true }).click();
   const dialog = characterDialog(page, '비요른');
   mock.failNextCorrection({ status: 409, code: 'VALIDATION_CORRECTION_CONFLICT', message: '정정할 기준 항목을 정확히 연결할 수 없습니다.' });
   await dialog.getByRole('textbox', { name: '검 값' }).fill('다시 벼린 검');
@@ -209,7 +211,7 @@ test('정정 409는 아무것도 저장하지 않았다고 알리고 다시 저�
 test('기준 slot이 없는 캐릭터 정정은 작가가 바꾼 설정 하나를 보내고, 여러 설정을 바꾸면 요청하지 않는다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(2)}`);
-  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  await page.getByRole('link', { name: '설정 고치기', exact: true }).click();
   expect(new URL(page.url()).searchParams.get('correctionFactType')).toBeNull();
   const dialog = characterDialog(page, '에르웬');
   await dialog.getByRole('textbox', { name: '망토 값' }).fill('붉은 망토');
@@ -233,7 +235,7 @@ test('기준 slot이 없는 캐릭터 정정은 작가가 바꾼 설정 하나�
 test('정정 응답이 유실되면 입력을 유지하고 다시 저장할 때 같은 키·같은 요청으로 receipt를 확인한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(0)}`);
-  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  await page.getByRole('link', { name: '설정 고치기', exact: true }).click();
   const dialog = characterDialog(page, '비요른');
   mock.loseNextCorrectionResponse();
   await dialog.getByRole('textbox', { name: '검 값' }).fill('다시 벼린 검');
@@ -262,7 +264,7 @@ async function reconnectAndRefetch(page: Page, path: string) {
 test('정정 응답 유실 뒤 다시 읽은 캐릭터 상세가 초안과 같아도 바뀐 설정을 따지기 전에 같은 요청을 다시 보낸다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(0)}`);
-  await page.getByRole('link', { name: '설정 정보 정정', exact: true }).click();
+  await page.getByRole('link', { name: '설정 고치기', exact: true }).click();
   const dialog = characterDialog(page, '비요른');
   mock.loseNextCorrectionResponse();
   await dialog.getByRole('textbox', { name: '검 값' }).fill('다시 벼린 검');
@@ -290,7 +292,8 @@ test('정정 응답 유실 뒤 다시 읽은 캐릭터 상세가 초안과 같�
 test('세계관 정정도 응답 유실 뒤 상세를 다시 읽으면 같은 키·같은 요청으로 receipt를 확인한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mock = await open(page, {}, `&findingId=${findingId(1)}`);
-  await page.getByRole('region', { name: '원고·설정 수정' }).getByRole('link', { name: '세계관 · 왕궁 · 마법 / 사용 제한 정정', exact: true }).click();
+  await page.getByRole('region', { name: '고치기' }).getByRole('button', { name: '설정 고치기', exact: true }).click();
+  await page.getByRole('list', { name: '고칠 설정' }).getByRole('link', { name: '왕궁 · 마법 / 사용 제한', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '왕궁 세계관 상세' }).locator('.world-setting-property-editor');
   const value = '왕궁 건물 안에서만 마법을 쓸 수 없다';
   mock.loseNextCorrectionResponse();
@@ -321,7 +324,8 @@ test('정정 응답을 기다리는 동안 리포트로 돌아가면 늦은 성�
     if (request.method() === 'GET' && new URL(request.url()).pathname === `/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}`) reportGets.push(request.url());
   });
   const mock = await open(page, {}, `&findingId=${findingId(1)}`);
-  await page.getByRole('region', { name: '원고·설정 수정' }).getByRole('link', { name: '세계관 · 왕궁 · 마법 / 사용 제한 정정', exact: true }).click();
+  await page.getByRole('region', { name: '고치기' }).getByRole('button', { name: '설정 고치기', exact: true }).click();
+  await page.getByRole('list', { name: '고칠 설정' }).getByRole('link', { name: '왕궁 · 마법 / 사용 제한', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '왕궁 세계관 상세' }).locator('.world-setting-property-editor');
   const release = mock.holdNextCorrection();
   await editor.getByRole('textbox', { name: '설정값' }).fill('왕궁 건물 안에서만 마법을 쓸 수 없다');
@@ -349,25 +353,25 @@ test('정정 응답을 기다리는 동안 리포트로 돌아가면 늦은 성�
   expect(pageErrors).toEqual([]);
 });
 
-test('basis가 없거나 당시 버전이 없는 항목은 설정 정보 정정을 잠그고 이름으로 대상을 추측하지 않는다', async ({ page }) => {
+test('basis가 없거나 당시 버전이 없는 항목은 설정 고치기를 잠그고 이름으로 대상을 추측하지 않는다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const findings = defaultFindings();
   findings[0].basis = [];
   findings[1].basis = [{ ...structuredClone(findings[1].basis[0]), currentVersion: null as unknown as number }];
   const mock = await open(page, { findings }, `&findingId=${findingId(0)}`);
-  const fix = page.getByRole('region', { name: '원고·설정 수정' });
-  await expect(fix.getByRole('button', { name: '설정 정보 정정' })).toBeDisabled();
+  const fix = page.getByRole('region', { name: '고치기' });
+  await expect(fix.getByRole('button', { name: '설정 고치기' })).toBeDisabled();
   await expect(fix.locator('#validation-correction-lock')).toHaveText('이 항목에는 고칠 수 있는 저장 설정이 연결되지 않았어요.');
-  await expect(fix.getByRole('link', { name: '설정 정보 정정' })).toHaveCount(0);
-  // 원고 파일 변경(A9)은 그대로 쓸 수 있다.
-  await expect(fix.getByRole('link', { name: '원고 파일 변경', exact: true })).toBeVisible();
+  await expect(fix.getByRole('link', { name: '설정 고치기' })).toHaveCount(0);
+  // 원고 고치기(A9)는 그대로 쓸 수 있다.
+  await expect(fix.getByRole('link', { name: '원고 고치기', exact: true })).toBeVisible();
 
   await page.locator(`[data-finding-id="${findingId(1)}"]`).click();
-  await expect(fix.getByRole('button', { name: '설정 정보 정정' })).toBeDisabled();
+  await expect(fix.getByRole('button', { name: '설정 고치기' })).toBeDisabled();
   await expect(fix.locator('#validation-correction-target')).toHaveText('검사 당시 설정 버전이 없어 정정으로 연결할 수 없어요.');
-  // 오탈자에는 설정 정보 정정을 두지 않는다.
+  // 오탈자에는 설정 고치기를 두지 않는다.
   await page.locator(`[data-finding-id="${findingId(3)}"]`).click();
-  await expect(page.getByRole('region', { name: '원고·설정 수정' }).getByText('설정 정보 정정')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '고치기' }).getByText('설정 고치기')).toHaveCount(0);
   expect(correctionRequests(mock)).toHaveLength(0);
   // 계약의 정정 요청 예시와 같은 필드만 쓴다.
   expect(Object.keys(review.correctionFromFindingBasis.request).sort()).toEqual(

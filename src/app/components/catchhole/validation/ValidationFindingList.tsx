@@ -12,7 +12,7 @@ import {
   outcomeLabel,
   outcomeOptions,
   SUBJECT_TYPE_FILTER_OPTIONS,
-  subjectHeading,
+  findingTitle,
   subjectTypeLabel,
   type BranchFilter,
   type ImpactFilter,
@@ -128,7 +128,8 @@ const IMPACT_TONE: Record<string, string> = { SEVERE: ' is-danger', CAUTION: ' i
 function rowView(finding: ValidationFindingSummaryResponse) {
   const setting = finding.branch === 'SETTING';
   const reason = finding.summary?.reason || outcomeLabel(finding.outcome);
-  const heading = setting ? subjectHeading(finding.subject, finding.settingName) : null;
+  // 상세 제목과 같은 규칙: 판정이 쓴 headline, 없으면 A안 문장(`○○이 기존 기록과 달라요`), 그다음 `대상 · 확인 항목`.
+  const heading = setting ? findingTitle(finding) : null;
   return {
     title: heading ?? reason,
     reason: heading ? reason : null,

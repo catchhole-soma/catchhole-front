@@ -199,10 +199,12 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
       if (method === 'PATCH' && pathname.endsWith(`/characters/${characterId}`)) plainSaves += 1;
     });
 
-    // A10: 원고·설정 수정에서 고른 basis의 정정을 연다. basis가 하나면 `설정 정보 정정`, 여럿이면 `캐릭터 · 서윤 … 정정`이다.
+    // A10: 고치기에서 고른 basis의 정정을 연다. basis가 하나면 `설정 고치기` 링크, 여럿이면 `설정 고치기`가 여는 목록의 `서윤 …` 링크다.
     await page.goto(`/episode-validation-report?workId=${workId}&reportId=${reportId}&branch=SETTING&findingId=${finding.findingId}`);
-    const fix = page.getByRole('region', { name: '원고·설정 수정' });
-    const link = fix.getByRole('link', { name: new RegExp(`^(설정 정보 정정|캐릭터 · ${CHARACTER}( · .+)? 정정)$`) })
+    const fix = page.getByRole('region', { name: '고치기' });
+    const chooser = fix.getByRole('button', { name: '설정 고치기', exact: true });
+    if (await chooser.count()) await chooser.click();
+    const link = fix.getByRole('link', { name: new RegExp(`^(설정 고치기|${CHARACTER}( · .+)?)$`) })
       .and(fix.locator(`[href*="correctionEntryRef=${entry.entryRef}&"]`));
     await expect(link).toBeVisible();
     note('correction-link', await link.innerText());
