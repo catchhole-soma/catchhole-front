@@ -12680,9 +12680,26 @@ export type CheckAnalysisStartData = {
     url: '/api/v1/works/{workId}/analysis-start-checks';
 };
 
+export type CheckAnalysisStartErrors = {
+    /**
+     * 회차 번호 또는 대상 개수 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증되지 않은 요청
+     */
+    401: CommonErrorResponse;
+    /**
+     * 본인 소유 작품을 찾을 수 없음(WORK_NOT_FOUND)
+     */
+    404: CommonErrorResponse;
+};
+
+export type CheckAnalysisStartError = CheckAnalysisStartErrors[keyof CheckAnalysisStartErrors];
+
 export type CheckAnalysisStartResponses = {
     /**
-     * OK
+     * 분석 시작 전 검토 조건 확인 성공
      */
     200: CommonResponseAnalysisStartCheckResponse;
 };
@@ -12743,7 +12760,7 @@ export type CreateAnalysisJobErrors = {
      */
     404: CommonResponseListAnalysisJobResponse;
     /**
-     * AI 토큰 한도 소진, 같은 대상 분석 진행 중 또는 기존 순차 분석 재개 필요(ANALYSIS_ORDERED_JOB_RETRY_REQUIRED)
+     * AI 토큰 한도 소진, 같은 대상 분석 진행 중 또는 기존 순차 분석 재개 필요(ANALYSIS_ORDERED_JOB_RETRY_REQUIRED). 새 설정 추출은 이전 분석 진행 중(ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS), 직접 검토 미완료(ANALYSIS_MANUAL_REVIEW_REQUIRED), 보류 종료 동의 필요(ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED), 확인 정보 변경(ANALYSIS_REVIEW_GATE_CHANGED)도 구분합니다.
      */
     409: CommonErrorResponse;
 };

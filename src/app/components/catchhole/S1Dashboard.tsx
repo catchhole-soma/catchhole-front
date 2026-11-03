@@ -1379,7 +1379,11 @@ export default function S1Dashboard() {
         />
       )}
       {analysisStartGate.dialogProps && <AnalysisStartGateDialog {...analysisStartGate.dialogProps}
-        onReview={() => navigate(`/dashboard?workId=${encodeURIComponent(effectiveWorkId)}&nav=analyses`, 'dissolve')} />}
+        onReview={() => {
+          setEpisodeReanalysisTarget(null);
+          setEpisodeActionError(null);
+          navigate(`/dashboard?workId=${encodeURIComponent(effectiveWorkId)}&nav=analyses`, 'dissolve');
+        }} />}
       {episodeReanalysisTarget && !analysisStartGate.dialogProps && (
         <EpisodeReanalysisModal
           episode={episodeReanalysisTarget}

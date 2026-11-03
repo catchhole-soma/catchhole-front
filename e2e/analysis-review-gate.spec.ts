@@ -214,6 +214,32 @@ test('이전 결과 확인으로 이동하면 동의나 분석 요청을 남기�
   expect(state.uploads).toBe(0); expect(state.creates).toHaveLength(0);
 });
 
+for (const scenario of [
+  { name: '직접 검토 차단', gate: { ...clearAnalysisStartCheck, manualReviewCount: 2 }, title: '이전 회차의 직접 검토를 마쳐 주세요' },
+  { name: '애매 후보 경고', gate: ambiguous, title: '미확정 후보를 남기지 않고 계속할까요?' },
+]) {
+  test(`원고 목록 재분석의 ${scenario.name}에서 결과를 확인하면 이전 확인창을 닫는다`, async ({ page }) => {
+    const state = await setup(page, scenario.gate);
+    await page.route(`**/works/${workId}/episodes`, route => success(route, [{
+      id: episodeId, batchId, episodeNo: 11, title: '재분석 원고', status: 'UPLOADED',
+      originalFilename: '11화.txt', charCount: 120, analysisStatus: 'REANALYSIS_REQUIRED',
+    }]));
+    await page.goto(`/dashboard?workId=${workId}&nav=manuscripts`);
+    await page.getByRole('button', { name: '재분석', exact: true }).click();
+    const reanalysisDialog = page.getByRole('dialog', { name: '이 회차를 다시 분석할까요?' });
+    await reanalysisDialog.getByRole('button', { name: '재분석 시작' }).click();
+    const gateDialog = page.getByRole('dialog', { name: scenario.title });
+    await expect(gateDialog).toBeVisible();
+    await expect(reanalysisDialog).toHaveCount(0);
+    await gateDialog.getByRole('button', { name: '이전 분석 결과 확인', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp('/dashboard\\?.*nav=analyses'));
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(state.checks).toEqual([[11]]);
+    expect(state.creates).toHaveLength(0);
+    expect(state.uploads).toBe(0);
+  });
+}
+
 test('사전 조회 중 화면을 떠나면 늦은 허용 응답으로 업로드하지 않는다', async ({ page }) => {
   const state = await setup(page, clearAnalysisStartCheck);
   let release!: () => void;
