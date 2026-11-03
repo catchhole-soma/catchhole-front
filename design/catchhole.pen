@@ -448355,10 +448355,11 @@
       "id": "gh180EpisodeAutoPolicy",
       "x": 100860,
       "y": 5184,
-      "name": "SEpisodeUpload / GH180 업로드 조건과 회차별 자동 반영",
+      "name": "SEpisodeUpload / GH180 + GH369 업로드와 다음 분석 시작 정책",
       "metadata": {
         "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
       },
+      "clip": true,
       "width": 1200,
       "fill": "$ch-canvas",
       "layout": "vertical",
@@ -448368,14 +448369,14 @@
         {
           "type": "text",
           "id": "gh180PolicyText1",
-          "name": "GH180 · 회차 업로드와 자동 반영",
+          "name": "GH180 · 회차 업로드 / GH369 · 다음 분석 시작",
           "metadata": {
             "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
           },
           "fill": "$ch-ink",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "GH180 · 회차 업로드와 자동 반영",
+          "content": "GH180 · 회차 업로드 / GH369 · 다음 분석 시작",
           "lineHeight": 1.65,
           "fontFamily": "$ch-font",
           "fontSize": 30,
@@ -448461,14 +448462,14 @@
             {
               "type": "text",
               "id": "gh180PolicyText7",
-              "name": "미확정 정보 조회 실패: 모든 업로드 유지 · 미확정 설정 다시 확인",
+              "name": "업로드 안내 조회 실패로 자격을 추측하지 않습니다. 분석 시작 확인 실패 시 재확인하며 자동으로 진행하지 않습니다.",
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
               },
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "미확정 정보 조회 실패: 모든 업로드 유지 · 미확정 설정 다시 확인",
+              "content": "업로드 안내 조회 실패로 자격을 추측하지 않습니다. 분석 시작 확인 실패 시 재확인하며 자동으로 진행하지 않습니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448479,7 +448480,7 @@
         {
           "type": "frame",
           "id": "gh180PolicyPanel8",
-          "name": "2. 미확정 후보 안내 · 업로드 차단 없음",
+          "name": "2. 다음 분석 시작 · 직접 검토와 정상 보류 구분",
           "metadata": {
             "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
           },
@@ -448495,14 +448496,14 @@
             {
               "type": "text",
               "id": "gh180PolicyText9",
-              "name": "2. 미확정 후보 안내 · 업로드 차단 없음",
+              "name": "2. 다음 분석 시작 · 직접 검토와 정상 보류 구분",
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
               },
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "2. 미확정 후보 안내 · 업로드 차단 없음",
+              "content": "2. 다음 분석 시작 · 직접 검토와 정상 보류 구분",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 20,
@@ -448511,11 +448512,11 @@
             {
               "type": "text",
               "id": "gh180PolicyText10",
-              "name": "캐릭터 7개 · 세계관 3개 검토 대기",
+              "name": "직접 검토 후보가 남으면 반영 또는 제외를 완료할 때까지 다음 회차 분석을 시작할 수 없습니다.",
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "캐릭터 7개 · 세계관 3개 검토 대기",
+              "content": "직접 검토 후보가 남으면 반영 또는 제외를 완료할 때까지 다음 회차 분석을 시작할 수 없습니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448524,14 +448525,14 @@
             {
               "type": "text",
               "id": "gh180PolicyText11",
-              "name": "먼저 검토·확정하면 새 회차 분석에 도움이 됩니다. 지금 업로드해도 괜찮습니다.",
+              "name": "자동 분석의 정상적인 애매함만 종류별 개수와 정확도 경고를 보여주고, 직접 계속을 선택하면 해당 후보를 종료합니다.",
               "metadata": {
                 "pendingNoticeSpacing": "Upload method cards and pending review notice are separated by 20px."
               },
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "먼저 검토·확정하면 새 회차 분석에 도움이 됩니다. 지금 업로드해도 괜찮습니다.",
+              "content": "자동 분석의 정상적인 애매함만 종류별 개수와 정확도 경고를 보여주고, 직접 계속을 선택하면 해당 후보를 종료합니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448540,11 +448541,37 @@
             {
               "type": "text",
               "id": "gh180PolicyText12",
-              "name": "분석 결과에서 확인 → 해당 작품 분석 목록",
+              "name": "이전 분석 결과 확인 → 해당 작품 분석 목록. 취소하거나 화면을 나가면 후보를 유지합니다.",
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "분석 결과에서 확인 → 해당 작품 분석 목록",
+              "content": "이전 분석 결과 확인 → 해당 작품 분석 목록. 취소하거나 화면을 나가면 후보를 유지합니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "text",
+              "id": "OYGFl",
+              "name": "선행 분석 보호",
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "앞 회차 분석이 진행 중이면 후보가 아직 없어도 기다립니다. 처리 중·기술적 실패를 정상 보류로 일괄 종료하지 않습니다.",
+              "lineHeight": 1.65,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "text",
+              "id": "EK9ls",
+              "name": "종료 기록과 변경 재확인",
+              "fill": "$ch-ink",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "종료 후보는 검토 종료 필터와 기존 공유 링크에서 읽기 전용으로 확인합니다. 안내 후 상태가 바뀌면 다시 확인하고 동의합니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448607,11 +448634,11 @@
             {
               "type": "text",
               "id": "gh180PolicyText17",
-              "name": "확정된 설정과 앞 회차 미확정 제안은 구분해서 참고 · 확인이 필요한 설정만 보류",
+              "name": "이미 예약한 다회차 묶음은 기존 순차 처리를 유지합니다. 새 요청에서 종료한 후보는 이후 참고에서 제외하고 원래 근거·기록은 보존합니다.",
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "확정된 설정과 앞 회차 미확정 제안은 구분해서 참고 · 확인이 필요한 설정만 보류",
+              "content": "이미 예약한 다회차 묶음은 기존 순차 처리를 유지합니다. 새 요청에서 종료한 후보는 이후 참고에서 제외하고 원래 근거·기록은 보존합니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448690,11 +448717,11 @@
             {
               "type": "text",
               "id": "gh180PolicyText23",
-              "name": "분석 완료 · N개 확인 가능 → 원할 때 결과 보기",
+              "name": "분석 완료 · N개 확인 가능 → 결과 보기. 다음 분석 요청은 별도 시작 검사로 직접 검토·정상 보류·진행 중을 구분합니다.",
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "분석 완료 · N개 확인 가능 → 원할 때 결과 보기. 확인 대기 설정이 남아도 다음 회차는 계속합니다.",
+              "content": "분석 완료 · N개 확인 가능 → 결과 보기. 다음 분석 요청은 별도 시작 검사로 직접 검토·정상 보류·진행 중을 구분합니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -448716,11 +448743,11 @@
             {
               "type": "text",
               "id": "gh180PolicyText25",
-              "name": "새 순차 분석 확인창: 회차별 자동 반영과 AI 사용량 재차감을 안내",
+              "name": "새 순차 분석은 회차별 자동 반영·AI 사용량 재차감을 안내하고 시작 검사를 거칩니다. 기존 실패 재개와 이미 고정된 입력은 유지합니다.",
               "fill": "$ch-ink",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "새 순차 분석 확인창: 회차별 자동 반영과 AI 사용량 재차감을 안내. 후보 변경 전에는 진행 중인 뒤 회차가 중단될 수 있음을 알립니다. 수정 예약은 아직 제공하지 않습니다.",
+              "content": "새 순차 분석은 회차별 자동 반영·AI 사용량 재차감을 안내하고 시작 검사를 거칩니다. 기존 실패 재개와 이미 고정된 입력은 유지합니다.",
               "lineHeight": 1.65,
               "fontFamily": "$ch-font",
               "fontSize": 14,
@@ -542807,6 +542834,4269 @@
           "fontFamily": "$ch-font",
           "fontSize": 13,
           "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GdEr9",
+      "x": 107220,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Desktop / Manual required",
+      "context": "GH369 실제 AnalysisStartGateDialog의 독립 상태. 새 회차 설정 추출 요청 전에 표시하며 기존 실패 재개는 유지한다.",
+      "clip": true,
+      "width": 620,
+      "height": 600,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 24,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "vTlxs",
+          "name": "Analysis start gate dialog",
+          "width": 500,
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "qOwWY",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y1BAf",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차의 직접 검토를 마쳐 주세요",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "nGD7d",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "U2zSc6",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "QDqwm",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y90IuK",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차에 직접 검토가 필요한 2개 후보가 남아 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "JJFoY",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "각 후보를 반영하거나 제외해 검토를 마친 뒤 다음 회차를 분석할 수 있습니다. 남은 직접 검토 후보는 자동으로 종료하지 않습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JQGrB",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "gap": 8,
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lNi42",
+                  "name": "취소",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "G84A0",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "q3kuQ",
+                  "name": "이전 분석 결과 확인",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EvcXG",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "이전 분석 결과 확인",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "p2jEYo",
+      "x": 107920,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Desktop / Ambiguous consent",
+      "context": "GH369 실제 AnalysisStartGateDialog의 독립 상태. 새 회차 설정 추출 요청 전에 표시하며 기존 실패 재개는 유지한다.",
+      "clip": true,
+      "width": 620,
+      "height": 600,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 24,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "WCr4t",
+          "name": "Analysis start gate dialog",
+          "width": 500,
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "L2FJ5T",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WKdxd",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "미확정 후보를 남기지 않고 계속할까요?",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "lZ12U",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "OXA3I",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "NEXMS",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "S8aGEt",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "확정되지 않은 후보가 있습니다. 확인하지 않고 다음 회차를 분석하면 정확도가 낮아질 수 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "wKnkY",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "캐릭터 1개 · 세계관 1개 · 관계 0개",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "tteFv",
+                  "name": "Explanation 3",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속하면 이 애매한 후보는 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 원래 근거와 처리 기록은 보존되며, 이미 확정한 설정은 유지됩니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "SVjR7",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "gap": 8,
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sxw8n",
+                  "name": "취소",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i3zsaX",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BdywZ",
+                  "name": "이전 분석 결과 확인",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sXxkm",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "이전 분석 결과 확인",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "t6HM9",
+                  "name": "애매한 후보 종료 후 계속 분석",
+                  "height": 42,
+                  "fill": "$ch-primary-ink",
+                  "cornerRadius": 8,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "V67tGw",
+                      "name": "Primary Button Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "애매한 후보 종료 후 계속 분석",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ppbRo",
+      "x": 108620,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Mobile 320 / Manual required",
+      "context": "AnalysisStartGateDialog. 직접 검토 또는 앞 회차 처리 중에는 계속 버튼 없음. 상태 변경은 최신 안내를 다시 확인. 업로드된 묶음은 보존하고 재업로드하지 않음.",
+      "clip": true,
+      "width": 320,
+      "height": 720,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 16,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "a6hz8",
+          "name": "Analysis start gate dialog",
+          "width": "fill_container",
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "u4NALt",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qLGoc",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차의 직접 검토를 마쳐 주세요",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "e0Eaui",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "fi4O4",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "vrRjs",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "exSyA",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차에 직접 검토가 필요한 2개 후보가 남아 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "G9U47",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "각 후보를 반영하거나 제외해 검토를 마친 뒤 다음 회차를 분석할 수 있습니다. 남은 직접 검토 후보는 자동으로 종료하지 않습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QS3mR",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "y58Oz",
+                  "name": "Review and cancel actions",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fUYfi",
+                      "name": "취소",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "yorAg",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "취소",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sj7AI",
+                      "name": "이전 분석 결과 확인",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Z7bya",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "이전 분석 결과 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "IBxSB",
+      "x": 109020,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Mobile 320 / Ambiguous consent",
+      "context": "AnalysisStartGateDialog. 직접 검토 또는 앞 회차 처리 중에는 계속 버튼 없음. 상태 변경은 최신 안내를 다시 확인. 업로드된 묶음은 보존하고 재업로드하지 않음.",
+      "clip": true,
+      "width": 320,
+      "height": 720,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 16,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Tmhwp",
+          "name": "Analysis start gate dialog",
+          "width": "fill_container",
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "s4NBjc",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h8Hxu",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "미확정 후보를 남기지 않고 계속할까요?",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "mmnZ0",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "jynnR",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "AlxcF",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "k5jgql",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "확정되지 않은 후보가 있습니다. 확인하지 않고 다음 회차를 분석하면 정확도가 낮아질 수 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "C4cOC",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "캐릭터 1개 · 세계관 1개 · 관계 0개",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "cH6cw",
+                  "name": "Explanation 3",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속하면 이 애매한 후보는 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 원래 근거와 처리 기록은 보존되며, 이미 확정한 설정은 유지됩니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "i2SSCl",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EumKv",
+                  "name": "Review and cancel actions",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NhhcV",
+                      "name": "취소",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QUkVz",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "취소",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "o4aJo",
+                      "name": "이전 분석 결과 확인",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "asndA",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "이전 분석 결과 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "M9FZAE",
+                  "name": "애매한 후보 종료 후 계속 분석",
+                  "height": 42,
+                  "fill": "$ch-primary-ink",
+                  "cornerRadius": 8,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JP3Qd",
+                      "name": "Primary Button Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "애매한 후보 종료 후 계속 분석",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "uEdjR",
+      "x": 109420,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Desktop / Earlier analysis running",
+      "context": "AnalysisStartGateDialog. 직접 검토 또는 앞 회차 처리 중에는 계속 버튼 없음. 상태 변경은 최신 안내를 다시 확인. 업로드된 묶음은 보존하고 재업로드하지 않음.",
+      "clip": true,
+      "width": 620,
+      "height": 600,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 24,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "T1z8AS",
+          "name": "Analysis start gate dialog",
+          "width": 500,
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "YAkma",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DwOHO",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차 분석이 진행 중입니다",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "u5EGo",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "XuNKC",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "a4BxY",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GFaHA",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차 분석 1건이 진행 중입니다. 완료 후 설정 검토를 마치고 다음 회차를 분석해 주세요.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "E6JR0",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "아직 처리 중인 후보를 종료하거나 건너뛰지 않습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gUL8I",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "gap": 8,
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QyCbl",
+                  "name": "취소",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "keNgg",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vplTO",
+                  "name": "이전 분석 결과 확인",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hMxdR",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "이전 분석 결과 확인",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mu7CN",
+      "x": 110120,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Desktop / Review state changed",
+      "context": "AnalysisStartGateDialog. 직접 검토 또는 앞 회차 처리 중에는 계속 버튼 없음. 상태 변경은 최신 안내를 다시 확인. 업로드된 묶음은 보존하고 재업로드하지 않음.",
+      "clip": true,
+      "width": 620,
+      "height": 600,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 24,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "rLDIo",
+          "name": "Analysis start gate dialog",
+          "width": 500,
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "eJyy6",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Bm1yB",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "미확정 후보를 남기지 않고 계속할까요?",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "KaRVS",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "qa7bq",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "f5RyH",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "j2st1B",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이전 회차의 검토 상태가 바뀌었습니다. 현재 내용을 다시 확인해 주세요.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "qd9Rl",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "확정되지 않은 후보가 있습니다. 확인하지 않고 다음 회차를 분석하면 정확도가 낮아질 수 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "fnoqv",
+                  "name": "Explanation 3",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "캐릭터 1개 · 세계관 1개 · 관계 0개",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "DiSj0",
+                  "name": "Explanation 4",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속하면 이 애매한 후보는 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 원래 근거와 처리 기록은 보존되며, 이미 확정한 설정은 유지됩니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WNcoU",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "gap": 8,
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "BSnGc",
+                  "name": "취소",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "cy8J5",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bxHEj",
+                  "name": "이전 분석 결과 확인",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ndyu7",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "이전 분석 결과 확인",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Z1KQUu",
+                  "name": "애매한 후보 종료 후 계속 분석",
+                  "height": 42,
+                  "fill": "$ch-primary-ink",
+                  "cornerRadius": 8,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GY1xg",
+                      "name": "Primary Button Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "애매한 후보 종료 후 계속 분석",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mTPTH",
+      "x": 107220,
+      "y": 6004,
+      "name": "Active / GH369 / Setting Review / Character / Closed audit",
+      "context": "CLOSED는 다음 분석 동의로 검토가 종료된 기록. 기본/전체 집계에서 제외되며 검토 종료 필터와 기존 candidate 공유 링크로 조회한다. 원래 값·근거·비교 판단은 보존하고 수정·확정·제외를 제공하지 않는다. 화면 데이터는 설계용 합성 예시.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "LME3x",
+          "x": 0,
+          "y": 72,
+          "name": "Page Body (scrolled 0)",
+          "width": 1440,
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            32,
+            32,
+            40,
+            32
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "PQQ5n",
+              "name": "Review Summary Card",
+              "width": "fill_container",
+              "fill": "$ch-surface",
+              "cornerRadius": 20,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                24,
+                24,
+                22,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "yVJL6",
+                  "name": "Summary Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZiZPb",
+                      "name": "Summary Range",
+                      "fill": "$ch-ink",
+                      "content": "1화 · 1개 회차",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "F3lEgF",
+                      "name": "Summary Total",
+                      "fill": "$ch-text-muted",
+                      "content": "전체 0개 설정",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tPYJs",
+                  "name": "Summary Stats",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ebML1",
+                      "name": "Stat · 반영됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "jcAE4",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "반영됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "TiaOw",
+                          "name": "Stat Value",
+                          "fill": "$ch-success-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "O2AAlv",
+                      "name": "Stat · 제외됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y0ru2",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "제외됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "MJxv2",
+                          "name": "Stat Value",
+                          "fill": "$ch-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "eQawR",
+                      "name": "Stat · 직접 확인",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OovDT",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "직접 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "BvYFC",
+                          "name": "Stat Value",
+                          "fill": "$ch-warning-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "XTZla",
+                  "name": "Summary Note",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zFbnm",
+              "name": "Candidate Type Tabs",
+              "clip": true,
+              "width": "fill_container",
+              "height": 60,
+              "fill": "$ch-surface",
+              "cornerRadius": 16,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "V0ZOs",
+                  "name": "Tab · 캐릭터 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface-soft",
+                  "stroke": "$ch-primary",
+                  "strokeWidth": {
+                    "bottom": 3
+                  },
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "i7Dza",
+                      "name": "Icon · users",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "users",
+                      "library": "lucide",
+                      "fill": "$ch-primary-ink"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SDnyI",
+                      "name": "Tab Label",
+                      "fill": "$ch-primary-ink",
+                      "content": "캐릭터 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rM75W",
+                      "name": "Badge · 직접 확인 0개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "acpm4",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sYslV",
+                  "name": "Tab · 세계관 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface",
+                  "stroke": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "LV3cK",
+                      "name": "Icon · earth",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "earth",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uN20y",
+                      "name": "Tab Label",
+                      "fill": "$ch-text-muted",
+                      "content": "세계관 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YmYRT",
+                      "name": "Badge · 직접 확인 3개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "C20H2K",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nPn1e",
+              "name": "Review Split",
+              "width": "fill_container",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "mwitN",
+                  "name": "Review Sidebar",
+                  "width": 320,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EKTwW",
+                      "name": "Filter · 검토 상태",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 7,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JBBNo",
+                          "name": "Filter Heading",
+                          "fill": "$ch-text",
+                          "content": "검토 상태",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XuMS4",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "mjpwR",
+                              "name": "Filter · 전체",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "J3kJTq",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "전체",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Agrle",
+                              "name": "Filter · 미처리",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vdPeH",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "미처리",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "latYG",
+                              "name": "Filter · 반영됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "xNL6g",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "반영됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "UqhJD",
+                              "name": "Filter · 제외됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nxJ87",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "제외됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "N3zeJM",
+                          "name": "Filter · 검토 종료",
+                          "height": 34,
+                          "fill": "$ch-surface-soft",
+                          "cornerRadius": 10,
+                          "stroke": "$ch-primary",
+                          "strokeWidth": 1,
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "s07J45",
+                              "name": "Filter Label",
+                              "fill": "$ch-primary-ink",
+                              "content": "검토 종료",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xhXPO",
+                      "name": "Filter · 캐릭터 연결 상태",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 7,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fQBdy",
+                          "name": "Filter Heading",
+                          "fill": "$ch-text",
+                          "content": "캐릭터 연결 상태",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "pRVmf",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "x6ki6",
+                              "name": "Filter · 전체",
+                              "height": 34,
+                              "fill": "$ch-surface-soft",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "cMT2d",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-primary-ink",
+                                  "content": "전체",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "pIhoP",
+                              "name": "Filter · 연결됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "i3ozi",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "연결됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MGN9D",
+                              "name": "Filter · 새 캐릭터 후보",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "asNUf",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "새 캐릭터 후보",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TbFm1",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "MAXXC",
+                              "name": "Filter · 캐릭터 연결 확인 필요",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "W3dPEV",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "캐릭터 연결 확인 필요",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "F5J6q",
+                      "name": "Sort Hint",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "FNdRH",
+                          "name": "Icon · arrow-up",
+                          "width": 11,
+                          "height": 11,
+                          "icon": "arrow-up",
+                          "library": "lucide",
+                          "fill": "$ch-text-muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "XLMoN",
+                          "name": "Sort Label",
+                          "fill": "$ch-text-muted",
+                          "content": "회차 번호 · 생성 순",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "o1c4oW",
+                      "name": "Group List",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "qJ2Ff",
+                          "name": "Empty Group List",
+                          "width": "fill_container",
+                          "height": 108,
+                          "fill": "$ch-surface-accent",
+                          "cornerRadius": 12,
+                          "stroke": "$ch-primary",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rYGmG",
+                              "name": "Empty Label",
+                              "fill": "$ch-text-muted",
+                              "content": "아리아 · 1화 · 검토 종료",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HLZnE",
+                  "name": "Closed candidate detail",
+                  "width": "fill_container",
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jQI8h",
+                      "name": "Closed group title",
+                      "fill": "$ch-ink",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "아리아 · 나이",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MIjNP",
+                      "name": "Closed group introduction",
+                      "fill": "$ch-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료된 후보의 내용과 근거를 기록으로 확인할 수 있습니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "VZ0BU",
+                      "name": "Closed status",
+                      "fill": "$ch-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "검토 종료 · 1화",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kAHfB",
+                      "name": "Closed audit notice",
+                      "width": "fill_container",
+                      "fill": "$ch-surface-soft",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "oY56R",
+                          "name": "Closure reason",
+                          "fill": "$ch-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "다음 분석 시작으로 검토 종료",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "s20YeE",
+                          "name": "Closure preservation notice",
+                          "fill": "$ch-primary-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "이 제안은 이후 분석의 참고에서 제외되었습니다. 원래 내용과 근거는 기록으로 보존하며, 틀린 설정으로 확정한 것은 아닙니다.",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "qd8Hj",
+                      "name": "Proposal at closure",
+                      "fill": "$ch-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료 당시 제안 · 나이\n20세",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "UDFNb",
+                      "name": "Judgment at closure",
+                      "fill": "$ch-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료 당시 AI 판단 근거\n검토 필요 · 대상과 내용을 확인해야 하는 제안",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Uu5lv",
+                      "name": "Preserved source evidence",
+                      "width": "fill_container",
+                      "stroke": "$ch-border",
+                      "strokeWidth": {
+                        "top": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "D41j8",
+                          "name": "Source evidence title",
+                          "fill": "$ch-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "원문 근거 확인 · 1화",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "DMhgs",
+                          "name": "Source evidence quote",
+                          "fill": "$ch-text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "“아리아는 스무 살이 되던 봄, 처음으로 성을 떠났다.”",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vy11S",
+              "x": 32,
+              "y": 712,
+              "name": "Review Footer",
+              "enabled": false,
+              "width": "fill_container(1376)",
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "iaXhK",
+                  "name": "Button · 직접 확인 3개",
+                  "height": 36,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 9,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "El2Ih",
+                      "name": "Button Label",
+                      "fill": "$ch-subtle",
+                      "content": "직접 확인 3개",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EbP9S",
+          "type": "ref",
+          "ref": "V3TEEV",
+          "name": "Review Topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 72,
+          "padding": [
+            0,
+            30
+          ],
+          "descendants": {
+            "BHtbE": {
+              "type": "frame",
+              "id": "BLzmn",
+              "name": "Review Header Title Area",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "D2jXVc",
+                  "name": "Back To Analysis List Button",
+                  "width": 38,
+                  "height": 38,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 11,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "KYwuL",
+                      "name": "Back Chevron",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "chevron-left",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "StBCK",
+                  "name": "Review Header Title",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ztfrU",
+                      "name": "Review Header Eyebrow",
+                      "fill": "$ch-primary-ink",
+                      "content": "AI ANALYSIS",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 9,
+                      "fontWeight": "800",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "LfD7N",
+                      "name": "Review Header Name",
+                      "fill": "$ch-ink",
+                      "content": "설정 후보 검토",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            "WXvYK": {
+              "content": "확"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "hSGSk",
+      "x": 108740,
+      "y": 6004,
+      "name": "Active / GH369 / Setting Review / World / Closed audit",
+      "context": "CLOSED는 다음 분석 동의로 검토가 종료된 기록. 기본/전체 집계에서 제외되며 검토 종료 필터와 기존 candidate 공유 링크로 조회한다. 원래 값·근거·비교 판단은 보존하고 수정·확정·제외를 제공하지 않는다. 화면 데이터는 설계용 합성 예시.",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "fY2oD",
+          "x": 0,
+          "y": 72,
+          "name": "Page Body (scrolled 0)",
+          "width": 1440,
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            32,
+            32,
+            40,
+            32
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "o6u3V",
+              "name": "Review Summary Card",
+              "width": "fill_container",
+              "fill": "$ch-surface",
+              "cornerRadius": 20,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                24,
+                24,
+                22,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "y4PA9f",
+                  "name": "Summary Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "m3EVog",
+                      "name": "Summary Range",
+                      "fill": "$ch-ink",
+                      "content": "1화 · 1개 회차",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qTJPZ",
+                      "name": "Summary Total",
+                      "fill": "$ch-text-muted",
+                      "content": "전체 0개 설정",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MMoxF",
+                  "name": "Summary Stats",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "y35yJF",
+                      "name": "Stat · 반영됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "X477a",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "반영됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bjw3Z",
+                          "name": "Stat Value",
+                          "fill": "$ch-success-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HYY9v",
+                      "name": "Stat · 제외됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VdijH",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "제외됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "SH7Zo",
+                          "name": "Stat Value",
+                          "fill": "$ch-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iYjme",
+                      "name": "Stat · 직접 확인",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mvPcE",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "직접 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "x0bHYi",
+                          "name": "Stat Value",
+                          "fill": "$ch-warning-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "t3xp2T",
+                  "name": "Summary Note",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "it7Ci",
+              "name": "Candidate Type Tabs",
+              "clip": true,
+              "width": "fill_container",
+              "height": 60,
+              "fill": "$ch-surface",
+              "cornerRadius": 16,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qiC62",
+                  "name": "Tab · 캐릭터 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface",
+                  "stroke": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "s2MznP",
+                      "name": "Icon · users",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "users",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KqyoA",
+                      "name": "Tab Label",
+                      "fill": "$ch-text-muted",
+                      "content": "캐릭터 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "izEk3",
+                      "name": "Badge · 직접 확인 0개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OO2EA",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZQ1hr",
+                  "name": "Tab · 세계관 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface-soft",
+                  "stroke": "$ch-primary",
+                  "strokeWidth": {
+                    "bottom": 3
+                  },
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "y2oSGG",
+                      "name": "Icon · earth",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "earth",
+                      "library": "lucide",
+                      "fill": "$ch-primary-ink"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D0MXET",
+                      "name": "Tab Label",
+                      "fill": "$ch-primary-ink",
+                      "content": "세계관 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "s1PXFl",
+                      "name": "Badge · 직접 확인 3개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "nAVKa",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZKC5f",
+              "name": "Review Split",
+              "width": "fill_container",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "KmBxO",
+                  "name": "Review Sidebar",
+                  "width": 320,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "BsX0v",
+                      "name": "Filter · 검토 상태",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 7,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aMeTS",
+                          "name": "Filter Heading",
+                          "fill": "$ch-text",
+                          "content": "검토 상태",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "yYoyK",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "jP2Ib",
+                              "name": "Filter · 전체",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Vcdun",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "전체",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "IqlYZ",
+                              "name": "Filter · 미처리",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "H5cxzK",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "미처리",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "WEDa4",
+                              "name": "Filter · 반영됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "P45sA",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "반영됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QlBED",
+                              "name": "Filter · 제외됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "VFcfB",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "제외됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wJ9ew",
+                          "name": "Filter · 검토 종료",
+                          "height": 34,
+                          "fill": "$ch-surface-soft",
+                          "cornerRadius": 10,
+                          "stroke": "$ch-primary",
+                          "strokeWidth": 1,
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aR7Xq",
+                              "name": "Filter Label",
+                              "fill": "$ch-primary-ink",
+                              "content": "검토 종료",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mr5Ez",
+                      "name": "World review filters",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qhkdu",
+                          "name": "World category filter",
+                          "fill": "$ch-text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "세계관 분류\n전체 · 장소 · 조직 · 도구",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PbvgJ",
+                          "name": "World operation filter",
+                          "fill": "$ch-text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "제안된 반영 방식\n전체",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EXdVp",
+                      "name": "Sort Hint",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "V1XPS",
+                          "name": "Icon · arrow-up",
+                          "width": 11,
+                          "height": 11,
+                          "icon": "arrow-up",
+                          "library": "lucide",
+                          "fill": "$ch-text-muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "s3Xs2",
+                          "name": "Sort Label",
+                          "fill": "$ch-text-muted",
+                          "content": "회차 번호 · 생성 순",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aIpa2",
+                      "name": "Group List",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "DiMGH",
+                          "name": "Empty Group List",
+                          "width": "fill_container",
+                          "height": 108,
+                          "fill": "$ch-surface-accent",
+                          "cornerRadius": 12,
+                          "stroke": "$ch-primary",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "o6jSb",
+                              "name": "Empty Label",
+                              "fill": "$ch-text-muted",
+                              "content": "오로라 왕국 · 1화 · 검토 종료",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "obJR3",
+                  "name": "Closed candidate detail",
+                  "width": "fill_container",
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rcrmI",
+                      "name": "Closed group title",
+                      "fill": "$ch-ink",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "세계관 · 오로라 왕국",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uskB7",
+                      "name": "Closed group introduction",
+                      "fill": "$ch-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료된 후보의 내용과 근거를 기록으로 확인할 수 있습니다.",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "L3Dv0D",
+                      "name": "Closed status",
+                      "fill": "$ch-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "검토 종료 · 1화",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dGy59",
+                      "name": "Closed audit notice",
+                      "width": "fill_container",
+                      "fill": "$ch-surface-soft",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bFK9x",
+                          "name": "Closure reason",
+                          "fill": "$ch-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "다음 분석 시작으로 검토 종료",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "z6Hdi",
+                          "name": "Closure preservation notice",
+                          "fill": "$ch-primary-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "이 제안은 이후 분석의 참고에서 제외되었습니다. 원래 내용과 근거는 기록으로 보존하며, 틀린 설정으로 확정한 것은 아닙니다.",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "NEnyY",
+                      "name": "Proposal at closure",
+                      "fill": "$ch-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료 당시 제안 · 수도\n오로라",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wdqS9",
+                      "name": "Judgment at closure",
+                      "fill": "$ch-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "종료 당시 AI 판단 근거\n검토 필요 · 대상과 내용을 확인해야 하는 제안",
+                      "lineHeight": 1.7,
+                      "fontFamily": "$ch-font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HmRkL",
+                      "name": "Preserved source evidence",
+                      "width": "fill_container",
+                      "stroke": "$ch-border",
+                      "strokeWidth": {
+                        "top": 1
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "KGSht",
+                          "name": "Source evidence title",
+                          "fill": "$ch-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "원문 근거 확인 · 1화",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "lNEWl",
+                          "name": "Source evidence quote",
+                          "fill": "$ch-text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "“오로라 왕국의 수도에는 세 개의 푸른 탑이 솟아 있었다.”",
+                          "lineHeight": 1.7,
+                          "fontFamily": "$ch-font",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QWjNx",
+              "x": 32,
+              "y": 712,
+              "name": "Review Footer",
+              "enabled": false,
+              "width": "fill_container(1376)",
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "OIKh4",
+                  "name": "Button · 직접 확인 3개",
+                  "height": 36,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 9,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "eiulB",
+                      "name": "Button Label",
+                      "fill": "$ch-subtle",
+                      "content": "직접 확인 3개",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACik8",
+          "type": "ref",
+          "ref": "V3TEEV",
+          "name": "Review Topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 72,
+          "padding": [
+            0,
+            30
+          ],
+          "descendants": {
+            "BHtbE": {
+              "type": "frame",
+              "id": "YjyOw",
+              "name": "Review Header Title Area",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vUs5A",
+                  "name": "Back To Analysis List Button",
+                  "width": 38,
+                  "height": 38,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 11,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "N4TjW",
+                      "name": "Back Chevron",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "chevron-left",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x1fZf",
+                  "name": "Review Header Title",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gQi5J",
+                      "name": "Review Header Eyebrow",
+                      "fill": "$ch-primary-ink",
+                      "content": "AI ANALYSIS",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 9,
+                      "fontWeight": "800",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "W7lCqR",
+                      "name": "Review Header Name",
+                      "fill": "$ch-ink",
+                      "content": "설정 후보 검토",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            "WXvYK": {
+              "content": "확"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "XLwWl",
+      "x": 110260,
+      "y": 6004,
+      "name": "Active / GH369 / Setting Review / Empty default with closed history",
+      "context": "기본/전체 조회가 0개여도 검토 종료 기록 보기 진입을 제공한다. 종료된 candidate 공유 링크는 CLOSED를 명시 조회해 원래 기록으로 연결한다.",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$ch-canvas",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "slnBn",
+          "x": 0,
+          "y": 72,
+          "name": "Page Body (scrolled 0)",
+          "width": 1440,
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            32,
+            32,
+            40,
+            32
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "JbeYf",
+              "name": "Review Summary Card",
+              "width": "fill_container",
+              "fill": "$ch-surface",
+              "cornerRadius": 20,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": [
+                24,
+                24,
+                22,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qdrrh",
+                  "name": "Summary Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "woqyT",
+                      "name": "Summary Range",
+                      "fill": "$ch-ink",
+                      "content": "1화 · 1개 회차",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LFNJA",
+                      "name": "Summary Total",
+                      "fill": "$ch-text-muted",
+                      "content": "전체 0개 설정",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "iWU16",
+                  "name": "Summary Stats",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uYVwD",
+                      "name": "Stat · 반영됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "B1tN1",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "반영됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Lytbp",
+                          "name": "Stat Value",
+                          "fill": "$ch-success-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vJRan",
+                      "name": "Stat · 제외됨",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bUFfE",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "제외됨",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "L1axPJ",
+                          "name": "Stat Value",
+                          "fill": "$ch-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KWOhW",
+                      "name": "Stat · 직접 확인",
+                      "width": "fill_container",
+                      "fill": "$ch-canvas",
+                      "cornerRadius": 12,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        16,
+                        16,
+                        14,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n8CVJ",
+                          "name": "Stat Label",
+                          "fill": "$ch-text-muted",
+                          "content": "직접 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Hmh5J",
+                          "name": "Stat Value",
+                          "fill": "$ch-warning-ink",
+                          "content": "0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "lVrku",
+                  "name": "Summary Note",
+                  "fill": "$ch-text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "반영된 내용은 작품 설정과 이력에서 볼 수 있습니다. 직접 확인할 설정은 검토 후 확정하거나 제외해 주세요.",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WTdom",
+              "name": "Candidate Type Tabs",
+              "clip": true,
+              "width": "fill_container",
+              "height": 60,
+              "fill": "$ch-surface",
+              "cornerRadius": 16,
+              "stroke": "$ch-border",
+              "strokeWidth": 1,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "N77THp",
+                  "name": "Tab · 캐릭터 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface-soft",
+                  "stroke": "$ch-primary",
+                  "strokeWidth": {
+                    "bottom": 3
+                  },
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "cqpW9",
+                      "name": "Icon · users",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "users",
+                      "library": "lucide",
+                      "fill": "$ch-primary-ink"
+                    },
+                    {
+                      "type": "text",
+                      "id": "L8xHJH",
+                      "name": "Tab Label",
+                      "fill": "$ch-primary-ink",
+                      "content": "캐릭터 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KsVgn",
+                      "name": "Badge · 직접 확인 0개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CzaWR",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZqqNx",
+                  "name": "Tab · 세계관 후보",
+                  "height": "fill_container",
+                  "fill": "$ch-surface",
+                  "stroke": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    30
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "cRZMK",
+                      "name": "Icon · earth",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "earth",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CvwZq",
+                      "name": "Tab Label",
+                      "fill": "$ch-text-muted",
+                      "content": "세계관 후보",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fMR1V",
+                      "name": "Badge · 직접 확인 3개",
+                      "height": 20,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 999,
+                      "stroke": "$ch-border",
+                      "strokeWidth": 1,
+                      "padding": [
+                        0,
+                        7
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "HKpzU",
+                          "name": "Badge Label",
+                          "fill": "$ch-text",
+                          "content": "직접 확인 0개",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EiysS",
+              "name": "Review Split",
+              "width": "fill_container",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GBLNY",
+                  "name": "Review Sidebar",
+                  "width": 320,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uOVKl",
+                      "name": "Filter · 검토 상태",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 7,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "D9pL6m",
+                          "name": "Filter Heading",
+                          "fill": "$ch-text",
+                          "content": "검토 상태",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "r1nBg",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "mHv3K",
+                              "name": "Filter · 전체",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zuc0Y",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "전체",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "I1M7Vx",
+                              "name": "Filter · 미처리",
+                              "height": 34,
+                              "fill": "$ch-surface-soft",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "v2cp3",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-primary-ink",
+                                  "content": "미처리",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "F5JnO8",
+                              "name": "Filter · 반영됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "xBwTG",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "반영됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ueNwQ",
+                              "name": "Filter · 제외됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "hgDOL",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "제외됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IwAhF",
+                      "name": "Filter · 캐릭터 연결 상태",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 7,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y8JFcY",
+                          "name": "Filter Heading",
+                          "fill": "$ch-text",
+                          "content": "캐릭터 연결 상태",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HDrzf",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "EbiJa",
+                              "name": "Filter · 전체",
+                              "height": 34,
+                              "fill": "$ch-surface-soft",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-primary",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BYogR",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-primary-ink",
+                                  "content": "전체",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "YAg96",
+                              "name": "Filter · 연결됨",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "jNEiD",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "연결됨",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "fWEek",
+                              "name": "Filter · 새 캐릭터 후보",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PNroA",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "새 캐릭터 후보",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rITPQ",
+                          "name": "Filter Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "qbJhE",
+                              "name": "Filter · 캐릭터 연결 확인 필요",
+                              "height": 34,
+                              "fill": "$ch-surface",
+                              "cornerRadius": 10,
+                              "stroke": "$ch-border-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                0,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "HhA5s",
+                                  "name": "Filter Label",
+                                  "fill": "$ch-text",
+                                  "content": "캐릭터 연결 확인 필요",
+                                  "fontFamily": "$ch-font",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "L4XzVm",
+                      "name": "Sort Hint",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "wBGtR",
+                          "name": "Icon · arrow-up",
+                          "width": 11,
+                          "height": 11,
+                          "icon": "arrow-up",
+                          "library": "lucide",
+                          "fill": "$ch-text-muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "aHT14",
+                          "name": "Sort Label",
+                          "fill": "$ch-text-muted",
+                          "content": "회차 번호 · 생성 순",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TBtUg",
+                      "name": "Group List",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "E6GoW",
+                          "name": "Empty Group List",
+                          "width": "fill_container",
+                          "height": 108,
+                          "cornerRadius": 12,
+                          "stroke": "$ch-border-strong",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "VjQ9a",
+                              "name": "Empty Label",
+                              "fill": "$ch-text-muted",
+                              "content": "검토 대상 캐릭터 후보가 없습니다.",
+                              "fontFamily": "$ch-font",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mQVIm",
+                  "name": "Review Detail Panel · Tab Complete",
+                  "width": "fill_container",
+                  "height": 318,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 16,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "KgMtm",
+                      "name": "Icon · sparkles",
+                      "width": 26,
+                      "height": 26,
+                      "icon": "sparkles",
+                      "library": "lucide",
+                      "fill": "$ch-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KUhzH",
+                      "name": "Complete Title",
+                      "fill": "$ch-ink",
+                      "content": "검토할 설정 후보가 없습니다.",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EQfiB",
+                      "name": "Complete Description",
+                      "fill": "$ch-text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": 600,
+                      "content": "검토 대상 캐릭터 후보가 없습니다. 보존된 종료 기록은 아래에서 따로 확인할 수 있습니다.",
+                      "textAlign": "center",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "U3G4w8",
+                      "name": "Button · 세계관 후보 검토로",
+                      "height": 44,
+                      "fill": "$ch-primary-hover",
+                      "cornerRadius": 9,
+                      "stroke": "$ch-primary-hover",
+                      "strokeWidth": 1,
+                      "gap": 6,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "q3sJ4",
+                          "name": "Button Label",
+                          "fill": "$ch-primary-contrast",
+                          "content": "검토 종료 기록 보기",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 16,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tH4hk",
+              "x": 32,
+              "y": 712,
+              "name": "Review Footer",
+              "enabled": false,
+              "width": "fill_container(1376)",
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "IxIiq",
+                  "name": "Button · 직접 확인 3개",
+                  "height": 36,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 9,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IA5Nk",
+                      "name": "Button Label",
+                      "fill": "$ch-subtle",
+                      "content": "직접 확인 3개",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "m3Him",
+          "type": "ref",
+          "ref": "V3TEEV",
+          "name": "Review Topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 72,
+          "padding": [
+            0,
+            30
+          ],
+          "descendants": {
+            "BHtbE": {
+              "type": "frame",
+              "id": "Hv98x",
+              "name": "Review Header Title Area",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XWBB4",
+                  "name": "Back To Analysis List Button",
+                  "width": 38,
+                  "height": 38,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 11,
+                  "stroke": "$ch-border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "z6wd2e",
+                      "name": "Back Chevron",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "chevron-left",
+                      "library": "lucide",
+                      "fill": "$ch-text-muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WIv1R",
+                  "name": "Review Header Title",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sr3Qd",
+                      "name": "Review Header Eyebrow",
+                      "fill": "$ch-primary-ink",
+                      "content": "AI ANALYSIS",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 9,
+                      "fontWeight": "800",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "squ8x",
+                      "name": "Review Header Name",
+                      "fill": "$ch-ink",
+                      "content": "설정 후보 검토",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            "WXvYK": {
+              "content": "확"
+            }
+          }
         }
       ]
     }

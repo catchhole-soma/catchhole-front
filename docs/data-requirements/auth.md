@@ -473,9 +473,26 @@ AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에 고�
 
 ### 회차 업로드 정책 조회
 
-로그인된 작품 소유자의 업로드 화면에서 작품별 분석 완료 수·다회차 사용 가능 여부·미확정 후보 집계를 생성 SDK와 공통 인증 요청 경로로 조회한다. 별도 동의, 추가 권한 또는 인증 저장소 변경은 없다. 정책 조회 오류로 단일 업로드나 이미 로그인된 세션을 차단하지 않는다.
+로그인된 작품 소유자의 업로드 화면에서 작품별 분석 완료 수·다회차 사용 가능 여부·미확정 후보 집계를 생성 SDK와 공통 인증 요청 경로로 조회한다. 별도 동의, 추가 권한 또는 인증 저장소 변경은 없다. `upload-policy` 조회 오류 자체로 단일 업로드나 이미 로그인된 세션을 차단하지 않는다. 다음 회차 분석 자격은 아래 GH369의 별도 시작 확인 API로 검증한다.
 
 2026-09-09에는 이 화면의 자동 반영 안내에 13px 제목·본문과 16px 내부 여백을 적용하고 문구를 정리했다. 업로드 화면의 Theme V2 토큰을 따르며 인증·정책 조회 계약은 그대로 유지한다. 상세 시각 기준과 Pencil 동기화 상태는 [GH180 화면 흐름](../screen-flow.md#gh180-회차별-자동-반영과-복구)에 기록한다.
+
+### 다음 회차 분석 전 검토 확인 (GH369)
+
+보호 라우트의 세션 확인을 통과한 작품 소유자가 생성 SDK의 `POST /api/v1/works/{workId}/analysis-start-checks`에 `{episodeNumbers}`를 보낸다. 기존 access token·HttpOnly refresh 쿠키·공통 인증 요청 경로와 작품 접근 권한을 유지한다. 원문이나 근거 내용은 보내지 않고 업로드 전 확정한 번호 또는 저장된 분석 대상의 번호를 사용한다.
+
+| 서버 데이터 | 화면과 요청 계약 |
+|---|---|
+| `activeEarlierAnalysisCount` | 앞 회차 분석이 끝나기 전에는 계속 버튼 없이 기다리도록 안내한다. |
+| `manualReviewCount` | 직접 검토 모드 또는 사용자가 수정한 자동 분석 후보 등 직접 검토 대상 수다. 반영·제외를 마치기 전에는 새 분석을 요청하지 않는다. |
+| `ambiguousCharacterCount`·`ambiguousWorldCount`·`ambiguousRelationshipCount` | 정상적인 자동 분석 보류 후보만 정확도 영향과 종료 범위를 안내한다. 기술 실패·처리 중 후보로 추측하지 않는다. |
+| `revision` | 사용자가 계속을 선택한 생성 요청에만 `reviewGateRevision`과 `closeAmbiguousCandidates=true`를 전달한다. |
+
+확인 응답의 필수 수·revision이 없거나 조회가 실패하면 시작을 보류하고 입력을 유지한다. 이 실패를 인증 만료로 바꾸거나 후보 0개로 간주하지 않는다. 인증 오류는 기존 갱신 정책을 따르고, `ANALYSIS_MANUAL_REVIEW_REQUIRED`·`ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS`·`ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED`·`ANALYSIS_REVIEW_GATE_CHANGED`의 409는 같은 작품·대상으로 최신 상태를 확인하고 다시 안내한다.
+
+동의는 현재 요청의 메모리에만 보관하며 localStorage·sessionStorage·URL에 저장하지 않는다. 업로드가 먼저 저장된 경우 URL에는 `workId`·`batchId`·`reviewMode`만 남겨 재업로드 없이 이어간다. 화면·작품 이탈 후 늦은 확인 응답으로 새 동의나 분석을 만들지 않는다. `이전 분석 결과 확인`은 시작 확인과 원래 재분석 확인창을 모두 닫고 같은 작품의 분석 목록을 연다.
+
+종료된 캐릭터·세계관 후보는 `CLOSED` 명시 조회와 기존 candidate 공유 링크에서만 읽기 전용으로 표시한다. 기본·전체 검토 목록과 집계에서는 제외하며 원래 근거·내용과 작품 권한 검증은 보존한다. 새 인증 단계나 별도 권한 우회는 없다. [시작 확인 계약](../analysis-review-gate.md)과 [화면 흐름](../screen-flow.md#gh369-다음-회차-분석-전-검토-확인)을 따른다.
 
 ### GH194 저장된 자동 이미지 선택 (2026-09-17)
 
