@@ -253,7 +253,7 @@
 .database-v2 .character-detail-body,
 .database-v2 .character-archive-body { background: var(--ch-surface) !important; }
 .database-v2 .character-section-title,
-.database-v2 .character-section-timeline-heading { color: var(--ch-text-muted) !important; }
+.database-v2 .character-section-timeline-heading { color: var(--ch-ink) !important; }
 .database-v2 .character-basic-grid {
   border-color: var(--ch-border) !important;
   background: var(--ch-canvas) !important;

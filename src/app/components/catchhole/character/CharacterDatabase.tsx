@@ -2129,7 +2129,7 @@ function SectionTitle({
     );
   }
   return (
-    <div className="character-section-title" style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 7 }}>
+    <div className="character-section-title" style={{ color: C.t3, fontSize: 14, fontWeight: 700, letterSpacing: 0, marginBottom: 8 }}>
       {children}
     </div>
   );
