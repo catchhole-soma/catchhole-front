@@ -752,6 +752,7 @@ export function CandidateDetail({
   const reviewStatus = candidate.reviewStatus ?? 'PENDING_REVIEW';
   const matchStatus = candidate.matchStatus ?? 'UNRESOLVED';
   const readOnly = reviewStatus !== 'PENDING_REVIEW';
+  const closed = reviewStatus === 'CLOSED';
   const automaticPending = isAutomaticApplicationPending(candidate);
   const processing = isCandidateComparisonProcessing(candidate);
   const confidence = confidenceDescription(candidate.confidence ?? undefined);
@@ -830,7 +831,7 @@ export function CandidateDetail({
         {reviewStatus === 'CLOSED' ? '이 제안은 이후 분석의 참고에서 제외되었습니다. 원래 내용과 근거는 기록으로 보존하며, 틀린 설정으로 확정한 것은 아닙니다.' : removed ? '이 설정은 현재 설정에서 제거되었고, 이전 내용과 이번 변경은 이력에 남아 있습니다.' : reviewStatus === 'CONFIRMED' ? candidate.historyOnly ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고, 이 설정집의 이력에 저장했습니다.' : '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.' : '확정된 후보입니다. 저장된 내용과 근거를 확인할 수 있어요.' : '이 후보는 추가하지 않았어요. 기존 설정과 이력은 그대로 유지됩니다.'}
       </ReviewNotice>}
       {!readOnly && holdMessage && <ReviewNotice tone="warning" title={holdMessage.title}>{holdMessage.description}</ReviewNotice>}
-      {invalidValue && <ReviewNotice tone="danger" title="설정값의 형식을 확인해 주세요">
+      {invalidValue && !closed && <ReviewNotice tone="danger" title="설정값의 형식을 확인해 주세요">
         {invalidValueRepairable ? candidate.valueValidation?.message ?? '이 설정값을 올바르게 읽지 못했습니다.' : '지금은 이 항목을 수정할 수 없습니다. 원문을 확인한 뒤 제외하면 나머지 설정을 검토할 수 있어요.'}
       </ReviewNotice>}
       {invalidValue && invalidValueRepairable && !readOnly && onSaveValue && <CandidateInlineValueEditor key={candidate.id}
@@ -841,7 +842,7 @@ export function CandidateDetail({
           disabled={disabled || invalidValue} resolutionError={actionError} onResolve={onResolveTarget} onBrowse={() => onMatch?.('MATCH_EXISTING', { searchMention: true })} />
           : <ReviewNotice title="누구에 관한 내용인가요?" action={<ActionButton disabled={disabled || invalidValue} onClick={() => onMatch?.('MATCH_EXISTING')}>캐릭터 연결</ActionButton>}>원문에 등장한 인물을 선택해 주세요.</ReviewNotice>}
       </>}
-      {comparisonEnabled && !invalidValue && <CharacterReviewComparison candidate={candidate}
+      {comparisonEnabled && (!invalidValue || closed) && <CharacterReviewComparison candidate={candidate}
         applicationMode={applicationMode} reviewed={manuallyReviewed} decisionChosen={decisionChosen} disabled={disabled || readOnly}
         onModeChange={onApplicationModeChange} onReview={onReviewDecision} onEdit={onEdit}
         onRetry={onRetryComparison} retrying={retrying} retryError={retryError}
@@ -867,9 +868,9 @@ export function CandidateDetail({
         {quotes.length ? quotes.map((quote, index) => <blockquote className="theme-evidence__quote" key={`${index}-${quote}`}>{quote}</blockquote>)
           : <p>표시할 원문 근거가 없습니다.</p>}
         <p>원문 표현 · {candidate.rawEntityMention || candidate.entityName || '정보 없음'}</p>
-        <small>근거 명확도 {confidence.percent} · {confidence.description}</small>
+        <small>근거 명확도 {confidence.percent} · {closed && candidate.confidence != null && candidate.confidence >= 0 && candidate.confidence < 0.7 ? '근거 명확도가 낮게 평가된 기록' : confidence.description}</small>
       </div>
-      {candidate.comparisonReason && !comparisonReasonVisible && <div><strong>AI 판단 근거</strong><p>{candidate.comparisonReason}</p></div>}
+      {candidate.comparisonReason && !comparisonReasonVisible && <div><strong>{closed ? '종료 당시 AI 판단 근거' : 'AI 판단 근거'}</strong><p>{candidate.comparisonReason}</p></div>}
       {holdLabel && <p>확인 요청 · {holdLabel}</p>}
       {/* 연결 상태가 제목 줄(인물 이름·미연결·인물 확인 필요)에 이미 드러나면 근거에서 되풀이하지 않는다. */}
       {matchStatus !== 'MATCHED' && matchStatus !== 'AMBIGUOUS' && !unlinked && <p>{MATCH_LABELS[matchStatus]}</p>}
@@ -1068,6 +1069,8 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
     () => selectedGroup?.candidates ?? [],
     [selectedGroup?.candidates],
   );
+  const selectedGroupClosed = selectedGroupCandidates.length > 0
+    && selectedGroupCandidates.every(candidate => candidate.reviewStatus === 'CLOSED');
   const pendingGroupCandidates = selectedGroupCandidates.filter(candidate => (
     candidate.reviewStatus === 'PENDING_REVIEW'
   ));
@@ -2732,7 +2735,7 @@ export function CharacterSettingReview({ applicationModes, onApplicationModeChan
                             )}
                             </div>
                             <p style={{ margin: '7px 0 0', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
-                              {selectedGroupUnlinked
+                              {selectedGroupClosed ? '종료된 후보의 내용과 근거를 기록으로 확인할 수 있습니다.' : selectedGroupUnlinked
                                 ? '인물이 확인되지 않은 설정이에요. 같은 인물로 가정하지 않으니 설정마다 대상을 확인해 연결해 주세요.'
                                 : '같은 캐릭터에서 추출된 설정을 아래로 이어서 검토하고 남은 항목을 함께 확정합니다.'}
                             </p>

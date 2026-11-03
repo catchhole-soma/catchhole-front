@@ -771,9 +771,11 @@ function WorldCandidateGroupCard({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const candidates = group.candidates ?? [];
+  const closedGroup = candidates.length > 0 && candidates.every(candidate => candidate.reviewStatus === 'CLOSED');
   const identity = groupDecisionIdentity(group, decisions);
   const category = identity.category ? CATEGORY_META[identity.category] : null;
-  const status = groupStatusMeta(group);
+  const status: StatusPresentation = closedGroup ? { label: '검토 종료', color: C.t3 } : groupStatusMeta(group);
   const directReviewCount = (group.candidates ?? []).filter(needsDirectCandidateReview).length;
   const processingCount = (group.candidates ?? []).filter(isCandidateComparisonProcessing).length;
   return (
@@ -794,10 +796,10 @@ function WorldCandidateGroupCard({
         <div style={{ flex: 1 }} />
         <Badge label={`${group.changeCount ?? 0}개 설정`} color={C.primary} />
       </div>
-      <div style={{ color: REVIEW_TEXT.text, fontSize: 11, marginTop: 10 }}>{operationSummary(group)}</div>
+      <div style={{ color: REVIEW_TEXT.text, fontSize: 11, marginTop: 10 }}>{closedGroup ? '보존된 제안 기록' : operationSummary(group)}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
         <Badge label={analysisSourcesLabel(group.candidates ?? [], group.evidenceEpisodeNos)} color={C.t2} />
-        <Badge label={status.label} color={status.color} textColor={status.textColor} />
+        <Badge label={status.label} color={status.color} textColor={status.textColor} neutral={closedGroup} />
         {directReviewCount > 0 && <Badge label={`${allPendingDraftsPrepared(group) ? '확정 대기' : '직접 확인'} ${directReviewCount}개`} color={C.warning} />}
         {processingCount > 0 && <Badge label={`분석 중 ${processingCount}개`} color={C.primary} />}
       </div>
@@ -1083,6 +1085,7 @@ function WorldKeyDiffRow({
 
     <ReviewEvidence summary={`원문 근거 확인 · ${analysisSourceLabel(candidate.source, candidate.sourceEpisodeNo)}`}>
       {evidenceUrl && <a className="world-setting-evidence-reader" href={evidenceUrl}>분석 당시 원문 보기</a>}
+      {closed && candidate.comparisonReason && <div><strong>종료 당시 AI 판단 근거</strong><p>{candidate.comparisonReason}</p></div>}
       {reasonInEvidence && comparisonReason && !resolved && <div className="world-setting-comparison-reason"><strong>확인이 필요한 이유</strong><p>{comparisonReason}</p></div>}
       {saved && pending && <div><strong>처음 추출한 설정</strong><p>{candidate.subjectName} · {candidate.scopeName ? `범위: ${candidate.scopeName} · ` : ''}{candidate.settingName}</p><p>{candidate.extractedValue}</p></div>}
       <div className="world-setting-evidence-card">
@@ -1224,6 +1227,7 @@ function WorldCandidateGroupDetail({
   }, []);
   const candidates = group.candidates ?? [];
   const hasUnsavedChanges = candidates.some(candidate => candidate.id && dirtyCandidateIds.has(candidate.id));
+  const closedGroup = candidates.length > 0 && candidates.every(candidate => candidate.reviewStatus === 'CLOSED');
   const identity = groupDecisionIdentity(group, decisions);
   const category = identity.category ? CATEGORY_META[identity.category] : null;
   const pendingCandidates = candidates.filter(candidate => candidate.id && candidate.reviewStatus === 'PENDING_REVIEW');
@@ -1342,7 +1346,7 @@ function WorldCandidateGroupDetail({
           </strong>
           <div style={{ flex: 1 }} />
           <Badge label={`${group.changeCount ?? candidates.length}개 설정`} color={C.primary} />
-          <button type="button" disabled={identityLocked} onClick={onEditIdentity}
+          {!closedGroup && <button type="button" disabled={identityLocked} onClick={onEditIdentity}
             aria-describedby={identityHintVisible ? identityHintId : undefined}
             title={identityHintVisible ? '결정이 없는 설정이 있어요. 설정을 체크한 뒤 ‘선택 항목 대상 연결’을 사용하세요.' : undefined} style={{
             minHeight: 32, padding: '0 10px', borderRadius: 6, border: `1px solid ${C.border}`,
@@ -1350,10 +1354,10 @@ function WorldCandidateGroupDetail({
             fontFamily: 'inherit', fontSize: 11, fontWeight: 750,
             cursor: identityLocked ? 'not-allowed' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
-          }}><Pencil size={11} /> 분류·대상 일괄 수정</button>
+          }}><Pencil size={11} /> 분류·대상 일괄 수정</button>}
         </div>
         <p className="world-setting-group-description" style={{ margin: '7px 0 0', color: REVIEW_TEXT.text, fontSize: 12, lineHeight: 1.6 }}>
-          {comparedTargetIds.size > 1
+          {closedGroup ? '종료된 후보의 내용과 근거를 기록으로 확인할 수 있습니다.' : comparedTargetIds.size > 1
             ? '같은 분류·이름으로 묶였지만 서로 다른 기존 대상에 연결된 후보가 있습니다. 각 항목의 연결 대상을 확인해 주세요.'
             : '같은 분류·이름으로 묶인 후보를 항목별로 검토합니다.'}
         </p>
@@ -1373,8 +1377,8 @@ function WorldCandidateGroupDetail({
         {linkNotice}
       </header>
 
-      <RecomparisonNotice group={group} activeComparisonJobCount={activeComparisonJobCount}
-        canResumeTokenInterrupted={canResumeTokenInterrupted} />
+      {!closedGroup && <RecomparisonNotice group={group} activeComparisonJobCount={activeComparisonJobCount}
+        canResumeTokenInterrupted={canResumeTokenInterrupted} />}
       {candidates.map(candidate => {
         if (!candidate.id) return null;
         const linkedScopeCandidateIds = compatibleWorldReviewSources(candidate, candidates, confirmationFiltered);
@@ -1475,7 +1479,7 @@ function WorldCandidateGroupDetail({
         {preservedMoveCandidates.length > 0 && <WorldRootMoveConfirmationNotice candidates={preservedMoveCandidates} decisions={decisions} />}
         {orderedImpactVisible && <OrderedReviewImpactNotice />}
       </div>}
-      <ReviewGroupActionBar
+      {!closedGroup && <ReviewGroupActionBar
         readyCount={decisionCounts.ready}
         excludeCount={decisionCounts.exclude}
         blockingCount={confirmBlock?.candidateIds.length ?? 0}
@@ -1505,7 +1509,7 @@ function WorldCandidateGroupDetail({
             <ActionButton disabled={actionPending} onClick={selection.onClear}>선택 해제</ActionButton>
           </div>
         </div>}
-      </ReviewGroupActionBar>
+      </ReviewGroupActionBar>}
     </article>
   );
 }

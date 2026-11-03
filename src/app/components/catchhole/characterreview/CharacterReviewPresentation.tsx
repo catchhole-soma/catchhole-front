@@ -118,6 +118,11 @@ export function CharacterReviewComparison({ candidate, applicationMode, reviewed
   // History also records the extraction while leaving the current snapshot untouched.
   const finalValue = manual || candidate.reviewedApplicationMode != null || history || candidate.historyOnly
     ? candidate.attributeValue : values.after;
+  if (candidate.reviewStatus === 'CLOSED') return <section className="review-character-comparison" aria-label="캐릭터 설정 AI 비교 기록">
+    {values.before != null ? <ReviewValueComparison before={values.before} after={finalValue || '값 없음'}
+      mode="neutral" beforeLabel="비교 당시 내용" afterLabel="종료 당시 제안" />
+      : <ReviewInlineValue tone="neutral" label="종료 당시 제안">{finalValue || '값 없음'}</ReviewInlineValue>}
+  </section>;
   const exclude = operation === 'EXCLUDE' || candidate.reviewStatus === 'DISMISSED';
   const removed = !pending && operation === 'REMOVE' && !history && !exclude;
   const completed = status === 'COMPLETED';
