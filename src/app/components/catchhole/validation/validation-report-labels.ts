@@ -56,6 +56,96 @@ export function subjectHeading(subject?: ValidationFindingSubject | null, settin
   return setting ? `${name} · ${setting}` : name;
 }
 
+/** 끝 글자 받침 유무. 한글은 받침으로, 숫자는 읽는 소리로, 그 밖의 글자는 받침 없음으로 본다. */
+function hasFinalConsonant(word: string): boolean {
+  const trimmed = word.replace(/[\s"'”’)\]…·.,!?]+$/u, '');
+  const last = trimmed.slice(-1);
+  if (!last) return false;
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;
+  return '013678'.includes(last); // 영·일·삼·육·칠·팔
+}
+
+/** `word`에 받침에 맞는 조사를 붙인다. `pair`는 [받침 있음, 받침 없음] — 예: ['이', '가'] */
+export function withJosa(word: string, pair: [string, string]): string {
+  return `${word}${hasFinalConsonant(word) ? pair[0] : pair[1]}`;
+}
+
+/** 오류 리포트 A안 제목의 주어. 확인 항목이 대상 이름을 이미 담으면 대상 이름을 반복하지 않는다. */
+function findingPhrase(subjectName?: string | null, topic?: string | null): string | null {
+  const name = subjectName?.trim();
+  const item = topic?.trim();
+  if (!item) return name || null;
+  if (!name || item.includes(name)) return item;
+  return `${name} ${item}`;
+}
+
+/**
+ * 오류 리포트 A안 제목: 무엇이 기존 기록과 어떻게 다른지 한 문장으로 말한다(2026-11-03 소유자 선택).
+ * 목록·상세가 같은 문장을 쓰도록 근거 종류에 기대지 않는 `기존 기록`으로 쓴다. 만들 수 없으면 null.
+ */
+export function findingHeadline(outcome?: string | null, subjectName?: string | null, topic?: string | null): string | null {
+  const phrase = findingPhrase(subjectName, topic);
+  if (!phrase) return null;
+  if (outcome === 'CONFLICT') return `${withJosa(phrase, ['이', '가'])} 기존 기록과 달라요`;
+  if (outcome === 'SUSPECTED_CONFLICT') return `${withJosa(phrase, ['이', '가'])} 기존 기록과 다를 수 있어요`;
+  if (outcome === 'NEEDS_CONTEXT') return `${withJosa(phrase, ['을', '를'])} 확인해 주세요`;
+  return phrase;
+}
+
+type TitleSource = {
+  headline?: string | null;
+  outcome?: string | null;
+  subject?: ValidationFindingSubject | null;
+  topic?: string | null;
+  settingName?: string | null;
+};
+
+/**
+ * 설정 항목 제목(2026-11-03): 판정이 쓴 `headline`(예 `데스핀드와 키메라 울프의 정수 등급이 기존 설정과 달라요`)을 그대로 쓴다.
+ * 없으면(이 변경 전 결과·판정이 제목을 남기지 않은 항목) A안 문장, 그다음 `대상 · 확인 항목`으로 만든다. 목록과 상세가 같은 규칙을 쓴다.
+ */
+export function findingTitle(finding: TitleSource): string | null {
+  const judged = finding.headline?.trim();
+  if (judged) return judged;
+  const item = finding.topic ?? finding.settingName;
+  return findingHeadline(finding.outcome, finding.subject?.name, item) ?? subjectHeading(finding.subject, item);
+}
+
+function clip(quote: string, max = 40): string {
+  const chars = Array.from(quote.trim());
+  return chars.length > max ? `${chars.slice(0, max).join('').trimEnd()}…` : chars.join('');
+}
+
+type BasisForSummary = { kind?: string | null; quote?: string | null; episodeNo?: number | null };
+
+/** A안 설명 주어: 저장된 설정 / N화 / 설정집. */
+function basisSubject(basis: BasisForSummary): string {
+  if (basis.kind === 'EPISODE' && basis.episodeNo) return `${basis.episodeNo}화`;
+  if (basis.kind === 'SETTING_BOOK') return '설정집';
+  return '저장된 설정';
+}
+
+/**
+ * 판정 사유가 없을 때만 쓰는 대체 설명: `저장된 설정은 “…”라고 하는데, 31화는 “…”라고 해요.` 근거 문장이나 이번 원고 문장이 없으면 null.
+ * 설명은 판정이 쓴 원인→결과 사유(`기존 설정은 … 그런데 31화에서는 …`)가 우선이다(2026-11-03).
+ */
+export function findingContrast(basis: BasisForSummary | null | undefined, targetEpisodeNo?: number | null,
+  targetQuote?: string | null): string | null {
+  if (!basis?.quote?.trim() || !targetQuote?.trim()) return null;
+  const target = targetEpisodeNo ? `${targetEpisodeNo}화` : '이번 원고';
+  return `${withJosa(basisSubject(basis), ['은', '는'])} “${clip(basis.quote)}”라고 하는데, ${withJosa(target, ['은', '는'])} “${clip(targetQuote)}”라고 해요.`;
+}
+
+/** A안 작은 안내: 설정이 기준이면 설정 또는 원고를, 이전 회차가 기준이면 원고를 고치도록 안내한다. 충돌·의심에만 쓴다. */
+export function findingFixHint(outcome?: string | null, basis?: BasisForSummary | null, targetEpisodeNo?: number | null): string | null {
+  if (outcome !== 'CONFLICT' && outcome !== 'SUSPECTED_CONFLICT') return null;
+  const target = targetEpisodeNo ? `${targetEpisodeNo}화` : '이번 원고';
+  return basis?.kind === 'EPISODE'
+    ? `${target}에서 일부러 바꾼 거라면 그대로 두고, 실수라면 원고를 고쳐 주세요.`
+    : `${target}에서 일부러 바꾼 거라면 설정을, 실수라면 원고를 고쳐 주세요.`;
+}
+
 export type Impact = NonNullable<NonNullable<ListValidationFindingsData['query']>['impact']>;
 export type ImpactFilter = Impact | 'ALL';
 export type SubjectTypeFilter = SubjectType | 'ALL';
