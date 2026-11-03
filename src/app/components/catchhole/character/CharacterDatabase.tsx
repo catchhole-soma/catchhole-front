@@ -1806,7 +1806,7 @@ export function CharacterDatabase({
             aria-label={`${detail?.name ?? '캐릭터'} 캐릭터 상세`}
             onClick={event => event.stopPropagation()}
             className={`character-detail-modal${selectedEvidenceFactId ? ' character-detail-modal--with-evidence' : ''}${isEditing ? ' character-detail-modal--editing' : ''}${timelineOpen ? ' character-detail-modal--timeline-open' : ''}`}
-            style={{ width: selectedEvidenceFactId ? 1640 : 1000, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}
+            style={{ width: selectedEvidenceFactId ? 1640 : 1360, maxWidth: 'calc(100vw - 40px)', minHeight: 420, position: 'relative', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 24px 70px rgba(0,0,0,0.58)', overflow: 'hidden' }}
           >
             {confirming && (
               <ConfirmLayer
@@ -2129,7 +2129,7 @@ function SectionTitle({
     );
   }
   return (
-    <div className="character-section-title" style={{ color: C.t3, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 7 }}>
+    <div className="character-section-title" style={{ color: C.t3, fontSize: 14, fontWeight: 700, letterSpacing: 0, marginBottom: 8 }}>
       {children}
     </div>
   );
