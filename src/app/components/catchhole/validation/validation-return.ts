@@ -131,13 +131,14 @@ export const CORRECTION_RECEIPT_KEY = 'correctionReceiptId';
 
 export type CorrectionLink = { key: string; label: string; url: string | null; lockReason?: string };
 
+/** 작가가 고를 저장 설정의 이름. `대상 · 설정명`이며 설정명을 모르면 대상 이름만 쓴다(내부 참조는 쓰지 않는다). */
 function basisLabel(basis: ValidationFindingBasis, detail: ValidationFindingDetailResponse) {
-  const type = basis.subjectType ? SUBJECT_TYPE_LABELS[basis.subjectType] : null;
   // slot·경로는 finding의 설정명이 그 항목을 가리킬 때만 서버가 채운다.
   const setting = basis.subjectType === 'WORLD_SETTING'
     ? basis.settingName ? [basis.scopeName, basis.settingName].filter(Boolean).join(' / ') : null
     : basis.factType ? detail.settingName ?? null : null;
-  return [type, basis.subjectName, setting].filter(Boolean).join(' · ');
+  const name = [basis.subjectName, setting].filter(Boolean).join(' · ');
+  return name || (basis.subjectType ? `${SUBJECT_TYPE_LABELS[basis.subjectType]} 설정` : '저장된 설정');
 }
 
 /**

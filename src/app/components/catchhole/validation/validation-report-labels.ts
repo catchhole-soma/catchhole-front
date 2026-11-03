@@ -208,17 +208,6 @@ export function judgmentActionDescription(branch: Branch, judgment: Judgment): s
     : '현재 원고의 이 표현만 그대로 둬요. 다른 위치나 회차에는 적용하지 않아요.';
 }
 
-const BASIS_LABELS: Record<string, string> = {
-  DIRECT_CONTRADICTION: '같은 대상·시점·조건에서 양립할 수 없는 근거를 확인했어요.',
-  CHANGE_NOT_FOUND: '기존 상태와 어긋나 보이지만 그 사이의 변화나 예외를 찾지 못했어요.',
-  AMBIGUOUS_MEANING: '대상·시점·해석이 분명하지 않아 비교 판단이 어려워요.',
-  DB_RAW_DISAGREEMENT: '비교 기준과 원문이 다름',
-};
-
-export function basisLabel(basis?: unknown): string | null {
-  return typeof basis === 'string' ? BASIS_LABELS[basis] ?? null : null;
-}
-
 export const EXECUTION_LABELS: Record<ExecutionStatus, string> = {
   NOT_STARTED: '검사 전',
   QUEUED: '검사 대기',
@@ -368,15 +357,6 @@ const CHANGE_REASON_LABELS: Record<string, string> = { NEW_CLUE: '새 단서를 
 
 export function changeReasonLabel(reason?: string | null): string {
   return (reason && CHANGE_REASON_LABELS[reason]) || '검사 내용이 바뀌어 다시 확인했어요.';
-}
-
-/** 출처 참조는 내부 식별자이므로 역할과 순번으로만 표시한다. */
-export function sourceRefLabel(sourceRef?: string | null): string {
-  if (!sourceRef || sourceRef === 'T1') return '이번 원고';
-  const match = /^([A-Z]+)(\d+)$/.exec(sourceRef);
-  if (match?.[1] === 'R') return `비교 원문 ${match[2]}`;
-  if (match?.[1] === 'B') return `저장된 설정 ${match[2]}`;
-  return '비교 자료';
 }
 
 const DATE_TIME_FORMAT = new Intl.DateTimeFormat('ko-KR', {
