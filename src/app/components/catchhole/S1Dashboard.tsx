@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { C, type NavId, type WorkId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
+import { useAnalysisStartGate } from '../../hooks/useAnalysisStartGate';
 import { useAppContext } from '../../context/AppContext';
 import { AppSidebar, FALLBACK_WORK_INFO } from './AppSidebar';
 import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { EpisodeDeleteModal } from './EpisodeDeleteModal';
 import { EpisodeReanalysisModal } from './EpisodeReanalysisModal';
+import { AnalysisStartGateDialog } from './AnalysisStartGateDialog';
 import { RelationshipWorkspace } from './relationship/RelationshipWorkspace';
 import { CharacterDatabase } from './character/CharacterDatabase';
 import { CharacterFactSearch } from './character/CharacterFactSearch';
@@ -543,6 +545,8 @@ export default function S1Dashboard() {
   const overviewValidationActive = analysisOverviewQuery.data?.data?.content?.some(batchValidationActive) ?? false;
   const previousOverviewActivityRef = useRef<{ workId: string; active: boolean } | null>(null);
   const [episodeReanalysisTarget, setEpisodeReanalysisTarget] = useState<EpisodeSummaryResponse | null>(null);
+  const analysisStartGate = useAnalysisStartGate(effectiveWorkId);
+  const episodeAnalysisInFlight = useRef(false);
   const episodesNeeded = activeNav === 'manuscripts' || episodeReanalysisTarget !== null;
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId: effectiveWorkId } }),
@@ -763,7 +767,7 @@ export default function S1Dashboard() {
   };
 
   const startEpisodeReanalysis = async (episode: EpisodeSummaryResponse) => {
-    if (createEpisodeAnalysisRequest.isPending) return;
+    if (createEpisodeAnalysisRequest.isPending || episodeAnalysisInFlight.current) return;
     setEpisodeActionError(null);
     if (!episode.batchId || !episode.id) {
       setEpisodeActionError('이 회차의 업로드 묶음 정보를 찾지 못했습니다.');
@@ -777,11 +781,17 @@ export default function S1Dashboard() {
       && dashboardContextRef.current.workId === requestWorkId
       && dashboardContextRef.current.activeNav === 'manuscripts'
     );
+    episodeAnalysisInFlight.current = true;
     try {
-      const response = await createEpisodeAnalysisRequest.mutateAsync({
-        path: { workId: requestWorkId },
-        body: { jobType, batchId: episode.batchId, episodeId: episode.id, reviewMode: 'MANUAL' },
+      const response = await analysisStartGate.create({
+        episodeNumbers: episode.episodeNo ? [episode.episodeNo] : [],
+        isActive: isCurrentRequestContext,
+        submit: consent => createEpisodeAnalysisRequest.mutateAsync({
+          path: { workId: requestWorkId },
+          body: { jobType, batchId: episode.batchId!, episodeId: episode.id, reviewMode: 'MANUAL', ...consent },
+        }),
       });
+      if (!response) return;
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
@@ -804,6 +814,8 @@ export default function S1Dashboard() {
       if (isCurrentRequestContext()) {
         setEpisodeActionError(apiError?.message ?? '분석 작업을 시작하지 못했습니다.');
       }
+    } finally {
+      episodeAnalysisInFlight.current = false;
     }
   };
 
@@ -1366,17 +1378,23 @@ export default function S1Dashboard() {
           onDelete={() => void removeEpisode()}
         />
       )}
-      {episodeReanalysisTarget && (
+      {analysisStartGate.dialogProps && <AnalysisStartGateDialog {...analysisStartGate.dialogProps}
+        onReview={() => {
+          setEpisodeReanalysisTarget(null);
+          setEpisodeActionError(null);
+          navigate(`/dashboard?workId=${encodeURIComponent(effectiveWorkId)}&nav=analyses`, 'dissolve');
+        }} />}
+      {episodeReanalysisTarget && !analysisStartGate.dialogProps && (
         <EpisodeReanalysisModal
           episode={episodeReanalysisTarget}
           laterAnalyzedEpisodeCount={episodeRows.filter(candidate => (
             (candidate.episodeNo ?? 0) > (episodeReanalysisTarget.episodeNo ?? 0)
             && candidate.analysisStatus === 'COMPLETED'
           )).length}
-          submitting={createEpisodeAnalysisRequest.isPending}
+          submitting={createEpisodeAnalysisRequest.isPending || analysisStartGate.busy}
           error={episodeActionError}
           onClose={() => {
-            if (createEpisodeAnalysisRequest.isPending) return;
+            if (createEpisodeAnalysisRequest.isPending || analysisStartGate.busy) return;
             setEpisodeReanalysisTarget(null);
             setEpisodeActionError(null);
           }}

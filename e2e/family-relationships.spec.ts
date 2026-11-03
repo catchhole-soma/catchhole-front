@@ -248,7 +248,9 @@ async function editDetails(page: Page) {
 }
 async function chooseJudgment(page: Page, name: '실제 가족이에요' | '가족이 아니에요' | '아직 모르겠어요') {
   const choice = page.getByRole('button').filter({ has: page.getByText(name, { exact: true }) });
-  if (!await choice.isVisible()) await page.getByRole('button', { name: '판단 변경', exact: true }).click();
+  const change = page.getByRole('button', { name: '판단 변경', exact: true });
+  await expect(choice.or(change)).toBeVisible();
+  if (!await choice.isVisible()) await change.click();
   await choice.click();
 }
 async function chooseExclusion(page: Page) {
@@ -1862,6 +1864,20 @@ test('느린 이전 자동 조회는 더 높은 후보 버전과 근거를 덮�
   await page.getByRole('button', { name: '변경사항 저장', exact: true }).click();
   await expect(page.getByText('수정한 내용을 저장했어요.', { exact: false })).toBeVisible();
   expect(fixture.calls.saves[0]).toMatchObject({ expectedVersion: 2, timeLabel: '내가 작성한 시점', evidence: [{ sourceFactId: factId, sourceToken: oldToken }] });
+});
+
+test('후보의 초기 응답이 늦어도 열린 판단 선택지를 기다린 뒤 선택한다', async ({ page, context }) => {
+  const fixture = await setup(context);
+  const initialCandidate = fixture.holdNext('GET', `relationship-candidates/${candidateId}`);
+  await page.goto(editor);
+  await initialCandidate.received;
+  await expect(page.getByRole('region', { name: '가족 관계 후보 검토', exact: true })).toHaveCount(0);
+  const choosing = chooseJudgment(page, '아직 모르겠어요');
+  await expect(page.getByText('확인할 관계를 불러오고 있어요.', { exact: true })).toBeVisible();
+  initialCandidate.release();
+  await choosing;
+  await expect(page.getByRole('button').filter({ has: page.getByText('아직 모르겠어요', { exact: true }) })).toHaveAttribute('aria-pressed', 'true');
+  expect(fixture.calls.mutations).toEqual([]);
 });
 
 test('다른 창의 가족 판단을 채택해도 명시적으로 고른 모름 판단과 내 초안은 유지한다', async ({ page, context }) => {

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import review from './fixtures/validation/validation-review-v1.json' with { type: 'json' };
 import stagingFixture from './fixtures/validation/validation-staging-v1.json' with { type: 'json' };
 import { authenticate, BATCH_ID, EPISODE_ID, mockValidationReport, REPORT_ID, WORK_ID } from './fixtures/validation/report-mock';
@@ -49,6 +50,7 @@ async function setup(page: Page, options: Options = {}) {
     const path = url.pathname;
     const method = request.method();
     const base = `/api/v1/works/${WORK_ID}`;
+    if (path === `${base}/analysis-start-checks`) return reply(route, ok(clearAnalysisStartCheck));
     if (path === `${base}/episodes/upload-policy`) return reply(route, ok({ pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }));
     if (path === `${base}/episodes/detect`) {
       const uploadType = /"uploadType":"([A-Z_]+)"/.exec(request.postData() ?? '')?.[1] ?? 'SINGLE_EPISODE';

@@ -526,12 +526,15 @@ export type EpisodeSummaryResponse = {
     validationReviewStage?: 'PREPARING_BASELINE' | 'VALIDATING' | 'AWAITING_REVIEW' | 'REVIEW_COMPLETED' | 'EXTRACTION_FAILED' | 'APPLICATION_HELD' | 'APPLIED' | 'HELD_INCOMPLETE' | 'INVALIDATED';
 };
 
+export type JsonNode = unknown;
+
 export type SubjectResolutionInput = {
     candidateId: string;
     targetWorldSettingIds: Array<string>;
     provisionalSubjectKeys?: Array<string>;
     ambiguous?: boolean;
     failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
+    failureDiagnostics?: JsonNode;
 };
 
 export type WorkerWorldSettingSubjectResolutionRequest = {
@@ -1049,7 +1052,7 @@ export type WorldSettingCandidateResponse = {
      * 기계 판독용 비교 실패 코드
      */
     comparisonFailureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
     userModified?: boolean;
     finalOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
     finalCategory?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
@@ -1564,8 +1567,6 @@ export type CommonResponseSettingCandidateResponse = {
     timestamp?: string;
 };
 
-export type JsonNode = unknown;
-
 /**
  * 설정 후보 응답
  */
@@ -1661,7 +1662,7 @@ export type SettingCandidateResponse = {
     /**
      * 후보 검토 상태
      */
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
     /**
      * AI Worker 원본 응답 JSON
      */
@@ -1845,7 +1846,7 @@ export type SettingCandidateReviewStatusResponse = {
     /**
      * 후보 검토 상태
      */
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
 };
 
 /**
@@ -3342,6 +3343,72 @@ export type ChatRetryV1 = {
 };
 
 /**
+ * 새로 분석할 회차 번호. 업로드 전에도 확인할 수 있으며 실제 생성 시 서버가 대상을 다시 확인합니다.
+ */
+export type AnalysisStartCheckRequest = {
+    /**
+     * 새로 분석할 회차 번호 목록. 중복을 제거하고 정렬합니다. 필수 검토는 최댓값보다 앞선 회차, 애매한 후보 종료는 최솟값보다 앞선 회차를 확인합니다.
+     */
+    episodeNumbers: Array<number>;
+};
+
+/**
+ * 새 회차 분석 전 검토 조건. 직접 검토는 완료해야 하고 애매한 후보 종료에는 명시적인 동의가 필요합니다.
+ */
+export type AnalysisStartCheckResponse = {
+    /**
+     * 요청한 회차 번호의 최댓값보다 앞선 회차에서 대기·실행 중인 설정 추출 작업 수. 0보다 크면 해당 분석이 끝난 뒤 시작해야 합니다.
+     */
+    activeEarlierAnalysisCount: number;
+    /**
+     * 요청한 회차 번호의 최댓값보다 앞선 회차의 필수 검토 캐릭터·세계관 후보 수. 직접 검토·작가 수정 등을 반영하거나 제외해야 하며, 계속 분석 동의로 종료할 수 없습니다.
+     */
+    manualReviewCount: number;
+    /**
+     * 요청한 회차 번호의 최솟값보다 앞선 회차의 자동 분석이 정상 종료되어 명시적으로 종료할 수 있는 애매한 캐릭터 후보 수. 경고에 동의하면 종료하며 기술적 실패·처리 중 후보는 포함하지 않습니다.
+     */
+    ambiguousCharacterCount: number;
+    /**
+     * 요청한 회차 번호의 최솟값보다 앞선 회차의 자동 분석이 정상 종료되어 명시적으로 종료할 수 있는 애매한 세계관 후보 수. 경고에 동의하면 종료하며 기술적 실패·처리 중 후보는 포함하지 않습니다.
+     */
+    ambiguousWorldCount: number;
+    /**
+     * 요청한 회차 번호의 최솟값보다 앞선 회차의 정상적인 관계 HOLD 수. 경고에 동의하면 해당 보류만 종료하며 기술적 비교 실패는 포함하지 않습니다.
+     */
+    ambiguousRelationshipCount: number;
+    /**
+     * 작품·정렬된 전체 대상 회차·후보 상태에 결속된 확인 값. 종료에 동의할 때 생성 요청의 reviewGateRevision으로 그대로 보냅니다.
+     */
+    revision: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseAnalysisStartCheckResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: AnalysisStartCheckResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * 분석 작업 생성 요청
  */
 export type AnalysisJobCreateRequest = {
@@ -3365,6 +3432,14 @@ export type AnalysisJobCreateRequest = {
      * 설정 반영 방식. 새 설정 추출·재분석은 생략 시 자동 반영하며, 단일 회차는 MANUAL로 직접 검토를 선택할 수 있습니다. 다회차는 항상 자동 반영하고 회차 검증은 생략 시 직접 검토입니다.
      */
     reviewMode?: 'MANUAL' | 'AUTOMATIC';
+    /**
+     * 시작 전 안내한 애매한 후보를 종료하고 분석할지 명시적으로 선택합니다. 기본 false입니다.
+     */
+    closeAmbiguousCandidates?: boolean;
+    /**
+     * 시작 사전 확인에서 받은 revision. 후보 종료에 동의했을 때 함께 전달합니다.
+     */
+    reviewGateRevision?: string | null;
 };
 
 /**
@@ -4184,6 +4259,7 @@ export type ValidationDataRequest = {
     expectedSourceVersion?: string;
     start?: number;
     end?: number;
+    subjectRefs?: Array<string>;
 };
 
 /**
@@ -4242,10 +4318,27 @@ export type ValidationExecutionUsageV1 = {
 export type ValidationExecutionReserveV1 = {
     scope: ValidationExecutionScopeV1;
     requestId: string;
-    role: 'PLANNER' | 'RELATED_SELECTION' | 'COVERAGE' | 'JUDGE' | 'TYPO' | 'QUERY_EMBEDDING';
+    role: 'PLANNER' | 'RELATED_SELECTION' | 'COVERAGE' | 'JUDGE' | 'TYPO' | 'QUERY_EMBEDDING' | 'INDEX_EMBEDDING';
     model: string;
     reservedTokens?: number;
     queryInput?: ValidationQueryInputV1;
+    indexInput?: ValidationIndexInputV1;
+};
+
+/**
+ * 접수 때 색인 채우기 임베딩 호출 전에 고정하는 고정 출처·조각 hash와 색인 identity. 원문은 저장하지 않습니다.
+ */
+export type ValidationIndexInputV1 = {
+    contractVersion?: number;
+    inputDigest: string;
+    manifestHash: string;
+    sourceRef: string;
+    sourceHash: string;
+    chunkCount?: number;
+    chunkDigest: string;
+    indexModel: string;
+    indexVersion: string;
+    indexDimensions?: number;
 };
 
 /**
@@ -5106,7 +5199,7 @@ export type ChatReserveV1 = {
      * 실제 provider 호출마다 새 UUID
      */
     callId: string;
-    purpose: 'VALIDATION_PLANNER' | 'VALIDATION_RELATED_SELECTION' | 'VALIDATION_COVERAGE' | 'VALIDATION_JUDGE' | 'VALIDATION_TYPO' | 'VALIDATION_QUERY_EMBEDDING' | 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
+    purpose: 'VALIDATION_PLANNER' | 'VALIDATION_RELATED_SELECTION' | 'VALIDATION_COVERAGE' | 'VALIDATION_JUDGE' | 'VALIDATION_TYPO' | 'VALIDATION_QUERY_EMBEDDING' | 'VALIDATION_INDEX_EMBEDDING' | 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
     model: string;
     reservedTokens?: number;
 };
@@ -5353,6 +5446,7 @@ export type Fail = {
     sourceHash?: string;
     contextToken?: string;
     failureCode?: 'INVALID_RESPONSE' | 'EXTRACTION_FAILED' | 'COMPARISON_FAILED' | 'INPUT_TOO_LARGE';
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -6078,7 +6172,7 @@ export type AiTokenReserveRequest = {
     /**
      * AI 토큰 사용 목적
      */
-    purpose: 'VALIDATION_PLANNER' | 'VALIDATION_RELATED_SELECTION' | 'VALIDATION_COVERAGE' | 'VALIDATION_JUDGE' | 'VALIDATION_TYPO' | 'VALIDATION_QUERY_EMBEDDING' | 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
+    purpose: 'VALIDATION_PLANNER' | 'VALIDATION_RELATED_SELECTION' | 'VALIDATION_COVERAGE' | 'VALIDATION_JUDGE' | 'VALIDATION_TYPO' | 'VALIDATION_QUERY_EMBEDDING' | 'VALIDATION_INDEX_EMBEDDING' | 'CHAT_INTERPRETATION' | 'CHAT_ANSWER' | 'CHAT_QUERY_EMBEDDING' | 'OPERATIONAL_BACKFILL' | 'RELATIONSHIP_EXTRACTION' | 'RELATIONSHIP_COMPARISON' | 'SETTING_EXTRACTION' | 'SUBJECT_RESOLUTION' | 'CHUNK_EMBEDDING' | 'WORLD_SETTING_EXTRACTION' | 'WORLD_SETTING_SUBJECT_RESOLUTION' | 'WORLD_SETTING_COMPARISON' | 'CHARACTER_FACT_COMPARISON';
     /**
      * 같은 목적 안에서의 호출 순번
      */
@@ -6715,6 +6809,14 @@ export type ValidationFindingSummaryResponse = {
      * #314 B2. settingName의 원래 키. 캐릭터 "factType:factKey", 세계관 저장 경로 JSON 배열 ["범위","설정명"]·[null,"설정명"]입니다.
      */
     settingKey?: string | null;
+    /**
+     * 오류 리포트 가독성. 이 질문이 확인한 항목(판정 질문의 property_or_rule). 상세의 topic과 같으며 내부 참조처럼 보이면 null, 오탈자는 null
+     */
+    topic?: string | null;
+    /**
+     * 판정 작성 제목(2026-11-03). 상세의 headline과 같습니다. 이전 Worker 결과·제목을 쓰지 않은 판정·내부 참조처럼 보이는 값과 오탈자는 null입니다.
+     */
+    headline?: string | null;
 };
 
 /**
@@ -8644,6 +8746,120 @@ export type ValidationFindingBasis = {
 };
 
 /**
+ * 판정이 근거로 그대로 옮긴 문장. 저장 설정값은 고정 기준 행의 값, 원문은 서버가 hash 확인한 원문과 대조한 인용입니다.
+ */
+export type ValidationFindingBasisQuote = {
+    /**
+     * 근거 종류
+     */
+    kind?: 'SETTING' | 'EPISODE' | 'SETTING_BOOK';
+    /**
+     * 작가용 표기. 설정은 '설정 · 대상 · 설정명'(설정명을 하나로 정할 수 없으면 '설정 · 대상'), 회차는 'N화', 설정집은 '설정집 · 제목'
+     */
+    label?: string;
+    /**
+     * 근거 문장 그대로
+     */
+    quote?: string;
+    /**
+     * 원문 인용이면 evidence의 sourceRef와 같은 출처 참조(화면 표시용 아님). 설정값은 null
+     */
+    sourceRef?: string | null;
+    /**
+     * 원문 인용의 code point 시작. 설정값은 null
+     */
+    start?: number | null;
+    /**
+     * 원문 인용의 code point 끝(제외). 설정값은 null
+     */
+    end?: number | null;
+    /**
+     * 회차 인용의 회차 번호
+     */
+    episodeNo?: number | null;
+    /**
+     * 설정값의 대상 이름
+     */
+    subjectName?: string | null;
+    /**
+     * 설정값의 설정명(캐릭터 표시명, 세계관 '범위 / 설정명')
+     */
+    settingName?: string | null;
+    /**
+     * 설정집 인용의 설정집 이름
+     */
+    settingBookTitle?: string | null;
+};
+
+/**
+ * 상세 비교 영역의 블록 하나. 머리말은 종류(이번 원고·기준·근거)와 label을 이어 씁니다.
+ */
+export type ValidationFindingBlock = {
+    /**
+     * 블록 종류
+     */
+    kind?: 'TARGET' | 'SETTING' | 'EPISODE' | 'SETTING_BOOK';
+    /**
+     * 작가용 위치 표기. TARGET·EPISODE는 'N화 · 시작~끝자'(1부터 센 code point), SETTING_BOOK은 '설정집 · 제목 · 시작~끝자', SETTING은 '설정 · 대상 · 설정명'
+     */
+    label?: string;
+    /**
+     * 강조할 첫 문장 그대로(이번 원고 인용·오탈자 원문·근거 문장). 합친 블록은 quotes의 첫 항목과 같습니다
+     */
+    quote?: string;
+    /**
+     * 이 블록에서 강조할 문장 전부(원문 위치 순, 1개 이상). 인용 하나인 블록은 (quote, start, end) 한 항목입니다
+     */
+    quotes?: Array<ValidationFindingBlockQuote>;
+    /**
+     * 원문 블록의 출처 참조(화면 표시용 아님, source-context 요청에 그대로 보냄). SETTING은 null
+     */
+    sourceRef?: string | null;
+    /**
+     * 강조 문장들을 덮는 원문 code point 시작(quotes의 가장 작은 start). SETTING은 null
+     */
+    start?: number | null;
+    /**
+     * 강조 문장들을 덮는 원문 code point 끝(제외, quotes의 가장 큰 end). SETTING은 null
+     */
+    end?: number | null;
+    /**
+     * 회차 블록의 회차 번호
+     */
+    episodeNo?: number | null;
+    /**
+     * SETTING: quote를 담은 저장 설정값 전체(값 하나에만 들어 있고 1,000자 이하일 때). 그 밖에는 null
+     */
+    settingValue?: string | null;
+    /**
+     * 원문 블록의 처음 앞뒤 줄. 읽지 못했거나 SETTING이면 null
+     */
+    context?: ValidationSourceContextResponse;
+    /**
+     * 원문 블록의 앞뒤 줄 읽기 결과. SETTING은 null
+     */
+    contextStatus?: 'READY' | 'SOURCE_CHANGED' | 'SOURCE_PURGED' | 'SOURCE_UNREADABLE' | 'SOURCE_UNAVAILABLE';
+};
+
+/**
+ * 블록 안에서 강조할 문장 하나. 원문 블록은 원문 전체 기준 Unicode code point [start,end), SETTING은 위치 없이 저장 설정값 안의 문장입니다.
+ */
+export type ValidationFindingBlockQuote = {
+    /**
+     * 강조할 문장 그대로
+     */
+    quote?: string;
+    /**
+     * 원문 code point 시작. SETTING은 null
+     */
+    start?: number | null;
+    /**
+     * 원문 code point 끝(제외). SETTING은 null
+     */
+    end?: number | null;
+};
+
+/**
  * 발견 항목 상세. 내부 evidence_bundle·catalogue·호출 기록은 포함하지 않습니다.
  */
 export type ValidationFindingDetailResponse = {
@@ -8698,16 +8914,64 @@ export type ValidationFindingDetailResponse = {
      * #314 B2. 이 질문이 비교한 고정 기준 항목 중 정정(POST /{reportId}/corrections)에 그대로 쓸 수 있는 항목. 실제 캐릭터·세계관에 연결된 항목만 기준 순서로 담습니다. 오탈자는 빈 배열입니다.
      */
     basis?: Array<ValidationFindingBasis>;
+    /**
+     * 오류 리포트 가독성. 이 질문이 확인한 항목(판정 질문의 property_or_rule). 내부 참조처럼 보이면 null이며 오탈자는 null
+     */
+    topic?: string | null;
+    /**
+     * 판정 작성 제목(2026-11-03). 판정이 쓴 작가용 제목 한 줄(예: '데스핀드와 키메라 울프의 정수 등급이 기존 설정과 달라요'). 이전 Worker 결과·제목을 쓰지 않은 판정·내부 참조처럼 보이는 값과 오탈자는 null이며, 이때 화면은 대상·확인 항목으로 제목을 만듭니다.
+     */
+    headline?: string | null;
+    /**
+     * 오류 리포트 가독성. 이번 원고(T1)의 회차 번호
+     */
+    targetEpisodeNo?: number;
+    /**
+     * 오류 리포트 가독성. 판정이 근거로 그대로 옮긴 문장 0~3개(저장 설정값·이전 회차·설정집). 서버가 고정 기준·검증한 원문으로 만든 작가용 label을 함께 준다. 근거 문장이 없거나 이전 Worker 결과면 빈 배열
+     */
+    basisQuotes?: Array<ValidationFindingBasisQuote>;
+    /**
+     * 오류 리포트 문맥 블록(2026-11-03). 상세 비교 영역을 위에서부터 쌓는 블록: 이번 원고 위치(TARGET, 원고 위치 순·오탈자는 그 위치 하나) → 판정이 옮긴 저장 설정값(SETTING, basis_quotes 순서) → 판정이 옮긴 이전 원문 문장(EPISODE 회차 오름차순, 그다음 SETTING_BOOK). 원문 블록은 인용 문장 위아래 2줄(공백 줄 제외)을 context로 함께 주며 더 보기는 GET .../source-context로 읽습니다. 같은 출처의 인용끼리 처음 앞뒤 줄이 겹치거나 맞닿으면 한 블록으로 합치고 강조할 문장은 quotes에 모두 담습니다(같은 줄이 두 번 보이지 않습니다). 근거 문장이 없는 판정은 TARGET만 있습니다.
+     */
+    blocks?: Array<ValidationFindingBlock>;
 };
 
 /**
- * 저장 때 검증한 인용. Unicode code point 위치
+ * 저장 때 검증한 인용. Unicode code point 위치. 판정 근거 문장 자체의 인용은 basisQuotes로만 보여 주고 여기서는 뺍니다.
  */
 export type ValidationFindingEvidence = {
     sourceRef?: string;
     start?: number;
     end?: number;
     quote?: string;
+    /**
+     * 원문 종류. 이번 원고와 이전 회차는 EPISODE
+     */
+    sourceKind?: 'SETTING' | 'EPISODE' | 'SETTING_BOOK';
+    /**
+     * 회차 번호(이번 원고는 targetEpisodeNo). 설정집은 null
+     */
+    episodeNo?: number | null;
+    /**
+     * 작가용 위치 표기. 회차는 'N화 · 시작~끝자'(1부터 센 code point), 설정집은 '설정집 · 제목 · 시작~끝자'
+     */
+    label?: string;
+    /**
+     * 판정이 실제로 근거로 쓴 조각(evidence_refs·근거 문장·불일치 참조)이면 true. 이번 원고와 검색만 하고 쓰지 않은 조각은 false
+     */
+    usedByDecision?: boolean;
+    /**
+     * 이 조각 안에 있는 판정 근거 문장의 위치(조각 quote 기준 code point [start,end))
+     */
+    highlights?: Array<ValidationFindingHighlight>;
+};
+
+/**
+ * 인용 조각 안의 강조 구간. 조각 quote 기준 Unicode code point [start,end)
+ */
+export type ValidationFindingHighlight = {
+    start?: number;
+    end?: number;
 };
 
 /**
@@ -8735,6 +8999,78 @@ export type ValidationFindingPriorRevision = {
     changeReason?: string;
     findingId?: string;
     judgment?: ValidationFindingJudgment;
+};
+
+/**
+ * 원문 한 줄(500자보다 긴 줄은 나눈 조각 하나). 위치는 원문 전체 기준 code point [start,end)
+ */
+export type ValidationSourceContextLine = {
+    start?: number;
+    end?: number;
+    /**
+     * 줄 글(줄 끝 문자 제외)
+     */
+    text?: string;
+};
+
+/**
+ * 검사 당시 고정 원문(hash 확인)의 줄 단위 창. 공백만 있는 줄은 세지도 돌려주지도 않으며 줄 글에는 줄 끝 문자가 없습니다. 위치는 원문 전체 기준 Unicode code point [start,end)이고 화면은 1부터 셉니다.
+ */
+export type ValidationSourceContextResponse = {
+    /**
+     * 출처 참조(화면 표시용 아님). 상세 blocks[].sourceRef와 같습니다.
+     */
+    sourceRef?: string;
+    /**
+     * 첫 줄 시작 code point. 줄이 없으면 anchor 위치
+     */
+    start?: number;
+    /**
+     * 마지막 줄 끝 code point(제외). 줄이 없으면 anchor 위치
+     */
+    end?: number;
+    /**
+     * 원문 전체 code point 수
+     */
+    totalCodePoints?: number;
+    /**
+     * 이 창 위에 더 읽을 줄이 있으면 true
+     */
+    hasMoreBefore?: boolean;
+    /**
+     * 이 창 아래에 더 읽을 줄이 있으면 true
+     */
+    hasMoreAfter?: boolean;
+    /**
+     * 원문 순서의 줄
+     */
+    lines?: Array<ValidationSourceContextLine>;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseValidationSourceContextResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: ValidationSourceContextResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
 };
 
 /**
@@ -12610,6 +12946,41 @@ export type RetryChatQuestionResponses = {
 
 export type RetryChatQuestionResponse = RetryChatQuestionResponses[keyof RetryChatQuestionResponses];
 
+export type CheckAnalysisStartData = {
+    body: AnalysisStartCheckRequest;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/analysis-start-checks';
+};
+
+export type CheckAnalysisStartErrors = {
+    /**
+     * 회차 번호 또는 대상 개수 검증 실패
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증되지 않은 요청
+     */
+    401: CommonErrorResponse;
+    /**
+     * 본인 소유 작품을 찾을 수 없음(WORK_NOT_FOUND)
+     */
+    404: CommonErrorResponse;
+};
+
+export type CheckAnalysisStartError = CheckAnalysisStartErrors[keyof CheckAnalysisStartErrors];
+
+export type CheckAnalysisStartResponses = {
+    /**
+     * 분석 시작 전 검토 조건 확인 성공
+     */
+    200: CommonResponseAnalysisStartCheckResponse;
+};
+
+export type CheckAnalysisStartResponse = CheckAnalysisStartResponses[keyof CheckAnalysisStartResponses];
+
 export type GetAnalysisJobsData = {
     body?: never;
     path: {
@@ -12664,7 +13035,7 @@ export type CreateAnalysisJobErrors = {
      */
     404: CommonResponseListAnalysisJobResponse;
     /**
-     * AI 토큰 한도 소진, 같은 대상 분석 진행 중 또는 기존 순차 분석 재개 필요(ANALYSIS_ORDERED_JOB_RETRY_REQUIRED)
+     * AI 토큰 한도 소진, 같은 대상 분석 진행 중 또는 기존 순차 분석 재개 필요(ANALYSIS_ORDERED_JOB_RETRY_REQUIRED). 새 설정 추출은 이전 분석 진행 중(ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS), 직접 검토 미완료(ANALYSIS_MANUAL_REVIEW_REQUIRED), 보류 종료 동의 필요(ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED), 확인 정보 변경(ANALYSIS_REVIEW_GATE_CHANGED)도 구분합니다.
      */
     409: CommonErrorResponse;
 };
@@ -16001,7 +16372,7 @@ export type GetWorldSettingCandidatesData = {
     };
     query: {
         batchId: string;
-        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
         category?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
         operation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE' | 'REVIEW_REQUIRED';
         page?: number;
@@ -16209,7 +16580,7 @@ export type GetSettingCandidatesData = {
         /**
          * 후보 검토 상태 필터
          */
-        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
         /**
          * 후보 캐릭터 연결 상태 필터 목록. 생략하거나 비우면 전체 상태를 조회합니다.
          */
@@ -16842,6 +17213,64 @@ export type GetValidationFindingResponses = {
 };
 
 export type GetValidationFindingResponse = GetValidationFindingResponses[keyof GetValidationFindingResponses];
+
+export type GetValidationFindingSourceContextData = {
+    body?: never;
+    path: {
+        workId: string;
+        reportId: string;
+        findingId: string;
+    };
+    query: {
+        /**
+         * 상세 blocks[].sourceRef 그대로(화면 표시용 아님)
+         */
+        sourceRef: string;
+        /**
+         * 기준 위치 시작(원문 전체 기준 code point, 0부터)
+         */
+        anchorStart: number;
+        /**
+         * 기준 위치 끝(제외). 시작과 같으면 줄 사이 경계
+         */
+        anchorEnd: number;
+        /**
+         * 위로 더 읽을 줄 수(0~30)
+         */
+        before?: number;
+        /**
+         * 아래로 더 읽을 줄 수(0~30)
+         */
+        after?: number;
+    };
+    url: '/api/v1/works/{workId}/episode-validations/{reportId}/findings/{findingId}/source-context';
+};
+
+export type GetValidationFindingSourceContextErrors = {
+    /**
+     * 이 항목이 인용하지 않은 출처, 원문 밖 anchor, 줄 수·anchor 길이 상한 초과
+     */
+    400: CommonResponseValidationSourceContextResponse;
+    /**
+     * 작품 소유권·검수 요청·발견 항목 없음
+     */
+    404: CommonResponseValidationSourceContextResponse;
+    /**
+     * 고정 원문을 읽을 수 없음(VALIDATION_SOURCE_CONTEXT_UNAVAILABLE, context.reason=SOURCE_CHANGED·SOURCE_PURGED·SOURCE_UNREADABLE·SOURCE_UNAVAILABLE)
+     */
+    409: CommonResponseValidationSourceContextResponse;
+};
+
+export type GetValidationFindingSourceContextError = GetValidationFindingSourceContextErrors[keyof GetValidationFindingSourceContextErrors];
+
+export type GetValidationFindingSourceContextResponses = {
+    /**
+     * 조회 성공
+     */
+    200: CommonResponseValidationSourceContextResponse;
+};
+
+export type GetValidationFindingSourceContextResponse = GetValidationFindingSourceContextResponses[keyof GetValidationFindingSourceContextResponses];
 
 export type ListEpisodeValidationHistoryData = {
     body?: never;

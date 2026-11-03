@@ -192,7 +192,7 @@ test('캐릭터 후보 조회가 실패해도 세계관 후보 탭으로 이동�
   await page.getByRole('button', { name: /세계관 후보/ }).click();
 
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
-  await expect(page.getByText('이번 분석에서 추출된 세계관 후보가 없습니다.')).toBeVisible();
+  await expect(page.getByText('현재 검토할 세계관 후보가 없습니다.')).toBeVisible();
 });
 
 test('캐릭터 탭에서도 진행 중인 세계관 비교 집계를 polling한다', async ({ page }) => {
@@ -2861,7 +2861,7 @@ test('그룹 확정 중 세계관 탭으로 이동하면 늦은 성공 응답이
 
   releaseConfirm?.();
   await expect.poll(() => new URL(page.url()).searchParams.get('candidateType')).toBe('world');
-  await expect(page.getByText('이번 분석에서 추출된 세계관 후보가 없습니다.')).toBeVisible();
+  await expect(page.getByText('현재 검토할 세계관 후보가 없습니다.')).toBeVisible();
 });
 
 test('구버전 다중 페이지 후보 응답에서는 불완전한 묶음 일괄 작업을 잠근다', async ({ page }) => {

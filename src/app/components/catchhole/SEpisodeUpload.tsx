@@ -44,6 +44,7 @@ import type {
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAnalysisJobProgress } from '../../hooks/useAnalysisJobProgress';
+import { useAnalysisStartGate, type AnalysisStartConsent } from '../../hooks/useAnalysisStartGate';
 import { toApiError } from '../../lib/api-errors';
 import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../lib/validation-feature';
 import {
@@ -59,6 +60,7 @@ import type { EpisodeProcessingStatus } from './types';
 import { JOB_STATUS_LABELS, PROCESSING_STATUS_LABELS } from './types';
 import { ModeCard } from './ReviewLayout';
 import { OrderedAnalysisRestartDialog } from './OrderedAnalysisRestartDialog';
+import { AnalysisStartGateDialog } from './AnalysisStartGateDialog';
 import { AnalysisModeGuide } from './onboarding/AnalysisModeGuide';
 import { SettingBookProgressRoute } from './SettingBookAnalysisStatus';
 import {
@@ -486,6 +488,7 @@ function EpisodeUpload() {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeWorkId = searchParams.get('workId');
   const workId = routeWorkId ?? selectedWork;
+  const analysisStartGate = useAnalysisStartGate(workId);
   // 업로드 화면을 떠난 뒤(헤더 뒤로가기·다른 화면 이동) 늦은 응답이 주소와 화면 상태를 바꾸지 않게 한다.
   // 이미 보낸 서버 요청과 그 서버 후속 처리는 취소하지 않는다.
   const uploadScreenMounted = useRef(true);
@@ -511,7 +514,7 @@ function EpisodeUpload() {
   });
 
   const [step, setStep] = useState<UploadStep>(
-    initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget ? 'processing' : 'select-mode',
+    initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget || UUID_PATTERN.test(searchParams.get('batchId') ?? '') ? 'processing' : 'select-mode',
   );
   const [uploadType, setUploadType] = useState<EpisodeUploadType | null>(null);
   const [episodeNo, setEpisodeNo] = useState('');
@@ -554,7 +557,7 @@ function EpisodeUpload() {
   const [analysisJobType] = useState<AnalysisJobType>(initialAnalysisJobType);
   const [uploadPurpose, setUploadPurpose] = useState<UploadPurpose>('SETTING_EXTRACTION');
   const validationPurpose = uploadType === 'SINGLE_EPISODE' && uploadPurpose === 'VALIDATION' && EPISODE_VALIDATION_INTAKE_ENABLED;
-  const [reviewMode, setReviewMode] = useState<ReviewMode>('AUTOMATIC');
+  const [reviewMode, setReviewMode] = useState<ReviewMode>(searchParams.get('reviewMode') === 'MANUAL' ? 'MANUAL' : 'AUTOMATIC');
   const [uploadCharactersByType, setUploadCharactersByType] = useState<Partial<Record<EpisodeUploadType, number>>>({});
   const [characterLimitErrors, setCharacterLimitErrors] = useState<Partial<Record<EpisodeUploadType, string>>>({});
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -566,7 +569,9 @@ function EpisodeUpload() {
       ? initialCurrentAnalysisJobIds
       : initialTrackedAnalysisJobIds,
   );
-  const [analysisStartError, setAnalysisStartError] = useState<string | null>(null);
+  const [analysisStartError, setAnalysisStartError] = useState<string | null>(() =>
+    !viewingExistingAnalysis && !validationResumeTarget && UUID_PATTERN.test(searchParams.get('batchId') ?? '')
+      ? '원고가 저장되어 있습니다. 이전 회차의 검토 상태를 확인하고 분석을 시작할 수 있습니다. 다시 업로드할 필요는 없습니다.' : null);
   const [blockedAnalysisStart, setBlockedAnalysisStart] = useState<{
     batchId: string;
     reason: 'future-history' | 'resume-existing';
@@ -739,7 +744,8 @@ function EpisodeUpload() {
   const [submissionPending, setSubmissionPending] = useState(false);
   const submitting = submissionPending
     || uploadEpisodesMutation.isPending
-    || createAnalysisJobMutation.isPending;
+    || createAnalysisJobMutation.isPending
+    || analysisStartGate.busy;
 
   const progressQuery = useAnalysisJobProgress({ workId, trackedAnalysisJobIds, currentAnalysisJobIds,
     supersededJobIds, enabled: step === 'processing' });
@@ -1106,18 +1112,38 @@ function EpisodeUpload() {
     if (multiFiles.length === 0) setMultiFilesError(null);
   };
 
-  const createBatchAnalysisJob = async (batchId: string, automatic = automaticReview, context = submissionContext()) => {
-    if (blockedAnalysisStart?.batchId === batchId || createAnalysisJobMutation.isPending) return;
+  const createBatchAnalysisJob = async (
+    batchId: string,
+    automatic = reviewMode === 'AUTOMATIC',
+    context = submissionContext(),
+    initialConsent?: AnalysisStartConsent,
+    targetEpisodeNumbers?: number[],
+  ) => {
+    if (blockedAnalysisStart?.batchId === batchId || createAnalysisJobMutation.isPending || analysisStartGate.busy) return;
     setAnalysisStartError(null);
     try {
-      const response = await createAnalysisJobMutation.mutateAsync({
-        path: { workId },
-        body: {
-          jobType: 'SETTING_EXTRACTION', batchId,
-          reviewMode: automatic ? 'AUTOMATIC' : 'MANUAL',
-          ...(automatic ? { analysisMode: 'ORDERED_PROVISIONAL' as const } : {}),
-        },
+      // 저장된 묶음으로 재진입하면 목록 조회가 아직 끝나지 않았을 수 있다. 실제 현재 범위를 받은 뒤 검사한다.
+      const episodeNumbers = targetEpisodeNumbers ?? (await queryClient.fetchQuery({
+        ...getEpisodesOptions({ path: { workId } }), staleTime: 0, retry: false,
+      })).data?.flatMap(episode => episode.batchId === batchId && episode.status !== 'ARCHIVED'
+        && episode.episodeNo ? [episode.episodeNo] : []) ?? [];
+      const response = await analysisStartGate.create({
+        episodeNumbers: [...new Set(episodeNumbers)], initialConsent,
+        isActive: () => isSubmissionActive(context),
+        submit: consent => createAnalysisJobMutation.mutateAsync({
+          path: { workId },
+          body: {
+            jobType: 'SETTING_EXTRACTION', batchId,
+            reviewMode: automatic ? 'AUTOMATIC' : 'MANUAL',
+            ...(automatic ? { analysisMode: 'ORDERED_PROVISIONAL' as const } : {}),
+            ...consent,
+          },
+        }),
       });
+      if (!response) {
+        if (isSubmissionActive(context)) setAnalysisStartError('원고는 저장되어 있습니다. 이전 회차의 검토를 마치거나 안내를 확인한 뒤 분석을 시작해 주세요. 다시 업로드할 필요는 없습니다.');
+        return;
+      }
       const analysisJobIds = [...new Set(
         (response.data ?? []).flatMap(job => job.id ? [job.id] : []),
       )];
@@ -1186,6 +1212,10 @@ function EpisodeUpload() {
         };
 
     try {
+      const targetEpisodeNumbers = uploadType === 'SINGLE_EPISODE'
+        ? [Number.parseInt(episodeNo, 10)] : episodeConfirmations.map(episode => episode.episodeNo);
+      const consent = startsValidation ? {} : await analysisStartGate.authorize(targetEpisodeNumbers, () => isSubmissionActive(context));
+      if (!consent || !isSubmissionActive(context)) return;
       const response = await uploadEpisodesMutation.mutateAsync({
         path: { workId },
         body: { metadata, episodeFiles: sourceEpisodeFiles },
@@ -1199,7 +1229,7 @@ function EpisodeUpload() {
       // (검수 접수·설정 추출 Job 생성은 각자의 가드가 화면 이동을 막는다.)
       if (!isSubmissionActive(context)) {
         if (startsValidation && createdEpisodeId) await validationIntake.start({ batchId: episodeUpload.batchId, episodeId: createdEpisodeId });
-        else if (!startsValidation) await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context);
+        else if (!startsValidation) await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context, consent, targetEpisodeNumbers);
         return;
       }
       setEpisodeUploadBatchId(episodeUpload.batchId);
@@ -1216,7 +1246,14 @@ function EpisodeUpload() {
         setAnalysisStartError('원고는 저장했지만 저장한 회차를 확인하지 못해 검수를 시작하지 못했습니다. 원고 목록에서 회차를 확인해 주세요.');
         return;
       }
-      await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context);
+      // Job 생성이 검토 상태 변경으로 보류돼도 새로고침 뒤 저장된 묶음에서 다시 시작한다.
+      setSearchParams(params => {
+        params.set('workId', workId);
+        params.set('batchId', episodeUpload.batchId);
+        params.set('reviewMode', automaticReview ? 'AUTOMATIC' : 'MANUAL');
+        return params;
+      }, { replace: true, state: location.state });
+      await createBatchAnalysisJob(episodeUpload.batchId, automaticReview, context, consent, targetEpisodeNumbers);
     } catch (error) {
       if (!isSubmissionActive(context)) return;
       const block = admissionBlockFromError(error);
@@ -1359,10 +1396,16 @@ function EpisodeUpload() {
     orderedRestartInFlight.current = true;
     setOrderedRestartError(null);
     try {
-      const response = await createAnalysisJobMutation.mutateAsync({
-        path: { workId },
-        body: { jobType: 'SETTING_EXTRACTION', batchId: episodeUploadBatchId, analysisMode: 'ORDERED_PROVISIONAL', reviewMode: 'AUTOMATIC' },
+      const response = await analysisStartGate.create({
+        episodeNumbers: existingEpisodes.flatMap(episode => episode.batchId === episodeUploadBatchId
+          && episode.status !== 'ARCHIVED' && episode.episodeNo ? [episode.episodeNo] : []),
+        isActive: () => isSubmissionActive(context),
+        submit: consent => createAnalysisJobMutation.mutateAsync({
+          path: { workId },
+          body: { jobType: 'SETTING_EXTRACTION', batchId: episodeUploadBatchId, analysisMode: 'ORDERED_PROVISIONAL', reviewMode: 'AUTOMATIC', ...consent },
+        }),
       });
+      if (!response) return;
       const newJobs = response.data ?? [];
       const newIds = [...new Set(newJobs.flatMap(job => job.id ? [job.id] : []))];
       if (newIds.length === 0) throw new Error('새 분석 시작을 확인하지 못했습니다. 다시 시도해 주세요.');
@@ -1517,7 +1560,7 @@ function EpisodeUpload() {
                 <div className="episode-upload-alert episode-upload-alert--warning episode-upload-pending-notice" role="status">
                   <strong>아직 검토하지 않은 설정이 있습니다</strong>
                   <span>캐릭터 {uploadPolicy.pendingCharacterCandidateCount}개 · 세계관 {uploadPolicy.pendingWorldSettingCandidateCount}개</span>
-                  <span>먼저 검토·확정하면 새 회차를 더 정확하게 분석하는 데 도움이 됩니다. 지금 업로드해도 괜찮습니다.</span>
+                  <span>직접 검토를 선택한 회차는 검토를 마쳐야 다음 회차를 분석할 수 있습니다. 자동 분석의 애매한 후보는 분석 시작 전에 처리 방법을 안내합니다.</span>
                   <button type="button" onClick={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`, 'dissolve')}>분석 결과에서 확인</button>
                 </div>
               )}
@@ -1851,7 +1894,7 @@ function EpisodeUpload() {
 
               {analysisSucceeded && automaticAnalysis && (
                 <div className="episode-upload-alert episode-upload-alert--success" role="status">
-                  회차 분석과 설정 자동 반영이 끝났습니다. 일부 설정이 확인 대기로 남아 있어도 다음 회차 분석은 계속됩니다. 남은 설정은 결과에서 확인할 수 있습니다.
+                  회차 분석과 설정 자동 반영이 끝났습니다. 남은 설정은 결과에서 확인할 수 있습니다. 다음 분석을 시작할 때 미확정 후보의 처리 방법을 안내합니다.
                 </div>
               )}
               {analysisStartError && (
@@ -2063,13 +2106,15 @@ function EpisodeUpload() {
           )}
         </div>
       </main>
-      {orderedRestartOpen && (
+      {analysisStartGate.dialogProps && <AnalysisStartGateDialog {...analysisStartGate.dialogProps}
+        onReview={() => navigate(`/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses`, 'dissolve')} />}
+      {orderedRestartOpen && !analysisStartGate.dialogProps && (
         <OrderedAnalysisRestartDialog
           episodes={existingEpisodes.filter(episode => episode.batchId === episodeUploadBatchId && episode.status !== 'ARCHIVED')
             .sort((left, right) => (left.episodeNo ?? 0) - (right.episodeNo ?? 0))}
           loading={episodesQuery.isFetching}
           loadFailed={episodesQuery.isError}
-          submitting={createAnalysisJobMutation.isPending}
+          submitting={createAnalysisJobMutation.isPending || analysisStartGate.busy}
           startBlocked={!canRestartOrderedAnalysis}
           recoveryRequired={automaticStartBlocked}
           error={orderedRestartError}

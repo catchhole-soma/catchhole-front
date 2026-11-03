@@ -1,4 +1,5 @@
 import { routeProgressApi } from './analysis-progress-routes';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
@@ -806,6 +807,9 @@ test('회차 감지 수정값을 업로드하고 성공 전환을 한 번만 전
   await routeProgressApi(page, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/analysis-start-checks')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: clearAnalysisStartCheck, error: null }) });
+    }
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith('/episodes/detect')) {
@@ -1401,6 +1405,9 @@ test('재분석 요청 중에는 분석 버튼을 비활성화하고 이탈 후 
   await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/analysis-start-checks')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: clearAnalysisStartCheck, error: null }) });
+    }
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
@@ -1519,6 +1526,9 @@ test('재분석 한도 소진 안내를 닫아도 재분석 확인 모달을 다
   await routeProgressApi(page, async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith('/analysis-start-checks')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: clearAnalysisStartCheck, error: null }) });
+    }
     if (pathname.endsWith('/episodes/upload-policy')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { completedSingleEpisodeCount: 10, requiredSingleEpisodeCount: 10, multiEpisodeUploadEnabled: true, pendingCharacterCandidateCount: 0, pendingWorldSettingCandidateCount: 0, maxUploadCharacters: 250000 }, error: null }) });
 
     if (request.method() === 'POST' && pathname.endsWith(`/${workId}/analysis-jobs`)) {
