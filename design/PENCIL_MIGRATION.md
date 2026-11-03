@@ -3,13 +3,27 @@
 `design/catchhole.pen`은 CatchHole Front의 실제 브라우저 화면을 기준으로 유지하는 디자인 기준 파일이다. 활성 화면은 `Active / ...` 루트 프레임으로 구분하고, 현재 Front에 연결되지 않은 Post-MVP 시안은 별도 Presentation 영역에 그대로 보존한다.
 
 
-### 2026-10-30 GH314 오류 리포트 — Pencil 반영 완료
+### 2026-11-03 오류 리포트 판정 작성 제목·문맥 블록 — Pencil 반영 완료
 
-> **2026-11-03 오류 리포트 판정 작성 제목·블록 합치기 — Pencil 동기화 대기.** 상세·목록 제목이 판정이 쓴 문장(`데스핀드와 키메라 울프의 정수 등급이 기존 설정과 달라요`)이고 그 아래 사유가 원인→결과 두 문장이다. 앞뒤 줄이 겹치는 원고 위치는 `이번 원고` 블록 하나에 인용 줄 여러 개를 강조한다. 캡처 `output/validation-rework/screens/v3/`.
->
-> **2026-11-03 오류 리포트 문맥 블록 — Pencil 동기화 대기.** 상세 비교가 다시 바뀌었다: −/+ diff와 `근거로 쓴 원문`·`N화 원문`·`전체 원문 보기` 대신 `이번 원고 · N화 · s~e자` → `기준 · 설정 · …` → `근거 · N화 · s~e자` 블록(처음 두 개만 펼침, 원문 블록은 인용 강조+위아래 2줄, `위로 더 보기`·`아래로 더 보기`, 오탈자는 줄 안 `원문 → 제안`). 기준 캡처는 저장소 밖 `output/validation-rework/screens/v2/`, 계약은 `docs/data-requirements/analysis.md` "오류 리포트 문맥 블록 구현 상태". 아래 2026-11-02 메모의 비교 영역 설명은 이것으로 대체한다.
->
-> **2026-11-02 오류 리포트 가독성 — Pencil 동기화 대기.** 항목 상세가 바뀌었다(제목 `대상 · 확인 항목` + 사유 한 문장, 밝은 `기준`/`N화` diff, `근거로 쓴 원문`의 사용한 조각만·`앞뒤 문단 펼치기`·`검색에 쓴 다른 원고 조각 N개`, `고치기`의 `원고 고치기`/`설정 고치기`). 아래 `Findings`·모바일 `Finding Detail` 프레임의 상세 영역은 아직 이전 화면(`원고·설정 수정`, `설정 정보 정정`)이다. Pencil MCP는 VS Code에서 `.pen`을 연 창이 있어야 연결되어 이번 작업에서는 갱신하지 않았다. 기준 캡처는 저장소 밖 `output/validation-rework/screens/`, 계약은 `docs/data-requirements/analysis.md` "오류 리포트 가독성 구현 상태"다.
+2026-11-02~03에 바뀐 `/episode-validation-report` 항목 상세(판정이 쓴 제목, 원인→결과 두 문장 사유와 한 줄 고치기 안내, `이번 원고 · N화 · s~e자` → `기준 · 설정 · 대상 · 항목` → `근거 · N화 · s~e자` 문맥 블록, 앞뒤 줄이 겹치는 인용을 합친 원고 블록, `고치기`의 `원고 고치기`/`설정 고치기`)와 목록 행 제목을 아래 GH314 프레임 4개에 반영했다. 프레임 ID·캔버스 위치는 그대로다. 이 반영으로 2026-11-02 가독성·2026-11-03 문맥 블록·2026-11-03 판정 작성 제목의 "Pencil 동기화 대기" 메모를 닫는다.
+
+- 동기화 기준: 목 API 캡처(저장소 밖 `output/validation-rework/screens/v3/`의 desktop-1440·mobile-390 `conflict-judge-headline`·`conflict-merged-target`·`fallback-no-headline-merged`, `v2/`의 문맥 블록)와 `ValidationFindingDetail.tsx`·`ValidationContextBlocks.tsx`·`ValidationFindingList.tsx`·`validation-report-labels.ts`·`src/styles/validation-report.css`. 문구는 렌더 결과를 그대로 옮겼다. 계약은 `docs/data-requirements/analysis.md`의 "오류 리포트 가독성 구현 상태"·"오류 리포트 문맥 블록 구현 상태"·"판정 작성 제목·설명과 블록 합치기 구현 상태"다.
+- 데이터: 목 API 합성 데이터만 쓴다(`e2e/fixtures/validation/report-mock.ts`의 101화·비요른·에르웬·왕궁 문장). 실제 원고 문장과 고유명사는 넣지 않았다.
+- 표현: 블록은 머리말(역할 배지·위치 라벨·접기 화살표) + `위로 더 보기`/`아래로 더 보기` + 줄 목록 프레임이고 처음 두 블록만 펼친다. 이번 원고 인용 줄은 파랑(`ch-primary` 왼쪽 선·`ch-surface-accent` 바탕·18% 파랑 강조), 기준·근거 인용 줄은 노랑(`ch-warning` 선·`#FFFCF5` 바탕·`#FFE9AA` 강조, `review-clear-blue.css`의 `--review-compare-bg/mark` 값)이다. 새 변수는 추가하지 않았고 650/680/750 굵기는 600/700으로 맞췄다. 모바일 `영향 · 심각` 메모는 라벨과 본문을 두 칸으로 두어, 본문이 라벨 아래로 이어지는 실제 줄바꿈과 다르다.
+- 지운 요소: `나란히`/`한 줄씩` A·B 비교, `판단 이유` 4칸, `비교 기준 근거`·`이번 원고의 모든 발생 위치` 펼치기 목록, 상세의 `대상 · 설정명` 줄, `원고·설정 수정`(`원고 파일 변경`·`설정 정보 정정`과 설명 두 줄). 칩 `영향 등급 · 심각`은 `영향 · 심각`으로 바꿨다.
+
+| 화면(기준 캡처) | 프레임 이름 | ID | 이번 반영 |
+| --- | --- | --- | --- |
+| 리포트 검토 대기 — `desktop-1440-conflict-judge-headline-page` | Active / Episode Validation Report / Desktop / Findings | `vXeCA` | 목록 행 제목 3개(판정 제목 2개, 판정 제목이 없는 `에르웬 망토 색이 기존 기록과 다를 수 있어요`)와 첫 행 두 문장 사유. 상세는 판정 제목·두 문장 사유·고치기 안내, `101화 · 98~111자`(인용 1줄)·`설정 · 비요른 · 검` 펼침, `근거` 2개 접힘, `영향 · 심각` 메모, `고치기` |
+| 판단 저장 뒤 | Active / Episode Validation Report / Desktop / Judgment Saved | `Q0cRj` | 위와 같은 상세(필터 제외 안내 아래에 블록, `작가 판단 · 수정 필요`)와 목록 행 제목 2개 |
+| 모바일 목록 | Active / Episode Validation Report / Mobile / Findings List | `b3YN4` | 목록 행 제목·첫 행 두 문장 사유 |
+| 모바일 상세 — `mobile-390-conflict-merged-target-page` | Active / Episode Validation Report / Mobile / Finding Detail | `Jt0OQ` | 합친 원고 블록 `101화 · 98~192자`(줄 8개 중 인용 2줄 강조)와 같은 상세, `원고 고치기`·`설정 고치기` 세로 배치 |
+
+이전·이후 프레임 PNG는 저장소 밖 `output/validation-rework/screens/pencil/before|after/<ID>.png`(1배)에 있고 v3 캡처와 나란히 대조했다. 네 프레임 모두 잘림 검사에서 문제 0건이다(`b3YN4`는 뷰포트로 자른 본문 제외). [`docs/screens/pencil/gh314/`](../docs/screens/pencil/gh314/)의 위 4개 ID PNG도 이 상태로 바꿨다(같은 1배 폭).
+
+아직 프레임이 없는 상태: 판정 제목이 없는 항목의 상세(목록 행 제목만 반영), 오탈자 상세의 줄 안 `원문 → 제안`, 근거 블록을 펼친 상태, `더 보기`로 늘어난 줄과 앞뒤 문장 잠김·불러오기 실패·`다시 불러오기`, 근거가 없는 `추가 확인 필요`의 점선 `기준` 안내 블록, 저장 설정이 여럿인 `설정 고치기` 선택 목록과 연결 없는 잠금 안내.
+
+### 2026-10-30 GH314 오류 리포트 — Pencil 반영 완료
 
 2026-10-30에 `/episode-validation-report`와 업로드 다음 회차 차단·신규 회차 검수, 설정 관리의 캐릭터 정정, 분석 목록 카드, 원고 목록 배지를 `Active / …` 루트 프레임으로 동기화했다. 캔버스 위치는 `/setting-review` 구역 오른쪽의 섹션바 `B2Ck2`(`27 ACTIVE /EPISODE-VALIDATION-REPORT`) 아래다.
 
