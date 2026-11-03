@@ -268,6 +268,8 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.
 - GH359 기술 미완료는 Graph의 `updateIncomplete`·`incompleteEpisodeNos`, Edge의 `updateIncomplete`·`lastVerifiedEpisodeNo`만 사용한다. 새 응답의 `updateIncomplete=false`에서는 의미 판단 보류를 포함한 `partial`·`PARTIAL`을 실패 안내로 바꾸지 않는다. 미완료는 짧은 `일부 관계 업데이트 미완료`와 회차만 안내하고 검토 큐·배지를 추가하지 않는다. 빈 결과를 관계 없음으로, 이전 연결을 선택 회차까지 모두 검증된 결과로 단정하지 않는다. 마지막 확인 회차는 미완료 edge에서만 표시하며 변경 회차·근거 회차에서 추측하지 않는다. 필드가 없는 구응답은 기존 부분 안내로 호환한다.
 
+- GH367 일반 관계는 각 회차에서 확정한 독립 이력을 표시한다. 앞 회차 후발 반영만으로 후행 분석을 무효화하거나 프론트에서 재분석을 요구하지 않는다. 원문 파기·실제 출처 무효와 전용 백필 상태는 서버 응답을 따른다. 공개 DTO·화면 동작은 바꾸지 않으며 공통 `docs/episode-relationships.md`를 Java/AI와 동기화한다.
+
 ## GH349 오류 리포트 접수 플래그
 
 - 오류 리포트(신규 회차 검수)의 접수·중단 검사 재시도·재검수 진입점은 기본 OFF다. 빌드 시 `VITE_EPISODE_VALIDATION_INTAKE_ENABLED`가 정확히 문자열 `true`일 때만 켜며 미설정·그 외 값은 OFF다. 2026-10-31 운영 30회차 작품 검수가 질문 65개·판정 130회 규모로 끝까지 돌지 못해(Java #349·#354) 로컬에서 운영 규모 검증을 마칠 때까지 막아 둔다. OFF에서는 업로드의 `신규 회차 검수` 선택과 리포트의 `중단된 검사 다시 시도`·`수정 내용으로 재검수`를 숨기고 점검 안내만 보여 주며, 기존 리포트 보기·분석 목록 카드·설정 정정 화면은 그대로다. UI 플래그는 Backend `VALIDATION_EXECUTION_ENABLED`·내부 API·권한 검증을 대신하지 않는다.
