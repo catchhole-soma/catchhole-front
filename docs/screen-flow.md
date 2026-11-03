@@ -1052,9 +1052,9 @@ flowchart TD
     U -->|"접수 응답 유실·새로고침"| C["getCurrentEpisodeValidation<br/>있으면 리포트, 없으면 접수 다시 시도"]
     C --> R
     L["분석 목록 카드·원고 목록 배지·최근 배치 배너<br/>(reviewStage)"] --> R
-    R -->|"A9 원고 파일 변경"| M["/dashboard?nav=manuscripts&modal=episode-replace<br/>&episodeId&returnTo=validation-report&reportId…"]
+    R -->|"A9 원고 고치기"| M["/dashboard?nav=manuscripts&modal=episode-replace<br/>&episodeId&returnTo=validation-report&reportId…"]
     M -->|"교체 성공(분석 시작 없음)"| B["오류 리포트로 돌아가기"]
-    R -->|"A10 설정 정보 정정"| S["/dashboard?nav=settingDB&tab=characters<br/>&returnTo=validation-report&reportId…"]
+    R -->|"A10 설정 고치기(여럿이면 고칠 설정 선택)"| S["/dashboard?nav=settingDB&tab=characters<br/>&returnTo=validation-report&reportId…"]
     S --> B
     B --> R2["리포트: 무효 · 재검수 필요"]
     R2 -->|"A11 확인 뒤 recheckEpisodeValidation"| N["새 reportId의 리포트 (replace)"]
