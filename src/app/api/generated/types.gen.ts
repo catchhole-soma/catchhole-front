@@ -526,12 +526,15 @@ export type EpisodeSummaryResponse = {
     validationReviewStage?: 'PREPARING_BASELINE' | 'VALIDATING' | 'AWAITING_REVIEW' | 'REVIEW_COMPLETED' | 'EXTRACTION_FAILED' | 'APPLICATION_HELD' | 'APPLIED' | 'HELD_INCOMPLETE' | 'INVALIDATED';
 };
 
+export type JsonNode = unknown;
+
 export type SubjectResolutionInput = {
     candidateId: string;
     targetWorldSettingIds: Array<string>;
     provisionalSubjectKeys?: Array<string>;
     ambiguous?: boolean;
     failureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
+    failureDiagnostics?: JsonNode;
 };
 
 export type WorkerWorldSettingSubjectResolutionRequest = {
@@ -1049,7 +1052,7 @@ export type WorldSettingCandidateResponse = {
      * 기계 판독용 비교 실패 코드
      */
     comparisonFailureCode?: 'AI_TOKEN_QUOTA_EXHAUSTED' | 'LLM_OUTPUT_TRUNCATED' | 'LLM_NETWORK_ERROR' | 'LLM_PROVIDER_ERROR' | 'LLM_RESPONSE_PARSE_ERROR' | 'COMPARISON_VALIDATION_FAILED' | 'WORKER_LEASE_EXPIRED' | 'UNEXPECTED_ERROR';
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
     userModified?: boolean;
     finalOperation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE';
     finalCategory?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
@@ -1564,8 +1567,6 @@ export type CommonResponseSettingCandidateResponse = {
     timestamp?: string;
 };
 
-export type JsonNode = unknown;
-
 /**
  * 설정 후보 응답
  */
@@ -1661,7 +1662,7 @@ export type SettingCandidateResponse = {
     /**
      * 후보 검토 상태
      */
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
     /**
      * AI Worker 원본 응답 JSON
      */
@@ -1845,7 +1846,7 @@ export type SettingCandidateReviewStatusResponse = {
     /**
      * 후보 검토 상태
      */
-    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+    reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
 };
 
 /**
@@ -3342,6 +3343,57 @@ export type ChatRetryV1 = {
 };
 
 /**
+ * 새로 분석할 회차 번호. 업로드 전에도 확인할 수 있으며 실제 생성 시 서버가 대상을 다시 확인합니다.
+ */
+export type AnalysisStartCheckRequest = {
+    episodeNumbers: Array<number>;
+};
+
+/**
+ * 새 회차 분석 전 검토 조건. 직접 검토는 완료해야 하고 애매한 후보 종료에는 명시적인 동의가 필요합니다.
+ */
+export type AnalysisStartCheckResponse = {
+    /**
+     * 먼저 끝나야 할 이전 회차 분석 수
+     */
+    activeEarlierAnalysisCount: number;
+    manualReviewCount: number;
+    ambiguousCharacterCount: number;
+    ambiguousWorldCount: number;
+    ambiguousRelationshipCount: number;
+    /**
+     * 작품·대상 회차·후보 상태에 결속된 확인 값
+     */
+    revision: string;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseAnalysisStartCheckResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: AnalysisStartCheckResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
  * 분석 작업 생성 요청
  */
 export type AnalysisJobCreateRequest = {
@@ -3365,6 +3417,14 @@ export type AnalysisJobCreateRequest = {
      * 설정 반영 방식. 새 설정 추출·재분석은 생략 시 자동 반영하며, 단일 회차는 MANUAL로 직접 검토를 선택할 수 있습니다. 다회차는 항상 자동 반영하고 회차 검증은 생략 시 직접 검토입니다.
      */
     reviewMode?: 'MANUAL' | 'AUTOMATIC';
+    /**
+     * 시작 전 안내한 애매한 후보를 종료하고 분석할지 명시적으로 선택합니다. 기본 false입니다.
+     */
+    closeAmbiguousCandidates?: boolean;
+    /**
+     * 시작 사전 확인에서 받은 revision. 후보 종료에 동의했을 때 함께 전달합니다.
+     */
+    reviewGateRevision?: string | null;
 };
 
 /**
@@ -5353,6 +5413,7 @@ export type Fail = {
     sourceHash?: string;
     contextToken?: string;
     failureCode?: 'INVALID_RESPONSE' | 'EXTRACTION_FAILED' | 'COMPARISON_FAILED' | 'INPUT_TOO_LARGE';
+    failureDiagnostics?: JsonNode;
 };
 
 /**
@@ -12610,6 +12671,24 @@ export type RetryChatQuestionResponses = {
 
 export type RetryChatQuestionResponse = RetryChatQuestionResponses[keyof RetryChatQuestionResponses];
 
+export type CheckAnalysisStartData = {
+    body: AnalysisStartCheckRequest;
+    path: {
+        workId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/analysis-start-checks';
+};
+
+export type CheckAnalysisStartResponses = {
+    /**
+     * OK
+     */
+    200: CommonResponseAnalysisStartCheckResponse;
+};
+
+export type CheckAnalysisStartResponse = CheckAnalysisStartResponses[keyof CheckAnalysisStartResponses];
+
 export type GetAnalysisJobsData = {
     body?: never;
     path: {
@@ -16001,7 +16080,7 @@ export type GetWorldSettingCandidatesData = {
     };
     query: {
         batchId: string;
-        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
         category?: 'RACE' | 'FACTION' | 'LOCATION' | 'MONSTER' | 'POWER_SYSTEM' | 'WORLD_RULE_HISTORY' | 'IMPORTANT_ITEM';
         operation?: 'ADD' | 'UPDATE' | 'MERGE' | 'EXCLUDE' | 'REVIEW_REQUIRED';
         page?: number;
@@ -16209,7 +16288,7 @@ export type GetSettingCandidatesData = {
         /**
          * 후보 검토 상태 필터
          */
-        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED';
+        reviewStatus?: 'PENDING_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'CLOSED';
         /**
          * 후보 캐릭터 연결 상태 필터 목록. 생략하거나 비우면 전체 상태를 조회합니다.
          */

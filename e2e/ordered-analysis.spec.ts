@@ -1,4 +1,5 @@
 import { routeAnalysisProgress } from './analysis-progress-routes';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import { withEpisodeBatchSummaries } from './analysis-batch-summary';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
@@ -28,6 +29,7 @@ function job(index: number, status: AnalysisJobResponse['status'], journalStatus
 async function installBaseRoutes(page: Page) {
   await page.route('**/api/v1/**', route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/analysis-start-checks')) return success(route, clearAnalysisStartCheck);
     return success(route, path.endsWith('/auth/me')
       ? { id: 1, email: 'ordered@example.com', displayName: '순차 테스트', role: 'AUTHOR', status: 'ACTIVE' }
       : path.endsWith(`/works/${workId}`)

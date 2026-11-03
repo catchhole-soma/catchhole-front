@@ -1,4 +1,5 @@
 import { routeProgressApi } from './analysis-progress-routes';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -124,6 +125,7 @@ test('원고 교체는 완료된 뒤 회차를 유지하고 사용자가 시작�
   await routeProgressApi(page, route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path.endsWith('/analysis-start-checks')) return success(route, clearAnalysisStartCheck);
     if (path.endsWith(`/${episodeId}/file`) && request.method() === 'PUT') {
       replacementRequests += 1;
       replaced = true;

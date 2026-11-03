@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import type { AnalysisJobResponse } from '../src/app/api/generated/types.gen';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -29,6 +30,7 @@ async function setup(page: Page, getJobs: () => AnalysisJobResponse[]) {
   await page.addInitScript(() => localStorage.setItem('accessToken', 'progress-test-token'));
   await page.route('**/api/v1/**', route => {
     const request = route.request(), parsed = new URL(request.url()), path = parsed.pathname;
+    if (path.endsWith('/analysis-start-checks')) return success(route, clearAnalysisStartCheck);
     if (path.endsWith('/analysis-jobs/progress')) {
       const ids = parsed.searchParams.getAll('analysisJobIds').flatMap(value => value.split(','));
       state.bulk.push(ids);

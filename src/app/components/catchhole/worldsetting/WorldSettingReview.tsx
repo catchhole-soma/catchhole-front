@@ -174,6 +174,7 @@ const REVIEW_FILTERS: Array<{ value: ReviewFilter; label: string }> = [
   { value: 'PENDING_REVIEW', label: '미처리' },
   { value: 'CONFIRMED', label: '반영됨' },
   { value: 'DISMISSED', label: '제외됨' },
+  { value: 'CLOSED', label: '검토 종료' },
 ];
 
 const CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
@@ -919,6 +920,7 @@ function WorldKeyDiffRow({
   const reportDirty = useCallback((dirty: boolean) => { if (candidate.id) onDirtyChange?.(candidate.id, dirty); }, [candidate.id, onDirtyChange]);
   const choiceCandidate = { ...candidate, automaticReviewHoldReason: candidate.automaticReviewHoldReason ?? originalHoldReason };
   const pending = candidate.reviewStatus === 'PENDING_REVIEW';
+  const closed = candidate.reviewStatus === 'CLOSED';
   const automaticPending = pending && isAutomaticApplicationPending(candidate);
   const saved = hasSavedDecision(candidate);
   const operation = decision?.operation ?? candidate.suggestedOperation;
@@ -960,16 +962,16 @@ function WorldKeyDiffRow({
       : candidate.comparisonStatus === 'RECOMPARISON_REQUIRED' ? '재비교 필요'
       : candidate.comparisonStatus === 'PROCESSING' ? '비교 중' : '비교 대기'
     : null;
-  const stateLabel = !pending ? candidate.reviewStatus === 'DISMISSED' ? '제외됨' : candidate.historyOnly ? '이력 저장됨' : '반영됨'
+  const stateLabel = closed ? '검토 종료' : !pending ? candidate.reviewStatus === 'DISMISSED' ? '제외됨' : candidate.historyOnly ? '이력 저장됨' : '반영됨'
     : automaticPending ? '분석 중' : executionLabel ?? (saved ? inlineDirty ? '수정 중' : '검토 완료' : hasConflict && !isBatchLimitExceededCandidate(candidate) ? '내용 확인 필요' : needsReview ? holdLabel ?? reviewReasonLabel(candidate)
     : operation === 'ADD' ? '새 설정' : operation === 'EXCLUDE' ? before ? '중복·반영 안 함' : '반영 안 함'
     : OPERATION_META[operation ?? 'REVIEW_REQUIRED'].label);
-  const excluded = candidate.reviewStatus === 'DISMISSED' || operation === 'EXCLUDE';
+  const excluded = closed || candidate.reviewStatus === 'DISMISSED' || operation === 'EXCLUDE';
   const stateTone = inlineDirty ? C.warning : resolved ? C.success : automaticPending ? C.primary
     : executionLabel ? candidate.comparisonStatus === 'FAILED' && !isQuotaInterruptedCandidate(candidate) ? C.danger : C.warning
     : needsReview ? C.warning : C.success;
   const finalSavedValue = pending && saved && Boolean(candidate.finalValue);
-  const neutral = operation === 'EXCLUDE' || candidate.historyOnly || candidate.reviewStatus === 'DISMISSED';
+  const neutral = closed || operation === 'EXCLUDE' || candidate.historyOnly || candidate.reviewStatus === 'DISMISSED';
   const actualChange = !needsReview && !neutral && !automaticPending
     && candidate.comparisonStatus === 'COMPLETED' && (operation === 'MERGE' || operation === 'UPDATE')
     && Boolean(before && proposedValue && before !== proposedValue);
@@ -1010,7 +1012,7 @@ function WorldKeyDiffRow({
       image={<ReviewSubjectThumbnail kind="world" workId={candidate.workId ?? ''} worldSettingId={saved && decision?.subjectName !== resolvedTargetSubjectName(candidate) ? undefined : candidate.targetWorldSettingId ?? undefined} category={category} />}
       badge={<><Badge label={stateLabel} color={stateTone} neutral={excluded} />{recompared && <Badge label="재비교됨" color={C.success} />}</>}
       episode={analysisSourceLabel(candidate.source, candidate.sourceEpisodeNo)}
-      actions={<>
+      actions={!closed && <>
         {rowActions}
         {summarizable && <button type="button" className="review-cb-fold" aria-expanded onClick={() => setCollapsed(true)}>접기</button>}
       </>} />;
@@ -1024,6 +1026,9 @@ function WorldKeyDiffRow({
       action={<button type="button" className="review-cb-secondary" onClick={onAnalysis}>분석 진행 보기</button>}>
       분석이 끝나면 설정을 수정하고 확정할 수 있어요.
     </ReviewNotice>}
+    {closed && <ReviewNotice tone="info" title="다음 분석 시작으로 검토 종료">
+      이 제안은 이후 분석의 참고에서 제외되었습니다. 원래 내용과 근거는 기록으로 보존하며, 틀린 설정으로 확정한 것은 아닙니다.
+    </ReviewNotice>}
     {candidate.historyOnly && <ReviewNotice tone="info">{candidate.source?.sourceKind === 'SETTING_BOOK' ? '현재 설정은 유지하고, 이 설정집의 이력에 저장했습니다.' : '현재 설정은 유지하고, 이 회차의 이력에 저장했습니다.'}</ReviewNotice>}
     {pending && !automaticPending && holdMessage && <ReviewNotice tone="warning" title={holdMessage.title}>{holdMessage.description}</ReviewNotice>}
     {saveCheckPending && pending && <ReviewNotice tone="warning" title="저장 결과를 확인하고 있어요">입력한 내용은 그대로예요. 확인이 끝나면 이어서 검토할 수 있어요.</ReviewNotice>}
@@ -1032,10 +1037,10 @@ function WorldKeyDiffRow({
     {before ? <ReviewValueComparison before={before} after={proposedValue}
       mode={needsReview ? 'ambiguous' : actualChange ? 'change' : 'neutral'}
       beforeLabel={candidate.source?.sourceKind === 'SETTING_BOOK' ? '비교 당시 내용' : neutral ? '유지되는 기존 설정' : '기존 설정'}
-      afterLabel={needsReview ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서 찾은 내용' : '이번 원고에서 찾은 내용' : finalSavedValue ? '선택한 최종 내용' : operation === 'EXCLUDE' ? '이번에 추출된 내용' : '반영할 내용'}
+      afterLabel={closed ? '종료 당시 제안' : needsReview ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서 찾은 내용' : '이번 원고에서 찾은 내용' : finalSavedValue ? '선택한 최종 내용' : operation === 'EXCLUDE' ? '이번에 추출된 내용' : '반영할 내용'}
       beforeMeta={candidate.matchedPropertyName ? <span>{candidate.matchedScopeName && <span>범위: {candidate.matchedScopeName} · </span>}{candidate.matchedPropertyName}</span> : undefined}
       afterMeta={<span>{scopeNeedsReview ? (candidate.scopeName ? `범위: ${candidate.scopeName}` : '범위가 정해지지 않음') : scopeName ? `범위: ${scopeName}` : '공통 설정'} · {keyName}</span>}
-    /> : <ReviewInlineValue label={needsReview || candidate.comparisonStatus !== 'COMPLETED'
+    /> : <ReviewInlineValue label={closed ? '종료 당시 제안' : needsReview || candidate.comparisonStatus !== 'COMPLETED'
       ? candidate.source?.sourceKind === 'SETTING_BOOK' ? '이번 설정집에서 찾은 내용' : '이번 원고에서 찾은 내용' : neutral ? '추출된 내용' : '반영할 내용'} tone={!needsReview && !neutral && candidate.comparisonStatus === 'COMPLETED' ? 'new' : 'neutral'}>
       {proposedValue || candidate.extractedValue || '설정값이 없습니다.'}
     </ReviewInlineValue>}
@@ -1884,7 +1889,7 @@ export function WorldSettingReview() {
     let cancelled = false;
 
     const resolveOwningGroup = async () => {
-      const targetReview: ReviewFilter = reviewFilter === 'ALL'
+      const targetReview: ReviewFilter = targetCandidate.reviewStatus === 'CLOSED' ? 'CLOSED' : reviewFilter === 'ALL'
         || targetCandidate.reviewStatus === reviewFilter ? reviewFilter : 'ALL';
       const targetCategory: CategoryFilter = categoryFilter === 'ALL'
         || targetCandidate.category === categoryFilter ? categoryFilter : 'ALL';
@@ -3302,12 +3307,13 @@ export function WorldSettingReview() {
                 </div>
               )}
 
-              {worldTotal === 0 ? (
+              {worldTotal === 0 && reviewFilter !== 'CLOSED' ? (
                 <div style={{ marginTop: 20 }}>
                   <QueryState
                     icon={<Globe2 size={29} color={C.primary} />}
-                    title="이번 분석에서 추출된 세계관 후보가 없습니다."
-                    description="캐릭터 후보는 위 탭에서 계속 검토할 수 있습니다."
+                    title="현재 검토할 세계관 후보가 없습니다."
+                    description="보존된 종료 기록은 아래에서 따로 확인할 수 있습니다. 캐릭터 후보는 위 탭에서 계속 검토할 수 있습니다."
+                    action={<ActionButton onClick={() => updateFilters('CLOSED', 'ALL', 'ALL')}>검토 종료 기록 보기</ActionButton>}
                   />
                 </div>
               ) : (

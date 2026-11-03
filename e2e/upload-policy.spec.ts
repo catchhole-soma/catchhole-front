@@ -1,4 +1,5 @@
 import { routeProgressApi } from './analysis-progress-routes';
+import { clearAnalysisStartCheck } from './analysis-start-check';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 const workId = '11111111-1111-4111-8111-111111111111';
@@ -17,6 +18,7 @@ async function setup(page: Page, policy: Record<string, unknown> = defaultPolicy
   const settingBookRequests: string[] = [];
   await routeProgressApi(page, route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/analysis-start-checks')) return success(route, clearAnalysisStartCheck);
     if (path.includes('/setting-books')) settingBookRequests.push(route.request().method());
     if (path.endsWith('/analysis-jobs') && route.request().method() === 'POST') {
       analysisBodies.push(route.request().postDataJSON());

@@ -82,14 +82,14 @@ export async function routeCharacterReview(page: Page, candidates: MockCandidate
     }
     if (method === 'GET' && path === characterListPath) {
       const reviewStatus = url.searchParams.get('reviewStatus');
-      const visible = candidates.filter(item => !reviewStatus || item.reviewStatus === reviewStatus);
+      const visible = candidates.filter(item => reviewStatus ? item.reviewStatus === reviewStatus : item.reviewStatus !== 'CLOSED');
       const grouped = new Map<string, MockCandidate[]>();
       visible.forEach(item => grouped.set(characterGroupKeyOf(item), [...(grouped.get(characterGroupKeyOf(item)) ?? []), item]));
       const groups = [...grouped.entries()].map(([groupKey, rows]) => ({ groupKey, entityName: rows[0].entityName,
         candidateCount: rows.length, pendingCandidateCount: rows.filter(item => item.reviewStatus === 'PENDING_REVIEW').length,
         evidenceEpisodeNos: [7], candidates: rows }));
       const pending = candidates.filter(item => item.reviewStatus === 'PENDING_REVIEW').length;
-      return ok(route, { batchId, episodeStartNo: 7, episodeEndNo: 7, episodeCount: 1, totalCandidateCount: candidates.length,
+      return ok(route, { batchId, episodeStartNo: 7, episodeEndNo: 7, episodeCount: 1, totalCandidateCount: candidates.filter(item => item.reviewStatus !== 'CLOSED').length,
         pendingCandidateCount: pending, directReviewCandidateCount: pending, processingCandidateCount: 0,
         confirmedCandidateCount: candidates.filter(item => item.reviewStatus === 'CONFIRMED').length,
         dismissedCandidateCount: candidates.filter(item => item.reviewStatus === 'DISMISSED').length,
@@ -130,10 +130,11 @@ export async function routeWorldReview(page: Page, candidates: MockCandidate[], 
   const writes: Write[] = [];
   const counts = () => {
     const pending = candidates.filter(row => row.reviewStatus === 'PENDING_REVIEW').length;
-    return { batchId, episodeStartNo: 3, episodeEndNo: 3, episodeCount: 1, totalCandidateCount: candidates.length, pendingCandidateCount: pending,
+    return { batchId, episodeStartNo: 3, episodeEndNo: 3, episodeCount: 1, totalCandidateCount: candidates.filter(row => row.reviewStatus !== 'CLOSED').length, pendingCandidateCount: pending,
       pendingComparisonCount: 0, processingComparisonCount: 0, activeComparisonJobCount: 0, failedComparisonCount: 0,
       tokenInterruptedComparisonCount: 0, canResumeTokenInterruptedComparisons: false, recomparisonRequiredCount: 0,
-      confirmedCandidateCount: candidates.length - pending, dismissedCandidateCount: 0, directReviewCandidateCount: pending, processingCandidateCount: 0 };
+      confirmedCandidateCount: candidates.filter(row => row.reviewStatus === 'CONFIRMED').length,
+      dismissedCandidateCount: candidates.filter(row => row.reviewStatus === 'DISMISSED').length, directReviewCandidateCount: pending, processingCandidateCount: 0 };
   };
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
@@ -146,7 +147,7 @@ export async function routeWorldReview(page: Page, candidates: MockCandidate[], 
     if (path === `${worldListPath}/summary`) return ok(route, counts());
     if (path === worldListPath && method === 'GET') {
       const reviewStatus = url.searchParams.get('reviewStatus');
-      const visible = candidates.filter(row => !reviewStatus || row.reviewStatus === reviewStatus);
+      const visible = candidates.filter(row => reviewStatus ? row.reviewStatus === reviewStatus : row.reviewStatus !== 'CLOSED');
       const grouped = new Map<string, MockCandidate[]>();
       visible.forEach(row => grouped.set(worldGroupKeyOf(row), [...(grouped.get(worldGroupKeyOf(row)) ?? []), row]));
       const groups = [...grouped.entries()].map(([groupKey, rows]) => ({ groupKey, category: rows[0].category,
