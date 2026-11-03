@@ -228,6 +228,24 @@ test('떨어진 원고 위치는 위치마다 블록을 두고 더 보기 실패
   expect(decodeURIComponent(page.url())).not.toContain('망토');
 });
 
+test('합친 원고 블록을 다시 불러오면 인용마다 나눠 묻고 돌아온 줄을 한 블록으로 합친다', async ({ page }) => {
+  // 서버 더 보기 anchor는 1,000자까지라 첫 인용~마지막 인용 전체를 한 번에 물으면 긴 합친 블록은 늘 400이 된다.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const findings = defaultFindings();
+  const merged = findings[2].blocks[0] as unknown as Record<string, unknown>;
+  const quotes = (merged.quotes as { start: number; end: number }[]).map(({ start, end }) => [start, end]).sort((a, b) => a[0] - b[0]);
+  const expected = (merged.context as { lines: { text: string }[] }).lines.map(line => line.text);
+  merged.context = null;
+  merged.contextStatus = 'SOURCE_UNREADABLE';
+  const mock = await open(page, { findings }, `&findingId=${findingId(2)}`);
+  await block(page, 0).getByRole('button', { name: '다시 불러오기' }).click();
+  await expect(lines(page, 0)).toHaveText(expected);
+  const anchors = mock.state.contextRequests.map(search => new URLSearchParams(search))
+    .map(params => [Number(params.get('anchorStart')), Number(params.get('anchorEnd'))]).sort((a, b) => a[0] - b[0]);
+  expect(anchors).toEqual(quotes);
+  for (const [start, end] of anchors) expect(end - start).toBeLessThanOrEqual(1000);
+});
+
 test('서버가 앞뒤 줄을 읽지 못한 블록은 인용만 보이고 이전 서버 응답(blocks 없음)도 블록으로 보인다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const findings = defaultFindings();

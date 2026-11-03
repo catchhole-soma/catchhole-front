@@ -19,6 +19,8 @@ const PREFIX: Record<string, string> = { TARGET: '이번 원고', SETTING: '기�
 const LOCKED_MESSAGE = '검사 뒤 원고가 바뀌었거나 지워져 앞뒤 문장은 보여 드릴 수 없어요.';
 const LOCKED_MORE_MESSAGE = '검사 뒤 원고가 바뀌었거나 지워져 더 보여 드릴 수 없어요.';
 const UNREADABLE_MESSAGE = '앞뒤 문장을 불러오지 못했어요.';
+/** 서버 `source-context`의 anchor 상한(code point). */
+const ANCHOR_LIMIT = 1000;
 
 type Line = { start: number; end: number; text: string };
 type Range = { start: number; end: number };
@@ -52,6 +54,33 @@ function quoteRanges(block: ValidationFindingBlock): Range[] {
   if (listed.length > 0) return listed.sort((a, b) => a.start - b.start);
   const start = block.start ?? 0;
   return [{ start, end: block.end ?? start }];
+}
+
+/**
+ * 다시 불러오기에 보낼 anchor. 서버 더 보기 API의 anchor는 1,000자까지라 합친 블록 전체(첫 인용~마지막 인용)를 한 번에 물으면
+ * 넘칠 수 있다. 인용마다(1,000자가 넘는 인용은 1,000자씩) 나눠 묻고 돌아온 창을 합친다. 합친 블록은 인용 위아래 2줄이 겹치거나
+ * 맞닿아 만들어졌으므로 인용별 창을 합치면 처음 블록과 같은 줄이 된다.
+ */
+function retryAnchors(block: ValidationFindingBlock): Range[] {
+  return quoteRanges(block).flatMap(({ start, end }) => {
+    if (end - start <= ANCHOR_LIMIT) return [{ start, end }];
+    const pieces: Range[] = [];
+    for (let at = start; at < end; at += ANCHOR_LIMIT) pieces.push({ start: at, end: Math.min(end, at + ANCHOR_LIMIT) });
+    return pieces;
+  });
+}
+
+/** 같은 출처의 여러 창을 줄 시작 위치로 합친다. 같은 줄은 한 번만 남긴다. */
+function mergeWindows(windows: ContextWindow[]): ContextWindow | null {
+  if (windows.length === 0) return null;
+  const sorted = [...windows].sort((a, b) => a.start - b.start);
+  const byStart = new Map<number, Line>();
+  for (const window of sorted) for (const line of window.lines) if (!byStart.has(line.start)) byStart.set(line.start, line);
+  const last = sorted.reduce((latest, window) => (window.end >= latest.end ? window : latest));
+  return {
+    start: sorted[0].start, end: last.end, hasMoreBefore: sorted[0].hasMoreBefore, hasMoreAfter: last.hasMoreAfter,
+    lines: [...byStart.values()].sort((a, b) => a.start - b.start),
+  };
 }
 
 /** 블록의 인용 문장. 합친 블록은 원문 순서대로 여럿이다. */
@@ -226,15 +255,15 @@ export function ContextBlocks({ blocks, path, replacement, label, empty, footnot
     const current = states[index];
     if (!path || !block?.sourceRef || !current || current.loading) return;
     const view = current.window;
-    const start = block.start ?? 0;
-    const end = block.end ?? start;
-    const query = kind === 'up' && view ? { anchorStart: view.start, anchorEnd: view.start, before: MORE_LINES, after: 0 }
-      : kind === 'down' && view ? { anchorStart: view.end, anchorEnd: view.end, before: 0, after: MORE_LINES }
-        : { anchorStart: start, anchorEnd: end, before: 2, after: 2 };
+    const sourceRef = block.sourceRef;
+    const queries = kind === 'up' && view ? [{ anchorStart: view.start, anchorEnd: view.start, before: MORE_LINES, after: 0 }]
+      : kind === 'down' && view ? [{ anchorStart: view.end, anchorEnd: view.end, before: 0, after: MORE_LINES }]
+        : retryAnchors(block).map(range => ({ anchorStart: range.start, anchorEnd: range.end, before: 2, after: 2 }));
     update(index, state => ({ ...state, loading: kind, error: null }));
     try {
-      const { data } = await getValidationFindingSourceContext({ path, query: { sourceRef: block.sourceRef, ...query } });
-      const next = toWindow(data?.data);
+      const responses = await Promise.all(queries.map(query => getValidationFindingSourceContext({ path, query: { sourceRef, ...query } })));
+      const windows = responses.map(({ data }) => toWindow(data?.data));
+      const next = windows.every((window): window is ContextWindow => window !== null) ? mergeWindows(windows) : null;
       update(index, state => {
         if (!next) return { ...state, loading: null, error: UNREADABLE_MESSAGE };
         const previous = state.window;
