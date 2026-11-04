@@ -58,7 +58,8 @@ import {
   VALIDATION_STAGE_SUMMARY,
   validationReportUrl,
 } from './validation/validation-report-labels';
-import { readReportReturn } from './validation/validation-return';
+import { readReportReturn, withRecheckStart } from './validation/validation-return';
+import { EPISODE_VALIDATION_INTAKE_ENABLED } from '../../lib/validation-feature';
 import { useReportSettingLink } from './validation/useReportSettingLink';
 
 function BtnG({ label, onClick, icon, small, disabled = false }: {
@@ -740,6 +741,9 @@ export default function S1Dashboard() {
     }
   };
 
+  // 검수 회차(현재 오류 리포트가 있는 회차)의 파일 교체는 교체 뒤 바로 재검수한다. 접수 플래그가 꺼진 빌드는 교체만 한다.
+  const recheckOnReplace = EPISODE_VALIDATION_INTAKE_ENABLED
+    && Boolean(reportReturn?.reportId ?? replaceModalTarget?.validationReportId);
   const replaceEpisodeFile = async () => {
     const target = replaceModalTarget;
     if (!target?.id || !replacementFile || replacementFileError) return;
@@ -749,7 +753,7 @@ export default function S1Dashboard() {
         path: { workId: effectiveWorkId, episodeId: target.id },
         body: { file: replacementFile },
       });
-      // 파일 교체는 검수를 시작하지 않는다. 열려 있던 리포트가 무효 상태를 바로 읽도록 검수 조회만 갱신한다.
+      // 서버의 파일 교체는 검수를 시작하지 않는다. 열려 있던 리포트가 무효 상태를 바로 읽도록 검수 조회만 갱신한다.
       const reportId = reportReturn?.reportId ?? target.validationReportId ?? null;
       if (reportId) {
         setReplacedForReport(reportId);
@@ -762,6 +766,12 @@ export default function S1Dashboard() {
         });
       }
       await refreshEpisodeList();
+      if (reportId && recheckOnReplace) {
+        // 검수 회차의 원고 교체는 곧 재검수다(소유자 결정). 리포트로 돌아가 같은 재검수 경로(recheck=1)로 한 번 접수하고 검수 로딩창으로 간다.
+        navigate(withRecheckStart(reportReturn?.reportId === reportId ? reportReturn.url : validationReportUrl(effectiveWorkId, reportId)),
+          'dissolve', undefined, { replace: true });
+        return;
+      }
       closeReplaceModal();
     } catch (error) {
       setEpisodeActionError(toApiError(error)?.message ?? '회차 원문 파일을 변경하지 못했습니다.');
@@ -1352,15 +1362,17 @@ export default function S1Dashboard() {
           title="회차 파일 변경"
           description={`${replaceModalTarget.episodeNo}화 ${replaceModalTarget.title || '제목 없음'}의 원문 파일을 변경합니다.`}
           currentFilename={replaceModalTarget.originalFilename}
-          warning={replaceModalTarget.validationReportId
+          warning={recheckOnReplace
             // 검수 회차는 재분석이 아니라 오류 리포트의 재검수로 이어진다.
+            ? '파일을 변경하면 이 회차의 이전 원문과 당시 검사 근거가 삭제되고, 바꾼 원고로 바로 다시 검수해요. 새 검사는 검수 로딩창에서 진행 상황을 볼 수 있고, 이전 결과는 검사 이력에 남아요.'
+            : replaceModalTarget.validationReportId
             ? '파일을 변경하면 이 회차의 이전 원문과 당시 검사 근거가 삭제되고, 지금의 오류 리포트는 다시 검수해야 해요. 파일 변경만으로 검사나 분석을 시작하지 않아요. 변경한 뒤 오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.'
             : '파일을 변경하면 해당 회차의 이전 원문과 미확정 분석 후보가 영구 삭제됩니다. 확정 설정과 이미 완료된 뒤 회차의 분석 결과는 유지됩니다. 아직 완료되지 않은 뒤 회차의 순차 분석은 이전 원고에 기반한 진행 내용을 이어서 사용할 수 없게 될 수 있습니다. 변경한 회차는 직접 재분석하고, 미완료 분석은 분석 목록에서 상태를 확인해 주세요.'}
           file={replacementFile}
           fileError={replacementFileError}
           requestError={episodeActionError}
           pending={replaceEpisodeFileRequest.isPending}
-          submitLabel="파일 변경"
+          submitLabel={recheckOnReplace ? '파일 변경하고 재검수' : '파일 변경'}
           onFileChange={(file, error) => {
             setReplacementFile(file);
             setReplacementFileError(error);

@@ -342,7 +342,7 @@ function ValidationIntakeProgress({ workTitle, episodeLabel, pendingTitle, stagi
             ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
             : <AlertCircle size={52} color={hero.tone === 'danger' ? C.danger : C.warning} style={{ marginBottom: 12 }} />}
         title={<span role="status">{hero.title}</span>}
-        description={<>{workTitle} · 신규 회차 검수</>}
+        description={<>{workTitle} · {staging?.previousReportId ? '신규 회차 재검수' : '신규 회차 검수'}</>}
       />
       {busy && (
         <p className="episode-processing__background-note">
@@ -628,15 +628,17 @@ function EpisodeUpload() {
       ? { batchId, episodeId } : null;
   });
   // 접수가 끝난 검수의 로딩창. URL에는 report ID만 남겨 새로고침해도 같은 로딩창을 다시 연다.
+  // 오류 리포트의 재검수도 새 report ID만으로 같은 로딩창을 연다(업로드 묶음·회차 ID 없이).
   const [validationReportId, setValidationReportId] = useState<string | null>(() => {
     const reportId = searchParams.get('validationReportId') ?? '';
-    return !viewingExistingAnalysis && validationResumeTarget && UUID_PATTERN.test(reportId) ? reportId : null;
+    return !viewingExistingAnalysis && UUID_PATTERN.test(reportId) ? reportId : null;
   });
   // 오류 리포트에서 연 설정 추출 진행 화면이면 기존 설정 구축 대신 검수 뒤 추출이라고 표시한다.
   const fromReportId = UUID_PATTERN.test(searchParams.get('fromReportId') ?? '') ? searchParams.get('fromReportId') : null;
 
   const [step, setStep] = useState<UploadStep>(
-    initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget || UUID_PATTERN.test(searchParams.get('batchId') ?? '') ? 'processing' : 'select-mode',
+    initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget || validationReportId
+      || UUID_PATTERN.test(searchParams.get('batchId') ?? '') ? 'processing' : 'select-mode',
   );
   const [uploadType, setUploadType] = useState<EpisodeUploadType | null>(null);
   const [episodeNo, setEpisodeNo] = useState('');
