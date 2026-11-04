@@ -17955,6 +17955,10 @@ export type GetAnalysisBatchesData = {
          * 페이지 크기. 분석 목록은 기본 10개이며 1~20 사이로 요청합니다.
          */
         size?: number;
+        /**
+         * 배치 종류. ALL(기본)은 모든 배치, ANALYSIS는 설정 추출 등 분석 Job이 있는 배치, VALIDATION은 현재 신규 회차 검수 report가 있는 배치입니다. 검토를 마쳐 설정 추출이 시작된 검수 배치는 ANALYSIS와 VALIDATION에 모두 나옵니다.
+         */
+        kind?: 'ALL' | 'ANALYSIS' | 'VALIDATION';
     };
     url: '/api/v1/works/{workId}/analysis-jobs/batches';
 };
