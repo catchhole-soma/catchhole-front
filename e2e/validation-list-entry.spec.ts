@@ -2,8 +2,10 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import review from './fixtures/validation/validation-review-v1.json' with { type: 'json' };
 
 /**
- * GH314 F2 목록 진입: 분석 목록 카드·원고 목록 행·최근 배치 배너는 배치 요약의 reviewStage만으로 표시하고
+ * GH314 F2 목록 진입: 오류 리포트 목록 카드·원고 목록 행·최근 배치 배너는 배치 요약의 reviewStage만으로 표시하고
  * 모든 단계에서 같은 오류 리포트를 연다. 카드마다 상세·검수 조회를 보태지 않는다.
+ * 검수 배치는 사이드바 오류 리포트 목록(kind=VALIDATION)에 나오고, 검토를 마쳐 설정 추출이 시작되면
+ * 분석 목록(kind=ANALYSIS)에도 설정 추출 카드로 나온다.
  */
 const workId = '11111111-1111-4111-8111-111111111111';
 const batchId = '22222222-2222-4222-8222-222222222222';
@@ -19,11 +21,13 @@ function validationBatch(reviewStage: string, extra: Record<string, unknown> = {
 }
 
 async function setup(page: Page, batches: () => unknown[], episodes: unknown[] = []) {
-  const calls: string[] = [];
+  const calls: string[] & { kinds?: Array<string | null> } = [];
+  calls.kinds = [];
   await page.addInitScript(() => localStorage.setItem('accessToken', 'validation-list-entry'));
   await page.route('**/api/v1/**', (route: Route) => {
     const url = new URL(route.request().url());
     calls.push(url.pathname);
+    if (url.pathname.endsWith('/analysis-jobs/batches')) calls.kinds?.push(url.searchParams.get('kind'));
     const data = url.pathname.endsWith('/auth/me') ? { id: 1, email: 'list@example.test', displayName: '목록', role: 'AUTHOR', status: 'ACTIVE' }
       : url.pathname.endsWith('/analysis-jobs/batches') ? { content: batches(), page: 0, size: 10, totalPages: 1, totalElements: 1 }
         : url.pathname === `/api/v1/works/${workId}` ? { id: workId, title: '돌아온 검', genre: '판타지', lifecycleStatus: 'ACTIVE' }
@@ -49,10 +53,11 @@ const STAGES: Array<[string, string]> = [
 ];
 
 for (const [stage, label] of STAGES) {
-  test(`분석 목록의 검수 배치는 ${stage} 단계를 표시하고 오류 리포트를 연다`, async ({ page }) => {
+  test(`오류 리포트 목록의 검수 배치는 ${stage} 단계를 표시하고 오류 리포트를 연다`, async ({ page }) => {
     // 배치 status는 S1~S3 의미를 유지하므로 APPLIED여도 ERROR_REVIEW_PENDING이다. 화면은 reviewStage를 따른다.
     const calls = await setup(page, () => [validationBatch(stage)]);
-    await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+    await page.goto(`/dashboard?workId=${workId}&nav=reports`);
+    await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
     const card = page.getByTestId('validation-analysis-card');
     await expect(card).toContainText('101화');
     await expect(card).toContainText('신규 회차 검수');
@@ -61,9 +66,65 @@ for (const [stage, label] of STAGES) {
     expect(extraReads(calls)).toEqual([]);
     await card.getByRole('button', { name: '오류 리포트 보기', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(reportPath.replace(/[?]/g, '\\?')));
-    expect(await page.evaluate(() => window.history.state?.usr?.returnToAnalysisList)).toBe(`/dashboard?workId=${workId}&nav=analyses`);
+    expect(await page.evaluate(() => window.history.state?.usr?.returnToAnalysisList)).toBe(`/dashboard?workId=${workId}&nav=reports`);
+    expect(calls.kinds).toContain('VALIDATION');
+    await expect(page.getByRole('button', { name: '← 오류 리포트 목록' })).toBeVisible();
   });
 }
+
+test('사이드바 오류 리포트 메뉴는 오류 리포트 목록을 열고 분석 목록과 페이지 번호를 나눠 쓴다', async ({ page }) => {
+  await setup(page, () => [validationBatch('AWAITING_REVIEW')]);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses&analysisPage=2`);
+  await page.getByRole('button', { name: '오류 리포트', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`nav=reports`));
+  expect(new URL(page.url()).searchParams.get('analysisPage')).toBeNull();
+  await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '오류 리포트', exact: true })).toHaveClass(/is-active/);
+});
+
+const extractionGroup = (status: string, extra: Record<string, unknown> = {}) => ({
+  jobType: 'SETTING_EXTRACTION', status, totalJobCount: 1, succeededJobCount: status === 'COMPLETED' ? 1 : 0,
+  failedJobCount: status === 'FAILED' ? 1 : 0, pendingJobCount: 0, runningJobCount: status === 'IN_PROGRESS' ? 1 : 0, canceledJobCount: 0,
+  currentAnalysisJobIds: [releaseJobId], ...extra,
+});
+
+test('분석 목록은 검토를 마친 검수 배치를 설정 추출 카드로 보여 주고 추출 진행 화면을 연다', async ({ page }) => {
+  const group = extractionGroup('IN_PROGRESS');
+  const calls = await setup(page, () => [
+    validationBatch('REVIEW_COMPLETED', { episodeJobGroups: [group], jobGroups: [group] }),
+    // 추출 Job이 없는 검수 배치는 분석 목록 카드가 아니다(서버가 kind=ANALYSIS로 거르지만 화면도 그리지 않는다).
+    validationBatch('AWAITING_REVIEW', { batchId: '77777777-7777-4777-8777-777777777777' }),
+  ]);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+  expect(calls.kinds).toContain('ANALYSIS');
+  await expect(page.getByTestId('validation-analysis-card')).toHaveCount(0);
+  const card = page.getByTestId('validation-extraction-card');
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText('101화');
+  await expect(card).toContainText('신규 회차 검수 · 설정 추출');
+  await expect(card.locator('.analysis-status')).toHaveText('설정 추출 중');
+  await expect(card).toContainText('설정 추출 · 0/1 완료');
+  expect(extraReads(calls)).toEqual([]);
+  await card.getByRole('button', { name: '진행 보기', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?.*currentAnalysisJobIds=${releaseJobId}`));
+  await expect(page.getByRole('button', { name: '분석 목록으로', exact: true })).toBeVisible();
+});
+
+test('분석 목록의 설정 추출 카드는 완료 뒤 결과를, 언제든 오류 리포트를 연다', async ({ page }) => {
+  const group = extractionGroup('COMPLETED');
+  await setup(page, () => [validationBatch('APPLIED', { episodeJobGroups: [group], jobGroups: [group] })]);
+  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  const card = page.getByTestId('validation-extraction-card');
+  await expect(card.locator('.analysis-status')).toHaveText('설정 추출 완료');
+  await card.getByRole('button', { name: '오류 리포트 보기', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(reportPath.replace(/[?]/g, '\\?')));
+  expect(await page.evaluate(() => window.history.state?.usr?.returnToAnalysisList)).toBe(`/dashboard?workId=${workId}&nav=analyses`);
+  await expect(page.getByRole('button', { name: '← 분석 목록' })).toBeVisible();
+  await page.goBack();
+  await card.getByRole('button', { name: '결과 보기', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/setting-review\\?workId=${workId}&batchId=${batchId}&jobType=SETTING_EXTRACTION&reviewStatus=ALL`));
+});
 
 test('설정 추출 실패 단계는 리포트와 함께 추출 상태 보기를 제공하고 검사 중에는 요약만 10초마다 다시 읽는다', async ({ page }) => {
   await page.clock.install();
@@ -71,7 +132,7 @@ test('설정 추출 실패 단계는 리포트와 함께 추출 상태 보기를
   const failedGroup = { jobType: 'SETTING_EXTRACTION', status: 'FAILED', totalJobCount: 1, succeededJobCount: 0, failedJobCount: 1,
     pendingJobCount: 0, runningJobCount: 0, canceledJobCount: 0, currentAnalysisJobIds: [releaseJobId] };
   const calls = await setup(page, () => [validationBatch(stage, stage === 'EXTRACTION_FAILED' ? { episodeJobGroups: [failedGroup], jobGroups: [failedGroup] } : {})]);
-  await page.goto(`/dashboard?workId=${workId}&nav=analyses`);
+  await page.goto(`/dashboard?workId=${workId}&nav=reports`);
   const card = page.getByTestId('validation-analysis-card');
   await expect(card.locator('.analysis-status')).toHaveText('오류 검사 중');
   await expect.poll(() => calls.filter(path => path.endsWith('/batches')).length).toBe(1);

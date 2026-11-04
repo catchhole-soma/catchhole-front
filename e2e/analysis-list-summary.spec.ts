@@ -47,7 +47,7 @@ async function seedAppliedCaches(page: Page) {
     const { getCharactersQueryKey, getSettingBooksQueryKey, getAnalysisBatchesQueryKey } = await import('/src/app/api/generated/@tanstack/react-query.gen.ts');
     queryClient.setQueryData(getCharactersQueryKey({ path: { workId } }), { success: true, data: { characters: [] } });
     queryClient.setQueryData(getSettingBooksQueryKey({ path: { workId } }), { success: true, data: [] });
-    queryClient.setQueryData(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 1, size: 10 } }),
+    queryClient.setQueryData(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 1, size: 10, kind: 'ANALYSIS' } }),
       { success: true, data: { content: [], page: 1, size: 10, totalPages: 2, totalElements: 11 } });
   }, workId);
 }
@@ -59,8 +59,8 @@ async function appliedCacheInvalidations(page: Page) {
     return {
       characters: queryClient.getQueryState(getCharactersQueryKey({ path: { workId } }))?.isInvalidated,
       books: queryClient.getQueryState(getSettingBooksQueryKey({ path: { workId } }))?.isInvalidated,
-      otherPage: queryClient.getQueryState(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 1, size: 10 } }))?.isInvalidated,
-      currentPage: queryClient.getQueryState(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 0, size: 10 } }))?.isInvalidated,
+      otherPage: queryClient.getQueryState(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 1, size: 10, kind: 'ANALYSIS' } }))?.isInvalidated,
+      currentPage: queryClient.getQueryState(getAnalysisBatchesQueryKey({ path: { workId }, query: { page: 0, size: 10, kind: 'ANALYSIS' } }))?.isInvalidated,
     };
   }, workId);
 }

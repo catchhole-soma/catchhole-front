@@ -4684,7 +4684,7 @@ export const getAnalysisBatchesQueryKey = (options: Options<GetAnalysisBatchesDa
 /**
  * 분석 배치 목록 조회
  *
- * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다.
+ * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다. kind로 분석 목록과 오류 리포트 목록의 배치를 나눕니다.
  */
 export const getAnalysisBatchesOptions = (options: Options<GetAnalysisBatchesData>) => queryOptions<GetAnalysisBatchesResponse, GetAnalysisBatchesError, GetAnalysisBatchesResponse, ReturnType<typeof getAnalysisBatchesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -4704,7 +4704,7 @@ export const getAnalysisBatchesInfiniteQueryKey = (options: Options<GetAnalysisB
 /**
  * 분석 배치 목록 조회
  *
- * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다.
+ * 업로드 배치별 최신 유효 분석 작업과 설정 후보 검토 현황을 최근 분석 요청순으로 페이지 조회합니다. kind로 분석 목록과 오류 리포트 목록의 배치를 나눕니다.
  */
 export const getAnalysisBatchesInfiniteOptions = (options: Options<GetAnalysisBatchesData>) => {
     const opts = infiniteQueryOptions<GetAnalysisBatchesResponse, GetAnalysisBatchesError, InfiniteData<GetAnalysisBatchesResponse>, QueryKey<Options<GetAnalysisBatchesData>>, number | Pick<QueryKey<Options<GetAnalysisBatchesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(

@@ -1,6 +1,6 @@
 # 분석 목록 요약 계약 (#288)
 
-`nav=analyses`는 `GET /api/v1/works/{workId}/analysis-jobs/batches?page=&size=10`의 현재 페이지 응답만으로 회차·설정집 카드를 표시한다. `analysisPage`는 URL에서 1부터, API에서는 0부터 시작한다. 전체 Job/회차/설정집, 개별 Job/설정집 본문, 후보 목록을 출처·집계 보완용으로 조회하지 않는다. 상세 조회는 진행·검토·원문으로 이동한 기존 화면에서 수행한다.
+`nav=analyses`는 `GET /api/v1/works/{workId}/analysis-jobs/batches?page=&size=10&kind=ANALYSIS`의 현재 페이지 응답만으로 회차·설정집 카드를 표시한다. 신규 회차 검수 배치는 `nav=reports`(오류 리포트 목록)가 `kind=VALIDATION`으로 따로 읽으며, 검토를 마쳐 설정 추출 Job이 생긴 검수 배치만 분석 목록에도 설정 추출 카드로 나온다([화면 흐름](screen-flow.md#오류-리포트-목록과-설정-추출-연결--2026-11-04)). `analysisPage`는 URL에서 1부터, API에서는 0부터 시작한다. 전체 Job/회차/설정집, 개별 Job/설정집 본문, 후보 목록을 출처·집계 보완용으로 조회하지 않는다. 상세 조회는 진행·검토·원문으로 이동한 기존 화면에서 수행한다.
 
 ## 배포와 생성 코드
 

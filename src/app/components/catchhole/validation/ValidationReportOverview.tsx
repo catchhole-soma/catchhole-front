@@ -60,7 +60,7 @@ function stageCopy(staging?: ValidationStagingResponse, summary?: ValidationRevi
       : '이번 회차의 설정을 추출하고 있어요.'],
   };
   if (stage === 'EXTRACTION_FAILED') return {
-    tone: 'danger', title: '설정 추출을 마치지 못했어요.', lines: ['검사와 검토 결과는 그대로 남아 있어요. 분석 목록에서 추출 상태를 확인해 주세요.'],
+    tone: 'danger', title: '설정 추출을 마치지 못했어요.', lines: ['검사와 검토 결과는 그대로 남아 있어요. 추출 상태를 확인하고 다시 시도해 주세요.'],
   };
   if (stage === 'APPLICATION_HELD') return {
     tone: 'warning', title: '설정 확정을 보류했어요.', lines: ['이번 시도에서는 어떤 설정도 반영하지 않았어요. 아래 사유를 확인해 주세요.'],
@@ -107,7 +107,7 @@ function executionTone(execution?: string) {
 
 export function ReportStatusCard({
   staging, summary, title, subtitle, historyOpen, onToggleHistory, onComplete, completing, onApply, applying,
-  candidateReviewUrl, message, children,
+  candidateReviewUrl, onOpenExtraction, message, children,
 }: {
   staging?: ValidationStagingResponse;
   summary?: ValidationReviewSummaryResponse;
@@ -120,6 +120,8 @@ export function ReportStatusCard({
   onApply: () => void;
   applying: boolean;
   candidateReviewUrl?: string;
+  /** 검토 종료가 만든 설정 추출 Job의 진행 화면으로 이동. 추출 Job이 없으면 넘기지 않는다. */
+  onOpenExtraction?: () => void;
   message?: ReactNode;
   children?: ReactNode;
 }) {
@@ -134,6 +136,8 @@ export function ReportStatusCard({
   const holdReasons = (summary?.holdReasons ?? []).filter(reason => reason !== 'RELEASE_HELD' && reason !== 'DIAGNOSTIC_ONLY');
   const applicationHeld = summary?.application?.status === 'HELD_REVIEW' && stage === 'APPLICATION_HELD';
   const holdLines = applicationHoldLines(summary?.application?.holdReasons);
+  const extractionOpen = onOpenExtraction && staging?.current !== false
+    && (stage === 'REVIEW_COMPLETED' || stage === 'EXTRACTION_FAILED');
 
   return (
     <section className="vr-card vr-status" aria-labelledby="validation-report-title">
@@ -155,6 +159,10 @@ export function ReportStatusCard({
       <ReviewNotice tone={copy.tone} title={copy.title} action={reviewOpen ? (
         <ActionButton onClick={onComplete} disabled={summary?.canCompleteReview !== true || completing}>
           {completing ? '검토 완료를 요청하고 있어요…' : '검토 완료 후 설정 추출'}
+        </ActionButton>
+      ) : extractionOpen ? (
+        <ActionButton onClick={onOpenExtraction} data-testid="validation-extraction-progress">
+          {stage === 'EXTRACTION_FAILED' ? '추출 상태 보기' : '추출 진행 보기'}
         </ActionButton>
       ) : undefined}>
         {copy.lines.map(line => <p key={line}>{line}</p>)}

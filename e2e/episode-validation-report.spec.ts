@@ -286,6 +286,7 @@ test('두 검사 0건은 검토 완료 버튼 없이 자동 추출을 안내하�
   await expect(page.getByText('확인한 범위에서 충돌 의심 항목과 오탈자 제안을 찾지 못했어요.')).toBeVisible();
   await expect(page.getByText('이번 회차의 설정을 추출하고 있어요.')).toBeVisible();
   await expect(page.getByRole('button', { name: '검토 완료 후 설정 추출' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '추출 진행 보기' })).toBeVisible();
   await expect(page.getByText('이번 회차의 설정을 확정했어요.')).toHaveCount(0);
   await expect(counts(page, '설정 충돌', '전체')).toHaveText('0');
   await expect(page.getByText('확인한 범위에서 찾은 항목이 없어요.')).toBeVisible();
@@ -295,7 +296,28 @@ test('두 검사 0건은 검토 완료 버튼 없이 자동 추출을 안내하�
     application: { ...review.responses.reviewSummary.application, status: 'APPLIED', holdReasons: [], appliedAt: '2026-10-30T11:07:00' } });
   // 추출 중에는 3초마다 다시 확인한다.
   await expect(page.getByText(/이번 회차의 설정을 확정했어요/)).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByRole('button', { name: '추출 진행 보기' })).toHaveCount(0);
   expect(mock.state.requests.filter(request => request.method === 'POST')).toHaveLength(0);
+});
+
+test('검토를 마쳐 설정 추출 중이면 안내 옆 버튼으로 추출 진행 화면을 열고 오류 리포트로 돌아온다', async ({ page }) => {
+  const extractionJobId = review.responses.reviewSummary.completion.extractionJobId;
+  const mock = await open(page, {
+    staging: { reviewStage: 'REVIEW_COMPLETED', extractionJobId, extractionStatus: 'PENDING' },
+    summary: {
+      completionMode: 'COMPLETED', canCompleteReview: false, judgmentLocked: true, lockReason: 'REVIEW_COMPLETED',
+      holdReasons: [], allowedActions: ['APPLY_SETTINGS'], extractionState: 'RUNNING', completion: review.responses.reviewSummary.completion,
+    },
+  });
+  const notice = page.locator('.vr-status .review-cb-notice').first();
+  await expect(notice).toContainText('이번 회차의 설정을 추출하고 있어요.');
+  await notice.getByRole('button', { name: '추출 진행 보기' }).click();
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${WORK_ID}&batchId=${mock.state.staging.batchId}`
+    + `&analysisJobIds=${extractionJobId}&currentAnalysisJobIds=${extractionJobId}&jobType=SETTING_EXTRACTION&fromReportId=${REPORT_ID}`));
+  await expect(page.getByText('신규 회차 검수 · 설정 추출')).toBeVisible();
+  await page.getByRole('button', { name: '오류 리포트로', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/episode-validation-report\\?workId=${WORK_ID}&reportId=${REPORT_ID}`));
+  await expect(page.locator('#validation-report-title')).toBeVisible();
 });
 
 test('일부 중단은 미검사 범위를 숨기지 않고 서버가 허용한 중단 검사 재시도만 제공한다', async ({ page }) => {
@@ -705,8 +727,8 @@ test('회차 주소로 다시 들어오면 이전 방문의 캐시가 아니라 
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
   await expect(page.getByRole('heading', { name: '101화 오류 리포트' })).toBeVisible();
 
-  await navigateInApp(page, `/dashboard?workId=${WORK_ID}&nav=analyses`);
-  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+  await navigateInApp(page, `/dashboard?workId=${WORK_ID}&nav=reports`);
+  await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
   retireCurrentReport(mock);
   const readsBefore = currentReads.length;
   await navigateInApp(page, episodeUrl);
@@ -733,7 +755,7 @@ test('최신 결과로 돌아가기는 보던 결과가 그 사이 퇴역했으�
   await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
 });
 
-/** 분석 목록 2페이지의 검수 카드에서 리포트 A로 들어온다. 목록은 배치 요약만 응답한다. */
+/** 오류 리포트 목록 2페이지의 검수 카드에서 리포트 A로 들어온다. 목록은 배치 요약만 응답한다. */
 async function enterFromAnalysisList(page: Page) {
   const mock = await mockValidationReport(page);
   await page.route('**/analysis-jobs/batches**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
@@ -742,7 +764,7 @@ async function enterFromAnalysisList(page: Page) {
       settingBooks: [], validationReports: [{ ...review.responses.batchValidationReport, reviewStage: 'AWAITING_REVIEW' }] }],
     page: 1, size: 10, totalPages: 2, totalElements: 11 }, error: null }) }));
   await authenticate(page);
-  await page.goto(`/dashboard?workId=${WORK_ID}&nav=analyses&analysisPage=2`);
+  await page.goto(`/dashboard?workId=${WORK_ID}&nav=reports&analysisPage=2`);
   await page.getByTestId('validation-analysis-card').getByRole('button', { name: '오류 리포트 보기' }).click();
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
   await expect(page.locator('#validation-report-title')).toBeVisible();
@@ -752,32 +774,32 @@ async function enterFromAnalysisList(page: Page) {
   await expect(page.getByText('이전 검수 결과예요.')).toBeVisible();
 }
 
-const analysisListUrl = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses&analysisPage=2$`);
+const reportListUrl = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports&analysisPage=2$`);
 
-test('분석 목록에서 들어와 이전 결과로 이동한 뒤에도 분석 목록 복귀는 원래 목록 페이지로 간다', async ({ page }) => {
+test('오류 리포트 목록에서 들어와 이전 결과로 이동한 뒤에도 목록 복귀는 원래 목록 페이지로 간다', async ({ page }) => {
   await enterFromAnalysisList(page);
-  await page.getByRole('button', { name: '← 분석 목록' }).click();
-  await expect(page).toHaveURL(analysisListUrl);
-  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+  await page.getByRole('button', { name: '← 오류 리포트 목록' }).click();
+  await expect(page).toHaveURL(reportListUrl);
+  await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
 });
 
-test('이전 결과에서 최신 결과로 돌아온 뒤 분석 목록 복귀도 원래 목록 페이지로 간다', async ({ page }) => {
+test('이전 결과에서 최신 결과로 돌아온 뒤 목록 복귀도 원래 목록 페이지로 간다', async ({ page }) => {
   await enterFromAnalysisList(page);
   await page.getByRole('button', { name: '최신 결과로 돌아가기' }).click();
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
   await expect(page.getByText('이전 검수 결과예요.')).toHaveCount(0);
-  await page.getByRole('button', { name: '분석 목록으로', exact: true }).first().click();
-  await expect(page).toHaveURL(analysisListUrl);
-  await expect(page.getByRole('heading', { name: '분석 목록' })).toBeVisible();
+  await page.getByRole('button', { name: '오류 리포트 목록으로', exact: true }).first().click();
+  await expect(page).toHaveURL(reportListUrl);
+  await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
 });
 
-test('현재 결과가 없는 회차는 실행 없음과 분석 목록 이동을 제공한다', async ({ page }) => {
+test('현재 결과가 없는 회차는 실행 없음과 오류 리포트 목록 이동을 제공한다', async ({ page }) => {
   await mockValidationReport(page, { currentReportMissing: true });
   await authenticate(page);
   await page.goto(`/episode-validation-report?workId=${WORK_ID}&episodeId=${EPISODE_ID}`);
   await expect(page.getByText('이 회차에는 아직 오류 검사 결과가 없어요.')).toBeVisible();
-  await page.getByRole('button', { name: '분석 목록으로', exact: true }).last().click();
-  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await page.getByRole('button', { name: '오류 리포트 목록으로', exact: true }).last().click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
 });
 
 test('조건에 맞는 항목이 없으면 전체 0건과 구분하고 필터를 초기화한다', async ({ page }) => {
@@ -862,7 +884,7 @@ test('주요 문구와 상태 배지는 Theme V2 표면에서 4.5:1 이상 대�
     ['선택 행 제목', row(page, 0).locator('.vr-row__title'), row(page, 0)],
     ['검토 필요 건수', counts(page, '설정 충돌', '검토 필요'), page.locator('.vr-counts__group').first()],
     ['집계 라벨', page.locator('.vr-counts__metrics dt').first(), page.locator('.vr-counts__group').first()],
-    ['분석 목록 링크', page.getByRole('button', { name: '← 분석 목록' }), canvas],
+    ['목록 링크', page.getByRole('button', { name: '← 오류 리포트 목록' }), canvas],
     ['대상 설정 안내', page.locator('#validation-target-name'), page.locator('.vr-detail-body')],
     ['대상 라벨', row(page, 0).locator('.vr-chip--subject'), row(page, 0).locator('.vr-chip--subject')],
     ['판단 이유 한 줄', row(page, 1).locator('.vr-row__reason'), row(page, 1)],

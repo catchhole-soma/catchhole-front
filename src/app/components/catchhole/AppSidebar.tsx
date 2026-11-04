@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  BookOpen, BarChart3, ListChecks, Network, FileText, MessageSquare,
+  BookOpen, FileSearch, ListChecks, Network, FileText, MessageSquare,
 } from 'lucide-react';
 import { NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
@@ -76,8 +76,9 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
         onClick={() => nav('analyses')} />
       <NavItem icon={<MessageSquare size={14} />} label="챗봇" active={activeNav === 'chat'}
         onClick={() => { if (selectedWork) navigate(`/chat?workId=${encodeURIComponent(selectedWork)}`, 'dissolve'); onClose?.(); }} />
-      <NavItem icon={<BarChart3 size={14} />} label="분석 리포트" upcoming
-        onClick={() => { onComingSoon?.('분석 리포트'); onClose?.(); }} />
+      <NavItem icon={<FileSearch size={14} />} label="오류 리포트"
+        active={activeNav === 'reports'}
+        onClick={() => nav('reports')} />
       {RELATIONSHIP_WORKSPACE_ENABLED
         ? <NavItem icon={<Network size={14} />} label="관계도" active={activeNav === 'graph'}
           onClick={() => nav('graph')} />

@@ -191,6 +191,8 @@
 .episode-boundary-source__heading { border-color: var(--ch-border) !important; color: var(--ch-ink) !important; }
 
 .episode-processing__hero { padding: 12px 0 2px; }
+/* 완료·경고 아이콘은 svg가 block이라 text-align으로 가운데 정렬되지 않는다. */
+.episode-processing__hero > svg { display: block; margin-right: auto; margin-left: auto; }
 .episode-upload-spinner,
 .episode-upload-spinner svg { color: var(--ch-primary) !important; stroke: var(--ch-primary) !important; }
 .episode-processing__title { color: var(--ch-ink) !important; font-size: 23px !important; letter-spacing: -.035em; }

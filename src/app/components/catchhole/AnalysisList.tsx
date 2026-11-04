@@ -38,6 +38,35 @@ type AnalysisBatchStatus = NonNullable<AnalysisBatchSummaryResponse['episodeStat
 
 type ValidationRequest = NonNullable<AnalysisBatchSummaryResponse['validationReports']>[number];
 
+/** 분석 목록은 설정 추출 배치, 오류 리포트 목록은 신규 회차 검수 배치를 서버 페이지 단위로 받는다. */
+export type AnalysisListKind = 'ANALYSIS' | 'VALIDATION';
+
+const LIST_COPY: Record<AnalysisListKind, {
+  eyebrow: string; title: string; description: string; returnLabel: string; emptyTitle: string; emptyDescription: string;
+  loading: string; loadFailed: string;
+}> = {
+  ANALYSIS: {
+    eyebrow: 'AI ANALYSIS',
+    title: '분석 목록',
+    description: '회차와 설정집의 분석 진행·실패·설정 후보 검토 상태를 확인합니다.',
+    returnLabel: '분석 목록',
+    emptyTitle: '아직 요청한 분석이 없습니다.',
+    emptyDescription: '원고를 올리고 분석을 시작하면 업로드 묶음별로 표시됩니다.',
+    loading: '분석 목록을 불러오는 중...',
+    loadFailed: '분석 목록을 불러오지 못했습니다.',
+  },
+  VALIDATION: {
+    eyebrow: 'ERROR REPORT',
+    title: '오류 리포트',
+    description: '신규 회차 검수의 오류 검사·검토 상태를 확인합니다. 검토를 마친 회차의 설정 추출은 분석 목록에서 이어집니다.',
+    returnLabel: '오류 리포트 목록',
+    emptyTitle: '아직 검수한 회차가 없습니다.',
+    emptyDescription: '회차를 올릴 때 신규 회차 검수를 고르면 회차별 오류 리포트가 표시됩니다.',
+    loading: '오류 리포트 목록을 불러오는 중...',
+    loadFailed: '오류 리포트 목록을 불러오지 못했습니다.',
+  },
+};
+
 const VALIDATION_STAGE_ICONS: Record<keyof typeof VALIDATION_STAGE_SUMMARY, typeof Clock3> = {
   PREPARING_BASELINE: Clock3,
   VALIDATING: Clock3,
@@ -168,6 +197,88 @@ function ValidationBatchCard({ batch, validation, reportId, fallbackView, onOpen
   );
 }
 
+type ExtractionPhase = 'IN_PROGRESS' | 'FAILED' | 'CANCELED' | 'COMPLETED';
+
+const EXTRACTION_VIEW: Record<ExtractionPhase, {
+  label: string; description: string; tone: 'primary' | 'warning' | 'danger' | 'success'; icon: typeof Clock3; action: string;
+}> = {
+  IN_PROGRESS: {
+    label: '설정 추출 중',
+    description: '오류 검토를 마쳐 이번 회차의 설정을 추출하고 있습니다.',
+    tone: 'primary', icon: Clock3, action: '진행 보기',
+  },
+  FAILED: {
+    label: '설정 추출 실패',
+    description: '오류 검사와 검토 결과는 그대로 남아 있습니다. 추출 상태를 확인해 주세요.',
+    tone: 'danger', icon: AlertCircle, action: '실패 확인',
+  },
+  CANCELED: {
+    label: '설정 추출 취소',
+    description: '원문이나 설정이 바뀌어 추출을 이어갈 수 없습니다. 현재 상태를 확인해 주세요.',
+    tone: 'warning', icon: AlertCircle, action: '취소 확인',
+  },
+  COMPLETED: {
+    label: '설정 추출 완료',
+    description: '설정 추출을 마쳤습니다. 설정 확정 결과는 오류 리포트에서 확인할 수 있습니다.',
+    tone: 'success', icon: CheckCircle2, action: '결과 보기',
+  },
+};
+
+function extractionPhase(status?: AnalysisBatchJobGroupResponse['status']): ExtractionPhase {
+  if (status === 'IN_PROGRESS') return 'IN_PROGRESS';
+  if (status === 'FAILED' || status === 'PARTIALLY_FAILED') return 'FAILED';
+  if (status === 'CANCELED') return 'CANCELED';
+  return 'COMPLETED';
+}
+
+/**
+ * 검토를 마친 검수 회차의 설정 추출 카드(분석 목록). 검수 배치 status는 검수 단계를 가리키므로
+ * 검토 종료가 만든 추출 Job 그룹의 상태로 진행·실패·완료를 고른다.
+ */
+function ValidationExtractionCard({ batch, validation, reportId, group, onOpenReport, onOpenProgress, onOpenResults }: {
+  batch: AnalysisBatchSummaryResponse;
+  validation: ValidationRequest;
+  reportId: string;
+  group: AnalysisBatchJobGroupResponse;
+  onOpenReport: (reportId: string) => void;
+  onOpenProgress: (group: AnalysisBatchJobGroupResponse) => void;
+  onOpenResults: () => void;
+}) {
+  const phase = extractionPhase(group.status);
+  const view = EXTRACTION_VIEW[phase];
+  const progressAvailable = (group.currentAnalysisJobIds?.length ?? 0) > 0;
+  const actionEnabled = phase === 'COMPLETED' ? Boolean(batch.batchId) : progressAvailable;
+  return (
+    <AnalysisCard
+      testId="validation-extraction-card"
+      icon={view.icon}
+      tone={view.tone}
+      title={<>{validation.sourceEpisodeNo != null ? `${validation.sourceEpisodeNo}화` : episodeRange(batch)}<small>신규 회차 검수 · 설정 추출</small></>}
+      status={view.label}
+      description={view.description}
+      activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
+      actions={<>
+        <button type="button" className="analysis-card-action analysis-tone--primary" onClick={() => onOpenReport(reportId)}>
+          오류 리포트 보기
+        </button>
+        <button type="button" disabled={!actionEnabled}
+          className={`analysis-card-action analysis-tone--${phase === 'COMPLETED' ? 'primary' : view.tone}`}
+          onClick={() => (phase === 'COMPLETED' ? onOpenResults() : onOpenProgress(group))}>
+          {view.action}
+        </button>
+      </>}
+    >
+      <div className="analysis-batch-card__groups">
+        <span className="analysis-batch-card__group">
+          설정 추출 · {group.succeededJobCount ?? 0}/{group.totalJobCount ?? 0} 완료
+          {(group.failedJobCount ?? 0) > 0 ? ` · ${group.failedJobCount} 실패` : ''}
+          {(group.canceledJobCount ?? 0) > 0 ? ` · ${group.canceledJobCount} 취소` : ''}
+        </span>
+      </div>
+    </AnalysisCard>
+  );
+}
+
 function parsePage(value: string | null): number {
   const parsed = Number.parseInt(value ?? '1', 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed - 1 : 0;
@@ -229,7 +340,8 @@ function findActionJobGroup(
     ?? groups.find(group => (group.currentAnalysisJobIds?.length ?? 0) > 0);
 }
 
-export function AnalysisList({ workId }: { workId: string }) {
+export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisListKind }) {
+  const copy = LIST_COPY[kind];
   const navigate = useAppNavigate();
   const queryClient = useQueryClient();
   const invalidatedCompletedOrigins = useRef(new Set<string>());
@@ -241,7 +353,7 @@ export function AnalysisList({ workId }: { workId: string }) {
   const analysisQuery = useQuery({
     ...getAnalysisBatchesOptions({
       path: { workId },
-      query: { page, size: PAGE_SIZE },
+      query: { page, size: PAGE_SIZE, kind },
     }),
     enabled: apiEnabled,
     retry: false,
@@ -304,10 +416,10 @@ export function AnalysisList({ workId }: { workId: string }) {
       }
     }
     if (completed) void invalidateAppliedSettings(queryClient, workId, {
-      excludeQueryKey: getAnalysisBatchesQueryKey({ path: { workId }, query: { page, size: PAGE_SIZE } }),
+      excludeQueryKey: getAnalysisBatchesQueryKey({ path: { workId }, query: { page, size: PAGE_SIZE, kind } }),
     });
     if (quotaInterrupted) notifyAiTokenQuotaExhausted({ kind: 'analysis-failed', sourceKind: 'SETTING_BOOK' });
-  }, [batches, page, queryClient, workId]);
+  }, [batches, kind, page, queryClient, workId]);
 
   const changePage = (nextPage: number) => {
     setSearchParams(params => {
@@ -336,20 +448,21 @@ export function AnalysisList({ workId }: { workId: string }) {
       {
         returnToAnalysisList: `${location.pathname}${location.search}`,
         returnHistoryDelta: -1,
+        returnLabel: copy.returnLabel,
       },
     );
   };
 
   /** 0건·부분 결과·보류·확정·무효를 포함한 모든 검수 단계는 같은 오류 리포트를 연다. */
   const openValidationReport = (reportId: string) => navigate(validationReportUrl(workId, reportId), 'dissolve',
-    { returnToAnalysisList: `${location.pathname}${location.search}`, returnHistoryDelta: -1 });
+    { returnToAnalysisList: `${location.pathname}${location.search}`, returnHistoryDelta: -1, returnLabel: copy.returnLabel });
 
-  const openReview = (batch: AnalysisBatchSummaryResponse) => {
+  const openReview = (batch: AnalysisBatchSummaryResponse, showAll = batch.episodeStatus === 'COMPLETED') => {
     if (!batch.batchId) return;
     const jobType = batch.episodeJobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION')?.jobType
       ?? batch.episodeJobGroups?.[0]?.jobType
       ?? 'SETTING_EXTRACTION';
-    const reviewStatus = batch.episodeStatus === 'COMPLETED' ? '&reviewStatus=ALL' : '';
+    const reviewStatus = showAll ? '&reviewStatus=ALL' : '';
     const candidateType = (batch.worldSettingTokenInterruptedCandidateCount ?? 0) > 0
       ? '&candidateType=world'
       : '';
@@ -369,20 +482,16 @@ export function AnalysisList({ workId }: { workId: string }) {
 
   return (
     <div className="analysis-list-page">
-      <PageHeading
-        eyebrow="AI ANALYSIS"
-        title="분석 목록"
-        description="회차와 설정집의 분석 진행·실패·설정 후보 검토 상태를 확인합니다."
-      />
+      <PageHeading eyebrow={copy.eyebrow} title={copy.title} description={copy.description} />
 
       {apiEnabled && analysisQuery.isPending && !hasPageData ? (
         <div className="analysis-list-state">
-          <Loader2 size={18} className="spin" /> 분석 목록을 불러오는 중...
+          <Loader2 size={18} className="spin" /> {copy.loading}
         </div>
       ) : apiEnabled && analysisQuery.isError && !hasPageData ? (
         <div className="analysis-list-state">
           <AlertCircle size={36} />
-          <div>분석 목록을 불러오지 못했습니다.</div>
+          <div>{copy.loadFailed}</div>
           <button type="button" className="analysis-card-action analysis-tone--danger" onClick={() => void analysisQuery.refetch()}>
             <RefreshCw size={12} /> 다시 불러오기
           </button>
@@ -390,8 +499,8 @@ export function AnalysisList({ workId }: { workId: string }) {
       ) : batches.length === 0 ? (
         <div className="analysis-list-state">
           <FileSearch size={38} strokeWidth={1.3} />
-          <div>아직 요청한 분석이 없습니다.</div>
-          <small>원고를 올리고 분석을 시작하면 업로드 묶음별로 표시됩니다.</small>
+          <div>{copy.emptyTitle}</div>
+          <small>{copy.emptyDescription}</small>
         </div>
       ) : (
         <div className="analysis-list-content">
@@ -405,7 +514,7 @@ export function AnalysisList({ workId }: { workId: string }) {
               borderRadius: 7,
               fontSize: 12,
             }}>
-              <span>최신 분석 상태를 불러오지 못해 이전 목록을 표시합니다.</span>
+              <span>최신 상태를 불러오지 못해 이전 목록을 표시합니다.</span>
               <button type="button" onClick={() => void analysisQuery.refetch()} style={{
                 border: 0,
                 background: 'transparent',
@@ -420,14 +529,26 @@ export function AnalysisList({ workId }: { workId: string }) {
             </div>
           )}
           {batches.map(batch => {
+            const validation = validationRequest(batch);
+            if (kind === 'VALIDATION') {
+              // 서버가 현재 검수 report가 있는 배치만 준다. 설정집 카드는 분석 목록에만 둔다.
+              if (!validation?.reportId || batch.episodeStatus == null) return null;
+              return <div key={batch.batchId}><ValidationBatchCard batch={batch} validation={validation} reportId={validation.reportId}
+                fallbackView={STATUS_VIEW[batch.episodeStatus]} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)} /></div>;
+            }
             const bookCards = (batch.settingBooks ?? []).map(book => (
               <AnalysisListBookCard key={book.sourceAnalysisJobId} workId={workId} book={book} />
             ));
+            if (validation?.reportId) {
+              // 검수 배치는 검토 종료가 만든 설정 추출 Job부터 분석 목록에 나온다. 검사·검토 단계는 오류 리포트 목록에서 본다.
+              const extractionGroup = batch.episodeJobGroups?.find(group => group.jobType === 'SETTING_EXTRACTION');
+              if (!extractionGroup) return <div key={batch.batchId}>{bookCards}</div>;
+              return <div key={batch.batchId}><ValidationExtractionCard batch={batch} validation={validation} reportId={validation.reportId}
+                group={extractionGroup} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)}
+                onOpenResults={() => openReview(batch, true)} />{bookCards}</div>;
+            }
             if (batch.episodeStatus == null) return <div key={batch.batchId}>{bookCards}</div>;
             const status = batch.episodeStatus;
-            const validation = validationRequest(batch);
-            if (validation?.reportId) return <div key={batch.batchId}><ValidationBatchCard batch={batch} validation={validation} reportId={validation.reportId}
-              fallbackView={STATUS_VIEW[status]} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)} />{bookCards}</div>;
             const tokenInterruptedCount = batch.worldSettingTokenInterruptedCandidateCount ?? 0;
             const hasTokenInterruption = hasSettledTokenInterruption(batch);
             const analysisFailure = hasAnalysisFailure(batch);

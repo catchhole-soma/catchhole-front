@@ -41,7 +41,7 @@ function gate() {
 }
 
 async function setup(page: Page, options: Options = {}) {
-  await mockValidationReport(page);
+  const mock = await mockValidationReport(page);
   const calls = { eligibility: 0, uploads: [] as string[], starts: [] as Array<Record<string, unknown>>, current: 0, analysisJobs: [] as Array<Record<string, unknown>> };
   let uploaded = false;
   await page.route('**/api/v1/**', async route => {
@@ -93,7 +93,7 @@ async function setup(page: Page, options: Options = {}) {
     return route.fallback();
   });
   await authenticate(page);
-  return calls;
+  return Object.assign(calls, { mock });
 }
 
 const modeButton = (page: Page, uploadType: string) => page.getByRole('button', {
@@ -176,15 +176,24 @@ test('업로드 409 VALIDATION_NEXT_EPISODE_BLOCKED는 같은 안내와 리포�
   expect(calls.starts).toEqual([]);
 });
 
-test('단일 신규 회차 검수는 설정 추출 Job 없이 현재 원고 버전으로 한 번 접수하고 리포트로 이동한다', async ({ page }) => {
+test('단일 신규 회차 검수는 설정 추출 Job 없이 현재 원고 버전으로 한 번 접수하고 검수 로딩창에서 리포트로 이동한다', async ({ page }) => {
   const calls = await setup(page);
   await prepareSingleValidation(page);
   await expect(page.getByRole('radio')).toHaveCount(0);
   await expect(page.getByRole('note').filter({ hasText: '오류 검사와 작가 검토를 마친 뒤 이번 회차의 설정을 추출해요.' })).toContainText('(101화)');
   await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
+  // 접수 뒤에는 설정 추출 로딩창과 같은 모양의 검수 로딩창에 머물며 검사 단계를 보여 준다.
+  const progress = page.getByTestId('validation-intake-progress');
+  await expect(progress).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
+  await expect(progress.locator('.episode-processing-card__steps span')).toHaveText(['검수 접수', '기준 준비', '오류 검사', '검사 완료']);
+  await expect(progress.locator('.episode-processing__title')).toHaveText('오류 검사가 완료되었습니다');
+  await expect(progress.locator('.episode-processing-card__title')).toHaveText('101화 성문 앞에서');
+  await progress.getByRole('button', { name: '오류 리포트에서 검토하기' }).click();
   await expect(page).toHaveURL(new RegExp(`/episode-validation-report\\?workId=${WORK_ID}&reportId=${REPORT_ID}(&|$)`));
   await expect(page.locator('#validation-report-title')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('validationEpisodeId')).toBeNull();
+  await expect(page.getByRole('button', { name: '← 오류 리포트 목록' })).toBeVisible();
   expect(calls.analysisJobs).toEqual([]);
   expect(calls.starts).toHaveLength(1);
   expect(calls.starts[0]).toEqual({
@@ -195,9 +204,32 @@ test('단일 신규 회차 검수는 설정 추출 Job 없이 현재 원고 버�
     expectedContentS3Key: `works/${WORK_ID}/episodes/101-r3.txt`,
     expectedContentS3Version: 'synthetic-v3',
   });
-  // 리포트로 replace 이동하므로 뒤로가기로 접수 중 화면을 다시 열지 않는다.
+  // 뒤로가기는 접수를 다시 보내지 않고 같은 검수의 로딩창(현재 상태 조회)만 연다.
   await page.goBack();
-  await expect(page).not.toHaveURL(/validationEpisodeId=/);
+  await expect(page.getByTestId('validation-intake-progress')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
+  expect(calls.starts).toHaveLength(1);
+});
+
+test('검수 로딩창은 검사 중 단계를 다시 읽고 새로고침해도 접수를 다시 보내지 않으며 목록 복귀는 오류 리포트 목록이다', async ({ page }) => {
+  const calls = await setup(page);
+  const { mock } = calls;
+  mock.patchStaging({ reviewStage: 'VALIDATING', executionStatus: 'RUNNING' });
+  await prepareSingleValidation(page);
+  await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
+  const progress = page.getByTestId('validation-intake-progress');
+  await expect(progress.locator('.episode-processing__title')).toHaveText('회차의 오류를 검사하고 있습니다');
+  await expect(progress).toContainText('이 화면을 벗어나도 검사는 계속됩니다.');
+  await expect(progress.locator('.episode-processing-card__steps span.is-complete')).toHaveCount(3);
+  await expect(progress.getByRole('button', { name: '오류 리포트 보기' })).toBeEnabled();
+  await page.reload();
+  await expect(progress.locator('.episode-processing__title')).toHaveText('회차의 오류를 검사하고 있습니다');
+  expect(calls.starts).toHaveLength(1);
+  mock.patchStaging({ reviewStage: 'AWAITING_REVIEW', executionStatus: 'COMPLETED' });
+  await expect(progress.locator('.episode-processing__title')).toHaveText('오류 검사가 완료되었습니다', { timeout: 8_000 });
+  await progress.getByRole('button', { name: '오류 리포트 목록으로' }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
+  await expect(page.getByRole('heading', { name: '오류 리포트' })).toBeVisible();
 });
 
 test('전송 직전 자격 확인 중에는 입력을 잠그고 확인 뒤 화면에 보이던 값으로 저장한다', async ({ page }) => {
@@ -217,7 +249,7 @@ test('전송 직전 자격 확인 중에는 입력을 잠그고 확인 뒤 화�
   await expect(page.getByRole('button', { name: '저장 중...' })).toBeDisabled();
   expect(calls.uploads).toEqual([]);
   held.open();
-  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
   expect(calls.uploads).toHaveLength(1);
   expect(calls.uploads[0]).toContain('"singleEpisodeNo":101');
   expect(calls.uploads[0]).toContain('"singleEpisodeTitle":"보이는 제목"');
@@ -228,7 +260,7 @@ test('접수 응답이 유실되면 현재 검수로 복구하고 두 번째 접
   const calls = await setup(page, { start: () => ({ abort: true }) });
   await prepareSingleValidation(page);
   await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
   expect(calls.starts).toHaveLength(1);
   expect(calls.analysisJobs).toEqual([]);
 });
@@ -251,7 +283,7 @@ test('접수 중 새로고침하면 현재 검수만 확인하고 없을 때만 
   expect(calls.current).toBeGreaterThanOrEqual(2);
 
   await intake.getByRole('button', { name: '검수 접수 다시 시도' }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
+  await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
   expect(calls.starts).toHaveLength(2);
   expect(calls.starts[1]).toMatchObject({ batchId: BATCH_ID, episodeId: EPISODE_ID });
 });
@@ -295,15 +327,15 @@ test('접수 응답 전에 화면을 떠나면 늦은 응답이 떠난 화면을
   });
   await prepareSingleValidation(page);
   await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
-  await expect(page.getByTestId('validation-intake')).toContainText('검수를 접수하고 있어요');
+  await expect(page.getByTestId('validation-intake-progress')).toContainText('검수를 접수하고 있습니다');
   await expect.poll(() => calls.starts.length).toBe(1);
-  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
-  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await page.getByRole('button', { name: '오류 리포트 목록으로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
   held.open();
   await expect.poll(() => answered).toBe(true);
   // 늦은 응답 처리 뒤에도 사용자가 고른 화면을 유지한다. 서버 접수 요청은 취소하지 않는다.
   await page.waitForTimeout(400);
-  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
   await expect(page).not.toHaveURL(/episode-validation-report/);
   expect(calls.starts).toHaveLength(1);
 });
@@ -317,13 +349,13 @@ test('응답 유실 뒤 현재 검수 확인 중에 화면을 떠나도 늦은 �
   });
   await prepareSingleValidation(page);
   await page.getByRole('button', { name: '다음 — 검수 시작' }).click();
-  await expect(page.getByTestId('validation-intake')).toContainText('검수 접수 결과를 확인하고 있어요');
-  await page.getByRole('button', { name: '분석 목록으로 돌아가기' }).click();
-  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await expect(page.getByTestId('validation-intake-progress')).toContainText('검수 접수 결과를 확인하고 있습니다');
+  await page.getByRole('button', { name: '오류 리포트 목록으로 돌아가기' }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
   held.open();
   await expect.poll(() => answered).toBe(true);
   await page.waitForTimeout(400);
-  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports`));
   expect(calls.starts).toHaveLength(1);
 });
 

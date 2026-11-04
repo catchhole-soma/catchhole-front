@@ -169,15 +169,15 @@ const invalidated: ReportScenario = {
   staging: { status: 'INVALIDATED', baselineStatus: 'INVALIDATED', reviewStage: 'INVALIDATED' },
   summary: { reviewStage: 'INVALIDATED', judgmentLocked: true, lockReason: 'REPORT_INVALIDATED', allowedActions: ['RECHECK'], holdReasons: ['REPORT_INVALIDATED'] },
 };
-const analysisList = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=analyses$`);
+const analysisList = new RegExp(`/dashboard\\?workId=${WORK_ID}&nav=reports$`);
 
-test('재검수 응답 전에 분석 목록으로 나가면 늦은 응답이 목록을 새 리포트로 바꾸지 않는다', async ({ page }) => {
+test('재검수 응답 전에 오류 리포트 목록으로 나가면 늦은 응답이 목록을 새 리포트로 바꾸지 않는다', async ({ page }) => {
   const mock = await open(page, invalidated);
   const release = mock.holdNextRecheck();
   await recheckButton(page).click();
   await page.getByTestId('validation-recheck-confirm').getByRole('button', { name: '재검수 시작', exact: true }).click();
   await expect.poll(() => mock.requestsTo('/rechecks').length).toBe(1);
-  await page.getByRole('button', { name: '← 분석 목록' }).click();
+  await page.getByRole('button', { name: '← 오류 리포트 목록' }).click();
   await expect(page).toHaveURL(analysisList);
   release();
   // 서버의 재검수는 그대로 처리된다.
@@ -199,7 +199,7 @@ test('재검수 응답 유실 뒤 현재 검수 확인 중에 나가도 늦은 �
   await recheckButton(page).click();
   await page.getByTestId('validation-recheck-confirm').getByRole('button', { name: '재검수 시작', exact: true }).click();
   await expect.poll(() => currentReads.length).toBe(1);
-  await page.getByRole('button', { name: '← 분석 목록' }).click();
+  await page.getByRole('button', { name: '← 오류 리포트 목록' }).click();
   await expect(page).toHaveURL(analysisList);
   release();
   await expect.poll(() => currentAnswered).toBe(true);

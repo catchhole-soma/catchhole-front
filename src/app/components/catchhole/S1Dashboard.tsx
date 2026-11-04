@@ -210,8 +210,8 @@ const WORK_INFO: Record<WorkId, { title: string; genre: string; episodeCount: nu
 };
 
 const NAV_IDS: NavId[] = RELATIONSHIP_WORKSPACE_ENABLED
-  ? ['settingDB', 'analyses', 'manuscripts', 'graph']
-  : ['settingDB', 'analyses', 'manuscripts'];
+  ? ['settingDB', 'analyses', 'reports', 'manuscripts', 'graph']
+  : ['settingDB', 'analyses', 'reports', 'manuscripts'];
 const SETTING_TAB_IDS: SettingTabId[] = ['characters', 'worldsettings', 'worldrules', 'search'];
 
 function formatEpisodeDate(value?: string): string {
@@ -294,6 +294,8 @@ export default function S1Dashboard() {
       ? switchSettingTabQueryState(prev, currentTab, 'characters')
       : new URLSearchParams(prev);
 
+    // 분석 목록과 오류 리포트 목록은 서로 다른 서버 페이지라 페이지 번호를 이어 쓰지 않는다.
+    if (prev.get('nav') !== id) next.delete('analysisPage');
     next.set('nav', id);
     next.delete('sourceAnalysisJobId');
     next.delete('settingBookId');
@@ -902,7 +904,7 @@ export default function S1Dashboard() {
   </>;
   return (
     <CharacterSettingLabelProvider genre={apiWork?.genre ?? selectedWorkDisplay.genre}>
-    <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'settingDB' || activeNav === 'graph' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' || activeNav === 'graph' ? ' database-v2' : ''}`} style={{
+    <div className={`dashboard-page${activeNav === 'manuscripts' || activeNav === 'analyses' || activeNav === 'reports' || activeNav === 'settingDB' || activeNav === 'graph' ? ' theme-v2 workspace-v2' : ''}${activeNav === 'settingDB' || activeNav === 'graph' ? ' database-v2' : ''}`} style={{
       background: C.bg, width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
       fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif",
@@ -1079,7 +1081,14 @@ export default function S1Dashboard() {
             {activeNav === 'analyses' && (
               <motion.div key="analyses" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                 style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <AnalysisList workId={effectiveWorkId} />
+                <AnalysisList workId={effectiveWorkId} kind="ANALYSIS" />
+              </motion.div>
+            )}
+
+            {activeNav === 'reports' && (
+              <motion.div key="reports" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <AnalysisList workId={effectiveWorkId} kind="VALIDATION" />
               </motion.div>
             )}
 
