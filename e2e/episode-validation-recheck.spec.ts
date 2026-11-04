@@ -25,6 +25,16 @@ async function open(page: Page, scenario: ReportScenario = {}, query = '') {
 }
 
 const recheckButton = (page: Page) => page.getByRole('button', { name: '수정 내용으로 재검수', exact: true });
+const progress = (page: Page) => page.getByTestId('validation-intake-progress');
+const progressUrl = new RegExp(`/episode-upload\\?workId=${WORK_ID}&validationReportId=${RECHECK_REPORT_ID}$`);
+
+/** 재검수 접수 뒤에는 업로드 접수와 같은 검수 로딩창에 머물고, 거기서 새 리포트를 연다. */
+async function openRecheckedReport(page: Page) {
+  await expect(page).toHaveURL(progressUrl);
+  await expect(progress(page).locator('.episode-processing__description')).toContainText('신규 회차 재검수');
+  await progress(page).getByRole('button', { name: /^오류 리포트(에서 검토하기| 보기)$/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/episode-validation-report\\?workId=${WORK_ID}&reportId=${RECHECK_REPORT_ID}`));
+}
 const replaceDialog = (page: Page) => page.getByRole('dialog', { name: '회차 파일 변경', exact: true });
 const returnNotice = (page: Page) => page.getByTestId('validation-report-return');
 
@@ -34,7 +44,7 @@ async function chooseReplacement(page: Page) {
   });
 }
 
-test('A9 원고 파일 변경은 같은 회차를 교체하고 리포트로 돌아와 확인 뒤 재검수를 요청한다', async ({ page }) => {
+test('A9 원고 고치기의 파일 변경은 같은 회차를 교체하고 바로 재검수해 검수 로딩창으로 간다', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const mock = await open(page, {}, `&branch=SETTING&findingId=${findingId(0)}`);
   await expect(page.locator('#validation-finding-title')).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
@@ -51,59 +61,64 @@ test('A9 원고 파일 변경은 같은 회차를 교체하고 리포트로 돌�
   // 인용·원문은 복귀 문맥에 넣지 않는다.
   expect(page.url()).not.toContain(encodeURIComponent('부서졌다'));
   await expect(replaceDialog(page)).toContainText('101화 성문 앞에서의 원문 파일을 변경합니다.');
-  await expect(replaceDialog(page)).toContainText('파일 변경만으로 검사나 분석을 시작하지 않아요.');
+  await expect(replaceDialog(page)).toContainText('바꾼 원고로 바로 다시 검수해요.');
   await expect(returnNotice(page)).toContainText('오류 리포트에서 원고 파일을 바꾸러 왔어요.');
-
-  await chooseReplacement(page);
-  await replaceDialog(page).getByRole('button', { name: '파일 변경', exact: true }).click();
-  await expect(replaceDialog(page)).toHaveCount(0);
-  await expect(returnNotice(page)).toContainText('원고 파일을 바꿨어요.');
-  await expect(returnNotice(page)).toContainText('오류 리포트로 돌아가 수정 내용으로 재검수해 주세요.');
-  expect(mock.requestsTo(`/episodes/${EPISODE_ID}/file`, 'PUT')).toHaveLength(1);
-  // 파일 교체는 검수·분석을 시작하지 않는다.
-  expect(mock.state.requests.filter(item => /\/(analysis-jobs|rechecks|retries)$/.test(item.path))).toEqual([]);
-  expect(new URL(page.url()).searchParams.get('modal')).toBeNull();
-  expect(new URL(page.url()).searchParams.get('returnTo')).toBe('validation-report');
-  const row = page.locator('.manuscript-row').filter({ hasText: '101화' });
-  await expect(row.locator('.validation-stage-badge')).toHaveText('재검수 필요');
-
-  await returnNotice(page).getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
-  await expect(page).toHaveURL(new RegExp(`/episode-validation-report\\?workId=${WORK_ID}&reportId=${REPORT_ID}`));
-  expect(new URL(page.url()).searchParams.get('findingId')).toBe(findingId(0));
-  expect(new URL(page.url()).searchParams.get('branch')).toBe('SETTING');
-  await expect(page.getByText('원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.').first()).toBeVisible();
-  // 복귀만으로 새 검수를 시작하지 않는다.
   expect(mock.requestsTo('/rechecks')).toHaveLength(0);
-
-  await expect(recheckButton(page)).toBeEnabled();
-  await recheckButton(page).click();
-  const confirm = page.getByTestId('validation-recheck-confirm');
-  await expect(confirm.getByRole('heading', { name: '수정 내용으로 재검수할까요?' })).toBeVisible();
-  await expect(confirm).toContainText('101화 성문 앞에서 · 이 회차 한 편만 다시 검사해요.');
-  await expect(confirm).toContainText('원고 파일을 바꿨어요');
-  await expect(confirm).toContainText('새 결과는 모두 검토 필요로 시작해요.');
-  await expect(confirm).toContainText('오류 검토를 마친 뒤 이번 회차의 설정을 추출해요.');
-  expect(mock.requestsTo('/rechecks')).toHaveLength(0);
-  const episode = mock.episodeDetail();
   const fingerprint = mock.state.staging.baselineFingerprint;
-  const version = mock.state.staging.reportVersion;
 
-  await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
-  const [request] = mock.requestsTo('/rechecks');
-  expect(request.path).toBe(`/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}/rechecks`);
-  expect(request.body).toEqual({
+  // 검수 회차의 원고 교체는 곧 재검수다. 교체 → 리포트의 재검수 경로로 한 번 접수 → 검수 로딩창.
+  await chooseReplacement(page);
+  await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
+  await expect(page).toHaveURL(progressUrl);
+  await expect(progress(page).locator('.episode-processing__title')).toHaveText('회차의 오류를 검사하고 있습니다');
+  expect(mock.requestsTo(`/episodes/${EPISODE_ID}/file`, 'PUT')).toHaveLength(1);
+  expect(mock.state.requests.filter(item => /\/(analysis-jobs|retries)$/.test(item.path))).toEqual([]);
+  const requests = mock.requestsTo('/rechecks');
+  expect(requests).toHaveLength(1);
+  const episode = mock.episodeDetail();
+  expect(requests[0].path).toBe(`/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}/rechecks`);
+  expect(requests[0].body).toEqual({
     idempotencyKey: expect.stringMatching(/^validation-recheck-/),
-    expectedReportVersion: version,
+    expectedReportVersion: expect.any(Number),
     expectedContentHash: episode.contentHash,
     expectedContentS3Key: episode.contentS3Key,
     expectedContentS3Version: episode.contentS3Version,
     expectedContentRevision: episode.contentRevision,
     expectedBaselineHash: fingerprint,
   });
+  await openRecheckedReport(page);
   await expect(page.getByText('설정 충돌을 확인하고 있어요.')).toBeVisible();
-  await expect(page.getByText('오류 검토를 마친 뒤 이번 회차의 설정을 추출해요.').first()).toBeVisible();
+  // 새 리포트에서 뒤로 가 로딩창을 다시 열어도 재검수를 다시 보내지 않는다.
+  await page.goBack();
+  await expect(page).toHaveURL(progressUrl);
+  await page.waitForTimeout(300);
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
+test('원고 목록에서 검수 회차 파일을 바꿔도 바로 재검수하고 로딩창은 7단계 칩으로 진행을 보여 준다', async ({ page }) => {
+  const mock = await mockValidationReport(page);
+  await authenticate(page);
+  await page.goto(`/dashboard?workId=${WORK_ID}&nav=manuscripts&modal=episode-replace&episodeId=${EPISODE_ID}`);
+  await expect(replaceDialog(page)).toContainText('바꾼 원고로 바로 다시 검수해요.');
+  await chooseReplacement(page);
+  await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
+  await expect(page).toHaveURL(progressUrl);
+  await expect(progress(page).locator('.episode-processing-card__steps span')).toHaveText(
+    ['검수 접수', '비교 기준 준비', '원고 색인', '검사 계획', '설정 충돌 판정', '오탈자 확인', '검사 완료']);
+  await expect(progress(page).locator('.episode-processing-card__steps span.is-complete')).toHaveCount(3);
+  await expect(progress(page).locator('.episode-processing-card__status')).toHaveText('원고 색인 중');
+  expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
+test('재검수를 허용하지 않는 리포트에 recheck=1로 들어오면 표시만 지우고 요청하지 않는다', async ({ page }) => {
+  const mock = await mockValidationReport(page);
+  await authenticate(page);
+  await page.goto(`${mock.url('')}&recheck=1`);
+  await expect(page.locator('#validation-report-title')).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('recheck')).toBeNull();
+  await page.waitForTimeout(300);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(0);
+  await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
 });
 
 test('교체 실패와 취소는 모달 입력과 리포트 복귀 문맥을 유지하고 분석을 시작하지 않는다', async ({ page }) => {
@@ -113,7 +128,7 @@ test('교체 실패와 취소는 모달 입력과 리포트 복귀 문맥을 유
   await page.goto(`/dashboard?workId=${WORK_ID}&nav=manuscripts&modal=episode-replace&episodeId=${EPISODE_ID}&returnTo=validation-report&reportId=${REPORT_ID}&reportFindingId=${findingId(1)}`);
   await expect(replaceDialog(page)).toBeVisible();
   await chooseReplacement(page);
-  await replaceDialog(page).getByRole('button', { name: '파일 변경', exact: true }).click();
+  await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
   await expect(replaceDialog(page)).toContainText('지금은 원고 파일을 바꿀 수 없습니다. 잠시 후 다시 시도해 주세요.');
   await expect(replaceDialog(page)).toContainText('101-revised.txt');
   await expect(returnNotice(page)).toContainText('오류 리포트에서 원고 파일을 바꾸러 왔어요.');
@@ -160,7 +175,7 @@ test('재검수 응답이 유실되면 현재 검수로 새 리포트를 확인�
   mock.loseNextRecheckResponse();
   await recheckButton(page).click();
   await page.getByTestId('validation-recheck-confirm').getByRole('button', { name: '재검수 시작', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  await openRecheckedReport(page);
   await expect(page.getByText('설정 충돌을 확인하고 있어요.')).toBeVisible();
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
@@ -241,7 +256,7 @@ test('재검수 요청을 보낸 뒤에는 응답이 올 때까지 취소와 재
   await expect(confirm.getByRole('button', { name: '재검수를 요청하고 있어요…' })).toBeDisabled();
   await expect(confirm.getByRole('button', { name: '취소', exact: true })).toBeDisabled();
   release();
-  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  await expect(page).toHaveURL(progressUrl);
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
@@ -263,7 +278,7 @@ test('확정 완료 회차는 서버가 RECHECK를 알려 줄 때만 같은 버�
   await expect(confirm).toContainText('원고는 그대로예요. 확정한 설정을 기준으로 검사 결과만 다시 만들어요.');
   await expect(confirm).toContainText('이전 원고의 설정은 확정했어요. 이번 재검수는 검사 결과만 제공해요.');
   await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  await openRecheckedReport(page);
   expect(mock.state.staging.mode).toBe('DIAGNOSTIC_ONLY');
   await expect(page.getByText('이전 원고의 설정은 확정했어요. 이번 재검수는 검사 결과만 제공해요.').first()).toBeVisible();
   await expect(page.getByRole('button', { name: '검토 완료 후 설정 추출' })).toHaveCount(0);

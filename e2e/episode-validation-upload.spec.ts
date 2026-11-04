@@ -186,7 +186,7 @@ test('단일 신규 회차 검수는 설정 추출 Job 없이 현재 원고 버�
   const progress = page.getByTestId('validation-intake-progress');
   await expect(progress).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`validationReportId=${REPORT_ID}`));
-  await expect(progress.locator('.episode-processing-card__steps span')).toHaveText(['검수 접수', '기준 준비', '오류 검사', '검사 완료']);
+  await expect(progress.locator('.episode-processing-card__steps span')).toHaveText(['검수 접수', '비교 기준 준비', '원고 색인', '검사 계획', '설정 충돌 판정', '오탈자 확인', '검사 완료']);
   await expect(progress.locator('.episode-processing__title')).toHaveText('오류 검사가 완료되었습니다');
   await expect(progress.locator('.episode-processing-card__title')).toHaveText('101화 성문 앞에서');
   await progress.getByRole('button', { name: '오류 리포트에서 검토하기' }).click();

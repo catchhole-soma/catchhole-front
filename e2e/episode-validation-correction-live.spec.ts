@@ -266,14 +266,17 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     await expect(confirm).toContainText('검사에 쓴 설정을 정정했어요. 정정한 설정을 작가 정정으로 연결해 다시 검사해요.');
     await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
     // 서버가 receipt·기준 식별값·원고 확인을 거절하면 확인 영역에 남은 안내로 멈춘다.
+    // 재검수 접수 뒤에는 업로드 접수와 같은 검수 로딩창(validationReportId)으로 간다.
     await expect(page).toHaveURL(url => {
-      const next = url.searchParams.get('reportId');
-      return url.pathname === '/episode-validation-report' && Boolean(next) && next !== reportId;
+      const next = url.searchParams.get('validationReportId');
+      return url.pathname === '/episode-upload' && Boolean(next) && next !== reportId;
     }, { timeout: 60_000 }).catch(async () => {
       const left = await confirm.innerText({ timeout: 5_000 }).catch(() => '없음');
       throw new Error(`재검수가 새 report로 넘어가지 않았습니다. 화면 안내: ${left.replace(/\s+/g, ' ').trim()}`);
     });
-    const recheckId = new URL(page.url()).searchParams.get('reportId')!;
+    const recheckId = new URL(page.url()).searchParams.get('validationReportId')!;
+    await page.getByTestId('validation-intake-progress').getByRole('button', { name: /^오류 리포트(에서 검토하기| 보기)$/ }).click();
+    await expect(page).toHaveURL(new RegExp(`reportId=${recheckId}`));
     // 새 결과로 넘어가면 이전 report의 receipt는 주소에 남지 않는다.
     expect(new URL(page.url()).searchParams.get('correctionReceiptId')).toBeNull();
     await expect(page.locator('#validation-report-title')).toHaveText('2화 오류 리포트');
