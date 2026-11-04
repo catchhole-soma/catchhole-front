@@ -283,14 +283,48 @@ function Spinner({ size = 16 }: { size?: number }) {
 
 type ValidationReviewStage = NonNullable<ValidationStagingResponse['reviewStage']>;
 
-/** 검수 로딩창의 단계 칩. 설정 추출 로딩창의 단계 칩과 같은 모양이며 서버 reviewStage만으로 위치를 고른다. */
-const VALIDATION_PROGRESS_STEPS = ['검수 접수', '기준 준비', '오류 검사', '검사 완료'] as const;
+/**
+ * 검수 로딩창의 단계 칩. 설정 추출 로딩창의 단계 칩과 같은 모양이다. 기준 준비·완료는 서버 reviewStage로 정하고,
+ * 서버가 검사 중의 세부 단계를 알려 주지 않으므로 검사 중(VALIDATING)에는 걸린 시간으로만 칩을 넘긴다(보통 15~20분).
+ * 시간으로 넘기는 칩은 마지막 `오탈자 확인`에서 멈추고 `검사 완료`는 서버가 검사를 마쳤을 때만 채운다.
+ */
+const VALIDATION_PROGRESS_STEPS = ['검수 접수', '비교 기준 준비', '원고 색인', '검사 계획', '설정 충돌 판정', '오탈자 확인', '검사 완료'] as const;
+/** VALIDATING에서 `원고 색인`·`검사 계획`·`설정 충돌 판정`·`오탈자 확인`으로 넘어가는 경과 초. */
+const VALIDATING_STEP_AFTER_SECONDS = [0, 90, 240, 840] as const;
 const ACTIVE_INTAKE_STAGES = new Set<ValidationReviewStage>(['PREPARING_BASELINE', 'VALIDATING']);
+const PROGRESS_START_KEY = 'catchhole.validationProgressStartedAt.';
 
-function validationStepIndex(stage?: ValidationReviewStage): number {
+function validationStepIndex(stage: ValidationReviewStage | undefined, elapsedSeconds: number): number {
+  if (!stage) return 0;
   if (stage === 'PREPARING_BASELINE') return 1;
-  if (stage === 'VALIDATING') return 2;
-  return stage ? 3 : 0;
+  if (stage === 'VALIDATING') {
+    const reached = VALIDATING_STEP_AFTER_SECONDS.filter(after => elapsedSeconds >= after).length;
+    return 1 + Math.max(1, reached);
+  }
+  return VALIDATION_PROGRESS_STEPS.length - 1;
+}
+
+/** 검사 중 경과 초. 처음 본 시각을 report별로 탭 세션에 남겨 새로고침해도 칩이 처음으로 돌아가지 않게 한다(표시용, 실패해도 무시). */
+function useValidatingElapsedSeconds(reportId: string | null, validating: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  const [startedAt] = useState(() => {
+    if (!reportId) return Date.now();
+    try {
+      const saved = Number(window.sessionStorage.getItem(PROGRESS_START_KEY + reportId));
+      if (Number.isFinite(saved) && saved > 0) return saved;
+      const started = Date.now();
+      window.sessionStorage.setItem(PROGRESS_START_KEY + reportId, String(started));
+      return started;
+    } catch {
+      return Date.now();
+    }
+  });
+  useEffect(() => {
+    if (!validating) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, [validating]);
+  return Math.max(0, Math.floor((now - startedAt) / 1000));
 }
 
 type ValidationProgressHero = { tone: 'busy' | 'success' | 'warning' | 'danger'; title: string };
@@ -315,7 +349,9 @@ function validationProgressHero(staging: ValidationStagingResponse | undefined, 
  * 신규 회차 검수 로딩창. 설정 추출 로딩창(episode-processing)과 같은 구성에 문구만 검수용으로 바꾼다.
  * 접수 요청 중에는 staging 없이 첫 단계만 보여 주고, 접수 뒤에는 기준 준비·검사가 끝날 때까지 staging을 다시 읽는다.
  */
-function ValidationIntakeProgress({ workTitle, episodeLabel, pendingTitle, staging, stagingFailed, onRetryStatus, onOpenReport, onOpenList }: {
+function ValidationIntakeProgress({ reportId, workTitle, episodeLabel, pendingTitle, staging, stagingFailed, onRetryStatus, onOpenReport, onOpenList }: {
+  /** 접수가 끝난 report. 접수 요청 중에는 null이다. */
+  reportId: string | null;
   workTitle: string;
   episodeLabel: string;
   /** staging을 읽기 전(접수 요청 중·접수 결과 확인 중) 제목. */
@@ -330,8 +366,9 @@ function ValidationIntakeProgress({ workTitle, episodeLabel, pendingTitle, stagi
   const stage = staging?.reviewStage;
   const hero = validationProgressHero(staging, pendingTitle);
   const busy = hero.tone === 'busy';
-  const stepIndex = validationStepIndex(stage);
-  const statusLabel = stage ? VALIDATION_STAGE_SUMMARY[stage].label : '접수 중';
+  const elapsedSeconds = useValidatingElapsedSeconds(reportId, stage === 'VALIDATING');
+  const stepIndex = validationStepIndex(stage, elapsedSeconds);
+  const statusLabel = busy ? `${VALIDATION_PROGRESS_STEPS[stepIndex]} 중` : stage ? VALIDATION_STAGE_SUMMARY[stage].label : '접수 중';
   const statusClass = busy ? 'ANALYZING' : hero.tone === 'success' ? 'ANALYZED' : hero.tone === 'danger' ? 'FAILED' : 'REANALYSIS_REQUIRED';
   return (
     <div className="episode-processing validation-intake-progress" data-testid="validation-intake-progress" aria-busy={busy}>
@@ -2001,6 +2038,8 @@ function EpisodeUpload() {
 
           {step === 'processing' && (validationReportId || (validationIntake.intake && validationIntake.intake.phase !== 'failed')) && (
             <ValidationIntakeProgress
+              key={validationReportId ?? 'intake'}
+              reportId={validationReportId}
               workTitle={workTitle}
               episodeLabel={validationEpisodeLabel}
               pendingTitle={validationIntake.intake?.phase === 'recovering' ? '검수 접수 결과를 확인하고 있습니다'
