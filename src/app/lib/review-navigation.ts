@@ -3,7 +3,14 @@ import type { NavigateFunction } from 'react-router';
 export type ReviewReturnState = {
   returnToAnalysisList?: unknown;
   returnHistoryDelta?: unknown;
+  /** 돌아갈 목록 이름(예: '분석 목록', '오류 리포트 목록'). 버튼 문구에만 쓴다. */
+  returnLabel?: unknown;
 };
+
+/** 진입한 목록 이름. 저장된 값이 없으면 화면의 기본 목록 이름을 쓴다. */
+export function returnLabelOf(state: ReviewReturnState | null | undefined, fallback: string): string {
+  return typeof state?.returnLabel === 'string' && state.returnLabel ? state.returnLabel : fallback;
+}
 
 /**
  * 검토 진입 전 분석 목록으로 돌아간다.
