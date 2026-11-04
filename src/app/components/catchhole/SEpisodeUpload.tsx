@@ -28,6 +28,7 @@ import {
   getEpisodeUploadPolicyOptions,
   getEpisodeValidationEligibilityOptions,
   getEpisodeValidationEligibilityQueryKey,
+  getEpisodeValidationStagingOptions,
   getWorkOptions,
   getWorldSettingCandidateProgressOptions,
   retryAnalysisJobMutation as retryAnalysisJobMutationOptions,
@@ -40,12 +41,14 @@ import type {
   EpisodeSummaryResponse,
   EpisodeUploadRequest,
   AnalysisJobProgressResponse,
+  ValidationStagingResponse,
 } from '../../api/generated/types.gen';
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAnalysisJobProgress } from '../../hooks/useAnalysisJobProgress';
 import { useAnalysisStartGate, type AnalysisStartConsent } from '../../hooks/useAnalysisStartGate';
 import { toApiError } from '../../lib/api-errors';
+import { returnLabelOf } from '../../lib/review-navigation';
 import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../lib/validation-feature';
 import {
   notifyAiTokenQuotaExhausted,
@@ -71,7 +74,7 @@ import {
 import { NextEpisodeBlockedNotice } from './validation/ValidationEntryNotices';
 import { ValidationIntakeStatus } from './validation/ValidationIntakeStatus';
 import { useValidationIntake } from './validation/useValidationIntake';
-import { MULTI_EPISODE_VALIDATION_REASON, validationReportUrl } from './validation/validation-report-labels';
+import { MULTI_EPISODE_VALIDATION_REASON, VALIDATION_STAGE_SUMMARY, validationReportUrl } from './validation/validation-report-labels';
 import { UploadHeader as Header, UploadStepper as Stepper, AnalysisProgressHero, AnalysisProgressCard } from './UploadLayout';
 
 type UploadStep = 'select-mode' | 'boundary-preview' | 'processing';
@@ -275,6 +278,118 @@ function Spinner({ size = 16 }: { size?: number }) {
     <motion.div className="episode-upload-spinner" animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
       <RefreshCw size={size} color={C.primary} />
     </motion.div>
+  );
+}
+
+type ValidationReviewStage = NonNullable<ValidationStagingResponse['reviewStage']>;
+
+/** 검수 로딩창의 단계 칩. 설정 추출 로딩창의 단계 칩과 같은 모양이며 서버 reviewStage만으로 위치를 고른다. */
+const VALIDATION_PROGRESS_STEPS = ['검수 접수', '기준 준비', '오류 검사', '검사 완료'] as const;
+const ACTIVE_INTAKE_STAGES = new Set<ValidationReviewStage>(['PREPARING_BASELINE', 'VALIDATING']);
+
+function validationStepIndex(stage?: ValidationReviewStage): number {
+  if (stage === 'PREPARING_BASELINE') return 1;
+  if (stage === 'VALIDATING') return 2;
+  return stage ? 3 : 0;
+}
+
+type ValidationProgressHero = { tone: 'busy' | 'success' | 'warning' | 'danger'; title: string };
+
+function validationProgressHero(staging: ValidationStagingResponse | undefined, pendingTitle: string): ValidationProgressHero {
+  const stage = staging?.reviewStage;
+  if (!stage) return { tone: 'busy', title: pendingTitle };
+  if (stage === 'PREPARING_BASELINE') return { tone: 'busy', title: '비교할 기준을 준비하고 있습니다' };
+  if (stage === 'VALIDATING') return { tone: 'busy', title: '회차의 오류를 검사하고 있습니다' };
+  if (stage === 'HELD_INCOMPLETE') return { tone: 'warning', title: '비교할 기준을 준비하지 못했습니다' };
+  if (stage === 'INVALIDATED') return { tone: 'warning', title: '원고 또는 비교한 설정이 바뀌었습니다' };
+  if (stage === 'AWAITING_REVIEW') {
+    if (staging.executionStatus === 'FAILED') return { tone: 'danger', title: '검사를 마치지 못했습니다' };
+    if (staging.executionStatus === 'CANCELED') return { tone: 'warning', title: '검사가 취소되었습니다' };
+    if (staging.executionStatus === 'PARTIAL') return { tone: 'warning', title: '일부 구간의 검사를 마치지 못했습니다' };
+    return { tone: 'success', title: '오류 검사가 완료되었습니다' };
+  }
+  return { tone: 'success', title: '오류 검토를 마친 회차입니다' };
+}
+
+/**
+ * 신규 회차 검수 로딩창. 설정 추출 로딩창(episode-processing)과 같은 구성에 문구만 검수용으로 바꾼다.
+ * 접수 요청 중에는 staging 없이 첫 단계만 보여 주고, 접수 뒤에는 기준 준비·검사가 끝날 때까지 staging을 다시 읽는다.
+ */
+function ValidationIntakeProgress({ workTitle, episodeLabel, pendingTitle, staging, stagingFailed, onRetryStatus, onOpenReport, onOpenList }: {
+  workTitle: string;
+  episodeLabel: string;
+  /** staging을 읽기 전(접수 요청 중·접수 결과 확인 중) 제목. */
+  pendingTitle: string;
+  staging?: ValidationStagingResponse;
+  stagingFailed: boolean;
+  onRetryStatus?: () => void;
+  /** 접수가 끝나 리포트가 생긴 뒤에만 넘긴다. */
+  onOpenReport?: () => void;
+  onOpenList: () => void;
+}) {
+  const stage = staging?.reviewStage;
+  const hero = validationProgressHero(staging, pendingTitle);
+  const busy = hero.tone === 'busy';
+  const stepIndex = validationStepIndex(stage);
+  const statusLabel = stage ? VALIDATION_STAGE_SUMMARY[stage].label : '접수 중';
+  const statusClass = busy ? 'ANALYZING' : hero.tone === 'success' ? 'ANALYZED' : hero.tone === 'danger' ? 'FAILED' : 'REANALYSIS_REQUIRED';
+  return (
+    <div className="episode-processing validation-intake-progress" data-testid="validation-intake-progress" aria-busy={busy}>
+      <AnalysisProgressHero
+        icon={busy
+          ? <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Spinner size={46} /></div>
+          : hero.tone === 'success'
+            ? <CircleCheckBig size={52} color={C.success} style={{ marginBottom: 12 }} />
+            : <AlertCircle size={52} color={hero.tone === 'danger' ? C.danger : C.warning} style={{ marginBottom: 12 }} />}
+        title={<span role="status">{hero.title}</span>}
+        description={<>{workTitle} · 신규 회차 검수</>}
+      />
+      {busy && (
+        <p className="episode-processing__background-note">
+          이 화면을 벗어나도 검사는 계속됩니다.<br />
+          검사 중에 찾은 항목과 결과는 오류 리포트에서 확인할 수 있어요.
+        </p>
+      )}
+      {stage === 'AWAITING_REVIEW' && hero.tone === 'success' && (
+        <p className="episode-processing__background-note">
+          오류 리포트에서 검사 결과를 확인하고 판단을 남겨 주세요.<br />
+          검토를 마치면 이번 회차의 설정을 추출합니다.
+        </p>
+      )}
+      {stage && !busy && hero.tone !== 'success' && (
+        <div className="episode-upload-alert episode-upload-alert--warning" role="status">
+          {VALIDATION_STAGE_SUMMARY[stage].description} 자세한 내용은 오류 리포트에서 확인해 주세요.
+        </div>
+      )}
+      {stagingFailed && (
+        <ErrorBanner message="검수 상태를 갱신하지 못했습니다. 마지막으로 확인한 상태를 유지합니다." onRetry={onRetryStatus} />
+      )}
+      <div className="episode-processing__list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AnalysisProgressCard title={episodeLabel} statusClass={statusClass} status={statusLabel}>
+          <div className="episode-processing-card__steps" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {VALIDATION_PROGRESS_STEPS.map((item, index) => (
+              <span className={index <= stepIndex ? 'is-complete' : ''} key={item} style={{
+                padding: '3px 8px', borderRadius: 12, fontSize: 10.5,
+                background: index <= stepIndex ? `${C.primary}18` : C.bg,
+                border: `1px solid ${index <= stepIndex ? `${C.primary}55` : C.border}`,
+                color: index <= stepIndex ? C.primary : C.t3,
+              }}>
+                {item}
+              </span>
+            ))}
+          </div>
+        </AnalysisProgressCard>
+      </div>
+      <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
+        <SecondaryButton onClick={onOpenList}>오류 리포트 목록으로</SecondaryButton>
+        <div style={{ flex: 1 }}>
+          <PrimaryButton disabled={!onOpenReport} onClick={() => onOpenReport?.()}>
+            {!onOpenReport ? '검수 접수 중...'
+              : stage === 'AWAITING_REVIEW' && hero.tone === 'success' ? '오류 리포트에서 검토하기' : '오류 리포트 보기'}
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -512,6 +627,13 @@ function EpisodeUpload() {
     return !viewingExistingAnalysis && UUID_PATTERN.test(episodeId) && UUID_PATTERN.test(batchId)
       ? { batchId, episodeId } : null;
   });
+  // 접수가 끝난 검수의 로딩창. URL에는 report ID만 남겨 새로고침해도 같은 로딩창을 다시 연다.
+  const [validationReportId, setValidationReportId] = useState<string | null>(() => {
+    const reportId = searchParams.get('validationReportId') ?? '';
+    return !viewingExistingAnalysis && validationResumeTarget && UUID_PATTERN.test(reportId) ? reportId : null;
+  });
+  // 오류 리포트에서 연 설정 추출 진행 화면이면 기존 설정 구축 대신 검수 뒤 추출이라고 표시한다.
+  const fromReportId = UUID_PATTERN.test(searchParams.get('fromReportId') ?? '') ? searchParams.get('fromReportId') : null;
 
   const [step, setStep] = useState<UploadStep>(
     initialTrackedAnalysisJobIds.length > 0 || validationResumeTarget || UUID_PATTERN.test(searchParams.get('batchId') ?? '') ? 'processing' : 'select-mode',
@@ -590,6 +712,9 @@ function EpisodeUpload() {
     returnHistoryDelta?: unknown;
   } | null;
   const returnToAnalysisList = reviewReturnState?.returnToAnalysisList;
+  const processingReturnLabel = returnLabelOf(reviewReturnState, '분석 목록');
+  const processingReturnText = `${processingReturnLabel}${processingReturnLabel.endsWith('목록') ? '으로' : '로'}`;
+  const reportListUrl = `/dashboard?workId=${encodeURIComponent(workId)}&nav=reports`;
   const resolvedAnalysisListUrl = typeof returnToAnalysisList === 'string' && returnToAnalysisList
     ? returnToAnalysisList
     : workId
@@ -597,6 +722,11 @@ function EpisodeUpload() {
       : '/works';
 
   const goBackToEntry = () => {
+    if (step === 'processing' && (validationReportId || validationIntake.intake)) {
+      // 검수 로딩창은 오류 리포트 목록으로 돌아간다. 업로드 화면은 다시 열지 않는다.
+      navigate(reportListUrl, 'pop', undefined, { replace: true });
+      return;
+    }
     if (step === 'processing') {
       if (typeof returnToAnalysisList === 'string' && returnToAnalysisList) {
         routerNavigate(-1);
@@ -703,14 +833,29 @@ function EpisodeUpload() {
 
   const validationIntake = useValidationIntake({
     workId,
-    resumeTarget: validationResumeTarget,
+    resumeTarget: validationReportId ? null : validationResumeTarget,
     onReport: reportId => {
       void queryClient.invalidateQueries({ queryKey: getEpisodesQueryKey({ path: { workId } }) });
       void queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: { workId } }) });
       void queryClient.invalidateQueries({ queryKey: getEpisodeValidationEligibilityQueryKey({ path: { workId } }) });
-      navigate(validationReportUrl(workId, reportId), 'dissolve', undefined, { replace: true });
+      // 바로 리포트로 넘기지 않고 설정 추출과 같은 로딩창에서 기준 준비·검사 진행을 보여 준다.
+      setValidationReportId(reportId);
+      setSearchParams(params => {
+        params.set('validationReportId', reportId);
+        return params;
+      }, { replace: true, state: location.state });
     },
   });
+  const validationStagingQuery = useQuery({
+    ...getEpisodeValidationStagingOptions({ path: { workId, reportId: validationReportId ?? '' } }),
+    enabled: Boolean(validationReportId) && step === 'processing',
+    retry: false,
+    refetchInterval: query => {
+      const stage = query.state.data?.data?.reviewStage;
+      return !stage || ACTIVE_INTAKE_STAGES.has(stage) ? 5_000 : false;
+    },
+  });
+  const validationStaging = validationReportId ? validationStagingQuery.data?.data : undefined;
 
   const episodesQuery = useQuery({
     ...getEpisodesOptions({ path: { workId } }),
@@ -756,6 +901,12 @@ function EpisodeUpload() {
   );
   const selectedWorkTitle = selectedWorkInfo?.id === workId ? selectedWorkInfo.title : '내 작품';
   const workTitle = routeWork?.title ?? selectedWorkTitle;
+  const validationEpisodeId = validationStaging?.episodeId ?? validationIntake.intake?.episodeId ?? validationResumeTarget?.episodeId;
+  // 접수 뒤 다시 읽은 회차 목록을 우선한다. 업로드 응답에는 제목이 없을 수 있다.
+  const validationEpisode = [...existingEpisodes, ...uploadedEpisodes].find(episode => episode.id === validationEpisodeId);
+  const validationEpisodeLabel = validationEpisode?.episodeNo != null
+    ? `${validationEpisode.episodeNo}화 ${validationEpisode.title || '제목을 찾지 못했어요'}`
+    : '신규 회차';
   const resolvedAnalysisJobType = jobs.find(job => job.jobType)?.jobType ?? analysisJobType;
 
   const progressEpisodes = useMemo(() => {
@@ -965,6 +1116,7 @@ function EpisodeUpload() {
       else params.delete('supersededJobIds');
       params.set('jobType', analysisJobType);
       params.delete('validationEpisodeId');
+      params.delete('validationReportId');
       return params;
     }, { replace: true, state: location.state });
   };
@@ -975,7 +1127,7 @@ function EpisodeUpload() {
       params.set('workId', workId);
       params.set('batchId', batchId);
       params.set('validationEpisodeId', episodeId);
-      for (const key of ['analysisJobIds', 'currentAnalysisJobIds', 'supersededJobIds', 'jobType']) params.delete(key);
+      for (const key of ['analysisJobIds', 'currentAnalysisJobIds', 'supersededJobIds', 'jobType', 'validationReportId']) params.delete(key);
       return params;
     }, { replace: true, state: location.state });
   };
@@ -1496,7 +1648,9 @@ function EpisodeUpload() {
     }}>
       <Header
         onBack={goBackToEntry}
-        backLabel={step === 'processing' ? '분석 목록으로 돌아가기' : undefined}
+        backLabel={step === 'processing'
+          ? validationReportId || validationIntake.intake ? '오류 리포트 목록으로 돌아가기' : `${processingReturnText} 돌아가기`
+          : undefined}
       />
       <Stepper labels={labels} current={currentStep} />
       <main className="episode-upload-main" style={{ flex: 1, overflowY: 'auto' }}>
@@ -1843,7 +1997,22 @@ function EpisodeUpload() {
             </>
           )}
 
-          {step === 'processing' && validationIntake.intake && (
+          {step === 'processing' && (validationReportId || (validationIntake.intake && validationIntake.intake.phase !== 'failed')) && (
+            <ValidationIntakeProgress
+              workTitle={workTitle}
+              episodeLabel={validationEpisodeLabel}
+              pendingTitle={validationIntake.intake?.phase === 'recovering' ? '검수 접수 결과를 확인하고 있습니다'
+                : validationReportId ? '검수 상태를 확인하고 있습니다' : '검수를 접수하고 있습니다'}
+              staging={validationStaging}
+              stagingFailed={Boolean(validationReportId) && validationStagingQuery.isError}
+              onRetryStatus={() => void validationStagingQuery.refetch()}
+              onOpenReport={validationReportId ? () => navigate(validationReportUrl(workId, validationReportId), 'dissolve',
+                { returnToAnalysisList: reportListUrl, returnLabel: '오류 리포트 목록' }) : undefined}
+              onOpenList={goBackToEntry}
+            />
+          )}
+
+          {step === 'processing' && !validationReportId && validationIntake.intake?.phase === 'failed' && (
             <ValidationIntakeStatus
               workId={workId}
               workTitle={workTitle}
@@ -1856,7 +2025,7 @@ function EpisodeUpload() {
             />
           )}
 
-          {step === 'processing' && !validationIntake.intake && (
+          {step === 'processing' && !validationReportId && !validationIntake.intake && (
             <div className="episode-processing">
               <AnalysisProgressHero
                 icon={analysisNotStarted
@@ -1882,7 +2051,7 @@ function EpisodeUpload() {
                       : analysisPartiallyInterrupted ? '설정 추출 후 일부 비교가 중단되었습니다'
                       : analysisUnavailable ? '삭제되어 사용할 수 없는 회차가 있습니다'
                         : analysisRunning ? '회차를 분석하고 있습니다' : '분석을 준비하고 있습니다'}
-                description={<>{workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
+                description={fromReportId ? <>{workTitle} · 신규 회차 검수 · 설정 추출</> : <>{workTitle} · {resolvedAnalysisJobType === 'EPISODE_VALIDATION' ? '신규 회차 검수' : '기존 설정 구축'}
                   {automaticAnalysis ? ' · 회차별 설정 자동 반영' : orderedAnalysis && ' · 앞 회차 제안을 이어서 분석'}</>}
               />
               {analysisRunning && !analysisUnavailable && !statusQueryFailed && (
@@ -2022,7 +2191,7 @@ function EpisodeUpload() {
               </div>
 
               <div className="episode-processing__actions" style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-                <SecondaryButton onClick={goBackToEntry}>분석 목록으로</SecondaryButton>
+                <SecondaryButton onClick={goBackToEntry}>{processingReturnText}</SecondaryButton>
                 <div style={{ flex: 1 }}>
                   {analysisNotStarted ? (
                     <PrimaryButton onClick={() => navigate(analysisStartRecovery === 'resume-existing'

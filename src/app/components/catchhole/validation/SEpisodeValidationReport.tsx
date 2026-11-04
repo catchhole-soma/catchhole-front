@@ -6,7 +6,7 @@ import { getCurrentEpisodeValidationOptions } from '../../../api/generated/@tans
 import type { ValidationReviewSummaryCounts } from '../../../api/generated/types.gen';
 import { useEpisodeValidationReport } from '../../../hooks/useEpisodeValidationReport';
 import { toApiError } from '../../../lib/api-errors';
-import { returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
+import { returnLabelOf, returnToAnalysisList, type ReviewReturnState } from '../../../lib/review-navigation';
 import { UserMenu } from '../UserMenu';
 import { ReviewNotice } from '../review-ui/ReviewPrimitives';
 import { ActionButton } from '../ui-v2/ActionButton';
@@ -48,8 +48,16 @@ function subscribeMobile(callback: () => void) {
 }
 const mobileSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
 
-function analysisListUrl(workId: string) {
-  return UUID.test(workId) ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=analyses` : '/works';
+/** 오류 리포트는 사이드바의 오류 리포트 목록(nav=reports)에서 연다. 다른 목록에서 왔으면 그 목록으로 돌아간다. */
+function reportListUrl(workId: string) {
+  return UUID.test(workId) ? `/dashboard?workId=${encodeURIComponent(workId)}&nav=reports` : '/works';
+}
+
+/** 검토 종료가 만든 설정 추출 Job의 기존 진행 화면. 되돌아올 곳은 지금 보던 리포트다. */
+function extractionProgressUrl(workId: string, batchId: string, jobId: string, reportId: string) {
+  const ids = encodeURIComponent(jobId);
+  return `/episode-upload?workId=${encodeURIComponent(workId)}&batchId=${encodeURIComponent(batchId)}`
+    + `&analysisJobIds=${ids}&currentAnalysisJobIds=${ids}&jobType=SETTING_EXTRACTION&fromReportId=${encodeURIComponent(reportId)}`;
 }
 
 function reportUrl(workId: string, reportId: string, extra = '') {
@@ -107,11 +115,13 @@ function normalizedParams(params: URLSearchParams): URLSearchParams | null {
 function ReportShell({ workId, children }: { workId: string; children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const back = () => returnToAnalysisList(navigate, location.state as ReviewReturnState | null, analysisListUrl(workId));
+  const state = location.state as ReviewReturnState | null;
+  const listLabel = returnLabelOf(state, '오류 리포트 목록');
+  const back = () => returnToAnalysisList(navigate, state, reportListUrl(workId));
   return (
     <div className="setting-review-screen theme-v2 workspace-v2 validation-report-screen">
       <header className="review-header app-topbar">
-        <button type="button" aria-label="분석 목록으로" className="review-header__back" onClick={back}>
+        <button type="button" aria-label={`${listLabel}으로`} className="review-header__back" onClick={back}>
           <ChevronLeft size={18} aria-hidden="true" />
         </button>
         <div className="review-header__title"><small>AI ANALYSIS</small><strong>오류 리포트</strong></div>
@@ -120,7 +130,7 @@ function ReportShell({ workId, children }: { workId: string; children: ReactNode
       </header>
       <main className="setting-review-main">
         <div className="setting-review-content vr-content">
-          <div><button type="button" className="vr-link-button" onClick={back}>← 분석 목록</button></div>
+          <div><button type="button" className="vr-link-button" onClick={back}>← {listLabel}</button></div>
           {children}
         </div>
       </main>
@@ -181,8 +191,8 @@ function CurrentReportResolver({ workId, episodeId }: { workId: string; episodeI
     <ReportShell workId={workId}>
       {missing ? (
         <StateCard title="이 회차에는 아직 오류 검사 결과가 없어요."
-          description="검수를 접수한 회차만 오류 리포트를 볼 수 있어요. 분석 목록에서 진행 상태를 확인해 주세요."
-          action={<ActionButton onClick={() => navigate(analysisListUrl(workId))}>분석 목록으로</ActionButton>} />
+          description="검수를 접수한 회차만 오류 리포트를 볼 수 있어요. 오류 리포트 목록에서 진행 상태를 확인해 주세요."
+          action={<ActionButton onClick={() => navigate(reportListUrl(workId))}>오류 리포트 목록으로</ActionButton>} />
       ) : settled && query.isError ? (
         <StateCard title="현재 검수 결과를 확인하지 못했어요." description="잠시 후 다시 시도해 주세요."
           action={<ActionButton variant="secondary" onClick={() => void query.refetch()}>다시 불러오기</ActionButton>} />
@@ -368,9 +378,9 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     return (
       <ReportShell workId={workId}>
         <StateCard title={notFound ? '오류 리포트를 찾을 수 없어요.' : '오류 리포트를 불러오지 못했어요.'}
-          description={notFound ? '다른 작품의 결과이거나 볼 수 없는 결과예요. 분석 목록에서 다시 들어와 주세요.' : '잠시 후 다시 시도해 주세요.'}
+          description={notFound ? '다른 작품의 결과이거나 볼 수 없는 결과예요. 오류 리포트 목록에서 다시 들어와 주세요.' : '잠시 후 다시 시도해 주세요.'}
           action={notFound
-            ? <ActionButton onClick={() => navigate(analysisListUrl(workId))}>분석 목록으로</ActionButton>
+            ? <ActionButton onClick={() => navigate(reportListUrl(workId))}>오류 리포트 목록으로</ActionButton>
             : <ActionButton variant="secondary" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={() => void report.stagingQuery.refetch()}>다시 불러오기</ActionButton>} />
       </ReportShell>
     );
@@ -416,6 +426,11 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
         onApply={() => actions.requestAction('application')}
         applying={report.application.isPending}
         candidateReviewUrl={candidateReviewUrl}
+        onOpenExtraction={!pastReport && staging.batchId && staging.extractionJobId
+          ? () => navigate(extractionProgressUrl(workId, staging.batchId!, staging.extractionJobId!, reportId), {
+            state: { returnToAnalysisList: `${location.pathname}${location.search}`, returnHistoryDelta: -1, returnLabel: '오류 리포트' },
+          })
+          : undefined}
         message={<>{actionMessage('completion')}{actionMessage('application')}</>}
       >
         {summaryStale && (
@@ -525,8 +540,8 @@ export default function SEpisodeValidationReport() {
   if (!UUID.test(workId) || (!UUID.test(reportId) && !UUID.test(episodeId))) {
     return (
       <ReportShell workId={workId}>
-        <StateCard title="오류 리포트 정보를 찾을 수 없어요." description="작품과 검수 결과 정보가 필요해요. 분석 목록에서 다시 들어와 주세요."
-          action={<ActionButton onClick={() => navigate(analysisListUrl(workId))}>분석 목록으로</ActionButton>} />
+        <StateCard title="오류 리포트 정보를 찾을 수 없어요." description="작품과 검수 결과 정보가 필요해요. 오류 리포트 목록에서 다시 들어와 주세요."
+          action={<ActionButton onClick={() => navigate(reportListUrl(workId))}>오류 리포트 목록으로</ActionButton>} />
       </ReportShell>
     );
   }
