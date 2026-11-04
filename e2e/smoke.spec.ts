@@ -123,7 +123,7 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^캐릭터 타임라인/ })).toHaveCount(0);
 
-  const sidebarLabels = ['원고 목록', '작품 설정', '분석 목록', '분석 리포트', relationshipWorkspaceEnabled ? '관계도' : '그래프 뷰', '챗봇'];
+  const sidebarLabels = ['원고 목록', '작품 설정', '분석 목록', '오류 리포트', relationshipWorkspaceEnabled ? '관계도' : '그래프 뷰', '챗봇'];
   for (const label of sidebarLabels) {
     await expect(page.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
   }
@@ -132,8 +132,12 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
   await page.getByRole('button', { name: /^캐릭터/ }).click();
   await expect(page.getByRole('heading', { name: '캐릭터 설정', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: /^분석 리포트/ }).click();
-  await expect(page.getByText('분석 리포트 기능은 업데이트 예정입니다.', { exact: true })).toBeVisible();
+  // 오류 리포트는 더 이상 업데이트 예정 안내가 아니라 신규 회차 검수 목록(nav=reports)을 연다.
+  await page.getByRole('button', { name: /^오류 리포트/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('nav')).toBe('reports');
+  await expect(page.getByRole('heading', { name: '오류 리포트', exact: true })).toBeVisible();
+  await expect(page.getByText('오류 리포트 기능은 업데이트 예정입니다.', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /^작품 설정/ }).click();
   await expect(page.getByText('설정 대시보드', { exact: true })).toBeVisible();
 
   if (relationshipWorkspaceEnabled) {
@@ -368,7 +372,7 @@ test('MVP에서 제외한 이전 목 화면 경로는 작품 선택으로 돌아
   // GH314: 오류 리포트는 공개 화면이다. 작품·결과 식별자가 없으면 이동 대신 안내와 복귀 버튼을 보여 준다.
   await page.goto('/episode-validation-report');
   await expect(page.getByText('오류 리포트 정보를 찾을 수 없어요.')).toBeVisible();
-  await page.getByRole('status').getByRole('button', { name: '분석 목록으로', exact: true }).click();
+  await page.getByRole('status').getByRole('button', { name: '오류 리포트 목록으로', exact: true }).click();
   await expect(page).toHaveURL(/\/works$/);
 });
 
