@@ -5,6 +5,7 @@ import {
   EPISODE_ID,
   findingId,
   mockValidationReport,
+  PAST_REPORT_ID,
   RECHECK_REPORT_ID,
   REPORT_ID,
   WORK_ID,
@@ -108,6 +109,19 @@ test('원고 목록에서 검수 회차 파일을 바꿔도 바로 재검수하�
   await expect(progress(page).locator('.episode-processing-card__steps span.is-complete')).toHaveCount(3);
   await expect(progress(page).locator('.episode-processing-card__status')).toHaveText('원고 색인 중');
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
+});
+
+test('다른 리포트의 복귀 문맥이 주소에 남아 있어도 바꾼 회차의 현재 리포트를 재검수한다', async ({ page }) => {
+  const mock = await mockValidationReport(page);
+  await authenticate(page);
+  // 이전 리포트에서 연 원고 목록에서 그 교체 창을 닫고 다른 회차(여기서는 현재 리포트가 REPORT_ID인 회차)를 바꾸는 경우다.
+  await page.goto(`/dashboard?workId=${WORK_ID}&nav=manuscripts&returnTo=validation-report&reportId=${PAST_REPORT_ID}&modal=episode-replace&episodeId=${EPISODE_ID}`);
+  await chooseReplacement(page);
+  await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
+  await expect(page).toHaveURL(progressUrl);
+  const requests = mock.requestsTo('/rechecks');
+  expect(requests).toHaveLength(1);
+  expect(requests[0].path).toBe(`/api/v1/works/${WORK_ID}/episode-validations/${REPORT_ID}/rechecks`);
 });
 
 test('재검수를 허용하지 않는 리포트에 recheck=1로 들어오면 표시만 지우고 요청하지 않는다', async ({ page }) => {

@@ -741,9 +741,12 @@ export default function S1Dashboard() {
     }
   };
 
+  // 교체할 회차의 현재 오류 리포트. 주소의 리포트 복귀 문맥은 그 문맥이 연 교체 창의 회차일 때만 보탠다.
+  // 복귀 문맥을 남긴 채 다른 회차를 바꾸면 그 회차의 리포트를 쓴다(다른 회차의 리포트를 재검수하지 않게).
+  const replacementReportId = (target: typeof replaceModalTarget) => target?.validationReportId
+    ?? (reportReturn && urlReplaceEpisodeId && target?.id === urlReplaceEpisodeId ? reportReturn.reportId : null);
   // 검수 회차(현재 오류 리포트가 있는 회차)의 파일 교체는 교체 뒤 바로 재검수한다. 접수 플래그가 꺼진 빌드는 교체만 한다.
-  const recheckOnReplace = EPISODE_VALIDATION_INTAKE_ENABLED
-    && Boolean(reportReturn?.reportId ?? replaceModalTarget?.validationReportId);
+  const recheckOnReplace = EPISODE_VALIDATION_INTAKE_ENABLED && Boolean(replacementReportId(replaceModalTarget));
   const replaceEpisodeFile = async () => {
     const target = replaceModalTarget;
     if (!target?.id || !replacementFile || replacementFileError) return;
@@ -754,7 +757,7 @@ export default function S1Dashboard() {
         body: { file: replacementFile },
       });
       // 서버의 파일 교체는 검수를 시작하지 않는다. 열려 있던 리포트가 무효 상태를 바로 읽도록 검수 조회만 갱신한다.
-      const reportId = reportReturn?.reportId ?? target.validationReportId ?? null;
+      const reportId = replacementReportId(target);
       if (reportId) {
         setReplacedForReport(reportId);
         void queryClient.invalidateQueries({
