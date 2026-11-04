@@ -137,7 +137,8 @@ Pencil은 아래 보드에서 실제 화면과 전환 설명을 함께 보여줍
 | 대시보드 | [`/dashboard`](https://catch-hole.vercel.app/dashboard) | 작품 설정·분석 목록·원고 허브. 관계도는 기본 제공하며 명시적 OFF에서만 숨김 |
 | **캐릭터 DB 조회** | [`/dashboard?nav=settingDB&tab=characters`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) | Theme V2 카드 목록에서 현재 설정 상세·변화 이력·원문 근거를 이어서 조회 |
 | **세계관 DB 조회** | [`/dashboard?nav=settingDB&tab=worldsettings`](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) | 이미지 분류 선택·대상 카드 목록·상세 모달에서 확정 설정과 원문 근거를 조회 |
-| **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | Theme V2 파일럿으로 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인 |
+| **분석 목록** | [`/dashboard?nav=analyses`](https://catch-hole.vercel.app/dashboard?nav=analyses) | Theme V2 파일럿으로 함께 올린 회차의 분석·실패·설정 후보 검토 상태를 업로드 묶음별로 확인. 신규 회차 검수는 검토를 마쳐 설정 추출이 시작된 뒤에만 설정 추출 카드로 나온다 |
+| **오류 리포트 목록** | [`/dashboard?nav=reports`](https://catch-hole.vercel.app/dashboard?nav=reports) | 신규 회차 검수의 오류 검사·검토 단계를 회차별로 확인하고 오류 리포트를 연다 |
 | **관계도 (기본 ON)** | [`/dashboard?nav=graph`](https://catch-hole.vercel.app/dashboard?nav=graph) | 기본은 회차별 인물 관계도. 오른쪽 가계도 탭 또는 `relationMode=family`로 가족 관계 그림·목록·후보·근거 조회. 이전 가족 상세 링크는 호환한다. 명시적 OFF에서는 업데이트 예정 안내를 유지하고 직접 주소는 캐릭터 설정으로 replace |
 | 회차 원문 보기 | [`/editor`](https://catch-hole.vercel.app/editor) | 선택한 회차 원본을 읽기 전용으로 확인 |
 | AI 챗봇 | [`/chat`](https://catch-hole.vercel.app/chat) | 설정 관련 질의응답 챗봇 |
@@ -399,7 +400,7 @@ flowchart TD
     nav_settingDB["작품 설정"]
     nav_analyses["분석 목록"]
     nav_chat["챗봇<br/>/chat"]:::private
-    nav_reports["분석 리포트<br/>업데이트 예정"]
+    nav_reports["오류 리포트<br/>nav=reports"]
     nav_graph["OFF: 그래프 뷰 · 업데이트 예정<br/>ON: 관계도 · nav=graph"]
   end
 
@@ -564,7 +565,7 @@ flowchart TD
 > 배치 조회가 분석 시작을 확인하면 원고 목록도 즉시 갱신하며, 진행 중에는 10초 갱신을 함께 유지합니다. 배치 종료 시 최종 목록을 한 번 더 받고 진행 작업이 없으면 반복 조회를 멈춥니다. 업로드·재분석 시작 성공 때에도 두 조회의 캐시를 갱신해 이전 `재분석 필요` 표시가 남지 않게 합니다.
 
 > 딥링크 (클릭 시 이동):
-> - 사이드바 — [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts) · [작품 설정](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [챗봇](https://catch-hole.vercel.app/chat) · 분석 리포트(업데이트 예정) · 기본 ON의 [관계도](https://catch-hole.vercel.app/dashboard?nav=graph)
+> - 사이드바 — [원고 목록](https://catch-hole.vercel.app/dashboard?nav=manuscripts) · [작품 설정](https://catch-hole.vercel.app/dashboard?nav=settingDB) · [분석 목록](https://catch-hole.vercel.app/dashboard?nav=analyses) · [챗봇](https://catch-hole.vercel.app/chat) · [오류 리포트](https://catch-hole.vercel.app/dashboard?nav=reports) · 기본 ON의 [관계도](https://catch-hole.vercel.app/dashboard?nav=graph)
 > - 설정DB 탭 — [캐릭터 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=characters) · [세계관 DB](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldsettings) · [설정집 목록](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=worldrules) · [검색](https://catch-hole.vercel.app/dashboard?nav=settingDB&tab=search). 캐릭터의 타임라인은 캐릭터 상세 `변화 이력`에서 연다.
 > - 관계도(기본 ON) — [인물 관계도 · 기본](https://catch-hole.vercel.app/dashboard?nav=graph) · [가계도](https://catch-hole.vercel.app/dashboard?nav=graph&relationMode=family) · [가족 관계 목록](https://catch-hole.vercel.app/dashboard?nav=graph&relationMode=family&relationView=list) · [확인 필요](https://catch-hole.vercel.app/dashboard?nav=graph&relationMode=family&relationView=review). OFF에서는 작품 설정의 관계도도 업데이트 예정 안내이며 관계 직접 주소는 캐릭터 설정으로 replace한다. 이전 `relGraph=triangle|prosecution|court`는 과거 시안용 상태이며 현재 관계도에서 그림 샘플을 여는 계약이 아니다.
 > - ID 필요(형식만) — 캐릭터 상세 `?modal=char-detail&charId=<id>`. 관계 화면 ON에서는 관계 후보 `?nav=graph&relationView=review&relationshipCandidate=<id>`, 관계 근거 `?nav=graph&relationshipId=<id>`, 원문 근거 `?nav=graph&relationshipFactId=<id>`를 사용한다. 과거 시안의 `node=<id>`는 현재 가족 관계 상세 계약이 아니다.
@@ -901,7 +902,7 @@ Workflow: 완료 안내를 유지하며 자유 탐색 → 사용자가 체험 �
 
 다른 방을 선택하면 질문 수 기준 마지막 메시지 페이지를 연다. 질문 접수 성공 시 진행 중인 첫 목록 조회까지 취소하고 방 목록을 재검증하며, 정상 세션 조회로 확인한 질문 수를 목록 캐시에 반영한다. 이전 목록 요청의 늦은 응답이 새 숫자를 덮지 않으며 질문 수를 임의로 더하지 않는다. 같은 방 재선택과 명시적인 페이지 URL·새로고침은 읽던 페이지를 보존한다. 새 질문·재시도 잠금은 현재 페이지뿐 아니라 서버의 대화 전체 진행 상태를 확인한다. 과거 사용량 부족 기록을 다시 읽는 것만으로 모달을 열지 않고, 관측한 진행 요청이나 직접 접수·재시도한 요청에서 새 사용량 부족 실패가 확인될 때만 한 번 안내한다.
 
-워크스페이스 메뉴 순서는 원고 목록 → 작품 설정 → 분석 목록 → 챗봇 → 분석 리포트 → 그래프 뷰다. 챗봇의 좌측 메뉴는 남은 화면 높이까지 이어진다. 입력창의 상시 Enter/Shift+Enter 설명은 제거하되 기존 키보드 동작과 한글 조합 처리는 유지한다.
+워크스페이스 메뉴 순서는 원고 목록 → 작품 설정 → 분석 목록 → 챗봇 → 오류 리포트 → 그래프 뷰(관계도)다. 챗봇의 좌측 메뉴는 남은 화면 높이까지 이어진다. 입력창의 상시 Enter/Shift+Enter 설명은 제거하되 기존 키보드 동작과 한글 조합 처리는 유지한다.
 
 모바일 전체 화면 작품 메뉴는 다이얼로그로 열어 배경 조작을 막고 초점을 메뉴 안에 유지한다. Escape나 닫기로 종료하면 열기 버튼에 초점을 돌려준다. 직접 근거의 값은 `조회한 설정값`으로 원문 인용과 구분해 보여주며, 직접 입력·과거 이력도 반환된 값을 표시하고 긴 값이 생략됐으면 이를 안내한다.
 
@@ -1160,3 +1161,24 @@ flowchart TD
 - 확인한 흐름: 단일 회차 `신규 회차 검수` 업로드 → 리포트 replace 이동(추출 Job 없음) → 검사 중 읽기 전용 → 일부 중단 뒤 판단 저장·`중단된 검사 다시 시도` → 수정 필요가 남은 동안 `검토 완료 후 설정 추출` 잠금 → 리포트에서 원고 파일 변경·복귀(INVALIDATED) → `수정 내용으로 재검수` → 새 report. 항목 판단 뒤 `검토 완료 후 설정 추출` → 확정 완료(live e2e), 0건 report는 화면 조작 없이 확정 완료(APPLIED)까지, 확정 뒤 진단 재검수는 추출 없이 검토 대기에서 멈춤. 미완료 동안 업로드 화면 차단 안내와 409, 확정 뒤 다음 회차 등록 허용.
 - 실제 모델 검수가 정상 완료(COMPLETED)에 도달하지 못한 report는 항목 판단을 모두 마쳐도 추출이 열리지 않는다(`EXECUTION_NOT_COMPLETED`). 이 상태와 실제 모델 결과·한계는 AI `docs/episode-validation-evaluation.md`와 Front V1 PR에 있다.
 - 캡처는 `docs/screens/gh314/`(1440×900·390×844)이며 `docs/screens/gh300/`의 초안 PNG는 보존한다.
+
+## 오류 리포트 목록과 설정 추출 연결 — 2026-11-04
+
+기존 설정 추출 파이프라인(업로드 → 추출 로딩창 → 분석 목록 → 설정 후보 검토)에 신규 회차 검수(업로드 → 오류 검사 → 오류 리포트 검토 → 설정 추출)가 붙으면서 검수 카드가 분석 목록에 섞이고, 검토 종료 뒤 추출 로딩창으로 가는 길이 없었다(소유자 피드백). 두 파이프라인을 다음 한 줄로 잇는다.
+
+```mermaid
+flowchart LR
+  U["회차 올리기<br/>신규 회차 검수"] --> P["검수 로딩창<br/>/episode-upload?…&validationReportId"]
+  P -->|"오류 리포트 보기"| R["오류 리포트"]
+  L["사이드바 오류 리포트<br/>nav=reports"] --> R
+  R -->|"검토 완료 후 설정 추출"| R2["오류 리포트<br/>설정 추출 중"]
+  R2 -->|"추출 진행 보기"| X["설정 추출 로딩창<br/>fromReportId"]
+  A["분석 목록<br/>nav=analyses"] -->|"설정 추출 카드 · 진행 보기"| X
+  X -->|"오류 리포트로"| R2
+```
+
+- 목록 분리는 서버 `GET /analysis-jobs/batches`의 `kind`로 한다. 분석 목록은 `kind=ANALYSIS`(분석 Job이 있는 배치), 오류 리포트 목록은 `kind=VALIDATION`(현재 검수 report가 있는 배치)이다. 화면에서 걸러 내면 페이지마다 카드 수가 달라지므로 화면 필터로 대신하지 않는다. 사이드바로 두 목록을 오가면 `analysisPage`를 지운다.
+- 분석 목록의 검수 배치는 검토 종료가 만든 `SETTING_EXTRACTION` 그룹의 상태로 `설정 추출 중/실패/취소/완료`를 표시한다(배치 status는 검수 단계를 가리키므로 쓰지 않는다). 진행·실패·취소는 추출 로딩창, 완료는 `reviewStatus=ALL` 설정 후보 검토를 열고 `오류 리포트 보기`를 함께 둔다.
+- 오류 리포트의 `설정 추출 중`·`설정 추출 실패` 안내 오른쪽 버튼은 staging의 `batchId`·`extractionJobId`로 기존 추출 로딩창을 연다. 로딩창은 `fromReportId`가 있으면 `신규 회차 검수 · 설정 추출`로 표시하고 뒤로 가기는 `오류 리포트로`다. 리포트의 뒤로 가기는 진입한 목록 이름(`returnLabel`)을 따르며 기본은 오류 리포트 목록이다.
+- 검수 접수 뒤에는 바로 리포트로 넘기지 않고 설정 추출 로딩창과 같은 구성(스피너·배경 안내·회차 카드·단계 칩)의 검수 로딩창에 머문다. 단계 칩은 `검수 접수 → 기준 준비 → 오류 검사 → 검사 완료`이고 서버 `reviewStage`만으로 고른다. 기준 준비·검사 중에는 staging을 5초마다 다시 읽고, URL에는 `validationReportId`만 남겨 새로고침해도 접수를 다시 보내지 않는다. 검사 중에도 찾은 항목을 읽을 수 있어 `오류 리포트 보기`는 접수 뒤 바로 열리며 검사가 끝나면 `오류 리포트에서 검토하기`로 바뀐다. 접수 실패·거절 안내는 기존 화면을 유지한다.
+
