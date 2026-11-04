@@ -1,12 +1,14 @@
+import { useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import type { EpisodeResponse, ValidationStagingResponse } from '../../../api/generated/types.gen';
 import type { useEpisodeValidationReport } from '../../../hooks/useEpisodeValidationReport';
 import { ReviewNotice } from '../review-ui/ReviewPrimitives';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { useValidationRecheck } from './useValidationRecheck';
 import { EPISODE_VALIDATION_INTAKE_ENABLED, EPISODE_VALIDATION_PAUSED_MESSAGE } from '../../../lib/validation-feature';
-import { formatDateTime, validationReportUrl } from './validation-report-labels';
+import { formatDateTime, validationProgressUrl } from './validation-report-labels';
+import { RECHECK_START_KEY } from './validation-return';
 
 /** 확인창에 보여 줄 변경 요약. 원고 revision이 검사 당시보다 커졌을 때만 원고 교체로 표시한다. */
 function changeSummary(staging: ValidationStagingResponse | undefined, episode: EpisodeResponse | undefined, stage: string | undefined, corrected: boolean) {
@@ -33,13 +35,36 @@ export function ValidationRecheckPanel({ workId, reportId, report, correctionRec
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  // 성공하면 새 report로 주소를 바꾼다. 이전 report는 검사 이력에서 다시 열 수 있다.
+  // 성공하면 업로드 접수와 같은 검수 로딩창으로 바꾼다. 새 결과는 로딩창에서 열고 이전 report는 검사 이력에서 다시 열 수 있다.
   const recheck = useValidationRecheck({
     workId, reportId, report, correctionReceiptId,
-    onRechecked: nextReportId => navigate(validationReportUrl(workId, nextReportId), { replace: true, state: location.state }),
+    onRechecked: nextReportId => navigate(validationProgressUrl(workId, nextReportId), { replace: true, state: location.state }),
   });
   const { staging, summary } = report;
   const stage = summary?.reviewStage ?? staging?.reviewStage;
+  // 원고 교체 안내의 `수정 내용으로 재검수`로 왔으면(recheck=1) 같은 확인·요청 경로로 한 번만 바로 접수한다.
+  // 표시는 시작할 때 지워 실패·새로고침 뒤 다시 보내지 않는다. 서버가 재검수를 허용하지 않으면 표시만 지운다.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const autoStart = EPISODE_VALIDATION_INTAKE_ENABLED && searchParams.get(RECHECK_START_KEY) === '1';
+  const autoSubmit = useRef(false);
+  const { canRecheck, listed, open, pending, openConfirmation, submit } = recheck;
+  const refreshing = report.summaryQuery.isFetching || report.stagingQuery.isFetching;
+  useEffect(() => {
+    if (!autoStart) return;
+    const clear = () => setSearchParams(params => { params.delete(RECHECK_START_KEY); return params; }, { replace: true, state: location.state });
+    // 원고 교체 직후에는 캐시된 이전 상태(재검수 불가)가 먼저 보일 수 있어 다시 읽는 동안에는 판단하지 않는다.
+    if (refreshing) return;
+    if (summary && !listed) { clear(); return; }
+    if (!canRecheck || pending) return;
+    clear();
+    autoSubmit.current = true;
+    if (!open) openConfirmation();
+  }, [autoStart, canRecheck, listed, location.state, open, openConfirmation, pending, refreshing, setSearchParams, summary]);
+  useEffect(() => {
+    if (!open || !autoSubmit.current) return;
+    autoSubmit.current = false;
+    void submit();
+  }, [open, submit]);
   const retryAllowed = summary?.allowedActions?.includes('RETRY') === true;
   const episodeLabel = [report.episode?.episodeNo != null ? `${report.episode.episodeNo}화` : '이 회차', report.episode?.title]
     .filter(Boolean).join(' ');

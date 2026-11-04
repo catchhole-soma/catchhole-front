@@ -123,7 +123,8 @@ test('캐릭터 기준 항목이 하나면 바로 편집을 열고, 저장은 �
   await expect(confirm).toContainText('검사에 쓴 설정을 정정했어요. 정정한 설정을 작가 정정으로 연결해 다시 검사해요.');
   const fingerprint = mock.state.staging.baselineFingerprint;
   await confirm.getByRole('button', { name: '재검수 시작', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`reportId=${RECHECK_REPORT_ID}`));
+  // 재검수 접수 뒤에는 검수 로딩창으로 간다. 주소에는 새 report ID만 남는다.
+  await expect(page).toHaveURL(new RegExp(`/episode-upload\\?workId=${WORK_ID}&validationReportId=${RECHECK_REPORT_ID}$`));
   const [recheck] = mock.requestsTo('/rechecks');
   expect(recheck.body).toMatchObject({ correctionReceiptId: CORRECTION_RECEIPT_ID, expectedBaselineHash: fingerprint });
   // 새 결과로 넘어가면 이전 report의 receipt는 주소에 남지 않는다.

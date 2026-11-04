@@ -218,6 +218,13 @@ export function readCorrectionContext(params: URLSearchParams, reportId: string)
   };
 }
 
+/** 리포트 주소에 붙이면 리포트가 재검수를 한 번 바로 접수하는 표시. 원고 교체를 마친 뒤 한 번 눌러 재검수하기 위함이다. */
+export const RECHECK_START_KEY = 'recheck';
+
+export function withRecheckStart(reportUrl: string): string {
+  return `${reportUrl}${reportUrl.includes('?') ? '&' : '?'}${RECHECK_START_KEY}=1`;
+}
+
 /** 대시보드 URL의 복귀 문맥을 검증해 리포트 주소로 되돌린다. 형식이 맞지 않는 값은 버린다. */
 export function readReportReturn(params: URLSearchParams, workId: string): ReportReturn | null {
   if (params.get('returnTo') !== REPORT_RETURN_VALUE) return null;

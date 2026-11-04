@@ -293,6 +293,11 @@ export const ELIGIBILITY_REASON_COPY: Record<EligibilityReason, string> = {
   COMPARISON_MATERIAL_REQUIRED: '첫 회차 검수에는 설정집이나 직접 입력한 설정 등 비교할 자료가 필요해요.',
 };
 
+/** 접수·재검수 직후의 검수 로딩창. 설정 추출 로딩창과 같은 업로드 화면의 진행 단계이며 report ID만 주소에 남긴다. */
+export function validationProgressUrl(workId: string, reportId: string) {
+  return `/episode-upload?workId=${encodeURIComponent(workId)}&validationReportId=${encodeURIComponent(reportId)}`;
+}
+
 export function validationReportUrl(workId: string, reportId: string, extra = '') {
   return `/episode-validation-report?workId=${encodeURIComponent(workId)}&reportId=${encodeURIComponent(reportId)}${extra}`;
 }
