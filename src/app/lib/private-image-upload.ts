@@ -30,8 +30,8 @@ export async function preparePrivateImage(file: File) {
       if (blob.size > limit) throw new Error('변환한 이미지가 커요. 해상도를 줄인 뒤 다시 올려 주세요.');
       return blob;
     }
-    const image = await png(16384, 5 * 1024 * 1024);
-    const thumbnail = await png(480, 512 * 1024);
+    const image = await png(768, 5 * 1024 * 1024);
+    const thumbnail = await png(350, 512 * 1024);
     return { id: crypto.randomUUID(), name: file.name.slice(0, 180), image, thumbnail };
   } finally { bitmap.close(); }
 }
