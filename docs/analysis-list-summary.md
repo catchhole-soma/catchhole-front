@@ -20,6 +20,10 @@ CATCHHOLE_OPENAPI_INPUT=http://127.0.0.1:28080/v3/api-docs npm run api:generate
 
 설정집 primary action은 대기·진행 시 진행 화면, 중단 시 사유 화면, 완료 후 directReview+processing 합이 양수이면 검토, 0이면 작품 설정, 과거 완료이면 전체 이력이다. 검토는 인물 directReview=0이고 세계관 directReview>0이면 세계관부터 연다. 검토·양쪽 전체 이력은 origin과 실제 batch를 전달하고, 원문은 settingBookId+revisionId로 분석 당시 버전을 연다. 검토 복귀는 현재 분석 목록 URL과 페이지를 보존한다.
 
+## 기록 삭제 (#401)
+
+서버가 `historyDeletable=true`로 준 분석 목록(`kind=ANALYSIS`) 카드에만 보조 버튼 `기록 삭제`를 둔다. 오류 리포트 목록에는 두지 않는다. 누르면 확인창(`{회차} 분석 기록을 삭제할까요?`)이 목록에서만 사라지고 분석 결과·확정 설정은 남으며 다시 분석하면 다시 나타난다고 알리고, `삭제하기`에서 생성 SDK `deleteAnalysisBatchHistory`를 보낸다. 프론트는 삭제 가능 여부를 상태로 추측하지 않으며 409 등 서버 거절 문장은 확인창에 그대로 보이고 카드를 남긴다. 성공·실패 모두 이 작품의 batches Query를 무효화해 원고 목록 위 알림(전체 목록 첫 묶음)도 다시 읽는다.
+
 ## 갱신과 캐시
 
 현재 페이지 배치 또는 설정집 요약이 진행 중일 때만 10초 간격으로 batches를 갱신한다. 설정집의 정규화 PENDING/IN_PROGRESS도 확인하므로 이전 배치에서 최신 origin으로 연결된 카드의 진행 상태를 놓치지 않는다. 완료·중단 목록은 polling하지 않는다.
