@@ -308,3 +308,7 @@
 @media (prefers-reduced-motion: reduce) {
   .user-menu__trigger-avatar { transition: none; }
 }
+/* #401 분석 기록 삭제: 주 행동보다 약한 보조 버튼. 누르면 확인창에서 영향 안내 뒤 삭제한다. */
+.analysis-card-action.analysis-card-action--quiet { border-color: var(--ch-border-strong); background: var(--ch-surface); color: var(--ch-text-muted); }
+.analysis-card-action.analysis-card-action--quiet:hover,
+.analysis-card-action.analysis-card-action--quiet:focus-visible { border-color: var(--ch-danger); color: var(--ch-danger-ink); }
