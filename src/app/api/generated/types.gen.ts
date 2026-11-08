@@ -5143,7 +5143,7 @@ export type CommonResponseChatContextV1 = {
 };
 
 /**
- * 실행에 고정된 범위에서 최대 12개 검색 인용을 검증합니다. 인용은 각각 4000 code point 이하입니다.
+ * 실행에 고정된 범위에서 최대 60개 검색 인용을 검증합니다. 인용은 각각 4000 code point 이하입니다.
  */
 export type ChatRetrievalSourcesRequestV1 = {
     sources: Array<ChatRetrievalReferenceV1>;
@@ -8700,15 +8700,15 @@ export type CommonResponseValidationFindingDetailResponse = {
 };
 
 /**
- * #314 B2. 정정 요청에 그대로 옮기는 고정 기준 항목. entryRef→entryRef, entryHash→expectedEntryHash, targetId→character/worldSetting.targetId, currentVersion→expectedSnapshotVersion(캐릭터)·expectedVersion(세계관)입니다. baselineId·expectedBaselineRevision·expectedBaselineHash·expectedReportVersion은 GET /{reportId}의 baselineId·baselineRevision·baselineHash·reportVersion을 씁니다.
+ * #314 B2. 정정 요청에 그대로 옮기는 기준 항목(#381 이후 report는 finding에 저장한 대표 대상·근거 문장 대상의 지금 확정 설정 행). entryRef→entryRef, entryHash→expectedEntryHash, targetId→character/worldSetting.targetId, currentVersion→expectedSnapshotVersion(캐릭터)·expectedVersion(세계관)입니다. baselineId·expectedBaselineRevision·expectedBaselineHash·expectedReportVersion은 GET /{reportId}의 baselineId·baselineRevision·baselineHash·reportVersion을 씁니다.
  */
 export type ValidationFindingBasis = {
     /**
-     * 고정 기준 항목 참조
+     * 기준 항목 참조. #381 이후 report는 지금 확정 설정 색인의 참조
      */
     entryRef?: string;
     /**
-     * 고정 기준 항목 자체의 hash(정정 요청 expectedEntryHash)
+     * 기준 항목 행 자체의 hash(정정 요청 expectedEntryHash). #381 이후 report는 지금 행의 hash
      */
     entryHash?: string;
     /**
@@ -8720,7 +8720,7 @@ export type ValidationFindingBasis = {
      */
     targetId?: string;
     /**
-     * 고정 기준 당시 대상 이름
+     * 대상 이름(legacy report는 고정 기준 당시, #381 이후 report는 지금 이름)
      */
     subjectName?: string;
     /**
@@ -8740,13 +8740,13 @@ export type ValidationFindingBasis = {
      */
     settingName?: string | null;
     /**
-     * 고정 기준 당시 캐릭터 snapshotVersion 또는 세계관 version. 저장되지 않은 legacy 항목은 null
+     * 캐릭터 snapshotVersion 또는 세계관 version(legacy report는 고정 기준 당시, #381 이후 report는 id로 읽은 지금 값). 저장되지 않은 legacy 항목은 null
      */
     currentVersion?: number | null;
 };
 
 /**
- * 판정이 근거로 그대로 옮긴 문장. 저장 설정값은 고정 기준 행의 값, 원문은 서버가 hash 확인한 원문과 대조한 인용입니다.
+ * 판정이 근거로 그대로 옮긴 문장. 저장 설정값은 판정이 읽은 설정 행의 값, 원문은 서버가 hash 확인한 원문과 대조한 인용입니다.
  */
 export type ValidationFindingBasisQuote = {
     /**
@@ -10320,6 +10320,10 @@ export type AnalysisBatchSummaryResponse = {
      * 설정 추출 전 오류 검수 요청. Job 수에 포함하지 않습니다.
      */
     validationReports?: Array<ValidationRequestSummaryResponse>;
+    /**
+     * 분석 기록 삭제 가능 여부. 진행·대기 중인 작업, 검토 대기 후보, 재개할 순차 분석·설정집, 끝나지 않은 검수가 있으면 false입니다. 삭제는 목록에서만 숨기며 분석 결과와 확정 설정은 유지합니다.
+     */
+    historyDeletable?: boolean;
 };
 
 /**
@@ -12641,7 +12645,7 @@ export type ApplyValidationSettingsErrors = {
      */
     404: CommonResponseValidationSettingsApplicationResponse;
     /**
-     * 추출·비교 진행 중(VALIDATION_APPLICATION_NOT_READY), 검토 종료 전이거나 현재 검수 아님, report version 충돌, 같은 키 다른 입력
+     * 추출·비교 진행 중(VALIDATION_APPLICATION_NOT_READY), 반영할 수 있지만 다른 회차 검수가 확정 설정을 잠금(VALIDATION_SETTINGS_LOCKED) 또는 같은 작품의 순차 분석이 진행·재개 대기 중(ANALYSIS_REVIEW_WAIT_REQUIRED, 아무것도 바꾸지 않음), 검토 종료 전이거나 현재 검수 아님, report version 충돌, 같은 키 다른 입력
      */
     409: CommonResponseValidationSettingsApplicationResponse;
 };
@@ -18432,6 +18436,42 @@ export type DeletePrivateWorldImageResponses = {
 };
 
 export type DeletePrivateWorldImageResponse = DeletePrivateWorldImageResponses[keyof DeletePrivateWorldImageResponses];
+
+export type DeleteAnalysisBatchHistoryData = {
+    body?: never;
+    path: {
+        workId: string;
+        batchId: string;
+    };
+    query?: never;
+    url: '/api/v1/works/{workId}/analysis-jobs/batches/{batchId}';
+};
+
+export type DeleteAnalysisBatchHistoryErrors = {
+    /**
+     * 액세스 토큰 없음, 만료 또는 검증 실패
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 업로드 배치를 찾을 수 없음
+     */
+    404: CommonErrorResponse;
+    /**
+     * 진행 중이거나 검토·재개가 남은 기록(ANALYSIS_HISTORY_DELETE_NOT_ALLOWED)
+     */
+    409: CommonErrorResponse;
+};
+
+export type DeleteAnalysisBatchHistoryError = DeleteAnalysisBatchHistoryErrors[keyof DeleteAnalysisBatchHistoryErrors];
+
+export type DeleteAnalysisBatchHistoryResponses = {
+    /**
+     * 분석 기록 삭제 성공
+     */
+    200: CommonResponseVoid;
+};
+
+export type DeleteAnalysisBatchHistoryResponse = DeleteAnalysisBatchHistoryResponses[keyof DeleteAnalysisBatchHistoryResponses];
 
 export type WithdrawMeData = {
     body: MemberWithdrawalCreateRequest;
