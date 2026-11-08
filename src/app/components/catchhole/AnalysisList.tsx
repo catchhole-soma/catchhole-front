@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router';
 import {
   AlertCircle,
@@ -10,7 +10,11 @@ import {
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
-import { getAnalysisBatchesOptions, getAnalysisBatchesQueryKey } from '../../api/generated/@tanstack/react-query.gen';
+import {
+  deleteAnalysisBatchHistoryMutation,
+  getAnalysisBatchesOptions,
+  getAnalysisBatchesQueryKey,
+} from '../../api/generated/@tanstack/react-query.gen';
 import type {
   AnalysisBatchJobGroupResponse,
   AnalysisBatchSummaryResponse,
@@ -25,6 +29,8 @@ import { PageHeading } from './ui-v2/PageHeading';
 import { AnalysisListBookCard } from './AnalysisListBookCard';
 import { invalidateAppliedSettings } from '../../lib/analysis-source';
 import { AnalysisCard, CandidateReviewCount } from './AnalysisCard';
+import { AnalysisHistoryDeleteModal } from './AnalysisHistoryDeleteModal';
+import { toApiError } from '../../lib/api-errors';
 import {
   ACTIVE_VALIDATION_STAGES,
   VALIDATION_STAGE_SUMMARY,
@@ -235,7 +241,7 @@ function extractionPhase(status?: AnalysisBatchJobGroupResponse['status']): Extr
  * 검토를 마친 검수 회차의 설정 추출 카드(분석 목록). 검수 배치 status는 검수 단계를 가리키므로
  * 검토 종료가 만든 추출 Job 그룹의 상태로 진행·실패·완료를 고른다.
  */
-function ValidationExtractionCard({ batch, validation, reportId, group, onOpenReport, onOpenProgress, onOpenResults }: {
+function ValidationExtractionCard({ batch, validation, reportId, group, onOpenReport, onOpenProgress, onOpenResults, deleteAction }: {
   batch: AnalysisBatchSummaryResponse;
   validation: ValidationRequest;
   reportId: string;
@@ -243,6 +249,7 @@ function ValidationExtractionCard({ batch, validation, reportId, group, onOpenRe
   onOpenReport: (reportId: string) => void;
   onOpenProgress: (group: AnalysisBatchJobGroupResponse) => void;
   onOpenResults: () => void;
+  deleteAction?: ReactNode;
 }) {
   const phase = extractionPhase(group.status);
   const view = EXTRACTION_VIEW[phase];
@@ -258,6 +265,7 @@ function ValidationExtractionCard({ batch, validation, reportId, group, onOpenRe
       description={view.description}
       activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
       actions={<>
+        {deleteAction}
         <button type="button" className="analysis-card-action analysis-tone--primary" onClick={() => onOpenReport(reportId)}>
           오류 리포트 보기
         </button>
@@ -367,6 +375,10 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
   });
   const pageData = analysisQuery.data?.data;
   const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
+  const [historyDeleteTarget, setHistoryDeleteTarget] = useState<AnalysisBatchSummaryResponse | null>(null);
+  const [historyDeleteError, setHistoryDeleteError] = useState<string | null>(null);
+  const historyDeleteTrigger = useRef<HTMLElement | null>(null);
+  const historyDeleteRequest = useMutation(deleteAnalysisBatchHistoryMutation());
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
 
@@ -480,6 +492,41 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
     );
   };
 
+  const closeHistoryDelete = () => {
+    if (historyDeleteRequest.isPending) return;
+    setHistoryDeleteTarget(null);
+    setHistoryDeleteError(null);
+  };
+
+  const deleteHistory = async () => {
+    const batchId = historyDeleteTarget?.batchId;
+    if (!batchId || historyDeleteRequest.isPending) return;
+    setHistoryDeleteError(null);
+    try {
+      await historyDeleteRequest.mutateAsync({ path: { workId, batchId } });
+      setHistoryDeleteTarget(null);
+    } catch (error) {
+      setHistoryDeleteError(toApiError(error)?.message ?? '분석 기록을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      // 원고 목록 위 알림도 같은 배치 요약(전체 목록 첫 묶음)을 읽으므로 이 작품의 모든 목록을 다시 받는다.
+      void queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: { workId } }) });
+    }
+  };
+
+  /** 서버가 삭제할 수 있다고 한 분석 목록 카드에만 둔다. 오류 리포트 목록에서는 제공하지 않는다. */
+  const historyDeleteAction = (batch: AnalysisBatchSummaryResponse) => (
+    kind === 'ANALYSIS' && batch.historyDeletable === true && batch.batchId ? (
+      <button type="button" className="analysis-card-action analysis-card-action--quiet"
+        onClick={event => {
+          historyDeleteTrigger.current = event.currentTarget;
+          setHistoryDeleteError(null);
+          setHistoryDeleteTarget(batch);
+        }}>
+        기록 삭제
+      </button>
+    ) : null
+  );
+
   return (
     <div className="analysis-list-page">
       <PageHeading eyebrow={copy.eyebrow} title={copy.title} description={copy.description} />
@@ -545,7 +592,7 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
               if (!extractionGroup) return <div key={batch.batchId}>{bookCards}</div>;
               return <div key={batch.batchId}><ValidationExtractionCard batch={batch} validation={validation} reportId={validation.reportId}
                 group={extractionGroup} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)}
-                onOpenResults={() => openReview(batch, true)} />{bookCards}</div>;
+                onOpenResults={() => openReview(batch, true)} deleteAction={historyDeleteAction(batch)} />{bookCards}</div>;
             }
             if (batch.episodeStatus == null) return <div key={batch.batchId}>{bookCards}</div>;
             const status = batch.episodeStatus;
@@ -588,7 +635,8 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
                   ? ` · ${characterPendingCount + worldSettingPendingCount}개 확인 가능` : ''}</>}
                 description={view.description}
                 activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
-                actions={
+                actions={<>
+                  {historyDeleteAction(batch)}
                   <button type="button" disabled={!actionEnabled}
                     onClick={() => {
                       if (opensReview) openReview(batch);
@@ -597,7 +645,7 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
                     className={`analysis-card-action analysis-tone--${opensReview ? 'primary' : view.tone}`}>
                     {actionLabel(status, prioritizesTokenInterruption ? tokenInterruptedCount : 0)}
                   </button>
-                }
+                </>}
               >
                     <div className="analysis-batch-card__groups">
                       {(batch.episodeJobGroups ?? []).map(group => (
@@ -640,6 +688,16 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
             />
           </div>
         </div>
+      )}
+      {historyDeleteTarget && (
+        <AnalysisHistoryDeleteModal
+          label={episodeRange(historyDeleteTarget)}
+          submitting={historyDeleteRequest.isPending}
+          errorMessage={historyDeleteError}
+          returnFocusTo={historyDeleteTrigger.current}
+          onClose={closeHistoryDelete}
+          onDelete={() => void deleteHistory()}
+        />
       )}
     </div>
   );
