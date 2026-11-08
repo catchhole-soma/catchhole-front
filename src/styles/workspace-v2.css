@@ -312,3 +312,17 @@
 .analysis-card-action.analysis-card-action--quiet { border-color: var(--ch-border-strong); background: var(--ch-surface); color: var(--ch-text-muted); }
 .analysis-card-action.analysis-card-action--quiet:hover,
 .analysis-card-action.analysis-card-action--quiet:focus-visible { border-color: var(--ch-danger); color: var(--ch-danger-ink); }
+/* #401 기록 삭제 확인창. 밝은 표면이라 글자는 --ch-ink, 삭제 버튼은 --ch-danger-ink 위 흰 글자로 4.5:1 이상을 지킨다. */
+.analysis-history-delete-backdrop { position: fixed; inset: 0; z-index: 310; background: rgb(4 4 8 / 65%); }
+.analysis-history-delete { position: fixed; top: 50%; left: 50%; z-index: 311; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow: auto; padding: 22px; border: 1px solid var(--ch-border); border-radius: var(--ch-radius-md); background: var(--ch-surface); color: var(--ch-ink); box-shadow: var(--ch-shadow-float); transform: translate(-50%, -50%); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.analysis-history-delete__header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.analysis-history-delete__icon { display: flex; width: 36px; height: 36px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 10px; background: rgb(223 77 95 / 10%); color: var(--ch-danger-ink); }
+.analysis-history-delete__title { margin: 0; color: var(--ch-ink); font-size: 16px; font-weight: 750; }
+.analysis-history-delete__body p { margin: 0 0 8px; color: var(--ch-text-muted); }
+.analysis-history-delete__error { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 11px; border-radius: 8px; background: rgb(223 77 95 / 8%); color: var(--ch-danger-ink); font-size: 12px; }
+.analysis-history-delete__error svg { flex-shrink: 0; margin-top: 3px; }
+.analysis-history-delete__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.analysis-history-delete__actions button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.analysis-history-delete__cancel { border: 1px solid var(--ch-border-strong); background: var(--ch-surface); color: var(--ch-ink); }
+.analysis-history-delete__confirm { border: 1px solid var(--ch-danger-ink); background: var(--ch-danger-ink); color: #fff; }
+.analysis-history-delete__actions button:disabled { opacity: .55; cursor: default; }

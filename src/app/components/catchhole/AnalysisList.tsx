@@ -377,6 +377,7 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
   const batches = useMemo(() => pageData?.content ?? [], [pageData?.content]);
   const [historyDeleteTarget, setHistoryDeleteTarget] = useState<AnalysisBatchSummaryResponse | null>(null);
   const [historyDeleteError, setHistoryDeleteError] = useState<string | null>(null);
+  const historyDeleteTrigger = useRef<HTMLElement | null>(null);
   const historyDeleteRequest = useMutation(deleteAnalysisBatchHistoryMutation());
   const totalPages = Math.max(1, pageData?.totalPages ?? 1);
   const hasPageData = pageData !== undefined;
@@ -516,7 +517,11 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
   const historyDeleteAction = (batch: AnalysisBatchSummaryResponse) => (
     kind === 'ANALYSIS' && batch.historyDeletable === true && batch.batchId ? (
       <button type="button" className="analysis-card-action analysis-card-action--quiet"
-        onClick={() => { setHistoryDeleteError(null); setHistoryDeleteTarget(batch); }}>
+        onClick={event => {
+          historyDeleteTrigger.current = event.currentTarget;
+          setHistoryDeleteError(null);
+          setHistoryDeleteTarget(batch);
+        }}>
         기록 삭제
       </button>
     ) : null
@@ -689,6 +694,7 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
           label={episodeRange(historyDeleteTarget)}
           submitting={historyDeleteRequest.isPending}
           errorMessage={historyDeleteError}
+          returnFocusTo={historyDeleteTrigger.current}
           onClose={closeHistoryDelete}
           onDelete={() => void deleteHistory()}
         />
