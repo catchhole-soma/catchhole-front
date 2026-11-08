@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('새 이미지 준비는 코드 없이 PNG와 썸네일을 만들고 잘못된 파일을 거절한다', async ({ page }) => {
+test('새 이미지 준비는 원본과 썸네일을 축소하고 잘못된 파일을 거절한다', async ({ page }) => {
   await page.goto('/login');
   const result = await page.evaluate(async () => {
     const path = '/src/app/lib/private-image-upload.ts';
@@ -13,16 +13,27 @@ test('새 이미지 준비는 코드 없이 PNG와 썸네일을 만들고 잘못
     atLimit.set(new Uint8Array(await jpeg.arrayBuffer()));
     const accepted = await preparePrivateImage(new File([atLimit], '한도.jpg', { type: 'image/jpeg' }));
     const overLimit = new Uint8Array(atLimit.length + 1); overLimit.set(atLimit);
+    const image = await createImageBitmap(prepared.image);
     const thumbnail = await createImageBitmap(prepared.thumbnail);
+    canvas.width = 2; canvas.height = 3;
+    const smallPng = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
+    const small = await preparePrivateImage(new File([smallPng], '투명.png', { type: 'image/png' }));
+    const smallImage = await createImageBitmap(small.image);
+    const context = canvas.getContext('2d')!;
+    context.drawImage(smallImage, 0, 0);
     async function rejected(file: File) { try { await preparePrivateImage(file); return false; } catch { return true; } }
-    const result = { limitAccepted: accepted.image.type === 'image/png', name: prepared.name, type: prepared.image.type, width: thumbnail.width, height: thumbnail.height,
+    const result = { limitAccepted: accepted.image.type === 'image/png', name: prepared.name, type: prepared.image.type,
+      imageSize: [image.width, image.height], thumbnailSize: [thumbnail.width, thumbnail.height],
+      smallSize: [smallImage.width, smallImage.height], smallAlpha: context.getImageData(0, 0, 1, 1).data[3],
       signature: Array.from(new Uint8Array(await prepared.image.arrayBuffer()).slice(0, 8)),
       noKey: !('vaultId' in prepared) && !('encryptedMetadata' in prepared),
       svg: await rejected(new File(['<svg/>'], 'image.png', { type: 'image/png' })),
       empty: await rejected(new File([], 'empty.png')), oversized: await rejected(new File([overLimit], 'large.jpg', { type: 'image/jpeg' })) };
-    thumbnail.close(); return result;
+    image.close(); thumbnail.close(); smallImage.close();
+    return result;
   });
-  expect(result).toEqual({ limitAccepted: true, name: '고블린.jpg', type: 'image/png', width: 480, height: 360,
+  expect(result).toEqual({ limitAccepted: true, name: '고블린.jpg', type: 'image/png',
+    imageSize: [768, 576], thumbnailSize: [350, 263], smallSize: [2, 3], smallAlpha: 0,
     signature: [137, 80, 78, 71, 13, 10, 26, 10], noKey: true, svg: true, empty: true, oversized: true });
 });
 
@@ -36,6 +47,7 @@ test('계정 변경은 이전 세션의 이미지와 목록을 숨기고 기존 
   });
   await expect(page.getByText('이미지를 다시 올려 주세요', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '이전 방식으로 보관한 이미지: 원본을 다시 올린 뒤 선택할 수 있어요' })).toBeDisabled();
+  await expect(page.getByText('PNG · JPG · WebP, 최대 5MB · 작품당 200개', { exact: true })).toBeVisible();
   await expect(page.getByLabel('내 이미지 파일 선택')).toBeAttached();
   await expect(page.getByLabel('보관용 코드', { exact: true })).toHaveCount(0);
   await page.route('**/api/v1/works/fixture/private-world-images*', route => route.fulfill({ status: 404,
