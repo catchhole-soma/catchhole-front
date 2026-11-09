@@ -219,7 +219,7 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - 공용 이미지 URL은 등록된 SHA의 `/api/v1/world-image-assets/*.webp`만 API base에 연결한다. 없거나 읽기 실패한 공용 이미지는 현재 테마 기본 그림을 거쳐 번들 중립 기본 이미지로 복귀한다. `/demo`는 도감 API를 호출하지 않으며 번들 이미지와 기존 읽기 전용 안내를 사용한다.
 - 개인 이미지(`source: PRIVATE`)는 `docs/private-world-images.md`를 따른다. 새 업로드는 코드 없이 로그인·작품 소유권으로 접근한다. 인증 SDK로 PNG를 받고 세션별 Query와 Blob URL을 사용하며 로그아웃/계정 변경/언마운트에 이전 이미지를 제거한다. 이전 CHI1 행은 보존하고 원본 재업로드·교체를 안내한다. 새 흐름에 보관함 생성·복호화 코드를 추가하지 않는다. 원고 보호 방식 변경은 보류다.
 
-- 캐릭터 카드도 `image` 응답을 사용하며 177px 높이에 좌측 이미지·이름·첫 등장 회차만 표시한다. 종족 도감과 같은 작품의 개인 보관함을 재사용하고 외형 정보가 없으면 번들 공통 그림을 사용한다. `modal=char-detail&mode=image`에서 직접 선택·공통 기본 고정·자동 연결 복귀를 구분한다. 계약과 검증은 `docs/character-images.md`를 따른다.
+- 캐릭터 카드도 `image` 응답을 사용하며 177px 높이에 좌측 이미지·이름·첫 등장 회차·서버가 제공한 누적 기록 수를 표시한다. 종족 도감과 같은 작품의 개인 보관함을 재사용하고 외형 정보가 없으면 번들 공통 그림을 사용한다. `modal=char-detail&mode=image`에서 직접 선택·공통 기본 고정·자동 연결 복귀를 구분한다. 계약과 검증은 `docs/character-images.md`를 따른다.
 
 - GH194 장르별 초기 8장·기본 7장은 작품 소유권을 검증한 `world-image-theme` API로 조회한다. 추천은 `workId`/`recommended`로 필터링하고 전체 도감에서는 타 장르도 선택할 수 있다. 로맨스·코미디·일상·기타는 modern-common을 공유한다. 작품 수정은 관련 Query를 무효화하되 수동/개인 선택을 재저장하지 않는다. 자세한 계약은 `docs/world-image-themes.md`를 따른다.
 
@@ -274,3 +274,9 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 ## GH349 오류 리포트 접수 플래그
 
 - 오류 리포트(신규 회차 검수)의 접수·중단 검사 재시도·재검수 진입점은 기본 OFF다. 빌드 시 `VITE_EPISODE_VALIDATION_INTAKE_ENABLED`가 정확히 문자열 `true`일 때만 켜며 미설정·그 외 값은 OFF다. 2026-10-31 운영 30회차 작품 검수가 질문 65개·판정 130회 규모로 끝까지 돌지 못해(Java #349·#354) 로컬에서 운영 규모 검증을 마칠 때까지 막아 둔다. OFF에서는 업로드의 `신규 회차 검수` 선택과 리포트의 `중단된 검사 다시 시도`·`수정 내용으로 재검수`를 숨기고 점검 안내만 보여 주며, 기존 리포트 보기·분석 목록 카드·설정 정정 화면은 그대로다. UI 플래그는 Backend `VALIDATION_EXECUTION_ENABLED`·내부 API·권한 검증을 대신하지 않는다.
+
+## GH410 캐릭터 목록 검색과 누적 기록순
+
+- `recordCount`는 서버가 집계한 현재·과거 Fact 수다. FE는 전체 인물·상세 설정·이력을 가져와 개수를 계산하거나 정렬하지 않는다. 서버가 누적 수 DESC, ID DESC로 페이지를 반환한다.
+- 이름·확정 별칭 검색은 기존 `getCharacters.query`를 사용한다. 입력 300ms 디바운스와 한글 조합 종료를 적용하고 검색 변경 시 페이지를 초기화한다. URL의 `characterQuery`, `characterOffset`으로 새로고침·뒤로가기·상세 닫기 상태를 복원하며 요청 크기는 24 이하를 유지한다.
+- 기록 수가 없는 구응답/공개 데모에서는 숫자를 추정하지 않는다. 별칭은 서버의 확정 연결 출처에 한한다. Backend GH410/V121을 먼저 배포해야 전체 검색·정렬이 적용된다.
