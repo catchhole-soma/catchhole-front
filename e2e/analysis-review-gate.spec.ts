@@ -72,7 +72,7 @@ test('직접 검토 후보는 다음 회차 저장·분석 전에 막고 종료 
   const dialog = page.getByRole('dialog', { name: '이전 회차의 직접 검토를 마쳐 주세요' });
   await expect(dialog).toContainText('7개 후보');
   await expect(dialog).toContainText('반영하거나 제외');
-  await expect(dialog.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '설정 후보 종료 후 계속 분석' })).toHaveCount(0);
   expect(state.checks).toEqual([[11]]); expect(state.uploads).toBe(0); expect(state.creates).toHaveLength(0);
   await dialog.getByRole('button', { name: '취소', exact: true }).click();
   expect(await page.locator('input[type=file]').first().evaluate((input: HTMLInputElement) => input.files?.length)).toBe(1);
@@ -84,7 +84,7 @@ test('앞 회차가 진행 중이면 아직 후보가 없어도 다음 회차를
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
   const dialog = page.getByRole('dialog', { name: '이전 회차 분석이 진행 중입니다' });
   await expect(dialog).toContainText('완료 후 설정 검토를 마치고');
-  await expect(dialog.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '설정 후보 종료 후 계속 분석' })).toHaveCount(0);
   expect(state.uploads).toBe(0); expect(state.creates).toHaveLength(0);
 });
 
@@ -93,13 +93,14 @@ test('애매 후보 취소는 변경하지 않고 명시적인 계속에만 확�
   await prepare(page);
   const start = page.getByRole('button', { name: '다음 — 분석 시작' });
   await start.click();
-  const dialog = page.getByRole('dialog', { name: '미확정 후보를 남기지 않고 계속할까요?' });
+  const dialog = page.getByRole('dialog', { name: '미확정 설정 후보를 종료하고 계속할까요?' });
   await expect(dialog).toContainText('정확도가 낮아질 수 있습니다');
-  await expect(dialog).toContainText('캐릭터 2개 · 세계관 1개 · 관계 3개');
+  await expect(dialog).toContainText('캐릭터 2개 · 세계관 1개');
+  await expect(dialog).toContainText('보류된 관계 3건은 관계도에 표시되지 않으며, 종료하지 않고 다음 회차 분석에 참고합니다.');
   await dialog.getByRole('button', { name: '취소', exact: true }).click();
   expect(state.uploads).toBe(0); expect(state.creates).toHaveLength(0);
   await start.click();
-  await dialog.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' }).click();
+  await dialog.getByRole('button', { name: '설정 후보 종료 후 계속 분석' }).click();
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.uploads).toBe(1);
   expect(state.creates[0]).toMatchObject({ closeAmbiguousCandidates: true, reviewGateRevision: 'review-A', reviewMode: 'AUTOMATIC' });
@@ -109,7 +110,7 @@ test('저장 후 후보가 바뀌면 새 경고를 확인하고 같은 batch만 
   const state = await setup(page); state.conflictOnce = true;
   await prepare(page);
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-  const continueButton = page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' });
+  const continueButton = page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' });
   await continueButton.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('현재 내용을 다시 확인');
@@ -126,13 +127,13 @@ test('저장 뒤 재동의를 취소하고 새로고침해도 원고를 다시 �
   const state = await setup(page); state.conflictOnce = true;
   await prepare(page);
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-  await page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' }).click();
+  await page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' }).click();
   await expect(page.getByRole('dialog')).toContainText('현재 내용을 다시 확인');
   await page.getByRole('dialog').getByRole('button', { name: '취소', exact: true }).click();
   await page.reload();
   await expect(page.getByText('다시 업로드할 필요는 없습니다.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
-  await page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' }).click();
+  await page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' }).click();
   await expect.poll(() => state.creates.length).toBe(2);
   expect(state.uploads).toBe(1);
 });
@@ -152,7 +153,7 @@ test('저장된 묶음 재진입 직후 시작하면 회차 목록을 기다린 
   await expect.poll(() => listRequested).toBe(true);
   expect(state.checks).toHaveLength(0); expect(state.creates).toHaveLength(0);
   release();
-  await expect(page.getByRole('dialog', { name: '미확정 후보를 남기지 않고 계속할까요?' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '미확정 설정 후보를 종료하고 계속할까요?' })).toBeVisible();
   expect(state.checks).toEqual([[11]]);
   expect(state.uploads).toBe(1);
 });
@@ -161,7 +162,7 @@ test('다회차 요청은 범위를 한 번 확인하고 동의도 한 번만 �
   const state = await setup(page);
   await prepare(page, true);
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-  await page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' }).click();
+  await page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' }).click();
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.checks).toEqual([[11, 12]]);
   expect(state.creates[0]).toMatchObject({ analysisMode: 'ORDERED_PROVISIONAL', reviewMode: 'AUTOMATIC' });
@@ -171,6 +172,19 @@ test('확인할 후보가 없으면 종료 동의 필드를 만들지 않는다'
   const state = await setup(page, clearAnalysisStartCheck);
   await prepare(page);
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+  await expect.poll(() => state.creates.length).toBe(1);
+  expect(state.creates[0]).not.toHaveProperty('closeAmbiguousCandidates');
+  expect(state.creates[0]).not.toHaveProperty('reviewGateRevision');
+});
+
+test('관계 보류만 남으면 안내 후 종료 동의 없이 분석하고 다음 회차 참고를 유지한다', async ({ page }) => {
+  const state = await setup(page, { ...clearAnalysisStartCheck, ambiguousRelationshipCount: 3 });
+  await prepare(page);
+  await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+  const dialog = page.getByRole('dialog', { name: '보류된 관계를 참고하고 계속할까요?' });
+  await expect(dialog).toContainText('관계도에 표시되지 않습니다');
+  await expect(dialog).toContainText('종료하지 않고 다음 회차의 관계 분석에 참고합니다');
+  await dialog.getByRole('button', { name: '계속 분석', exact: true }).click();
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.creates[0]).not.toHaveProperty('closeAmbiguousCandidates');
   expect(state.creates[0]).not.toHaveProperty('reviewGateRevision');
@@ -191,7 +205,7 @@ test('기술 오류를 미확정 후보 종료로 자동 재시도하지 않는�
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
   await expect(page.getByText('원고와 기존 분석 기록이 저장되어 있습니다.', { exact: false })).toBeVisible();
   expect(state.checks).toHaveLength(1); expect(state.creates).toHaveLength(1);
-  await expect(page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' })).toHaveCount(0);
 });
 
 test('새 회차 직접 검토 선택과 이전 회차 후보의 분류를 혼동하지 않는다', async ({ page }) => {
@@ -199,7 +213,7 @@ test('새 회차 직접 검토 선택과 이전 회차 후보의 분류를 혼�
   await prepare(page);
   await page.getByRole('radio', { name: /모든 설정 직접 검토/ }).check();
   await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-  await page.getByRole('button', { name: '애매한 후보 종료 후 계속 분석' }).click();
+  await page.getByRole('button', { name: '설정 후보 종료 후 계속 분석' }).click();
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.creates[0]).toMatchObject({ reviewMode: 'MANUAL', closeAmbiguousCandidates: true, reviewGateRevision: 'review-A' });
   expect(state.creates[0]).not.toHaveProperty('analysisMode');
@@ -216,7 +230,7 @@ test('이전 결과 확인으로 이동하면 동의나 분석 요청을 남기�
 
 for (const scenario of [
   { name: '직접 검토 차단', gate: { ...clearAnalysisStartCheck, manualReviewCount: 2 }, title: '이전 회차의 직접 검토를 마쳐 주세요' },
-  { name: '애매 후보 경고', gate: ambiguous, title: '미확정 후보를 남기지 않고 계속할까요?' },
+  { name: '애매 후보 경고', gate: ambiguous, title: '미확정 설정 후보를 종료하고 계속할까요?' },
 ]) {
   test(`원고 목록 재분석의 ${scenario.name}에서 결과를 확인하면 이전 확인창을 닫는다`, async ({ page }) => {
     const state = await setup(page, scenario.gate);
