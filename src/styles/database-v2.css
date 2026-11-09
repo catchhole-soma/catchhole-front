@@ -156,14 +156,20 @@
 
 /* Character list */
 .database-v2 .character-database { margin: 0 auto; }
-.database-v2 .character-database-header { margin-bottom: 24px !important; }
+.database-v2 .character-database-header {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 360px) auto;
+  grid-template-areas: "heading search archive"; align-items: center; gap: 12px 20px;
+  margin-bottom: 16px !important;
+}
+.database-v2 .character-database-heading { grid-area: heading; }
+.database-v2 .character-database-header .character-archive-action { grid-area: archive; width: auto; }
+.database-v2 .character-database-header .character-archive-action .database-button { width: auto; min-height: 44px !important; }
 .database-v2 .character-database-heading h2 {
   color: var(--ch-ink) !important;
   font-size: 22px !important;
   font-weight: 820 !important;
   letter-spacing: -.035em;
 }
-.database-v2 .character-database-heading p { color: var(--ch-text-muted) !important; line-height: 1.6; }
 .database-v2 .character-database-grid { gap: 16px !important; }
 
 .database-v2 .character-card {
@@ -1115,13 +1121,16 @@
 }
 
 /* GH410: 목록의 이름/별칭 검색과 서버 누적 기록 정렬 */
-.character-directory-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-.character-directory-search { display: flex; align-items: center; gap: 10px; width: min(100%, 440px); min-width: 0; min-height: 44px; box-sizing: border-box; padding-left: 12px; border: 1px solid var(--ch-border-strong, #a3adb9); border-radius: 8px; color: var(--ch-ink-secondary, #526070); background: var(--ch-surface, white); }
+.character-directory-search { grid-area: search; display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding-left: 12px; border: 1px solid var(--ch-border-strong, #a3adb9); border-radius: 8px; color: var(--ch-ink-secondary, #526070); background: var(--ch-surface, white); }
 .character-directory-search:focus-within { outline: 2px solid var(--ch-primary, #125de6); outline-offset: 2px; }
 .character-directory-search input { min-width: 0; flex: 1; height: 44px; border: 0; outline: 0; background: transparent; color: var(--ch-ink, #172b4d); font: inherit; font-size: 14px; }
 .character-directory-search input:focus { box-shadow: none; }
 .character-directory-search input::placeholder { color: var(--ch-ink-secondary, #526070); }
 .character-directory-search button { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border: 0; background: transparent; color: inherit; cursor: pointer; }
-.character-card__records { font-size: 12px; line-height: 1.5; color: var(--ch-ink-secondary, #526070); }
-.character-card__records { display: block; }
-@media (max-width: 650px) { .character-directory-tools { gap: 8px; } .character-directory-search { width: 100%; } }
+@media (max-width: 760px) {
+  .database-v2 .character-database-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "heading archive" "search search";
+    align-items: center !important; gap: 12px;
+  }
+}

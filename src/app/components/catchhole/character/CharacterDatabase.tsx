@@ -589,7 +589,6 @@ function CharacterCard({
         <strong className="character-card__name">{character.name || '이름 없음'}</strong>
         <span className="character-card__appearance">{character.firstAppearanceEpisodeNo == null
           ? '첫 등장 회차 미확인' : `첫 등장 ${character.firstAppearanceEpisodeNo}화`}</span>
-        {character.recordCount != null && <span className="character-card__records">누적 기록 {character.recordCount.toLocaleString('ko-KR')}건</span>}
       </span>
       <ChevronRight className="character-card__arrow" size={17} aria-hidden="true" />
     </button>
@@ -1688,19 +1687,10 @@ export function CharacterDatabase({
       )}
 
       {!detailOnly && <div ref={containerRef} className="character-database" style={{ width: '100%', maxWidth: 1680 }}>
-        <div className="character-database-header" style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div className="character-database-header">
           <div className="character-database-heading">
-            <h2 style={{ color: C.t1, fontSize: 19, margin: '0 0 7px' }}>캐릭터 설정</h2>
-            <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>
-              캐릭터 카드를 선택하면 현재 설정과 원문 근거를 확인할 수 있습니다.
-            </p>
+            <h2 style={{ color: C.t1, fontSize: 19, margin: 0 }}>캐릭터 설정</h2>
           </div>
-          <div className="character-archive-action">
-            <ModalButton onClick={onArchiveOpen}><Archive size={14} /> 보관된 캐릭터</ModalButton>
-          </div>
-        </div>
-
-        <div className="character-directory-tools">
           <form className="character-directory-search" role="search" onSubmit={event => {
             event.preventDefault();
             if (!composingSearch) applySearch(searchInput);
@@ -1713,6 +1703,9 @@ export function CharacterDatabase({
               <X size={17} aria-hidden="true" />
             </button>}
           </form>
+          <div className="character-archive-action">
+            <ModalButton onClick={onArchiveOpen}><Archive size={14} /> 보관된 캐릭터</ModalButton>
+          </div>
         </div>
         <div ref={contentStartRef} />
 
