@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { useSearchParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import {
@@ -12,6 +13,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
   Upload,
   Users,
@@ -587,6 +589,7 @@ function CharacterCard({
         <strong className="character-card__name">{character.name || '이름 없음'}</strong>
         <span className="character-card__appearance">{character.firstAppearanceEpisodeNo == null
           ? '첫 등장 회차 미확인' : `첫 등장 ${character.firstAppearanceEpisodeNo}화`}</span>
+        {character.recordCount != null && <span className="character-card__records">누적 기록 {character.recordCount.toLocaleString('ko-KR')}건</span>}
       </span>
       <ChevronRight className="character-card__arrow" size={17} aria-hidden="true" />
     </button>
@@ -1140,7 +1143,32 @@ export function CharacterDatabase({
   const [confirming, setConfirming] = useState<'delete' | 'save' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const appliedQuery = (searchParams.get('characterQuery') ?? '').trim().slice(0, 100);
+  const offset = Number(searchParams.get('characterOffset') ?? 0);
+  const firstVisibleIndex = Number.isSafeInteger(offset) && offset >= 0 && offset <= 2_000_000_000 ? offset : 0;
+  const setFirstVisibleIndex = useCallback((value: number) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (value === 0) next.delete('characterOffset'); else next.set('characterOffset', String(value));
+    return next;
+  }), [setSearchParams]);
+  const [searchInput, setSearchInput] = useState(appliedQuery);
+  const [composingSearch, setComposingSearch] = useState(false);
+  const applySearch = useCallback((input: string) => {
+    const query = input.trim().slice(0, 100);
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (query) next.set('characterQuery', query); else next.delete('characterQuery');
+      next.delete('characterOffset');
+      return next;
+    });
+  }, [setSearchParams]);
+  useEffect(() => { setSearchInput(appliedQuery); }, [appliedQuery, workId]);
+  useEffect(() => {
+    if (detailOnly || composingSearch || searchInput.trim() === appliedQuery) return;
+    const timer = window.setTimeout(() => applySearch(searchInput), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, appliedQuery, composingSearch, applySearch, detailOnly, workId]);
   const [archivePage, setArchivePage] = useState(0);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [restoringCharacterId, setRestoringCharacterId] = useState<string | null>(null);
@@ -1188,7 +1216,7 @@ export function CharacterDatabase({
   const page = Math.floor(firstVisibleIndex / pageSize);
 
   const charactersQuery = useQuery({
-    ...getCharactersOptions({ path: { workId }, query: { page, size: pageSize } }),
+    ...getCharactersOptions({ path: { workId }, query: { page, size: pageSize, query: appliedQuery || undefined } }),
     enabled: !detailOnly && !demoMode && Boolean(workId) && layoutReady,
   });
   const detailQuery = useQuery({
@@ -1350,7 +1378,9 @@ export function CharacterDatabase({
     ?? (selectedEvidenceFactId
       ? [{ characterFactId: selectedEvidenceFactId, hasEvidence: true }]
       : []);
-  const demoSummaries = useMemo(() => demoCharacters.map(toSummary), [demoCharacters]);
+  const demoSummaries = useMemo(() => demoCharacters.map(toSummary)
+    .filter(character => !appliedQuery || character.name?.toLocaleLowerCase().includes(appliedQuery.toLocaleLowerCase())),
+  [demoCharacters, appliedQuery]);
   const characterPage = charactersQuery.data?.data;
   const hasCharacterPage = characterPage !== undefined;
   const characters = useMemo(
@@ -1379,7 +1409,6 @@ export function CharacterDatabase({
     : archivedCharacterPage?.totalPages ?? 0;
 
   useEffect(() => {
-    setFirstVisibleIndex(0);
     setRestoringCharacterId(null);
     setArchiveError(null);
   }, [demoMode, workId]);
@@ -1399,6 +1428,7 @@ export function CharacterDatabase({
     page,
     pageSize,
     totalPages,
+    setFirstVisibleIndex,
   ]);
 
   useEffect(() => {
@@ -1670,6 +1700,21 @@ export function CharacterDatabase({
           </div>
         </div>
 
+        <div className="character-directory-tools">
+          <form className="character-directory-search" role="search" onSubmit={event => {
+            event.preventDefault();
+            if (!composingSearch) applySearch(searchInput);
+          }}>
+            <Search size={18} aria-hidden="true" />
+            <input aria-label="캐릭터 이름 또는 별칭 검색" placeholder="이름 또는 별칭 검색" maxLength={100}
+              value={searchInput} onChange={event => setSearchInput(event.target.value)}
+              onCompositionStart={() => setComposingSearch(true)} onCompositionEnd={() => setComposingSearch(false)} />
+            {searchInput && <button type="button" aria-label="인물 검색 초기화" onClick={() => { setSearchInput(''); applySearch(''); }}>
+              <X size={17} aria-hidden="true" />
+            </button>}
+          </form>
+          <span className="character-directory-order">누적 기록 많은 순</span>
+        </div>
         <div ref={contentStartRef} />
 
         {listRefetchError && (
@@ -1701,9 +1746,10 @@ export function CharacterDatabase({
             <div style={{ width: 56, height: 56, borderRadius: 14, background: C.primary + '14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={26} color={C.primary} />
             </div>
-            <strong style={{ color: C.t1, fontSize: 17 }}>등록된 캐릭터가 없습니다</strong>
-            <span style={{ color: C.t3, fontSize: 13 }}>원고를 분석하여 캐릭터를 추출해 보세요!</span>
-            <ModalButton primary onClick={onAnalyze}><Upload size={13} /> 원고 분석하기</ModalButton>
+            <strong style={{ color: C.t1, fontSize: 17 }}>{appliedQuery ? '검색 결과가 없습니다' : '등록된 캐릭터가 없습니다'}</strong>
+            <span style={{ color: C.t3, fontSize: 13 }}>{appliedQuery ? '다른 이름이나 별칭으로 검색해 보세요.' : '원고를 분석하여 캐릭터를 추출해 보세요!'}</span>
+            {appliedQuery ? <ModalButton onClick={() => { setSearchInput(''); applySearch(''); }}>검색 초기화</ModalButton>
+              : <ModalButton primary onClick={onAnalyze}><Upload size={13} /> 원고 분석하기</ModalButton>}
           </div>
         )}
 
