@@ -1122,6 +1122,6 @@
 .character-directory-search input:focus { box-shadow: none; }
 .character-directory-search input::placeholder { color: var(--ch-ink-secondary, #526070); }
 .character-directory-search button { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border: 0; background: transparent; color: inherit; cursor: pointer; }
-.character-directory-order, .character-card__records { font-size: 12px; line-height: 1.5; color: var(--ch-ink-secondary, #526070); }
+.character-card__records { font-size: 12px; line-height: 1.5; color: var(--ch-ink-secondary, #526070); }
 .character-card__records { display: block; }
 @media (max-width: 650px) { .character-directory-tools { gap: 8px; } .character-directory-search { width: 100%; } }

@@ -1713,7 +1713,6 @@ export function CharacterDatabase({
               <X size={17} aria-hidden="true" />
             </button>}
           </form>
-          <span className="character-directory-order">누적 기록 많은 순</span>
         </div>
         <div ref={contentStartRef} />
 
