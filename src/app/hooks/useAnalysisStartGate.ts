@@ -91,9 +91,12 @@ export function useAnalysisStartGate(workId: string) {
       ...dialog,
       onCancel: () => choose(null),
       onContinue: () => {
-        if (dialog.summary.activeEarlierAnalysisCount === 0 && dialog.summary.manualReviewCount === 0) choose({
-          closeAmbiguousCandidates: true, reviewGateRevision: dialog.summary.revision,
-        });
+        if (dialog.summary.activeEarlierAnalysisCount === 0 && dialog.summary.manualReviewCount === 0) {
+          const hasSettingCandidates = dialog.summary.ambiguousCharacterCount + dialog.summary.ambiguousWorldCount > 0;
+          choose(hasSettingCandidates ? {
+            closeAmbiguousCandidates: true, reviewGateRevision: dialog.summary.revision,
+          } : {});
+        }
       },
     } : null,
   };

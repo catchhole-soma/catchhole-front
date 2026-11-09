@@ -7,8 +7,8 @@
 - `POST /api/v1/works/{workId}/analysis-start-checks`에 `{episodeNumbers}`를 전송한다. 업로드 전 번호로 검사할 수 있으며 실제 생성 시 서버가 저장된 대상과 최신 후보를 다시 검증한다.
 - 응답의 `manualReviewCount`가 양수이면 검토 이동과 취소만 제공한다. 생성 요청을 보내거나 자동 종료하지 않는다.
 - `activeEarlierAnalysisCount`가 양수이면 앞 회차 분석이 끝나고 필요한 검토를 마칠 때까지 기다리도록 안내한다. 아직 후보가 생성되기 전이어도 처리 중 회차를 건너뛰지 않는다.
-- `ambiguousCharacterCount`, `ambiguousWorldCount`, `ambiguousRelationshipCount` 합계가 양수이면 대상 개수, 정확도 저하 가능성, 종료 후 기본 검토 목록·이후 분석 참고 제외 및 원래 기록 보존을 알린다.
-- 계속 선택 뒤 해당 생성 요청에만 `closeAmbiguousCandidates=true`, `reviewGateRevision=revision`을 전달한다. 후보가 없으면 두 필드를 보내지 않는다. 동의를 로컬 저장소나 URL에 보관하지 않는다.
+- `ambiguousCharacterCount`, `ambiguousWorldCount` 합계가 양수이면 설정 후보의 개수, 정확도 영향, 종료 범위와 원래 기록 보존을 알린다. 관계 HOLD는 관계도에 표시되지 않으며 다음 회차 분석의 참고로 유지한다고 별도로 안내한다.
+- 설정 후보 종료를 선택한 생성 요청에만 `closeAmbiguousCandidates=true`, `reviewGateRevision=revision`을 전달한다. 관계 HOLD만 남았다면 안내 후 두 필드 없이 생성한다. 동의를 로컬 저장소나 URL에 보관하지 않는다.
 - `ANALYSIS_MANUAL_REVIEW_REQUIRED`, `ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS`, `ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED`, `ANALYSIS_REVIEW_GATE_CHANGED`에는 최신 상태를 읽고 다시 안내한다. 사용자 확인 뒤 한 번만 다시 생성하며 자동 반복 요청은 하지 않는다.
 - 사전 조회 실패는 확인을 완료한 것으로 보지 않는다. 모든 조건의 최종 판단과 종료·Job 생성의 원자성은 서버가 담당한다.
 
