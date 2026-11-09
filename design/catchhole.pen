@@ -475202,7 +475202,7 @@
                           "children": [
                             {
                               "type": "frame",
-                              "id": "FjiP5",
+                              "id": "DJKZ0",
                               "name": "Note · 영향 · 심각",
                               "width": "fill_container",
                               "gap": 8,
@@ -543038,8 +543038,8 @@
       "id": "p2jEYo",
       "x": 107920,
       "y": 5184,
-      "name": "Active / GH369 / Analysis Start / Desktop / Ambiguous consent",
-      "context": "GH369 실제 AnalysisStartGateDialog의 독립 상태. 새 회차 설정 추출 요청 전에 표시하며 기존 실패 재개는 유지한다.",
+      "name": "Active / Analysis Start / Desktop / Relationship hold continuation",
+      "context": "관계 HOLD만 남은 상태. 관계도에는 표시하지 않고 기록은 유지하며, 별도 종료 동의 없이 다음 회차의 관계 분석에 참고한다.",
       "clip": true,
       "width": 620,
       "height": 600,
@@ -543087,7 +543087,7 @@
                   "fill": "$ch-ink",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "미확정 후보를 남기지 않고 계속할까요?",
+                  "content": "보류된 관계를 참고하고 계속할까요?",
                   "fontFamily": "$ch-font",
                   "fontSize": 17,
                   "fontWeight": "700"
@@ -543138,7 +543138,7 @@
                   "fill": "$ch-text",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "확정되지 않은 후보가 있습니다. 확인하지 않고 다음 회차를 분석하면 정확도가 낮아질 수 있습니다.",
+                  "content": "보류된 관계 4건은 관계도에 표시되지 않습니다.",
                   "lineHeight": 1.7,
                   "fontFamily": "$ch-font",
                   "fontSize": 13,
@@ -543151,20 +543151,7 @@
                   "fill": "$ch-text",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "캐릭터 1개 · 세계관 1개 · 관계 0개",
-                  "lineHeight": 1.7,
-                  "fontFamily": "$ch-font",
-                  "fontSize": 13,
-                  "fontWeight": "500"
-                },
-                {
-                  "type": "text",
-                  "id": "tteFv",
-                  "name": "Explanation 3",
-                  "fill": "$ch-text",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "계속하면 이 애매한 후보는 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 원래 근거와 처리 기록은 보존되며, 이미 확정한 설정은 유지됩니다.",
+                  "content": "계속 분석해도 보류 기록을 종료하지 않고 다음 회차의 관계 분석에 참고합니다.",
                   "lineHeight": 1.7,
                   "fontFamily": "$ch-font",
                   "fontSize": 13,
@@ -543255,7 +543242,242 @@
                       "id": "V67tGw",
                       "name": "Primary Button Label",
                       "fill": "$ch-primary-contrast",
-                      "content": "애매한 후보 종료 후 계속 분석",
+                      "content": "계속 분석",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "CP4PZ",
+      "x": 111140,
+      "y": 5184,
+      "name": "Active / GH369 / Analysis Start / Desktop / Ambiguous consent",
+      "context": "GH369 실제 AnalysisStartGateDialog의 설정 후보 종료 동의 상태. 캐릭터·세계관 설정 후보만 종료하며 관계 HOLD는 다음 회차 분석에 유지한다.",
+      "clip": true,
+      "width": 620,
+      "height": 600,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 24,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "b3z7t",
+          "name": "Analysis start gate dialog",
+          "width": 500,
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "tMMB0",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "V4aIN",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "미확정 설정 후보를 종료하고 계속할까요?",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "xy52I",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "r7tFBm",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "QN8cp",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xHpyX",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "확정되지 않은 후보가 있습니다. 확인하지 않고 다음 회차를 분석하면 정확도가 낮아질 수 있습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "w7teB",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "캐릭터 1개 · 세계관 1개",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "PD1Dp",
+                  "name": "Explanation 3",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속하면 캐릭터·세계관 설정 후보만 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 보류된 관계는 종료하지 않고 다음 회차에 참고합니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "R2g7Hl",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "gap": 8,
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "TtRoI",
+                  "name": "취소",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "d4IO8F",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "취소",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cLrpL",
+                  "name": "이전 분석 결과 확인",
+                  "height": 42,
+                  "fill": "$ch-surface",
+                  "cornerRadius": 8,
+                  "stroke": "$ch-border-strong",
+                  "strokeWidth": 1,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NBsZz",
+                      "name": "Secondary Button Label",
+                      "fill": "$ch-ink",
+                      "content": "이전 분석 결과 확인",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "agVgM",
+                  "name": "애매한 후보 종료 후 계속 분석",
+                  "height": 42,
+                  "fill": "$ch-primary-ink",
+                  "cornerRadius": 8,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h45OQF",
+                      "name": "Primary Button Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "설정 후보 종료 후 계속 분석",
                       "fontFamily": "$ch-font",
                       "fontSize": 12,
                       "fontWeight": "700"
@@ -543530,7 +543752,7 @@
                   "fill": "$ch-ink",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "미확정 후보를 남기지 않고 계속할까요?",
+                  "content": "미확정 설정 후보를 종료하고 계속할까요?",
                   "fontFamily": "$ch-font",
                   "fontSize": 17,
                   "fontWeight": "700"
@@ -543594,7 +543816,7 @@
                   "fill": "$ch-text",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "캐릭터 1개 · 세계관 1개 · 관계 0개",
+                  "content": "캐릭터 1개 · 세계관 1개",
                   "lineHeight": 1.7,
                   "fontFamily": "$ch-font",
                   "fontSize": 13,
@@ -543607,7 +543829,7 @@
                   "fill": "$ch-text",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "계속하면 이 애매한 후보는 종료되어 검토 목록과 이후 분석의 참고에서 제외됩니다. 원래 근거와 처리 기록은 보존되며, 이미 확정한 설정은 유지됩니다.",
+                  "content": "계속하면 캐릭터·세계관 설정 후보만 종료됩니다. 보류된 관계는 관계도에 표시하지 않고 다음 회차 분석에 참고합니다.",
                   "lineHeight": 1.7,
                   "fontFamily": "$ch-font",
                   "fontSize": 13,
@@ -543710,7 +543932,241 @@
                       "id": "JP3Qd",
                       "name": "Primary Button Label",
                       "fill": "$ch-primary-contrast",
-                      "content": "애매한 후보 종료 후 계속 분석",
+                      "content": "설정 후보 종료 후 계속 분석",
+                      "fontFamily": "$ch-font",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "XsoLP",
+      "x": 110780,
+      "y": 5184,
+      "name": "Active / Analysis Start / Mobile 320 / Relationship hold continuation",
+      "context": "관계 HOLD만 남은 상태. 관계도에는 표시하지 않고 기록은 유지하며, 별도 종료 동의 없이 다음 회차의 관계 분석에 참고한다.",
+      "clip": true,
+      "width": 320,
+      "height": 720,
+      "fill": "#45474C",
+      "layout": "vertical",
+      "padding": 16,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "RF5X3",
+          "name": "Analysis start gate dialog",
+          "width": "fill_container",
+          "fill": "$ch-surface",
+          "cornerRadius": "$ch-radius-md",
+          "stroke": "$ch-border",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "$ch-shadow-float-color",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 64
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "kMwe0",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XfV40",
+                  "name": "Modal Title",
+                  "fill": "$ch-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "보류된 관계를 참고하고 계속할까요?",
+                  "fontFamily": "$ch-font",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon",
+                  "id": "RNCuS",
+                  "x": 452,
+                  "y": 4,
+                  "name": "Modal Close Icon",
+                  "enabled": false,
+                  "width": 20,
+                  "height": 20,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$ch-text-subtle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "XDrGk",
+              "x": 24,
+              "y": 70,
+              "name": "Modal Description",
+              "enabled": false,
+              "fill": "$ch-text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container(472)",
+              "content": "작업을 계속하기 전에 변경 내용을 확인해 주세요.",
+              "lineHeight": 1.6,
+              "fontFamily": "$ch-font",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "jzOsA",
+              "name": "Gate explanation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "sF7f7",
+                  "name": "Explanation 1",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "보류된 관계 4건은 관계도에 표시되지 않습니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "FIIc3",
+                  "name": "Explanation 2",
+                  "fill": "$ch-text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속 분석해도 보류 기록을 종료하지 않고 다음 회차의 관계 분석에 참고합니다.",
+                  "lineHeight": 1.7,
+                  "fontFamily": "$ch-font",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mJGwa",
+              "name": "Gate actions",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "s8JBiN",
+                  "name": "Review and cancel actions",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Z8GVY",
+                      "name": "취소",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fUZ0s",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "취소",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AeiC2",
+                      "name": "이전 분석 결과 확인",
+                      "height": 42,
+                      "fill": "$ch-surface",
+                      "cornerRadius": 8,
+                      "stroke": "$ch-border-strong",
+                      "strokeWidth": 1,
+                      "padding": [
+                        9,
+                        13
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "dcOPj",
+                          "name": "Secondary Button Label",
+                          "fill": "$ch-ink",
+                          "content": "이전 분석 결과 확인",
+                          "fontFamily": "$ch-font",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sRWrW",
+                  "name": "애매한 후보 종료 후 계속 분석",
+                  "height": 42,
+                  "fill": "$ch-primary-ink",
+                  "cornerRadius": 8,
+                  "padding": [
+                    9,
+                    13
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KQojK",
+                      "name": "Primary Button Label",
+                      "fill": "$ch-primary-contrast",
+                      "content": "계속 분석",
                       "fontFamily": "$ch-font",
                       "fontSize": 12,
                       "fontWeight": "700"
