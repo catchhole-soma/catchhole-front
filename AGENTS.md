@@ -279,4 +279,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 - `recordCount`는 서버가 집계한 현재·과거 Fact 수다. FE는 전체 인물·상세 설정·이력을 가져와 개수를 계산하거나 정렬하지 않는다. 서버가 누적 수 DESC, ID DESC로 페이지를 반환한다.
 - 이름·확정 별칭 검색은 기존 `getCharacters.query`를 사용한다. 입력 300ms 디바운스와 한글 조합 종료를 적용하고 검색 변경 시 페이지를 초기화한다. URL의 `characterQuery`, `characterOffset`으로 새로고침·뒤로가기·상세 닫기 상태를 복원하며 요청 크기는 24 이하를 유지한다.
+- 누적 기록순은 기본 정렬로 적용하고 검색창 옆에 고정 정렬 안내 문구를 표시하지 않는다.
 - 기록 수가 없는 구응답/공개 데모에서는 숫자를 추정하지 않는다. 별칭은 서버의 확정 연결 출처에 한한다. Backend GH410/V121을 먼저 배포해야 전체 검색·정렬이 적용된다.
