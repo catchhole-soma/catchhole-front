@@ -228,3 +228,11 @@ layout 68건과 관계도 E2E 18건, typecheck/build 통과, lint 오류 0(기�
 ### 2026-10-30 PR #105 재조회·부분 분석 회귀
 
 변경 전 네트워크 오류/409 초안 보존과 부분 분석 안내 6개 사례가 실패함을 확인한 뒤 수정했다. 별도 `3417` 포트에서 `e2e/episode-relationships.spec.ts` 전체 28건이 통과했다. 503 뒤 초안·409 명시 채택 유지, 403/404의 이전 정보 제거, 계정·작품·회차 전환 격리, PARTIAL/partial의 빈·비어 있지 않은 결과를 포함한다. `lint`는 오류 0·기존 경고 2, `typecheck`와 `build`도 통과했다. 이는 합성 API UI 회귀이며 실제 API/DB나 유료 분석을 다시 실행한 결과가 아니다. 기존 사용자 미리보기 `3301`은 그대로 유지했다.
+
+## GH412 전체 검색과 중심 탐색
+
+`GET /relationship-graph/explore`는 `graph`와 `selectionRequired`, `suggestedPeople`, `totalNodeCount`, `focusNode`, `page`, `pageSize`, `scopeEdgeCount`, `hasNext`를 반환한다. 관계 300개 이상 또는 인물 100명 이상이면 추천·검색만 표시한다. `focusNodeId`를 보내면 직접 관계를 100개씩 조회한다. `relationPeoplePage`는 0부터 시작하며 회차/인물 변경 시 초기화한다. 가계도의 `relationPage`와 분리하며 모든 페이지에 접근 가능하고 별도 관계 합치기는 하지 않는다.
+
+`GET /relationship-graph/people`은 `query`, `episodeNo`, `page`, `size`를 받으며 초기 표시와 관계없이 전체 유효 인물을 검색한다. 입력 조합 중 요청을 막고 300ms 지연, 요청 취소, 세션·작품·회차별 query key를 적용한다. 입력과 응답 검색어가 다르면 이전 검색 결과를 표시하지 않는다. 상세는 `/relationship-graph/explore/edges/{edgeId}`로 선택한 관계만 읽고 수정/삭제는 기존 API를 사용한다.
+
+완료 상태는 정기 조회하지 않는다. 새로고침·창 복귀와 `PROCESSING`일 때만 갱신한다. 503은 같은 조회 범위의 성공 화면/초안을 유지하고 403/404는 숨긴다. 화면 검증은 `e2e/episode-relationships.spec.ts`, 실제 Spring·PostgreSQL 응답 검증은 `e2e/relationship-explorer-contract.spec.ts`에 둔다. 서버 배포 후 프론트를 배포해야 하며 구 API로 자동 폴백하여 일부 인물만 검색하는 동작은 제공하지 않는다.

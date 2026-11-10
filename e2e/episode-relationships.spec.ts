@@ -1,3 +1,4 @@
+import type { Graph } from '../src/app/api/generated/types.gen';
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 
 test.skip(process.env.VITE_RELATIONSHIP_WORKSPACE_ENABLED === 'false', '관계 화면 비공개 실행');
@@ -6,8 +7,27 @@ const prefix = `/api/v1/works/${workId}`;
 const defaultWorkspace = `/dashboard?workId=${workId}&nav=graph`;
 const workspace = `${defaultWorkspace}&relationMode=people`;
 const episodes = [{ id: 'ep1', episodeNo: 1, title: '함께 걷는 길' }, { id: 'ep2', episodeNo: 2, title: '알게 된 이름' }];
-function success(route: Route, data: unknown) { return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) }); }
+const graphFixtures = new Map<string, Graph>();
+function success(route: Route, data: unknown) {
+  const url = new URL(route.request().url());
+  if (url.pathname.endsWith('/relationship-graph/explore') && data && typeof data === 'object' && 'nodes' in data) {
+    const graph = data as Graph;
+    graphFixtures.set(`${url.pathname.split('/relationship-graph')[0]}:${url.searchParams.get('episodeNo') ?? 'latest'}`, graph);
+    const focus = url.searchParams.get('focusNodeId');
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const all = (graph.edges ?? []).filter(edge => !focus || edge.sourceNodeId === focus || edge.targetNodeId === focus);
+    const selectionRequired = !focus && ((graph.totalEdgeCount ?? 0) >= 300 || (graph.nodes?.length ?? 0) >= 100);
+    const size = focus ? 100 : 299;
+    const edges = selectionRequired ? [] : all.slice(page * size, (page + 1) * size);
+    const ids = new Set(edges.flatMap(edge => [edge.sourceNodeId, edge.targetNodeId]));
+    data = { graph: { ...graph, edges, nodes: selectionRequired ? [] : focus ? graph.nodes?.filter(node => node.id === focus || ids.has(node.id)) : graph.nodes },
+      selectionRequired, totalNodeCount: graph.nodes?.length, suggestedPeople: selectionRequired ? graph.nodes?.slice(0, 8).map(node => ({ node, neighborCount: 5 })) : [],
+      focusNode: graph.nodes?.find(node => node.id === focus), page, pageSize: size, scopeEdgeCount: all.length, hasNext: (page + 1) * size < all.length };
+  }
+  return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
+}
 async function setup(context: BrowserContext) {
+  graphFixtures.clear();
   const calls = { graphs: [] as string[], profiles: 0, family: 0, writes: [] as unknown[] };
   let failureStatus = 0, conflict = false, deleted = false, summary: string | null = null, version = 1;
   let analysisStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED', partial = false;
@@ -36,7 +56,12 @@ async function setup(context: BrowserContext) {
     if (path === prefix) return success(route, { id: workId, title: '관계의 변화', genre: '판타지', lifecycleStatus: 'ACTIVE' });
     if (path.startsWith(`${prefix}/characters`)) { calls.profiles++; return success(route, { name: '미래의 황제 라온' }); }
     if (/family-tree|relationship-candidates|relationship-processing/.test(path)) calls.family++;
-    if (path === `${prefix}/relationship-graph`) {
+    if (path === `${prefix}/relationship-graph/people`) {
+      const source = graphFixtures.get(`${prefix}:${url.searchParams.get('episodeNo') ?? 'latest'}`);
+      const query = url.searchParams.get('query') ?? '';
+      return success(route, { content: source?.nodes?.filter(node => node.name?.includes(query)).map(node => ({ node, neighborCount: 1 })) ?? [], page: 0, size: 20, hasNext: false });
+    }
+    if (path === `${prefix}/relationship-graph/explore`) {
       calls.graphs.push(url.searchParams.get('episodeNo') ?? 'latest');
       const waiting = hold; hold = null;
       if (waiting) { waiting.received(); await waiting.wait; }
@@ -47,7 +72,7 @@ async function setup(context: BrowserContext) {
         incompleteEpisodeNos: incompleteEpisodeNos.filter(number => number <= episode),
         nodes: nodes(episode), edges: edges(episode), truncated: false, totalEdgeCount: edges(episode).length });
     }
-    if (path.startsWith(`${prefix}/relationship-graph/edges/`)) {
+    if (path.startsWith(`${prefix}/relationship-graph/edges/`) || path.startsWith(`${prefix}/relationship-graph/explore/edges/`)) {
       if (request.method() !== 'GET') {
         calls.writes.push(request.method() === 'DELETE' ? { expectedVersion: Number(url.searchParams.get('expectedVersion')) } : request.postDataJSON());
         if (conflict) { conflict = false; version++; summary = '다른 화면에서 수정한 설명'; return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'CONFLICT', status: 409 } }) }); }
@@ -88,8 +113,9 @@ async function setupParallelRelations(context: BrowserContext, count: number) {
     const url = new URL(route.request().url());
     if (route.request().method() !== 'GET') base.calls.writes.push({ method: route.request().method(), path: url.pathname });
     const episode = Number(url.searchParams.get('episodeNo') ?? 2);
+    if (url.pathname.endsWith('/people')) return route.fallback();
     const currentEdges = edges.map(edge => ({ ...edge, summary: `${edge.label}. 합성 설명 ${revision}.`, version: revision, evidenceCount: 1 }));
-    if (url.pathname === `${prefix}/relationship-graph`) {
+    if (url.pathname === `${prefix}/relationship-graph/explore`) {
       graphReads++;
       return success(route, { selectedEpisode: episodes[episode - 1], availableEpisodes: episodes, revision: String(revision),
         analysisStatus: 'COMPLETED', partial: false, nodes: people, edges: currentEdges, truncated: false, totalEdgeCount: count });
@@ -172,7 +198,7 @@ test('selected person is highlighted without fetching current profiles or requir
   await expect(page).toHaveURL(/relationFocus=p3/);
   await expect(page.locator('.episode-person.is-focused')).toContainText('산장 주인');
   await expect(page.getByText('확인·연결')).toHaveCount(0);
-  await page.getByRole('button', { name: '전체 인물 보기' }).click();
+  await page.getByRole('button', { name: '인물 선택으로 돌아가기' }).click();
   await page.locator('.episode-person').getByRole('button', { name: '산장 주인 중심으로 보기', exact: true }).click();
   await expect(page).toHaveURL(/relationFocus=p3/);
   await expect(page.locator('.episode-person.is-focused')).toContainText('산장 주인');
@@ -227,6 +253,7 @@ for (const conflict of [false, true]) test(`background graph failure and retry p
     await expect(page.getByText('현재 저장된 설명: 다른 화면에서 수정한 설명')).toBeVisible();
   }
   fixture.fail(true);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await page.clock.runFor(12000);
   await expect(page.getByLabel('관계 설명')).toHaveValue(draft);
   await expect(page.getByText('관계도를 갱신하지 못했어요. 이전 내용을 표시하고 있어요.')).toBeVisible();
@@ -252,6 +279,7 @@ for (const status of [403, 404]) test(`background graph ${status} hides cached n
   await page.getByRole('button', { name: '설명 수정' }).click();
   await page.getByLabel('관계 설명').fill('접근할 수 없어진 관계의 초안');
   fixture.fail(status);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await page.clock.runFor(12000);
   await expect(page.getByText('이 회차의 관계도를 불러오지 못했어요.')).toBeVisible();
   await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
@@ -272,6 +300,7 @@ test('changing episode after a refresh failure clears the newer graph and its dr
   await page.getByRole('button', { name: '설명 수정' }).click();
   await page.getByLabel('관계 설명').fill('2화의 정체를 포함한 초안');
   fixture.fail(true);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await page.clock.runFor(12000);
   await expect(page.getByLabel('관계 설명')).toHaveValue('2화의 정체를 포함한 초안');
   let release!: () => void;
@@ -296,7 +325,7 @@ test('changing work does not reuse cached graph or edit state while the new work
   await context.route(`**${nextPrefix}`, route => success(route, { id: nextWorkId, title: '다른 관계의 이야기', genre: '판타지', lifecycleStatus: 'ACTIVE' }));
   let release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
-  await context.route(`**${nextPrefix}/relationship-graph`, async route => {
+  await context.route(`**${nextPrefix}/relationship-graph/explore*`, async route => {
     await pending;
     return success(route, { selectedEpisode: episodes[1], availableEpisodes: episodes, revision: '1', analysisStatus: 'COMPLETED', partial: false,
       nodes: [], edges: [], truncated: false, totalEdgeCount: 0 });
@@ -402,10 +431,12 @@ test('polling updates verification of the open edge without discarding the corre
   await page.getByRole('button', { name: '설명 수정' }).click();
   await page.getByLabel('관계 설명').fill('읽던 관계의 수정 초안');
   fixture.coverage(true);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await page.clock.runFor(10001);
   await expect(page.getByRole('article', { name: '선택한 인물 관계' })).toContainText('마지막 확인: 1화.');
   await expect(page.getByLabel('관계 설명')).toHaveValue('읽던 관계의 수정 초안');
   fixture.coverage(false);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await page.clock.runFor(10001);
   await expect(page.getByText('일부 관계 업데이트 미완료', { exact: false })).toHaveCount(0);
   await expect(page.getByText('마지막 확인:', { exact: false })).toHaveCount(0);
@@ -424,7 +455,7 @@ test('a gap before the first verified episode never displays episode zero as con
 
 test('many incomplete episodes stay concise without horizontal overflow at 320px', async ({ context, page }) => {
   await setup(context);
-  await context.route(`**${prefix}/relationship-graph`, route => success(route, {
+  await context.route(`**${prefix}/relationship-graph/explore*`, route => success(route, {
     selectedEpisode: { id: 'ep101', episodeNo: 101 }, availableEpisodes: [{ id: 'ep101', episodeNo: 101 }],
     analysisStatus: 'PARTIAL', partial: true, updateIncomplete: true,
     incompleteEpisodeNos: Array.from({ length: 100 }, (_, index) => index + 1), nodes: [], edges: [],
@@ -488,7 +519,7 @@ test('desktop and 320px expose both participants and the source quote without pa
 
 test('mutual and one-sided ended relationships between the same people remain distinct', async ({ context, page }) => {
   await setup(context);
-  await context.route(`**${prefix}/relationship-graph`, route => success(route, {
+  await context.route(`**${prefix}/relationship-graph/explore*`, route => success(route, {
     selectedEpisode: episodes[1], availableEpisodes: episodes, revision: '1', analysisStatus: 'COMPLETED', partial: false,
     nodes: [{ id: 'p1', name: '라온', profileRegistered: true }, { id: 'p2', name: '세린', profileRegistered: true }],
     edges: [
@@ -563,6 +594,8 @@ for (const direction of ['vertical', 'diagonal'] as const) test(`dragging a pers
   const previousReads = fixture.graphReads();
   fixture.refresh();
   await page.clock.runFor(11000);
+  expect(fixture.graphReads()).toBe(previousReads);
+  await page.getByRole('button', { name: '관계 새로고침' }).click();
   await expect.poll(fixture.graphReads).toBeGreaterThan(previousReads);
   await expect.poll(() => movedNode.evaluate(element => (element as HTMLElement).style.transform)).toBe(draggedPosition);
   await page.getByRole('button', { name: '닫기', exact: true }).click();
@@ -648,7 +681,7 @@ test('dense overview keeps 50 people and 100 relations selectable and returns fr
     axis: 'ATTITUDE', kind: 'TRUST', label: offset === 1 ? '서로 쌓아 온 신뢰' : '아직 남아 있는 경계', summary: '',
     direction: offset === 1 ? 'MUTUAL' : 'DIRECTED', status: index % 11 === 0 ? 'ENDED' : 'ACTIVE', version: 1, evidenceCount: 0,
   })));
-  await context.route(`**${prefix}/relationship-graph`, route => success(route, {
+  await context.route(`**${prefix}/relationship-graph/explore*`, route => success(route, {
     selectedEpisode: episodes[0], availableEpisodes: episodes, revision: 'dense-1', analysisStatus: 'COMPLETED', partial: false,
     nodes, edges, truncated: false, totalEdgeCount: edges.length,
   }));
@@ -738,7 +771,7 @@ test('dense overview keeps 50 people and 100 relations selectable and returns fr
   await expect(canvas.locator('.episode-person')).toHaveCount(5);
   await expect(canvas.locator('.episode-connection-label')).toHaveCount(4);
   await expect(canvas.locator('.episode-person.is-focused')).toContainText('예시 인물 0');
-  await page.getByRole('button', { name: '전체 인물 보기', exact: true }).click();
+  await page.getByRole('button', { name: '인물 선택으로 돌아가기', exact: true }).click();
   await expect(canvas.locator('.episode-person')).toHaveCount(50);
   await expect(canvas.locator('.episode-connection-label')).toHaveCount(100);
   await page.setViewportSize({ width: 320, height: 850 });
@@ -746,4 +779,114 @@ test('dense overview keeps 50 people and 100 relations selectable and returns fr
   expect(fixture.calls.writes).toEqual([]);
   await testInfo.attach('dense-drag-react-flow-warnings', { body: JSON.stringify(reactFlowWarnings, null, 2), contentType: 'application/json' });
   expect(reactFlowWarnings, 'Dragging, resetting, focusing, and resizing must not warn about uninitialized React Flow nodes').toEqual([]);
+});
+
+async function setupLargeGraph(context: BrowserContext, count = 300) {
+  const fixture = await setup(context);
+  const people = [{ id: 'center', name: '유비', profileRegistered: true }, ...Array.from({ length: count }, (_, index) => ({ id: `large-${index}`, name: index === 299 ? '공명' : `관계 인물 ${index}`, profileRegistered: true }))];
+  const relations = people.slice(1).map((node, index) => ({ id: `large-edge-${index}`, sourceNodeId: 'center', targetNodeId: node.id,
+    axis: 'SOCIAL', kind: 'COMPANIONSHIP', label: '동료', summary: '함께 뜻을 모았다.', direction: 'MUTUAL', status: index === 299 ? 'ENDED' : 'ACTIVE', version: 1, evidenceCount: 1 }));
+  const calls: string[] = [];
+  await context.route(`**${prefix}/relationship-graph/explore*`, route => {
+    const url = new URL(route.request().url()); calls.push(url.search);
+    return success(route, { selectedEpisode: episodes[1], availableEpisodes: episodes, revision: 'large', nodes: people, edges: relations,
+      totalEdgeCount: count, analysisStatus: 'COMPLETED', updateIncomplete: false });
+  });
+  await context.route(`**${prefix}/relationship-graph/people*`, route => {
+    const url = new URL(route.request().url()); const query = url.searchParams.get('query') ?? '';
+    calls.push(`search:${query}`);
+    return success(route, { content: people.filter(node => node.name.includes(query) || query === '제갈량' && node.name === '공명').map(node => ({ node, neighborCount: 1 })), page: 0, size: 20, hasNext: false });
+  });
+  return { ...fixture, explorerCalls: calls };
+}
+
+for (const width of [1366, 320]) test(`large graph starts with people and searches outside the initial subset at ${width}px`, async ({ context, page }, testInfo) => {
+  const fixture = await setupLargeGraph(context);
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(workspace);
+  await expect(page.getByRole('heading', { name: '어떤 인물의 관계를 살펴볼까요?' })).toBeVisible();
+  await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
+  await expect(page.getByText('아직 표시할 인물 관계가 없어요.')).toHaveCount(0);
+  await expect(page.getByLabel('관계도 인물 선택')).toContainText('유비');
+  await page.screenshot({ path: testInfo.outputPath(`explorer-entry-${width}.png`), fullPage: true });
+  const input = page.getByLabel('관계도 인물 검색');
+  await input.dispatchEvent('compositionstart');
+  await input.fill('제갈');
+  await page.waitForTimeout(350);
+  expect(fixture.explorerCalls.filter(call => call.startsWith('search:'))).toEqual([]);
+  await input.fill('제갈량');
+  await input.dispatchEvent('compositionend');
+  await page.getByRole('button', { name: '공명 중심으로 보기', exact: true }).click();
+  await expect(page).toHaveURL(/relationFocus=large-299/);
+  await expect(page.getByRole('list', { name: '이 회차의 관계 목록' }).locator('li')).toHaveCount(1);
+  await expect(page.getByRole('list', { name: '이 회차의 관계 목록' })).toContainText('종료된 관계');
+  await expect(page.locator('.episode-person')).toHaveCount(2);
+  expect(fixture.explorerCalls.some(call => call.includes('focusNodeId=large-299'))).toBe(true);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: '어떤 인물의 관계를 살펴볼까요?' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('default graph entry keeps people mode and separate pages through reload and family switching', async ({ context, page }) => {
+  await setupLargeGraph(context);
+  await page.goto(workspace.replace('&relationMode=people', ''));
+  await page.getByLabel('관계도 인물 선택').getByRole('button', { name: /유비/ }).click();
+  const rows = page.getByRole('list', { name: '이 회차의 관계 목록' }).locator('li');
+  await expect(rows).toHaveCount(100);
+  const first = await rows.first().textContent();
+  await page.getByRole('button', { name: '다음 관계', exact: true }).click();
+  await expect(page).toHaveURL(/relationPeoplePage=1/);
+  await expect(page.getByRole('tab', { name: '인물 관계도', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(rows).toHaveCount(100);
+  await expect(rows.first()).not.toHaveText(first!);
+  await page.reload();
+  await expect(page.getByLabel('연결 관계 페이지')).toContainText('2 / 3');
+  await page.goBack();
+  await expect(page.getByLabel('연결 관계 페이지')).toContainText('1 / 3');
+  await page.getByRole('button', { name: '다음 관계', exact: true }).click();
+  await page.getByRole('tab', { name: '가계도', exact: true }).click();
+  expect(new URL(page.url()).searchParams.has('relationPage')).toBe(false);
+  await page.getByRole('tab', { name: '인물 관계도', exact: true }).click();
+  await expect(page.getByLabel('연결 관계 페이지')).toContainText('2 / 3');
+});
+
+test('server search hides failed results and ignores an older delayed response', async ({ context, page }) => {
+  await setupLargeGraph(context);
+  let release!: () => void, received!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const started = new Promise<void>(resolve => { received = resolve; });
+  let fail = true;
+  await context.route(`**${prefix}/relationship-graph/people*`, async route => {
+    const query = new URL(route.request().url()).searchParams.get('query');
+    if (query === '제갈량') { received(); await held; }
+    if (query === '실패' && fail) return route.fulfill({ status: 400, json: { success: false, error: { status: 400, code: 'TEST_SEARCH_ERROR' } } });
+    const node = query === '제갈량' ? { id: 'large-299', name: '공명' } : { id: 'center', name: '유비' };
+    await success(route, { content: [{ node, neighborCount: 1 }], page: 0, size: 20, hasNext: false }).catch(() => {});
+  });
+  await page.goto(workspace);
+  const input = page.getByLabel('관계도 인물 검색');
+  await input.fill('실패');
+  const results = page.getByLabel('인물 검색 결과');
+  await expect(results).toContainText('인물을 찾지 못했어요. 다시 시도해 주세요.');
+  fail = false;
+  await results.getByRole('button', { name: '다시 불러오기', exact: true }).click();
+  await expect(results.getByRole('button', { name: '유비 중심으로 보기' })).toBeVisible();
+  await input.fill('제갈량');
+  await started;
+  await input.fill('유비');
+  await expect(results.getByRole('button', { name: '유비 중심으로 보기' })).toBeVisible();
+  release();
+  await expect(results.getByRole('button', { name: '공명 중심으로 보기' })).toHaveCount(0);
+  await page.getByLabel('관계도 회차').selectOption('1');
+  await expect(input).toHaveValue('');
+  await expect(results).toHaveCount(0);
+});
+
+
+test('100 people start with selection even with fewer than 300 relationships', async ({ context, page }) => {
+  await setupLargeGraph(context, 99);
+  await page.goto(workspace);
+  await expect(page.getByRole('heading', { name: '어떤 인물의 관계를 살펴볼까요?' })).toBeVisible();
+  await expect(page.locator('.episode-relationship-caption')).toContainText('인물 100명 · 관계 99개');
+  await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
 });

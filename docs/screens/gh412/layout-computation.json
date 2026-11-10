@@ -1,0 +1,44 @@
+{
+  "environment": "local Node, synthetic star, 2 warmups + 5 samples; excludes DOM/paint/network",
+  "samples": [
+    {
+      "label": "previous_overview",
+      "nodes": 201,
+      "edges": 200,
+      "mean_ms": 3909.2280252000005,
+      "samples_ms": [
+        4084.681792000001,
+        4071.592584,
+        4068.822250000001,
+        3616.8708750000005,
+        3704.1726249999992
+      ]
+    },
+    {
+      "label": "small_overview_boundary",
+      "nodes": 300,
+      "edges": 299,
+      "mean_ms": 17240.306775,
+      "samples_ms": [
+        17425.264624999996,
+        16656.356625,
+        18311.279874999993,
+        17329.036625000008,
+        16479.59612500001
+      ]
+    },
+    {
+      "label": "focused_page",
+      "nodes": 101,
+      "edges": 100,
+      "mean_ms": 1.6710584000044038,
+      "samples_ms": [
+        1.8428750000020955,
+        1.9206249999988358,
+        1.5679590000072494,
+        1.5445830000098795,
+        1.4792500000039581
+      ]
+    }
+  ]
+}

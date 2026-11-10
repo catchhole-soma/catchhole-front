@@ -94,7 +94,8 @@ async function mockCurrentLegalDocuments(page: Page) {
 test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ page }) => {
   // Vite의 /src/app/api 모듈은 건드리지 않고 실제 백엔드 API 경로만 모킹한다.
   await routeProgressApi(page, (route) => {
-    const isGetMe = new URL(route.request().url()).pathname.endsWith('/auth/me');
+    const path = new URL(route.request().url()).pathname;
+    const isGetMe = path.endsWith('/auth/me');
     const data = isGetMe
       ? {
           id: 1,
@@ -105,7 +106,15 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
-      : [];
+      : path.endsWith('/relationship-graph/explore')
+        ? {
+            graph: { selectedEpisode: null, availableEpisodes: [], revision: 'empty-smoke', nodes: [], edges: [],
+              truncated: false, totalEdgeCount: 0, analysisStatus: 'NOT_ANALYZED', partial: false,
+              updateIncomplete: false, incompleteEpisodeNos: [] },
+            selectionRequired: false, totalNodeCount: 0, suggestedPeople: [], focusNode: null,
+            page: 0, pageSize: 299, scopeEdgeCount: 0, hasNext: false,
+          }
+        : [];
 
     return route.fulfill({
       status: 200,
