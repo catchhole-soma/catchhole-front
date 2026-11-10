@@ -1,3 +1,4 @@
+import { familyExplorationFixture } from './family-exploration-fixture';
 import { expect, test, type BrowserContext, type Route } from '@playwright/test';
 import type { FamilyTreeEdgeResponse, FamilyTreeNodeResponse, RelationshipCandidateResponse } from '../src/app/api/generated/types.gen';
 
@@ -17,7 +18,8 @@ const prefix = `/api/v1/works/${workId}`;
 const workspace = `/dashboard?workId=${workId}&nav=graph&relationMode=family`;
 const source = { sourceFactId: factId, characterId: bjorn, sourceToken: 'a'.repeat(64), current: true,
   hasEvidence: true, manuallyEdited: false, factKey: 'profile.family', currentValue: { factValue: '얀델의 아들 비요른' } };
-function success(route: Route, data: unknown) { return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) }); }
+function success(route: Route, data: unknown) {
+  data = familyExplorationFixture(route, data); return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) }); }
 
 async function setup(context: BrowserContext, options: { sharedParents?: boolean; duplicate?: boolean } = {}) {
   let registered = false, linked = false, failing = false;
@@ -55,7 +57,7 @@ async function setup(context: BrowserContext, options: { sharedParents?: boolean
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'mention@example.test', displayName: '언급 인물 검증', role: 'AUTHOR', status: 'ACTIVE' });
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '언급 인물 검증 작품', genre: '판타지' }]);
     if (path === prefix) return success(route, { id: workId, title: '언급 인물 검증 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' });
-    if (path === `${prefix}/family-tree`) { calls.graphs.push(url.searchParams); return success(route, graph()); }
+    if (path === `${prefix}/family-tree/explore`) { calls.graphs.push(url.searchParams); return success(route, graph()); }
     if (path === `${prefix}/relationship-processing`) return success(route, { state: 'SUCCEEDED', inputVersion: 1, processedVersion: 1, autoConfirmedCount: 0, reviewRequiredCount: 1 });
     if (path === `${prefix}/relationship-candidates`) return success(route, { content: linked ? [] : [candidate, ...(options.duplicate ? [second] : [])], totalElements: linked ? 0 : 1 + Number(!!options.duplicate), totalPages: 1, page: 0, size: 20 });
     if (path === `${prefix}/relationship-candidates/${candidateId}` || path === `${prefix}/relationship-candidates/${secondCandidateId}`) {

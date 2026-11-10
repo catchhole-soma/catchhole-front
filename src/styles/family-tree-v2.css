@@ -41,7 +41,11 @@
 .theme-v2 .family-tree-lineage-label small { font-size: 12px; font-weight: 400; color: var(--ch-text-muted); }
 .theme-v2 .family-tree-edge-label:hover > span, .theme-v2 .family-tree-edge-label.is-selected > span { background: var(--ch-surface-soft); color: var(--ch-primary-ink); box-shadow: 0 0 0 1px var(--ch-primary); }
 .theme-v2 .family-tree-edge-label:focus-visible, .theme-v2 .family-tree-person > button:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 4px; }
-.theme-v2 .family-tree-controls { display: flex; gap: 4px; margin: 12px; }
+.theme-v2 .family-tree-controls { display: flex; flex-wrap: wrap; max-width: calc(100% - 24px); gap: 4px; margin: 12px; }
+.theme-v2 .family-tree-minimap { width: 144px; height: 90px; overflow: hidden; border: 1px solid var(--ch-border-strong); border-radius: 8px; }
+.theme-v2 .family-tree-minimap .react-flow__minimap-node,
+.theme-v2 .family-tree-minimap .react-flow__minimap-mask { vector-effect: non-scaling-stroke; shape-rendering: geometricPrecision; }
+@media (max-width: 600px) { .theme-v2 .family-tree-minimap { width: 96px; height: 60px; } }
 .theme-v2 .family-tree-controls .ch-action { min-height: 44px; min-width: 44px; padding: 8px 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
 .theme-v2 .family-tree-updating { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: 12px; background: color-mix(in srgb, var(--ch-surface) 60%, transparent); color: var(--ch-text); font-size: 13px; z-index: 10; }
 .theme-v2 .family-tree-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; padding: 12px 0; border-block: 1px solid var(--ch-border); color: var(--ch-text-muted); font-size: 12px; }
@@ -101,3 +105,17 @@
 .theme-v2 .family-tree-endpoint-label { font-size: 14px; font-weight: 500; }
 .theme-v2 .family-tree-endpoint-label > span { padding: 3px 4px; white-space: nowrap; }
 @media (max-width: 600px) { .theme-v2 .family-tree-endpoint-label { font-size: 18px; } }
+
+.theme-v2 .family-tree-picker { padding: 24px; background: var(--ch-surface); border: 1px solid var(--ch-border); border-radius: 12px; color: var(--ch-text); }
+.theme-v2 .family-tree-picker h3 { margin: 12px 0 8px; font-size: 18px; }
+.theme-v2 .family-tree-picker p { margin: 8px 0 16px; color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .family-tree-picker-search { display: block; max-width: 420px; margin: 24px 0; font-size: 13px; color: var(--ch-text-muted); }
+.theme-v2 .family-tree-picker-search > span { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--ch-border-strong); border-radius: 8px; background: var(--ch-surface); }
+.theme-v2 .family-tree-picker-search input { width: 100%; min-width: 0; min-height: 44px; border: 0; background: transparent; color: var(--ch-text); }
+.theme-v2 .family-tree-picker-search > span:focus-within { outline: 2px solid var(--ch-primary); outline-offset: 2px; }
+.theme-v2 .family-tree-picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.theme-v2 .family-tree-picker-grid button { display: flex; flex-direction: column; gap: 8px; min-height: 80px; padding: 16px; text-align: left; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-surface); color: var(--ch-text); overflow-wrap: anywhere; }
+.theme-v2 .family-tree-picker-grid button span { color: var(--ch-text-muted); font-size: 12px; }
+.theme-v2 .family-tree-picker-grid button:hover { background: var(--ch-surface-soft); }
+.theme-v2 .family-tree-picker-grid button:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 2px; }
+@media (max-width: 600px) { .theme-v2 .family-tree-picker { padding: 16px; } }

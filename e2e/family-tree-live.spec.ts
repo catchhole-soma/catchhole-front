@@ -57,7 +57,7 @@ test('격리된 실제 프로필에서 가계도·과거 관계·근거·철회�
   const unintendedWrites: string[] = [];
   page.on('request', incoming => {
     const path = new URL(incoming.url()).pathname;
-    if (path.endsWith('/family-tree')) graphRequests.push(incoming.url());
+    if (path.endsWith('/family-tree/explore')) graphRequests.push(incoming.url());
     if (incoming.method() !== 'GET' && /analysis-jobs|relationship-processing/.test(path)) unintendedWrites.push(path);
   });
   await page.addInitScript(accessToken => { localStorage.setItem('accessToken', accessToken); localStorage.removeItem('catchhole_demo_mode'); }, token);

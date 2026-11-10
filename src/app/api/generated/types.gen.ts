@@ -8405,9 +8405,16 @@ export type PageResponsePerson = {
     hasNext?: boolean;
 };
 
+/**
+ * 관계가 있는 인물의 목록 요약. 관계 수는 종료 관계와 같은 상대의 복수 관계를 각각 포함합니다.
+ */
 export type Person = {
     node?: Node;
     neighborCount?: number;
+    /**
+     * 전체 목록에서는 인물의 전체 관계 수, 상대 목록에서는 중심 인물과의 관계 수
+     */
+    edgeCount?: number;
 };
 
 /**
@@ -8449,6 +8456,51 @@ export type Exploration = {
     pageSize?: number;
     scopeEdgeCount?: number;
     hasNext?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseSelectionExploration = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: SelectionExploration;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 중심 관계가 200개 이상이면 상대를 선택합니다. 최대 20명·200개 관계를 함께 조회하며 단독 상대의 200개 초과 관계만 페이지로 조회합니다.
+ */
+export type SelectionExploration = {
+    graph?: Graph;
+    selectionRequired?: boolean;
+    totalNodeCount?: number;
+    focusNode?: Node;
+    focusEdgeCount?: number;
+    counterpartSelectionRequired?: boolean;
+    selectedPeople?: Array<Person>;
+    page?: number;
+    pageSize?: number;
+    scopeEdgeCount?: number;
+    hasNext?: boolean;
+    maxSelectedPeople?: number;
+    maxSelectedEdges?: number;
 };
 
 /**
@@ -8798,6 +8850,88 @@ export type FamilyTreeResponse = {
      * 작품 전체에서 미등록 인물로 표시 가능한 PENDING 후보 수. 연결은 선택 사항이며 초점·시점·상한과 무관합니다
      */
     optionalLinkCount?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseFamilyTreeExplorationResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: FamilyTreeExplorationResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 가족 관계가 200개를 넘으면 가계도 대신 전체 유효 관계의 등록 인물 선택 목록을 반환합니다
+ */
+export type FamilyTreeExplorationResponse = {
+    selectionRequired?: boolean;
+    totalNodeCount?: number;
+    totalEdgeCount?: number;
+    /**
+     * 선택이 필요하면 null. 인물을 지정하면 연결된 가족 관계를 최대 200개 반환
+     */
+    graph?: FamilyTreeResponse;
+    /**
+     * 선택이 필요할 때만 반환하는 전체 범위의 등록 인물 페이지
+     */
+    people?: PageResponseFamilyTreePerson;
+};
+
+export type FamilyTreePerson = {
+    id?: string;
+    name?: string;
+    /**
+     * 현재 조회 시점의 서로 다른 직접 연결 가족 인원. 동일 상대의 복수 관계는 한 번만 계산
+     */
+    familyCount?: number;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponseFamilyTreePerson = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<FamilyTreePerson>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
 };
 
 /**
@@ -17297,6 +17431,10 @@ export type SearchEpisodeRelationshipPeopleData = {
         query?: string;
         page?: number;
         size?: number;
+        /**
+         * 생략하면 전체 인물, 지정하면 해당 인물과 직접 연결된 상대만 관계 수순으로 조회
+         */
+        focusNodeId?: string;
     };
     url: '/api/v1/works/{workId}/relationship-graph/people';
 };
@@ -17373,6 +17511,53 @@ export type ExploreEpisodeRelationshipsResponses = {
 };
 
 export type ExploreEpisodeRelationshipsResponse = ExploreEpisodeRelationshipsResponses[keyof ExploreEpisodeRelationshipsResponses];
+
+export type ExploreSelectedEpisodeRelationshipsData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        episodeNo?: number;
+        focusNodeId?: string;
+        /**
+         * 함께 볼 상대의 인물 ID. 중복 없이 최대 20명
+         */
+        counterpartNodeIds?: Array<string>;
+        page?: number;
+    };
+    url: '/api/v1/works/{workId}/relationship-graph/explore/selection';
+};
+
+export type ExploreSelectedEpisodeRelationshipsErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseSelectionExploration;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseSelectionExploration;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseSelectionExploration;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseSelectionExploration;
+};
+
+export type ExploreSelectedEpisodeRelationshipsError = ExploreSelectedEpisodeRelationshipsErrors[keyof ExploreSelectedEpisodeRelationshipsErrors];
+
+export type ExploreSelectedEpisodeRelationshipsResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseSelectionExploration;
+};
+
+export type ExploreSelectedEpisodeRelationshipsResponse = ExploreSelectedEpisodeRelationshipsResponses[keyof ExploreSelectedEpisodeRelationshipsResponses];
 
 export type GetExploredRelationshipEdgeData = {
     body?: never;
@@ -17574,6 +17759,50 @@ export type GetFamilyTreeResponses = {
 };
 
 export type GetFamilyTreeResponse = GetFamilyTreeResponses[keyof GetFamilyTreeResponses];
+
+export type ExploreFamilyTreeData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        includeHistorical?: boolean;
+        focusCharacterId?: string;
+        /**
+         * 등록 인물 이름 부분 검색
+         */
+        query?: string;
+        page?: number;
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/family-tree/explore';
+};
+
+export type ExploreFamilyTreeErrors = {
+    /**
+     * 잘못된 조회 조건
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 인물 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type ExploreFamilyTreeError = ExploreFamilyTreeErrors[keyof ExploreFamilyTreeErrors];
+
+export type ExploreFamilyTreeResponses = {
+    /**
+     * 가계도 또는 인물 선택 목록
+     */
+    200: CommonResponseFamilyTreeExplorationResponse;
+};
+
+export type ExploreFamilyTreeResponse = ExploreFamilyTreeResponses[keyof ExploreFamilyTreeResponses];
 
 export type GetEpisodeUploadPolicyData = {
     body?: never;

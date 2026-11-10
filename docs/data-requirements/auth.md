@@ -37,14 +37,16 @@
 
 #### 인물 관계도 보호 화면 (GH359)
 
-GH412 탐색도 같은 작품 소유권·세션 경계를 적용한다. `/relationship-graph/explore`에서 관계 300개 또는 인물 100명 이상이면 전체 그래프 대신 인물 선택 화면을 제공한다. `/relationship-graph/people`은 선택 회차까지의 전체 관계 인물을 이름·유효한 별칭으로 검색하며 공통 `PageResponse`의 전체 개수·페이지 정보를 반환한다. 중심 인물을 선택하면 직접 연결된 관계를 100개씩 조회하고, `/relationship-graph/explore/edges/{id}`로 선택한 관계의 원문 근거만 읽는다.
+GH416 탐색도 같은 작품 소유권·세션 경계를 적용한다. `/relationship-graph/explore/selection`은 큰 그래프에서 전체 인물 목록을, 중심 관계 200개 이상에서 상대 선택을 반환한다. `/people`은 선택 회차의 전체 인물·확정 별칭을 검색하고 `focusNodeId`가 있으면 그 중심에 연결된 상대만 공통 `PageResponse`로 조회한다. 목록은 관계 수 내림차순 24명이며 전체 관계/원문을 프런트로 가져오지 않는다. 최대 20명·200개, 단독 초과 상대의 200개 페이지 한도는 서버에서도 재검증한다.
 
-인물 탐색 URL은 `relationMode=people`, `relationEpisode`, `relationFocus`, `relationPeoplePage`, `relationEdge`로 복원한다. 가계도의 기존 `relationPage`와 분리하며, 기본 관계도 주소에서 페이지를 이동해도 인물 모드를 유지한다. 검색은 300ms 지연과 한글 조합 완료 후 실행하고, 작품·회차·세션 전환이나 접근 거절 시 이전 인물·관계·근거·검색 결과를 숨긴다. 로딩·빈 검색·재시도·부분 분석·100개 단위 페이지·320px 화면도 같은 인증 경계를 따른다.
+인물 탐색 URL은 `relationMode=people`, `relationEpisode`, `relationFocus`, `relationPeers`, `relationPeoplePage`, `relationEdge`로 복원한다. 전체 목록 검색/페이지는 `relationSearch`/`relationListPage`, 상대 목록은 `relationPeerSearch`/`relationPeerListPage`다. 가계도 `relationPage`와 분리하고 비공개 플래그에서 모든 키를 지운다. 검색은 300ms 지연과 한글 조합 완료 뒤 실행한다. 작품·회차·세션·접근 권한이 바뀌면 이전 검색·선택·관계·근거를 숨긴다. 선택은 메모리 초안이고 적용한 상대 ID만 URL에 저장한다. 관계 수 변경으로 서버가 400/404를 반환하면 `상대 다시 선택`으로 복구한다. 별도 인증이나 저장소는 추가하지 않는다.
+
+가계도 진입은 동일한 작품 소유권 검사를 적용한 `GET /family-tree/explore`를 사용한다. 유효 가족 관계가 201개 이상이면 전체 범위의 등록 인물 목록을 24명씩 반환하며 선택 전에는 관계선·원문·이미지를 응답하지 않는다. `familySearch`·`familyPage`로 이름 검색과 페이지를 복원하고 기능 비활성 시 두 키도 제거한다. 이전 목록 유지는 같은 세션·작품·현재/과거 범위에서만 허용하며 오류 시 숨긴다. 선택 화면의 정기 조회는 중단하고 수동 갱신·관계 변경·분석 상태 변경은 새 탐색 캐시까지 갱신한다. 선택한 인물의 가족 범위가 200개를 넘으면 기존 잘림 안내를 유지한다.
 
 
 `/dashboard?workId=<id>&nav=graph&relationMode=people`도 위의 세션 확인을 통과한 뒤 생성 SDK로 관계도·근거를 읽는다. 기존 access token·HttpOnly refresh 쿠키·`fetchWithAuth`·작품 접근 권한을 유지하며 새 인증 단계나 저장소를 추가하지 않는다. 관계 조회의 이용불가 응답이나 작품·회차·세션 전환에서는 이전 관계와 근거를 숨긴다.
 
-관계 분석의 기술 미완료는 인증 실패와 구분한다. 서버의 `updateIncomplete=true`일 때 `일부 관계 업데이트 미완료`와 `incompleteEpisodeNos`를 표시하고, 빈 미완료 결과를 관계가 없다는 판단으로 안내하지 않는다. `FAILED`·`INVALIDATED`이면 기존 실패 안내에 미완료 회차를 함께 표시하고 부분 안내를 중복하지 않는다. `updateIncomplete=false`이면 의미 판단 보류(`HOLD`, 기존 `PARTIAL`·`partial`)만으로 경고·배지·필수 검토 큐를 만들지 않는다. 새 필드가 없는 구응답은 기존 부분 분석 안내를 유지한다.
+관계 분석의 기술 미완료는 인증 실패와 구분한다. GH416 사용자 요청으로 상단 `일부 관계 업데이트 미완료`와 회차 나열을 없앴다. `updateIncomplete`는 빈 미완료 결과를 관계 없음으로 오해하지 않게 하는 상태 판단과 상세의 마지막 확인 회차에 계속 사용한다. `FAILED`·`INVALIDATED`이면 기존 실패 안내에 미완료 회차를 함께 표시하고 부분 안내를 중복하지 않는다. `updateIncomplete=false`이면 의미 판단 보류(`HOLD`, 기존 `PARTIAL`·`partial`)만으로 경고·배지·필수 검토 큐를 만들지 않는다. 새 필드가 없는 구응답은 기존 부분 분석 안내를 유지한다.
 
 선택한 미완료 관계에만 서버의 `lastVerifiedEpisodeNo`를 마지막 확인 회차로 표시한다. 이 값은 앞선 누락 없이 검증된 범위이며 선택 회차나 마지막 변경 회차로 추측하지 않는다. `0`이면 `앞선 회차부터 관계 업데이트를 마치지 못했어요.`로 표시한다. 정상 관계의 근거 조회와 선택적 정정 동선은 유지한다. 회차 요약·과거 범위·상세 표현은 [회차별 관계도 화면 계약](../episode-relationships-ui.md)과 [화면 흐름](../screen-flow.md)을 따른다.
 

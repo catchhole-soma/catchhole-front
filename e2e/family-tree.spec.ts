@@ -1,3 +1,4 @@
+import { familyExplorationFixture } from './family-exploration-fixture';
 import { expect, test, type BrowserContext, type Locator, type Page, type Route } from '@playwright/test';
 import type { RelationshipResponse, WorldSettingImageResponse } from '../src/app/api/generated/types.gen';
 import { createLargeFamilyFixture, familyTreeFixtures, type FamilyTreeFixture } from './fixtures/family-tree-fixtures';
@@ -22,6 +23,7 @@ function apiFixture(fixture: FamilyTreeFixture) {
   };
 }
 function success(route: Route, data: unknown) {
+  data = familyExplorationFixture(route, data);
   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
 }
 function failure(route: Route, status = 503) {
@@ -62,13 +64,13 @@ async function setup(context: BrowserContext, family: ReturnType<typeof apiFixtu
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'tree@example.test', displayName: '가계도 검증', role: 'AUTHOR', status: 'ACTIVE' });
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '가계도 검증 작품', genre: '판타지', episodeCount: 0 }]);
     if (path === prefix) return success(route, { id: workId, title: '가계도 검증 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' });
-    if (path === `${prefix}/family-tree`) {
+    if (path === `${prefix}/family-tree/explore`) {
       calls.graphs.push(Object.fromEntries(url.searchParams));
       if (expired) { expired = false; return failure(route, 401); }
       if (broken) return failure(route);
       const includeHistorical = url.searchParams.get('includeHistorical') === 'true';
       const focusCharacterId = url.searchParams.get('focusCharacterId');
-      const limit = Number(url.searchParams.get('limit') ?? 100);
+      const limit = 200;
       let selectedEdges = edges.filter(edge => !withdrawn.has(edge.id) && (includeHistorical || edge.temporalScope === 'CURRENT'));
       let selectedNodes = nodes;
       if (focusCharacterId) {
@@ -86,6 +88,19 @@ async function setup(context: BrowserContext, family: ReturnType<typeof apiFixtu
       }
       const totalEdgeCount = forceTruncated && !focusCharacterId ? 250 : selectedEdges.length;
       const totalNodeCount = forceTruncated && !focusCharacterId ? 180 : selectedNodes.length;
+      if (!focusCharacterId && totalEdgeCount > 200) {
+        const query = (url.searchParams.get('query') ?? '').trim();
+        const page = Number(url.searchParams.get('page') ?? 0);
+        const size = Number(url.searchParams.get('size') ?? 24);
+        const people = [...selectedNodes, ...(forceTruncated ? [outsidePerson] : [])].map(node => ({
+          id: node.id, name: node.name, familyCount: new Set(selectedEdges.filter(edge =>
+            edge.subjectCharacterId === node.id || edge.objectCharacterId === node.id).map(edge =>
+              edge.subjectCharacterId === node.id ? edge.objectCharacterId : edge.subjectCharacterId)).size,
+        })).filter(person => person.familyCount > 0 && person.name.includes(query)).sort((a,b) => b.familyCount-a.familyCount || a.name.localeCompare(b.name));
+        return success(route, { selectionRequired: true, graph: null, totalNodeCount, totalEdgeCount,
+          people: { content: people.slice(page*size,(page+1)*size), totalElements: people.length,
+            page, size, totalPages: Math.ceil(people.length/size), hasNext: (page+1)*size<people.length } });
+      }
       const payload = { nodes: selectedNodes, edges: selectedEdges.slice(0, limit), totalNodeCount, totalEdgeCount,
         pendingCandidateCount: pendingCount, truncated: forceTruncated && !focusCharacterId || selectedEdges.length > limit,
         limit, includeHistorical, focusCharacterId, revision: String(revision) };
@@ -204,7 +219,8 @@ async function expectAllRelationshipActions(page: Page, relations: Array<{ id: s
 }
 
 const viewport = (page: Page) => graph(page).locator('.react-flow__viewport');
-async function expectWholeTreeInView(page: Page) {
+async function showWholeTreeInView(page: Page) {
+  await graph(page).getByRole('button', { name: '전체 보기', exact: true }).click();
   await expect(graph(page).locator('[data-character-id]')).not.toHaveCount(0);
   await expect.poll(() => graph(page).evaluate(region => {
     const bounds = region.getBoundingClientRect();
@@ -267,16 +283,60 @@ async function ordinaryReadability(page: Page) {
   });
 }
 
+for (const width of [1280, 320]) test(`${width}px 큰 가계도는 읽을 수 있는 크기로 시작하고 전체 보기와 인물 이동을 전환한다`, async ({ page, context }, testInfo) => {
+  const fixture = await setup(context, apiFixture(createLargeFamilyFixture(120)));
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(workspace);
+  await expect(graph(page).locator('[data-character-id]')).toHaveCount(120);
+  await expect.poll(() => zoom(page)).toBe('1');
+  expect(fixture.calls.graphs[0]).toMatchObject({ size: '24' });
+  await expect(page.locator('.family-tree-summary')).toContainText('119');
+  await expect(page.getByRole('status').filter({ hasText: '일부 가족 연결' })).toHaveCount(0);
+  const readability = await ordinaryReadability(page);
+  expect(readability.namePixels).toBeGreaterThanOrEqual(12);
+  expect(readability.relationPixels).toBeGreaterThanOrEqual(12);
+  await expect(graph(page).getByLabel('가계도 전체 지도')).toBeVisible();
+  const initial = await viewport(page).getAttribute('style');
+  await graph(page).screenshot({ path: testInfo.outputPath(`family-readable-${width}.png`) });
+  await graph(page).getByLabel('가계도 전체 지도').click({ position: { x: 8, y: 20 } });
+  await expect(viewport(page)).not.toHaveAttribute('style', initial!);
+  await graph(page).getByRole('button', { name: '인물로 이동', exact: true }).click();
+  await expect(viewport(page)).toHaveAttribute('style', initial!);
+  await showWholeTreeInView(page);
+  expect(Number(await zoom(page))).toBeLessThan(12 / 14);
+  await expect(graph(page).getByLabel('가계도 전체 지도')).toHaveCount(0);
+  await graph(page).getByRole('button', { name: '인물로 이동', exact: true }).click();
+  await expect(viewport(page)).toHaveAttribute('style', initial!);
+  await graph(page).getByRole('button', { name: '확대', exact: true }).click();
+  const moved = await viewport(page).getAttribute('style');
+  await page.setViewportSize({ width: width === 320 ? 1280 : 320, height: 850 });
+  await expect(page.locator('.family-tree-updating')).toHaveCount(0);
+  await expect(viewport(page)).toHaveAttribute('style', moved!);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(fixture.calls.mutations).toEqual([]);
+});
+
+test('작은 가계도는 전체 맞춤으로 시작하고 별도 큰 가계도 도구를 띄우지 않는다', async ({ page, context }) => {
+  const fixture = await setup(context, apiFixture({ id: 'pair', label: '두 사람', nodes: [{ id: 'a', name: '가람' }, { id: 'b', name: '나래' }],
+    edges: [{ id: 'ab', subjectCharacterId: 'a', objectCharacterId: 'b', kind: 'SPOUSE', temporalScope: 'CURRENT', subtype: 'UNSPECIFIED' }] }));
+  await page.goto(workspace);
+  await expect(graph(page).locator('[data-character-id]')).toHaveCount(2);
+  await expect.poll(() => zoom(page)).toBe('1');
+  await expect(graph(page).getByRole('button', { name: '인물로 이동', exact: true })).toHaveCount(0);
+  for (const person of fixture.nodes) await expectFocusedControlInView(node(page, person.id).getByRole('button'));
+});
+
 test('가계도 명시 진입은 전체 가족을 보여 주며 20번째 이후 관계도 빠짐없이 연결한다', async ({ page, context }, testInfo) => {
   const family = apiFixture(createLargeFamilyFixture(28));
   const fixture = await setup(context, family);
   await page.goto(workspace);
   await expect(graph(page)).toBeVisible();
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(28);
+  await showWholeTreeInView(page);
   await expectRepresentedRelations(page, family.edges);
   await expect(connection(page, family.edges[26].id)).toBeAttached();
-  await expectWholeTreeInView(page);
-  expect(fixture.calls.graphs[0]).toMatchObject({ includeHistorical: 'false', limit: '100' });
+  await showWholeTreeInView(page);
+  expect(fixture.calls.graphs[0]).toMatchObject({ includeHistorical: 'false', size: '24' });
   expect(fixture.calls.mutations).toEqual([]);
   await graph(page).screenshot({ path: testInfo.outputPath('family-tree-large-desktop.png') });
 });
@@ -287,7 +347,7 @@ for (const width of [1280, 320]) {
     const fixture = await setup(context, family);
     await page.setViewportSize({ width, height: 800 });
     await page.goto(workspace);
-    await expectWholeTreeInView(page);
+    await showWholeTreeInView(page);
     await expect(graph(page).locator('[data-character-id]')).toHaveCount(3);
     await expectRepresentedRelations(page, fixture.edges);
     await expect(graph(page).locator('[data-lineage-break]')).toHaveCount(2);
@@ -331,7 +391,7 @@ test('가계도는 프로필 사진을 요약 응답에서 표시하고 사진�
   fixture.setImage(brokenPerson.id, { ...photos.publicImage, thumbnailUrl: photos.brokenPath });
   await page.clock.install();
   await page.goto(workspace);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const photo = (id: string) => node(page, id).locator('.family-tree-avatar img');
   await expect(photo(publicPerson.id)).toHaveAttribute('src', new RegExp(`${photos.publicPath}$`));
   await expect(photo(privatePerson.id)).toHaveAttribute('src', /^blob:/);
@@ -416,7 +476,7 @@ test('복합 가족·친생 입양·부모 미상·순환은 실제 인물과 �
     }
     if (['ordinary', 'remarried', 'biological-adoptive'].includes(example.id)) {
       await graph(page).getByRole('button', { name: '전체 보기', exact: true }).click();
-      await expectWholeTreeInView(page);
+      await showWholeTreeInView(page);
       await graph(page).screenshot({ path: testInfo.outputPath(`revised-family-tree-${example.id}-desktop.png`) });
     }
   }
@@ -430,7 +490,7 @@ test('자녀와 먼 후손의 높이를 구분하고 세대 미상 영역과 각
     await page.setViewportSize({ width, height: 800 });
     await page.goto(workspace);
     await expectRepresentedRelations(page, family.edges);
-    await expectWholeTreeInView(page);
+    await showWholeTreeInView(page);
     const boxes = await Promise.all(family.nodes.map(person => node(page, person.id).boundingBox()));
     expect(boxes[0]!.y + boxes[0]!.height).toBeLessThan(boxes[1]!.y);
     expect(boxes[1]!.y).toBeCloseTo(boxes[2]!.y, 1);
@@ -455,7 +515,7 @@ test('인물 프로필과 관계·원문 근거를 기존 모달로 열고 URL·
   await page.goto(workspace);
   const person = fixture.nodes[0];
   const personButton = page.getByRole('button', { name: `${person.name} 프로필 열기`, exact: true });
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   for (let step = 0; step < 3; step++) await graph(page).getByRole('button', { name: '확대', exact: true }).click();
   const currentZoom = await zoom(page);
   await panControlOutside(page, personButton);
@@ -517,7 +577,7 @@ test('빈 가계도와 조회 실패를 구분하고 재시도 성공 뒤 원래
   fixture.fail(false);
   await page.getByRole('button', { name: '다시 불러오기', exact: true }).click();
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(fixture.nodes.length);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await graph(page).getByRole('button', { name: '확대', exact: true }).click();
   const position = await viewport(page).evaluate(element => (element as HTMLElement).style.transform);
   fixture.fail();
@@ -554,6 +614,7 @@ test('과거 포함과 인물 중심 보기를 URL에 보존하고 다시 열어
   await expect(historyToggle).toHaveAttribute('aria-pressed', 'true');
   await expectRepresentedRelations(page, fixture.edges);
   expect(new URL(page.url()).searchParams.get('familyHistory')).toBe('true');
+  await showWholeTreeInView(page);
   const person = fixture.nodes[3];
   const position = await viewport(page).getAttribute('style');
   await page.getByLabel('가계도 인물 검색', { exact: true }).fill(person.name);
@@ -580,32 +641,106 @@ test('과거 포함과 인물 중심 보기를 URL에 보존하고 다시 열어
   await page.keyboard.press('Space');
   await expect(historyToggle).toHaveAttribute('aria-pressed', 'false');
   await expectRepresentedRelations(page, fixture.edges.filter(edge => edge.temporalScope === 'CURRENT'));
-  await page.getByRole('button', { name: '작품 전체 보기', exact: true }).click();
+  await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
   await expect(graph(page).locator('[data-highlight]')).toHaveCount(0);
 });
 
-test('서버가 일부 관계만 반환하면 제한을 알리고 응답 밖 인물도 디렉터리에서 찾아 볼 수 있다', async ({ page, context }) => {
-  const fixture = await setup(context); fixture.truncate(); fixture.paginatedDirectory();
+for (const width of [1280, 320]) test(`${width}px 201개 가족 관계는 전체 인물 선택과 검색으로 시작하고 뒤로가기를 복원한다`, async ({ page, context }, testInfo) => {
+  const fixture = await setup(context, apiFixture(createLargeFamilyFixture(202)));
+  await page.setViewportSize({ width, height: 900 });
   await page.goto(workspace);
-  await expect(page.getByRole('status').filter({ hasText: '전체 관계 250개' })).toContainText('일부 가족 연결이 생략될 수 있어요.');
-  await expectRepresentedRelations(page, fixture.edges);
-  await page.getByRole('button', { name: '특정 인물 중심으로 보기', exact: true }).click();
-  await page.getByRole('button', { name: '다음 페이지', exact: true }).click();
-  await page.getByRole('button', { name: new RegExp(fixture.outsidePerson.name) }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('familyFocus')).toBe(fixture.outsidePerson.id);
-  await expect(graph(page).locator('[data-character-id]')).toHaveCount(1);
-  await expect(page.getByRole('button', { name: `${fixture.outsidePerson.name} 프로필 열기`, exact: true })).toBeVisible();
-  await expect(node(page, fixture.outsidePerson.id)).toHaveAttribute('data-highlight', 'focus');
-  expect(fixture.calls.directories).toBeGreaterThan(0);
-  expect(fixture.calls.graphs.at(-1)).toMatchObject({ focusCharacterId: fixture.outsidePerson.id });
-  await page.getByRole('button', { name: '특정 인물 중심으로 보기', exact: true }).click();
-  await expect(page.getByRole('button', { name: `${fixture.outsidePerson.name} 중심으로 보기`, exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '인물 목록 닫기', exact: true }).click();
-  fixture.shrinkDirectory();
-  await page.getByRole('button', { name: '특정 인물 중심으로 보기', exact: true }).click();
-  await expect(page.getByRole('button', { name: `${fixture.nodes[0].name} 중심으로 보기`, exact: true })).toBeVisible();
-  await expect(page.getByText('등록된 인물이 없어요.', { exact: true })).toHaveCount(0);
+  const picker = page.getByRole('region', { name: '가계도 인물 선택', exact: true });
+  await expect(picker).toContainText('전체 가족 관계 201개');
+  await expect(graph(page)).toHaveCount(0);
+  await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(24);
+  if (width < 600) await page.screenshot({ path: testInfo.outputPath(`family-selection-${width}.png`) });
+  else await picker.screenshot({ path: testInfo.outputPath(`family-selection-${width}.png`) });
+  await picker.getByRole('button', { name: '다음 페이지', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('familyPage')).toBe('1');
+  const person = fixture.nodes.at(-1)!;
+  const search = picker.getByRole('textbox', { name: '가계도 중심 인물 검색' });
+  await search.focus();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: '인', selectionStart: 1, selectionEnd: 1 });
+  await page.waitForTimeout(350);
+  expect(new URL(page.url()).searchParams.get('familySearch')).toBeNull();
+  await cdp.send('Input.insertText', { text: '인' });
+  await expect.poll(() => new URL(page.url()).searchParams.get('familySearch')).toBe('인');
+  await expect(search).toBeFocused();
+  await search.fill(person.name);
+  await expect(picker.getByRole('button', { name: `${person.name} 중심으로 보기`, exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: `${person.name} 중심으로 보기`, exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('familyFocus')).toBe(person.id);
+  await expect(picker).toHaveCount(0);
+  await expect(node(page, person.id)).toHaveAttribute('data-highlight', 'focus');
+  await expect(page.getByRole('status').filter({ hasText: '일부 가족 연결' })).toBeVisible();
+  await expect(graph(page).getByRole('button', { name: '불러온 범위 보기' })).toBeVisible();
+  await page.reload();
+  await expect(node(page, person.id)).toHaveAttribute('data-highlight', 'focus');
+  await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
+  await expect(picker.getByRole('textbox')).toHaveValue(person.name);
+  await expect(picker.getByRole('button', { name: `${person.name} 중심으로 보기`, exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(fixture.calls.mutations).toEqual([]);
+});
+
+test('가계도 선택 목록은 과거 관계 범위가 바뀌면 검색어를 유지하고 첫 페이지부터 조회한다', async ({ page, context }) => {
+  const family = apiFixture(createLargeFamilyFixture(202));
+  family.nodes[0].name = '찾을 가족 현재';
+  for (let i = 0; i < 25; i++) {
+    const person = { id: uuid(202 + i), name: `찾을 가족 과거 ${i}` };
+    family.nodes.push(person);
+    family.edges.push({ ...family.edges[0], id: uuid(202 + i, 3), objectCharacterId: person.id, temporalScope: 'HISTORICAL' });
+  }
+  const fixture = await setup(context, family);
+  const query = '찾을 가족';
+  await page.goto(`${workspace}&familyHistory=true&familyPage=1&familySearch=${encodeURIComponent(query)}`);
+  const picker = page.getByRole('region', { name: '가계도 인물 선택', exact: true });
+  await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(2);
+  await page.getByRole('button', { name: '과거 관계 포함', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('familyPage')).toBeNull();
+  await expect(picker.getByRole('textbox')).toHaveValue(query);
+  await expect(picker.getByRole('button', { name: '찾을 가족 현재 중심으로 보기', exact: true })).toBeVisible();
+  await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(1);
+  expect(fixture.calls.graphs.filter(call => call.includeHistorical === 'false')).toEqual([
+    expect.objectContaining({ page: '0', query, includeHistorical: 'false' }),
+  ]);
+  expect(fixture.calls.mutations).toEqual([]);
+});
+
+for (const remaining of [25, 1, 0]) test(`가계도 선택 목록은 재조회 결과가 ${remaining}명으로 줄면 범위를 벗어난 페이지를 복구한다`, async ({ page, context }) => {
+  const family = apiFixture(createLargeFamilyFixture(202));
+  const query = '찾을 가족';
+  const withMatches = (count: number) => ({ ...family, nodes: family.nodes.map((person, index) => ({
+    ...person, name: `${index < count ? query : '다른 인물'} ${index}`,
+  })) });
+  const fixture = await setup(context, withMatches(53));
+  await page.goto(`${workspace}&familyPage=2&familySearch=${encodeURIComponent(query)}`);
+  const picker = page.getByRole('region', { name: '가계도 인물 선택', exact: true });
+  await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(5);
+  fixture.change(withMatches(remaining));
+  await page.getByRole('button', { name: '가계도 새로고침', exact: true }).click();
+  const lastPage = Math.max(0, Math.ceil(remaining / 24) - 1);
+  await expect.poll(() => new URL(page.url()).searchParams.get('familyPage')).toBe(lastPage ? String(lastPage) : null);
+  await expect(picker.getByRole('textbox')).toHaveValue(query);
+  await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(remaining ? 1 : 0);
+  await expect.poll(() => fixture.calls.graphs.at(-1)).toMatchObject({ page: String(lastPage), query });
+  if (lastPage) {
+    await expect(picker.getByRole('button', { name: '이전 페이지', exact: true })).toBeEnabled();
+    await picker.getByRole('button', { name: '이전 페이지', exact: true }).click();
+    await expect(picker.getByRole('button', { name: /중심으로 보기/ })).toHaveCount(24);
+  } else if (!remaining) {
+    await expect(picker).toContainText('해당하는 인물이 없어요.');
+    await expect(picker).not.toContainText('이전 페이지로 돌아가 주세요.');
+  }
+  expect(fixture.calls.mutations).toEqual([]);
+});
+
+test('가족 관계 200개는 선택 화면 없이 가계도를 표시한다', async ({ page, context }) => {
+  await setup(context, apiFixture(createLargeFamilyFixture(201)));
+  await page.goto(workspace);
+  await expect(graph(page)).toBeVisible();
+  await expect(page.getByRole('region', { name: '가계도 인물 선택' })).toHaveCount(0);
 });
 
 test('다른 창의 관계 철회를 반영하면서 확대·이동한 화면 위치를 보존하고 숨겨진 창은 조회를 쉰다', async ({ page, context }) => {
@@ -615,7 +750,7 @@ test('다른 창의 관계 철회를 반영하면서 확대·이동한 화면 �
   const selected = fixture.edges[0];
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(fixture.nodes.length);
   await page.clock.runFor(100);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const stablePerson = (await node(page, fixture.nodes[0].id).elementHandle())!;
   const stableEdge = (await connection(page, selected.id).elementHandle())!;
   await edge(page, selected.id).click();
@@ -666,7 +801,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
   await page.goto(workspace);
   await expect(graph(page)).toBeVisible();
   await expect(page.getByLabel('가족 관계 보기', { exact: true })).toHaveValue('tree');
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const readability = await ordinaryReadability(page);
   expect(readability.namePixels).toBeGreaterThanOrEqual(12);
   expect(readability.relationPixels).toBeGreaterThanOrEqual(10);
@@ -689,7 +824,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
     expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await control.click();
   }
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await page.getByLabel('가계도 인물 검색', { exact: true }).fill(fixture.nodes[0].name);
   await expect(node(page, fixture.nodes[0].id).getByText('검색 결과', { exact: true })).toBeVisible();
   await expect(node(page, fixture.nodes[0].id).getByRole('button')).toHaveCSS('color', 'rgb(255, 255, 255)');
@@ -708,7 +843,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await expect.poll(async () => (await node(page, fixture.nodes[0].id).boundingBox())!.width).toBeGreaterThanOrEqual(190);
   const desktopReadability = await ordinaryReadability(page);
   expect(desktopReadability.namePixels).toBeGreaterThanOrEqual(16);
@@ -783,7 +918,7 @@ test('친생과 입양 자녀를 함께 둔 부모의 호칭은 한 번만 보�
   };
   const fixture = await setup(context, apiFixture(family));
   await page.goto(workspace);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await expectRepresentedRelations(page, fixture.edges);
 
   for (const [index, role, name, title] of [
