@@ -2653,6 +2653,10 @@ export type EpisodeDetectionRequest = {
      * 단일 회차 감지 시 사용자가 입력한 회차 제목
      */
     singleEpisodeTitle?: string | null;
+    /**
+     * 여러 파일 업로드에서 번호를 확정하지 못한 파일도 직접 입력 대상으로 반환할지 여부
+     */
+    allowManualEpisodeNumber?: boolean | null;
 };
 
 /**
@@ -2694,9 +2698,13 @@ export type DetectedEpisodeResponse = {
      */
     sourceFileIndex: number;
     /**
-     * 감지한 회차 번호
+     * 감지한 회차 번호. 직접 입력을 요청한 여러 파일 감지에서 번호를 확정하지 못한 파일은 null
      */
-    episodeNo: number;
+    episodeNo: number | null;
+    /**
+     * 회차 번호 감지 결과
+     */
+    numberDetectionStatus: 'DETECTED' | 'REQUIRES_INPUT' | 'NUMBER_CONFLICT';
     /**
      * 원문 제목 행에서 감지한 제목
      */

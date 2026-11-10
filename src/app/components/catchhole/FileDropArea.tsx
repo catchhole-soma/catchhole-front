@@ -35,6 +35,13 @@ export function FileDropArea({
     if (disabled) setDragging(false);
   }, [disabled]);
 
+  const openFilePicker = () => {
+    if (!inputRef.current) return;
+    // 값을 비워야 고친 원고를 같은 이름으로 다시 골라도 브라우저가 변경으로 알려 준다.
+    inputRef.current.value = '';
+    inputRef.current.click();
+  };
+
   const handleFile = (f: File | null | undefined) => {
     if (disabled) return;
     if (!f) { onFileChange(null, null); return; }
@@ -54,7 +61,7 @@ export function FileDropArea({
         onKeyDown={event => {
           if (keyboardAccessible && !disabled && (event.key === 'Enter' || event.key === ' ')) {
             event.preventDefault();
-            inputRef.current?.click();
+            openFilePicker();
           }
         }}
         onDragOver={(e) => {
@@ -68,7 +75,7 @@ export function FileDropArea({
           if (!disabled) handleFile(e.dataTransfer.files?.[0]);
         }}
         onClick={() => {
-          if (!disabled) inputRef.current?.click();
+          if (!disabled) openFilePicker();
         }}
         style={{
           border: `2px dashed ${error ? C.danger : dragging ? C.primary : file ? C.success : C.border}`,
