@@ -66,3 +66,15 @@
   .theme-v2 .episode-relationship-pair { gap: 6px; }
   .theme-v2 .episode-relationship-pair strong { font-size: 14px; }
 }
+
+/* GH412: choose a person before drawing a large graph. */
+.theme-v2 .episode-relationship-entry { padding: 32px 24px; border: 1px solid var(--ch-border); border-radius: 12px; background: var(--ch-surface); }
+.theme-v2 .episode-relationship-entry h3 { margin: 12px 0 8px; color: var(--ch-ink); font-size: 20px; }
+.theme-v2 .episode-relationship-entry > p { color: var(--ch-text-muted); margin-bottom: 24px; }
+.theme-v2 .episode-relationship-suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.theme-v2 .episode-relationship-suggestions button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 76px; padding: 16px; text-align: left; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-surface); color: var(--ch-ink); overflow-wrap: anywhere; }
+.theme-v2 .episode-relationship-suggestions button span { color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .episode-relationship-suggestions button:hover { border-color: var(--ch-primary-ink); background: var(--ch-surface-soft); }
+.theme-v2 .episode-relationship-suggestions button:focus-visible { outline: 2px solid var(--ch-primary-ink); outline-offset: 2px; }
+.theme-v2 .episode-relationship-pagination, .theme-v2 .episode-relationship-results nav { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
+@media (max-width: 650px) { .theme-v2 .episode-relationship-entry { padding: 20px 16px; } .theme-v2 .episode-relationship-suggestions { grid-template-columns: 1fr; } }
