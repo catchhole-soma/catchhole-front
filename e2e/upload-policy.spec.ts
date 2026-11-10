@@ -57,26 +57,6 @@ async function chooseFile(page: Page, multiple = false) {
   })));
 }
 
-test('번호 미확정 감지 응답은 사용자가 번호를 입력하기 전 저장하지 않는다', async ({ page }) => {
-  const requests = await setup(page);
-  await page.route('**/episodes/detect', route => success(route, {
-    uploadType: 'MULTI_EPISODE_MULTI_FILE', totalUploadCharacters: 20,
-    detectedEpisodes: [
-      { detectionOrder: 0, sourceFileIndex: 0, episodeNo: null, numberDetectionStatus: 'REQUIRES_INPUT', title: '번호 없는 원고', content: '원고 본문', charCount: 5 },
-      { detectionOrder: 1, sourceFileIndex: 1, episodeNo: 12, numberDetectionStatus: 'DETECTED', title: '12화', content: '원고 본문', charCount: 5 },
-    ],
-  }));
-  await page.goto(`/episode-upload?workId=${workId}`);
-  await page.getByRole('button', { name: /다회차 - 여러 파일/ }).click();
-  await chooseFile(page, true);
-  await expect(page.getByText('회차 번호는 1 이상의 정수여야 합니다.')).toBeVisible();
-  const confirm = page.getByRole('button', { name: '다음 — 분석 시작' });
-  await expect(confirm).toBeDisabled();
-  expect(requests.uploads).toEqual([]);
-  await page.locator('.episode-confirmation-row input[type=number]').first().fill('11');
-  await expect(confirm).toBeEnabled();
-});
-
 for (const uploadType of ['SINGLE_EPISODE', 'MULTI_EPISODE_SINGLE_FILE', 'MULTI_EPISODE_MULTI_FILE']) {
   test(`${uploadType} 회차 업로드는 설정집 동시 업로드 없이 원고만 저장한다`, async ({ page }) => {
     const requests = await setup(page);
@@ -430,3 +410,364 @@ for (const mode of ['SINGLE_EPISODE', 'MULTI_EPISODE_MULTI_FILE', 'MULTI_EPISODE
     await expect.poll(() => requests.analysisBodies.length).toBe(1);
   });
 }
+
+const multiMode = /다회차 - 여러 파일/;
+const nextButton = '다음 — 분석 시작';
+const missingRowGuidance = '회차 번호를 찾지 못했습니다. 직접 입력해주세요.';
+const conflictRowGuidance = '파일명과 본문의 회차 번호가 다릅니다. 직접 입력해주세요.';
+const missingSingleGuidance = '회차 번호를 찾지 못했습니다. 회차 번호를 직접 입력해주세요.';
+const conflictSingleGuidance = '파일명과 본문의 회차 번호가 다릅니다. 회차 번호를 직접 입력해주세요.';
+
+type DetectedRow = { episodeNo: number | null; status?: 'DETECTED' | 'REQUIRES_INPUT' | 'NUMBER_CONFLICT'; title?: string };
+
+function detectionBody(rows: DetectedRow[]) {
+  return {
+    uploadType: 'MULTI_EPISODE_MULTI_FILE', totalUploadCharacters: 30,
+    detectedEpisodes: rows.map((row, index) => ({
+      detectionOrder: index, sourceFileIndex: index, episodeNo: row.episodeNo,
+      numberDetectionStatus: row.status ?? (row.episodeNo === null ? 'REQUIRES_INPUT' : 'DETECTED'),
+      title: row.title ?? null, sourceHeading: null, content: `본문 ${index}`, charCount: 5,
+    })),
+  };
+}
+function chooseFiles(page: Page, names: string[]) {
+  return page.locator('input[type=file]').first().setInputFiles(names.map((name, index) => ({
+    name, mimeType: 'text/plain', buffer: Buffer.from(`본문 ${index}`),
+  })));
+}
+function detectFailure(route: Route, code: string, status = 400, message = '요청을 처리하지 못했습니다.', context: Record<string, unknown> = {}) {
+  return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message, error: { code, status, message, context } }) });
+}
+function numberValues(page: Page) {
+  return page.locator('.episode-confirmation-row input[type=number]').evaluateAll(inputs => inputs.map(input => (input as HTMLInputElement).value));
+}
+function uploadedMetadata(payload: string) {
+  return JSON.parse(payload.match(/\r\n\r\n(\{[^\r\n]+\})\r\n/)![1]);
+}
+async function openMultiWithRows(page: Page, rows: DetectedRow[], names: string[]) {
+  const requests = await setup(page);
+  const detectBodies: string[] = [];
+  await page.route('**/episodes/detect', route => {
+    detectBodies.push(route.request().postData() ?? '');
+    return success(route, detectionBody(rows));
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: multiMode }).click();
+  await chooseFiles(page, names);
+  await expect(page.locator('.episode-confirmation-row')).toHaveCount(rows.length);
+  return { requests, detectBodies };
+}
+async function openSingleWithDetectFailure(page: Page, code: string, status = 400, existingEpisodes: unknown[] = []) {
+  const requests = await setup(page);
+  await page.route(url => url.pathname.endsWith(`/works/${workId}/episodes`), route => route.request().method() === 'GET'
+    ? success(route, existingEpisodes) : route.fallback());
+  await page.route('**/episodes/detect', route => detectFailure(route, code, status));
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await chooseFile(page);
+  return requests;
+}
+
+test('여러 파일에서 번호를 못 찾은 파일도 목록에 남기고 입력해야 저장할 수 있다', async ({ page }) => {
+  const { requests, detectBodies } = await openMultiWithRows(page, [{ episodeNo: 1 }, { episodeNo: null }, { episodeNo: 3 }], ['1화.txt', '원고.txt', '3화.txt']);
+  expect(uploadedMetadata(detectBodies[0]).allowManualEpisodeNumber).toBe(true);
+  const rows = page.locator('.episode-confirmation-row');
+  await expect(rows.locator('.episode-confirmation-source')).toHaveText(['1화.txt', '3화.txt', '원고.txt']);
+  await expect.poll(() => numberValues(page)).toEqual(['1', '3', '']);
+  await expect(rows.nth(2)).toContainText(missingRowGuidance);
+  await expect(page.getByText(missingRowGuidance)).toHaveCount(1);
+  await expect(page.getByRole('button', { name: nextButton })).toBeDisabled();
+
+  await rows.nth(2).locator('input[type=number]').fill('2');
+  await expect(page.getByText(missingRowGuidance)).toHaveCount(0);
+  await expect.poll(() => numberValues(page)).toEqual(['1', '3', '2']);
+  await rows.nth(2).locator('input[type=number]').fill('');
+  await expect(rows.nth(2)).toContainText(missingRowGuidance);
+  await rows.nth(2).locator('input[type=number]').fill('2');
+
+  await page.getByRole('button', { name: nextButton }).click();
+  await expect.poll(() => requests.uploads.length).toBe(1);
+  expect(uploadedMetadata(requests.uploads[0]).episodeConfirmations).toEqual([
+    { detectionOrder: 0, episodeNo: 1, title: null }, { detectionOrder: 2, episodeNo: 3, title: null }, { detectionOrder: 1, episodeNo: 2, title: null },
+  ]);
+});
+
+test('여러 파일의 번호가 모두 비어도 수정할 수 있고 잘못된 입력은 막는다', async ({ page }) => {
+  await openMultiWithRows(page, [{ episodeNo: null }, { episodeNo: null }], ['원고A.txt', '원고B.txt']);
+  const inputs = page.locator('.episode-confirmation-row input[type=number]');
+  await expect(page.getByText(missingRowGuidance)).toHaveCount(2);
+  const next = page.getByRole('button', { name: nextButton });
+  await expect(next).toBeDisabled();
+  await inputs.nth(0).fill('4');
+  for (const invalid of ['0', '-1', '1.5', '2147483648']) {
+    await inputs.nth(1).fill(invalid);
+    await expect(page.getByRole('alert').filter({ hasText: '1 이상 2,147,483,647 이하의 정수' }).first()).toBeVisible();
+    await expect(next).toBeDisabled();
+  }
+  await inputs.nth(1).fill('4');
+  await expect(page.getByRole('alert').filter({ hasText: '회차 번호가 중복됩니다' }).first()).toBeVisible();
+  await expect(next).toBeDisabled();
+  await inputs.nth(1).fill('2147483647');
+  await expect(next).toBeEnabled();
+});
+
+test('파일명과 본문의 번호가 다른 파일은 비워 두고 제목을 채워 직접 입력받는다', async ({ page }) => {
+  await openMultiWithRows(page, [{ episodeNo: null, status: 'NUMBER_CONFLICT', title: '갈림길' }, { episodeNo: 6 }], ['3화.txt', '6화.txt']);
+  const rows = page.locator('.episode-confirmation-row');
+  await expect.poll(() => numberValues(page)).toEqual(['6', '']);
+  await expect(rows.nth(1)).toContainText(conflictRowGuidance);
+  await expect(rows.nth(1).locator('input:not([type=number])')).toHaveValue('갈림길');
+  await expect(page.getByRole('button', { name: nextButton })).toBeDisabled();
+  await rows.nth(1).locator('input[type=number]').fill('3');
+  await expect(page.getByRole('button', { name: nextButton })).toBeEnabled();
+});
+
+test('같은 이름의 파일과 번호순 정렬에서도 입력한 번호가 원래 파일에 연결된다', async ({ page }) => {
+  const { requests } = await openMultiWithRows(page, [{ episodeNo: null }, { episodeNo: 2 }, { episodeNo: null }], ['원고.txt', '2화.txt', '원고.txt']);
+  const inputs = page.locator('.episode-confirmation-row input[type=number]');
+  await expect.poll(() => numberValues(page)).toEqual(['2', '', '']);
+  await inputs.nth(1).fill('9');
+  await page.getByRole('button', { name: '회차 번호순 정렬' }).click();
+  await expect.poll(() => numberValues(page)).toEqual(['2', '9', '']);
+  await inputs.nth(2).fill('1');
+  await expect.poll(() => numberValues(page)).toEqual(['2', '9', '1']);
+  await page.getByRole('button', { name: nextButton }).click();
+  await expect.poll(() => requests.uploads.length).toBe(1);
+  expect(uploadedMetadata(requests.uploads[0]).episodeConfirmations).toEqual([
+    { detectionOrder: 1, episodeNo: 2, title: null }, { detectionOrder: 0, episodeNo: 9, title: null }, { detectionOrder: 2, episodeNo: 1, title: null },
+  ]);
+});
+
+test('파일을 다시 고르면 이전 입력이 사라지고 늦은 감지 응답이 현재 선택을 덮지 못한다', async ({ page }) => {
+  await setup(page);
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let calls = 0;
+  await page.route('**/episodes/detect', async route => {
+    calls += 1;
+    if (calls === 1) {
+      await held;
+      return success(route, detectionBody([{ episodeNo: 1 }, { episodeNo: 2 }]));
+    }
+    return success(route, detectionBody([{ episodeNo: null }, { episodeNo: 8 }, { episodeNo: 9 }]));
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: multiMode }).click();
+  await chooseFiles(page, ['옛1화.txt', '옛2화.txt']);
+  await expect.poll(() => calls).toBe(1);
+  await chooseFiles(page, ['새원고.txt', '8화.txt', '9화.txt']);
+  await expect.poll(() => numberValues(page)).toEqual(['8', '9', '']);
+  release();
+  await page.waitForTimeout(150);
+  await expect.poll(() => numberValues(page)).toEqual(['8', '9', '']);
+  await expect(page.locator('.episode-confirmation-source')).toHaveText(['8화.txt', '9화.txt', '새원고.txt']);
+});
+
+test('감지 중 파일을 하나로 줄이면 늦은 감지 응답이 목록을 다시 채우지 못한다', async ({ page }) => {
+  await setup(page);
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let calls = 0;
+  await page.route('**/episodes/detect', async route => {
+    calls += 1;
+    await held;
+    return success(route, detectionBody([{ episodeNo: 1 }, { episodeNo: 2 }]));
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: multiMode }).click();
+  await chooseFiles(page, ['1화.txt', '2화.txt']);
+  await expect.poll(() => calls).toBe(1);
+  await chooseFiles(page, ['1화.txt']);
+  await expect(page.getByText('두 개 이상의 회차 파일을 선택해주세요.')).toBeVisible();
+  release();
+  await page.waitForTimeout(150);
+  await expect(page.locator('.episode-confirmation-row')).toHaveCount(0);
+});
+
+test('단일 회차에서 번호를 못 찾으면 입력 안내를 보이고 유효한 번호로 해소한다', async ({ page }) => {
+  const requests = await openSingleWithDetectFailure(page, 'UPLOAD_EPISODE_NO_DETECTION_FAILED');
+  await expect(page.getByText(missingSingleGuidance)).toBeVisible();
+  await expect(page.getByText('파일의 회차 표기를 확인해주세요.')).toHaveCount(0);
+  const number = page.locator('input[type=number]');
+  const next = page.getByRole('button', { name: nextButton });
+  await expect(next).toBeDisabled();
+  await number.fill('11');
+  await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+  await expect(next).toBeEnabled();
+  await number.fill('');
+  await expect(page.getByText(missingSingleGuidance)).toBeVisible();
+  await expect(next).toBeDisabled();
+  await number.fill('11');
+  await next.click();
+  await expect.poll(() => requests.uploads.length).toBe(1);
+  const metadata = uploadedMetadata(requests.uploads[0]);
+  expect(metadata.singleEpisodeNo).toBe(11);
+  expect(metadata).not.toHaveProperty('episodeConfirmations');
+});
+
+test('단일 회차에서 파일명과 본문의 번호가 다르면 입력 안내를 보이고 번호로 해소한다', async ({ page }) => {
+  await openSingleWithDetectFailure(page, 'UPLOAD_EPISODE_NO_CONFLICT');
+  await expect(page.getByText(conflictSingleGuidance)).toBeVisible();
+  await page.locator('input[type=number]').fill('5');
+  await expect(page.getByText(conflictSingleGuidance)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: nextButton })).toBeEnabled();
+});
+
+test('단일 회차의 잘못된 번호와 이미 있는 번호는 각각의 안내로 막는다', async ({ page }) => {
+  await openSingleWithDetectFailure(page, 'UPLOAD_EPISODE_NO_DETECTION_FAILED', 400, [{ id: episodeId, episodeNo: 5, status: 'UPLOADED' }]);
+  const number = page.locator('input[type=number]');
+  const next = page.getByRole('button', { name: nextButton });
+  for (const invalid of ['0', '-1', '1.5', '3000000000']) {
+    await number.fill(invalid);
+    await expect(page.getByText('회차 번호는 1 이상 2,147,483,647 이하의 정수여야 합니다.')).toBeVisible();
+    await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+    await expect(next).toBeDisabled();
+  }
+  await number.fill('5');
+  await expect(page.getByText('이미 등록된 회차 번호입니다.')).toBeVisible();
+  await expect(next).toBeDisabled();
+});
+
+for (const [code, status] of [['UPLOAD_DOCUMENT_INVALID', 400], ['UPLOAD_CHARACTER_LIMIT_EXCEEDED', 400], ['AUTH_FORBIDDEN', 403]] as const) {
+  test(`단일 회차의 ${code} 오류는 번호를 입력해도 사라지지 않는다`, async ({ page }) => {
+    await openSingleWithDetectFailure(page, code, status);
+    await expect(page.getByRole('alert').first()).toContainText('요청을 처리하지 못했습니다.');
+    await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+    await page.locator('input[type=number]').fill('11');
+    await expect(page.getByRole('alert').first()).toContainText('요청을 처리하지 못했습니다.');
+  });
+}
+
+test('단일 회차의 통신 오류는 번호를 입력해도 번호 안내로 바뀌지 않는다', async ({ page }) => {
+  await setup(page);
+  await page.route('**/episodes/detect', route => route.abort());
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await chooseFile(page);
+  await expect(page.getByRole('alert').first()).toBeVisible();
+  await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+  const before = await page.getByRole('alert').first().textContent();
+  await page.locator('input[type=number]').fill('11');
+  await expect(page.getByRole('alert').first()).toHaveText(before ?? '');
+});
+
+test('번호 입력 안내는 파일을 바꾸거나 다른 방식으로 옮기면 남지 않는다', async ({ page }) => {
+  await setup(page);
+  let calls = 0;
+  await page.route('**/episodes/detect', route => {
+    calls += 1;
+    return calls === 1 ? detectFailure(route, 'UPLOAD_EPISODE_NO_DETECTION_FAILED') : success(route, {
+      uploadType: 'SINGLE_EPISODE', totalUploadCharacters: 10,
+      detectedEpisodes: [{ detectionOrder: 0, sourceFileIndex: 0, episodeNo: 7, numberDetectionStatus: 'DETECTED', title: '일곱', sourceHeading: null, content: '본문', charCount: 2 }],
+    });
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await chooseFile(page);
+  await expect(page.getByText(missingSingleGuidance)).toBeVisible();
+  await page.getByRole('button', { name: multiMode }).click();
+  await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await chooseFile(page);
+  await expect.poll(() => calls).toBe(2);
+  await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+  await expect(page.locator('input[type=number]')).toHaveValue('7');
+});
+
+test('다회차 단일 파일의 번호 감지 실패는 표기 예시를 보여 주고 직접 입력을 안내하지 않는다', async ({ page }) => {
+  await setup(page);
+  await page.route('**/episodes/detect', route => detectFailure(route, 'UPLOAD_EPISODE_NO_DETECTION_FAILED'));
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /다회차 - 단일 파일/ }).click();
+  await chooseFile(page);
+  const message = page.locator('.episode-upload-error, [role=alert]').filter({ hasText: '회차' }).first();
+  await expect(message).toContainText('제1화');
+  await expect(message).not.toContainText('직접 입력');
+});
+
+for (const [code, failedIndex, expected] of [
+  ['UPLOAD_MULTI_FILE_EPISODE_COUNT_INVALID', 1, '두회차.txt에 회차가 둘 이상 있습니다. 파일마다 한 회차만 넣어주세요.'],
+  ['UPLOAD_EPISODE_NO_INVALID', 0, '1화.txt의 회차 번호를 사용할 수 없습니다. 파일명이나 제목의 회차 번호를 1 이상으로 고쳐주세요.'],
+  ['UPLOAD_DOCUMENT_INVALID', 1, '두회차.txt: 서버 안내입니다.'],
+] as const) {
+  test(`여러 파일 감지가 ${code}로 실패하면 파일 칸 아래에 파일명을 알려 준다`, async ({ page }) => {
+    await setup(page);
+    await page.route('**/episodes/detect', route => detectFailure(route, code, 400, '서버 안내입니다.', { sourceFileIndex: failedIndex }));
+    await page.goto(`/episode-upload?workId=${workId}`);
+    await page.getByRole('button', { name: multiMode }).click();
+    await chooseFiles(page, ['1화.txt', '두회차.txt']);
+    const area = page.locator('.episode-multi-file');
+    await expect(area).toContainText(expected);
+    await expect(area).toHaveClass(/has-error/);
+    await expect(area).not.toHaveClass(/has-file/);
+    await expect(page.getByRole('alert')).toHaveCount(1);
+    await expect(page.locator('.episode-confirmation-row')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: nextButton })).toBeDisabled();
+  });
+}
+
+test('여러 파일 감지 실패에 파일 정보가 없으면 서버 안내를 파일 칸 아래에 보여 주고 다시 고르면 지운다', async ({ page }) => {
+  await setup(page);
+  let calls = 0;
+  await page.route('**/episodes/detect', route => {
+    calls += 1;
+    return calls === 1 ? detectFailure(route, 'AUTH_FORBIDDEN', 403) : success(route, detectionBody([{ episodeNo: 1 }, { episodeNo: 2 }]));
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: multiMode }).click();
+  await chooseFiles(page, ['1화.txt', '2화.txt']);
+  const area = page.locator('.episode-multi-file');
+  await expect(area).toContainText('요청을 처리하지 못했습니다.');
+  await chooseFiles(page, ['1화.txt', '2화.txt']);
+  await expect(page.locator('.episode-confirmation-row')).toHaveCount(2);
+  await expect(area).not.toContainText('요청을 처리하지 못했습니다.');
+  await expect(area).toHaveClass(/has-file/);
+});
+
+async function pickWithChooser(page: Page, target: string, names: string[]) {
+  const chooser = page.waitForEvent('filechooser');
+  await page.locator(target).click();
+  const picker = await chooser;
+  // A browser only reports a re-selection of the same file when the input was emptied before the dialog opened.
+  expect(await picker.element().evaluate(input => (input as HTMLInputElement).value)).toBe('');
+  await picker.setFiles(names.map((name, index) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(`본문 ${index}`) })));
+}
+
+test('번호를 넣고 고른 파일을 다시 고르면 번호를 비우고 다시 감지해 충돌 안내를 보여 준다', async ({ page }) => {
+  await setup(page);
+  const bodies: string[] = [];
+  await page.route('**/episodes/detect', route => {
+    bodies.push(route.request().postData() ?? '');
+    return bodies.length === 1 ? success(route, {
+      uploadType: 'SINGLE_EPISODE', totalUploadCharacters: 10,
+      detectedEpisodes: [{ detectionOrder: 0, sourceFileIndex: 0, episodeNo: 9, numberDetectionStatus: 'DETECTED', title: '갈림길', sourceHeading: null, content: '본문', charCount: 2 }],
+    }) : detectFailure(route, 'UPLOAD_EPISODE_NO_CONFLICT');
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /단일 회차 업로드/ }).click();
+  await page.locator('input[type=number]').fill('9');
+  await pickWithChooser(page, '.file-drop-area__target', ['7화.txt']);
+  await expect(page.locator('input[type=number]')).toHaveValue('9');
+  await pickWithChooser(page, '.file-drop-area__target', ['7화.txt']);
+  await expect(page.getByText(conflictSingleGuidance)).toBeVisible();
+  await expect(page.locator('input[type=number]')).toHaveValue('');
+  expect(uploadedMetadata(bodies[1]).singleEpisodeNo).toBeNull();
+});
+
+test('여러 파일에서 실패한 뒤 고친 같은 파일을 다시 고르면 다시 감지한다', async ({ page }) => {
+  await setup(page);
+  let calls = 0;
+  await page.route('**/episodes/detect', route => {
+    calls += 1;
+    return calls === 1
+      ? detectFailure(route, 'UPLOAD_MULTI_FILE_EPISODE_COUNT_INVALID', 400, '서버 안내입니다.', { sourceFileIndex: 1 })
+      : success(route, detectionBody([{ episodeNo: 1 }, { episodeNo: 2 }]));
+  });
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: multiMode }).click();
+  await pickWithChooser(page, '.episode-multi-file__target', ['1화.txt', '두회차.txt']);
+  await expect(page.locator('.episode-multi-file')).toContainText('두회차.txt에 회차가 둘 이상');
+  await pickWithChooser(page, '.episode-multi-file__target', ['1화.txt', '두회차.txt']);
+  await expect(page.locator('.episode-confirmation-row')).toHaveCount(2);
+  expect(calls).toBe(2);
+});

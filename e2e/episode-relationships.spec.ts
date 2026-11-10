@@ -518,7 +518,7 @@ test('desktop and 320px expose both participants and the source quote without pa
     return Boolean(canvas && cards.every(card => card.left >= canvas.x && card.right <= canvas.x + canvas.width));
   }).toBe(true);
   await page.screenshot({ path: 'test-results/gh416-relationships-mobile-320.png', fullPage: true });
-  await page.getByRole('article', { name: '선택한 인물 관계' }).screenshot({ path: 'docs/screens/gh323/episode-relationships-evidence-mobile-320.png' });
+  await page.getByRole('article', { name: '선택한 인물 관계' }).screenshot({ path: 'test-results/gh416-relationships-evidence-mobile-320.png' });
 });
 
 
