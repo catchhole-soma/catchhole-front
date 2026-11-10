@@ -1,7 +1,10 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
-  BookOpen, FileSearch, ListChecks, Network, FileText, MessageSquare,
+  BookOpen, FileSearch, ListChecks, Network, FileText, MessageSquare, RefreshCw,
 } from 'lucide-react';
+import { getMyAiTokenUsageOptions } from '../../api/generated/@tanstack/react-query.gen';
+import { getAccessToken } from '../../lib/api-config';
 import { NavId } from './constants';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAppContext } from '../../context/AppContext';
@@ -25,6 +28,60 @@ function NavItem({
         <span className="workspace-nav-item__upcoming">업데이트 예정</span>
       )}
     </button>
+  );
+}
+
+function RemainingUsage() {
+  const usageQuery = useQuery({
+    ...getMyAiTokenUsageOptions(),
+    retry: false,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+  const remainingPercent = Math.max(0, Math.min(100, usageQuery.data?.data?.remainingPercent ?? 0));
+
+  return (
+    <div className="workspace-sidebar__usage">
+      <div className="workspace-sidebar__usage-inner">
+        <div className="workspace-sidebar__usage-heading">
+          <span>남은 사용량</span>
+          {usageQuery.isError && (
+            <button
+              type="button"
+              aria-label="남은 사용량 다시 불러오기"
+              onClick={() => void usageQuery.refetch()}
+              disabled={usageQuery.isFetching}
+              className="workspace-sidebar__usage-retry"
+            >
+              <RefreshCw size={12} />
+            </button>
+          )}
+        </div>
+
+        {usageQuery.isPending ? (
+          <div className="workspace-sidebar__usage-message">사용량 확인 중...</div>
+        ) : usageQuery.isError ? (
+          <div className="workspace-sidebar__usage-message is-error">사용량을 불러오지 못했습니다.</div>
+        ) : (
+          <>
+            <div
+              className="workspace-sidebar__usage-track"
+              role="progressbar"
+              aria-label="남은 사용량"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(remainingPercent)}
+            >
+              <div
+                className={`workspace-sidebar__usage-fill${remainingPercent <= 10 ? ' is-danger' : remainingPercent <= 30 ? ' is-warning' : ''}`}
+                style={{ width: `${remainingPercent}%` }}
+              />
+            </div>
+            <div className="workspace-sidebar__usage-value">{remainingPercent.toFixed(1)}%</div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -85,6 +142,7 @@ export function AppSidebar({ activeNav, onNavChange, onComingSoon, onClose, clas
         : <NavItem icon={<Network size={14} />} label="그래프 뷰" upcoming
           onClick={() => { onComingSoon?.('그래프 뷰'); onClose?.(); }} />}
 
+      {getAccessToken() && <RemainingUsage />}
     </aside>
   );
 }
