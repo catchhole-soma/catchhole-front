@@ -106,12 +106,13 @@ test('백엔드 없이 /dashboard 렌더링이 깨지지 않는다', async ({ pa
           role: 'AUTHOR',
           status: 'ACTIVE',
         }
-      : path.endsWith('/relationship-graph/explore')
+      : path.endsWith('/relationship-graph/explore/selection')
         ? {
             graph: { selectedEpisode: null, availableEpisodes: [], revision: 'empty-smoke', nodes: [], edges: [],
               truncated: false, totalEdgeCount: 0, analysisStatus: 'NOT_ANALYZED', partial: false,
               updateIncomplete: false, incompleteEpisodeNos: [] },
-            selectionRequired: false, totalNodeCount: 0, suggestedPeople: [], focusNode: null,
+            selectionRequired: false, counterpartSelectionRequired: false, totalNodeCount: 0,
+            focusNode: null, focusEdgeCount: 0, selectedPeople: [], maxSelectedPeople: 20, maxSelectedEdges: 200,
             page: 0, pageSize: 299, scopeEdgeCount: 0, hasNext: false,
           }
         : [];
