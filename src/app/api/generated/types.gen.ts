@@ -11066,7 +11066,7 @@ export type AiTokenUsageResponse = {
      */
     remainingTokens?: number;
     /**
-     * 현재 1회 제공량 대비 남은 사용량 비율(최대 100%)
+     * 가장 최근 지급 직후의 잔량 대비 남은 사용량 비율(최대 100%)
      */
     remainingPercent?: number;
     /**

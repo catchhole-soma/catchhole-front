@@ -273,8 +273,7 @@ test('사이드바 사용량 없이 한도 소진 안내를 공통 API 오류에
   await page.evaluate(() => localStorage.setItem('accessToken', 'quota-token'));
   await page.goto(`/dashboard?workId=${TEST_WORK_ID}`);
 
-  await expect(page.getByText('남은 사용량', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('100.0%', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.workspace-sidebar__usage').first()).toContainText('100.0%');
 
   await page.evaluate(async () => {
     const modulePath = '/src/app/lib/auth-fetch.ts';
