@@ -4,7 +4,7 @@ export const RELATIONSHIP_WORKSPACE_ENABLED = import.meta.env.VITE_RELATIONSHIP_
 
 const FAMILY_QUERY_KEYS = ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId',
   'familyFocus', 'familyHistory'] as const;
-export const RELATIONSHIP_QUERY_KEYS = [...FAMILY_QUERY_KEYS, 'relationMode', 'relationEpisode', 'relationFocus', 'relationEdge'] as const;
+export const RELATIONSHIP_QUERY_KEYS = [...FAMILY_QUERY_KEYS, 'relationMode', 'relationEpisode', 'relationFocus', 'relationEdge', 'relationPeoplePage'] as const;
 
 export function getRelationshipMode(params: URLSearchParams): 'people' | 'family' {
   const mode = params.get('relationMode');

@@ -39,7 +39,7 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   const [composing, setComposing] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchPage, setSearchPage] = useState(0);
-  const relationPage = parseEpisode(params.get('relationPage')) ?? 0;
+  const relationPage = parseEpisode(params.get('relationPeoplePage')) ?? 0;
   useEffect(() => {
     if (composing) return;
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -87,11 +87,12 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   function update(values: Record<string, string | null>) {
     setParams(previous => {
       const next = new URLSearchParams(previous);
+      next.set('relationMode', 'people');
       for (const [key, value] of Object.entries(values)) { if (value === null) next.delete(key); else next.set(key, value); }
       return next;
     });
   }
-  function focus(id: string) { setSearch(''); setSearchPage(0); update({ relationFocus: id || null, relationEdge: null, relationPage: null }); }
+  function focus(id: string) { setSearch(''); setSearchPage(0); update({ relationFocus: id || null, relationEdge: null, relationPeoplePage: null }); }
   function select(id: string) {
     selectionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     update({ relationEdge: id });
@@ -107,7 +108,7 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   return <div className="episode-relationships">
     <div className="episode-relationship-toolbar">
       <label>이 회차까지의 관계<select aria-label="관계도 회차" value={episodeNo ?? ''} onChange={event => {
-        setSearch(''); update({ relationEpisode: event.target.value || null, relationFocus: null, relationEdge: null, relationPage: null });
+        setSearch(''); update({ relationEpisode: event.target.value || null, relationFocus: null, relationEdge: null, relationPeoplePage: null });
       }}>
         <option value="">최신 분석 회차{!episodeNo && selectedEpisode?.episodeNo ? ` (${selectedEpisode.episodeNo}화)` : ''}</option>
         {(data?.availableEpisodes ?? []).map(episode => <option key={episode.id} value={episode.episodeNo}>{episode.episodeNo}화</option>)}
@@ -157,9 +158,9 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
           workId={workId} edgeId={selectedId} episodeNo={selectedEpisode.episodeNo}
           graphEdge={data.edges?.find(edge => edge.id === selectedId)} onClose={closeDetail} />}
         {effectiveFocus && (relationPage > 0 || exploration?.hasNext) && <nav className="episode-relationship-pagination" aria-label="연결 관계 페이지">
-          <ActionButton variant="secondary" disabled={relationPage === 0 || graph.isFetching} onClick={() => update({ relationPage: relationPage > 1 ? String(relationPage - 1) : null, relationEdge: null })}>이전 관계</ActionButton>
+          <ActionButton variant="secondary" disabled={relationPage === 0 || graph.isFetching} onClick={() => update({ relationPeoplePage: relationPage > 1 ? String(relationPage - 1) : null, relationEdge: null })}>이전 관계</ActionButton>
           <span>{relationPage + 1} / {Math.max(1, Math.ceil((exploration?.scopeEdgeCount ?? 0) / (exploration?.pageSize ?? 100)))}</span>
-          <ActionButton variant="secondary" disabled={!exploration?.hasNext || graph.isFetching} onClick={() => update({ relationPage: String(relationPage + 1), relationEdge: null })}>다음 관계</ActionButton>
+          <ActionButton variant="secondary" disabled={!exploration?.hasNext || graph.isFetching} onClick={() => update({ relationPeoplePage: String(relationPage + 1), relationEdge: null })}>다음 관계</ActionButton>
         </nav>}
 
       {connections.length > 0 && <>

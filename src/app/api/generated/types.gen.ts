@@ -8344,7 +8344,7 @@ export type Node = {
 /**
  * 공통 API 응답 Envelope
  */
-export type CommonResponsePeople = {
+export type CommonResponsePageResponsePerson = {
     /**
      * 요청 처리 성공 여부
      */
@@ -8356,7 +8356,7 @@ export type CommonResponsePeople = {
     /**
      * 성공 응답 데이터. 실패 응답에서는 null입니다.
      */
-    data?: People;
+    data?: PageResponsePerson;
     /**
      * 에러 정보. 성공 응답에서는 null입니다.
      */
@@ -8367,10 +8367,33 @@ export type CommonResponsePeople = {
     timestamp?: string;
 };
 
-export type People = {
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponsePerson = {
+    /**
+     * 현재 페이지 항목
+     */
     content?: Array<Person>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
     page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
     size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
     hasNext?: boolean;
 };
 
@@ -17274,19 +17297,19 @@ export type SearchEpisodeRelationshipPeopleErrors = {
     /**
      * 잘못된 입력
      */
-    400: CommonResponsePeople;
+    400: CommonResponsePageResponsePerson;
     /**
      * 인증 필요
      */
-    401: CommonResponsePeople;
+    401: CommonResponsePageResponsePerson;
     /**
      * 작품·회차·관계 없음
      */
-    404: CommonResponsePeople;
+    404: CommonResponsePageResponsePerson;
     /**
      * 변경 버전 충돌
      */
-    409: CommonResponsePeople;
+    409: CommonResponsePageResponsePerson;
 };
 
 export type SearchEpisodeRelationshipPeopleError = SearchEpisodeRelationshipPeopleErrors[keyof SearchEpisodeRelationshipPeopleErrors];
@@ -17295,7 +17318,7 @@ export type SearchEpisodeRelationshipPeopleResponses = {
     /**
      * 처리 성공
      */
-    200: CommonResponsePeople;
+    200: CommonResponsePageResponsePerson;
 };
 
 export type SearchEpisodeRelationshipPeopleResponse = SearchEpisodeRelationshipPeopleResponses[keyof SearchEpisodeRelationshipPeopleResponses];

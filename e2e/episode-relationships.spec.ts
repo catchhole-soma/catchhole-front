@@ -827,20 +827,27 @@ for (const width of [1366, 320]) test(`large graph starts with people and search
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test('focused graph pages keep rendering bounded and restore URL state', async ({ context, page }) => {
+test('default graph entry keeps people mode and separate pages through reload and family switching', async ({ context, page }) => {
   await setupLargeGraph(context);
-  await page.goto(`${workspace}&relationFocus=center`);
+  await page.goto(workspace.replace('&relationMode=people', ''));
+  await page.getByLabel('관계도 인물 선택').getByRole('button', { name: /유비/ }).click();
   const rows = page.getByRole('list', { name: '이 회차의 관계 목록' }).locator('li');
   await expect(rows).toHaveCount(100);
   const first = await rows.first().textContent();
   await page.getByRole('button', { name: '다음 관계', exact: true }).click();
-  await expect(page).toHaveURL(/relationPage=1/);
+  await expect(page).toHaveURL(/relationPeoplePage=1/);
+  await expect(page.getByRole('tab', { name: '인물 관계도', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(rows).toHaveCount(100);
   await expect(rows.first()).not.toHaveText(first!);
   await page.reload();
   await expect(page.getByLabel('연결 관계 페이지')).toContainText('2 / 3');
   await page.goBack();
   await expect(page.getByLabel('연결 관계 페이지')).toContainText('1 / 3');
+  await page.getByRole('button', { name: '다음 관계', exact: true }).click();
+  await page.getByRole('tab', { name: '가계도', exact: true }).click();
+  expect(new URL(page.url()).searchParams.has('relationPage')).toBe(false);
+  await page.getByRole('tab', { name: '인물 관계도', exact: true }).click();
+  await expect(page.getByLabel('연결 관계 페이지')).toContainText('2 / 3');
 });
 
 test('server search hides failed results and ignores an older delayed response', async ({ context, page }) => {
