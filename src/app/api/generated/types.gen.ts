@@ -8892,16 +8892,7 @@ export type FamilyTreeExplorationResponse = {
     /**
      * 선택이 필요할 때만 반환하는 전체 범위의 등록 인물 페이지
      */
-    people?: FamilyTreePeoplePage;
-};
-
-export type FamilyTreePeoplePage = {
-    content?: Array<FamilyTreePerson>;
-    totalElements?: number;
-    page?: number;
-    size?: number;
-    totalPages?: number;
-    hasNext?: boolean;
+    people?: PageResponseFamilyTreePerson;
 };
 
 export type FamilyTreePerson = {
@@ -8911,6 +8902,36 @@ export type FamilyTreePerson = {
      * 현재 조회 시점의 서로 다른 직접 연결 가족 인원. 동일 상대의 복수 관계는 한 번만 계산
      */
     familyCount?: number;
+};
+
+/**
+ * 서버 페이지네이션 응답
+ */
+export type PageResponseFamilyTreePerson = {
+    /**
+     * 현재 페이지 항목
+     */
+    content?: Array<FamilyTreePerson>;
+    /**
+     * 0부터 시작하는 현재 페이지 번호
+     */
+    page?: number;
+    /**
+     * 현재 페이지 요청 크기
+     */
+    size?: number;
+    /**
+     * 전체 항목 수
+     */
+    totalElements?: number;
+    /**
+     * 전체 페이지 수
+     */
+    totalPages?: number;
+    /**
+     * 다음 페이지 존재 여부
+     */
+    hasNext?: boolean;
 };
 
 /**

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { GitBranch, Search } from 'lucide-react';
-import type { FamilyTreePeoplePage } from '../../../api/generated/types.gen';
+import type { PageResponseFamilyTreePerson } from '../../../api/generated/types.gen';
 import { PageNavigation } from '../PageNavigation';
 
 export function FamilyTreePeople({ people, totalEdges, search, page, pending, onSearch, onPage, onSelect }: {
-  people?: FamilyTreePeoplePage | null; totalEdges: number; search: string; page: number; pending: boolean;
+  people?: PageResponseFamilyTreePerson | null; totalEdges: number; search: string; page: number; pending: boolean;
   onSearch: (query: string) => void; onPage: (page: number) => void; onSelect: (id: string) => void;
 }) {
   const [input, setInput] = useState(search);
