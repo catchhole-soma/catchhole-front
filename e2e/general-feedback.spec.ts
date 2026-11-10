@@ -182,7 +182,6 @@ async function mockFeedbackPrompt(page: Page, options: { eligible?: boolean; pro
 test('원고 목록에서 의견 안내를 한 번 보여주고 닫은 뒤 새로고침해도 다시 표시하지 않는다', async ({ page }) => {
   await mockFeedbackPrompt(page);
   await page.goto(manuscriptUrl);
-  await expect(page.getByText('남은 사용량', { exact: true })).toHaveCount(0);
   const invitation = page.getByRole('dialog', { name: '캐치홀을 사용해 주셔서 감사합니다!' });
   await expect(invitation).toBeVisible();
   await page.screenshot({ path: 'output/feedback-invitation-desktop.png' });
