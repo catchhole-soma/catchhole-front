@@ -6,7 +6,7 @@ const workId = '11111111-1111-4111-8111-111111111111';
 const selectedId = '22222222-2222-4222-8222-222222222222';
 const prefix = `/api/v1/works/${workId}`;
 const settings = `/dashboard?workId=${workId}&nav=settingDB&tab=characters`;
-const relationshipParams = ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory', 'relationMode', 'relationEpisode', 'relationFocus', 'relationEdge', 'relationPeoplePage', 'relationPeers', 'relationSearch', 'relationListPage', 'relationPeerSearch', 'relationPeerListPage'];
+const relationshipParams = ['relationView', 'relationPage', 'relationshipCandidate', 'relationshipId', 'relationshipFactId', 'familyFocus', 'familyHistory', 'familySearch', 'familyPage', 'relationMode', 'relationEpisode', 'relationFocus', 'relationEdge', 'relationPeoplePage', 'relationPeers', 'relationSearch', 'relationListPage', 'relationPeerSearch', 'relationPeerListPage'];
 
 function success(route: Route, data: unknown) {
   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });

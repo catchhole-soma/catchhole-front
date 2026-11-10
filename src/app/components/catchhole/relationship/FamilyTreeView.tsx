@@ -1,7 +1,10 @@
+import { useSearchParams } from 'react-router';
+import { usePrivateImageSession } from '../../../lib/private-image-session';
+import { FamilyTreePeople } from './FamilyTreePeople';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Check, ChevronDown, CircleHelp, GitBranch, History, Search } from 'lucide-react';
-import { getCharactersOptions, getFamilyTreeOptions } from '../../../api/generated/@tanstack/react-query.gen';
+import { ArrowLeft, ArrowRight, RefreshCw, Check, ChevronDown, CircleHelp, GitBranch, History, Search } from 'lucide-react';
+import { getCharactersOptions, exploreFamilyTreeOptions } from '../../../api/generated/@tanstack/react-query.gen';
 import { useAppNavigate } from '../../../hooks/useAppNavigate';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { PageNavigation } from '../PageNavigation';
@@ -25,9 +28,31 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
 }) {
   const navigate = useAppNavigate();
   const compact = useSyncExternalStore(subscribeCompactCanvas, compactSnapshot, () => false);
-  const graph = useQuery({ ...getFamilyTreeOptions({ path: { workId }, query: { includeHistorical, limit: 200, ...(focusCharacterId ? { focusCharacterId } : {}) } }),
-    refetchOnWindowFocus: true, refetchInterval: 5000 });
-  const data = graph.data?.data;
+  const [params, setParams] = useSearchParams();
+  const directorySearch = params.get('familySearch') ?? '';
+  const directoryPage = Math.min(100000, Math.max(0, Number(params.get('familyPage')) || 0));
+  const session = usePrivateImageSession();
+  const options = exploreFamilyTreeOptions({ path: { workId }, query: { includeHistorical,
+    ...(focusCharacterId ? { focusCharacterId } : { query: directorySearch, page: directoryPage, size: 24 }) } });
+  const graph = useQuery({ ...options, queryKey: [{ ...options.queryKey[0], tags: [`session:${session}`] }],
+    gcTime: 0, refetchOnWindowFocus: true,
+    placeholderData: (previous, previousQuery) => {
+      const key = previousQuery?.queryKey[0] as (typeof options.queryKey)[0] | undefined;
+      return !focusCharacterId && previous?.data?.selectionRequired && key?.path?.workId === workId
+        && key.query?.includeHistorical === includeHistorical && key.tags?.includes(`session:${session}`) ? previous : undefined;
+    },
+    refetchInterval: query => query.state.data?.data?.selectionRequired ? false : 5000 });
+  const exploration = graph.data?.data;
+  const selecting = Boolean(exploration?.selectionRequired && !focusCharacterId);
+  const data = exploration?.graph;
+  function changeDirectory(query: string, page: number) {
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (query) next.set('familySearch', query); else next.delete('familySearch');
+      if (page) next.set('familyPage', String(page)); else next.delete('familyPage');
+      return next;
+    }, { replace: true });
+  }
   const images = useMemo(() => new Map((data?.nodes ?? []).map(node => [node.id ?? '', node.image])), [data?.nodes]);
   const [search, setSearch] = useState('');
   const input = useMemo<FamilyTreeInput>(() => ({
@@ -45,7 +70,7 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
     }),
   }), [data?.nodes, data?.edges]);
   const layout = useQuery({ queryKey: ['family-tree-layout', workId, compact, input], queryFn: () => layoutFamilyTree(input, compact ? { nodeWidth: 136, nodeHeight: 88 } : {}),
-    enabled: Boolean(data), staleTime: Infinity, gcTime: 60000, retry: false, placeholderData: keepPreviousData });
+    enabled: Boolean(data) && !selecting, staleTime: Infinity, gcTime: 60000, retry: false, placeholderData: keepPreviousData });
   const warnings = [...new Map((layout.data?.warnings ?? []).map(warning => [JSON.stringify(warning), warning])).entries()];
   const matching = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -64,15 +89,16 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
       </ActionButton>
     </aside>
     <div className="family-tree-toolbar">
-      <label className="family-tree-search"><Search size={16} aria-hidden="true" /><input aria-label="가계도 인물 검색" placeholder="가계도에서 인물 찾기" value={search} onChange={event => setSearch(event.target.value)} /></label>
+      {!selecting && <label className="family-tree-search"><Search size={16} aria-hidden="true" /><input aria-label="가계도 인물 검색" placeholder="가계도에서 인물 찾기" value={search} onChange={event => setSearch(event.target.value)} /></label>}
       <ActionButton variant="secondary" className="family-tree-history" aria-pressed={includeHistorical} onClick={() => onScopeChange(focusCharacterId, !includeHistorical)}>
         {includeHistorical ? <Check size={16} aria-hidden="true" /> : <History size={16} aria-hidden="true" />}
         과거 관계 포함
       </ActionButton>
-      {focusCharacterId && <ActionButton variant="secondary" onClick={() => { setSearch(''); onScopeChange('', includeHistorical); }}>작품 전체 보기</ActionButton>}
-      <FamilyDirectory workId={workId} onSelect={id => { setSearch(''); onScopeChange(id, includeHistorical); }} />
+      {focusCharacterId && <ActionButton variant="secondary" onClick={() => { setSearch(''); onScopeChange('', includeHistorical); }}><ArrowLeft size={16} aria-hidden="true" />뒤로가기</ActionButton>}
+      {!selecting && <FamilyDirectory workId={workId} onSelect={id => { setSearch(''); onScopeChange(id, includeHistorical); }} />}
+      {selecting && <ActionButton variant="secondary" disabled={graph.isFetching} onClick={() => void graph.refetch()}><RefreshCw size={16} aria-hidden="true" />가계도 새로고침</ActionButton>}
     </div>
-    {search.trim() && <div className="family-tree-search-results" aria-label="가계도 인물 검색 결과">
+    {!selecting && search.trim() && <div className="family-tree-search-results" aria-label="가계도 인물 검색 결과">
       {matching.length ? matching.map(node => {
         const candidateId = node.candidateId ?? node.candidateIds?.[0];
         return <button type="button" key={node.id} data-candidate-id={node.nodeType === 'MENTION' ? candidateId : undefined} onClick={() => { if (node.nodeType === 'MENTION') { if (candidateId) onOpenMention(candidateId); } else if (node.characterId ?? node.id) { setSearch(''); onScopeChange((node.characterId ?? node.id)!, includeHistorical); } }}>{node.name} {node.nodeType === 'MENTION' ? '설정 근거 보기' : '중심으로 보기'}</button>;
@@ -81,7 +107,11 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
     </div>}
     {graph.isPending && <p role="status">가계도를 불러오고 있어요.</p>}
     {graph.isError && <RelationshipQueryError title="가계도를 불러오지 못했어요." onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
-    {data && <div hidden={graph.isError}>
+    {selecting && !graph.isError && <FamilyTreePeople key={`${session}:${workId}:${includeHistorical}`} people={exploration?.people}
+      totalEdges={exploration?.totalEdgeCount ?? 0} search={directorySearch} page={directoryPage} pending={graph.isFetching}
+      onSearch={query => changeDirectory(query, 0)} onPage={page => changeDirectory(directorySearch, page)}
+      onSelect={id => { setSearch(''); onScopeChange(id, includeHistorical); }} />}
+    {data && !selecting && <div hidden={graph.isError}>
       <div className="family-tree-summary"><span>인물 <strong>{data.nodes?.length ?? 0}</strong>명 · 관계 <strong>{data.edges?.length ?? 0}</strong>개{focusCharacterId ? ' · 연결된 가족' : ''}</span>
         <details className="family-tree-help">
           <summary><CircleHelp size={16} aria-hidden="true" />가계도 안내<ChevronDown size={14} aria-hidden="true" /></summary>

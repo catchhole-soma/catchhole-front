@@ -1,3 +1,4 @@
+import { familyExplorationFixture } from './family-exploration-fixture';
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import type { RelationshipCandidateResponse, RelationshipResponse } from '../src/app/api/generated/types.gen';
 
@@ -19,6 +20,7 @@ const oldToken = 'a'.repeat(64);
 const newToken = 'b'.repeat(64);
 
 function success(route: Route, data: unknown) {
+  data = familyExplorationFixture(route, data);
   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
 }
 function failure(route: Route, status: number, message: string, code = 'RELATIONSHIP_STALE_SOURCE') {
@@ -100,7 +102,7 @@ async function setup(context: BrowserContext) {
         autoConfirmedCount: 1, reviewRequiredCount: 9, unsupportedSourceCount: 0, lastProcessedAt: '2026-10-17T12:00:00',
         retryAt: state === 'FAILED' ? '2026-10-17T13:00:00' : null });
     }
-    if (path === `${prefix}/family-tree`) return success(route, {
+    if (path === `${prefix}/family-tree/explore`) return success(route, {
       nodes: [{ id: targetId, name: '현우' }, { id: subjectId, name: '도윤' }],
       edges: relationAvailable && relation.validity === 'VALID' ? [relation] : [],
       totalNodeCount: 2, totalEdgeCount: relationAvailable && relation.validity === 'VALID' ? 1 : 0,

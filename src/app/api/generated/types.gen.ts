@@ -8855,6 +8855,67 @@ export type FamilyTreeResponse = {
 /**
  * 공통 API 응답 Envelope
  */
+export type CommonResponseFamilyTreeExplorationResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: FamilyTreeExplorationResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 가족 관계가 200개를 넘으면 가계도 대신 전체 유효 관계의 등록 인물 선택 목록을 반환합니다
+ */
+export type FamilyTreeExplorationResponse = {
+    selectionRequired?: boolean;
+    totalNodeCount?: number;
+    totalEdgeCount?: number;
+    /**
+     * 선택이 필요하면 null. 인물을 지정하면 연결된 가족 관계를 최대 200개 반환
+     */
+    graph?: FamilyTreeResponse;
+    /**
+     * 선택이 필요할 때만 반환하는 전체 범위의 등록 인물 페이지
+     */
+    people?: FamilyTreePeoplePage;
+};
+
+export type FamilyTreePeoplePage = {
+    content?: Array<FamilyTreePerson>;
+    totalElements?: number;
+    page?: number;
+    size?: number;
+    totalPages?: number;
+    hasNext?: boolean;
+};
+
+export type FamilyTreePerson = {
+    id?: string;
+    name?: string;
+    /**
+     * 현재 조회 시점의 서로 다른 직접 연결 가족 인원. 동일 상대의 복수 관계는 한 번만 계산
+     */
+    familyCount?: number;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
 export type CommonResponseListEpisodeSummaryResponse = {
     /**
      * 요청 처리 성공 여부
@@ -17677,6 +17738,50 @@ export type GetFamilyTreeResponses = {
 };
 
 export type GetFamilyTreeResponse = GetFamilyTreeResponses[keyof GetFamilyTreeResponses];
+
+export type ExploreFamilyTreeData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        includeHistorical?: boolean;
+        focusCharacterId?: string;
+        /**
+         * 등록 인물 이름 부분 검색
+         */
+        query?: string;
+        page?: number;
+        size?: number;
+    };
+    url: '/api/v1/works/{workId}/family-tree/explore';
+};
+
+export type ExploreFamilyTreeErrors = {
+    /**
+     * 잘못된 조회 조건
+     */
+    400: CommonErrorResponse;
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+    /**
+     * 작품 또는 인물 없음
+     */
+    404: CommonErrorResponse;
+};
+
+export type ExploreFamilyTreeError = ExploreFamilyTreeErrors[keyof ExploreFamilyTreeErrors];
+
+export type ExploreFamilyTreeResponses = {
+    /**
+     * 가계도 또는 인물 선택 목록
+     */
+    200: CommonResponseFamilyTreeExplorationResponse;
+};
+
+export type ExploreFamilyTreeResponse = ExploreFamilyTreeResponses[keyof ExploreFamilyTreeResponses];
 
 export type GetEpisodeUploadPolicyData = {
     body?: never;

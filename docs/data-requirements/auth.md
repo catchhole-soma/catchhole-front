@@ -41,6 +41,8 @@ GH416 탐색도 같은 작품 소유권·세션 경계를 적용한다. `/relati
 
 인물 탐색 URL은 `relationMode=people`, `relationEpisode`, `relationFocus`, `relationPeers`, `relationPeoplePage`, `relationEdge`로 복원한다. 전체 목록 검색/페이지는 `relationSearch`/`relationListPage`, 상대 목록은 `relationPeerSearch`/`relationPeerListPage`다. 가계도 `relationPage`와 분리하고 비공개 플래그에서 모든 키를 지운다. 검색은 300ms 지연과 한글 조합 완료 뒤 실행한다. 작품·회차·세션·접근 권한이 바뀌면 이전 검색·선택·관계·근거를 숨긴다. 선택은 메모리 초안이고 적용한 상대 ID만 URL에 저장한다. 관계 수 변경으로 서버가 400/404를 반환하면 `상대 다시 선택`으로 복구한다. 별도 인증이나 저장소는 추가하지 않는다.
 
+가계도 진입은 동일한 작품 소유권 검사를 적용한 `GET /family-tree/explore`를 사용한다. 유효 가족 관계가 201개 이상이면 전체 범위의 등록 인물 목록을 24명씩 반환하며 선택 전에는 관계선·원문·이미지를 응답하지 않는다. `familySearch`·`familyPage`로 이름 검색과 페이지를 복원하고 기능 비활성 시 두 키도 제거한다. 이전 목록 유지는 같은 세션·작품·현재/과거 범위에서만 허용하며 오류 시 숨긴다. 선택 화면의 정기 조회는 중단하고 수동 갱신·관계 변경·분석 상태 변경은 새 탐색 캐시까지 갱신한다. 선택한 인물의 가족 범위가 200개를 넘으면 기존 잘림 안내를 유지한다.
+
 
 `/dashboard?workId=<id>&nav=graph&relationMode=people`도 위의 세션 확인을 통과한 뒤 생성 SDK로 관계도·근거를 읽는다. 기존 access token·HttpOnly refresh 쿠키·`fetchWithAuth`·작품 접근 권한을 유지하며 새 인증 단계나 저장소를 추가하지 않는다. 관계 조회의 이용불가 응답이나 작품·회차·세션 전환에서는 이전 관계와 근거를 숨긴다.
 

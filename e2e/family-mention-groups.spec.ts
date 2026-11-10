@@ -1,3 +1,4 @@
+import { familyExplorationFixture } from './family-exploration-fixture';
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import type { RelationshipCandidateResponse, RelationshipMentionGroupResponse } from '../src/app/api/generated/types.gen';
 
@@ -12,6 +13,7 @@ const workspace = `/dashboard?workId=${workId}&nav=graph&relationMode=family`;
 const panel = (page: Page) => page.getByRole('article', { name: '언급된 인물 근거' });
 const groupPanel = (page: Page) => panel(page).getByRole('region', { name: '같은 인물 묶음' });
 function success(route: Route, data: unknown) {
+  data = familyExplorationFixture(route, data);
   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data, error: null }) });
 }
 function conflict(route: Route) {
@@ -57,7 +59,7 @@ async function setup(context: BrowserContext, options: { grouped?: boolean; unav
     if (path.endsWith('/auth/me')) return success(route, { id: 1, email: 'group@example.test', displayName: '묶음 검증', role: 'AUTHOR', status: 'ACTIVE' });
     if (path === '/api/v1/works') return success(route, [{ id: workId, title: '묶음 검증 작품', genre: '판타지' }]);
     if (path === prefix) return success(route, { id: workId, title: '묶음 검증 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' });
-    if (path === `${prefix}/family-tree`) return success(route, graph());
+    if (path === `${prefix}/family-tree/explore`) return success(route, graph());
     if (path === `${prefix}/relationship-processing`) return success(route, { state: 'SUCCEEDED', inputVersion: 1, processedVersion: 1, reviewRequiredCount: 2 });
     if (path === `${prefix}/relationship-candidates`) return success(route, { content: candidates, totalElements: candidates.length, totalPages: 1, page: 0, size: 20 });
     if (path.startsWith(`${prefix}/relationship-candidates/`)) {
@@ -128,7 +130,9 @@ test('동명이인을 자동 선택하지 않고 두 관계·근거 확인 후 �
   await expect(page).toHaveURL(new RegExp(`relationshipCandidate=${second}`));
   await expect(panel(page).locator('[aria-label="관계의 바탕이 된 설정"]')).toContainText('태조의 6대손 이방원');
   await expect(groupPanel(page).getByRole('button', { name: /이방원의 조상 태조/ })).toHaveAttribute('aria-pressed', 'true');
+  const refreshedGraph = page.waitForResponse(response => new URL(response.url()).pathname === `${prefix}/family-tree/explore`, { timeout: 2000 });
   await groupPanel(page).getByRole('button', { name: '묶기 해제', exact: true }).click();
+  await refreshedGraph;
   await expect(mentions).toHaveCount(2);
   expect(api.calls.ungroup).toEqual([{ expectedVersion: 0 }]);
   expect(api.calls.mutations).toEqual([`POST ${prefix}/relationship-mention-groups`, `POST ${prefix}/relationship-mention-groups/${groupId}/ungroup`]);

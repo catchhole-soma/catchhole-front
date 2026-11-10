@@ -5,7 +5,7 @@ import { ArrowRight, ChevronDown, GitBranch, RefreshCw, Trash2, UserRound } from
 import {
   getRelationshipCandidateOptions, getRelationshipCandidateQueryKey, getRelationshipCandidatesOptions, getRelationshipCandidatesQueryKey,
   getRelationshipOptions, getRelationshipQueryKey, getRelationshipProcessingOptions, getRelationshipProcessingQueryKey,
-  getRelationshipsOptions, getRelationshipsQueryKey, getFamilyTreeQueryKey,
+  getRelationshipsOptions, getRelationshipsQueryKey, getFamilyTreeQueryKey, exploreFamilyTreeQueryKey,
 } from '../../../api/generated/@tanstack/react-query.gen';
 import { requestRelationshipProcessing, withdrawRelationship } from '../../../api/generated/sdk.gen';
 import type { RelationshipCandidateResponse, RelationshipResponse } from '../../../api/generated/types.gen';
@@ -118,6 +118,7 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
   useEffect(() => {
     if (!processingMarker) return;
     void client.invalidateQueries({ queryKey: getFamilyTreeQueryKey({ path: { workId } }) });
+    void client.invalidateQueries({ queryKey: exploreFamilyTreeQueryKey({ path: { workId } }) });
     void client.invalidateQueries({ queryKey: getRelationshipsQueryKey({ path: { workId } }) });
     void client.invalidateQueries({ queryKey: getRelationshipCandidatesQueryKey({ path: { workId } }) });
     if (candidateId) void client.invalidateQueries({ queryKey: getRelationshipCandidateQueryKey({ path: { workId, candidateId } }) });
@@ -146,6 +147,7 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
   }
   function refreshLists(decided: boolean) {
     void client.invalidateQueries({ queryKey: getFamilyTreeQueryKey({ path: { workId } }) });
+    void client.invalidateQueries({ queryKey: exploreFamilyTreeQueryKey({ path: { workId } }) });
     void client.invalidateQueries({ queryKey: getRelationshipsQueryKey({ path: { workId } }) });
     void client.invalidateQueries({ queryKey: getRelationshipCandidatesQueryKey({ path: { workId } }) });
     if (candidateId) void candidate.refetch();
