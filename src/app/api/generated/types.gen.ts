@@ -8406,7 +8406,7 @@ export type CommonResponseExploration = {
 };
 
 /**
- * 300개 이상은 인물 선택부터 시작합니다. 중심 인물의 직접 관계는 100개씩 조회합니다.
+ * 관계 300개 또는 인물 100명 이상은 인물 선택부터 시작합니다. 중심 인물의 직접 관계는 100개씩 조회합니다.
  */
 export type Exploration = {
     graph?: Graph;

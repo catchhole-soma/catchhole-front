@@ -231,7 +231,7 @@ layout 68건과 관계도 E2E 18건, typecheck/build 통과, lint 오류 0(기�
 
 ## GH412 전체 검색과 중심 탐색
 
-`GET /relationship-graph/explore`는 `graph`와 `selectionRequired`, `suggestedPeople`, `totalNodeCount`, `focusNode`, `page`, `pageSize`, `scopeEdgeCount`, `hasNext`를 반환한다. 초기 300개 이상이면 추천·검색만 표시한다. `focusNodeId`를 보내면 직접 관계를 100개씩 조회한다. `relationPage`는 0부터 시작하며 회차/인물 변경 시 초기화한다. 모든 페이지에 접근 가능하고 별도 관계 합치기는 하지 않는다.
+`GET /relationship-graph/explore`는 `graph`와 `selectionRequired`, `suggestedPeople`, `totalNodeCount`, `focusNode`, `page`, `pageSize`, `scopeEdgeCount`, `hasNext`를 반환한다. 관계 300개 이상 또는 인물 100명 이상이면 추천·검색만 표시한다. `focusNodeId`를 보내면 직접 관계를 100개씩 조회한다. `relationPage`는 0부터 시작하며 회차/인물 변경 시 초기화한다. 모든 페이지에 접근 가능하고 별도 관계 합치기는 하지 않는다.
 
 `GET /relationship-graph/people`은 `query`, `episodeNo`, `page`, `size`를 받으며 초기 표시와 관계없이 전체 유효 인물을 검색한다. 입력 조합 중 요청을 막고 300ms 지연, 요청 취소, 세션·작품·회차별 query key를 적용한다. 입력과 응답 검색어가 다르면 이전 검색 결과를 표시하지 않는다. 상세는 `/relationship-graph/explore/edges/{edgeId}`로 선택한 관계만 읽고 수정/삭제는 기존 API를 사용한다.
 
