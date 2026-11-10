@@ -1,15 +1,16 @@
 import { createContext, memo, useContext, useEffect, useMemo, useRef, useState, type FocusEvent } from 'react';
 import {
-  BaseEdge, ConnectionMode, EdgeLabelRenderer, Handle, Panel, Position,
-  ReactFlow, ReactFlowProvider, getViewportForBounds, useReactFlow, useStore,
+  BaseEdge, ConnectionMode, EdgeLabelRenderer, Handle, MiniMap, Panel, Position,
+  ReactFlow, ReactFlowProvider, useReactFlow, useStore,
   type Edge, type EdgeProps, type Node, type NodeProps,
 } from '@xyflow/react';
-import { ChevronDown, ChevronRight, Maximize, Minus, Plus, UserRound, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, LocateFixed, Maximize, Minus, Plus, UserRound, X } from 'lucide-react';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { CharacterSubjectImage } from '../character/CharacterSubjectImage';
 import type { WorldSettingImageResponse } from '../../../api/generated/types.gen';
 import { KIND_LABELS, SUBTYPE_LABELS, type RelationshipSubtype } from './relationship-presentation';
 import { layoutFamilyTree, type FamilyTreeConnection as Connection } from './family-tree-layout';
+import { familyViewportAnchor, familyViewports, FAMILY_TREE_MIN_ZOOM } from './family-tree-viewport';
 import '@xyflow/react/dist/style.css';
 
 const KeyboardPanContext = createContext({ current: false });
@@ -121,31 +122,47 @@ const nodeTypes = { person: Person, generationRegion: GenerationRegion };
 const edgeTypes = { family: FamilyConnection };
 
 // Fit only on the initial graph or an explicit display-scope change. Data polling must not move the viewport.
-function ViewportControls({ scopeKey, ready, bounds }: { scopeKey: string; ready: boolean; bounds: { width: number; height: number } }) {
+function ViewportControls({ scopeKey, ready, layout, focusCharacterId, truncated }: {
+  scopeKey: string; ready: boolean; layout: Layout; focusCharacterId: string; truncated: boolean;
+}) {
   const flow = useReactFlow();
   const width = useStore(state => state.width);
   const height = useStore(state => state.height);
+  const zoom = useStore(state => state.transform[2]);
   const fittedScope = useRef<string | null>(null);
+  const anchor = useMemo(() => familyViewportAnchor(layout.nodes, layout.edges, focusCharacterId), [layout.nodes, layout.edges, focusCharacterId]);
+  const { initial, overview, readable, needsFocus } = useMemo(() => familyViewports(
+    { width: layout.width, height: layout.height }, width, height, anchor, truncated,
+  ), [layout.width, layout.height, width, height, anchor, truncated]);
   useEffect(() => {
     if (!ready || !flow.viewportInitialized || !width || !height || fittedScope.current === scopeKey) return;
     // Coordinates and sizes come from our layout. Wait for the viewport, not controlled-node measurement echoes.
     const frame = requestAnimationFrame(() => {
       fittedScope.current = scopeKey;
-      void flow.setViewport(getViewportForBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height }, width, Math.max(1, height - 68), 0.005, 1, 0.08), { duration: 0 });
+      void flow.setViewport(initial, { duration: 0 });
     });
     return () => cancelAnimationFrame(frame);
-  }, [bounds.height, bounds.width, flow, height, ready, scopeKey, width]);
-  return <Panel position="bottom-left" className="family-tree-controls">
+  }, [initial, flow, height, ready, scopeKey, width]);
+  return <>{needsFocus && zoom > overview.zoom + 0.001 && <MiniMap position="top-right" className="family-tree-minimap" pannable
+    style={{ width: width < 600 ? 96 : 144, height: width < 600 ? 60 : 90 }}
+    ariaLabel={truncated ? '현재 불러온 가계도 지도' : '가계도 전체 지도'}
+    nodeColor={node => node.id === anchor?.id ? 'var(--ch-primary-ink)' : 'var(--ch-border-strong)'}
+    nodeStrokeColor="var(--ch-primary-ink)" nodeStrokeWidth={1} bgColor="var(--ch-surface)"
+    maskColor="color-mix(in srgb, var(--ch-canvas) 65%, transparent)" maskStrokeColor="var(--ch-primary-ink)"
+    onClick={(_, position) => void flow.setCenter(position.x, position.y, { zoom: flow.getZoom(), duration: 0 })} />}
+  <Panel position="bottom-left" className="family-tree-controls">
     <ActionButton variant="secondary" aria-label="확대" onClick={() => void flow.zoomIn({ duration: 0 })}><Plus size={18} aria-hidden="true" /></ActionButton>
     <ActionButton variant="secondary" aria-label="축소" onClick={() => void flow.zoomOut({ duration: 0 })}><Minus size={18} aria-hidden="true" /></ActionButton>
-    <ActionButton variant="secondary" icon={<Maximize size={16} aria-hidden="true" />} onClick={() => void flow.setViewport(getViewportForBounds({ x: 0, y: 0, ...bounds }, width, Math.max(1, height - 68), 0.005, 1, 0.08), { duration: 0 })}>전체 보기</ActionButton>
-  </Panel>;
+    <ActionButton variant="secondary" icon={<Maximize size={16} aria-hidden="true" />} onClick={() => void flow.setViewport(overview, { duration: 0 })}>{truncated ? '불러온 범위 보기' : '전체 보기'}</ActionButton>
+    {needsFocus && anchor && <ActionButton variant="secondary" title={`${anchor.name} 주변으로 이동`}
+      icon={<LocateFixed size={16} aria-hidden="true" />} onClick={() => void flow.setViewport(readable, { duration: 0 })}>인물로 이동</ActionButton>}
+  </Panel></>;
 }
 
-export function FamilyTreeCanvas({ layout, images, scopeKey, ready, focusCharacterId, searchMatchIds, selectedRelationshipId, selectedCandidateId, onOpenCharacter, onOpenRelationship, onOpenMention }: {
+export function FamilyTreeCanvas({ layout, images, scopeKey, ready, focusCharacterId, truncated = false, searchMatchIds, selectedRelationshipId, selectedCandidateId, onOpenCharacter, onOpenRelationship, onOpenMention }: {
   images: ReadonlyMap<string, WorldSettingImageResponse | null | undefined>;
   focusCharacterId: string; searchMatchIds: ReadonlySet<string>;
-  layout: Layout; scopeKey: string; ready: boolean; selectedRelationshipId: string; selectedCandidateId: string;
+  layout: Layout; scopeKey: string; ready: boolean; truncated?: boolean; selectedRelationshipId: string; selectedCandidateId: string;
   onOpenCharacter: (id: string) => void; onOpenRelationship: (id: string) => void; onOpenMention: (id: string) => void;
 }) {
   const keyboardPan = useRef(false);
@@ -234,10 +251,10 @@ export function FamilyTreeCanvas({ layout, images, scopeKey, ready, focusCharact
     <div className="family-tree-canvas" tabIndex={-1} role="region" aria-label="가계도" aria-busy={!ready}>
     <KeyboardPanContext.Provider value={keyboardPan}><ReactFlowProvider><ReactFlow<FamilyNode, FamilyEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
       connectionMode={ConnectionMode.Loose} nodesDraggable={false} nodesConnectable={false}
-      elementsSelectable={false} deleteKeyCode={null} minZoom={0.005} maxZoom={1.6} zoomOnDoubleClick={false}
+      elementsSelectable={false} deleteKeyCode={null} minZoom={FAMILY_TREE_MIN_ZOOM} maxZoom={1.6} zoomOnDoubleClick={false}
       panOnScroll={false} zoomOnScroll={false} preventScrolling={false}
       onEdgeClick={(_, edge) => openConnection(edge.id)}>
-      <ViewportControls scopeKey={scopeKey} ready={ready} bounds={{ width: layout.width, height: layout.height }} />
+      <ViewportControls scopeKey={scopeKey} ready={ready} layout={layout} focusCharacterId={focusCharacterId} truncated={truncated} />
     </ReactFlow></ReactFlowProvider></KeyboardPanContext.Provider>
     {!ready && <div className="family-tree-updating" role="status">배치를 정리하고 있어요.</div>}
     </div>

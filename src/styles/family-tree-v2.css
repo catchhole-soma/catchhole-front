@@ -41,7 +41,11 @@
 .theme-v2 .family-tree-lineage-label small { font-size: 12px; font-weight: 400; color: var(--ch-text-muted); }
 .theme-v2 .family-tree-edge-label:hover > span, .theme-v2 .family-tree-edge-label.is-selected > span { background: var(--ch-surface-soft); color: var(--ch-primary-ink); box-shadow: 0 0 0 1px var(--ch-primary); }
 .theme-v2 .family-tree-edge-label:focus-visible, .theme-v2 .family-tree-person > button:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 4px; }
-.theme-v2 .family-tree-controls { display: flex; gap: 4px; margin: 12px; }
+.theme-v2 .family-tree-controls { display: flex; flex-wrap: wrap; max-width: calc(100% - 24px); gap: 4px; margin: 12px; }
+.theme-v2 .family-tree-minimap { width: 144px; height: 90px; overflow: hidden; border: 1px solid var(--ch-border-strong); border-radius: 8px; }
+.theme-v2 .family-tree-minimap .react-flow__minimap-node,
+.theme-v2 .family-tree-minimap .react-flow__minimap-mask { vector-effect: non-scaling-stroke; shape-rendering: geometricPrecision; }
+@media (max-width: 600px) { .theme-v2 .family-tree-minimap { width: 96px; height: 60px; } }
 .theme-v2 .family-tree-controls .ch-action { min-height: 44px; min-width: 44px; padding: 8px 12px; background: var(--ch-surface); box-shadow: var(--ch-shadow-card); }
 .theme-v2 .family-tree-updating { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: 12px; background: color-mix(in srgb, var(--ch-surface) 60%, transparent); color: var(--ch-text); font-size: 13px; z-index: 10; }
 .theme-v2 .family-tree-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; padding: 12px 0; border-block: 1px solid var(--ch-border); color: var(--ch-text-muted); font-size: 12px; }

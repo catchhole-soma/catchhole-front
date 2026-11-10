@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
-import { ArrowLeftRight, ArrowRight, GitBranch, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ArrowRight, GitBranch, Pencil, Trash2, X } from 'lucide-react';
 import { exploreSelectedEpisodeRelationshipsOptions, exploreSelectedEpisodeRelationshipsQueryKey, getExploredRelationshipEdgeOptions,
   getExploredRelationshipEdgeQueryKey, searchEpisodeRelationshipPeopleOptions, searchEpisodeRelationshipPeopleQueryKey, updateEpisodeRelationshipEdgeMutation, deleteEpisodeRelationshipEdgeMutation } from '../../../api/generated/@tanstack/react-query.gen';
 import type { Edge } from '../../../api/generated/types.gen';
@@ -61,6 +61,7 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   const selectionScope = `${scope}:${focusId}:${counterpartKey}`;
   const choosing = Boolean(exploration?.counterpartSelectionRequired || editingSelection === selectionScope);
   const directory = Boolean(exploration?.selectionRequired || choosing);
+  const backToCounterparts = !directory && counterpartIds.length > 0;
   const listSearchKey = choosing ? 'relationPeerSearch' : 'relationSearch';
   const listPageKey = choosing ? 'relationPeerListPage' : 'relationListPage';
   const searchOptions = searchEpisodeRelationshipPeopleOptions({ path: { workId }, query: { episodeNo, query: debouncedSearch, page: searchPage, size: 20 } });
@@ -117,6 +118,11 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   if (!enabled) return <div className="relationship-empty"><p>작품을 선택하면 인물 관계도를 볼 수 있어요.</p></div>;
   return <div className="episode-relationships">
     <div className="episode-relationship-toolbar">
+      {focusId && <ActionButton variant="secondary"
+        title={backToCounterparts ? '연결 상대 선택으로 돌아가기' : '인물 선택으로 돌아가기'}
+        onClick={() => backToCounterparts ? setEditingSelection(selectionScope) : focus('')}>
+        <ArrowLeft size={16} aria-hidden="true" />뒤로가기
+      </ActionButton>}
       <label>이 회차까지의 관계<select aria-label="관계도 회차" value={episodeNo ?? ''} onChange={event => {
         setSearch(''); setEditingSelection(''); update({ relationEpisode: event.target.value || null, relationFocus: null, relationEdge: null, relationPeoplePage: null, relationPeers: null, relationSearch: null, relationListPage: null, relationPeerSearch: null, relationPeerListPage: null });
       }}>
@@ -127,7 +133,6 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
       {!directory && <label>인물 찾기<input aria-label="관계도 인물 검색" value={search} onChange={event => { setSearch(event.target.value); setSearchPage(0); }} onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} placeholder="이름 또는 별칭으로 찾기" maxLength={100} disabled={!data} /></label>}
       <ActionButton variant="secondary" disabled={graph.isFetching} onClick={() => void Promise.all([graph.refetch(), client.invalidateQueries({ queryKey: searchEpisodeRelationshipPeopleQueryKey({ path: { workId } }) })])}>관계 새로고침</ActionButton>
       {data && focusId && !directory && (exploration?.focusEdgeCount ?? 0) >= 200 && <ActionButton variant="secondary" onClick={() => setEditingSelection(selectionScope)}>상대 선택 변경</ActionButton>}
-      {focusId && <ActionButton variant="secondary" onClick={() => focus('')}>인물 선택으로 돌아가기</ActionButton>}
     </div>
     {!directory && searching && data && <div className="episode-relationship-results" aria-label="인물 검색 결과" aria-busy={!searchReady || searchResult.isFetching}>
       {!searchReady || searchResult.isPending ? <p role="status">인물을 찾고 있어요.</p> : searchResult.isError

@@ -203,7 +203,7 @@ test('selected person is highlighted without fetching current profiles or requir
   await expect(page).toHaveURL(/relationFocus=p3/);
   await expect(page.locator('.episode-person.is-focused')).toContainText('산장 주인');
   await expect(page.getByText('확인·연결')).toHaveCount(0);
-  await page.getByRole('button', { name: '인물 선택으로 돌아가기' }).click();
+  await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
   await page.locator('.episode-person').getByRole('button', { name: '산장 주인 중심으로 보기', exact: true }).click();
   await expect(page).toHaveURL(/relationFocus=p3/);
   await expect(page.locator('.episode-person.is-focused')).toContainText('산장 주인');
@@ -776,7 +776,7 @@ test('dense overview keeps 50 people and 100 relations selectable and returns fr
   await expect(canvas.locator('.episode-person')).toHaveCount(5);
   await expect(canvas.locator('.episode-connection-label')).toHaveCount(4);
   await expect(canvas.locator('.episode-person.is-focused')).toContainText('예시 인물 0');
-  await page.getByRole('button', { name: '인물 선택으로 돌아가기', exact: true }).click();
+  await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
   await expect(canvas.locator('.episode-person')).toHaveCount(50);
   await expect(canvas.locator('.episode-connection-label')).toHaveCount(100);
   await page.setViewportSize({ width: 320, height: 850 });
@@ -839,6 +839,46 @@ for (const width of [1366, 320]) test(`large graph starts with people and search
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+for (const counterpart of [false, true]) test(`native Korean composition stays intact in the ${counterpart ? 'counterpart' : 'people'} search`, async ({ context, page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Native composition is driven through Chromium CDP.');
+  const fixture = await setupLargeGraph(context);
+  const searchKey = counterpart ? 'relationPeerSearch' : 'relationSearch';
+  const pageKey = counterpart ? 'relationPeerListPage' : 'relationListPage';
+  await page.goto(`${workspace}${counterpart ? '&relationFocus=center' : ''}&${pageKey}=1`);
+  const directory = page.getByLabel(counterpart ? '연결 상대 선택' : '관계도 인물 선택', { exact: true });
+  await expect(directory.locator('.episode-relationship-suggestions > *')).toHaveCount(24);
+  const input = directory.getByRole('textbox');
+  await input.focus();
+  const originalInput = await input.elementHandle();
+  const cdp = await context.newCDPSession(page);
+  for (const [index, text] of ['ㅈ', '조', '조ㅈ', '조조'].entries()) {
+    await cdp.send('Input.imeSetComposition', { text, selectionStart: text.length, selectionEnd: text.length });
+    // Wait beyond the search debounce while the browser still owns composition.
+    await page.waitForTimeout(index === 0 ? 350 : 50);
+    await expect(input).toHaveValue(text);
+    await expect(input).toBeFocused();
+    expect(await originalInput!.evaluate(node => node.isConnected)).toBe(true);
+    expect(new URL(page.url()).searchParams.has(searchKey)).toBe(false);
+    expect(fixture.explorerCalls.filter(call => call.startsWith('search:') && call !== 'search:')).toEqual([]);
+  }
+  await cdp.send('Input.insertText', { text: '조조' });
+  await expect(input).toHaveValue('조조');
+  await expect.poll(() => new URL(page.url()).searchParams.get(searchKey)).toBe('조조');
+  expect(new URL(page.url()).searchParams.has(pageKey)).toBe(false);
+  await expect.poll(() => fixture.explorerCalls.filter(call => call.startsWith('search:') && call !== 'search:')).toEqual(['search:조조']);
+  // Paste, clear and browser history restore the same input without leaving an IME lock.
+  await input.fill('공명');
+  await expect(directory.getByText('공명', { exact: true })).toBeVisible();
+  await input.fill('');
+  await expect(directory.locator('.episode-relationship-suggestions > *')).toHaveCount(24);
+  await directory.getByRole('button', { name: '다음 인물', exact: true }).click();
+  await input.fill('공명');
+  await expect(directory.getByText('공명', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(input).toHaveValue('');
+  await expect(directory.locator('.episode-relationship-suggestions > *')).toHaveCount(24);
+});
+
 test('default entry applies multiple counterparts only on demand and restores them across reload and back', async ({ context, page }) => {
   const fixture = await setupLargeGraph(context);
   await page.goto(defaultWorkspace);
@@ -864,6 +904,32 @@ test('default entry applies multiple counterparts only on demand and restores th
   await page.goBack();
   await expect(page.getByLabel('연결 상대 선택', { exact: true })).toBeVisible();
   expect(new URL(page.url()).searchParams.has('relationPage')).toBe(false);
+});
+
+for (const width of [1366, 320]) test(`relationship back button restores counterpart choices then the people search at ${width}px`, async ({ context, page }) => {
+  await setupLargeGraph(context);
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(workspace);
+  const directory = page.getByLabel('관계도 인물 선택', { exact: true });
+  await directory.getByRole('textbox').fill('유비');
+  await directory.getByRole('button', { name: '유비 중심으로 보기', exact: true }).click();
+  await page.getByRole('checkbox', { name: '관계 인물 0 선택', exact: true }).check();
+  await page.getByRole('checkbox', { name: '관계 인물 1 선택', exact: true }).check();
+  await page.getByRole('button', { name: '관계 보기', exact: true }).click();
+  await expect(page.getByRole('list', { name: '이 회차의 관계 목록' }).locator('li')).toHaveCount(2);
+  const back = page.getByRole('button', { name: '뒤로가기', exact: true });
+  await expect(back).toHaveAttribute('title', '연결 상대 선택으로 돌아가기');
+  await back.click();
+  await expect(page.getByText('선택한 인물 2명 · 관계 2개')).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '관계 인물 0 선택', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '관계 인물 1 선택', exact: true })).toBeChecked();
+  await expect(page.locator('.episode-relationship-canvas')).toHaveCount(0);
+  await expect(back).toHaveAttribute('title', '인물 선택으로 돌아가기');
+  await back.click();
+  await expect(directory.getByRole('textbox')).toHaveValue('유비');
+  await expect(directory.getByRole('button', { name: '유비 중심으로 보기', exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.has('relationFocus')).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('server search hides failed results and ignores an older delayed response', async ({ context, page }) => {

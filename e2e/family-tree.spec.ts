@@ -204,7 +204,8 @@ async function expectAllRelationshipActions(page: Page, relations: Array<{ id: s
 }
 
 const viewport = (page: Page) => graph(page).locator('.react-flow__viewport');
-async function expectWholeTreeInView(page: Page) {
+async function showWholeTreeInView(page: Page) {
+  await graph(page).getByRole('button', { name: '전체 보기', exact: true }).click();
   await expect(graph(page).locator('[data-character-id]')).not.toHaveCount(0);
   await expect.poll(() => graph(page).evaluate(region => {
     const bounds = region.getBoundingClientRect();
@@ -267,16 +268,60 @@ async function ordinaryReadability(page: Page) {
   });
 }
 
+for (const width of [1280, 320]) test(`${width}px 큰 가계도는 읽을 수 있는 크기로 시작하고 전체 보기와 인물 이동을 전환한다`, async ({ page, context }, testInfo) => {
+  const fixture = await setup(context, apiFixture(createLargeFamilyFixture(120)));
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(workspace);
+  await expect(graph(page).locator('[data-character-id]')).toHaveCount(120);
+  await expect.poll(() => zoom(page)).toBe('1');
+  expect(fixture.calls.graphs[0]).toMatchObject({ limit: '200' });
+  await expect(page.locator('.family-tree-summary')).toContainText('119');
+  await expect(page.getByRole('status').filter({ hasText: '일부 가족 연결' })).toHaveCount(0);
+  const readability = await ordinaryReadability(page);
+  expect(readability.namePixels).toBeGreaterThanOrEqual(12);
+  expect(readability.relationPixels).toBeGreaterThanOrEqual(12);
+  await expect(graph(page).getByLabel('가계도 전체 지도')).toBeVisible();
+  const initial = await viewport(page).getAttribute('style');
+  await graph(page).screenshot({ path: testInfo.outputPath(`family-readable-${width}.png`) });
+  await graph(page).getByLabel('가계도 전체 지도').click({ position: { x: 8, y: 20 } });
+  await expect(viewport(page)).not.toHaveAttribute('style', initial!);
+  await graph(page).getByRole('button', { name: '인물로 이동', exact: true }).click();
+  await expect(viewport(page)).toHaveAttribute('style', initial!);
+  await showWholeTreeInView(page);
+  expect(Number(await zoom(page))).toBeLessThan(12 / 14);
+  await expect(graph(page).getByLabel('가계도 전체 지도')).toHaveCount(0);
+  await graph(page).getByRole('button', { name: '인물로 이동', exact: true }).click();
+  await expect(viewport(page)).toHaveAttribute('style', initial!);
+  await graph(page).getByRole('button', { name: '확대', exact: true }).click();
+  const moved = await viewport(page).getAttribute('style');
+  await page.setViewportSize({ width: width === 320 ? 1280 : 320, height: 850 });
+  await expect(page.locator('.family-tree-updating')).toHaveCount(0);
+  await expect(viewport(page)).toHaveAttribute('style', moved!);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(fixture.calls.mutations).toEqual([]);
+});
+
+test('작은 가계도는 전체 맞춤으로 시작하고 별도 큰 가계도 도구를 띄우지 않는다', async ({ page, context }) => {
+  const fixture = await setup(context, apiFixture({ id: 'pair', label: '두 사람', nodes: [{ id: 'a', name: '가람' }, { id: 'b', name: '나래' }],
+    edges: [{ id: 'ab', subjectCharacterId: 'a', objectCharacterId: 'b', kind: 'SPOUSE', temporalScope: 'CURRENT', subtype: 'UNSPECIFIED' }] }));
+  await page.goto(workspace);
+  await expect(graph(page).locator('[data-character-id]')).toHaveCount(2);
+  await expect.poll(() => zoom(page)).toBe('1');
+  await expect(graph(page).getByRole('button', { name: '인물로 이동', exact: true })).toHaveCount(0);
+  for (const person of fixture.nodes) await expectFocusedControlInView(node(page, person.id).getByRole('button'));
+});
+
 test('가계도 명시 진입은 전체 가족을 보여 주며 20번째 이후 관계도 빠짐없이 연결한다', async ({ page, context }, testInfo) => {
   const family = apiFixture(createLargeFamilyFixture(28));
   const fixture = await setup(context, family);
   await page.goto(workspace);
   await expect(graph(page)).toBeVisible();
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(28);
+  await showWholeTreeInView(page);
   await expectRepresentedRelations(page, family.edges);
   await expect(connection(page, family.edges[26].id)).toBeAttached();
-  await expectWholeTreeInView(page);
-  expect(fixture.calls.graphs[0]).toMatchObject({ includeHistorical: 'false', limit: '100' });
+  await showWholeTreeInView(page);
+  expect(fixture.calls.graphs[0]).toMatchObject({ includeHistorical: 'false', limit: '200' });
   expect(fixture.calls.mutations).toEqual([]);
   await graph(page).screenshot({ path: testInfo.outputPath('family-tree-large-desktop.png') });
 });
@@ -287,7 +332,7 @@ for (const width of [1280, 320]) {
     const fixture = await setup(context, family);
     await page.setViewportSize({ width, height: 800 });
     await page.goto(workspace);
-    await expectWholeTreeInView(page);
+    await showWholeTreeInView(page);
     await expect(graph(page).locator('[data-character-id]')).toHaveCount(3);
     await expectRepresentedRelations(page, fixture.edges);
     await expect(graph(page).locator('[data-lineage-break]')).toHaveCount(2);
@@ -331,7 +376,7 @@ test('가계도는 프로필 사진을 요약 응답에서 표시하고 사진�
   fixture.setImage(brokenPerson.id, { ...photos.publicImage, thumbnailUrl: photos.brokenPath });
   await page.clock.install();
   await page.goto(workspace);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const photo = (id: string) => node(page, id).locator('.family-tree-avatar img');
   await expect(photo(publicPerson.id)).toHaveAttribute('src', new RegExp(`${photos.publicPath}$`));
   await expect(photo(privatePerson.id)).toHaveAttribute('src', /^blob:/);
@@ -416,7 +461,7 @@ test('복합 가족·친생 입양·부모 미상·순환은 실제 인물과 �
     }
     if (['ordinary', 'remarried', 'biological-adoptive'].includes(example.id)) {
       await graph(page).getByRole('button', { name: '전체 보기', exact: true }).click();
-      await expectWholeTreeInView(page);
+      await showWholeTreeInView(page);
       await graph(page).screenshot({ path: testInfo.outputPath(`revised-family-tree-${example.id}-desktop.png`) });
     }
   }
@@ -430,7 +475,7 @@ test('자녀와 먼 후손의 높이를 구분하고 세대 미상 영역과 각
     await page.setViewportSize({ width, height: 800 });
     await page.goto(workspace);
     await expectRepresentedRelations(page, family.edges);
-    await expectWholeTreeInView(page);
+    await showWholeTreeInView(page);
     const boxes = await Promise.all(family.nodes.map(person => node(page, person.id).boundingBox()));
     expect(boxes[0]!.y + boxes[0]!.height).toBeLessThan(boxes[1]!.y);
     expect(boxes[1]!.y).toBeCloseTo(boxes[2]!.y, 1);
@@ -455,7 +500,7 @@ test('인물 프로필과 관계·원문 근거를 기존 모달로 열고 URL·
   await page.goto(workspace);
   const person = fixture.nodes[0];
   const personButton = page.getByRole('button', { name: `${person.name} 프로필 열기`, exact: true });
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   for (let step = 0; step < 3; step++) await graph(page).getByRole('button', { name: '확대', exact: true }).click();
   const currentZoom = await zoom(page);
   await panControlOutside(page, personButton);
@@ -517,7 +562,7 @@ test('빈 가계도와 조회 실패를 구분하고 재시도 성공 뒤 원래
   fixture.fail(false);
   await page.getByRole('button', { name: '다시 불러오기', exact: true }).click();
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(fixture.nodes.length);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await graph(page).getByRole('button', { name: '확대', exact: true }).click();
   const position = await viewport(page).evaluate(element => (element as HTMLElement).style.transform);
   fixture.fail();
@@ -588,6 +633,7 @@ test('서버가 일부 관계만 반환하면 제한을 알리고 응답 밖 인
   const fixture = await setup(context); fixture.truncate(); fixture.paginatedDirectory();
   await page.goto(workspace);
   await expect(page.getByRole('status').filter({ hasText: '전체 관계 250개' })).toContainText('일부 가족 연결이 생략될 수 있어요.');
+  await graph(page).getByRole('button', { name: '불러온 범위 보기', exact: true }).click();
   await expectRepresentedRelations(page, fixture.edges);
   await page.getByRole('button', { name: '특정 인물 중심으로 보기', exact: true }).click();
   await page.getByRole('button', { name: '다음 페이지', exact: true }).click();
@@ -615,7 +661,7 @@ test('다른 창의 관계 철회를 반영하면서 확대·이동한 화면 �
   const selected = fixture.edges[0];
   await expect(graph(page).locator('[data-character-id]')).toHaveCount(fixture.nodes.length);
   await page.clock.runFor(100);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const stablePerson = (await node(page, fixture.nodes[0].id).elementHandle())!;
   const stableEdge = (await connection(page, selected.id).elementHandle())!;
   await edge(page, selected.id).click();
@@ -666,7 +712,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
   await page.goto(workspace);
   await expect(graph(page)).toBeVisible();
   await expect(page.getByLabel('가족 관계 보기', { exact: true })).toHaveValue('tree');
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   const readability = await ordinaryReadability(page);
   expect(readability.namePixels).toBeGreaterThanOrEqual(12);
   expect(readability.relationPixels).toBeGreaterThanOrEqual(10);
@@ -689,7 +735,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
     expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await control.click();
   }
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await page.getByLabel('가계도 인물 검색', { exact: true }).fill(fixture.nodes[0].name);
   await expect(node(page, fixture.nodes[0].id).getByText('검색 결과', { exact: true })).toBeVisible();
   await expect(node(page, fixture.nodes[0].id).getByRole('button')).toHaveCSS('color', 'rgb(255, 255, 255)');
@@ -708,7 +754,7 @@ test('320px 가계도의 주요 조작과 인물 프로필·근거에 접근하�
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await expect.poll(async () => (await node(page, fixture.nodes[0].id).boundingBox())!.width).toBeGreaterThanOrEqual(190);
   const desktopReadability = await ordinaryReadability(page);
   expect(desktopReadability.namePixels).toBeGreaterThanOrEqual(16);
@@ -783,7 +829,7 @@ test('친생과 입양 자녀를 함께 둔 부모의 호칭은 한 번만 보�
   };
   const fixture = await setup(context, apiFixture(family));
   await page.goto(workspace);
-  await expectWholeTreeInView(page);
+  await showWholeTreeInView(page);
   await expectRepresentedRelations(page, fixture.edges);
 
   for (const [index, role, name, title] of [

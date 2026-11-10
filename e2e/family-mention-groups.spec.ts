@@ -107,6 +107,7 @@ test('동명이인을 자동 선택하지 않고 두 관계·근거 확인 후 �
   await page.goto(workspace);
   const mentions = page.getByRole('button', { name: '태조 설정 근거 보기', exact: true });
   await expect(mentions).toHaveCount(2);
+  await page.getByRole('button', { name: '전체 보기', exact: true }).click();
   await mentions.first().click();
   await chooseSecond(page);
   await expect(groupPanel(page).getByRole('checkbox', { name: /다른 후손의 조상/ })).toBeDisabled();
@@ -185,6 +186,7 @@ test('이미 묶인 노드에서 개별 수정 안내와 320px 선택 화면·�
   await setup(context, { grouped: true });
   await page.setViewportSize({ width: 320, height: 780 });
   await page.goto(workspace);
+  await page.getByRole('button', { name: '전체 보기', exact: true }).click();
   await page.getByRole('button', { name: '태조 설정 근거 보기', exact: true }).click();
   await expect(groupPanel(page).getByRole('heading', { name: '태조의 관계 2개' })).toBeVisible();
   await panel(page).getByRole('button', { name: '관계 내용 수정', exact: true }).click();

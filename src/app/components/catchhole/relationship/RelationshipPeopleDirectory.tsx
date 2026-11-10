@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { GitBranch, X } from 'lucide-react';
 import { searchEpisodeRelationshipPeopleOptions } from '../../../api/generated/@tanstack/react-query.gen';
@@ -16,16 +16,26 @@ type Props = {
 export function RelationshipPeopleDirectory({ workId, episodeNo, session, focusId, focusName, search, page,
   onSearch, onPage, onFocus, onApply, onCancel, selectedPeople = [], maxPeople, maxEdges }: Props) {
   const [selected, setSelected] = useState(selectedPeople);
+  const [input, setInput] = useState(search);
   const [composing, setComposing] = useState(false);
-  const [debounced, setDebounced] = useState(search.trim());
+  const publishedSearch = useRef<string>();
   useEffect(() => {
-    if (composing) return;
-    const timer = window.setTimeout(() => setDebounced(search.trim()), 300);
+    // Acknowledging our URL update must not overwrite newer keystrokes.
+    // External navigation (including browser Back) still restores its search.
+    if (publishedSearch.current !== search) setInput(search);
+    publishedSearch.current = undefined;
+  }, [search]);
+  useEffect(() => {
+    if (composing || input === search) return;
+    const timer = window.setTimeout(() => {
+      publishedSearch.current = input;
+      onSearch(input);
+    }, 300);
     return () => window.clearTimeout(timer);
-  }, [search, composing]);
-  const ready = !composing && debounced === search.trim();
+  }, [input, search, composing, onSearch]);
+  const ready = !composing && input === search;
   const options = searchEpisodeRelationshipPeopleOptions({ path: { workId },
-    query: { episodeNo, focusNodeId: focusId, query: debounced, page, size: 24 } });
+    query: { episodeNo, focusNodeId: focusId, query: search.trim(), page, size: 24 } });
   const result = useQuery({ ...options, queryKey: [{ ...options.queryKey[0], tags: [`session:${session}`] }],
     enabled: ready, gcTime: 0, refetchOnWindowFocus: true });
   const people = ready && !result.isError ? result.data?.data?.content ?? [] : [];
@@ -43,9 +53,10 @@ export function RelationshipPeopleDirectory({ workId, episodeNo, session, focusI
     <p>{focusId ? `함께 볼 상대를 골라 주세요. 최대 ${maxPeople}명 · 관계 ${maxEdges}개까지 볼 수 있어요.`
       : '관계가 있는 모든 인물을 관계 수가 많은 순서로 볼 수 있어요.'}</p>
     <label className="episode-relationship-directory-search">{focusId ? '연결 상대 찾기' : '인물 찾기'}
-      <input aria-label={focusId ? '연결 상대 검색' : '관계도 인물 검색'} value={search}
-        onChange={event => onSearch(event.target.value)} onCompositionStart={() => setComposing(true)}
-        onCompositionEnd={() => setComposing(false)} maxLength={100} placeholder="이름 또는 별칭으로 찾기" />
+      <input aria-label={focusId ? '연결 상대 검색' : '관계도 인물 검색'} value={input}
+        onChange={event => setInput(event.target.value)} onCompositionStart={() => setComposing(true)}
+        onCompositionEnd={event => { setInput(event.currentTarget.value); setComposing(false); }}
+        maxLength={100} placeholder="이름 또는 별칭으로 찾기" />
     </label>
     {focusId && <div className="episode-relationship-selection-bar">
       <strong aria-live="polite">선택한 인물 {currentSelected.length}명 · 관계 {edgeCount}개</strong>

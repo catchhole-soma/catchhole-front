@@ -25,7 +25,7 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
 }) {
   const navigate = useAppNavigate();
   const compact = useSyncExternalStore(subscribeCompactCanvas, compactSnapshot, () => false);
-  const graph = useQuery({ ...getFamilyTreeOptions({ path: { workId }, query: { includeHistorical, limit: 100, ...(focusCharacterId ? { focusCharacterId } : {}) } }),
+  const graph = useQuery({ ...getFamilyTreeOptions({ path: { workId }, query: { includeHistorical, limit: 200, ...(focusCharacterId ? { focusCharacterId } : {}) } }),
     refetchOnWindowFocus: true, refetchInterval: 5000 });
   const data = graph.data?.data;
   const images = useMemo(() => new Map((data?.nodes ?? []).map(node => [node.id ?? '', node.image])), [data?.nodes]);
@@ -102,7 +102,7 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
         <ActionButton variant="secondary" onClick={onReview}>확인할 관계 보기</ActionButton></div> : <>
         {layout.isError && <RelationshipQueryError title="가계도 배치를 만들지 못했어요. 목록에서도 관계를 확인할 수 있어요." onRetry={() => void layout.refetch()} pending={layout.isFetching} />}
         {!layout.data && layout.isPending && <p role="status">가계도 배치를 정리하고 있어요.</p>}
-        {layout.data && <FamilyTreeCanvas layout={layout.data} images={images} scopeKey={`${workId}:${focusCharacterId}:${includeHistorical}:${compact}`} ready={!layout.isPlaceholderData && !layout.isError}
+        {layout.data && <FamilyTreeCanvas layout={layout.data} images={images} scopeKey={`${workId}:${focusCharacterId}:${includeHistorical}`} ready={!layout.isPlaceholderData && !layout.isError} truncated={data.truncated}
           focusCharacterId={focusCharacterId} searchMatchIds={searchMatchIds}
           selectedRelationshipId={selectedRelationshipId} selectedCandidateId={selectedCandidateId} onOpenCharacter={onOpenCharacter} onOpenRelationship={onOpenRelationship} onOpenMention={onOpenMention} />}
         {!!layout.data?.warnings.length && <div className="relationship-notice" role="status">{warnings.map(([key, warning]) => <p key={key}>{warning.message}</p>)}</div>}
