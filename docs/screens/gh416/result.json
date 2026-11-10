@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "directoryPeople": 231,
+  "directoryPageSize": 24,
+  "selectedPeople": 2,
+  "renderedEdges": 2,
+  "renderedNodes": 3,
+  "writes": 0,
+  "graphReads": 4,
+  "apiResponsesMocked": false,
+  "productionAccess": false
+}

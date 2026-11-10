@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { ArrowLeftRight, ArrowRight, GitBranch, Pencil, Trash2, X } from 'lucide-react';
-import { exploreEpisodeRelationshipsOptions, exploreEpisodeRelationshipsQueryKey, getExploredRelationshipEdgeOptions,
+import { exploreSelectedEpisodeRelationshipsOptions, exploreSelectedEpisodeRelationshipsQueryKey, getExploredRelationshipEdgeOptions,
   getExploredRelationshipEdgeQueryKey, searchEpisodeRelationshipPeopleOptions, searchEpisodeRelationshipPeopleQueryKey, updateEpisodeRelationshipEdgeMutation, deleteEpisodeRelationshipEdgeMutation } from '../../../api/generated/@tanstack/react-query.gen';
 import type { Edge } from '../../../api/generated/types.gen';
 import { privateImageSessionEpoch, usePrivateImageSession } from '../../../lib/private-image-session';
@@ -10,6 +10,7 @@ import { toApiError } from '../../../lib/api-errors';
 import { ActionButton } from '../ui-v2/ActionButton';
 import { RelationshipQueryError } from './RelationshipEvidence';
 import { EpisodeRelationshipCanvas } from './EpisodeRelationshipCanvas';
+import { RelationshipPeopleDirectory } from './RelationshipPeopleDirectory';
 import type { EpisodeConnection, EpisodePerson } from './episode-relationship-layout';
 import '../../../../styles/episode-relationships.css';
 
@@ -27,9 +28,13 @@ function ConnectionNames({ source, target, direction }: { source: string; target
 
 export default function EpisodeRelationshipWorkspace({ workId, enabled }: { workId: string; enabled: boolean }) {
   const [params, setParams] = useSearchParams();
+  const client = useQueryClient();
   const episodeNo = parseEpisode(params.get('relationEpisode'));
   const focusId = params.get('relationFocus') ?? '';
   const selectedId = params.get('relationEdge') ?? '';
+  const counterpartKey = params.get('relationPeers') ?? '';
+  const counterpartIds = counterpartKey ? counterpartKey.split(',').slice(0, 21) : [];
+  const [editingSelection, setEditingSelection] = useState('');
   const session = usePrivateImageSession();
   const selectionTrigger = useRef<HTMLElement | null>(null);
   const scope = `${session}:${workId}:${episodeNo ?? 'latest'}`;
@@ -45,7 +50,7 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [search, composing, scope]);
-  const graphOptions = exploreEpisodeRelationshipsOptions({ path: { workId }, query: { episodeNo, focusNodeId: focusId || undefined, page: relationPage } });
+  const graphOptions = exploreSelectedEpisodeRelationshipsOptions({ path: { workId }, query: { episodeNo, focusNodeId: focusId || undefined, counterpartNodeIds: counterpartIds.length ? counterpartIds : undefined, page: relationPage } });
   const graph = useQuery({ ...graphOptions, queryKey: [{ ...graphOptions.queryKey[0], tags: [`session:${session}`] }], gcTime: 0,
     enabled, refetchOnWindowFocus: true, refetchInterval: query => query.state.data?.data?.graph?.analysisStatus === 'PROCESSING' ? 10000 : false });
   const graphError = toApiError(graph.error);
@@ -53,11 +58,16 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   const canShowGraph = !graph.isError || !graphError || graphError.status >= 500;
   const exploration = canShowGraph ? graph.data?.data : undefined;
   const data = exploration?.graph;
+  const selectionScope = `${scope}:${focusId}:${counterpartKey}`;
+  const choosing = Boolean(exploration?.counterpartSelectionRequired || editingSelection === selectionScope);
+  const directory = Boolean(exploration?.selectionRequired || choosing);
+  const listSearchKey = choosing ? 'relationPeerSearch' : 'relationSearch';
+  const listPageKey = choosing ? 'relationPeerListPage' : 'relationListPage';
   const searchOptions = searchEpisodeRelationshipPeopleOptions({ path: { workId }, query: { episodeNo, query: debouncedSearch, page: searchPage, size: 20 } });
   const searching = Boolean(search.trim());
   const searchReady = !composing && debouncedSearch === search.trim();
   const searchResult = useQuery({ ...searchOptions, queryKey: [{ ...searchOptions.queryKey[0], tags: [`session:${session}`] }],
-    enabled: enabled && Boolean(data) && searching && searchReady, gcTime: 0, refetchOnWindowFocus: true });
+    enabled: enabled && Boolean(data) && !directory && searching && searchReady, gcTime: 0, refetchOnWindowFocus: true });
   const updateIncomplete = data?.updateIncomplete === true;
   const legacyPartial = data?.updateIncomplete == null && (data?.analysisStatus === 'PARTIAL' || data?.partial === true);
   const analysisFailed = data?.analysisStatus === 'FAILED' || data?.analysisStatus === 'INVALIDATED';
@@ -84,15 +94,15 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
     return people.filter(person => visibleIds.has(person.id));
   }, [people, effectiveFocus, visibleConnections]);
   const matching = searchReady && !searchResult.isError ? searchResult.data?.data?.content ?? [] : [];
-  function update(values: Record<string, string | null>) {
+  function update(values: Record<string, string | null>, replace = false) {
     setParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('relationMode', 'people');
       for (const [key, value] of Object.entries(values)) { if (value === null) next.delete(key); else next.set(key, value); }
       return next;
-    });
+    }, { replace });
   }
-  function focus(id: string) { setSearch(''); setSearchPage(0); update({ relationFocus: id || null, relationEdge: null, relationPeoplePage: null }); }
+  function focus(id: string) { setSearch(''); setSearchPage(0); setEditingSelection(''); update({ relationFocus: id || null, relationEdge: null, relationPeoplePage: null, relationPeers: null, relationPeerSearch: null, relationPeerListPage: null }); }
   function select(id: string) {
     selectionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     update({ relationEdge: id });
@@ -108,17 +118,18 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
   return <div className="episode-relationships">
     <div className="episode-relationship-toolbar">
       <label>이 회차까지의 관계<select aria-label="관계도 회차" value={episodeNo ?? ''} onChange={event => {
-        setSearch(''); update({ relationEpisode: event.target.value || null, relationFocus: null, relationEdge: null, relationPeoplePage: null });
+        setSearch(''); setEditingSelection(''); update({ relationEpisode: event.target.value || null, relationFocus: null, relationEdge: null, relationPeoplePage: null, relationPeers: null, relationSearch: null, relationListPage: null, relationPeerSearch: null, relationPeerListPage: null });
       }}>
         <option value="">최신 분석 회차{!episodeNo && selectedEpisode?.episodeNo ? ` (${selectedEpisode.episodeNo}화)` : ''}</option>
         {(data?.availableEpisodes ?? []).map(episode => <option key={episode.id} value={episode.episodeNo}>{episode.episodeNo}화</option>)}
         {episodeNo && !(data?.availableEpisodes ?? []).some(episode => episode.episodeNo === episodeNo) && <option value={episodeNo}>{episodeNo}화</option>}
       </select></label>
-      <label>인물 찾기<input aria-label="관계도 인물 검색" value={search} onChange={event => { setSearch(event.target.value); setSearchPage(0); }} onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} placeholder="이름 또는 별칭으로 찾기" maxLength={100} disabled={!data} /></label>
-      <ActionButton variant="secondary" disabled={graph.isFetching} onClick={() => void graph.refetch()}>관계 새로고침</ActionButton>
+      {!directory && <label>인물 찾기<input aria-label="관계도 인물 검색" value={search} onChange={event => { setSearch(event.target.value); setSearchPage(0); }} onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} placeholder="이름 또는 별칭으로 찾기" maxLength={100} disabled={!data} /></label>}
+      <ActionButton variant="secondary" disabled={graph.isFetching} onClick={() => void Promise.all([graph.refetch(), client.invalidateQueries({ queryKey: searchEpisodeRelationshipPeopleQueryKey({ path: { workId } }) })])}>관계 새로고침</ActionButton>
+      {data && focusId && !directory && (exploration?.focusEdgeCount ?? 0) >= 200 && <ActionButton variant="secondary" onClick={() => setEditingSelection(selectionScope)}>상대 선택 변경</ActionButton>}
       {focusId && <ActionButton variant="secondary" onClick={() => focus('')}>인물 선택으로 돌아가기</ActionButton>}
     </div>
-    {searching && data && <div className="episode-relationship-results" aria-label="인물 검색 결과" aria-busy={!searchReady || searchResult.isFetching}>
+    {!directory && searching && data && <div className="episode-relationship-results" aria-label="인물 검색 결과" aria-busy={!searchReady || searchResult.isFetching}>
       {!searchReady || searchResult.isPending ? <p role="status">인물을 찾고 있어요.</p> : searchResult.isError
         ? <RelationshipQueryError title="인물을 찾지 못했어요. 다시 시도해 주세요." onRetry={() => void searchResult.refetch()} pending={searchResult.isFetching} />
         : matching.length ? matching.map(person => person.node?.id && <button type="button" key={person.node.id} onClick={() => focus(person.node!.id!)}>
@@ -132,38 +143,42 @@ export default function EpisodeRelationshipWorkspace({ workId, enabled }: { work
     {graph.isPending && <p role="status">이 회차의 관계도를 불러오고 있어요.</p>}
     {graph.isError && <RelationshipQueryError title={data ? '관계도를 갱신하지 못했어요. 이전 내용을 표시하고 있어요.' : '이 회차의 관계도를 불러오지 못했어요.'}
       onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
+    {graph.isError && counterpartIds.length > 0 && <ActionButton variant="secondary" onClick={() => {
+      setEditingSelection(''); update({ relationPeers: null, relationPeoplePage: null, relationEdge: null });
+    }}>상대 다시 선택</ActionButton>}
     {data && <>
       {data.analysisStatus === 'PROCESSING' && <p role="status" className="relationship-muted">새 회차의 관계를 정리하고 있어요.</p>}
       {analysisFailed && <p role="status" className="relationship-notice">관계 분석을 마치지 못한 회차가 있어요. 분석 목록에서 진행 상황을 확인해 주세요.
         {incompleteEpisodeLabel && <> 미완료 회차: {incompleteEpisodeLabel}</>}</p>}
       <div className="episode-relationship-caption"><p>{selectedEpisode?.episodeNo ? <><strong>{selectedEpisode.episodeNo}화</strong>{incomplete ? '까지의 관계' : '까지 확인된 관계'}</> : '분석한 회차의 관계가 여기에 표시돼요.'}</p>
-        <p>{exploration?.selectionRequired ? <>인물 {exploration.totalNodeCount}명 · 관계 {data.totalEdgeCount}개</> : <>인물 {visiblePeople.length}명 · 관계 {visibleConnections.length}개{effectiveFocus && <> / 연결 {exploration?.scopeEdgeCount}개</>}</>}</p></div>
-      {updateIncomplete && !analysisFailed && <p className="relationship-muted" role="status">일부 관계 업데이트 미완료
-        {incompleteEpisodeLabel && <> · {incompleteEpisodeLabel}</>}</p>}
+        <p>{choosing ? <>{exploration?.focusNode?.name} · 관계 {exploration?.focusEdgeCount}개</> : exploration?.selectionRequired ? <>인물 {exploration.totalNodeCount}명 · 관계 {data.totalEdgeCount}개</> : <>인물 {visiblePeople.length}명 · 관계 {visibleConnections.length}개{effectiveFocus && <> / 연결 {exploration?.scopeEdgeCount}개</>}</>}</p></div>
       {legacyPartial && !analysisFailed
         && <p className="relationship-muted" role="status">관계 분석에 반영하지 못한 내용이 있어요.</p>}
       {data.truncated && <p className="relationship-notice" role="status">관계가 많아 일부만 표시하고 있어요.</p>}
-      {exploration?.selectionRequired ? <section className="episode-relationship-entry" aria-label="관계도 인물 선택">
-        <GitBranch size={28} aria-hidden="true" /><h3>어떤 인물의 관계를 살펴볼까요?</h3>
-        <p>인물을 검색하거나 아래에서 선택하면 연결된 관계를 볼 수 있어요.</p>
-        <div className="episode-relationship-suggestions">{exploration.suggestedPeople?.map(person => person.node?.id && <button key={person.node.id}
-          type="button" onClick={() => focus(person.node!.id!)}><strong>{person.node.name}</strong><span>연결 인물 {person.neighborCount}명</span></button>)}</div>
-      </section> : !connections.length ? <div className="relationship-empty"><GitBranch size={28} aria-hidden="true" />
+      {directory ? <RelationshipPeopleDirectory key={`${selectionScope}:${choosing ? 'counterparts' : 'people'}`}
+        workId={workId} session={session} episodeNo={episodeNo} focusId={choosing ? focusId : undefined} focusName={exploration?.focusNode?.name}
+        search={params.get(listSearchKey) ?? ''} page={parseEpisode(params.get(listPageKey)) ?? 0}
+        onSearch={value => update({ [listSearchKey]: value || null, [listPageKey]: null }, true)}
+        onPage={value => update({ [listPageKey]: value ? String(value) : null })} onFocus={focus}
+        selectedPeople={exploration?.selectedPeople} maxPeople={exploration?.maxSelectedPeople ?? 20} maxEdges={exploration?.maxSelectedEdges ?? 200}
+        onApply={ids => { setEditingSelection(''); update({ relationPeers: ids.sort().join(','), relationPeoplePage: null, relationEdge: null }); }}
+        onCancel={editingSelection === selectionScope && !exploration?.counterpartSelectionRequired ? () => setEditingSelection('') : undefined}
+      /> : !connections.length ? <div className="relationship-empty"><GitBranch size={28} aria-hidden="true" />
         <h3>{relationPage > 0 ? '이 페이지에 표시할 관계가 없어요.' : incomplete ? '표시할 관계를 아직 확인하지 못했어요.' : '아직 표시할 인물 관계가 없어요.'}</h3>
         <p>{relationPage > 0 ? '이전 관계 페이지로 돌아가 주세요.' : incomplete ? '관계가 없는 것으로 판단한 결과는 아니에요.' : '새 회차를 분석하면 근거가 확인된 관계가 자동으로 나타나요.'}</p></div> : <>
         <EpisodeRelationshipCanvas key={`${session}:${workId}:${selectedEpisode?.episodeNo}:${effectiveFocus}:${relationPage}`} people={visiblePeople} connections={visibleConnections}
           focusId={effectiveFocus} selectedId={selectedId} onFocus={focus} onSelect={select} />
       </>}
-        {selectedId && selectedEpisode?.episodeNo && <EpisodeRelationshipDetail key={`${session}:${workId}:${selectedEpisode.episodeNo}:${selectedId}`}
+        {!directory && selectedId && selectedEpisode?.episodeNo && <EpisodeRelationshipDetail key={`${session}:${workId}:${selectedEpisode.episodeNo}:${selectedId}`}
           workId={workId} edgeId={selectedId} episodeNo={selectedEpisode.episodeNo}
           graphEdge={data.edges?.find(edge => edge.id === selectedId)} onClose={closeDetail} />}
-        {effectiveFocus && (relationPage > 0 || exploration?.hasNext) && <nav className="episode-relationship-pagination" aria-label="연결 관계 페이지">
+        {!directory && effectiveFocus && (relationPage > 0 || exploration?.hasNext) && <nav className="episode-relationship-pagination" aria-label="연결 관계 페이지">
           <ActionButton variant="secondary" disabled={relationPage === 0 || graph.isFetching} onClick={() => update({ relationPeoplePage: relationPage > 1 ? String(relationPage - 1) : null, relationEdge: null })}>이전 관계</ActionButton>
-          <span>{relationPage + 1} / {Math.max(1, Math.ceil((exploration?.scopeEdgeCount ?? 0) / (exploration?.pageSize ?? 100)))}</span>
+          <span>{relationPage + 1} / {Math.max(1, Math.ceil((exploration?.scopeEdgeCount ?? 0) / (exploration?.pageSize ?? 200)))}</span>
           <ActionButton variant="secondary" disabled={!exploration?.hasNext || graph.isFetching} onClick={() => update({ relationPeoplePage: String(relationPage + 1), relationEdge: null })}>다음 관계</ActionButton>
         </nav>}
 
-      {connections.length > 0 && <>
+      {!directory && connections.length > 0 && <>
         <ul className="episode-relationship-list" aria-label="이 회차의 관계 목록">{visibleConnections.map(edge => <li key={edge.id}>
           <button type="button" className="episode-relationship-row" aria-pressed={selectedId === edge.id} onClick={() => select(edge.id)}>
             <div><ConnectionNames source={names.get(edge.source) ?? '인물'} target={names.get(edge.target) ?? '인물'} direction={edge.direction} />
@@ -204,7 +219,7 @@ function EpisodeRelationshipDetail({ workId, edgeId, episodeNo, graphEdge, onClo
   const changed = baseVersion != null && data?.version != null && baseVersion !== data.version;
   async function refresh() {
     await Promise.all([
-      client.invalidateQueries({ queryKey: exploreEpisodeRelationshipsQueryKey({ path: { workId } }) }),
+      client.invalidateQueries({ queryKey: exploreSelectedEpisodeRelationshipsQueryKey({ path: { workId } }) }),
       client.invalidateQueries({ queryKey: searchEpisodeRelationshipPeopleQueryKey({ path: { workId } }) }),
       client.invalidateQueries({ queryKey: getExploredRelationshipEdgeQueryKey({ path: { workId, edgeId } }) }),
     ]);

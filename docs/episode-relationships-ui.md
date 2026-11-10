@@ -236,3 +236,8 @@ layout 68건과 관계도 E2E 18건, typecheck/build 통과, lint 오류 0(기�
 `GET /relationship-graph/people`은 `query`, `episodeNo`, `page`, `size`를 받으며 초기 표시와 관계없이 전체 유효 인물을 검색한다. 입력 조합 중 요청을 막고 300ms 지연, 요청 취소, 세션·작품·회차별 query key를 적용한다. 입력과 응답 검색어가 다르면 이전 검색 결과를 표시하지 않는다. 상세는 `/relationship-graph/explore/edges/{edgeId}`로 선택한 관계만 읽고 수정/삭제는 기존 API를 사용한다.
 
 완료 상태는 정기 조회하지 않는다. 새로고침·창 복귀와 `PROCESSING`일 때만 갱신한다. 503은 같은 조회 범위의 성공 화면/초안을 유지하고 403/404는 숨긴다. 화면 검증은 `e2e/episode-relationships.spec.ts`, 실제 Spring·PostgreSQL 응답 검증은 `e2e/relationship-explorer-contract.spec.ts`에 둔다. 서버 배포 후 프론트를 배포해야 하며 구 API로 자동 폴백하여 일부 인물만 검색하는 동작은 제공하지 않는다.
+
+
+## GH416 탐색 변경
+
+현재 탐색은 [화면 흐름](screen-flow.md#gh416-전체-인물과-연결-상대-선택)과 [보호 화면 계약](data-requirements/auth.md#인물-관계도-보호-화면-gh359)을 따른다. 이전 추천 8명/100개 페이지 대신 전체 인물 24명 목록, 중심 관계 200개 이상 상대 선택, 최대 20명·200개(단독 초과는 200개 페이지)를 사용한다. 상단 `일부 관계 업데이트 미완료` 문구는 제거하며 상세의 마지막 확인 회차는 유지한다.

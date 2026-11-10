@@ -78,3 +78,17 @@
 .theme-v2 .episode-relationship-suggestions button:focus-visible { outline: 2px solid var(--ch-primary-ink); outline-offset: 2px; }
 .theme-v2 .episode-relationship-pagination, .theme-v2 .episode-relationship-results nav { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
 @media (max-width: 650px) { .theme-v2 .episode-relationship-entry { padding: 20px 16px; } .theme-v2 .episode-relationship-suggestions { grid-template-columns: 1fr; } }
+
+.theme-v2 .episode-relationship-directory-search { display: grid; gap: 8px; max-width: 440px; margin: 0 0 20px; font-size: 13px; color: var(--ch-text-muted); }
+.theme-v2 .episode-relationship-directory-search input { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ch-border-strong); border-radius: 8px; background: var(--ch-surface); color: var(--ch-text); font: inherit; font-size: 14px; }
+.theme-v2 .episode-relationship-selection-bar { display: grid; gap: 12px; padding: 16px; margin: 0 0 20px; border: 1px solid var(--ch-border-strong); border-radius: 10px; background: var(--ch-surface-soft); color: var(--ch-text); }
+.theme-v2 .episode-relationship-selection-bar p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.theme-v2 .episode-relationship-selection-actions, .theme-v2 .episode-relationship-selected-people { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-v2 .episode-relationship-selected-people button { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ch-border-strong); border-radius: 8px; background: var(--ch-surface); color: var(--ch-primary-ink); font: inherit; font-size: 13px; overflow-wrap: anywhere; }
+.theme-v2 .episode-relationship-person-choice { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 16px; border: 1px solid var(--ch-border); border-radius: 8px; background: var(--ch-surface); cursor: pointer; }
+.theme-v2 .episode-relationship-person-choice input { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: var(--ch-primary-ink); }
+.theme-v2 .episode-relationship-person-choice span { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; color: var(--ch-ink); }
+.theme-v2 .episode-relationship-person-choice small { color: var(--ch-text-muted); font-size: 13px; }
+.theme-v2 .episode-relationship-person-choice.is-selected { border-color: var(--ch-primary-ink); background: var(--ch-surface-soft); }
+.theme-v2 .episode-relationship-person-choice.is-disabled { cursor: not-allowed; }
+.theme-v2 .episode-relationship-person-choice:focus-within { outline: 2px solid var(--ch-primary-ink); outline-offset: 2px; }

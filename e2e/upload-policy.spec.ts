@@ -57,6 +57,26 @@ async function chooseFile(page: Page, multiple = false) {
   })));
 }
 
+test('번호 미확정 감지 응답은 사용자가 번호를 입력하기 전 저장하지 않는다', async ({ page }) => {
+  const requests = await setup(page);
+  await page.route('**/episodes/detect', route => success(route, {
+    uploadType: 'MULTI_EPISODE_MULTI_FILE', totalUploadCharacters: 20,
+    detectedEpisodes: [
+      { detectionOrder: 0, sourceFileIndex: 0, episodeNo: null, numberDetectionStatus: 'REQUIRES_INPUT', title: '번호 없는 원고', content: '원고 본문', charCount: 5 },
+      { detectionOrder: 1, sourceFileIndex: 1, episodeNo: 12, numberDetectionStatus: 'DETECTED', title: '12화', content: '원고 본문', charCount: 5 },
+    ],
+  }));
+  await page.goto(`/episode-upload?workId=${workId}`);
+  await page.getByRole('button', { name: /다회차 - 여러 파일/ }).click();
+  await chooseFile(page, true);
+  await expect(page.getByText('회차 번호는 1 이상의 정수여야 합니다.')).toBeVisible();
+  const confirm = page.getByRole('button', { name: '다음 — 분석 시작' });
+  await expect(confirm).toBeDisabled();
+  expect(requests.uploads).toEqual([]);
+  await page.locator('.episode-confirmation-row input[type=number]').first().fill('11');
+  await expect(confirm).toBeEnabled();
+});
+
 for (const uploadType of ['SINGLE_EPISODE', 'MULTI_EPISODE_SINGLE_FILE', 'MULTI_EPISODE_MULTI_FILE']) {
   test(`${uploadType} 회차 업로드는 설정집 동시 업로드 없이 원고만 저장한다`, async ({ page }) => {
     const requests = await setup(page);

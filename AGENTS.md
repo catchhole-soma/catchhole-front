@@ -267,7 +267,7 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 
 - 관계 종류는 `인물 관계도 / 가계도` 순서다. 가족 상세 상태가 없는 `nav=graph` 진입은 인물 관계도가 기본이며, `relationMode=people|family`의 명시적 선택과 기존 가족 상세/legacy 링크는 `getRelationshipMode`로 복원한다. 인물 관계도는 별도 일반 관계 API를 사용하고 가족 후보·현재 캐릭터·이미지 API로 내용을 보완하지 않는다. `relationEpisode`가 없으면 최신 반영 회차이며, 회차별 이름·설명·근거는 서버의 cutoff 응답만 표시한다. 늦은 다른 회차 응답이나 현재 프로필로 미래 정보를 노출하지 않는다.
 - 필수 검토·판단 큐를 만들지 않는다. 선택한 연결의 근거와 설명 정정·잘못된 연결 삭제만 제공하며 정정은 작품 속 관계 변화와 구분한다. `expectedVersion` 충돌에서 초안을 보존하고 최신 기준 채택은 명시적 행동으로 한다. [화면 계약](docs/episode-relationships-ui.md)을 따른다.
-- GH359 기술 미완료는 Graph의 `updateIncomplete`·`incompleteEpisodeNos`, Edge의 `updateIncomplete`·`lastVerifiedEpisodeNo`만 사용한다. 새 응답의 `updateIncomplete=false`에서는 의미 판단 보류를 포함한 `partial`·`PARTIAL`을 실패 안내로 바꾸지 않는다. 미완료는 짧은 `일부 관계 업데이트 미완료`와 회차만 안내하고 검토 큐·배지를 추가하지 않는다. 빈 결과를 관계 없음으로, 이전 연결을 선택 회차까지 모두 검증된 결과로 단정하지 않는다. 마지막 확인 회차는 미완료 edge에서만 표시하며 변경 회차·근거 회차에서 추측하지 않는다. 필드가 없는 구응답은 기존 부분 안내로 호환한다.
+- GH359 기술 미완료는 Graph의 `updateIncomplete`·`incompleteEpisodeNos`, Edge의 `updateIncomplete`·`lastVerifiedEpisodeNo`만 사용한다. 새 응답의 `updateIncomplete=false`에서는 의미 판단 보류를 포함한 `partial`·`PARTIAL`을 실패 안내로 바꾸지 않는다. GH416 사용자 요청으로 상단 `일부 관계 업데이트 미완료` 문구와 회차 나열은 표시하지 않는다. 회차 전체 실패 안내, 빈 결과 구분, 상세의 마지막 확인 회차는 유지하고 검토 큐·배지를 추가하지 않는다. 빈 결과를 관계 없음으로, 이전 연결을 선택 회차까지 모두 검증된 결과로 단정하지 않는다. 마지막 확인 회차는 미완료 edge에서만 표시하며 변경 회차·근거 회차에서 추측하지 않는다. 필드가 없는 구응답은 기존 부분 안내로 호환한다.
 
 - GH367 일반 관계는 각 회차에서 확정한 독립 이력을 표시한다. 앞 회차 후발 반영만으로 후행 분석을 무효화하거나 프론트에서 재분석을 요구하지 않는다. 원문 파기·실제 출처 무효와 전용 백필 상태는 서버 응답을 따른다. 공개 DTO·화면 동작은 바꾸지 않으며 공통 `docs/episode-relationships.md`를 Java/AI와 동기화한다.
 
@@ -281,3 +281,5 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - 이름·확정 별칭 검색은 기존 `getCharacters.query`를 사용한다. 입력 300ms 디바운스와 한글 조합 종료를 적용하고 검색 변경 시 페이지를 초기화한다. URL의 `characterQuery`, `characterOffset`으로 새로고침·뒤로가기·상세 닫기 상태를 복원하며 요청 크기는 24 이하를 유지한다.
 - 누적 기록순은 기본 정렬로 유지하되 정렬 안내와 카드별 기록 수는 표시하지 않는다. 데스크톱에서는 제목·검색·보관함을 한 줄에 배치하고 제목 아래 설명을 생략한다. 760px 이하에서 검색만 다음 줄 전체 너비로 배치하며 기존 실제 가용 높이 기반 페이지 계산과 177px 카드 높이를 유지한다.
 - 별칭은 서버의 확정 연결 출처에 한한다. Backend GH410/V121을 먼저 배포해야 전체 검색·정렬이 적용된다.
+
+- GH416 큰 관계도의 시작은 전체 관계 인물 24명 페이지와 관계 수 내림차순 목록이다. 중심 관계 200개 이상에서는 연결 상대를 최대 20명·200개로 복수 선택하고 `관계 보기`로 적용한다. 한 상대만 200개를 넘으면 단독 선택+200개 페이지를 허용한다. `/explore/selection`과 `/people?focusNodeId=`의 생성 SDK를 사용하며 서버 집계/권한을 프런트가 재구성하지 않는다. 새 URL 키는 `RELATIONSHIP_QUERY_KEYS`의 비공개 처리에도 포함한다. Pencil 동기화는 사용자 승인으로 보류했으며 실제 브라우저 캡처를 검증 근거로 남긴다.

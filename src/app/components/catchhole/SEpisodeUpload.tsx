@@ -135,7 +135,7 @@ function toEpisodeConfirmations(
   return (detectedEpisodes ?? []).map(detectedEpisode => ({
     detectionOrder: detectedEpisode.detectionOrder,
     sourceFileIndex: detectedEpisode.sourceFileIndex,
-    episodeNo: detectedEpisode.episodeNo,
+    episodeNo: detectedEpisode.episodeNo ?? 0,
     title: detectedEpisode.title ?? '',
     sourceHeading: detectedEpisode.sourceHeading,
     content: detectedEpisode.content,

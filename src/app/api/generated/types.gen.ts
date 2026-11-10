@@ -2653,6 +2653,10 @@ export type EpisodeDetectionRequest = {
      * 단일 회차 감지 시 사용자가 입력한 회차 제목
      */
     singleEpisodeTitle?: string | null;
+    /**
+     * 여러 파일 업로드에서 번호를 확정하지 못한 파일도 직접 입력 대상으로 반환할지 여부
+     */
+    allowManualEpisodeNumber?: boolean | null;
 };
 
 /**
@@ -2694,9 +2698,13 @@ export type DetectedEpisodeResponse = {
      */
     sourceFileIndex: number;
     /**
-     * 감지한 회차 번호
+     * 감지한 회차 번호. 직접 입력을 요청한 여러 파일 감지에서 번호를 확정하지 못한 파일은 null
      */
-    episodeNo: number;
+    episodeNo: number | null;
+    /**
+     * 회차 번호 감지 결과
+     */
+    numberDetectionStatus: 'DETECTED' | 'REQUIRES_INPUT' | 'NUMBER_CONFLICT';
     /**
      * 원문 제목 행에서 감지한 제목
      */
@@ -8397,9 +8405,16 @@ export type PageResponsePerson = {
     hasNext?: boolean;
 };
 
+/**
+ * 관계가 있는 인물의 목록 요약. 관계 수는 종료 관계와 같은 상대의 복수 관계를 각각 포함합니다.
+ */
 export type Person = {
     node?: Node;
     neighborCount?: number;
+    /**
+     * 전체 목록에서는 인물의 전체 관계 수, 상대 목록에서는 중심 인물과의 관계 수
+     */
+    edgeCount?: number;
 };
 
 /**
@@ -8441,6 +8456,51 @@ export type Exploration = {
     pageSize?: number;
     scopeEdgeCount?: number;
     hasNext?: boolean;
+};
+
+/**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseSelectionExploration = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: SelectionExploration;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 중심 관계가 200개 이상이면 상대를 선택합니다. 최대 20명·200개 관계를 함께 조회하며 단독 상대의 200개 초과 관계만 페이지로 조회합니다.
+ */
+export type SelectionExploration = {
+    graph?: Graph;
+    selectionRequired?: boolean;
+    totalNodeCount?: number;
+    focusNode?: Node;
+    focusEdgeCount?: number;
+    counterpartSelectionRequired?: boolean;
+    selectedPeople?: Array<Person>;
+    page?: number;
+    pageSize?: number;
+    scopeEdgeCount?: number;
+    hasNext?: boolean;
+    maxSelectedPeople?: number;
+    maxSelectedEdges?: number;
 };
 
 /**
@@ -17289,6 +17349,10 @@ export type SearchEpisodeRelationshipPeopleData = {
         query?: string;
         page?: number;
         size?: number;
+        /**
+         * 생략하면 전체 인물, 지정하면 해당 인물과 직접 연결된 상대만 관계 수순으로 조회
+         */
+        focusNodeId?: string;
     };
     url: '/api/v1/works/{workId}/relationship-graph/people';
 };
@@ -17365,6 +17429,53 @@ export type ExploreEpisodeRelationshipsResponses = {
 };
 
 export type ExploreEpisodeRelationshipsResponse = ExploreEpisodeRelationshipsResponses[keyof ExploreEpisodeRelationshipsResponses];
+
+export type ExploreSelectedEpisodeRelationshipsData = {
+    body?: never;
+    path: {
+        workId: string;
+    };
+    query?: {
+        episodeNo?: number;
+        focusNodeId?: string;
+        /**
+         * 함께 볼 상대의 인물 ID. 중복 없이 최대 20명
+         */
+        counterpartNodeIds?: Array<string>;
+        page?: number;
+    };
+    url: '/api/v1/works/{workId}/relationship-graph/explore/selection';
+};
+
+export type ExploreSelectedEpisodeRelationshipsErrors = {
+    /**
+     * 잘못된 입력
+     */
+    400: CommonResponseSelectionExploration;
+    /**
+     * 인증 필요
+     */
+    401: CommonResponseSelectionExploration;
+    /**
+     * 작품·회차·관계 없음
+     */
+    404: CommonResponseSelectionExploration;
+    /**
+     * 변경 버전 충돌
+     */
+    409: CommonResponseSelectionExploration;
+};
+
+export type ExploreSelectedEpisodeRelationshipsError = ExploreSelectedEpisodeRelationshipsErrors[keyof ExploreSelectedEpisodeRelationshipsErrors];
+
+export type ExploreSelectedEpisodeRelationshipsResponses = {
+    /**
+     * 처리 성공
+     */
+    200: CommonResponseSelectionExploration;
+};
+
+export type ExploreSelectedEpisodeRelationshipsResponse = ExploreSelectedEpisodeRelationshipsResponses[keyof ExploreSelectedEpisodeRelationshipsResponses];
 
 export type GetExploredRelationshipEdgeData = {
     body?: never;
