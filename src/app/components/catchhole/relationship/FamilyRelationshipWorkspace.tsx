@@ -145,6 +145,10 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
   function changeView(next: string) {
     updateUrl({ relationView: next, relationPage: null, relationshipCandidate: null, relationshipId: null, relationshipFactId: null });
   }
+  function changeFamilyScope(focus: string, history: boolean) {
+    updateUrl({ familyFocus: focus || null, familyHistory: history ? 'true' : null,
+      ...(history !== (params.get('familyHistory') === 'true') ? { familyPage: null } : {}) });
+  }
   function refreshLists(decided: boolean) {
     void client.invalidateQueries({ queryKey: getFamilyTreeQueryKey({ path: { workId } }) });
     void client.invalidateQueries({ queryKey: exploreFamilyTreeQueryKey({ path: { workId } }) });
@@ -197,7 +201,7 @@ export function FamilyRelationshipWorkspace({ workId, enabled, onOpenCharacter }
       <Suspense fallback={<p role="status">가계도 화면을 불러오고 있어요.</p>}>
         <FamilyTreeView workId={workId} focusCharacterId={params.get('familyFocus') || ''} includeHistorical={params.get('familyHistory') === 'true'}
           selectedRelationshipId={relationshipId} selectedCandidateId={candidateId} onOpenCharacter={onOpenCharacter}
-          onScopeChange={(focus, history) => updateUrl({ familyFocus: focus || null, familyHistory: history ? 'true' : null })}
+          onScopeChange={changeFamilyScope}
           onOpenRelationship={id => {
             if (id) {
               const selector = `[data-relationship-id="${CSS.escape(id)}"]`;

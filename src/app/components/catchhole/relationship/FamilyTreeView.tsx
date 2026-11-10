@@ -45,6 +45,17 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
   const exploration = graph.data?.data;
   const selecting = Boolean(exploration?.selectionRequired && !focusCharacterId);
   const data = exploration?.graph;
+  const lastDirectoryPage = exploration?.people?.totalPages == null ? null : Math.max(0, exploration.people.totalPages - 1);
+  const pageNeedsCorrection = selecting && exploration?.people?.page === directoryPage
+    && lastDirectoryPage !== null && directoryPage > lastDirectoryPage;
+  useEffect(() => {
+    if (!pageNeedsCorrection || lastDirectoryPage === null || graph.isFetching || graph.isPlaceholderData || graph.isError) return;
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (lastDirectoryPage) next.set('familyPage', String(lastDirectoryPage)); else next.delete('familyPage');
+      return next;
+    }, { replace: true });
+  }, [directoryPage, pageNeedsCorrection, lastDirectoryPage, graph.isFetching, graph.isPlaceholderData, graph.isError, setParams]);
   function changeDirectory(query: string, page: number) {
     setParams(previous => {
       const next = new URLSearchParams(previous);
@@ -108,7 +119,7 @@ export default function FamilyTreeView({ workId, focusCharacterId, includeHistor
     {graph.isPending && <p role="status">가계도를 불러오고 있어요.</p>}
     {graph.isError && <RelationshipQueryError title="가계도를 불러오지 못했어요." onRetry={() => void graph.refetch()} pending={graph.isFetching} />}
     {selecting && !graph.isError && <FamilyTreePeople key={`${session}:${workId}:${includeHistorical}`} people={exploration?.people}
-      totalEdges={exploration?.totalEdgeCount ?? 0} search={directorySearch} page={directoryPage} pending={graph.isFetching}
+      totalEdges={exploration?.totalEdgeCount ?? 0} search={directorySearch} page={directoryPage} pending={graph.isFetching || pageNeedsCorrection}
       onSearch={query => changeDirectory(query, 0)} onPage={page => changeDirectory(directorySearch, page)}
       onSelect={id => { setSearch(''); onScopeChange(id, includeHistorical); }} />}
     {data && !selecting && <div hidden={graph.isError}>
