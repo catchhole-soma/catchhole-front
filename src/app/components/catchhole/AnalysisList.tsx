@@ -168,13 +168,14 @@ const STATUS_VIEW: Record<AnalysisBatchStatus, {
  * 신규 회차 검수 배치 카드. 단계는 배치 요약의 reviewStage만 쓰고, 모든 단계에서 같은 오류 리포트를 연다.
  * 설정 추출 실패만 검토 종료가 만든 추출 Job의 기존 진행 화면을 함께 연다.
  */
-function ValidationBatchCard({ batch, validation, reportId, fallbackView, onOpenReport, onOpenProgress }: {
+function ValidationBatchCard({ batch, validation, reportId, fallbackView, onOpenReport, onOpenProgress, deleteAction }: {
   batch: AnalysisBatchSummaryResponse;
   validation: ValidationRequest;
   reportId: string;
   fallbackView: (typeof STATUS_VIEW)[AnalysisBatchStatus];
   onOpenReport: (reportId: string) => void;
   onOpenProgress: (group: AnalysisBatchJobGroupResponse) => void;
+  deleteAction?: ReactNode;
 }) {
   const stage = validation.reviewStage;
   // reviewStage가 없는 구응답만 배치 상태를 표시용으로 사용한다.
@@ -190,6 +191,7 @@ function ValidationBatchCard({ batch, validation, reportId, fallbackView, onOpen
       description={view.description}
       activityAt={batch.lastActivityAt ?? batch.lastRequestedAt}
       actions={<>
+        {deleteAction}
         {extractionGroup && (extractionGroup.currentAnalysisJobIds?.length ?? 0) > 0 && (
           <button type="button" className="analysis-card-action analysis-tone--danger" onClick={() => onOpenProgress(extractionGroup)}>
             추출 상태 보기
@@ -298,6 +300,12 @@ function episodeRange(batch: AnalysisBatchSummaryResponse): string {
   if (start === null || start === undefined) return '대상 회차 정보 없음';
   if (end === null || end === undefined || start === end) return `${start}화`;
   return `${start}~${end}화`;
+}
+
+/** 기록 삭제 확인창 제목의 회차. 검수 카드는 Job 없는 배치도 있어 카드 제목처럼 report의 회차 번호를 먼저 쓴다. */
+function historyDeleteLabel(batch: AnalysisBatchSummaryResponse): string {
+  const episodeNo = validationRequest(batch)?.sourceEpisodeNo;
+  return episodeNo != null ? `${episodeNo}화` : episodeRange(batch);
 }
 
 function jobTypeLabel(jobType?: AnalysisBatchJobGroupResponse['jobType']): string {
@@ -506,16 +514,20 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
       await historyDeleteRequest.mutateAsync({ path: { workId, batchId } });
       setHistoryDeleteTarget(null);
     } catch (error) {
-      setHistoryDeleteError(toApiError(error)?.message ?? '분석 기록을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      setHistoryDeleteError(toApiError(error)?.message
+        ?? `${kind === 'VALIDATION' ? '오류 리포트' : '분석'} 기록을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.`);
     } finally {
       // 원고 목록 위 알림도 같은 배치 요약(전체 목록 첫 묶음)을 읽으므로 이 작품의 모든 목록을 다시 받는다.
       void queryClient.invalidateQueries({ queryKey: getAnalysisBatchesQueryKey({ path: { workId } }) });
     }
   };
 
-  /** 서버가 삭제할 수 있다고 한 분석 목록 카드에만 둔다. 오류 리포트 목록에서는 제공하지 않는다. */
+  /**
+   * 서버가 삭제할 수 있다고 한 카드에만 둔다. 분석 목록과 오류 리포트 목록 모두 같은 확인창·요청을 쓴다(#401, #429).
+   * 서버는 업로드 묶음 단위로 숨기므로 한 목록에서 지우면 다른 목록의 같은 묶음 카드도 사라진다.
+   */
   const historyDeleteAction = (batch: AnalysisBatchSummaryResponse) => (
-    kind === 'ANALYSIS' && batch.historyDeletable === true && batch.batchId ? (
+    batch.historyDeletable === true && batch.batchId ? (
       <button type="button" className="analysis-card-action analysis-card-action--quiet"
         onClick={event => {
           historyDeleteTrigger.current = event.currentTarget;
@@ -581,7 +593,8 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
               // 서버가 현재 검수 report가 있는 배치만 준다. 설정집 카드는 분석 목록에만 둔다.
               if (!validation?.reportId || batch.episodeStatus == null) return null;
               return <div key={batch.batchId}><ValidationBatchCard batch={batch} validation={validation} reportId={validation.reportId}
-                fallbackView={STATUS_VIEW[batch.episodeStatus]} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)} /></div>;
+                fallbackView={STATUS_VIEW[batch.episodeStatus]} onOpenReport={openValidationReport} onOpenProgress={group => openProgress(batch, group)}
+                deleteAction={historyDeleteAction(batch)} /></div>;
             }
             const bookCards = (batch.settingBooks ?? []).map(book => (
               <AnalysisListBookCard key={book.sourceAnalysisJobId} workId={workId} book={book} />
@@ -691,7 +704,8 @@ export function AnalysisList({ workId, kind }: { workId: string; kind: AnalysisL
       )}
       {historyDeleteTarget && (
         <AnalysisHistoryDeleteModal
-          label={episodeRange(historyDeleteTarget)}
+          kind={kind}
+          label={historyDeleteLabel(historyDeleteTarget)}
           submitting={historyDeleteRequest.isPending}
           errorMessage={historyDeleteError}
           returnFocusTo={historyDeleteTrigger.current}
