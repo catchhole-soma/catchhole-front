@@ -3611,6 +3611,42 @@ export type PrivateImageVaultResponse = {
 };
 
 /**
+ * 공통 API 응답 Envelope
+ */
+export type CommonResponseFirstAnalysisCompletionReportResponse = {
+    /**
+     * 요청 처리 성공 여부
+     */
+    success?: boolean;
+    /**
+     * 응답 메시지
+     */
+    message?: string;
+    /**
+     * 성공 응답 데이터. 실패 응답에서는 null입니다.
+     */
+    data?: FirstAnalysisCompletionReportResponse;
+    /**
+     * 에러 정보. 성공 응답에서는 null입니다.
+     */
+    error?: ErrorResponse;
+    /**
+     * 응답 생성 시각
+     */
+    timestamp?: string;
+};
+
+/**
+ * 계정별 첫 분석 완료 전환 이벤트의 일회 보고 대상 여부
+ */
+export type FirstAnalysisCompletionReportResponse = {
+    /**
+     * 첫 설정 추출을 완료했고 아직 보고하지 않았으면 true. claim은 true를 받은 요청만 이벤트를 보냅니다.
+     */
+    shouldReport?: boolean;
+};
+
+/**
  * 서비스 의견 등록 요청
  */
 export type FeedbackCreateRequest = {
@@ -13699,6 +13735,31 @@ export type CreatePrivateImageVaultResponses = {
 
 export type CreatePrivateImageVaultResponse = CreatePrivateImageVaultResponses[keyof CreatePrivateImageVaultResponses];
 
+export type ClaimMyFirstAnalysisCompletionReportData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/first-analysis-completion-reports/claim';
+};
+
+export type ClaimMyFirstAnalysisCompletionReportErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+};
+
+export type ClaimMyFirstAnalysisCompletionReportError = ClaimMyFirstAnalysisCompletionReportErrors[keyof ClaimMyFirstAnalysisCompletionReportErrors];
+
+export type ClaimMyFirstAnalysisCompletionReportResponses = {
+    /**
+     * 보고 대상 또는 일회 선점 결과
+     */
+    200: CommonResponseFirstAnalysisCompletionReportResponse;
+};
+
+export type ClaimMyFirstAnalysisCompletionReportResponse = ClaimMyFirstAnalysisCompletionReportResponses[keyof ClaimMyFirstAnalysisCompletionReportResponses];
+
 export type CreateMyFeedbackData = {
     body: FeedbackCreateRequest;
     path?: never;
@@ -18857,6 +18918,31 @@ export type GetCurrentLegalDocumentsResponses = {
 };
 
 export type GetCurrentLegalDocumentsResponse = GetCurrentLegalDocumentsResponses[keyof GetCurrentLegalDocumentsResponses];
+
+export type GetMyFirstAnalysisCompletionReportData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/first-analysis-completion-reports';
+};
+
+export type GetMyFirstAnalysisCompletionReportErrors = {
+    /**
+     * 인증 필요
+     */
+    401: CommonErrorResponse;
+};
+
+export type GetMyFirstAnalysisCompletionReportError = GetMyFirstAnalysisCompletionReportErrors[keyof GetMyFirstAnalysisCompletionReportErrors];
+
+export type GetMyFirstAnalysisCompletionReportResponses = {
+    /**
+     * 보고 대상 또는 일회 선점 결과
+     */
+    200: CommonResponseFirstAnalysisCompletionReportResponse;
+};
+
+export type GetMyFirstAnalysisCompletionReportResponse = GetMyFirstAnalysisCompletionReportResponses[keyof GetMyFirstAnalysisCompletionReportResponses];
 
 export type GetMyFeedbackPromptData = {
     body?: never;
