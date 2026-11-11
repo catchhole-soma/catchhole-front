@@ -24,7 +24,7 @@ import { TermsModal } from './components/catchhole/TermsModal';
 import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
-import { MetaPixelPageView } from './components/analytics/MetaPixelPageView';
+import { AnalyticsPageView } from './components/analytics/AnalyticsPageView';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -118,7 +118,7 @@ function PrivateRoute() {
 
   return (
     <>
-      <MetaPixelPageView />
+      <AnalyticsPageView />
       <Outlet />
     </>
   );
@@ -143,7 +143,7 @@ function PublicLayout() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <MetaPixelPageView />
+      <AnalyticsPageView />
       <div
         ref={backgroundRef}
         aria-hidden={backgroundInactive ? true : undefined}
@@ -162,7 +162,7 @@ function PublicLayout() {
 function TrackedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <MetaPixelPageView />
+      <AnalyticsPageView />
       {children}
     </>
   );
