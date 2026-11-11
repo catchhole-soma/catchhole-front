@@ -28,8 +28,9 @@ const EPISODE_2 = `2화 조용한 저녁
 `;
 const CHARACTER = '서윤';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CORRECTING_COPY = '오류 리포트에서 설정 정보를 정정하러 왔어요.';
-const LINKED_COPY = '저장됐어요. 리포트로 돌아가 재검수해 주세요.';
+/** #428 리포트 위 정정 창의 정정 중 안내와 저장 뒤 리포트 결과 안내. */
+const CORRECTING_COPY = '오류 리포트의 검사 기준과 연결해 정정해요.';
+const LINKED_COPY = '저장됐어요. 재검수해 주세요.';
 
 type AuthHeaders = { Authorization: string };
 type Staging = {
@@ -96,9 +97,14 @@ async function saveCharacter(dialog: Locator) {
   await dialog.locator('.character-confirm-dialog').getByRole('button', { name: '저장', exact: true }).click();
 }
 
-/** 저장 뒤 모달 안내가 정정 중 안내에서 결과(연결·409 거절·응답 유실·slot 안내)로 바뀔 때까지 기다려 그 문구를 돌려준다. */
-async function settledNotice(notice: Locator) {
-  await expect(notice.locator('strong')).not.toHaveText(CORRECTING_COPY, { timeout: 60_000 });
+/**
+ * 저장 뒤 결과를 기다린다. 정정이 연결되면 리포트 위 창이 닫히고(null), 409 거절·응답 유실·slot 안내면 창 안 안내가
+ * 정정 중 안내에서 바뀌므로 그 문구를 돌려준다.
+ */
+async function settledNotice(dialog: Locator, notice: Locator) {
+  const strong = async () => notice.locator('strong').innerText({ timeout: 1_000 }).catch(() => CORRECTING_COPY);
+  await expect.poll(async () => (await dialog.count()) === 0 || (await strong()) !== CORRECTING_COPY, { timeout: 60_000 }).toBe(true);
+  if (await dialog.count() === 0) return null;
   return (await notice.innerText()).replace(/\s+/g, ' ').trim();
 }
 
@@ -199,33 +205,25 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
       if (method === 'PATCH' && pathname.endsWith(`/characters/${characterId}`)) plainSaves += 1;
     });
 
-    // A10: 고치기에서 고른 basis의 정정을 연다. basis가 하나면 `설정 고치기` 링크, 여럿이면 `설정 고치기`가 여는 목록의 `서윤 …` 링크다.
-    await page.goto(`/episode-validation-report?workId=${workId}&reportId=${reportId}&branch=SETTING&findingId=${finding.findingId}`);
+    // A10(#428): 고치기에서 고른 basis의 정정 창을 리포트 위에 연다. basis가 하나면 `설정 고치기`, 여럿이면 `설정 고치기`가 여는
+    // 목록의 `서윤 …` 버튼이다. 정정 문맥은 주소에 싣지 않으므로 버튼의 data-entry-ref로 basis를 고른다.
+    const reportPage = `/episode-validation-report?workId=${workId}&reportId=${reportId}&branch=SETTING&findingId=${finding.findingId}`;
+    await page.goto(reportPage);
     const fix = page.getByRole('region', { name: '고치기' });
-    const chooser = fix.getByRole('button', { name: '설정 고치기', exact: true });
+    const chooser = fix.getByRole('button', { name: '설정 고치기', exact: true }).and(fix.locator(':not([data-entry-ref])'));
     if (await chooser.count()) await chooser.click();
-    const link = fix.getByRole('link', { name: new RegExp(`^(설정 고치기|${CHARACTER}( · .+)?)$`) })
-      .and(fix.locator(`[href*="correctionEntryRef=${entry.entryRef}&"]`));
-    await expect(link).toBeVisible();
-    note('correction-link', await link.innerText());
+    const choice = fix.getByRole('button', { name: new RegExp(`^(설정 고치기|${CHARACTER}( · .+)?)$`) })
+      .and(fix.locator(`[data-entry-ref="${entry.entryRef}"]`));
+    await expect(choice).toBeVisible();
+    note('correction-choice', await choice.innerText());
     const current = await readStaging(reportId);
-    await link.click();
+    await choice.click();
 
-    await expect(page).toHaveURL(/\/dashboard\?/);
-    const opened = new URL(page.url()).searchParams;
-    expect(Object.fromEntries(opened)).toMatchObject({
-      modal: 'char-detail', charId: characterId, mode: 'edit', returnTo: 'validation-report', reportId,
-      correctionSubjectType: 'CHARACTER', correctionTargetId: characterId, correctionEntryRef: entry.entryRef,
-      correctionBaselineId: current.baselineId, correctionBaselineRevision: String(current.baselineRevision),
-      correctionVersion: String(baselineVersion),
-    });
-    // hash는 값을 출력하지 않고 일치 여부만 본다.
-    expect(opened.get('correctionEntryHash') === entry.entryHash, 'correctionEntryHash가 basis의 entryHash와 같아야 합니다.').toBe(true);
-    expect(Boolean(current.baselineHash) && opened.get('correctionBaselineHash') === current.baselineHash,
-      'correctionBaselineHash가 단건 조회 baselineHash와 같아야 합니다.').toBe(true);
-    note('correction-slot', opened.get('correctionFactType') ? `${opened.get('correctionFactType')}:${opened.get('correctionFactKey')}` : '없음(바꾼 slot 하나)');
-
+    // 리포트를 떠나지 않고 같은 주소 위에 편집 창이 뜬다.
     const dialog = page.getByRole('dialog', { name: `${CHARACTER} 캐릭터 상세` });
+    await expect(dialog).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe('/episode-validation-report');
+    expect([...new URL(page.url()).searchParams.keys()].filter(key => key.startsWith('correction'))).toEqual([]);
     const notice = page.getByTestId('validation-correction-notice');
     await expect(notice).toContainText(CORRECTING_COPY);
     const age = dialog.getByRole('textbox', { name: '현재 나이' });
@@ -233,15 +231,29 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     await age.fill('28');
     await saveCharacter(dialog);
     // 409(기준과 지금 저장된 설정이 다름)·응답 유실·slot 안내면 실제 서버와 화면 계약이 어긋난 것이므로 그 안내로 멈춘다.
-    const shown = await settledNotice(notice);
-    expect(shown, `정정이 receipt로 연결되지 않았습니다. 화면 안내: ${shown}`).toContain(LINKED_COPY);
+    const shown = await settledNotice(dialog, notice);
+    expect(shown, `정정이 receipt로 연결되지 않았습니다. 화면 안내: ${shown}`).toBeNull();
+    await expect(page.locator('.vr-fix-result')).toContainText(LINKED_COPY);
     const saved = new URL(page.url()).searchParams;
     const receiptId = saved.get('correctionReceiptId') ?? '';
-    expect(saved.get('correctionResult')).toBe('linked');
     expect(receiptId).toMatch(UUID);
-    expect(saved.get('mode')).toBeNull();
+    expect(saved.get('findingId')).toBe(finding.findingId);
     await expect.poll(() => corrections.length, '정정 요청은 한 번만 보낸다').toBe(1);
     expect(plainSaves, '정정 문맥의 저장은 일반 캐릭터 저장을 보내지 않는다').toBe(0);
+    // 정정 요청은 basis와 report 단건 조회 값을 그대로 옮긴다. hash는 값을 출력하지 않고 일치 여부만 본다.
+    const sent = corrections[0].request().postDataJSON() as {
+      entryRef: string; expectedEntryHash: string; baselineId: string; expectedBaselineRevision: number; expectedBaselineHash: string;
+      character: { targetId: string; expectedSnapshotVersion: number; factType: string; factKey: string };
+    };
+    expect({ entryRef: sent.entryRef, baselineId: sent.baselineId, expectedBaselineRevision: sent.expectedBaselineRevision,
+      targetId: sent.character.targetId, expectedSnapshotVersion: sent.character.expectedSnapshotVersion }).toEqual({
+      entryRef: entry.entryRef, baselineId: current.baselineId, expectedBaselineRevision: current.baselineRevision,
+      targetId: characterId, expectedSnapshotVersion: baselineVersion,
+    });
+    expect(sent.expectedEntryHash === entry.entryHash, 'expectedEntryHash가 basis의 entryHash와 같아야 합니다.').toBe(true);
+    expect(Boolean(current.baselineHash) && sent.expectedBaselineHash === current.baselineHash,
+      'expectedBaselineHash가 단건 조회 baselineHash와 같아야 합니다.').toBe(true);
+    note('correction-slot', `${sent.character.factType}:${sent.character.factKey}${entry.factType ? '' : '(바꾼 slot 하나)'}`);
     const receipt = ((await corrections[0].json()) as { data: Receipt }).data;
     expect(receipt.correctionId).toBe(receiptId);
 
@@ -255,8 +267,7 @@ test('검토 대기 리포트에서 서윤의 나이를 정정하면 receipt로 
     note('corrected-stage', `staging=${invalidated.reviewStage} review=${review.reviewStage}`);
     expect(review.allowedActions, '정정으로 기준이 무효가 된 현재 report는 재검수를 연다').toContain('RECHECK');
 
-    // A11: 리포트로 돌아가면 receipt가 주소에 남고, 재검수는 그 receipt와 report의 기준 fingerprint를 보낸다.
-    await notice.getByRole('link', { name: '오류 리포트로 돌아가기' }).click();
+    // A11: 같은 리포트 주소에 receipt가 남고, 재검수는 그 receipt와 report의 기준 fingerprint를 보낸다.
     await expect(page).toHaveURL(new RegExp(`/episode-validation-report\\?.*reportId=${reportId}`));
     expect(new URL(page.url()).searchParams.get('correctionReceiptId')).toBe(receiptId);
     await expect(page.getByText('원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.').first()).toBeVisible();

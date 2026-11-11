@@ -16,7 +16,17 @@ import { ValidationHistoryPanel } from './ValidationHistoryPanel';
 import { ReportBasisCard, ReportStatusCard } from './ValidationReportOverview';
 import { ValidationRecheckPanel } from './ValidationRecheckPanel';
 import { useValidationReportActions, type ReportActionArea } from './useValidationReportActions';
-import { CORRECTION_RECEIPT_KEY, correctionLinks, reportReplaceUrl, subjectLink } from './validation-return';
+import { ValidationFixDialogs, type ReportFix } from './ValidationFixDialogs';
+import type { EpisodeFileReplaced } from '../EpisodeFileReplaceModal';
+import { EPISODE_VALIDATION_INTAKE_ENABLED } from '../../../lib/validation-feature';
+import {
+  CORRECTION_RECEIPT_KEY,
+  CORRECTION_RESULT_KEY,
+  correctionChoices,
+  RECHECK_START_KEY,
+  subjectLink,
+  type CorrectionContext,
+} from './validation-return';
 import {
   IMPACT_FILTER_OPTIONS,
   judgmentOptions,
@@ -219,6 +229,11 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   const isMobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
   const [historyPage, setHistoryPage] = useState(0);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(() => Boolean(filters.findingId));
+  // #428 `고치기` 창은 리포트 위에 연다. 정정 문맥은 화면 상태로만 들고 주소에는 결과 receipt만 남긴다.
+  const [fix, setFix] = useState<ReportFix | null>(null);
+  const fixSession = useRef(0);
+  const [fixResult, setFixResult] = useState<'linked' | 'unlinked' | 'replaced' | null>(null);
+  const fixResultRef = useRef<HTMLDivElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailSectionRef = useRef<HTMLElement>(null);
@@ -345,6 +360,51 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     if (filters.historyOpen) next.delete('history'); else next.set('history', '1');
   });
 
+  // #428 고치기 창. 취소·실패는 창만 닫거나 창 안에 머물러 선택 항목·필터·페이지를 바꾸지 않는다.
+  // 정정 결과 안내는 새로고침 뒤에도 보이도록 주소(correctionResult)에도 남기고, 다른 고치기 창을 열면 지운다.
+  const clearFixResult = () => {
+    setFixResult(null);
+    if (searchParams.has(CORRECTION_RESULT_KEY)) updateParams(next => { next.delete(CORRECTION_RESULT_KEY); });
+  };
+  const openReplace = () => {
+    clearFixResult();
+    setFix({ kind: 'replace', session: ++fixSession.current });
+  };
+  const openCorrection = (context: CorrectionContext) => {
+    clearFixResult();
+    setFix({ kind: 'setting', context, session: ++fixSession.current });
+  };
+  const afterReplaced = ({ recheck }: EpisodeFileReplaced) => {
+    setFix(null);
+    // 검수 회차의 원고 교체는 곧 재검수다. 같은 화면 주소에 recheck=1을 붙여 재검수 패널의 자동 접수 경로를 그대로 탄다.
+    if (recheck) updateParams(next => { next.set(RECHECK_START_KEY, '1'); });
+    // 접수 플래그가 꺼져 있으면 창만 닫는다. 리포트는 바뀐 원고로 무효가 된 상태 안내를 보여 준다.
+    else setFixResult('replaced');
+  };
+  const afterCorrected = (result: 'linked' | 'unlinked', receiptId?: string) => {
+    setFix(null);
+    setFixResult(result);
+    // 재검수 패널이 받은 receipt를 바로 쓰도록 기존 주소 키에 남기고, 결과 안내가 새로고침 뒤에도 보이도록 결과도 남긴다.
+    updateParams(next => {
+      next.set(CORRECTION_RESULT_KEY, result);
+      if (receiptId) next.set(CORRECTION_RECEIPT_KEY, receiptId);
+      else next.delete(CORRECTION_RECEIPT_KEY);
+    });
+  };
+  // 고치기는 현재 결과에서만 연다. 무효·이전 결과에는 두지 않는다.
+  const fixAvailable = Boolean(staging?.episodeId) && !report.invalidated && !pastReport;
+  // 창을 닫으면 누른 버튼으로 초점이 돌아간다. 고친 결과로 리포트가 무효가 되어 그 버튼이 사라지면
+  // 초점을 잃지 않도록 결과 안내·재검수 영역으로 옮긴다.
+  // 무효 상태·재검수 버튼은 검수 조회 두 개(staging·summary)가 차례로 도착하며 그려지므로 요약이 바뀔 때도 다시 확인한다.
+  useEffect(() => {
+    if (!fixResult) return;
+    const active = document.activeElement;
+    if (!active || active === document.body) fixResultRef.current?.focus({ preventScroll: true });
+  }, [fixAvailable, fixResult, summary]);
+  const fixAnnouncement = fixResult === 'linked' ? '설정을 정정해 저장했어요. 수정 내용으로 재검수해 주세요.'
+    : fixResult === 'unlinked' ? '설정을 저장했지만 검수 기준 연결을 확인하지 못했어요.'
+      : fixResult === 'replaced' ? '원고 파일을 바꿨어요.' : '';
+
   const summaryStale = report.summaryQuery.isError;
   const writesLocked = !summary || summaryStale || report.invalidated || pastReport;
   const canJudge = Boolean(!writesLocked && !summary?.judgmentLocked && summary?.allowedActions?.includes('SAVE_JUDGMENT')
@@ -365,6 +425,10 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   // A11: 설정 정정 화면이 돌려준 정정 receipt. 재검수 요청에 그대로 보낸다.
   const correctionReceiptId = UUID.test(searchParams.get(CORRECTION_RECEIPT_KEY) ?? '') ? searchParams.get(CORRECTION_RECEIPT_KEY) : null;
   // 리포트끼리 이동하면 history가 늘어나므로 분석 목록 복귀의 상대 이동(returnHistoryDelta)은 버리고 저장한 목록 주소만 넘긴다.
+  // 새로고침 뒤에는 주소에 남긴 정정 결과로 같은 안내를 보인다. 연결 성공은 receipt가 함께 있을 때만, 재검수로 지난 결과가 된 리포트에는 보이지 않는다.
+  const savedResult = searchParams.get(CORRECTION_RESULT_KEY);
+  const shownFixResult = fixResult ?? (pastReport ? null
+    : savedResult === 'linked' && correctionReceiptId ? 'linked' : savedResult === 'unlinked' ? 'unlinked' : null);
   const linkState = { ...(location.state as ReportLinkState | null), returnHistoryDelta: undefined };
   // 보던 주소도 그 사이 재검수로 퇴역했을 수 있어 회차의 현재 report를 새로 확인한다. 같으면 보던 필터·선택을 복원한다.
   const backToLatest = () => {
@@ -403,7 +467,6 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
     && (filters.outcome === 'ALL' || detail.outcome === filters.outcome)
     && (filters.impact === 'ALL' || (detail.branch === 'SETTING' && detailImpact === filters.impact))
     && (filters.subjectType === 'ALL' || (detail.branch === 'SETTING' && detail.subject?.type === filters.subjectType));
-  const replaceUrl = reportReplaceUrl(workId, reportId, report.invalidated || pastReport ? undefined : staging?.episodeId, searchParams);
   const outsideNotice = detailMatchesUrl && listReady && !selectedInList ? (
     <ReviewNotice tone="info" title={matchesFilter ? '이 항목은 현재 페이지 목록에 없어요.' : '이 항목은 현재 필터에서 제외됐어요.'}
       action={firstId ? <ActionButton variant="secondary" size="compact" onClick={() => selectFinding(firstId)}>다음 항목</ActionButton> : undefined} />
@@ -414,6 +477,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
   return (
     <ReportShell workId={workId}>
       <div className="vr-sr-only" role="status" aria-live="polite">{actions.announcement}</div>
+      <div className="vr-sr-only" role="status" aria-live="polite" data-testid="validation-fix-announcement">{fixAnnouncement}</div>
       <ReportStatusCard
         staging={staging}
         summary={summary}
@@ -442,8 +506,20 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
             <ActionButton onClick={backToLatest}>최신 결과로 돌아가기</ActionButton>
           </div>
         )}
-        <ValidationRecheckPanel workId={workId} reportId={reportId} report={report} correctionReceiptId={correctionReceiptId}
-          onRetry={() => actions.requestAction('retry')} />
+        <div ref={fixResultRef} tabIndex={-1} className="vr-fix-result">
+          {shownFixResult === 'linked' && (
+            <ReviewNotice tone="success" title={EPISODE_VALIDATION_INTAKE_ENABLED ? '저장됐어요. 재검수해 주세요.' : '저장됐어요.'}>
+              <p>정정한 설정은 이 검수의 기준과 연결됐어요.{EPISODE_VALIDATION_INTAKE_ENABLED ? ' 수정 내용으로 재검수를 시작해야 새 기준으로 다시 검사해요.' : ''}</p>
+            </ReviewNotice>
+          )}
+          {shownFixResult === 'unlinked' && (
+            <ReviewNotice tone="warning" title="저장됐지만 검수 기준 연결을 확인하지 못했어요.">
+              <p>{EPISODE_VALIDATION_INTAKE_ENABLED ? '수정 내용으로 재검수하면 지금 저장된 설정으로 새로 검사해요.' : '설정은 저장됐고, 이 검수의 기준과는 연결되지 않았어요.'}</p>
+            </ReviewNotice>
+          )}
+          <ValidationRecheckPanel workId={workId} reportId={reportId} report={report} correctionReceiptId={correctionReceiptId}
+            onRetry={() => actions.requestAction('retry')} />
+        </div>
       </ReportStatusCard>
 
       {!pastReport && (
@@ -509,7 +585,7 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
                     : actions.judgmentNotice ? <ReviewNotice tone={actions.judgmentNotice.tone} title={actions.judgmentNotice.text} /> : null}
                   onSaveJudgment={judgment => { if (canJudge) actions.saveJudgment(detail, judgment); }}
                   contextPath={!report.invalidated && !pastReport ? { workId, reportId } : undefined} topNotice={outsideNotice}
-                  fix={replaceUrl ? { replace: replaceUrl, corrections: correctionLinks(workId, reportId, staging, detail, searchParams) } : undefined}
+                  fix={fixAvailable ? { onReplace: openReplace, corrections: correctionChoices(reportId, staging, detail), onCorrect: openCorrection } : undefined}
                   subject={subjectLink(workId, reportId, detail, searchParams)}
                 />
               ) : detailMissing ? (
@@ -526,6 +602,20 @@ function ValidationReport({ workId, reportId }: { workId: string; reportId: stri
             </section>
           </div>
         </>
+      )}
+
+      {staging.episodeId && (
+        <ValidationFixDialogs
+          workId={workId}
+          reportId={reportId}
+          episodeId={staging.episodeId}
+          episode={report.episode}
+          genre={report.work?.genre}
+          fix={fix}
+          onClose={() => setFix(null)}
+          onReplaced={afterReplaced}
+          onCorrected={afterCorrected}
+        />
       )}
     </ReportShell>
   );

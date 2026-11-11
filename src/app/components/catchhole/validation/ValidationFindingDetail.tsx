@@ -18,7 +18,7 @@ import {
   type Branch,
   type Judgment,
 } from './validation-report-labels';
-import type { CorrectionLink, SubjectLink } from './validation-return';
+import type { CorrectionChoice, CorrectionContext, SubjectLink } from './validation-return';
 import { ContextBlocks } from './ValidationContextBlocks';
 
 /**
@@ -75,8 +75,11 @@ function fallbackBlocks(detail: ValidationFindingDetailResponse, targets: Span[]
   ];
 }
 
-/** 설정 고치기. 저장 설정이 하나면 바로 이동하고, 여럿이면 작은 선택 목록을 연다. 연결이 없으면 이유와 함께 잠근다. */
-function SettingFix({ corrections }: { corrections: CorrectionLink[] }) {
+/**
+ * 설정 고치기. 저장 설정이 하나면 바로 리포트 위 정정 창을 열고, 여럿이면 작은 선택 목록을 연다. 연결이 없으면 이유와 함께 잠근다.
+ * #428부터 다른 화면으로 이동하지 않는다. 창을 닫으면 누른 버튼으로 초점이 돌아온다.
+ */
+function SettingFix({ corrections, onCorrect }: { corrections: CorrectionChoice[]; onCorrect: (context: CorrectionContext) => void }) {
   const [choosing, setChoosing] = useState(false);
   if (corrections.length === 0) {
     return <>
@@ -86,9 +89,10 @@ function SettingFix({ corrections }: { corrections: CorrectionLink[] }) {
   }
   if (corrections.length === 1) {
     const [only] = corrections;
-    return only.url
+    return only.context
       ? <>
-        <Link className="ch-action ch-action--secondary vr-fix-link" to={only.url} aria-describedby="validation-correction-target">설정 고치기</Link>
+        <ActionButton variant="secondary" aria-haspopup="dialog" aria-describedby="validation-correction-target"
+          data-entry-ref={only.context.entryRef} onClick={() => onCorrect(only.context)}>설정 고치기</ActionButton>
         <span id="validation-correction-target" className="vr-locked">{only.label}</span>
       </>
       : <>
@@ -104,8 +108,9 @@ function SettingFix({ corrections }: { corrections: CorrectionLink[] }) {
         <ul id="validation-correction-choices" className="vr-correction-list" aria-label="고칠 설정">
           {corrections.map((item, index) => (
             <li key={item.key}>
-              {item.url
-                ? <Link className="ch-action ch-action--secondary vr-fix-link" to={item.url}>{item.label}</Link>
+              {item.context
+                ? <ActionButton variant="secondary" aria-haspopup="dialog" data-entry-ref={item.context.entryRef}
+                  onClick={() => onCorrect(item.context)}>{item.label}</ActionButton>
                 : <>
                   <ActionButton variant="secondary" disabled aria-describedby={`validation-correction-lock-${index}`}>{item.label}</ActionButton>
                   <span id={`validation-correction-lock-${index}`} className="vr-locked">{item.lockReason}</span>
@@ -136,8 +141,11 @@ export function FindingDetailView({
   /** 문맥 블록 더 보기 요청 경로. 없으면 처음 받은 앞뒤 줄만 보인다. */
   contextPath?: { workId: string; reportId: string };
   topNotice?: ReactNode;
-  /** A9 원고 파일 변경 주소와 A10 정정할 저장 설정. 현재 결과가 아니면 제공하지 않는다. 설정 고치기는 설정 검사 항목에만 보인다. */
-  fix?: { replace: string; corrections: CorrectionLink[] };
+  /**
+   * A9 원고 파일 변경과 A10 정정할 저장 설정. 둘 다 리포트 위에 창을 연다(#428). 현재 결과가 아니면 제공하지 않는다.
+   * 설정 고치기는 설정 검사 항목에만 보인다.
+   */
+  fix?: { onReplace: () => void; corrections: CorrectionChoice[]; onCorrect: (context: CorrectionContext) => void };
   /** A5 대상 설정 보기. 설정 검사 항목에만 보인다. */
   subject?: SubjectLink;
 }) {
@@ -271,10 +279,10 @@ export function FindingDetailView({
           <section className="vr-section vr-fix" aria-label="고치기">
             <h3>고치기</h3>
             <div className="vr-fix__actions">
-              <Link className="ch-action ch-action--secondary vr-fix-link" to={fix.replace}>원고 고치기</Link>
-              {branch === 'SETTING' && <SettingFix corrections={fix.corrections} />}
+              <ActionButton variant="secondary" aria-haspopup="dialog" onClick={fix.onReplace}>원고 고치기</ActionButton>
+              {branch === 'SETTING' && <SettingFix corrections={fix.corrections} onCorrect={fix.onCorrect} />}
             </div>
-            <p className="vr-muted">고친 뒤 이 리포트로 돌아와 재검수해 주세요.</p>
+            <p className="vr-muted">이 화면에서 창을 열어 고친 뒤 이 리포트에서 재검수해 주세요.</p>
           </section>
         )}
       </div>

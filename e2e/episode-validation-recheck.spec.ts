@@ -13,7 +13,8 @@ import {
 } from './fixtures/validation/report-mock';
 
 /**
- * GH314 F2 A9 원고 파일 변경 → 리포트 복귀 → A11 재검수, 진단 재검수. A10 설정 정정은 episode-validation-correction.spec.ts.
+ * GH314 F2 A9 원고 파일 변경 → A11 재검수, 진단 재검수. A10 설정 정정은 episode-validation-correction.spec.ts.
+ * #428부터 리포트의 `원고 고치기`는 리포트 위에 파일 변경 창을 연다. 원고 목록 주소(`modal=episode-replace`)의 교체는 `원고 목록 주소` 테스트로 남긴다.
  * 목 API는 Backend 계약 예시(validation-review-v1.json)와 F1 report fixture를 그대로 사용한다.
  * #314 B2(F3)부터 재검수 버튼은 검토 요약 allowedActions의 RECHECK로만 연다.
  */
@@ -45,31 +46,31 @@ async function chooseReplacement(page: Page) {
   });
 }
 
-test('A9 원고 고치기의 파일 변경은 같은 회차를 교체하고 바로 재검수해 검수 로딩창으로 간다', async ({ page }) => {
+test('A9 원고 고치기는 리포트 위에서 같은 회차의 파일 변경 창을 열고, 교체 뒤 바로 재검수해 검수 로딩창으로 간다', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const mock = await open(page, {}, `&branch=SETTING&findingId=${findingId(0)}`);
   await expect(page.locator('#validation-finding-title')).toHaveText('비요른의 검 상태가 기존 설정과 달라요');
   // 서버가 RECHECK를 허용하기 전에는 재검수 버튼을 두지 않는다.
   await expect(recheckButton(page)).toHaveCount(0);
+  const before = page.url();
 
-  await page.getByRole('link', { name: '원고 고치기', exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\?/);
-  const dashboard = new URL(page.url()).searchParams;
-  expect(Object.fromEntries(dashboard)).toMatchObject({
-    workId: WORK_ID, nav: 'manuscripts', modal: 'episode-replace', episodeId: EPISODE_ID,
-    returnTo: 'validation-report', reportId: REPORT_ID, reportFindingId: findingId(0), reportBranch: 'SETTING',
-  });
-  // 인용·원문은 복귀 문맥에 넣지 않는다.
-  expect(page.url()).not.toContain(encodeURIComponent('부서졌다'));
+  // #428: 원고 목록으로 이동하지 않고 리포트 위에 원고 목록과 같은 파일 변경 창을 연다.
+  await page.getByRole('region', { name: '고치기' }).getByRole('button', { name: '원고 고치기', exact: true }).click();
+  await expect(replaceDialog(page)).toBeVisible();
+  expect(page.url()).toBe(before);
+  expect(new URL(page.url()).pathname).toBe('/episode-validation-report');
   await expect(replaceDialog(page)).toContainText('101화 성문 앞에서의 원문 파일을 변경합니다.');
+  await expect(replaceDialog(page)).toContainText('현재 원본: 101.txt');
   await expect(replaceDialog(page)).toContainText('바꾼 원고로 바로 다시 검수해요.');
-  await expect(returnNotice(page)).toContainText('오류 리포트에서 원고 파일을 바꾸러 왔어요.');
+  await expect(returnNotice(page)).toHaveCount(0);
   expect(mock.requestsTo('/rechecks')).toHaveLength(0);
   const fingerprint = mock.state.staging.baselineFingerprint;
 
-  // 검수 회차의 원고 교체는 곧 재검수다. 교체 → 리포트의 재검수 경로로 한 번 접수 → 검수 로딩창.
+  // 검수 회차의 원고 교체는 곧 재검수다. 교체 → 같은 리포트 주소에 recheck=1 → 재검수 패널이 한 번 접수 → 검수 로딩창.
   await chooseReplacement(page);
+  const recheckStart = page.waitForURL(url => url.pathname === '/episode-validation-report' && url.searchParams.get('recheck') === '1');
   await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
+  await recheckStart;
   await expect(page).toHaveURL(progressUrl);
   await expect(progress(page).locator('.episode-processing__title')).toHaveText('회차의 오류를 검사하고 있습니다');
   expect(mock.requestsTo(`/episodes/${EPISODE_ID}/file`, 'PUT')).toHaveLength(1);
@@ -96,7 +97,38 @@ test('A9 원고 고치기의 파일 변경은 같은 회차를 교체하고 바�
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
-test('원고 목록에서 검수 회차 파일을 바꿔도 바로 재검수하고 로딩창은 7단계 칩으로 진행을 보여 준다', async ({ page }) => {
+test('리포트 위 원고 고치기의 교체 실패는 창 안에 오류와 고른 파일을 남기고, 취소하면 선택 항목·필터를 그대로 둔다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const mock = await open(page, {}, `&branch=SETTING&judgment=ALL&findingId=${findingId(1)}`);
+  const before = page.url();
+  mock.failNextReplace({ status: 409, code: 'EPISODE_CONTENT_LOCKED', message: '지금은 원고 파일을 바꿀 수 없습니다. 잠시 후 다시 시도해 주세요.' });
+  const trigger = page.getByRole('region', { name: '고치기' }).getByRole('button', { name: '원고 고치기', exact: true });
+  await trigger.click();
+  // 열면 창 안으로 초점이 옮겨지고(포커스 트랩) 처리 중에는 닫을 수 없다.
+  await expect(replaceDialog(page).getByRole('button', { name: '닫기', exact: true })).toBeFocused();
+  await chooseReplacement(page);
+  await replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true }).click();
+  await expect(replaceDialog(page).getByRole('alert')).toHaveText('지금은 원고 파일을 바꿀 수 없습니다. 잠시 후 다시 시도해 주세요.');
+  await expect(replaceDialog(page)).toContainText('101-revised.txt');
+  expect(page.url()).toBe(before);
+
+  // Esc로 닫으면 리포트 주소·선택 항목은 그대로이고 누른 버튼으로 초점이 돌아온다.
+  await page.keyboard.press('Escape');
+  await expect(replaceDialog(page)).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(page.url()).toBe(before);
+  await expect(page.locator('#validation-finding-title')).toHaveText('왕궁 앞뜰이 마법 금지 구역인지 확인이 필요해요');
+  expect(mock.requestsTo(`/episodes/${EPISODE_ID}/file`, 'PUT')).toHaveLength(1);
+  expect(mock.state.requests.filter(item => /\/(analysis-jobs|rechecks)$/.test(item.path))).toEqual([]);
+
+  // 다시 열면 지난 파일·오류를 잇지 않는다.
+  await trigger.click();
+  await expect(replaceDialog(page)).not.toContainText('101-revised.txt');
+  await expect(replaceDialog(page).getByRole('alert')).toHaveCount(0);
+  await expect(replaceDialog(page).getByRole('button', { name: '파일 변경하고 재검수', exact: true })).toBeDisabled();
+});
+
+test('원고 목록 주소: 원고 목록에서 검수 회차 파일을 바꿔도 바로 재검수하고 로딩창은 7단계 칩으로 진행을 보여 준다', async ({ page }) => {
   const mock = await mockValidationReport(page);
   await authenticate(page);
   await page.goto(`/dashboard?workId=${WORK_ID}&nav=manuscripts&modal=episode-replace&episodeId=${EPISODE_ID}`);
@@ -111,7 +143,7 @@ test('원고 목록에서 검수 회차 파일을 바꿔도 바로 재검수하�
   expect(mock.requestsTo('/rechecks')).toHaveLength(1);
 });
 
-test('다른 리포트의 복귀 문맥이 주소에 남아 있어도 바꾼 회차의 현재 리포트를 재검수한다', async ({ page }) => {
+test('원고 목록 주소: 다른 리포트의 복귀 문맥이 주소에 남아 있어도 바꾼 회차의 현재 리포트를 재검수한다', async ({ page }) => {
   const mock = await mockValidationReport(page);
   await authenticate(page);
   // 이전 리포트에서 연 원고 목록에서 그 교체 창을 닫고 다른 회차(여기서는 현재 리포트가 REPORT_ID인 회차)를 바꾸는 경우다.
@@ -135,7 +167,7 @@ test('재검수를 허용하지 않는 리포트에 recheck=1로 들어오면 �
   await expect(page).toHaveURL(new RegExp(`reportId=${REPORT_ID}`));
 });
 
-test('교체 실패와 취소는 모달 입력과 리포트 복귀 문맥을 유지하고 분석을 시작하지 않는다', async ({ page }) => {
+test('원고 목록 주소: 이전에 공유된 리포트 복귀 주소의 교체 실패와 취소는 모달 입력과 리포트 복귀 문맥을 유지하고 분석을 시작하지 않는다', async ({ page }) => {
   const mock = await mockValidationReport(page);
   await authenticate(page);
   mock.failNextReplace({ status: 409, code: 'EPISODE_CONTENT_LOCKED', message: '지금은 원고 파일을 바꿀 수 없습니다. 잠시 후 다시 시도해 주세요.' });
