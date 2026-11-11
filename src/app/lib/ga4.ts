@@ -44,3 +44,23 @@ export function trackGaPageView(pathname: string): void {
     // Analytics must never interrupt the product flow when GA4 is unavailable.
   }
 }
+
+// 개인정보처리방침이 허용한 전환 이벤트만 보낸다(docs/legal/README.md). 매개변수는 붙이지 않으며
+// 주소는 마지막 page_view 때 전역으로 지정한 정제 주소를 그대로 쓴다.
+type GaConversionEvent = 'sign_up' | 'demo_complete';
+
+function trackGaConversion(eventName: GaConversionEvent): void {
+  try {
+    window.gtag?.('event', eventName);
+  } catch {
+    // Analytics must never interrupt the product flow when GA4 is unavailable.
+  }
+}
+
+export function trackGaSignUp(): void {
+  trackGaConversion('sign_up');
+}
+
+export function trackGaDemoComplete(): void {
+  trackGaConversion('demo_complete');
+}

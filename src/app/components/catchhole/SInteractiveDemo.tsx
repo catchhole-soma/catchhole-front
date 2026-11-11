@@ -43,6 +43,7 @@ import { ProductBrand } from './ui-v2/ProductBrand';
 import { WorldSettingDatabase } from './worldsetting/WorldSettingDatabase';
 import { PublicCharacterReviewExample, PublicWorldReviewExample } from './PublicReviewExamples';
 import type { CharacterFactApplicationMode } from './character/character-fact-comparison-policy';
+import { trackGaDemoComplete } from '../../lib/ga4';
 import storyWorldArtwork from '../../../assets/landing/catchhole-story-world-v1.png';
 import './interactive-demo.css';
 
@@ -1130,6 +1131,7 @@ export default function SInteractiveDemo() {
   const finishDemo = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
     dispatch({ type: 'finish' });
+    trackGaDemoComplete();
   };
 
   const clearTimelineParams = () => {

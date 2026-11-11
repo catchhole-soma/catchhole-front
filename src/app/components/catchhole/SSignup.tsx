@@ -26,6 +26,7 @@ import { saveAuthToken } from '../../lib/auth';
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import { BrandLogo } from './ui-v2/BrandLogo';
 import { trackMetaCompleteRegistration } from '../../lib/meta-pixel';
+import { trackGaSignUp } from '../../lib/ga4';
 
 interface SignupErrors {
   name?: string;
@@ -194,6 +195,7 @@ export default function SSignup() {
       verification.reset();
       saveAuthToken(response);
       trackMetaCompleteRegistration();
+      trackGaSignUp();
       navigate('/works', 'push-right', undefined, { replace: true });
     } catch (error) {
       const apiError = toApiError(error);
