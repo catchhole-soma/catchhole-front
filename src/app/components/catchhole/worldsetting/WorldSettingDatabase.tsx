@@ -520,8 +520,9 @@ function WorldSettingDetail({
   propertyConflict: boolean;
   propertySaveLabel?: string;
   expandedEvidence: string | null;
-  onEditIdentity: () => void;
-  onEditImage: () => void;
+  /** 상세만 띄우는 모드(오류 리포트 위)는 주소로 여는 이미지·대상 정보 창을 넘기지 않아 버튼을 두지 않는다. */
+  onEditIdentity?: () => void;
+  onEditImage?: () => void;
   onStartAdd: () => void;
   onStartEdit: (scopeName: string | null, name: string, value: string) => void;
   onDraftChange: (draft: PropertyDraft) => void;
@@ -554,10 +555,10 @@ function WorldSettingDetail({
             {formatUpdatedAt(detail.updatedAt)}
           </span>
         </div>
-        <div className="world-setting-detail-actions">
-          <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditImage}>이미지 변경</Button>
-          <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditIdentity}><Pencil size={12} /> 대상 정보 수정</Button>
-        </div>
+        {(onEditImage || onEditIdentity) && <div className="world-setting-detail-actions">
+          {onEditImage && <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditImage}>이미지 변경</Button>}
+          {onEditIdentity && <Button disabled={propertyPending || Boolean(propertyDraft)} onClick={onEditIdentity}><Pencil size={12} /> 대상 정보 수정</Button>}
+        </div>}
       </div>
 
       <div className="world-setting-detail-toolbar" style={{ display: 'flex', alignItems: 'center', marginBottom: 11 }}>
@@ -961,15 +962,24 @@ function EditIdentityModal({
   );
 }
 
+/**
+ * 목록 없이 대상 하나의 상세 창만 띄운다(#428 오류 리포트 위 정정). 선택 대상과 닫기를 props로 받고
+ * 목록 조회와 목록용 주소 키(`settingId`·`modal`·`category`·`q`·`sort`·`page`·`worldSize`)를 읽거나 쓰지 않는다.
+ */
+type WorldSettingDetailOnly = { settingId: string; onClose: () => void };
+
 export function WorldSettingDatabase(props: {
   workId: string; enabled: boolean; onAnalyze: () => void; fixture?: WorldSettingDatabaseFixture;
   /** GH314 A5·A10: 오류 리포트에서 연 세계관 대상의 안내와 정정 저장. */
   correction?: WorldCorrectionBinding;
+  detailOnly?: WorldSettingDetailOnly;
 }) {
   return <WorldImageThemeProvider workId={props.workId} enabled={props.enabled && !props.fixture}>
     <WorldSettingDatabaseContent {...props} />
   </WorldImageThemeProvider>;
 }
+
+const EMPTY_PARAMS: Pick<URLSearchParams, 'get'> = new URLSearchParams();
 
 function samePath(path: { scopeName: string | null; settingName: string }, scopeName?: string | null, settingName?: string | null) {
   return (path.scopeName?.trim() || null) === (scopeName?.trim() || null) && path.settingName === settingName;
@@ -996,15 +1006,19 @@ function WorldSettingDatabaseContent({
   onAnalyze,
   fixture,
   correction,
+  detailOnly,
 }: {
   workId: string;
   enabled: boolean;
   onAnalyze: () => void;
   fixture?: WorldSettingDatabaseFixture;
   correction?: WorldCorrectionBinding;
+  detailOnly?: WorldSettingDetailOnly;
 }) {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [urlParams, setSearchParams] = useSearchParams();
+  // 상세만 띄우면 호스트 화면(오류 리포트)의 주소 키(`page` 등)를 목록 상태로 읽지 않는다.
+  const searchParams = detailOnly ? EMPTY_PARAMS : urlParams;
   const fixtureMode = fixture != null;
   const q = searchParams.get('q')?.trim() ?? '';
   const categoryParam = searchParams.get('category') ?? (fixtureMode ? 'ALL' : null);
@@ -1012,11 +1026,11 @@ function WorldSettingDatabaseContent({
   const sort = parseSort(searchParams.get('sort'));
   const page = parsePage(searchParams.get('page'));
   const apiPage = page - 1;
-  const selectedId = searchParams.get('settingId');
+  const selectedId = detailOnly ? detailOnly.settingId : searchParams.get('settingId');
   const modal = searchParams.get('modal');
   const categoryOverview = !fixtureMode && categoryParam === null && !q && !selectedId;
   const { containerRef, contentStartRef, columnCount, pageSize, ready: paginationReady } = useWorldSettingPagination(
-    !categoryOverview && (enabled || fixtureMode),
+    !detailOnly && !categoryOverview && (enabled || fixtureMode),
   );
   const [searchDraft, setSearchDraft] = useState(q);
   const [createDraft, setCreateDraft] = useState<CreateWorldSettingDraft>(emptyCreateDraft);
@@ -1042,7 +1056,7 @@ function WorldSettingDatabaseContent({
       path: { workId },
       query: { q: q || undefined, category, sort, page: apiPage, size: pageSize },
     }),
-    enabled: enabled && !fixtureMode && !categoryOverview && paginationReady,
+    enabled: enabled && !detailOnly && !fixtureMode && !categoryOverview && paginationReady,
     retry: shouldRetryQuery,
   });
   const fixtureListData = useMemo<WorldSettingListResponse | undefined>(() => {
@@ -1095,13 +1109,13 @@ function WorldSettingDatabaseContent({
 
   useEffect(() => {
     const totalPages = worldSettingPage?.totalPages;
-    if (totalPages == null || apiPage < Math.max(totalPages, 1)) return;
+    if (detailOnly || totalPages == null || apiPage < Math.max(totalPages, 1)) return;
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
       next.set('page', String(Math.max(totalPages, 1)));
       return next;
     }, { replace: true });
-  }, [apiPage, setSearchParams, worldSettingPage?.totalPages]);
+  }, [apiPage, detailOnly, setSearchParams, worldSettingPage?.totalPages]);
 
   const detailQuery = useQuery({
     ...getWorldSettingOptions({ path: { workId, worldSettingId: selectedId ?? '' } }),
@@ -1275,7 +1289,9 @@ function WorldSettingDatabaseContent({
     }, { replace: true });
   };
 
-  const closeDetail = () => requestPropertyDraftDiscard(clearDetailSelection);
+  const closeDetail = () => requestPropertyDraftDiscard(detailOnly
+    ? () => { setExpandedEvidence(null); detailOnly.onClose(); }
+    : clearDetailSelection);
 
   const backToCategories = () => {
     setSearchDraft('');
@@ -1380,6 +1396,146 @@ function WorldSettingDatabaseContent({
         }
     : null;
 
+  const successAlert = successMessage ? (
+    <div className="database-inline-alert is-success" role="status" style={{
+      marginBottom: 12, padding: '10px 13px', borderRadius: 7,
+      border: `1px solid ${C.success}55`, background: `${C.success}12`,
+      color: C.success, fontSize: 11,
+    }}><Check size={12} style={{ verticalAlign: 'middle', marginRight: 6 }} />{successMessage}</div>
+  ) : null;
+  const detailDialog = selectedId ? (
+    <WorldSettingDialog
+      title={detail?.subjectName ? `${detail.subjectName} 세계관 상세` : '세계관 상세'}
+      className="world-setting-detail-dialog"
+      pending={propertyPending || identityMutation.isPending}
+      modal={!fixtureMode}
+      returnFocusId={selectedId}
+      onClose={closeDetail}
+    >
+      <section className="world-setting-db-detail">
+        {detailOnly && successAlert}
+        {reportBinding && <div ref={reportNoticeRef} className="world-setting-report-notice">{reportBinding.notice}</div>}
+        {!fixtureMode && detailQuery.isPending ? (
+          <PanelState
+            icon={<Loader2 size={26} color={C.primary} className="spin" />}
+            title="세계관 상세를 불러오고 있습니다."
+            description="현재 설정과 연결된 원문 근거를 확인하고 있습니다."
+            minHeight={540}
+          />
+        ) : (!fixtureMode && detailQuery.isError) || !detail ? (
+          <PanelState
+            icon={<AlertCircle size={27} color={C.danger} />}
+            title="세계관 상세를 불러오지 못했습니다."
+            description={errorMessage(detailQuery.error, '대상이 삭제되었거나 접근할 수 없습니다.')}
+            action={<Button onClick={() => void detailQuery.refetch()}><RefreshCw size={12} /> 다시 시도</Button>}
+            minHeight={540}
+          />
+        ) : (
+          <WorldSettingDetail
+            workId={workId}
+            detail={detail}
+            propertyDraft={propertyDraft}
+            propertyPending={propertyPending}
+            propertyError={propertyError}
+            propertyConflict={isVersionConflict(propertyMutationError)}
+            propertySaveLabel={correctionSave?.mode === 'plain' && boundEdit(propertyDraft) ? '기준 연결 없이 저장' : undefined}
+            expandedEvidence={expandedEvidence}
+            // 이미지·대상 정보 창은 주소(`modal`)로 열리므로 상세만 띄우는 모드에서는 두지 않는다.
+            onEditImage={detailOnly ? undefined : () => {
+              if (fixtureMode) { explainFixtureReadOnly(); return; }
+              setSearchParams(previous => {
+                const next = new URLSearchParams(previous); next.set('modal', 'world-setting-image'); return next;
+              });
+            }}
+            onEditIdentity={detailOnly ? undefined : () => {
+              if (fixtureMode) {
+                explainFixtureReadOnly();
+                return;
+              }
+              identityMutation.reset();
+              setIdentityDraft(current => current?.worldSettingId === selectedId ? current : {
+                worldSettingId: selectedId,
+                category: detail.category ?? 'RACE',
+                subjectName: detail.subjectName ?? '',
+              });
+              setSearchParams(previous => {
+                const next = new URLSearchParams(previous);
+                next.set('modal', 'world-setting-edit');
+                return next;
+              });
+            }}
+            onStartAdd={() => {
+              if (fixtureMode) {
+                explainFixtureReadOnly();
+                return;
+              }
+              resetPropertyMutations();
+              setPropertyDraft({
+                worldSettingId: selectedId!, mode: 'add', scopeName: '', settingName: '', settingValue: '',
+                initialScopeName: '',
+                initialSettingName: '', initialSettingValue: '',
+              });
+            }}
+            onStartEdit={(scopeName, name, value) => {
+              if (fixtureMode) {
+                explainFixtureReadOnly();
+                return;
+              }
+              resetPropertyMutations();
+              setPropertyDraft({
+                worldSettingId: selectedId!, mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
+                scopeName: scopeName ?? '',
+                settingName: name, settingValue: value,
+                initialScopeName: scopeName ?? '',
+                initialSettingName: name, initialSettingValue: value,
+              });
+            }}
+            onDraftChange={setPropertyDraft}
+            onCancelDraft={() => requestPropertyDraftDiscard()}
+            onSaveDraft={saveProperty}
+            onReload={() => void detailQuery.refetch()}
+            onToggleEvidence={(scopeName, name) => {
+              const key = propertyPathKey(scopeName, name);
+              const next = expandedEvidence === key ? null : key;
+              setExpandedEvidence(next);
+              if (fixture && selectedId) {
+                fixture.onEvidenceToggle?.({
+                  worldSettingId: selectedId,
+                  subjectName: detail.subjectName ?? '',
+                  scopeName,
+                  settingName: name,
+                  expanded: next === key,
+                });
+              }
+            }}
+          />
+        )}
+      </section>
+    </WorldSettingDialog>
+  ) : null;
+  const discardDialog = (
+    <DiscardChangesDialog
+      open={propertyDraftDiscardRequest !== null}
+      description="지금 이동하면 작성 중인 설정명과 설정값이 저장되지 않습니다."
+      onKeepEditing={() => setPropertyDraftDiscardRequest(null)}
+      onDiscard={discardPropertyDraft}
+    />
+  );
+  const responsiveStyle = (
+    <style>{`
+      @media (max-width: 900px) {
+        .world-setting-property-editor-fields {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+        .world-setting-db-filters {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+      }
+    `}</style>
+  );
+  // 오류 리포트 위(#428)에서는 목록·검색·주소로 여는 창 없이 상세 창과 작성 취소 확인만 띄운다.
+  if (detailOnly) return <>{detailDialog}{discardDialog}{responsiveStyle}</>;
+
   return (
     <section className="world-setting-database" style={{ maxWidth: 1280, margin: '0 auto' }}>
       <div className={`world-setting-database__header${categoryOverview ? '' : ' world-setting-database__header--list'}`}>
@@ -1412,13 +1568,7 @@ function WorldSettingDatabaseContent({
         }}><Plus size={13} /> 새 대상 추가</Button>
       </div>
 
-      {successMessage && (
-        <div className="database-inline-alert is-success" role="status" style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 7,
-          border: `1px solid ${C.success}55`, background: `${C.success}12`,
-          color: C.success, fontSize: 11,
-        }}><Check size={12} style={{ verticalAlign: 'middle', marginRight: 6 }} />{successMessage}</div>
-      )}
+      {successAlert}
 
       {categoryOverview ? (
         <CategoryOverview onSelect={selectedCategory => updateListParams({ category: selectedCategory })} />
@@ -1533,114 +1683,7 @@ function WorldSettingDatabaseContent({
       )}
       </>}
 
-      {selectedId && (
-        <WorldSettingDialog
-          title={detail?.subjectName ? `${detail.subjectName} 세계관 상세` : '세계관 상세'}
-          className="world-setting-detail-dialog"
-          pending={propertyPending || identityMutation.isPending}
-          modal={!fixtureMode}
-          returnFocusId={selectedId}
-          onClose={closeDetail}
-        >
-          <section className="world-setting-db-detail">
-            {reportBinding && <div ref={reportNoticeRef} className="world-setting-report-notice">{reportBinding.notice}</div>}
-            {!fixtureMode && detailQuery.isPending ? (
-              <PanelState
-                icon={<Loader2 size={26} color={C.primary} className="spin" />}
-                title="세계관 상세를 불러오고 있습니다."
-                description="현재 설정과 연결된 원문 근거를 확인하고 있습니다."
-                minHeight={540}
-              />
-            ) : (!fixtureMode && detailQuery.isError) || !detail ? (
-              <PanelState
-                icon={<AlertCircle size={27} color={C.danger} />}
-                title="세계관 상세를 불러오지 못했습니다."
-                description={errorMessage(detailQuery.error, '대상이 삭제되었거나 접근할 수 없습니다.')}
-                action={<Button onClick={() => void detailQuery.refetch()}><RefreshCw size={12} /> 다시 시도</Button>}
-                minHeight={540}
-              />
-            ) : (
-              <WorldSettingDetail
-                workId={workId}
-                detail={detail}
-                propertyDraft={propertyDraft}
-                propertyPending={propertyPending}
-                propertyError={propertyError}
-                propertyConflict={isVersionConflict(propertyMutationError)}
-                propertySaveLabel={correctionSave?.mode === 'plain' && boundEdit(propertyDraft) ? '기준 연결 없이 저장' : undefined}
-                expandedEvidence={expandedEvidence}
-                onEditImage={() => {
-                  if (fixtureMode) { explainFixtureReadOnly(); return; }
-                  setSearchParams(previous => {
-                    const next = new URLSearchParams(previous); next.set('modal', 'world-setting-image'); return next;
-                  });
-                }}
-                onEditIdentity={() => {
-                  if (fixtureMode) {
-                    explainFixtureReadOnly();
-                    return;
-                  }
-                  identityMutation.reset();
-                  setIdentityDraft(current => current?.worldSettingId === selectedId ? current : {
-                    worldSettingId: selectedId,
-                    category: detail.category ?? 'RACE',
-                    subjectName: detail.subjectName ?? '',
-                  });
-                  setSearchParams(previous => {
-                    const next = new URLSearchParams(previous);
-                    next.set('modal', 'world-setting-edit');
-                    return next;
-                  });
-                }}
-                onStartAdd={() => {
-                  if (fixtureMode) {
-                    explainFixtureReadOnly();
-                    return;
-                  }
-                  resetPropertyMutations();
-                  setPropertyDraft({
-                    worldSettingId: selectedId!, mode: 'add', scopeName: '', settingName: '', settingValue: '',
-                    initialScopeName: '',
-                    initialSettingName: '', initialSettingValue: '',
-                  });
-                }}
-                onStartEdit={(scopeName, name, value) => {
-                  if (fixtureMode) {
-                    explainFixtureReadOnly();
-                    return;
-                  }
-                  resetPropertyMutations();
-                  setPropertyDraft({
-                    worldSettingId: selectedId!, mode: 'edit', currentScopeName: scopeName ?? undefined, currentSettingName: name,
-                    scopeName: scopeName ?? '',
-                    settingName: name, settingValue: value,
-                    initialScopeName: scopeName ?? '',
-                    initialSettingName: name, initialSettingValue: value,
-                  });
-                }}
-                onDraftChange={setPropertyDraft}
-                onCancelDraft={() => requestPropertyDraftDiscard()}
-                onSaveDraft={saveProperty}
-                onReload={() => void detailQuery.refetch()}
-                onToggleEvidence={(scopeName, name) => {
-                  const key = propertyPathKey(scopeName, name);
-                  const next = expandedEvidence === key ? null : key;
-                  setExpandedEvidence(next);
-                  if (fixture && selectedId) {
-                    fixture.onEvidenceToggle?.({
-                      worldSettingId: selectedId,
-                      subjectName: detail.subjectName ?? '',
-                      scopeName,
-                      settingName: name,
-                      expanded: next === key,
-                    });
-                  }
-                }}
-              />
-            )}
-          </section>
-        </WorldSettingDialog>
-      )}
+      {detailDialog}
 
       {!fixtureMode && modal === 'world-setting-image' && detail && selectedId && (
         <WorldImagePicker key={`${workId}-${selectedId}`} workId={workId} detail={detail}
@@ -1694,22 +1737,8 @@ function WorldSettingDatabaseContent({
           })}
         />
       )}
-      <DiscardChangesDialog
-        open={propertyDraftDiscardRequest !== null}
-        description="지금 이동하면 작성 중인 설정명과 설정값이 저장되지 않습니다."
-        onKeepEditing={() => setPropertyDraftDiscardRequest(null)}
-        onDiscard={discardPropertyDraft}
-      />
-      <style>{`
-        @media (max-width: 900px) {
-          .world-setting-property-editor-fields {
-            grid-template-columns: minmax(0, 1fr) !important;
-          }
-          .world-setting-db-filters {
-            grid-template-columns: minmax(0, 1fr) !important;
-          }
-        }
-      `}</style>
+      {discardDialog}
+      {responsiveStyle}
     </section>
   );
 }
