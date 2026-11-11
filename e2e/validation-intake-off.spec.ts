@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import results from './fixtures/validation/validation-results-v1.json' with { type: 'json' };
-import { authenticate, mockValidationReport, type ReportScenario } from './fixtures/validation/report-mock';
+import { authenticate, EPISODE_ID, findingId, mockValidationReport, type ReportScenario } from './fixtures/validation/report-mock';
 
 test.skip(process.env.VITE_EPISODE_VALIDATION_INTAKE_ENABLED !== 'false',
   'VITE_EPISODE_VALIDATION_INTAKE_ENABLED=false(운영 기본)인 빌드만 검증합니다.');
@@ -29,4 +29,26 @@ test('접수 OFF 빌드는 기존 리포트를 읽게 두되 중단 검사 재�
   await expect(page.getByRole('button', { name: '수정 내용으로 재검수' })).toHaveCount(0);
   await expect(page.getByText(PAUSED).first()).toBeVisible();
   expect(mock.state.requests.filter(request => request.method === 'POST')).toHaveLength(0);
+});
+
+test('접수 OFF 빌드의 리포트 위 원고 고치기는 파일만 바꾸고 창을 닫아 리포트에 머물며 재검수를 접수하지 않는다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const mock = await mockValidationReport(page);
+  await authenticate(page);
+  await page.goto(mock.url(`&branch=SETTING&findingId=${findingId(0)}`));
+  await expect(page.locator('#validation-report-title')).toBeVisible();
+  const before = page.url();
+  await page.getByRole('region', { name: '고치기' }).getByRole('button', { name: '원고 고치기', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '회차 파일 변경', exact: true });
+  await expect(dialog).toContainText('변경한 뒤 오류 리포트에서 수정 내용으로 재검수해 주세요.');
+  await dialog.locator('input[type=file]').setInputFiles({ name: '101-revised.txt', mimeType: 'text/plain', buffer: Buffer.from('고친 101화 원고') });
+  await expect(dialog.getByRole('button', { name: '파일 변경하고 재검수' })).toHaveCount(0);
+  await dialog.getByRole('button', { name: '파일 변경', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  // 같은 리포트에 머물고(recheck 표시 없음) 바뀐 원고로 무효가 된 상태 안내와 점검 안내를 보여 준다.
+  expect(page.url()).toBe(before);
+  await expect(page.getByTestId('validation-fix-announcement')).toHaveText('원고 파일을 바꿨어요.');
+  await expect(page.getByText('원고 또는 비교한 설정이 바뀌었어요. 수정 내용을 반영해 다시 검수해 주세요.').first()).toBeVisible();
+  expect(mock.requestsTo(`/episodes/${EPISODE_ID}/file`, 'PUT')).toHaveLength(1);
+  expect(mock.requestsTo('/rechecks')).toHaveLength(0);
 });

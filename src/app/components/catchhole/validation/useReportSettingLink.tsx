@@ -13,6 +13,7 @@ import type {
   WorldSettingPropertyUpdateRequest,
 } from '../../../api/generated/types.gen';
 import { toApiError } from '../../../lib/api-errors';
+import { EPISODE_VALIDATION_INTAKE_ENABLED } from '../../../lib/validation-feature';
 import { ReportReturnNotice } from './ValidationReturnNotice';
 import {
   CORRECTION_PARAM_KEYS,
@@ -93,6 +94,9 @@ const CONFLICT_COPY = '검수 기준과 지금 저장된 설정이 달라 정정
 const RETIRED_COPY = '이 오류 리포트는 이미 새 검수로 바뀌어 정정으로 연결할 수 없어요. 입력한 내용은 그대로예요. 다시 저장하면 검수 기준과 연결하지 않고 저장해요.';
 const LOST_COPY = '정정 결과를 확인하지 못했어요. 입력한 내용은 그대로예요. 다시 저장하면 같은 요청으로 확인해요.';
 
+type CorrectionTarget = Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>;
+/** 정정이 끝났을 때(연결 성공·기준 연결 없이 저장) 결과를 남기는 방법. 대시보드는 주소에, 오류 리포트는 화면 상태에 남긴다. */
+type FinishCorrection = (result: 'linked' | 'unlinked', receiptId?: string) => void;
 type PendingRequest = { target: string; request: Omit<ValidationCorrectionRequest, 'idempotencyKey'>; key: string };
 /** 정정 요청 결과. `plain`이면 이 정정 문맥에서는 다음 저장부터 기준 연결 없이 일반 저장한다. */
 type Outcome = { receiptId: string } | { tone: Tone; text: string; plain?: boolean; keepRequest?: boolean };
@@ -170,23 +174,23 @@ function modalTarget(context: CorrectionContext | null, searchParams: URLSearchP
 }
 
 /**
- * GH314 A5·A10의 설정 관리 쪽 연결. 리포트 복귀 문맥(`returnTo=validation-report`)과 정정 문맥(`correction*`)을 읽어
- * 화면 위·상세 모달 안의 안내와 캐릭터·세계관 저장 방식을 정한다.
- *
- * 정정은 `POST /{reportId}/corrections` 하나로 실제 설정 편집과 receipt를 함께 저장한다. 일반 저장 뒤 정정을 따로 보내면
+ * 정정 저장(A10). `POST /{reportId}/corrections` 하나로 실제 설정 편집과 receipt를 함께 저장한다. 일반 저장 뒤 정정을 따로 보내면
  * 설정 version과 report가 이미 바뀌어 서버가 항상 거절하므로, 정정 문맥에서는 상세의 저장 버튼이 정정 요청을 보낸다.
  * 409 `VALIDATION_CORRECTION_CONFLICT`면 아무것도 저장되지 않았으므로 입력을 유지하고, 작가가 다시 저장할 때만 기준 연결 없이
- * 일반 저장한 뒤 `저장됐지만 검수 기준 연결을 확인하지 못했어요`를 보여 준다.
+ * 일반 저장한다. 응답을 잃은 정정은 같은 편집을 다시 저장할 때 같은 키·같은 요청으로 보낸다.
+ *
+ * 정정 문맥을 어디서 읽고 결과를 어디에 남길지는 호출하는 쪽이 정한다(#428): 대시보드는 주소의 `correction*`를 읽어 결과를 주소에
+ * 남기고(`useReportSettingLink`), 오류 리포트는 화면 상태로 든 문맥을 넘겨 창을 닫는다(`useInPlaceCorrection`).
  */
-export function useReportSettingLink({ workId, searchParams, setSearchParams }: {
+function useCorrectionSave({ workId, context, onFinish, session = 0 }: {
   workId: string;
-  searchParams: URLSearchParams;
-  setSearchParams: SetURLSearchParams;
+  context: CorrectionContext | null;
+  onFinish: FinishCorrection;
+  /** 같은 문맥이라도 새로 연 창이면 지난 창의 안내·일반 저장 전환을 잇지 않는다. 응답을 잃은 요청(같은 편집 재전송)은 남긴다. */
+  session?: number;
 }) {
   const queryClient = useQueryClient();
-  const reportReturn = readReportReturn(searchParams, workId);
-  const context = reportReturn ? readCorrectionContext(searchParams, reportReturn.reportId) : null;
-  const signature = context ? [context.reportId, context.entryRef, context.targetId, context.currentVersion].join(':') : null;
+  const signature = context ? [session, context.reportId, context.entryRef, context.targetId, context.currentVersion].join(':') : null;
   const mutation = useMutation(correctValidationBaselineSettingMutation());
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [plainFor, setPlainFor] = useState<string | null>(null);
@@ -204,8 +208,6 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
   useEffect(() => { liveSignature.current = signature; });
   const stillHere = (captured: string | null) => mounted.current && captured !== null && liveSignature.current === captured;
 
-  if (!reportReturn) return { notice: null, character: undefined, world: undefined };
-
   const mode: 'link' | 'plain' = signature !== null && plainFor === signature ? 'plain' : 'link';
   const activeFeedback = feedback && feedback.signature === signature ? feedback : null;
   const say = (tone: Tone, text: string) => { if (signature) setFeedback({ signature, tone, text }); };
@@ -218,21 +220,8 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
     },
   });
 
-  /** 정정 결과를 주소에 남긴다. 대상 종류·ID는 상세 모달 안 결과 안내 위치로만 남기고 나머지 정정 요청 키는 지운다. */
-  const finish = (result: 'linked' | 'unlinked', receiptId?: string) => setSearchParams(previous => {
-    const next = new URLSearchParams(previous);
-    for (const key of CORRECTION_PARAM_KEYS) {
-      if (key !== 'correctionSubjectType' && key !== 'correctionTargetId') next.delete(key);
-    }
-    next.set(CORRECTION_RESULT_KEY, result);
-    if (receiptId) next.set(CORRECTION_RECEIPT_KEY, receiptId);
-    // 캐릭터 상세의 편집을 닫는다. 같은 렌더에서 다른 주소 변경과 겹치지 않도록 여기서 함께 처리한다.
-    if (next.get('modal') === 'char-detail') { next.delete('mode'); next.delete('factId'); }
-    return next;
-  }, { replace: true });
-
   /** reportVersion은 판단 저장마다 오르므로 요청 직전의 report 단건 조회 값으로 요청을 만든다. */
-  const prepare = async (current: CorrectionContext, target: Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>): Promise<PendingRequest | Outcome> => {
+  const prepare = async (current: CorrectionContext, target: CorrectionTarget): Promise<PendingRequest | Outcome> => {
     let staging;
     try {
       staging = (await queryClient.fetchQuery({
@@ -258,7 +247,7 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
     };
   };
 
-  const request = async (current: CorrectionContext, target: Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>): Promise<Outcome> => {
+  const request = async (current: CorrectionContext, target: CorrectionTarget): Promise<Outcome> => {
     const retry = pendingRequest.current?.target === JSON.stringify(target) ? pendingRequest.current : null;
     const prepared = retry ?? await prepare(current, target);
     if (!('request' in prepared)) return prepared;
@@ -268,7 +257,7 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
       pendingRequest.current = null;
       void invalidateReport(current.reportId);
       const receiptId = response.data?.correctionId;
-      return receiptId ? { receiptId } : { tone: 'warning', text: '정정 결과를 확인하지 못했어요. 리포트로 돌아가 상태를 확인해 주세요.' };
+      return receiptId ? { receiptId } : { tone: 'warning', text: '정정 결과를 확인하지 못했어요. 오류 리포트에서 상태를 확인해 주세요.' };
     } catch (error) {
       const outcome = failureOutcome(error);
       if (!('receiptId' in outcome) && !outcome.keepRequest) pendingRequest.current = null;
@@ -276,7 +265,7 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
     }
   };
 
-  const send = async (current: CorrectionContext, target: Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>) => {
+  const send = async (current: CorrectionContext, target: CorrectionTarget) => {
     if (pending) return false;
     const captured = signature;
     setFeedback(null);
@@ -284,8 +273,8 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
     try {
       const outcome = await request(current, target);
       if ('receiptId' in outcome) {
-        // 저장은 끝났으므로 true를 돌려주되, 결과 주소는 요청을 시작한 정정 화면에 그대로 있을 때만 남긴다.
-        if (stillHere(captured)) finish('linked', outcome.receiptId);
+        // 저장은 끝났으므로 true를 돌려주되, 결과는 요청을 시작한 정정 화면에 그대로 있을 때만 남긴다.
+        if (stillHere(captured)) onFinish('linked', outcome.receiptId);
         return true;
       }
       if (!stillHere(captured)) return false;
@@ -304,52 +293,121 @@ export function useReportSettingLink({ workId, searchParams, setSearchParams }: 
   const lostCharacterTarget = (current: CorrectionContext, edit: CharacterUpdateRequest) => {
     const lost = pendingRequest.current;
     if (!lost) return null;
-    const target = JSON.parse(lost.target) as Pick<ValidationCorrectionRequest, 'character' | 'worldSetting'>;
+    const target = JSON.parse(lost.target) as CorrectionTarget;
     const character = target.character;
     return character && character.targetId === current.targetId && character.expectedSnapshotVersion === current.currentVersion
       && JSON.stringify(character.edit) === JSON.stringify(edit) ? target : null;
   };
 
-  const target = modalTarget(context, searchParams);
-  const modalNotice = renderNotice({ reportReturn, context, feedback: activeFeedback, searchParams, testId: 'validation-correction-notice' });
   // 일반 저장 성공은 설정 관리의 mutation 콜백에서 오므로 화면을 떠난 뒤에도 불릴 수 있다. 저장을 시작한 정정 화면에서만 결과를 남긴다.
-  const onPlainSaved = () => { if (stillHere(signature)) finish('unlinked'); };
+  const onPlainSaved = () => { if (stillHere(signature)) onFinish('unlinked'); };
   const saveBase = { mode, pending, onPlainSaved };
 
-  const character: CharacterCorrectionBinding | undefined = target?.type === 'CHARACTER' ? {
-    targetId: target.id,
-    notice: modalNotice,
-    save: context?.subjectType === 'CHARACTER' ? {
-      ...saveBase,
-      submit: async (edit, detail) => {
-        const lost = lostCharacterTarget(context, edit);
-        if (lost) return send(context, lost);
-        const slot = characterSlotFor(context, detail, edit);
-        if (typeof slot === 'string') {
-          say('warning', slot);
-          return false;
-        }
-        return send(context, {
-          character: { targetId: context.targetId, expectedSnapshotVersion: context.currentVersion, factType: slot.factType, factKey: slot.factKey, edit },
-        });
-      },
-    } : undefined,
+  const characterSave: CharacterCorrectionBinding['save'] = context?.subjectType === 'CHARACTER' ? {
+    ...saveBase,
+    submit: async (edit, detail) => {
+      const lost = lostCharacterTarget(context, edit);
+      if (lost) return send(context, lost);
+      const slot = characterSlotFor(context, detail, edit);
+      if (typeof slot === 'string') {
+        say('warning', slot);
+        return false;
+      }
+      return send(context, {
+        character: { targetId: context.targetId, expectedSnapshotVersion: context.currentVersion, factType: slot.factType, factKey: slot.factKey, edit },
+      });
+    },
   } : undefined;
 
-  const world: WorldCorrectionBinding | undefined = target?.type === 'WORLD_SETTING' ? {
-    targetId: target.id,
-    notice: modalNotice,
-    path: context?.settingName ? { scopeName: context.scopeName, settingName: context.settingName } : null,
-    save: context?.subjectType === 'WORLD_SETTING' ? {
-      ...saveBase,
-      submit: edit => send(context, {
-        // 세계관은 기준 당시 version을 정정 요청과 편집 요청 모두에 그대로 보낸다.
-        worldSetting: { targetId: context.targetId, expectedVersion: context.currentVersion, edit: { ...edit, version: context.currentVersion } },
-      }),
-    } : undefined,
+  const worldSave: WorldCorrectionBinding['save'] = context?.subjectType === 'WORLD_SETTING' ? {
+    ...saveBase,
+    submit: edit => send(context, {
+      // 세계관은 기준 당시 version을 정정 요청과 편집 요청 모두에 그대로 보낸다.
+      worldSetting: { targetId: context.targetId, expectedVersion: context.currentVersion, edit: { ...edit, version: context.currentVersion } },
+    }),
   } : undefined;
 
-  return { notice: renderNotice({ reportReturn, context, feedback: activeFeedback, searchParams }), character, world };
+  return { feedback: activeFeedback, characterSave, worldSave };
+}
+
+const worldPath = (context: CorrectionContext | null) => (
+  context?.settingName ? { scopeName: context.scopeName, settingName: context.settingName } : null
+);
+
+/**
+ * GH314 A5·A10의 설정 관리 쪽 연결. 리포트 복귀 문맥(`returnTo=validation-report`)과 정정 문맥(`correction*`)을 주소에서 읽어
+ * 화면 위·상세 모달 안의 안내와 캐릭터·세계관 저장 방식을 정한다. 정정 결과는 주소에 남긴다.
+ * #428부터 오류 리포트는 이 주소로 보내지 않고 리포트 위에서 고친다(`useInPlaceCorrection`). 이미 공유된 주소·A5 대상 보기를 위해 유지한다.
+ */
+export function useReportSettingLink({ workId, searchParams, setSearchParams }: {
+  workId: string;
+  searchParams: URLSearchParams;
+  setSearchParams: SetURLSearchParams;
+}) {
+  const reportReturn = readReportReturn(searchParams, workId);
+  const context = reportReturn ? readCorrectionContext(searchParams, reportReturn.reportId) : null;
+  /** 정정 결과를 주소에 남긴다. 대상 종류·ID는 상세 모달 안 결과 안내 위치로만 남기고 나머지 정정 요청 키는 지운다. */
+  const finish: FinishCorrection = (result, receiptId) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    for (const key of CORRECTION_PARAM_KEYS) {
+      if (key !== 'correctionSubjectType' && key !== 'correctionTargetId') next.delete(key);
+    }
+    next.set(CORRECTION_RESULT_KEY, result);
+    if (receiptId) next.set(CORRECTION_RECEIPT_KEY, receiptId);
+    // 캐릭터 상세의 편집을 닫는다. 같은 렌더에서 다른 주소 변경과 겹치지 않도록 여기서 함께 처리한다.
+    if (next.get('modal') === 'char-detail') { next.delete('mode'); next.delete('factId'); }
+    return next;
+  }, { replace: true });
+  const { feedback, characterSave, worldSave } = useCorrectionSave({ workId, context, onFinish: finish });
+
+  if (!reportReturn) return { notice: null, character: undefined, world: undefined };
+
+  const target = modalTarget(context, searchParams);
+  const modalNotice = renderNotice({ reportReturn, context, feedback, searchParams, testId: 'validation-correction-notice' });
+  const character: CharacterCorrectionBinding | undefined = target?.type === 'CHARACTER'
+    ? { targetId: target.id, notice: modalNotice, save: characterSave } : undefined;
+  const world: WorldCorrectionBinding | undefined = target?.type === 'WORLD_SETTING'
+    ? { targetId: target.id, notice: modalNotice, path: worldPath(context), save: worldSave } : undefined;
+
+  return { notice: renderNotice({ reportReturn, context, feedback, searchParams }), character, world };
+}
+
+/** 리포트 위 정정 창 안의 안내. 이미 리포트 위이므로 `오류 리포트로 돌아가기` 링크는 두지 않는다. */
+function renderInPlaceNotice(context: CorrectionContext, feedback: Feedback | null) {
+  const notice = (tone: Tone, title: string, body?: ReactNode) => (
+    <ReportReturnNotice tone={tone} title={title} testId="validation-correction-notice">{body}</ReportReturnNotice>
+  );
+  if (feedback) {
+    const [, title = feedback.text, rest] = /^(.+?[.!?])\s+(.+)$/su.exec(feedback.text) ?? [];
+    return notice(feedback.tone, title, rest ? <p>{rest}</p> : undefined);
+  }
+  return notice('info', '오류 리포트의 검사 기준과 연결해 정정해요.', <>
+    <p>{correctionHint(context)}</p>
+    <p>{EPISODE_VALIDATION_INTAKE_ENABLED
+      ? '리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요. 저장하면 창이 닫히고, 리포트에서 수정 내용으로 재검수할 수 있어요.'
+      : '리포트에서 비교한 값과 지금 저장된 값은 다를 수 있어요. 저장하면 창이 닫혀요.'}</p>
+  </>);
+}
+
+/**
+ * #428 오류 리포트 위에서 연 설정 정정. 정정 문맥은 리포트가 화면 상태로 들고(주소에 `correction*`를 싣지 않는다) 넘기며,
+ * 저장은 대시보드와 같은 정정 저장(`useCorrectionSave`)을 쓴다. 결과는 `onFinish`로 리포트에 돌려준다.
+ */
+export function useInPlaceCorrection({ workId, context, session, onFinish }: {
+  workId: string;
+  context: CorrectionContext | null;
+  /** 창을 열 때마다 바뀌는 번호. */
+  session: number;
+  onFinish: FinishCorrection;
+}) {
+  const { feedback, characterSave, worldSave } = useCorrectionSave({ workId, context, onFinish, session });
+  if (!context) return { character: undefined, world: undefined };
+  const notice = renderInPlaceNotice(context, feedback);
+  const character: CharacterCorrectionBinding | undefined = context.subjectType === 'CHARACTER'
+    ? { targetId: context.targetId, notice, save: characterSave } : undefined;
+  const world: WorldCorrectionBinding | undefined = context.subjectType === 'WORLD_SETTING'
+    ? { targetId: context.targetId, notice, path: worldPath(context), save: worldSave } : undefined;
+  return { character, world };
 }
 
 function correctionHint(context: CorrectionContext) {

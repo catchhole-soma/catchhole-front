@@ -52,17 +52,6 @@ function settingDbUrl(workId: string, type: SubjectType, targetId: string) {
     : `${base}&tab=worldsettings&settingId=${encodeURIComponent(targetId)}`;
 }
 
-/** A9: 같은 episodeId의 기존 파일 교체 모달을 리포트 복귀 문맥과 함께 연다. 회차 번호·제목으로 대상을 고르지 않는다. */
-function episodeReplaceUrl(workId: string, episodeId: string, reportId: string, reportParams: URLSearchParams) {
-  return `/dashboard?workId=${encodeURIComponent(workId)}&nav=manuscripts&modal=episode-replace`
-    + `&episodeId=${encodeURIComponent(episodeId)}&${returnQuery(reportId, reportParams)}`;
-}
-
-/** A9 원고 파일 변경은 현재 결과에서만 기존 수정 화면으로 보낸다. 무효·이전 결과는 episodeId 없이 호출한다. */
-export function reportReplaceUrl(workId: string, reportId: string, episodeId: string | undefined, reportParams: URLSearchParams) {
-  return episodeId ? episodeReplaceUrl(workId, episodeId, reportId, reportParams) : undefined;
-}
-
 export type SubjectLink = { url: string; label: string } | { url: null; lockReason: string };
 
 /**
@@ -129,7 +118,8 @@ export const CORRECTION_PARAM_KEYS: readonly string[] = Object.values(CORRECTION
 export const CORRECTION_RESULT_KEY = 'correctionResult';
 export const CORRECTION_RECEIPT_KEY = 'correctionReceiptId';
 
-export type CorrectionLink = { key: string; label: string; url: string | null; lockReason?: string };
+/** 작가가 고를 저장 설정 하나. 정정 문맥을 만들 수 없으면 context 없이 잠금 사유를 둔다. */
+export type CorrectionChoice = { key: string; label: string } & ({ context: CorrectionContext } | { context: null; lockReason: string });
 
 /** 작가가 고를 저장 설정의 이름. `대상 · 설정명`이며 설정명을 모르면 대상 이름만 쓴다(내부 참조는 쓰지 않는다). */
 function basisLabel(basis: ValidationFindingBasis, detail: ValidationFindingDetailResponse) {
@@ -142,26 +132,26 @@ function basisLabel(basis: ValidationFindingBasis, detail: ValidationFindingDeta
 }
 
 /**
- * A10 `설정 정보 정정` 이동 주소. basis가 여러 개면 작가가 고르고 하나면 그것을 쓴다.
+ * A10 정정할 저장 설정 목록. basis가 여러 개면 작가가 고르고 하나면 그것을 쓴다(#428부터 리포트 위 정정 창의 문맥으로 쓴다).
  * 고정 기준(baselineHash)이 없거나 당시 version이 없는 항목은 정정 요청을 만들 수 없어 잠근다.
+ * 문맥은 대시보드 주소로 받은 정정 문맥과 같은 검증(`readCorrectionContext`)을 거친다.
  */
-export function correctionLinks(
-  workId: string,
+export function correctionChoices(
   reportId: string,
   staging: ValidationStagingResponse | undefined,
   detail: ValidationFindingDetailResponse,
-  reportParams: URLSearchParams,
-): CorrectionLink[] {
+): CorrectionChoice[] {
   const baselineReady = Boolean(staging?.baselineId && staging.baselineRevision != null && staging.baselineHash);
+  const unlinkable = '연결된 저장 설정을 확인할 수 없어 정정으로 연결할 수 없어요.';
   return (detail.basis ?? []).map((basis, index) => {
     const key = `${basis.entryRef ?? index}:${basis.targetId ?? ''}`;
     const label = basisLabel(basis, detail);
     const type = basis.subjectType;
-    if (!baselineReady) return { key, label, url: null, lockReason: '검사 기준을 확인할 수 없어 정정으로 연결할 수 없어요.' };
-    if (basis.currentVersion == null) return { key, label, url: null, lockReason: '검사 당시 설정 버전이 없어 정정으로 연결할 수 없어요.' };
+    if (!baselineReady) return { key, label, context: null, lockReason: '검사 기준을 확인할 수 없어 정정으로 연결할 수 없어요.' };
+    if (basis.currentVersion == null) return { key, label, context: null, lockReason: '검사 당시 설정 버전이 없어 정정으로 연결할 수 없어요.' };
     if (!type || !basis.targetId || !UUID.test(basis.targetId) || !basis.entryRef || !ENTRY_REF.test(basis.entryRef)
       || !basis.entryHash || !HASH.test(basis.entryHash)) {
-      return { key, label, url: null, lockReason: '연결된 저장 설정을 확인할 수 없어 정정으로 연결할 수 없어요.' };
+      return { key, label, context: null, lockReason: unlinkable };
     }
     const params = new URLSearchParams({
       [CORRECTION_PARAMS.baselineId]: staging!.baselineId!,
@@ -181,9 +171,8 @@ export function correctionLinks(
       params.set(CORRECTION_PARAMS.settingName, basis.settingName);
       if (basis.scopeName) params.set(CORRECTION_PARAMS.scopeName, basis.scopeName);
     }
-    // 캐릭터는 기존 상세의 편집 화면을 바로 연다. 세계관은 상세를 열고 해당 설정의 편집을 시작한다.
-    const edit = type === 'CHARACTER' ? '&mode=edit' : '';
-    return { key, label, url: `${settingDbUrl(workId, type, basis.targetId)}${edit}&${returnQuery(reportId, reportParams)}&${params.toString()}` };
+    const context = readCorrectionContext(params, reportId);
+    return context ? { key, label, context } : { key, label, context: null, lockReason: unlinkable };
   });
 }
 
