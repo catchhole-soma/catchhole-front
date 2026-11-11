@@ -35,7 +35,11 @@ export function trackGaPageView(pathname: string): void {
   lastPagePath = pathname;
 
   try {
-    window.gtag?.('event', 'page_view', { page_location: getSafePageLocation() });
+    const pageLocation = getSafePageLocation();
+    // GA4가 스스로 보내는 user_engagement 같은 자동 이벤트는 지정하지 않으면 query가 남은
+    // 실제 주소를 쓸 수 있다. 전역값으로 정제한 주소를 먼저 지정해 모든 이벤트가 같은 주소를 쓰게 한다.
+    window.gtag?.('set', { page_location: pageLocation });
+    window.gtag?.('event', 'page_view', { page_location: pageLocation });
   } catch {
     // Analytics must never interrupt the product flow when GA4 is unavailable.
   }
