@@ -8,7 +8,7 @@
 - 응답의 `manualReviewCount`가 양수이면 검토 이동과 취소만 제공한다. 생성 요청을 보내거나 자동 종료하지 않는다.
 - `activeEarlierAnalysisCount`가 양수이면 앞 회차 분석이 끝나고 필요한 검토를 마칠 때까지 기다리도록 안내한다. 아직 후보가 생성되기 전이어도 처리 중 회차를 건너뛰지 않는다.
 - `ambiguousCharacterCount`, `ambiguousWorldCount` 합계가 양수이면 설정 후보의 개수, 정확도 영향, 종료 범위와 원래 기록 보존을 알린다. 관계 HOLD는 관계도에 표시되지 않으며 다음 회차 분석의 참고로 유지한다고 별도로 안내한다.
-- 설정 후보 종료를 선택한 생성 요청에만 `closeAmbiguousCandidates=true`, `reviewGateRevision=revision`을 전달한다. 관계 HOLD만 남았다면 안내 후 두 필드 없이 생성한다. 동의를 로컬 저장소나 URL에 보관하지 않는다.
+- 설정 후보 종료를 선택한 생성 요청에만 `closeAmbiguousCandidates=true`, `reviewGateRevision=revision`을 전달한다. 관계 HOLD만 남았다면 확인창을 띄우지 않고 두 필드 없이 바로 생성한다. 보류 기록과 다음 회차 참고 동작은 유지한다. 동의를 로컬 저장소나 URL에 보관하지 않는다.
 - `ANALYSIS_MANUAL_REVIEW_REQUIRED`, `ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS`, `ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED`, `ANALYSIS_REVIEW_GATE_CHANGED`에는 최신 상태를 읽고 다시 안내한다. 사용자 확인 뒤 한 번만 다시 생성하며 자동 반복 요청은 하지 않는다.
 - 사전 조회 실패는 확인을 완료한 것으로 보지 않는다. 모든 조건의 최종 판단과 종료·Job 생성의 원자성은 서버가 담당한다.
 
@@ -34,7 +34,7 @@
 | --- | --- |
 | 업로드와 다음 분석 시작 정책 | `gh180EpisodeAutoPolicy` |
 | 직접 검토 차단 · 데스크톱 / 320px | `GdEr9` / `ppbRo` |
-| 애매한 후보 종료 동의 · 데스크톱 / 320px | `p2jEYo` / `IBxSB` |
+| 애매한 후보 종료 동의 · 데스크톱 / 320px | `CP4PZ` / `IBxSB` |
 | 선행 분석 진행 중 | `uEdjR` |
 | 상태 변경 후 재확인 | `mu7CN` |
 | 캐릭터 / 세계관 종료 기록 | `mTPTH` / `hSGSk` |
@@ -47,3 +47,5 @@ Pencil 렌더링과 노드 경계 검사로 텍스트·버튼 배치, 클리핑,
 `e2e/analysis-review-gate.spec.ts`는 직접 검토 차단, 애매 후보 취소/명시적 동의, 상태 변경 후 재동의, 저장된 묶음의 새로고침 복구, 다회차 단일 확인, 후보 없음, 확인 실패, 기술 오류 분리를 검증한다. `e2e/closed-candidate-review.spec.ts`는 두 도메인의 종료 기록·기존 공유 링크·검토 대상 0개 화면의 기록 진입을 검증한다. 기본·전체 집계에서 CLOSED가 빠져도 명시적인 CLOSED 조회의 실제 그룹은 표시하며, 종료를 확정 반영으로 표시하지 않는다.
 
 기존 업로드·진행 상태·새 순차 분석·원고 교체 테스트는 후보가 없는 검사 응답을 명시한다. 2026-11-03 로컬 합성 계정의 실제 로그인, 직접 검토 차단, 경고 취소, 명시적 계속, 종료 기록 공유 링크를 API mock 없이 확인했다. 취소 전후 DB는 같았고, 계속 선택 후 캐릭터·세계관 후보는 같은 종료 요청 ID로 CLOSED가 되면서 원래 내용과 근거를 보존했다. 새 Job 한 건의 PENDING 접수까지 확인했으며 Worker·외부 모델 호출과 분석 완료까지의 실행은 이 브라우저 검증 범위가 아니다. 상세 테스트 결과는 PR에 기록한다.
+
+2026-11-11: 관계 HOLD만 남은 경우 별도 확인창을 제거했다. 단일·다회차 업로드가 종료 동의 필드 없이 생성되는 것을 E2E로 확인하며, 혼합 상태의 설정 후보 동의·직접 검토 차단·진행 중 차단은 유지한다. 디자인의 관계 전용 확인창 `p2jEYo`·`XsoLP`는 숨긴 이전 시안으로 보존한다.

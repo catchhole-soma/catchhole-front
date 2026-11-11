@@ -177,18 +177,19 @@ test('확인할 후보가 없으면 종료 동의 필드를 만들지 않는다'
   expect(state.creates[0]).not.toHaveProperty('reviewGateRevision');
 });
 
-test('관계 보류만 남으면 안내 후 종료 동의 없이 분석하고 다음 회차 참고를 유지한다', async ({ page }) => {
-  const state = await setup(page, { ...clearAnalysisStartCheck, ambiguousRelationshipCount: 3 });
-  await prepare(page);
-  await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
-  const dialog = page.getByRole('dialog', { name: '보류된 관계를 참고하고 계속할까요?' });
-  await expect(dialog).toContainText('관계도에 표시되지 않습니다');
-  await expect(dialog).toContainText('종료하지 않고 다음 회차의 관계 분석에 참고합니다');
-  await dialog.getByRole('button', { name: '계속 분석', exact: true }).click();
-  await expect.poll(() => state.creates.length).toBe(1);
-  expect(state.creates[0]).not.toHaveProperty('closeAmbiguousCandidates');
-  expect(state.creates[0]).not.toHaveProperty('reviewGateRevision');
-});
+for (const multiple of [false, true]) {
+  test(`관계 보류만 남으면 ${multiple ? '다회차' : '단일 회차'} 업로드를 경고·종료 동의 없이 시작한다`, async ({ page }) => {
+    const state = await setup(page, { ...clearAnalysisStartCheck, ambiguousRelationshipCount: 3 });
+    await prepare(page, multiple);
+    await page.getByRole('button', { name: '다음 — 분석 시작' }).click();
+    await expect.poll(() => state.creates.length).toBe(1);
+    await expect(page.getByRole('dialog', { name: '보류된 관계를 참고하고 계속할까요?' })).toHaveCount(0);
+    expect(state.uploads).toBe(1);
+    expect(state.checks).toEqual([multiple ? [11, 12] : [11]]);
+    expect(state.creates[0]).not.toHaveProperty('closeAmbiguousCandidates');
+    expect(state.creates[0]).not.toHaveProperty('reviewGateRevision');
+  });
+}
 
 test('사전 확인 실패는 업로드와 분석을 보내지 않고 입력을 유지한다', async ({ page }) => {
   const state = await setup(page); state.checkFails = true;
