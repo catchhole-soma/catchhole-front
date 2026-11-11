@@ -25,6 +25,7 @@ import { usePublicModalNavigation } from './hooks/usePublicModalNavigation';
 import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
 import { AnalyticsPageView } from './components/analytics/AnalyticsPageView';
+import { FirstAnalysisCompletionReporter } from './components/analytics/FirstAnalysisCompletionReporter';
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -119,6 +120,7 @@ function PrivateRoute() {
   return (
     <>
       <AnalyticsPageView />
+      <FirstAnalysisCompletionReporter />
       <Outlet />
     </>
   );

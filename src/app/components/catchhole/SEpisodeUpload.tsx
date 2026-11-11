@@ -46,6 +46,7 @@ import type {
 import { useAppContext } from '../../context/AppContext';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { useAnalysisJobProgress } from '../../hooks/useAnalysisJobProgress';
+import { recheckFirstAnalysisCompletionReport } from '../../hooks/useFirstAnalysisCompletionReport';
 import { useAnalysisStartGate, type AnalysisStartConsent } from '../../hooks/useAnalysisStartGate';
 import { toApiError } from '../../lib/api-errors';
 import { returnLabelOf } from '../../lib/review-navigation';
@@ -1082,6 +1083,11 @@ function EpisodeUpload() {
   const analysisEpisodeStateChanged = analysisSucceeded
     && progressEpisodes.some(episode => episode.status !== 'ANALYZED');
   const statusQueryFailed = progressQuery.isError;
+
+  // 첫 분석 완료 GA4 보고는 서버가 판정하므로, 화면에서 완료를 본 순간 다시 확인하게 한다(#426).
+  useEffect(() => {
+    if (analysisSucceeded) recheckFirstAnalysisCompletionReport(queryClient);
+  }, [analysisSucceeded, queryClient]);
 
   const worldComparisonSummaryQuery = useQuery({
     ...getWorldSettingCandidateProgressOptions({

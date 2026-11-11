@@ -106,7 +106,7 @@
 
 - Front는 Vercel, Backend·AI·PostgreSQL·Redis는 단일 AWS EC2 배포 정의, 원고는 AWS S3를 사용한다.
 - 코드의 기본 AWS 리전은 `ap-northeast-2`이지만 실제 운영 계정·버킷·백업 리전은 확인해야 한다.
-- Meta Pixel은 NVM-309에서 운영 환경에만 기본 코드를 설치하고 React 경로별 `PageView`와 가입 성공 후 `CompleteRegistration`을 전송한다. GA4는 같은 방식으로 운영 환경에만 `gtag.js`를 설치하고 React 경로별 `page_view`만 전송한다(UTM 외 query 제외, Google 신호·광고 개인화 신호 끔). 측정 ID는 Vercel Production의 `GA_MEASUREMENT_ID`로 주입한다. 가입 완료는 `sign_up`, 공개 데모 완료는 `demo_complete`로 매개변수 없이 전송하고 데모 시작은 `/demo`의 `page_view`로 본다(#425). 첫 분석 완료는 서버의 첫 완료 기록이 필요해 별도 작업(#426)에서 같은 개인정보처리방침 범위 안에 구현한다. GA4 관리 콘솔의 보존 기간·Google 신호·향상된 측정 설정은 코드로 확인할 수 없으므로 아래 검증 항목에서 별도로 확인한다.
+- Meta Pixel은 NVM-309에서 운영 환경에만 기본 코드를 설치하고 React 경로별 `PageView`와 가입 성공 후 `CompleteRegistration`을 전송한다. GA4는 같은 방식으로 운영 환경에만 `gtag.js`를 설치하고 React 경로별 `page_view`만 전송한다(UTM 외 query 제외, Google 신호·광고 개인화 신호 끔). 측정 ID는 Vercel Production의 `GA_MEASUREMENT_ID`로 주입한다. 가입 완료는 `sign_up`, 공개 데모 완료는 `demo_complete`로 매개변수 없이 전송하고 데모 시작은 `/demo`의 `page_view`로 본다(#425). 첫 분석 완료는 `first_analysis_complete`로 매개변수 없이 전송하며, 계정당 한 번만 보내도록 서버의 보고 선점(`first-analysis-completion-reports`)이 `true`를 준 경우에만 보낸다(#426). 회원 ID 등 식별값은 서버 선점에만 쓰고 GA4로 보내지 않는다. GA4 관리 콘솔의 보존 기간·Google 신호·향상된 측정 설정은 코드로 확인할 수 없으므로 아래 검증 항목에서 별도로 확인한다.
 - 개발용 Figma HTML 캡처 외부 스크립트는 운영 산출물에서 제거한다.
 
 ## 구현·배포 검증
