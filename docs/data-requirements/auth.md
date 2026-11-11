@@ -493,7 +493,7 @@ AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에 고�
 | `activeEarlierAnalysisCount` | 앞 회차 분석이 끝나기 전에는 계속 버튼 없이 기다리도록 안내한다. |
 | `manualReviewCount` | 직접 검토 모드 또는 사용자가 수정한 자동 분석 후보 등 직접 검토 대상 수다. 반영·제외를 마치기 전에는 새 분석을 요청하지 않는다. |
 | `ambiguousCharacterCount`·`ambiguousWorldCount` | 정상적인 자동 분석의 애매한 설정 후보만 정확도 영향과 종료 범위를 안내한다. 기술 실패·처리 중 후보로 추측하지 않는다. |
-| `ambiguousRelationshipCount` | 관계도에는 표시하지 않고 다음 회차 분석에 참고할 관계 HOLD 수를 안내한다. 종료 대상에 포함하지 않는다. |
+| `ambiguousRelationshipCount` | 다음 회차 참고로 유지할 관계 HOLD 수다. 이 값만으로 확인창을 띄우지 않으며 종료 대상에 포함하지 않는다. |
 | `revision` | 설정 후보 종료를 선택한 생성 요청에만 `reviewGateRevision`과 `closeAmbiguousCandidates=true`를 전달한다. 관계 HOLD만 남았다면 두 필드 없이 진행한다. |
 
 확인 응답의 필수 수·revision이 없거나 조회가 실패하면 시작을 보류하고 입력을 유지한다. 이 실패를 인증 만료로 바꾸거나 후보 0개로 간주하지 않는다. 인증 오류는 기존 갱신 정책을 따르고, `ANALYSIS_MANUAL_REVIEW_REQUIRED`·`ANALYSIS_PREVIOUS_ANALYSIS_IN_PROGRESS`·`ANALYSIS_REVIEW_ACKNOWLEDGEMENT_REQUIRED`·`ANALYSIS_REVIEW_GATE_CHANGED`의 409는 같은 작품·대상으로 최신 상태를 확인하고 다시 안내한다.

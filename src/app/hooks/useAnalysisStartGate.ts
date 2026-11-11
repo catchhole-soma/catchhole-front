@@ -52,8 +52,9 @@ export function useAnalysisStartGate(workId: string) {
           .some(count => !Number.isSafeInteger(count) || count < 0)) {
         throw new Error('이전 회차의 검토 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
       }
+      // 관계 HOLD는 다음 회차 참고 자료로 유지되므로 사용자 동의를 요구하지 않는다.
       if (summary.activeEarlierAnalysisCount === 0 && summary.manualReviewCount === 0
-        && summary.ambiguousCharacterCount + summary.ambiguousWorldCount + summary.ambiguousRelationshipCount === 0) return {};
+        && summary.ambiguousCharacterCount + summary.ambiguousWorldCount === 0) return {};
       return await new Promise(resolve => {
         pendingChoice.current = resolve;
         setDialog({ summary, changed, workId });
