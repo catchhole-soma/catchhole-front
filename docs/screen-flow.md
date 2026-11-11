@@ -1094,18 +1094,18 @@ flowchart TD
     U -->|"접수 응답 유실·새로고침"| C["getCurrentEpisodeValidation<br/>있으면 리포트, 없으면 접수 다시 시도"]
     C --> R
     L["분석 목록 카드·원고 목록 배지·최근 배치 배너<br/>(reviewStage)"] --> R
-    R -->|"A9 원고 고치기"| M["/dashboard?nav=manuscripts&modal=episode-replace<br/>&episodeId&returnTo=validation-report&reportId…"]
-    M -->|"교체 성공(분석 시작 없음)"| B["오류 리포트로 돌아가기"]
-    R -->|"A10 설정 고치기(여럿이면 고칠 설정 선택)"| S["/dashboard?nav=settingDB&tab=characters<br/>&returnTo=validation-report&reportId…"]
-    S --> B
-    B --> R2["리포트: 무효 · 재검수 필요"]
+    R -->|"A9 원고 고치기(#428: 리포트 위 창)"| M["회차 파일 변경 창<br/>(원고 목록과 같은 창 · staging.episodeId)"]
+    M -->|"교체 성공 · 접수 플래그 OFF(분석 시작 없음)"| R2
+    M -->|"교체 성공 · 접수 플래그 ON"| RS["같은 주소 &recheck=1 (replace)<br/>→ 재검수 한 번 접수 → 검수 로딩창"]
+    R -->|"A10 설정 고치기(#428: 리포트 위 창 · 여럿이면 고칠 설정 선택)"| S["캐릭터 편집 창 / 세계관 상세 창"]
+    S -->|"저장(정정) → 창 닫힘"| R2["리포트: 무효 · 재검수 필요"]
     R2 -->|"A11 확인 뒤 recheckEpisodeValidation"| N["새 reportId의 리포트 (replace)"]
 ```
 
 - 업로드는 화면 진입과 전송 직전에 `getEpisodeValidationEligibility`(episodeId 없음)를 읽는다. 차단이면 `이 회차의 검토와 설정 저장을 마친 뒤 다음 회차를 등록할 수 있어요.`, 검토 중인 회차 번호·단계와 `현재 리포트로 이동`을 보여 주고 세 업로드 방식의 저장을 잠근다. 조회 중·실패는 잠그지 않고 409 `VALIDATION_NEXT_EPISODE_BLOCKED`(error.context)를 같은 안내로 바꾸며 입력·파일을 유지한다.
 - `신규 회차 검수`는 단일 회차에서만 고를 수 있다. 업로드 뒤 설정 추출 Job을 만들지 않고 회차 상세의 원고 hash/key/version으로 검수를 한 번 접수한 뒤 리포트로 replace 이동한다. 주소에는 `validationEpisodeId`·`batchId`만 남겨 새로고침에도 현재 검수만 확인한다. 비교 자료 없음·접수 대상 아님은 서버 사유를 보여 주고 사용자가 고른 경우에만 기존 설정 구축으로 분석한다.
 - 분석 목록 검수 카드, 원고 목록 행 배지, 원고 목록의 최근 배치 배너는 배치 요약·원고 목록의 `reviewStage`만 표시하며 0건·부분 결과·확정 보류·확정·무효 모두 같은 리포트를 연다. 카드마다 상세 조회를 보태지 않는다. 설정 추출 실패 단계만 기존 진행 화면의 `추출 상태 보기`를 함께 둔다.
-- A9 복귀 문맥은 `returnTo=validation-report`, `reportId`, `reportFindingId`·`reportBranch`·`reportJudgment`·`reportOutcome`·`reportPage`이며 식별자·필터 값만 담는다. 교체 성공·취소·실패 모두 `오류 리포트로 돌아가기`를 유지하고 교체 자체는 검사·분석을 시작하지 않는다.
+- A9는 #428(2026-11-11)부터 리포트를 떠나지 않는다. 취소·실패는 창만 닫거나 창 안에 오류와 고른 파일을 남기며 리포트의 선택 항목·필터·페이지를 바꾸지 않는다. 교체 자체는 검사·분석을 시작하지 않는다. #428 전의 복귀 문맥 주소(`/dashboard?nav=manuscripts&modal=episode-replace&episodeId&returnTo=validation-report&reportId&reportFindingId…`, 식별자·필터 값만)는 이미 공유된 링크를 위해 원고 목록이 계속 받고 `오류 리포트로 돌아가기`를 유지한다.
 - A10은 공개 계약에 기준 항목(entryRef·entryHash)과 대상 식별자가 없어 설정 관리로만 이동하고 `저장만으로는 정정이 연결되지 않아요` 안내와 복귀를 제공한다. 정정 receipt(`/corrections`) 연결은 Backend 후속이다. (F3에서 아래 정정 흐름으로 대체)
 - A11은 서버가 `RECHECK`를 허용했거나(무효화된 현재 report) 확정 완료 report의 진단 재검수이고, 회차 자격 조회가 최신 회차라고 확인했을 때만 연다. 확인 영역에서 대상 회차·적용할 변경·`새 결과는 모두 검토 필요로 시작해요`를 보여 준 뒤 요청한다. (F3부터 확정 완료 report도 서버 `RECHECK`로만 연다)
 
@@ -1117,13 +1117,12 @@ Backend B2(catchhole-backend-java#335) 계약을 화면에 연결했다. 생성 
 flowchart TD
     R["/episode-validation-report 상세<br/>basis[] · subject"] -->|"A5 subject.id 있음"| V["/dashboard?nav=settingDB&tab=characters&modal=char-detail&charId<br/>또는 tab=worldsettings&settingId · &reportView=subject"]
     V --> B["오류 리포트로 돌아가기"]
-    R -->|"A10 basis 1개: 바로 · 여러 개: 작가가 고름"| E["캐릭터 상세 편집(mode=edit) 또는 세계관 상세의 해당 설정 수정<br/>&correctionBaselineId·Revision·Hash·EntryRef·EntryHash·TargetId·Version<br/>(+FactType·FactKey / ScopeName·SettingName)"]
-    E -->|"저장 = correctValidationBaselineSetting 하나<br/>(설정 편집 + receipt 한 트랜잭션)"| OK["저장됐어요. 리포트로 돌아가 재검수해 주세요.<br/>&correctionResult=linked&correctionReceiptId"]
+    R -->|"A10 basis 1개: 바로 · 여러 개: 작가가 고름<br/>(#428: 리포트 위 창, 정정 문맥은 화면 상태)"| E["캐릭터 편집 창(CharacterDatabase detailOnly) 또는<br/>세계관 상세 창(WorldSettingDatabase detailOnly)의 해당 설정 수정"]
+    E -->|"저장 = correctValidationBaselineSetting 하나<br/>(설정 편집 + receipt 한 트랜잭션)"| OK["창 닫힘 · 리포트에 저장됐어요. 재검수해 주세요.<br/>리포트 주소 &correctionReceiptId (replace)"]
     E -->|"409 VALIDATION_CORRECTION_CONFLICT<br/>(아무것도 저장 안 됨, 입력 유지)"| P["다시 저장 = 기준 연결 없이 일반 저장"]
-    P --> UN["저장됐지만 검수 기준 연결을 확인하지 못했어요<br/>&correctionResult=unlinked"]
-    OK --> B2["오류 리포트로 돌아가기 (&correctionReceiptId)"]
-    UN --> B
-    B2 --> RC["리포트: 무효 · allowedActions RECHECK"]
+    P --> UN["창 닫힘 · 저장됐지만 검수 기준 연결을 확인하지 못했어요"]
+    OK --> RC["리포트: 무효 · allowedActions RECHECK"]
+    UN --> RC
     RC -->|"A11 recheckEpisodeValidation<br/>+ correctionReceiptId"| N["새 reportId의 리포트 (replace)"]
 ```
 
@@ -1131,7 +1130,7 @@ flowchart TD
 - 필터 막대에 `등급`(impact)·`대상`(subjectType)을 더했다. URL `impact`·`subjectType`, 768px 이하 이름 있는 선택 메뉴, 바꾸면 첫 페이지·선택 해제다. 서버가 오탈자와 대상 없는 항목을 빼므로 `오탈자` 분류에서는 두 필터를 숨기고 주소에서 지운다. 건수는 목록 `totalElements`, 결과 요약은 `/review` 그대로다.
 - A5는 `subject.id`가 있을 때만 상세를 연다. 없으면 `연결된 대상이 없어요.`(대상은 있으나 ID 없음은 `이름이 같은 설정으로 대신 연결하지 않아요.`를 덧붙임)로 잠근다.
 - A10 정정 문맥은 basis와 report 단건 조회 값만 옮긴다(`expectedBaselineHash`는 단건 조회의 `baselineHash`). 요청 직전 report를 다시 읽어 `expectedReportVersion`을 넣는다. 캐릭터는 slot 하나만 바꿀 수 있고(basis의 factType/factKey, 없으면 작가가 바꾼 slot) 이름·역할·첫 등장이나 여러 slot을 바꾸면 요청 전에 안내한다. 세계관은 basis 경로가 있으면 그 설정의 수정을 바로 열고 `expectedVersion`·`edit.version`에 basis version을 쓴다. 응답 유실은 같은 키·같은 요청으로 다시 보내 원래 receipt를 받는다. basis가 없거나 당시 version이 없으면 잠근다.
-- 안내는 설정 관리 위와 해당 상세 모달 안에 함께 보이며 모두 `오류 리포트로 돌아가기`를 둔다. 복귀만으로 재검수하지 않는다.
+- (#428) 리포트 위 정정 창 안 안내는 `오류 리포트의 검사 기준과 연결해 정정해요.`와 정정 결과·거절 사유이며 이미 리포트 위이므로 `오류 리포트로 돌아가기`를 두지 않는다. 저장되면 창을 닫고 리포트 결과 안내(`저장됐어요. 재검수해 주세요.` / `저장됐지만 검수 기준 연결을 확인하지 못했어요.`)와 스크린리더 알림을 보인다. 저장만으로 재검수하지 않는다. #428 전의 대시보드 정정 주소(`returnTo=validation-report&correction*`)는 공유 링크 호환으로 남아 설정 관리 위·상세 모달 안 안내와 `오류 리포트로 돌아가기`, 결과 `correctionResult`를 그대로 쓴다.
 - A11은 `allowedActions`의 `RECHECK`로만 연다(확정 완료 report도 서버가 알려 줄 때만). 409 `VALIDATION_SOURCE_VERSION_CONFLICT`의 `context.reason`이 `BASELINE_FINGERPRINT_REQUIRED|MISMATCH`면 report를 다시 읽고 `검사 기준 식별값이 바뀌어 최신 검수 상태를 다시 확인했어요.`를 보여 주며, context가 없으면 기존 원고 충돌 문구를 유지한다.
 
 ### 2026-10-29 일반 설정의 검증 가능한 인용만 표시
@@ -1193,8 +1192,31 @@ flowchart LR
 - 오류 리포트의 `설정 추출 중`·`설정 추출 실패` 안내 오른쪽 버튼은 staging의 `batchId`·`extractionJobId`로 기존 추출 로딩창을 연다. 로딩창은 `fromReportId`가 있으면 `신규 회차 검수 · 설정 추출`로 표시하고 뒤로 가기는 `오류 리포트로`다. 리포트의 뒤로 가기는 진입한 목록 이름(`returnLabel`)을 따르며 기본은 오류 리포트 목록이다.
 - 검수 접수 뒤에는 바로 리포트로 넘기지 않고 설정 추출 로딩창과 같은 구성(스피너·배경 안내·회차 카드·단계 칩)의 검수 로딩창에 머문다. 단계 칩은 `검수 접수 → 비교 기준 준비 → 원고 색인 → 검사 계획 → 설정 충돌 판정 → 오탈자 확인 → 검사 완료`다. 기준 준비와 검사 완료는 서버 `reviewStage`로 정하고, 서버가 검사 중의 세부 단계를 알려 주지 않으므로 검사 중(VALIDATING)에는 걸린 시간(report별 탭 세션에 처음 본 시각)으로만 칩을 넘기며 `오탈자 확인`에서 멈춘다(표시용, 소유자 결정). 기준 준비·검사 중에는 staging을 5초마다 다시 읽고, URL에는 `validationReportId`만 남겨 새로고침해도 접수를 다시 보내지 않는다. 검사 중에도 찾은 항목을 읽을 수 있어 `오류 리포트 보기`는 접수 뒤 바로 열리며 검사가 끝나면 `오류 리포트에서 검토하기`로 바뀐다. 접수 실패·거절 안내는 기존 화면을 유지한다.
 - 재검수도 같은 로딩창으로 간다(2026-11-04 소유자 피드백). 리포트의 `수정 내용으로 재검수 → 재검수 시작`이 접수되면 새 report ID만 담은 `/episode-upload?workId&validationReportId`로 바꾸고, 로딩창은 `previousReportId`가 있으면 `신규 회차 재검수`로 표시한다.
-- 검수 회차의 원고 교체는 곧 재검수다(소유자 결정). 리포트의 `원고 고치기`나 원고 목록에서 연 검수 회차의 교체 창은 `파일 변경하고 재검수` 하나만 두고, 교체가 끝나면 리포트 주소에 `recheck=1`을 붙여 돌아간다. 리포트의 재검수 패널은 다시 읽은 최신 상태로 같은 확인·요청 경로(원고 버전·기준 식별값·최신 회차 확인)를 한 번만 실행하고 표시를 지운 뒤 로딩창으로 간다. 서버가 재검수를 허용하지 않으면 표시만 지우고 리포트에 머문다. 서버의 파일 교체 API는 여전히 검사를 시작하지 않으며 접수 플래그가 꺼진 빌드는 교체만 한다.
+- 검수 회차의 원고 교체는 곧 재검수다(소유자 결정). 리포트의 `원고 고치기`(#428부터 리포트 위 창)나 원고 목록에서 연 검수 회차의 교체 창은 `파일 변경하고 재검수` 하나만 두고, 교체가 끝나면 리포트 주소에 `recheck=1`을 붙인다(리포트 위 창은 같은 주소에 replace, 원고 목록은 리포트로 돌아간다). 리포트의 재검수 패널은 다시 읽은 최신 상태로 같은 확인·요청 경로(원고 버전·기준 식별값·최신 회차 확인)를 한 번만 실행하고 표시를 지운 뒤 로딩창으로 간다. 서버가 재검수를 허용하지 않으면 표시만 지우고 리포트에 머문다. 서버의 파일 교체 API는 여전히 검사를 시작하지 않으며 접수 플래그가 꺼진 빌드는 교체만 한다.
 
+
+## 오류 리포트 위에서 고치기 — #428 (2026-11-11)
+
+운영 피드백: 오류 리포트 항목 상세의 `원고 고치기`·`설정 고치기`가 원고 목록·설정 관리로 이동해 리포트 맥락을 잃었다. 두 버튼 모두 리포트를 떠나지 않고 그 위에 창을 띄운다.
+
+```mermaid
+flowchart LR
+  R["오류 리포트 항목 상세 · 고치기"] -->|"원고 고치기"| M["회차 파일 변경 창<br/>(EpisodeFileReplaceModal)"]
+  M -->|"교체 · 플래그 ON"| RC["같은 주소 &recheck=1 → 재검수 접수 → 검수 로딩창"]
+  M -->|"교체 · 플래그 OFF"| R2["리포트(무효 상태 안내)"]
+  R -->|"설정 고치기"| S["캐릭터 편집 창 / 세계관 상세 창"]
+  S -->|"정정 저장"| R3["창 닫힘 · 결과 안내 · &correctionReceiptId"]
+  R3 -->|"수정 내용으로 재검수"| RC2["재검수 접수(receipt 포함) → 검수 로딩창"]
+  M -. "취소·실패" .-> R
+  S -. "취소·409·응답 유실(입력 유지)" .-> R
+```
+
+- 원고 고치기: 원고 목록과 같은 교체 창·경고 문구·파일 검증·요청을 공용 `EpisodeFileReplaceModal`로 쓴다. 대상은 리포트의 `staging.episodeId`이며 회차 번호·제목·현재 파일명은 리포트가 이미 읽는 회차 목록에서 표시만 한다. 교체 뒤 같은 범위의 검수·회차 조회를 다시 읽은 다음, 접수 플래그가 켜져 있으면 같은 리포트 주소에 `recheck=1`을 replace로 붙여 재검수 패널의 자동 접수 경로를 그대로 탄다. 꺼져 있으면 창만 닫는다.
+- 설정 고치기: `fix`는 주소가 아니라 여는 동작이다. 저장 설정이 하나면 바로, 여럿이면 `고칠 설정` 목록에서 고른다(잠금 사유는 그대로). 정정 문맥은 리포트의 화면 상태로만 들고 주소에 `correction*`를 싣지 않는다. 캐릭터는 처음부터 편집으로 열고 취소하면 창을 닫는다. 세계관은 목록 없이 상세만 띄우며 리포트 주소의 `page` 등 목록 키를 읽거나 쓰지 않는다. 저장은 대시보드와 같은 정정 저장이며 409·버전 충돌·응답 유실 때 창과 입력을 유지한다. 저장 중에는 창을 닫지 않는다.
+- 결과: 정정이 연결되면 창을 닫고 받은 receipt를 리포트 주소의 기존 `correctionReceiptId`에 남겨 재검수 패널이 바로 쓴다. 리포트에 `저장됐어요. 재검수해 주세요.`(일반 저장이면 `저장됐지만 검수 기준 연결을 확인하지 못했어요.`)를 보이고 스크린리더에 알린다. 결과 안내는 리포트 주소의 `correctionResult`(`linked`·`unlinked`)에도 남겨 새로고침 뒤에도 보이고(스크린리더 알림은 다시 읽지 않는다), 다른 고치기 창을 열면 지운다. 재검수로 지난 결과가 된 리포트에는 보이지 않는다.
+- 접근성: 창은 열 때 안으로 초점을 옮기고 Tab을 가두며 Esc로 닫고(처리 중이면 무시) 닫으면 누른 버튼으로 초점을 돌린다. 고친 결과로 리포트가 무효가 되어 그 버튼이 사라지면 결과 안내·재검수 영역으로 초점을 옮긴다. 320px에서도 저장·파일 변경 버튼에 닿는다.
+- 리포트 위 창에서 열지 않는 기능: 캐릭터의 변화 이력·이미지 변경·삭제(상세 보기 머리), 세계관의 이미지 변경·대상 정보 수정(주소 `modal`로 열리는 창). 원문 근거 보기는 창 안에서 그대로 연다.
+- 호환: #428 전 공유 주소(원고 목록 `modal=episode-replace&returnTo=validation-report…`, 설정 관리 `returnTo=validation-report&correction*`)는 계속 동작한다. `대상 설정 보기`(A5)는 그대로 설정 관리로 이동한다.
 
 ## GH410 캐릭터 누적 기록순·이름/별칭 검색
 
