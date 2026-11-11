@@ -10,6 +10,7 @@ import { toApiError } from '../../lib/api-errors';
 import { notifyAiTokenQuotaExhausted } from '../../lib/ai-token-quota';
 import { analysisSourceLabel, analysisSourceReaderUrl, bookWorkspaceUrl, invalidateAppliedSettings } from '../../lib/analysis-source';
 import { canResumeOrderedAnalysis, isCompletedOrderedAnalysis, isInvalidatedAnalysis } from '../../lib/ordered-analysis';
+import { recheckFirstAnalysisCompletionReport } from '../../hooks/useFirstAnalysisCompletionReport';
 import { combinedSettingReviewProgress } from '../../lib/setting-review-progress';
 import { ActionButton } from './ui-v2/ActionButton';
 import { AnalysisCard, CandidateReviewCount, type AnalysisTone } from './AnalysisCard';
@@ -78,6 +79,8 @@ function useSettingBookAnalysis({ workId, book: suppliedBook, analysisJobId, bat
     if (!complete || !bookJob?.id || appliedId.current === bookJob.id) return;
     appliedId.current = bookJob.id;
     void invalidateAppliedSettings(queryClient, workId);
+    // 설정집 분석도 첫 분석 완료에 포함되므로 완료를 본 순간 서버 판정을 다시 확인한다(#426).
+    recheckFirstAnalysisCompletionReport(queryClient);
   }, [complete, bookJob?.id, queryClient, workId]);
   useEffect(() => {
     if (!interrupted || bookJob?.failureCode !== 'AI_TOKEN_QUOTA_EXHAUSTED' || quotaId.current === bookJob.id) return;

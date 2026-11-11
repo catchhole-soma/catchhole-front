@@ -47,7 +47,7 @@ export function trackGaPageView(pathname: string): void {
 
 // 개인정보처리방침이 허용한 전환 이벤트만 보낸다(docs/legal/README.md). 매개변수는 붙이지 않으며
 // 주소는 마지막 page_view 때 전역으로 지정한 정제 주소를 그대로 쓴다.
-type GaConversionEvent = 'sign_up' | 'demo_complete';
+type GaConversionEvent = 'sign_up' | 'demo_complete' | 'first_analysis_complete';
 
 function trackGaConversion(eventName: GaConversionEvent): void {
   try {
@@ -63,4 +63,14 @@ export function trackGaSignUp(): void {
 
 export function trackGaDemoComplete(): void {
   trackGaConversion('demo_complete');
+}
+
+export function trackGaFirstAnalysisComplete(): void {
+  trackGaConversion('first_analysis_complete');
+}
+
+// 운영 빌드에서만 index.html 스니펫이 gtag를 정의한다. 서버 선점처럼 되돌릴 수 없는 일은
+// 이벤트를 실제로 보낼 수 있을 때만 하도록 이 값으로 확인한다.
+export function isGaAvailable(): boolean {
+  return typeof window.gtag === 'function';
 }
