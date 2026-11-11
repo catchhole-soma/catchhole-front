@@ -1,7 +1,30 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { AlertCircle, Loader2, Trash2 } from 'lucide-react';
 
+/**
+ * 어느 목록의 카드에서 열었는지에 따른 문구. 서버는 업로드 묶음 단위로 목록에서만 숨기므로(#401)
+ * 오류 리포트 목록에서 지우면 같은 묶음의 분석 목록 카드도 사라진다(#429).
+ */
+const COPY = {
+  ANALYSIS: {
+    title: '분석 기록을 삭제할까요?',
+    body: [
+      '분석 목록에서 이 기록이 사라지고 원고 목록 위의 분석 알림도 함께 사라집니다. 분석 결과와 확정한 설정은 그대로 남습니다.',
+      '같은 회차를 다시 분석하면 목록에 다시 나타납니다.',
+    ],
+  },
+  VALIDATION: {
+    title: '오류 리포트 기록을 삭제할까요?',
+    body: [
+      '오류 리포트 목록에서 이 기록이 사라지고, 같은 업로드의 분석 목록 카드와 원고 목록 위 안내도 함께 사라집니다. 오류 검사 결과와 확정한 설정은 그대로 남습니다.',
+      '같은 회차를 다시 검수하면 목록에 다시 나타납니다.',
+    ],
+  },
+} as const;
+
 interface Props {
+  /** 기록 삭제를 연 목록. 분석 목록(`ANALYSIS`)과 오류 리포트 목록(`VALIDATION`)은 같은 요청을 쓰고 문구만 다르다. */
+  kind: keyof typeof COPY;
   /** 카드 제목과 같은 회차 범위(예: `101화`, `96~100화`). */
   label: string;
   submitting: boolean;
@@ -13,10 +36,11 @@ interface Props {
 }
 
 /**
- * 분석 목록 기록 삭제 확인. 서버는 목록에서만 숨기고 분석 결과·확정 설정은 지우지 않는다.
+ * 분석 목록·오류 리포트 목록 기록 삭제 확인. 서버는 목록에서만 숨기고 분석·검사 결과와 확정 설정은 지우지 않는다.
  * Radix Dialog가 초점 가두기·배경 비활성·닫은 뒤 초점 복귀를 맡는다.
  */
-export function AnalysisHistoryDeleteModal({ label, submitting, errorMessage, returnFocusTo, onClose, onDelete }: Props) {
+export function AnalysisHistoryDeleteModal({ kind, label, submitting, errorMessage, returnFocusTo, onClose, onDelete }: Props) {
+  const copy = COPY[kind];
   return (
     <Dialog.Root open onOpenChange={open => { if (!open && !submitting) onClose(); }}>
       <Dialog.Portal>
@@ -29,12 +53,11 @@ export function AnalysisHistoryDeleteModal({ label, submitting, errorMessage, re
           }}>
           <div className="analysis-history-delete__header">
             <span className="analysis-history-delete__icon" aria-hidden="true"><Trash2 size={17} /></span>
-            <Dialog.Title className="analysis-history-delete__title">{label} 분석 기록을 삭제할까요?</Dialog.Title>
+            <Dialog.Title className="analysis-history-delete__title">{label} {copy.title}</Dialog.Title>
           </div>
           <Dialog.Description asChild>
             <div className="analysis-history-delete__body">
-              <p>분석 목록에서 이 기록이 사라지고 원고 목록 위의 분석 알림도 함께 사라집니다. 분석 결과와 확정한 설정은 그대로 남습니다.</p>
-              <p>같은 회차를 다시 분석하면 목록에 다시 나타납니다.</p>
+              {copy.body.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
             </div>
           </Dialog.Description>
           {errorMessage && (
