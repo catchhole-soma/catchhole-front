@@ -628,13 +628,41 @@ test('단일 회차의 잘못된 번호와 이미 있는 번호는 각각의 안
   await expect(next).toBeDisabled();
 });
 
-for (const [code, status] of [['UPLOAD_DOCUMENT_INVALID', 400], ['UPLOAD_CHARACTER_LIMIT_EXCEEDED', 400], ['AUTH_FORBIDDEN', 403]] as const) {
+for (const [code, status] of [['UPLOAD_CHARACTER_LIMIT_EXCEEDED', 400], ['AUTH_FORBIDDEN', 403]] as const) {
   test(`단일 회차의 ${code} 오류는 번호를 입력해도 사라지지 않는다`, async ({ page }) => {
     await openSingleWithDetectFailure(page, code, status);
     await expect(page.getByRole('alert').first()).toContainText('요청을 처리하지 못했습니다.');
     await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
     await page.locator('input[type=number]').fill('11');
     await expect(page.getByRole('alert').first()).toContainText('요청을 처리하지 못했습니다.');
+  });
+}
+
+for (const [code, expected] of [
+  ['UPLOAD_FILE_PARSE_FAILED', '11화.txt: 파일을 읽지 못했습니다. 다른 파일을 선택해주세요.'],
+  ['UPLOAD_DOCUMENT_INVALID', '11화.txt: 요청을 처리하지 못했습니다.'],
+  ['UPLOAD_EPISODE_NO_INVALID', '11화.txt의 회차 번호를 사용할 수 없습니다. 파일명이나 제목의 회차 번호를 1 이상으로 고쳐주세요.'],
+] as const) {
+  test(`단일 회차 감지가 ${code}로 실패하면 파일 칸 아래에 알리고 다시 고를 때까지 막는다`, async ({ page }) => {
+    await openSingleWithDetectFailure(page, code);
+    const area = page.locator('.file-drop-area');
+    await expect(area).toHaveClass(/has-error/);
+    await expect(area).not.toHaveClass(/has-file/);
+    await expect(area.getByRole('alert')).toHaveText(expected);
+    await expect(page.locator('.episode-upload-alert--danger')).toHaveCount(0);
+    await expect(page.getByText(missingSingleGuidance)).toHaveCount(0);
+    await page.locator('input[type=number]').fill('11');
+    await expect(page.getByRole('button', { name: nextButton })).toBeDisabled();
+
+    await page.unroute('**/episodes/detect');
+    await page.route('**/episodes/detect', route => success(route, {
+      uploadType: 'SINGLE_EPISODE', totalUploadCharacters: 10,
+      detectedEpisodes: [{ detectionOrder: 0, sourceFileIndex: 0, episodeNo: 11, numberDetectionStatus: 'DETECTED', title: '열하나', sourceHeading: null, content: '본문', charCount: 2 }],
+    }));
+    await chooseFile(page);
+    await expect(area).toHaveClass(/has-file/);
+    await expect(area).not.toHaveClass(/has-error/);
+    await expect(page.getByRole('button', { name: nextButton })).toBeEnabled();
   });
 }
 
