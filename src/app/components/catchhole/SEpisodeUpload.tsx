@@ -208,6 +208,32 @@ function multiFileDetectionMessage(error: unknown, files: File[], fallback: stri
   }
 }
 
+/**
+ * 단일 회차에서 번호 입력으로 해결되지 않고 파일을 다시 골라야 하는 감지 오류를 파일 칸 아래 문구로 바꾼다.
+ * 해당하지 않으면 null을 돌려 기존 위치(번호 안내·상단 오류)에 맡긴다.
+ */
+function singleFileReselectionMessage(error: unknown, fileName: string): string | null {
+  const apiError = toApiError(error);
+  switch (apiError?.code) {
+    case 'UPLOAD_FILE_PARSE_FAILED':
+    case 'UPLOAD_FILE_READ_FAILED':
+      return `${fileName}: 파일을 읽지 못했습니다. 다른 파일을 선택해주세요.`;
+    case 'UPLOAD_EPISODE_NO_INVALID':
+      return `${fileName}의 회차 번호를 사용할 수 없습니다. 파일명이나 제목의 회차 번호를 1 이상으로 고쳐주세요.`;
+    case 'UPLOAD_SINGLE_EPISODE_COUNT_INVALID':
+    case 'UPLOAD_DOCUMENT_PASSWORD_PROTECTED':
+    case 'UPLOAD_DOCUMENT_VERSION_NOT_SUPPORTED':
+    case 'UPLOAD_DOCUMENT_INVALID':
+    case 'UPLOAD_DOCUMENT_LIMIT_EXCEEDED':
+    case 'UPLOAD_FILE_TYPE_NOT_SUPPORTED':
+    case 'UPLOAD_FILE_TOO_LARGE':
+    case 'UPLOAD_FILE_EMPTY':
+      return `${fileName}: ${apiError.message || '파일을 읽지 못했습니다. 다른 파일을 선택해주세요.'}`;
+    default:
+      return null;
+  }
+}
+
 function requiresBulkFileReselection(error: unknown): boolean {
   switch (toApiError(error)?.code) {
     case 'UPLOAD_EPISODE_NO_DETECTION_FAILED':
@@ -1277,6 +1303,15 @@ function EpisodeUpload() {
       if (nextUploadType === 'SINGLE_EPISODE'
         && (errorCode === 'UPLOAD_EPISODE_NO_DETECTION_FAILED' || errorCode === 'UPLOAD_EPISODE_NO_CONFLICT')) {
         setSingleNumberIssue(errorCode === 'UPLOAD_EPISODE_NO_CONFLICT' ? 'CONFLICT' : 'MISSING');
+        return { episodeConfirmations: [], error };
+      }
+      const singleFileMessage = nextUploadType === 'SINGLE_EPISODE' && sourceEpisodeFiles[0]
+        ? singleFileReselectionMessage(error, sourceEpisodeFiles[0].name)
+        : null;
+      if (singleFileMessage) {
+        // 다회차 단일 파일처럼 선택을 비워, 다른 파일을 고르기 전에는 번호만 넣고 저장할 수 없게 한다.
+        setSingleFile(null);
+        setSingleFileError(singleFileMessage);
         return { episodeConfirmations: [], error };
       }
       const message = errorMessage(error, '회차 표기를 확인하지 못했습니다. 다시 시도해주세요.');
