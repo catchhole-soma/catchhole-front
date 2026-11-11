@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { getGtagEvents, installGtagMock } from './gtag';
 
 const response = (route: Route, data: unknown, status = 200) => route.fulfill({
   status,
@@ -90,6 +91,7 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   let signupBody: Record<string, unknown> | null = null;
 
   await installMetaPixelMock(page);
+  await installGtagMock(page);
 
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
@@ -179,6 +181,7 @@ test('발송·오입력·인증 완료 후 토큰으로 가입하고 민감 토�
   expect((await getMetaPixelCalls(page)).filter(call => (
     call[0] === 'track' && call[1] === 'CompleteRegistration'
   ))).toEqual([['track', 'CompleteRegistration']]);
+  expect(await getGtagEvents(page, 'sign_up')).toEqual([['event', 'sign_up']]);
 });
 
 test('인증된 번호를 변경하면 인증 토큰과 진행 상태를 폐기한다', async ({ page }) => {
@@ -335,6 +338,7 @@ test('Backend가 인증 흐름 만료를 반환하면 진행 상태를 폐기하
 
 test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐기하고 재인증을 요구한다', async ({ page }) => {
   await installMetaPixelMock(page);
+  await installGtagMock(page);
   await page.route('**/api/v1/**', route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -377,4 +381,5 @@ test('회원가입 토큰이 유효하지 않으면 인증 완료 상태를 폐�
   expect((await getMetaPixelCalls(page)).filter(call => (
     call[0] === 'track' && call[1] === 'CompleteRegistration'
   ))).toEqual([]);
+  expect(await getGtagEvents(page, 'sign_up')).toEqual([]);
 });

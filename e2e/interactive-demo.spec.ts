@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { computedContrastRatio } from './contrast';
+import { getGtagEvents, installGtagMock } from './gtag';
 
 const EDITED_WORLD_VALUE = '수호자의 이름이 지워지면 모든 귀환문이 즉시 닫힌다.';
 
@@ -316,6 +317,8 @@ async function completeDemo(page: Page, options: { keyboard?: boolean; mobile?: 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.screenshot({ path: `docs/screens/demo-finish-guide-${mobile ? 'mobile' : 'desktop'}.png`, animations: 'disabled' });
   await checkLayout();
+  // 체험 마치기 전에는 완료 전환을 보내지 않는다(gtag mock이 없으면 항상 빈 목록).
+  expect(await getGtagEvents(page, 'demo_complete')).toEqual([]);
 
   await activate(finishButton, keyboard);
   await expect(page.getByRole('heading', { name: /이제, 작가님의 이야기를 이어가세요/ })).toBeVisible();
@@ -337,9 +340,11 @@ test('비로그인 사용자는 API 호출 없이 안내 시나리오를 완료�
     }
   });
 
+  await installGtagMock(page);
   await page.goto('/demo');
   await completeDemo(page, { keyboard: true });
   expect(renderUpdateWarnings).toEqual([]);
+  expect(await getGtagEvents(page, 'demo_complete')).toEqual([['event', 'demo_complete']]);
 
   await expect(page.getByRole('button', { name: '다시 체험하기' })).toBeVisible();
   await expect(page.locator('.interactive-demo-complete')).toContainText('가상 원고로 진행한 체험이에요. 실제 원고와 계정 정보는 저장되지 않았어요.');
