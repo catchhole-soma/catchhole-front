@@ -356,3 +356,7 @@ SDK 재생성 직후 기준은 241개 파일/245개 진단(기존 WorldSettingDa
 ### 2026-10-30 GH314 업로드·목록·재검수 연결 (F2)
 
 F1 뒤 251개 파일/249개 진단에서 F2 뒤 전체 검사는 262개 파일/252개 진단(같은 기존 WorldSettingDatabase 오류 2개)이다. 새 진단 3개는 모두 `no-high-complexity-react-function` 유지보수 권고로 `ValidationIntakeStatus`(접수 실패 종류별 안내), `ValidationRecheckPanel`(확인 전·확인 중 두 화면), `useValidationRecheck`(서버 허용·최신 회차·응답 유실 분기)에서 나온다. 처음 검사에서 나온 `AnalysisList`·`ValidationReport`의 `no-giant-component`는 검수 카드를 `ValidationBatchCard`로, 재검수 hook 연결을 `ValidationRecheckPanel`로, 수정 이동 주소를 `reportFixLinks`로 옮겨 해소했다. 남은 분기는 서버 응답(`allowedActions`·`reviewStage`·오류 코드)별 문구 선택이라 권한을 화면에서 계산하지 않도록 한곳에 두었다. 진단을 억제하거나 전체 무경고로 해석하지 않는다.
+
+## GH436 작품 표지 (2026-11-12)
+
+lint 오류 0/기존 Fast Refresh 경고 2를 확인했다. Doctor 기존 state-updater 오류 2개(useCandidateSaveTracker, WorldSettingDatabase)와 유지보수 진단은 변경 범위 밖이다. 새 WorkCoverEditor의 임시 decode URL은 try/finally에서 해제되고 미리보기/조회 URL은 effect cleanup에서 해제된다. Doctor가 임시 URL의 finally 해제를 인식하지 못하는 경고는 억제하지 않는다. 시그니처 비교에는 길이 검사를 추가했다. Knip 기존 미사용 파일 3개도 유지하며 전체 무경고/통과로 보고하지 않는다.

@@ -17,21 +17,10 @@ import { useWorks } from '../../hooks/useWorks';
 import type { Work } from '../../lib/worksApi';
 import { WorkCreateModal } from './WorkCreateModal';
 import { WorkDeleteModal } from './WorkDeleteModal';
+import { WorkCoverImage } from './WorkCoverImage';
 import { WorkEditModal } from './WorkEditModal';
 import { PageHeading } from './ui-v2/PageHeading';
 import { WorkspaceTopbar } from './ui-v2/WorkspaceTopbar';
-
-const COVER_GRADIENTS = [
-  'linear-gradient(145deg, #e8f5ff 0%, #cce8ff 52%, #edf9ff 100%)',
-  'linear-gradient(145deg, #edf4ff 0%, #d8e4ff 52%, #f0f4ff 100%)',
-  'linear-gradient(145deg, #eef9f5 0%, #d4f0e5 52%, #f5fbf8 100%)',
-  'linear-gradient(145deg, #f4efff 0%, #e2d8ff 52%, #f8f5ff 100%)',
-] as const;
-
-function coverGradient(workId: string): string {
-  const seed = Array.from(workId).reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  return COVER_GRADIENTS[seed % COVER_GRADIENTS.length];
-}
 
 function WorkCard({
   work,
@@ -85,9 +74,7 @@ function WorkCard({
         disabled={purging}
         className="work-card__select"
       >
-        <div className="work-card__cover" style={{ background: coverGradient(work.id) }}>
-          <BookOpen size={74} />
-        </div>
+        <WorkCoverImage workId={work.id} imageId={work.coverImageId} alt={`${work.title} 표지`} className="work-card__cover" />
         <div className="work-card__body">
           <div className="work-card__title">
             {work.title}
@@ -254,7 +241,6 @@ export default function S0WorkPicker() {
         )}
         {modal === 'work-edit' && targetWork && (
           <WorkEditModal
-            key={targetWork.id}
             work={targetWork}
             onClose={closeModal}
             onUpdated={updatedWork => {
@@ -272,7 +258,6 @@ export default function S0WorkPicker() {
         )}
         {modal === 'work-delete' && targetWork && (
           <WorkDeleteModal
-            key={targetWork.id}
             work={targetWork}
             onClose={closeModal}
             onPurgeStarted={purgingWorkId => {

@@ -1,5 +1,5 @@
 {
-  "version": "2.21",
+  "version": "2.22",
   "children": [
     {
       "type": "frame",
@@ -13565,12 +13565,14 @@
                       "id": "dnyWx",
                       "name": "Character List Header",
                       "width": "fill_container",
+                      "gap": 20,
                       "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "F6hPzX",
                           "name": "Character List Title Group",
+                          "width": "fill_container",
                           "layout": "vertical",
                           "gap": 4,
                           "children": [
@@ -13584,8 +13586,7 @@
                               "fontSize": 16,
                               "fontWeight": "700"
                             }
-                          ],
-                          "width": "fill_container"
+                          ]
                         },
                         {
                           "type": "frame",
@@ -13664,8 +13665,7 @@
                             }
                           ]
                         }
-                      ],
-                      "gap": 20
+                      ]
                     },
                     {
                       "type": "frame",
@@ -257179,7 +257179,7 @@
       "name": "WorkEditModal / 작품 정보 수정 (MVP)",
       "clip": true,
       "width": 1280,
-      "height": 800,
+      "height": 980,
       "fill": "$bg",
       "layout": "none",
       "children": [
@@ -258286,19 +258286,19 @@
           "y": 0,
           "name": "Work Create Modal Dim",
           "width": 1280,
-          "height": 800,
+          "height": 980,
           "fill": "#000000B8"
         },
         {
           "type": "frame",
           "id": "fFnMB",
-          "x": 400,
-          "y": 105,
+          "x": 340,
+          "y": 60,
           "name": "Work Edit Modal",
-          "width": 480,
-          "fill": "#1A1A22",
+          "width": 600,
+          "fill": "#FFFFFF",
           "cornerRadius": 10,
-          "stroke": "#2A2A36",
+          "stroke": "#DFE5EF",
           "strokeWidth": 1,
           "layout": "vertical",
           "gap": 18,
@@ -258340,7 +258340,7 @@
                   "type": "text",
                   "id": "xSS7p",
                   "name": "Work Edit Modal Title",
-                  "fill": "#F0F0F5",
+                  "fill": "#333A46",
                   "content": "작품 정보 수정",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 17,
@@ -258369,8 +258369,8 @@
               "type": "text",
               "id": "u4rvha",
               "name": "Work Edit Modal Description",
-              "fill": "#9090A8",
-              "content": "작품 제목과 장르, 한 줄 소개를 변경합니다.",
+              "fill": "#333A46",
+              "content": "작품 제목과 장르, 소개, 표지 이미지를 변경합니다.",
               "fontFamily": "Noto Sans KR",
               "fontSize": 12,
               "fontWeight": "normal"
@@ -258383,6 +258383,151 @@
               "layout": "vertical",
               "gap": 16,
               "children": [
+                {
+                  "type": "frame",
+                  "id": "hyw3G",
+                  "name": "GH436 표지 이미지 편집",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sQWMN",
+                      "name": "표지 항목",
+                      "fill": "#333A46",
+                      "content": "표지 이미지 (선택)",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PZgw2",
+                      "name": "표지 선택 영역",
+                      "width": "fill_container",
+                      "gap": 18,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "jYUdu",
+                          "name": "표지 미리보기",
+                          "width": 104,
+                          "height": 132,
+                          "fill": "#E3EDFF",
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "whDn0",
+                              "name": "기본 표지",
+                              "width": 46,
+                              "height": 46,
+                              "icon": "book-open",
+                              "library": "lucide",
+                              "fill": "#2E7CF6"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rDJlO",
+                          "name": "표지 안내와 동작",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XTmit",
+                              "name": "파일 제한 안내",
+                              "fill": "#657083",
+                              "content": "JPG·PNG·WebP · 최대 5MB\n가로·세로 각각 4,096px 이하",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Coio2",
+                              "name": "표지 변경 버튼",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Z8UcU3",
+                                  "name": "이미지 선택 버튼",
+                                  "height": 44,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 7,
+                                  "stroke": "#C4CEDD",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    0,
+                                    12
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "LgvT4",
+                                      "name": "이미지 선택",
+                                      "fill": "#333A46",
+                                      "content": "이미지 선택",
+                                      "fontFamily": "Noto Sans KR",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "BfyC2",
+                                  "name": "표지 삭제 버튼",
+                                  "height": 44,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 7,
+                                  "stroke": "#C4CEDD",
+                                  "strokeWidth": 1,
+                                  "padding": [
+                                    0,
+                                    12
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "SXG6K",
+                                      "name": "표지 삭제",
+                                      "fill": "#333A46",
+                                      "content": "표지 삭제",
+                                      "fontFamily": "Noto Sans KR",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "wu54S",
+                              "name": "저장 적용 안내",
+                              "fill": "#657083",
+                              "content": "저장하면 적용됩니다. 취소하면 기존 표지를 유지합니다.",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
                 {
                   "type": "frame",
                   "id": "txy4U",
@@ -258402,7 +258547,7 @@
                           "type": "text",
                           "id": "d1yst",
                           "name": "Work Title Label",
-                          "fill": "#F0F0F5",
+                          "fill": "#333A46",
                           "content": "작품 제목",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
@@ -258412,7 +258557,7 @@
                           "type": "text",
                           "id": "i7Knw",
                           "name": "Work Title Required",
-                          "fill": "#7C5CFC",
+                          "fill": "#333A46",
                           "content": " *",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
@@ -258429,7 +258574,7 @@
                           "type": "text",
                           "id": "mmna6",
                           "name": "Work Title Limit",
-                          "fill": "#55556A",
+                          "fill": "#333A46",
                           "content": "최대 100자",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
@@ -258443,9 +258588,9 @@
                       "name": "Work Title Input / Filled",
                       "width": "fill_container",
                       "height": 40,
-                      "fill": "#0F0F13",
+                      "fill": "#F7F9FC",
                       "cornerRadius": 6,
-                      "stroke": "#2A2A36",
+                      "stroke": "#DFE5EF",
                       "strokeWidth": 1,
                       "padding": [
                         0,
@@ -258457,7 +258602,7 @@
                           "type": "text",
                           "id": "C15Ryq",
                           "name": "Current Work Title",
-                          "fill": "#F0F0F5",
+                          "fill": "#333A46",
                           "content": "빛나는 검사 로맨스",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 12,
@@ -258486,7 +258631,7 @@
                           "type": "text",
                           "id": "Y0JIZ",
                           "name": "Work Description Label",
-                          "fill": "#F0F0F5",
+                          "fill": "#333A46",
                           "content": "작품 설명 (선택)",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
@@ -258503,7 +258648,7 @@
                           "type": "text",
                           "id": "ODInc",
                           "name": "Work Description Limit",
-                          "fill": "#55556A",
+                          "fill": "#333A46",
                           "content": "최대 50자",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
@@ -258517,9 +258662,9 @@
                       "name": "Work Description Input / Filled",
                       "width": "fill_container",
                       "height": 40,
-                      "fill": "#0F0F13",
+                      "fill": "#F7F9FC",
                       "cornerRadius": 6,
-                      "stroke": "#2A2A36",
+                      "stroke": "#DFE5EF",
                       "strokeWidth": 1,
                       "padding": [
                         0,
@@ -258532,7 +258677,7 @@
                           "type": "text",
                           "id": "lfqA8",
                           "name": "Current Work Description",
-                          "fill": "#F0F0F5",
+                          "fill": "#333A46",
                           "content": "검사와 마법이 만나는 로맨스",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 12,
@@ -258542,7 +258687,7 @@
                           "type": "text",
                           "id": "auL1z",
                           "name": "Work Description Count",
-                          "fill": "#55556A",
+                          "fill": "#333A46",
                           "content": "15/50",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 10,
@@ -258570,7 +258715,7 @@
                           "type": "text",
                           "id": "dCm1q",
                           "name": "Work Genre Label",
-                          "fill": "#F0F0F5",
+                          "fill": "#333A46",
                           "content": "작품 장르",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
@@ -258580,7 +258725,7 @@
                           "type": "text",
                           "id": "cOcIY",
                           "name": "Work Genre Required",
-                          "fill": "#7C5CFC",
+                          "fill": "#333A46",
                           "content": " *",
                           "fontFamily": "Noto Sans KR",
                           "fontSize": 11,
@@ -258620,7 +258765,7 @@
                                   "type": "text",
                                   "id": "N1DU0n",
                                   "name": "Genre Label / 판타지",
-                                  "fill": "#7C5CFC",
+                                  "fill": "#333A46",
                                   "content": "판타지",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258634,9 +258779,9 @@
                               "name": "Genre Button / 로맨스",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258645,7 +258790,7 @@
                                   "type": "text",
                                   "id": "XGQ3O",
                                   "name": "Genre Label / 로맨스",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "로맨스",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258659,9 +258804,9 @@
                               "name": "Genre Button / 추리",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258670,7 +258815,7 @@
                                   "type": "text",
                                   "id": "zJ3ro",
                                   "name": "Genre Label / 추리",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "추리",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258684,9 +258829,9 @@
                               "name": "Genre Button / 코미디",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258695,7 +258840,7 @@
                                   "type": "text",
                                   "id": "u98VQ",
                                   "name": "Genre Label / 코미디",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "코미디",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258709,9 +258854,9 @@
                               "name": "Genre Button / SF",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258720,7 +258865,7 @@
                                   "type": "text",
                                   "id": "y5eqi",
                                   "name": "Genre Label / SF",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "SF",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258743,9 +258888,9 @@
                               "name": "Genre Button / 스포츠",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258754,7 +258899,7 @@
                                   "type": "text",
                                   "id": "bq1Vr",
                                   "name": "Genre Label / 스포츠",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "스포츠",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258768,9 +258913,9 @@
                               "name": "Genre Button / 호러",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258779,7 +258924,7 @@
                                   "type": "text",
                                   "id": "cYKgS",
                                   "name": "Genre Label / 호러",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "호러",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258793,9 +258938,9 @@
                               "name": "Genre Button / 무협",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258804,7 +258949,7 @@
                                   "type": "text",
                                   "id": "thev7",
                                   "name": "Genre Label / 무협",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "무협",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258818,9 +258963,9 @@
                               "name": "Genre Button / 일상",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258829,7 +258974,7 @@
                                   "type": "text",
                                   "id": "stHID",
                                   "name": "Genre Label / 일상",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "일상",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258843,9 +258988,9 @@
                               "name": "Genre Button / 기타",
                               "width": "fill_container",
                               "height": 34,
-                              "fill": "#0F0F13",
+                              "fill": "#F7F9FC",
                               "cornerRadius": 6,
-                              "stroke": "#2A2A36",
+                              "stroke": "#DFE5EF",
                               "strokeWidth": 1,
                               "justifyContent": "center",
                               "alignItems": "center",
@@ -258854,7 +258999,7 @@
                                   "type": "text",
                                   "id": "r8gzLy",
                                   "name": "Genre Label / 기타",
-                                  "fill": "#9090A8",
+                                  "fill": "#333A46",
                                   "content": "기타",
                                   "fontFamily": "Noto Sans KR",
                                   "fontSize": 11,
@@ -258890,9 +259035,9 @@
                   "name": "Cancel Work Create Button",
                   "width": 84,
                   "height": 36,
-                  "fill": "#0F0F13",
+                  "fill": "#F7F9FC",
                   "cornerRadius": 6,
-                  "stroke": "#2A2A36",
+                  "stroke": "#DFE5EF",
                   "strokeWidth": 1,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -258901,7 +259046,7 @@
                       "type": "text",
                       "id": "gIqsv",
                       "name": "Cancel Work Create Label",
-                      "fill": "#9090A8",
+                      "fill": "#333A46",
                       "content": "취소",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 12,
@@ -258915,9 +259060,9 @@
                   "name": "Save Work Button",
                   "width": 112,
                   "height": 36,
-                  "fill": "#7C5CFC",
+                  "fill": "#2E7CF6",
                   "cornerRadius": 6,
-                  "stroke": "#7C5CFC",
+                  "stroke": "#2E7CF6",
                   "strokeWidth": 1,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -345254,8 +345399,9 @@
                   "id": "zbSpz",
                   "name": "Character Section Header",
                   "width": "fill_container",
-                  "layout": "horizontal",
+                  "height": 44,
                   "gap": 20,
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
@@ -345265,8 +345411,7 @@
                       "content": "캐릭터 설정",
                       "fontFamily": "$ch-font",
                       "fontSize": 22,
-                      "fontWeight": "800",
-                      "width": "fill_container"
+                      "fontWeight": "800"
                     },
                     {
                       "type": "frame",
@@ -345345,9 +345490,7 @@
                         }
                       ]
                     }
-                  ],
-                  "alignItems": "center",
-                  "height": 44
+                  ]
                 },
                 {
                   "type": "frame",
@@ -346478,8 +346621,7 @@
                           "content": "캐릭터 설정",
                           "fontFamily": "$ch-font",
                           "fontSize": 20,
-                          "fontWeight": "800",
-                          "width": "fill_container"
+                          "fontWeight": "800"
                         },
                         {
                           "type": "frame",
@@ -543253,8 +543395,8 @@
       "x": 107920,
       "y": 5184,
       "name": "Archived / Analysis Start / Desktop / Relationship hold continuation",
-      "enabled": false,
       "context": "2026-11-11 폐기된 확인창: 관계 HOLD만 있으면 창 없이 바로 분석한다. 보류 기록은 다음 회차 참고로 유지한다.",
+      "enabled": false,
       "clip": true,
       "width": 620,
       "height": 600,
@@ -544166,8 +544308,8 @@
       "x": 110780,
       "y": 5184,
       "name": "Archived / Analysis Start / Mobile 320 / Relationship hold continuation",
-      "enabled": false,
       "context": "2026-11-11 폐기된 확인창: 관계 HOLD만 있으면 창 없이 바로 분석한다. 보류 기록은 다음 회차 참고로 유지한다.",
+      "enabled": false,
       "clip": true,
       "width": 320,
       "height": 720,

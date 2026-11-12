@@ -288,3 +288,8 @@ If present, read `./.omd/preferences.md` — pending explicit corrections overri
 - GH416 큰 관계도의 시작은 전체 관계 인물 24명 페이지와 관계 수 내림차순 목록이다. 중심 관계 200개 이상에서는 연결 상대를 최대 20명·200개로 복수 선택하고 `관계 보기`로 적용한다. 한 상대만 200개를 넘으면 단독 선택+200개 페이지를 허용한다. `/explore/selection`과 `/people?focusNodeId=`의 생성 SDK를 사용하며 서버 집계/권한을 프런트가 재구성하지 않는다. 새 URL 키는 `RELATIONSHIP_QUERY_KEYS`의 비공개 처리에도 포함한다. Pencil 동기화는 사용자 승인으로 보류했으며 실제 브라우저 캡처를 검증 근거로 남긴다.
 
 - GH416 가계도는 `/family-tree/explore` 생성 SDK를 사용한다. 200개 이하 전체/201개 이상 인물 선택은 서버 판정을 따르며 전체 유효 가족 기준 목록과 검색을 사용한다. `familySearch`·`familyPage`는 비공개 URL 키이며 같은 세션·작품·과거 포함 조건의 선택 목록에만 placeholder를 허용한다. 선택 전 배치·이미지·주기 조회를 하지 않고 중심 범위의 상한 안내를 유지한다.
+
+## 작품 표지 (GH436)
+
+- `docs/work-cover-images.md`를 따른다. 편집 초안은 저장 전 서버에 보내지 않고, 취소·저장 실패에 기존 표지를 보존한다. 변경 시 생성 SDK의 multipart 원자 저장 API와 coverVersion을 사용한다.
+- 표지는 인증 SDK 바이너리 → 세션별 Query/Blob URL로 표시하고 URL을 해제한다. 공개 URL, 이미지 localStorage 캐시, AI 분석 요청을 추가하지 않는다. 최종 파일 검증은 서버 책임이다.

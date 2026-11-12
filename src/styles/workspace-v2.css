@@ -338,3 +338,29 @@
 .analysis-history-delete__cancel { border: 1px solid var(--ch-border-strong); background: var(--ch-surface); color: var(--ch-ink); }
 .analysis-history-delete__confirm { border: 1px solid var(--ch-danger-ink); background: var(--ch-danger-ink); color: #fff; }
 .analysis-history-delete__actions button:disabled { opacity: .55; cursor: default; }
+
+/* 작품 표지는 기존 목록 카드 높이와 그리드를 유지한다. */
+.work-cover { display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--ch-primary); }
+.work-cover > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.work-cover > svg { opacity: .28; }
+.work-edit-modal { max-height: calc(100dvh - 48px); overflow-y: auto; }
+.work-cover-editor { margin-bottom: 24px; color: var(--ch-text); }
+.work-cover-editor__label { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.work-cover-editor__label span { font-weight: 400; color: var(--ch-text-muted); }
+.work-cover-editor__content { display: flex; align-items: center; gap: 18px; }
+.work-cover-editor__preview { width: 104px; height: 132px; border-radius: 8px; flex-shrink: 0; border: 1px solid var(--ch-border); }
+.work-cover-editor__preview svg { width: 46px; }
+.work-cover-editor__controls { min-width: 0; flex: 1; }
+.work-cover-editor p { margin: 0 0 10px; font-size: 12px; line-height: 1.6; color: var(--ch-text-muted); }
+.work-cover-editor__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.work-cover-editor__actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--ch-border-strong); border-radius: 7px; background: var(--ch-surface); color: var(--ch-text); font: inherit; font-size: 13px; cursor: pointer; }
+.work-cover-editor__actions button:focus-visible { outline: 2px solid var(--ch-primary); outline-offset: 3px; }
+.work-cover-editor__actions button:disabled { cursor: default; opacity: .65; }
+.work-cover-editor p.work-cover-editor__status { margin: 10px 0 0; }
+.work-cover-editor p.work-cover-editor__error { color: var(--ch-danger-ink); margin-top: 8px; }
+@media (max-width: 480px) {
+  .work-cover-editor__content { align-items: flex-start; gap: 12px; }
+  .work-cover-editor__preview { width: 76px; height: 100px; }
+  .work-cover-editor__actions { flex-direction: column; }
+  .work-cover-editor__actions button { width: 100%; }
+}

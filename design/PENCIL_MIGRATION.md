@@ -484,3 +484,7 @@ Front #129의 후속으로 캐릭터 목록 대표 프레임의 제목 아래 �
 ## GH412 (2026-11-10)
 
 큰 관계도 인물 선택·검색·100개 페이지 화면은 DESIGN.md와 브라우저 캡처로 검증했다. Pencil MCP가 다른 작업의 `catchhole-front-hold-carry/design/catchhole.pen`을 활성 문서로 반환하므로 다른 작업을 변경하지 않기 위해 `.pen` 동기화를 대기로 남긴다. 이 기록은 디자인 원본 반영 완료를 뜻하지 않는다.
+
+## GH436 작품 표지 편집
+
+UTFAZ / fFnMB 작품 수정 모달에 표지 선택·미리보기·삭제 및 파일 제한 안내(hyw3G)를 추가했다. Pencil MCP의 활성 문서가 이 작업 공간의 design/catchhole.pen인지 확인한 뒤 저장했다. 구현은 Theme V2 토큰과 320px 세로 버튼/내부 스크롤을 사용하며 실제 화면은 docs/screens/gh436/에 있다. 표지 없음/조회 실패는 기존 카드 그라데이션이다.

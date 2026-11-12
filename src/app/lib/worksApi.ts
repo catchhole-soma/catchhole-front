@@ -7,6 +7,8 @@ export interface Work {
   description: string | null;
   episodeCount: number;
   lifecycleStatus: 'ACTIVE' | 'PURGING';
+  coverImageId?: string | null;
+  coverVersion?: number;
 }
 
 export const DEMO_CHARACTER_STATE_KEY = 'catchhole_demo_character_state';
@@ -25,5 +27,7 @@ export function toWork(res: GeneratedWorkResponse): Work | null {
     description: res.description ?? null,
     episodeCount: res.latestEpisodeNo,
     lifecycleStatus: res.lifecycleStatus,
+    coverImageId: res.coverImageId ?? null,
+    coverVersion: res.coverVersion ?? 0,
   };
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2, Pencil, X } from 'lucide-react';
@@ -7,6 +7,8 @@ import {
   getWorldImageThemeQueryKey,
   getWorldSettingsQueryKey,
   updateWorkMutation,
+  updateWorkCoverMutation,
+  getWorkQueryKey,
 } from '../../api/generated/@tanstack/react-query.gen';
 import { NetworkError, toApiError } from '../../lib/api-errors';
 import { WORK_GENRES, type WorkGenre } from '../../lib/work-contract';
@@ -14,6 +16,9 @@ import {
   toWork,
   type Work,
 } from '../../lib/worksApi';
+import type { UpdateWorkCoverData } from '../../api/generated/types.gen';
+import { privateImageSessionEpoch } from '../../lib/private-image-session';
+import { WorkCoverEditor } from './WorkCoverEditor';
 import { C } from './constants';
 import { WorkGenreSelector } from './WorkGenreSelector';
 
@@ -41,6 +46,12 @@ function validate(title: string, description: string, genre: string): FieldError
 export function WorkEditModal({ work, onClose, onUpdated }: Props) {
   const queryClient = useQueryClient();
   const updateRequest = useMutation(updateWorkMutation());
+  const coverRequest = useMutation(updateWorkCoverMutation());
+  const [coverDraft, setCoverDraft] = useState<File | null>();
+  const [coverVersion] = useState(work.coverVersion ?? 0);
+  const [validatingCover, setValidatingCover] = useState(false);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const [title, setTitle] = useState(work.title);
   const [description, setDescription] = useState(work.description ?? '');
   const [genre, setGenre] = useState<string>(
@@ -48,7 +59,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
   );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const submitting = updateRequest.isPending;
+  const submitting = updateRequest.isPending || coverRequest.isPending;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -60,7 +71,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || validatingCover) return;
 
     const nextErrors = validate(title, description, genre);
     setFieldErrors(nextErrors);
@@ -68,15 +79,29 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      const response = await updateRequest.mutateAsync({
-        path: { workId: work.id },
-        body: {
-          title: title.trim(),
-          genre: genre as WorkGenre,
-          description: description.trim() || null,
-        },
-      });
+      const session = privateImageSessionEpoch();
+      const info = { title: title.trim(), genre: genre as WorkGenre, description: description.trim() || null };
+      const response = coverDraft === undefined
+        ? await updateRequest.mutateAsync({ path: { workId: work.id }, body: info })
+        : await coverRequest.mutateAsync({
+          path: { workId: work.id },
+          body: { metadata: { work: info, action: coverDraft ? 'REPLACE' : 'REMOVE', expectedCoverVersion: coverVersion },
+            ...(coverDraft ? { image: coverDraft } : {}) },
+          bodySerializer: body => {
+            const value = body as NonNullable<UpdateWorkCoverData['body']>;
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(value.metadata)], { type: 'application/json' }), 'metadata.json');
+            if (value.image) form.append('image', value.image);
+            return form;
+          },
+        });
+      if (!active.current || privateImageSessionEpoch() !== session) return;
       const updatedWork: Work | null = response.data ? toWork(response.data) : null;
+      if (!updatedWork) throw new Error('작품 수정 응답에 필수 정보가 없습니다.');
+      queryClient.setQueryData(getMyWorksQueryKey(), (current: { data?: import('../../api/generated/types.gen').WorkResponse[] } | undefined) =>
+        current ? { ...current, data: current.data?.map(item => item.id === work.id ? response.data! : item) } : current);
+      queryClient.setQueryData(getWorkQueryKey({ path: { workId: work.id } }), response);
+      onUpdated(updatedWork);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getWorldImageThemeQueryKey({ path: { workId: work.id } }) }),
@@ -88,9 +113,8 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
         queryClient.invalidateQueries({ queryKey: getWorldSettingsQueryKey({ path: { workId: work.id } }) }),
       ]);
 
-      if (!updatedWork) throw new Error('작품 수정 응답에 필수 정보가 없습니다.');
-      onUpdated(updatedWork);
     } catch (error) {
+      if (!active.current) return;
       const apiError = toApiError(error);
       if (apiError?.code === 'REQUEST_VALIDATION_FAILED') {
         const serverErrors: FieldErrors = {};
@@ -101,10 +125,15 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
         });
         if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
         else setSubmitError('입력한 작품 정보를 다시 확인해 주세요.');
+      } else if (apiError?.code === 'WORK_COVER_INVALID') {
+        setSubmitError('표지를 저장하지 못했습니다. JPG·PNG·WebP, 5MB 이하, 각 변 4,096px 이하인지 확인해 주세요.');
+      } else if (apiError?.code === 'WORK_COVER_CONFLICT') {
+        void queryClient.invalidateQueries({ queryKey: getMyWorksQueryKey() });
+        setSubmitError('다른 곳에서 표지가 변경되었거나 저장 중입니다. 수정 창을 다시 열어 최신 표지를 확인해 주세요.');
       } else if (apiError?.code === 'WORK_NOT_FOUND') {
         setSubmitError('작품을 찾을 수 없습니다. 목록을 새로고침해 주세요.');
       } else if (error instanceof NetworkError) {
-        setSubmitError('서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.');
+        setSubmitError('저장 결과를 확인하지 못했습니다. 네트워크 연결 후 목록에서 저장 여부를 확인해 주세요.');
       } else {
         setSubmitError('작품 정보를 수정하지 못했습니다. 잠시 후 다시 시도해주세요.');
       }
@@ -132,7 +161,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
       }}
     >
       <motion.form
-        className="work-form-modal theme-modal"
+        className="work-form-modal work-edit-modal theme-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-edit-title"
@@ -168,7 +197,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
             <div id="work-edit-title" style={{ color: C.t1, fontSize: 20, fontWeight: 700, marginBottom: 5 }}>
               작품 정보 수정
             </div>
-            <div style={{ color: C.t2, fontSize: 13 }}>작품 제목과 장르, 한 줄 소개를 변경합니다.</div>
+            <div style={{ color: C.t2, fontSize: 13 }}>작품 표지와 제목, 장르, 한 줄 소개를 변경합니다.</div>
           </div>
           <button
             type="button"
@@ -187,6 +216,9 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
             <X size={20} />
           </button>
         </div>
+
+        <WorkCoverEditor workId={work.id} imageId={work.coverImageId} draft={coverDraft}
+          disabled={submitting || validatingCover} onChange={setCoverDraft} onValidating={setValidatingCover} />
 
         <label htmlFor="work-edit-name" style={{ display: 'block', color: C.t2, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
           작품 제목 <span style={{ color: C.danger }}>*</span>
@@ -331,7 +363,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || validatingCover}
             style={{
               minWidth: 104,
               height: 42,
@@ -352,7 +384,7 @@ export function WorkEditModal({ work, onClose, onUpdated }: Props) {
             }}
           >
             {submitting && <Loader2 size={14} className="spin" />}
-            {submitting ? '저장 중...' : '저장'}
+            {submitting ? '저장 중...' : validatingCover ? '이미지 확인 중...' : '저장'}
           </button>
         </div>
       </motion.form>
