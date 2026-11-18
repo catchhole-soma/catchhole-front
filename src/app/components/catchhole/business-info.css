@@ -1,0 +1,4 @@
+.business-info { display: grid; gap: 5px; font-size: 12px; font-style: normal; line-height: 1.7; color: var(--ch-text-muted, #657083); overflow-wrap: anywhere; }
+.business-info a { color: var(--ch-primary-ink, #005aaf); text-decoration: underline; text-underline-offset: 3px; }
+.business-info a:focus-visible { outline: 2px solid var(--ch-primary-ink, #005aaf); outline-offset: 4px; }
+.landing-footer .business-info { max-width: 1200px; margin: 24px auto 0; padding: 0 24px; }

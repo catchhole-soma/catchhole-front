@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router';
 import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
@@ -26,6 +26,10 @@ import { AiTokenQuotaModal } from './components/catchhole/AiTokenQuotaModal';
 import { LegalDocumentPage } from './components/catchhole/LegalDocumentPage';
 import { AnalyticsPageView } from './components/analytics/AnalyticsPageView';
 import { FirstAnalysisCompletionReporter } from './components/analytics/FirstAnalysisCompletionReporter';
+import { AuthorizedPaymentReviewPage, AuthorizedPaymentReviewLegalPage, PaymentReviewRoute } from './components/catchhole/PaymentReviewRoute';
+import { PAYMENT_REVIEW_ENABLED, PAYMENT_REVIEW_PREVIEW_PATH } from './lib/payment-review';
+
+const LocalPaymentReviewPreview = import.meta.env.DEV ? lazy(() => import('./components/catchhole/LocalPaymentReviewPreview')) : null;
 
 type TransitionConfig = {
   initial: HTMLMotionProps<'div'>['initial'];
@@ -242,7 +246,15 @@ function AppRoutes({ location }: { location: ReturnType<typeof useLocation> }) {
       <Route path="/demo" element={<TrackedRoute><SInteractiveDemo /></TrackedRoute>} />
       <Route path="/terms" element={<TrackedRoute><LegalDocumentPage type="terms" /></TrackedRoute>} />
       <Route path="/privacy" element={<TrackedRoute><LegalDocumentPage type="privacy" /></TrackedRoute>} />
+      {LocalPaymentReviewPreview && <Route path={PAYMENT_REVIEW_PREVIEW_PATH} element={<Suspense fallback={null}><LocalPaymentReviewPreview /></Suspense>} />}
+      {LocalPaymentReviewPreview && <Route path={`${PAYMENT_REVIEW_PREVIEW_PATH}/terms`} element={<Suspense fallback={null}><LocalPaymentReviewPreview type="terms" /></Suspense>} />}
+      {LocalPaymentReviewPreview && <Route path={`${PAYMENT_REVIEW_PREVIEW_PATH}/privacy`} element={<Suspense fallback={null}><LocalPaymentReviewPreview type="privacy" /></Suspense>} />}
       <Route element={<PrivateRoute />}>
+        {PAYMENT_REVIEW_ENABLED && <Route element={<PaymentReviewRoute />}>
+          <Route path="/billing" element={<AuthorizedPaymentReviewPage />} />
+          <Route path="/billing/terms" element={<AuthorizedPaymentReviewLegalPage type="terms" />} />
+          <Route path="/billing/privacy" element={<AuthorizedPaymentReviewLegalPage type="privacy" />} />
+        </Route>}
         <Route path="/works" element={<S0WorkPicker />} />
         <Route path="/dashboard" element={<S1Dashboard />} />
         <Route path="/editor" element={<S2Editor />} />

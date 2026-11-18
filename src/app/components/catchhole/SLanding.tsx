@@ -18,6 +18,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { usePublicModalNavigation } from '../../hooks/usePublicModalNavigation';
 import { ActionButton } from './ui-v2/ActionButton';
 import { ProductBrand } from './ui-v2/ProductBrand';
+import { BusinessInfo } from './BusinessInfo';
 import { SurfaceCard } from './ui-v2/SurfaceCard';
 import { LandingProductDemo } from './LandingProductDemo';
 import './landing-v2.css';
@@ -353,6 +354,7 @@ export default function SLanding() {
             <span>© 2026 CatchHole</span>
           </div>
         </div>
+        <BusinessInfo />
       </footer>
     </div>
   );
