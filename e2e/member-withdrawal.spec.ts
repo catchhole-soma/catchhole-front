@@ -98,7 +98,8 @@ test('사용자 정보와 키보드 메뉴를 제공하고 202 응답 뒤에만 
 
   const logoutItem = page.getByRole('menuitem', { name: '로그아웃' });
   const withdrawalItem = page.getByRole('menuitem', { name: '회원 탈퇴' });
-  await expect(logoutItem).toBeFocused();
+  await expect(logoutItem).toBeVisible();
+  await expect(page.getByRole('menuitem').first()).toBeFocused();
   await page.keyboard.press('End');
   await expect(withdrawalItem).toBeFocused();
   await page.keyboard.press('Enter');
