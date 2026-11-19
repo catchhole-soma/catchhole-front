@@ -11,7 +11,8 @@ export default defineConfig(base, {
     url: `http://localhost:${port}`,
     reuseExistingServer: false,
     env: {
-      VITE_PAYMENT_REVIEW_ENABLED: 'true',
+      // Exercise the production default without a Vercel environment override.
+      VITE_PAYMENT_REVIEW_ENABLED: '',
       VITE_PORTONE_TEST_STORE_ID: 'store-e2e',
       VITE_PORTONE_TEST_CHANNEL_KEY: 'channel-key-e2e',
     },

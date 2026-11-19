@@ -7,7 +7,8 @@ export const TOP_UP_PRODUCTS = [
   { id: 'double', name: '더블 충전권', amount: 4900, quantity: '800만 캐치홀 토큰', estimatedEpisodes: '30~60', multiplier: 2 },
 ] as const;
 export type TopUpProduct = typeof TOP_UP_PRODUCTS[number];
-export const PAYMENT_REVIEW_ENABLED = import.meta.env.VITE_PAYMENT_REVIEW_ENABLED === 'true';
+// The backend allowlist controls visibility. This optional flag only disables the UI.
+export const PAYMENT_REVIEW_ENABLED = import.meta.env.VITE_PAYMENT_REVIEW_ENABLED !== 'false';
 export const PAYMENT_REVIEW_PREVIEW_PATH = '/dev/payment-review';
 
 export function getLocalPaymentReviewConfig() {
