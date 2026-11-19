@@ -202,6 +202,7 @@ export async function installReviewFlowMock(page: Page, options: { abortFirstApp
     const workPath = `/api/v1/works/${WORK_ID}`;
 
     if (path.endsWith('/auth/me')) return ok({ id: 211, email: 'review-flow@example.test', displayName: '측정 작가', role: 'AUTHOR', status: 'ACTIVE' });
+    if (method === 'GET' && path.endsWith('/payment-reviews/access')) return ok({ allowed: false });
     if (path === workPath && method === 'GET') return ok({ id: WORK_ID, title: '측정용 합성 작품', genre: '판타지', lifecycleStatus: 'ACTIVE' });
     if (path === `${workPath}/world-image-theme` && method === 'GET') return ok({ theme: 'fantasy', defaults: {}, overview: {} });
 
