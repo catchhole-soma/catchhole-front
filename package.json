@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test:e2e": "playwright test",
+    "test:e2e:payment": "playwright test --config playwright.payment.config.ts",
     "test:relationship-partial-live": "node scripts/verify-relationship-partial-live.mjs",
     "typecheck": "tsc --noEmit",
     "doctor": "react-doctor --scope full --dead-code --no-supply-chain --no-score --blocking none --yes",
@@ -20,6 +21,7 @@
     "compare:relationships": "tsx scripts/compare-episode-relationship-layout.ts"
   },
   "dependencies": {
+    "@portone/browser-sdk": "^0.1.13",
     "@radix-ui/react-dialog": "1.1.6",
     "@tanstack/react-query": "5.101.3",
     "@xyflow/react": "12.12.0",

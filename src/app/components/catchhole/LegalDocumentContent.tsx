@@ -61,11 +61,17 @@ export function LegalDocumentContent({ compact = false, document }: LegalDocumen
         <span>문서 버전 {document.documentVersion ?? '확인 중'}</span>
         <span>{formatEffectiveDate(document.effectiveDate)}</span>
       </div>
-      <div className="legal-document-markdown">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
-          {document.contentMarkdown ?? ''}
-        </ReactMarkdown>
-      </div>
+      <LegalDocumentMarkdown content={document.contentMarkdown ?? ''} />
     </article>
+  );
+}
+
+export function LegalDocumentMarkdown({ content }: { content: string }) {
+  return (
+    <div className="legal-document-markdown">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }

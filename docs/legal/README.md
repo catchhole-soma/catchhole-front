@@ -1,6 +1,10 @@
 # CatchHole 법률 문서 운영 기준
 
-이 디렉터리의 Markdown은 CatchHole 법률 문서의 작성·리뷰 원문이다. 실행 시에는 Backend의 `legal_documents`에 게시된 동일 원문을 API로 조회해 표시하며 Front에 약관 문장을 하드코딩하지 않는다.
+## GH441 유료 사용량 구매조건 초안
+
+[`paid-usage-conditions.draft.ko.md`](paid-usage-conditions.draft.ko.md)는 출시 전 검토 원문이다. 고객 화면에는 구매조건 본문만 표시하고 개발 상태 설명은 이 문서에서 관리한다. 화면의 초안 표기를 제거해도 아직 게시본은 아니며, 시행일·문서 ID를 임의 부여하지 않는다. 기존 게시본과 회원가입 동의는 유지한다. 유료 서비스용 개정 원문은 [`terms-of-service.paid.draft.ko.md`](terms-of-service.paid.draft.ko.md), [`privacy-policy.paid.draft.ko.md`](privacy-policy.paid.draft.ko.md)에 별도로 준비했다. 허용된 심사 계정의 `/billing/terms`, `/billing/privacy`는 Backend 보호 API의 원문을 사용한다. 개발 전용 `/dev/payment-review/terms`, `/dev/payment-review/privacy`에서는 같은 원문의 로컬 사본을 렌더링하며 가짜 문서 ID·버전·시행일은 표시하지 않는다. 실제 `/terms`, `/privacy`와 가입 동의는 계속 Backend API를 사용한다. 게시와 판매 전 구현 확인은 [배포 준비 절차](../payment-release-readiness.md)를 따른다. [남은 준비](../payment-review.md).
+
+이 디렉터리의 Markdown은 CatchHole 법률 문서의 작성·리뷰 원문이다. 일반 공개·가입 화면에서는 Backend의 `legal_documents`에 게시된 동일 원문을 API로 조회해 표시하며 Front에 약관 문장을 하드코딩하지 않는다.
 
 - GitHub: [catchhole-backend-java #136](https://github.com/catchhole-soma/catchhole-backend-java/issues/136)
 - Jira: [NVM-303](https://aiswmproject.atlassian.net/browse/NVM-303)
@@ -16,7 +20,7 @@
 
 - [`terms-of-service.ko.md`](./terms-of-service.ko.md)와 [`privacy-policy.ko.md`](./privacy-policy.ko.md)는 `2026-08-24` `PUBLISHED` 원문이다.
 - 기존 회원가입 화면의 `2026-08-23` 간략 문구는 당시 동의 이력을 보존하기 위해 `RETIRED` 문서로 저장한다.
-- 새 문서는 이번 배포에서 `DRAFT`를 거치지 않고 바로 `PUBLISHED`로 등록한다. 이후 편집에는 `DRAFT → PUBLISHED → RETIRED` 수명주기를 사용할 수 있다.
+- 2026-08-24 최초 게시 때는 `DRAFT`를 거치지 않고 `PUBLISHED`로 등록했다. 이후 개정은 `DRAFT → PUBLISHED → RETIRED` 수명주기를 따른다. GH441 개정안은 아직 파일로만 준비했으며 DB 게시·동의 기록 변경은 하지 않았다.
 - 버전은 시행일 기준 `YYYY-MM-DD` 형식이며 같은 날 다시 게시하면 `YYYY-MM-DD.2`, `.3`처럼 순번을 붙인다. 게시된 행의 원문은 제자리에서 수정하지 않는다.
 - 회원가입 화면은 API로 받은 원문을 실제 렌더링하고, 가입 요청에 사용자가 확인한 `termsDocumentId`와 `privacyPolicyDocumentId`를 보낸다.
 - Backend는 두 ID가 가입 시점의 현재 게시본인지 같은 트랜잭션에서 검증하고 정확한 문서 FK·종류·버전·행위·서버 기록 시각을 `member_legal_records`에 저장한다.

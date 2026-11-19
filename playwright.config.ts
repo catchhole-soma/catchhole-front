@@ -4,6 +4,7 @@ const port = Number(process.env.CATCHHOLE_E2E_PORT ?? 3000);
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: '**/payment-review*.spec.ts', // Dedicated config always uses non-live channel fixtures.
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,

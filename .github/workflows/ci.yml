@@ -28,6 +28,8 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Verify payment review flow (PG network mocked)
+        run: npm run test:e2e:payment -- --workers=2
       - name: Verify explicit relationship workspace disable
         run: npm run test:e2e -- e2e/relationship-feature-off.spec.ts --workers=2
         env:

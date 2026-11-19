@@ -1,15 +1,17 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { LogOut, UserRoundX } from 'lucide-react';
+import { CreditCard, LogOut, UserRoundX } from 'lucide-react';
 import { useAppNavigate } from '../../hooks/useAppNavigate';
 import { getMeOptions, logoutMutation } from '../../api/generated/@tanstack/react-query.gen';
 import { clearAuthSession } from '../../lib/auth';
 import { MemberWithdrawalModal } from './MemberWithdrawalModal';
 import { FeedbackDialog } from './FeedbackDialog';
+import { usePaymentReviewAccess } from '../../hooks/usePaymentReviewAccess';
 
 export function UserMenu({ feedbackPromptAllowed = false }: { feedbackPromptAllowed?: boolean }) {
   const navigate = useAppNavigate();
+  const { allowed: paymentReviewAllowed } = usePaymentReviewAccess();
   const queryClient = useQueryClient();
   const reduceMotion = useReducedMotion();
   const logoutRequest = useMutation(logoutMutation());
@@ -156,8 +158,16 @@ export function UserMenu({ feedbackPromptAllowed = false }: { feedbackPromptAllo
                 </span>
               </div>
               <div className="user-menu__divider" role="separator" />
+              {paymentReviewAllowed && (
+                <button ref={firstMenuItemRef} type="button" className="user-menu__item" role="menuitem" onClick={() => {
+                  setMenuOpen(false);
+                  navigate('/billing', 'dissolve');
+                }}>
+                  <CreditCard size={18} /> 사용량 충전
+                </button>
+              )}
               <button
-                ref={firstMenuItemRef}
+                ref={paymentReviewAllowed ? undefined : firstMenuItemRef}
                 type="button"
                 className="user-menu__item"
                 role="menuitem"

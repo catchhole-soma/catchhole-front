@@ -537,3 +537,9 @@ AI 원고 처리와 GA4·Meta 자동 수집은 개인정보처리방침에 고�
 ## 작품 표지 인증 경계 (GH436)
 
 표지 조회/저장은 기존 accessToken 인증과 작품 소유권을 사용한다. GET 바이너리도 생성 SDK를 통하며 공개 URL을 사용하지 않는다. Blob URL/Query는 인증 세대에 묶고 계정 변경·로그아웃 후 이전 이미지를 표시하지 않는다. 새 브라우저 로그인 시 coverImageId로 다시 조회한다. [작품 표지](../work-cover-images.md)를 따른다.
+
+## GH441 심사 계정 인증 경계
+
+`/billing`, `/billing/terms`, `/billing/privacy`는 프론트 플래그와 기존 PrivateRoute에 더해 서버의 `GET /payment-reviews/access` 및 보호된 `GET /payment-reviews/page`를 확인한다. 서버가 활성화하고 회원 번호를 허용 목록에 넣은 계정만 접근한다. 일반 계정·조회 실패·누락 필드는 닫히며 관리자 역할은 자동 허용하지 않는다.
+
+두 Query는 기존 인증 세대에 묶어 로그아웃·계정 변경 후 이전 결과를 폐기한다. 결제창 직전 `page`를 캐시 없이 재조회하고 완료 뒤 인증 세대를 비교한다. `/dev/payment-review`는 DEV 전용 정적 미리보기이며 운영 빌드에 없다. 기존 `auth/me`, `/terms`, `/privacy`, 가입 동의/버전 변경 계약은 유지한다. 심사용 일반 계정은 실제 가입 정책으로 별도 준비하며 자동 생성하지 않는다. 구매 확인 체크는 메모리뿐이며 법적 동의 기록이나 실제 지급 구현으로 간주하지 않는다. [전체 계약](../payment-review.md), [계정 준비와 배포](../payment-release-readiness.md).
